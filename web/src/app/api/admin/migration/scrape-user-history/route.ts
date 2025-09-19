@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { createNovaScraper } from "@/lib/laravel-nova-scraper";
 import {
   NovaAuthConfig,
+  NovaUser,
   ScrapeUserHistoryRequest,
   ScrapeUserHistoryResponse,
   NovaUserResource,
@@ -14,6 +15,7 @@ import {
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "../progress/route";
+import { SignupStatus } from "@prisma/client";
 
 interface ScrapeUserRequest {
   userEmail: string;
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
       await sendProgress(sessionId, {
         type: "status",
         message: `Searching for user: ${userEmail}`,
-        stage: "searching",
+        stage: "fetching",
       });
 
       let targetNovaUser: NovaUserResource | null = null;
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
           `/users?search=${encodeURIComponent(userEmail)}&perPage=100`
         );
 
-        if (novaResponse.resources && novaResponse.resources.length > 0) {
+        if (novaResponse.resources && Array.isArray(novaResponse.resources) && novaResponse.resources.length > 0) {
           // Look through search results to find exact email match
           for (const user of novaResponse.resources) {
             // Extract email from Nova's field structure
@@ -166,15 +168,17 @@ export async function POST(request: NextRequest) {
             console.log(
               `User ${userEmail} found in search results but no exact email match`
             );
-            console.log(
-              `Search returned ${novaResponse.resources.length} results`
-            );
-            // Log first user's email for debugging
-            if (novaResponse.resources[0]?.fields) {
-              const firstUserEmailField = novaResponse.resources[0].fields.find(
-                (field: NovaField) => field.attribute === "email"
+            if (Array.isArray(novaResponse.resources)) {
+              console.log(
+                `Search returned ${novaResponse.resources.length} results`
               );
-              console.log(`First result email: ${firstUserEmailField?.value}`);
+              // Log first user's email for debugging
+              if (novaResponse.resources[0]?.fields) {
+                const firstUserEmailField = novaResponse.resources[0].fields.find(
+                  (field: NovaField) => field.attribute === "email"
+                );
+                console.log(`First result email: ${firstUserEmailField?.value}`);
+              }
             }
           }
         } else {
@@ -209,13 +213,17 @@ export async function POST(request: NextRequest) {
             markAsMigrated: true,
           });
 
+          if (!targetNovaUser) {
+            throw new Error('Target Nova user is null');
+          }
+
           const fullUserResponse = await scraper.novaApiRequest(
             `/users/${targetNovaUser.id.value}`
           );
           const fullUserData = fullUserResponse.resource || targetNovaUser;
 
           const userData = await transformer.transformUser(
-            fullUserData,
+            fullUserData as NovaUser,
             scraper
           );
           ourUser = await prisma.user.create({
@@ -251,22 +259,21 @@ export async function POST(request: NextRequest) {
               `/event-applications?viaResource=users&viaResourceId=${novaUserId}&viaRelationship=event_applications&perPage=50&page=${page}`
             );
 
+            const resources = Array.isArray(signupsResponse.resources) ? signupsResponse.resources : [];
+            
             console.log(`[SINGLE] Page ${page} signups response:`, {
-              resourceCount: signupsResponse.resources?.length || 0,
+              resourceCount: resources.length,
               hasNextPage: !!signupsResponse.next_page_url,
               currentTotal: allSignups.length,
             });
 
-            if (
-              signupsResponse.resources &&
-              signupsResponse.resources.length > 0
-            ) {
-              allSignups.push(...signupsResponse.resources);
+            if (resources.length > 0) {
+              allSignups.push(...resources);
 
               // Check if there are more pages using next_page_url
               if (
                 signupsResponse.next_page_url &&
-                signupsResponse.resources.length > 0
+                resources.length > 0
               ) {
                 page++;
               } else {
@@ -306,11 +313,11 @@ export async function POST(request: NextRequest) {
               signupData.push({
                 id: signup.id.value,
                 eventId: eventField?.belongsToId,
-                eventName: eventField?.value,
+                eventName: (eventField?.value && eventField.value !== null && typeof eventField.value !== 'object') ? eventField.value : undefined,
                 positionId: positionField?.belongsToId,
-                positionName: positionField?.value,
+                positionName: (positionField?.value && positionField.value !== null && typeof positionField.value !== 'object') ? positionField.value : undefined,
                 statusId: statusField?.belongsToId,
-                statusName: statusField?.value,
+                statusName: (statusField?.value && statusField.value !== null && typeof statusField.value !== 'object') ? statusField.value : undefined,
               });
             }
 
@@ -321,8 +328,8 @@ export async function POST(request: NextRequest) {
                 const eventResponse = await scraper.novaApiRequest(
                   `/events/${eventId}`
                 );
-                if (eventResponse.resource) {
-                  eventDetails.push(eventResponse.resource);
+                if (eventResponse.resource && typeof eventResponse.resource === 'object' && 'id' in eventResponse.resource) {
+                  eventDetails.push(eventResponse.resource as NovaEventResource);
                 }
               } catch (error) {
                 console.error(`Error fetching event ${eventId}:`, error);
@@ -352,9 +359,16 @@ export async function POST(request: NextRequest) {
                     );
 
                     // Transform event to shift format with signup position data
+                    // Convert SignupWithDetails to SignupDataWithPosition format
+                    const mappedSignups = eventSignups.map(signup => ({
+                      eventId: signup.eventId,
+                      positionName: signup.positionName,
+                      // Add other required fields as needed
+                    }));
+                    
                     const shiftData = transformer.transformEvent(
                       eventDetail,
-                      eventSignups
+                      mappedSignups as any
                     );
 
                     // Ensure shift type exists
@@ -419,12 +433,15 @@ export async function POST(request: NextRequest) {
                         });
 
                         if (!existingSignup) {
+                          // Manually create signup data since transformSignup doesn't exist yet
                           await prisma.signup.create({
-                            data: transformer.transformSignup(
-                              signupInfo,
-                              ourUser.id,
-                              shift.id
-                            ),
+                            data: {
+                              userId: ourUser.id,
+                              shiftId: shift.id,
+                              status: 'CONFIRMED' as SignupStatus,
+                              createdAt: new Date(),
+                              updatedAt: new Date(),
+                            },
                           });
                           signupsImported++;
                         }

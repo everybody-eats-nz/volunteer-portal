@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { createNovaScraper } from "@/lib/laravel-nova-scraper";
-import { NovaAuthConfig, NovaUser, NovaUserResource, NovaLegacyUser } from "@/types/nova-migration";
+import { NovaAuthConfig, NovaUser, NovaUserResource, NovaLegacyUser, NovaUserLegacy } from "@/types/nova-migration";
 
 interface PreviewRequest {
   novaConfig: {
@@ -89,14 +89,14 @@ export async function POST(request: NextRequest) {
           
           if ('fields' in novaUser && novaUser.fields) {
             // New Nova field structure
-            const novaUserResource = novaUser as NovaUserResource;
+            const novaUserResource = novaUser as unknown as NovaUserResource;
             userEmail = novaUserResource.fields.find(f => f.attribute === 'email')?.value as string;
             userName = novaUserResource.fields.find(f => f.attribute === 'name')?.value as string;
             firstName = novaUserResource.fields.find(f => f.attribute === 'first_name')?.value as string;
             lastName = novaUserResource.fields.find(f => f.attribute === 'last_name')?.value as string;
           } else {
             // Legacy flat structure
-            const legacyUser = novaUser as NovaLegacyUser;
+            const legacyUser = novaUser as NovaUserLegacy;
             userEmail = legacyUser.email;
             userName = legacyUser.name;
             firstName = legacyUser.first_name;
@@ -107,12 +107,15 @@ export async function POST(request: NextRequest) {
             (firstName && lastName ? `${firstName} ${lastName}` : 'Unknown User');
 
           if (!userEmail) {
+            let userId = 'unknown';
+            if ('fields' in novaUser && novaUser.id && typeof novaUser.id === 'object' && 'value' in novaUser.id) {
+              userId = (novaUser.id as any).value.toString();
+            } else if ('id' in novaUser && typeof novaUser.id === 'number') {
+              userId = novaUser.id.toString();
+            }
+            
             invalidUsers.push({
-              id: ('id' in novaUser && typeof novaUser.id === 'object' && 'value' in novaUser.id) 
-                ? novaUser.id.value.toString() 
-                : ('id' in novaUser && typeof novaUser.id === 'number') 
-                  ? novaUser.id.toString() 
-                  : 'unknown',
+              id: userId,
               email: 'No email',
               name: displayName,
               firstName,
@@ -128,12 +131,15 @@ export async function POST(request: NextRequest) {
             select: { id: true, email: true, name: true }
           });
 
+          let userId = 'unknown';
+          if ('fields' in novaUser && novaUser.id && typeof novaUser.id === 'object' && 'value' in novaUser.id) {
+            userId = (novaUser.id as any).value.toString();
+          } else if ('id' in novaUser && typeof novaUser.id === 'number') {
+            userId = novaUser.id.toString();
+          }
+
           const previewUser: PreviewUser = {
-            id: ('id' in novaUser && typeof novaUser.id === 'object' && 'value' in novaUser.id) 
-              ? novaUser.id.value.toString() 
-              : ('id' in novaUser && typeof novaUser.id === 'number') 
-                ? novaUser.id.toString() 
-                : 'unknown',
+            id: userId,
             email: userEmail,
             name: displayName,
             firstName,

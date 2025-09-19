@@ -331,7 +331,11 @@ export class LaravelNovaScraper {
 
     const jsonResponse = await response.json();
     
-    return jsonResponse;
+    if (typeof jsonResponse === 'object' && jsonResponse !== null) {
+      return jsonResponse as Record<string, unknown>;
+    }
+    
+    return {};
   }
 
   /**

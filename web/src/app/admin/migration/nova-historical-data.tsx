@@ -69,7 +69,7 @@ export function NovaHistoricalData() {
     email: "",
     password: "",
   });
-  
+
   const [searchEmail, setSearchEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDryRun, setIsDryRun] = useState(true);
@@ -77,7 +77,9 @@ export function NovaHistoricalData() {
   const [scrapeResults, setScrapeResults] = useState<ScrapeResult[]>([]);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
-  const [selectedResult, setSelectedResult] = useState<ScrapeResult | null>(null);
+  const [selectedResult, setSelectedResult] = useState<ScrapeResult | null>(
+    null
+  );
 
   // Load migrated users on component mount
   useEffect(() => {
@@ -109,7 +111,7 @@ export function NovaHistoricalData() {
     }
 
     setIsLoading(true);
-    
+
     try {
       const response = await fetch("/api/admin/migration/scrape-user-history", {
         method: "POST",
@@ -128,7 +130,7 @@ export function NovaHistoricalData() {
       });
 
       const result = await response.json();
-      
+
       if (response.ok) {
         const scrapeResult: ScrapeResult = {
           userEmail,
@@ -143,7 +145,7 @@ export function NovaHistoricalData() {
           timestamp: new Date().toISOString(),
         };
 
-        setScrapeResults(prev => [scrapeResult, ...prev]);
+        setScrapeResults((prev) => [scrapeResult, ...prev]);
         setSelectedResult(scrapeResult);
         setShowResultDialog(true);
 
@@ -151,16 +153,24 @@ export function NovaHistoricalData() {
           toast.warning(`User ${userEmail} not found in Nova system`);
         } else if (result.success) {
           if (isDryRun) {
-            toast.success(`Dry run completed for ${userEmail}. Found ${result.shiftsFound} shifts and ${result.signupsFound} signups.`);
+            toast.success(
+              `Dry run completed for ${userEmail}. Found ${result.shiftsFound} shifts and ${result.signupsFound} signups.`
+            );
           } else {
-            toast.success(`Historical data imported for ${userEmail}. Created ${result.shiftsImported} shifts and ${result.signupsImported} signups.`);
+            toast.success(
+              `Historical data imported for ${userEmail}. Created ${result.shiftsImported} shifts and ${result.signupsImported} signups.`
+            );
             // Reload migrated users if we created a new user
             if (result.userCreated) {
               loadMigratedUsers();
             }
           }
         } else {
-          toast.error(`Failed to scrape data for ${userEmail}: ${result.errors.join(", ")}`);
+          toast.error(
+            `Failed to scrape data for ${userEmail}: ${result.errors.join(
+              ", "
+            )}`
+          );
         }
       } else {
         toast.error(`Error: ${result.error || "Unknown error occurred"}`);
@@ -180,7 +190,7 @@ export function NovaHistoricalData() {
     }
 
     setIsLoading(true);
-    
+
     try {
       // Test with a dry run for a dummy email
       const response = await fetch("/api/admin/migration/scrape-user-history", {
@@ -238,8 +248,9 @@ export function NovaHistoricalData() {
             Nova Historical Data Scraper
           </CardTitle>
           <CardDescription>
-            Scrape historical shift data from the Laravel Nova backend for individual users during migration.
-            This will preserve their shift history and signup records.
+            Scrape historical shift data from the Laravel Nova backend for
+            individual users during migration. This will preserve their shift
+            history and signup records.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -248,9 +259,11 @@ export function NovaHistoricalData() {
               <Checkbox
                 id="dry-run"
                 checked={isDryRun}
-                onCheckedChange={setIsDryRun}
+                onCheckedChange={(checked) => setIsDryRun(!!checked)}
               />
-              <Label htmlFor="dry-run">Dry Run (test only, no data changes)</Label>
+              <Label htmlFor="dry-run">
+                Dry Run (test only, no data changes)
+              </Label>
             </div>
             <Button
               variant="outline"
@@ -265,11 +278,9 @@ export function NovaHistoricalData() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {isDryRun ? (
-                "Dry run mode is enabled. This will test the scraping process without making any database changes."
-              ) : (
-                "Live mode is enabled. This will import historical data into the database."
-              )}
+              {isDryRun
+                ? "Dry run mode is enabled. This will test the scraping process without making any database changes."
+                : "Live mode is enabled. This will import historical data into the database."}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -340,7 +351,9 @@ export function NovaHistoricalData() {
                       {user.firstName} {user.lastName} ({user.email})
                     </span>
                     {user.registrationCompleted && (
-                      <Badge variant="default" className="text-xs">Registered</Badge>
+                      <Badge variant="default" className="text-xs">
+                        Registered
+                      </Badge>
                     )}
                   </div>
                   <Button
@@ -391,9 +404,14 @@ export function NovaHistoricalData() {
                     <div className="text-sm text-muted-foreground">
                       {result.userFound ? (
                         <>
-                          {result.shiftsFound} shifts, {result.signupsFound} signups
+                          {result.shiftsFound} shifts, {result.signupsFound}{" "}
+                          signups
                           {!isDryRun && result.success && (
-                            <> → {result.shiftsImported} imported, {result.signupsImported} signups</>
+                            <>
+                              {" "}
+                              → {result.shiftsImported} imported,{" "}
+                              {result.signupsImported} signups
+                            </>
                           )}
                         </>
                       ) : (
@@ -414,10 +432,15 @@ export function NovaHistoricalData() {
       )}
 
       {/* Nova Configuration Dialog */}
-      <ResponsiveDialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
+      <ResponsiveDialog
+        open={showConfigDialog}
+        onOpenChange={setShowConfigDialog}
+      >
         <ResponsiveDialogContent>
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Configure Nova Connection</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>
+              Configure Nova Connection
+            </ResponsiveDialogTitle>
             <ResponsiveDialogDescription>
               Enter the connection details for your Laravel Nova backend.
             </ResponsiveDialogDescription>
@@ -429,7 +452,12 @@ export function NovaHistoricalData() {
                 id="nova-url"
                 placeholder="https://app.everybodyeats.nz"
                 value={novaConfig.baseUrl}
-                onChange={(e) => setNovaConfig(prev => ({ ...prev, baseUrl: e.target.value }))}
+                onChange={(e) =>
+                  setNovaConfig((prev) => ({
+                    ...prev,
+                    baseUrl: e.target.value,
+                  }))
+                }
               />
             </div>
             <div>
@@ -439,7 +467,9 @@ export function NovaHistoricalData() {
                 type="email"
                 placeholder="admin@example.com"
                 value={novaConfig.email}
-                onChange={(e) => setNovaConfig(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setNovaConfig((prev) => ({ ...prev, email: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -449,7 +479,12 @@ export function NovaHistoricalData() {
                 type="password"
                 placeholder="Password"
                 value={novaConfig.password}
-                onChange={(e) => setNovaConfig(prev => ({ ...prev, password: e.target.value }))}
+                onChange={(e) =>
+                  setNovaConfig((prev) => ({
+                    ...prev,
+                    password: e.target.value,
+                  }))
+                }
               />
             </div>
             <div className="flex gap-2">
@@ -477,7 +512,10 @@ export function NovaHistoricalData() {
       </ResponsiveDialog>
 
       {/* Result Details Dialog */}
-      <ResponsiveDialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+      <ResponsiveDialog
+        open={showResultDialog}
+        onOpenChange={setShowResultDialog}
+      >
         <ResponsiveDialogContent>
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>
@@ -496,15 +534,21 @@ export function NovaHistoricalData() {
                 </div>
                 <div>
                   <div className="text-sm font-medium">Timestamp</div>
-                  <div className="text-sm">{formatTimestamp(selectedResult.timestamp)}</div>
+                  <div className="text-sm">
+                    {formatTimestamp(selectedResult.timestamp)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm font-medium">User Found</div>
-                  <div className="text-sm">{selectedResult.userFound ? "Yes" : "No"}</div>
+                  <div className="text-sm">
+                    {selectedResult.userFound ? "Yes" : "No"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm font-medium">User Created</div>
-                  <div className="text-sm">{selectedResult.userCreated ? "Yes" : "No"}</div>
+                  <div className="text-sm">
+                    {selectedResult.userCreated ? "Yes" : "No"}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm font-medium">Shifts Found</div>
@@ -520,21 +564,27 @@ export function NovaHistoricalData() {
                 </div>
                 <div>
                   <div className="text-sm font-medium">Signups Imported</div>
-                  <div className="text-sm">{selectedResult.signupsImported}</div>
+                  <div className="text-sm">
+                    {selectedResult.signupsImported}
+                  </div>
                 </div>
               </div>
-              
+
               {selectedResult.errors.length > 0 && (
                 <div>
-                  <div className="text-sm font-medium text-destructive mb-2">Errors</div>
+                  <div className="text-sm font-medium text-destructive mb-2">
+                    Errors
+                  </div>
                   <div className="text-sm space-y-1">
                     {selectedResult.errors.map((error, index) => (
-                      <div key={index} className="text-destructive">{error}</div>
+                      <div key={index} className="text-destructive">
+                        {error}
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
-              
+
               <Button
                 variant="outline"
                 onClick={() => setShowResultDialog(false)}

@@ -82,10 +82,11 @@ export function sendProgress(sessionId: string, data: Partial<MigrationProgressE
     console.log(`[SSE-ROUTE] Found controller, sending data:`, data.message || data.type);
     
     // Store progress data
-    progressData.set(sessionId, {
+    const progressEvent: MigrationProgressEvent = {
       ...data,
       timestamp: new Date().toISOString()
-    });
+    } as MigrationProgressEvent;
+    progressData.set(sessionId, progressEvent);
     
     try {
       // Send data to SSE stream
@@ -120,10 +121,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Store progress and attempt to send to connected clients
-    progressData.set(sessionId, {
+    const progressEvent: MigrationProgressEvent = {
       ...data,
       timestamp: new Date().toISOString()
-    });
+    } as MigrationProgressEvent;
+    progressData.set(sessionId, progressEvent);
 
     return new Response("OK", { status: 200 });
 

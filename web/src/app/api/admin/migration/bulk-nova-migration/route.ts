@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { createNovaScraper } from "@/lib/laravel-nova-scraper";
 import {
   NovaAuthConfig,
+  NovaUser,
   NovaUserResource,
+  NovaUserLegacy,
+  NovaShiftSignupResource,
+  NovaEventResource,
   BulkMigrationRequest,
   BulkMigrationResponse,
   NovaField,
@@ -17,6 +21,21 @@ import { sendProgress as sendProgressUpdate } from "../progress/route";
 import { randomBytes } from "crypto";
 
 // Types are now imported from @/types/nova-migration
+
+// Helper function to extract user data from NovaUser union type
+function extractUserData(novaUser: NovaUser): { email?: string; id: number } {
+  // Check if it's a NovaUserResource (has fields property)
+  if ('fields' in novaUser && Array.isArray(novaUser.fields)) {
+    const userResource = novaUser as NovaUserResource;
+    const emailField = userResource.fields.find((f) => f.attribute === 'email');
+    const userEmail = typeof emailField?.value === 'string' ? emailField.value : undefined;
+    return { email: userEmail, id: userResource.id.value };
+  }
+  
+  // Otherwise it's a legacy user
+  const legacyUser = novaUser as NovaUserLegacy;
+  return { email: legacyUser.email, id: legacyUser.id };
+}
 
 // Helper function to send progress updates
 async function sendProgress(sessionId: string | undefined, data: Partial<MigrationProgressEvent>) {
@@ -132,12 +151,11 @@ export async function POST(request: NextRequest) {
             response.usersProcessed++;
 
             // Extract email from Nova user structure
-            const novaUserResource = novaUser as NovaUserResource;
-            const emailField = novaUserResource.fields?.find((f) => f.attribute === 'email');
-            const userEmail = emailField?.value;
+            const userData = extractUserData(novaUser);
+            const userEmail = userData.email;
 
             if (!userEmail) {
-              response.errors.push(`User ${novaUserResource.id.value} has no email address`);
+              response.errors.push(`User ${userData.id} has no email address`);
               continue;
             }
 
@@ -167,7 +185,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Fetch full user details to get all fields including approved_at
-            const userId = novaUserResource.id.value;
+            const userId = userData.id;
             
             await sendProgress(sessionId, {
               type: 'status',
@@ -176,23 +194,27 @@ export async function POST(request: NextRequest) {
             });
             
             const fullUserResponse = await scraper.novaApiRequest(`/users/${userId}`);
-            const fullUserData = fullUserResponse.resource || novaUser;
+            const fullUserData = fullUserResponse.resource || fullUserResponse.data || novaUser;
+            
+            // Ensure we have valid user data
+            if (!fullUserData || (typeof fullUserData === 'object' && Object.keys(fullUserData).length === 0)) {
+              throw new Error(`No valid user data found for user ${userId}`);
+            }
             
             // Create user in our system (pass scraper for photo downloads) or simulate
-            const userData = await transformer.transformUser(fullUserData, scraper);
+            const transformedUserData = await transformer.transformUser(fullUserData as NovaUser, scraper);
             let newUser;
             
             if (dryRun) {
               // In dry run, just simulate user creation with fake ID
               newUser = { 
-                id: `dry-run-${Date.now()}-${randomBytes(8).toString('hex')}`, 
-                email: userData.email,
-                ...userData 
+                ...transformedUserData,
+                id: `dry-run-${Date.now()}-${randomBytes(8).toString('hex')}`
               };
               console.log(`[BULK] [DRY RUN] Would create user: ${newUser.email}`);
             } else {
               newUser = await prisma.user.create({
-                data: userData,
+                data: transformedUserData,
               });
               console.log(`[BULK] Created user: ${newUser.email}`);
             }
@@ -202,7 +224,7 @@ export async function POST(request: NextRequest) {
             // Step 3: Import historical data if requested
             if (includeHistoricalData) {
               try {
-                const novaUserId = novaUserResource.id.value;
+                const novaUserId = userData.id;
                 
                 await sendProgress(sessionId, {
                   type: 'status',
@@ -211,7 +233,7 @@ export async function POST(request: NextRequest) {
                 });
                 
                 // Get user's event applications with pagination
-                const allSignups: NovaUserResource[] = [];
+                const allSignups: NovaShiftSignupResource[] = [];
                 let page = 1;
                 let hasMorePages = true;
 
@@ -222,12 +244,12 @@ export async function POST(request: NextRequest) {
                   );
 
                   console.log(`[BULK] Page ${page} signups response:`, {
-                    resourceCount: signupsResponse.resources?.length || 0,
+                    resourceCount: Array.isArray(signupsResponse.resources) ? signupsResponse.resources.length : 0,
                     hasNextPage: !!signupsResponse.next_page_url,
                     currentTotal: allSignups.length
                   });
 
-                  if (signupsResponse.resources && signupsResponse.resources.length > 0) {
+                  if (signupsResponse.resources && Array.isArray(signupsResponse.resources) && signupsResponse.resources.length > 0) {
                     allSignups.push(...signupsResponse.resources);
                     
                     // Check if there are more pages using next_page_url
@@ -288,7 +310,7 @@ export async function POST(request: NextRequest) {
 
                       // Get event details
                       const eventResponse = await scraper.novaApiRequest(`/events/${eventId}`);
-                      if (eventResponse.resource) {
+                      if (eventResponse.resource && typeof eventResponse.resource === 'object' && Object.keys(eventResponse.resource).length > 0) {
                         // Get signups for this event to determine position/shift type
                         const eventSignups = allSignups.filter((s: NovaUserResource) => {
                           const eventField = s.fields.find((f: NovaField) => f.attribute === 'event');
@@ -301,7 +323,7 @@ export async function POST(request: NextRequest) {
                         }));
 
                         // Transform event to shift with signup position data
-                        const shiftData = transformer.transformEvent(eventResponse.resource, signupData);
+                        const shiftData = transformer.transformEvent(eventResponse.resource as NovaEventResource, signupData);
                         
                         // Create or find shift type (or simulate in dry run)
                         let shiftType;
@@ -338,11 +360,12 @@ export async function POST(request: NextRequest) {
                           }
                           noteParts.push(`Nova ID: ${eventId}`);
                           
+                          const { notes: _, ...shiftDataWithoutNotes } = shiftData;
                           shift = {
                             id: `dry-run-shift-${eventId}`,
                             shiftTypeId: shiftType.id,
                             notes: noteParts.join(' • '),
-                            ...shiftData,
+                            ...shiftDataWithoutNotes,
                           };
                           shiftsImported++;
                         } else {
@@ -427,9 +450,8 @@ export async function POST(request: NextRequest) {
             }
 
           } catch (error) {
-            const novaUserResource = novaUser as NovaUserResource;
-            const emailField = novaUserResource.fields?.find((f) => f.attribute === 'email');
-            const userEmail = emailField?.value || 'unknown';
+            const userData = extractUserData(novaUser);
+            const userEmail = userData.email || 'unknown';
             response.errors.push(`Error processing user ${userEmail}: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
         }

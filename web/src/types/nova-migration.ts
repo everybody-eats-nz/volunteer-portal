@@ -92,6 +92,13 @@ export interface NovaUserLegacy {
 }
 
 /**
+ * Legacy Nova user structure (direct database format)
+ */
+export interface NovaLegacyUser extends NovaUser {
+  // Legacy users may have additional fields
+}
+
+/**
  * Nova user resource structure (Nova API format)
  */
 export interface NovaUserResource extends NovaResource {
@@ -663,21 +670,3 @@ export interface MigrationErrorDetails {
 // EXPORTS
 // ==============================================================================
 
-export type {
-  // Re-export key types for convenience
-  NovaField,
-  NovaResource,
-  NovaPaginatedResponse,
-  NovaUser,
-  NovaEvent,
-  NovaShiftSignup,
-  ScrapedData,
-  TransformationOptions,
-  TransformationResult,
-  BulkMigrationRequest,
-  BulkMigrationResponse,
-  MigrationProgressEvent,
-  TransformedUserData,
-  TransformedShiftData,
-  TransformedSignupData,
-};

@@ -29,6 +29,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MigrationProgressEvent, ProgressUpdateEvent, StatusProgressEvent } from "@/types/nova-migration";
 
 interface NovaConfig {
   baseUrl: string;
@@ -57,6 +58,14 @@ interface BulkMigrationResult {
   dryRun: boolean;
 }
 
+type MigrationProgressData = MigrationProgressEvent & {
+  totalUsers?: number;
+  usersProcessed?: number;
+  usersCreated?: number;
+  usersSkipped?: number;
+  currentUser?: string;
+};
+
 export function NovaBulkMigration() {
   const [novaConfig, setNovaConfig] = useState<NovaConfig>({
     baseUrl: "https://app.everybodyeats.nz",
@@ -78,10 +87,7 @@ export function NovaBulkMigration() {
   const [showPassword, setShowPassword] = useState(false);
   const [result, setResult] = useState<BulkMigrationResult | null>(null);
   const [connectionTested, setConnectionTested] = useState(false);
-  const [progressData, setProgressData] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [progressData, setProgressData] = useState<MigrationProgressData | null>(null);
   const [currentStep, setCurrentStep] = useState<string>("");
   const [migrationLogs, setMigrationLogs] = useState<string[]>([]);
   const { toast } = useToast();
