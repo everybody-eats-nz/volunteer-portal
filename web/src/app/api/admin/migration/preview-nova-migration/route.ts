@@ -3,7 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { createNovaScraper } from "@/lib/laravel-nova-scraper";
-import { NovaAuthConfig, NovaUser, NovaUserResource, NovaLegacyUser, NovaUserLegacy } from "@/types/nova-migration";
+import {
+  NovaAuthConfig,
+  NovaUserResource,
+  NovaUserLegacy,
+} from "@/types/nova-migration";
 
 interface PreviewRequest {
   novaConfig: {
@@ -23,7 +27,7 @@ interface PreviewUser {
   name: string;
   firstName?: string;
   lastName?: string;
-  status: 'new' | 'existing' | 'invalid';
+  status: "new" | "existing" | "invalid";
   existingUserId?: string;
 }
 
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     try {
       console.log(`[PREVIEW] Starting migration preview...`);
-      
+
       // Connect to Nova and fetch all users
       const scraper = await createNovaScraper({
         baseUrl: novaConfig.baseUrl,
@@ -69,10 +73,14 @@ export async function POST(request: NextRequest) {
         password: novaConfig.password,
       } as NovaAuthConfig);
 
-      console.log(`[PREVIEW] Fetching users from Nova for preview (limit: ${batchSize})...`);
+      console.log(
+        `[PREVIEW] Fetching users from Nova for preview (limit: ${batchSize})...`
+      );
       const allNovaUsers = await scraper.scrapeUsers(batchSize); // Respect batch size limit
-      
-      console.log(`[PREVIEW] Found ${allNovaUsers.length} users, analyzing status...`);
+
+      console.log(
+        `[PREVIEW] Found ${allNovaUsers.length} users, analyzing status...`
+      );
 
       const newUsers: PreviewUser[] = [];
       const existingUsers: PreviewUser[] = [];
@@ -86,14 +94,22 @@ export async function POST(request: NextRequest) {
           let userName: string | undefined;
           let firstName: string | undefined;
           let lastName: string | undefined;
-          
-          if ('fields' in novaUser && novaUser.fields) {
+
+          if ("fields" in novaUser && novaUser.fields) {
             // New Nova field structure
             const novaUserResource = novaUser as unknown as NovaUserResource;
-            userEmail = novaUserResource.fields.find(f => f.attribute === 'email')?.value as string;
-            userName = novaUserResource.fields.find(f => f.attribute === 'name')?.value as string;
-            firstName = novaUserResource.fields.find(f => f.attribute === 'first_name')?.value as string;
-            lastName = novaUserResource.fields.find(f => f.attribute === 'last_name')?.value as string;
+            userEmail = novaUserResource.fields.find(
+              (f) => f.attribute === "email"
+            )?.value as string;
+            userName = novaUserResource.fields.find(
+              (f) => f.attribute === "name"
+            )?.value as string;
+            firstName = novaUserResource.fields.find(
+              (f) => f.attribute === "first_name"
+            )?.value as string;
+            lastName = novaUserResource.fields.find(
+              (f) => f.attribute === "last_name"
+            )?.value as string;
           } else {
             // Legacy flat structure
             const legacyUser = novaUser as NovaUserLegacy;
@@ -102,25 +118,33 @@ export async function POST(request: NextRequest) {
             firstName = legacyUser.first_name;
             lastName = legacyUser.last_name;
           }
-          
-          const displayName = userName || 
-            (firstName && lastName ? `${firstName} ${lastName}` : 'Unknown User');
+
+          const displayName =
+            userName ||
+            (firstName && lastName
+              ? `${firstName} ${lastName}`
+              : "Unknown User");
 
           if (!userEmail) {
-            let userId = 'unknown';
-            if ('fields' in novaUser && novaUser.id && typeof novaUser.id === 'object' && 'value' in novaUser.id) {
+            let userId = "unknown";
+            if (
+              "fields" in novaUser &&
+              novaUser.id &&
+              typeof novaUser.id === "object" &&
+              "value" in novaUser.id
+            ) {
               userId = (novaUser.id as any).value.toString();
-            } else if ('id' in novaUser && typeof novaUser.id === 'number') {
+            } else if ("id" in novaUser && typeof novaUser.id === "number") {
               userId = novaUser.id.toString();
             }
-            
+
             invalidUsers.push({
               id: userId,
-              email: 'No email',
+              email: "No email",
               name: displayName,
               firstName,
               lastName,
-              status: 'invalid'
+              status: "invalid",
             });
             continue;
           }
@@ -128,13 +152,18 @@ export async function POST(request: NextRequest) {
           // Check if user already exists
           const existingUser = await prisma.user.findUnique({
             where: { email: userEmail.toLowerCase() },
-            select: { id: true, email: true, name: true }
+            select: { id: true, email: true, name: true },
           });
 
-          let userId = 'unknown';
-          if ('fields' in novaUser && novaUser.id && typeof novaUser.id === 'object' && 'value' in novaUser.id) {
+          let userId = "unknown";
+          if (
+            "fields" in novaUser &&
+            novaUser.id &&
+            typeof novaUser.id === "object" &&
+            "value" in novaUser.id
+          ) {
             userId = (novaUser.id as any).value.toString();
-          } else if ('id' in novaUser && typeof novaUser.id === 'number') {
+          } else if ("id" in novaUser && typeof novaUser.id === "number") {
             userId = novaUser.id.toString();
           }
 
@@ -144,8 +173,8 @@ export async function POST(request: NextRequest) {
             name: displayName,
             firstName,
             lastName,
-            status: existingUser ? 'existing' : 'new',
-            existingUserId: existingUser?.id
+            status: existingUser ? "existing" : "new",
+            existingUserId: existingUser?.id,
           };
 
           if (existingUser) {
@@ -153,14 +182,13 @@ export async function POST(request: NextRequest) {
           } else {
             newUsers.push(previewUser);
           }
-
         } catch (error) {
           console.error(`[PREVIEW] Error analyzing user:`, error);
           invalidUsers.push({
-            id: 'error',
-            email: 'Error processing user',
-            name: 'Error',
-            status: 'invalid'
+            id: "error",
+            email: "Error processing user",
+            name: "Error",
+            status: "invalid",
           });
         }
       }
@@ -174,22 +202,25 @@ export async function POST(request: NextRequest) {
         summary: {
           wouldCreate: newUsers.length,
           wouldSkip: skipExistingUsers ? existingUsers.length : 0,
-          hasErrors: invalidUsers.length
-        }
+          hasErrors: invalidUsers.length,
+        },
       };
 
-      console.log(`[PREVIEW] Preview complete: ${response.summary.wouldCreate} new, ${response.summary.wouldSkip} existing, ${response.summary.hasErrors} errors`);
+      console.log(
+        `[PREVIEW] Preview complete: ${response.summary.wouldCreate} new, ${response.summary.wouldSkip} existing, ${response.summary.hasErrors} errors`
+      );
 
       return NextResponse.json(response);
-
     } catch (error) {
       console.error("Migration preview failed:", error);
-      return NextResponse.json({
-        success: false,
-        error: error instanceof Error ? error.message : "Preview failed",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Preview failed",
+        },
+        { status: 400 }
+      );
     }
-
   } catch (error) {
     console.error("Request processing error:", error);
     return NextResponse.json(

@@ -1,11 +1,11 @@
 /**
  * Comprehensive TypeScript types for Nova Migration System
- * 
+ *
  * This file defines all the types needed for the Nova migration system,
  * replacing all `any` types with proper TypeScript interfaces.
  */
 
-import { SignupStatus } from '@prisma/client';
+import { SignupStatus } from "@prisma/client";
 
 // ==============================================================================
 // NOVA API CORE TYPES
@@ -92,13 +92,6 @@ export interface NovaUserLegacy {
 }
 
 /**
- * Legacy Nova user structure (direct database format)
- */
-export interface NovaLegacyUser extends NovaUser {
-  // Legacy users may have additional fields
-}
-
-/**
  * Nova user resource structure (Nova API format)
  */
 export interface NovaUserResource extends NovaResource {
@@ -109,19 +102,19 @@ export interface NovaUserResource extends NovaResource {
  * Nova user field types
  */
 export interface NovaUserField extends NovaField {
-  attribute: 
-    | 'email'
-    | 'first_name' 
-    | 'last_name'
-    | 'phone'
-    | 'date_of_birth'
-    | 'emergency_contact_name'
-    | 'emergency_contact_relationship'
-    | 'emergency_contact_phone'
-    | 'medical_conditions'
-    | 'avatar'
-    | 'profile_photo'
-    | 'approved_at'
+  attribute:
+    | "email"
+    | "first_name"
+    | "last_name"
+    | "phone"
+    | "date_of_birth"
+    | "emergency_contact_name"
+    | "emergency_contact_relationship"
+    | "emergency_contact_phone"
+    | "medical_conditions"
+    | "avatar"
+    | "profile_photo"
+    | "approved_at"
     | string; // Allow for other fields that might exist
 }
 
@@ -161,12 +154,12 @@ export interface NovaEventResource extends NovaResource {
  */
 export interface NovaEventField extends NovaField {
   attribute:
-    | 'name'
-    | 'date'
-    | 'location' 
-    | 'capacity'
-    | 'description'
-    | 'notes'
+    | "name"
+    | "date"
+    | "location"
+    | "capacity"
+    | "description"
+    | "notes"
     | string; // Allow for other fields
 }
 
@@ -196,12 +189,12 @@ export interface NovaShiftSignupResource extends NovaResource {
  */
 export interface NovaSignupField extends NovaField {
   attribute:
-    | 'user'
-    | 'event'
-    | 'position'
-    | 'status'
-    | 'notes'
-    | 'canceled_at'
+    | "user"
+    | "event"
+    | "position"
+    | "status"
+    | "notes"
+    | "canceled_at"
     | string; // Allow for other fields
 }
 
@@ -282,7 +275,7 @@ export interface TransformationStats {
  * Error from transformation process
  */
 export interface TransformationError {
-  type: 'user' | 'shift' | 'signup';
+  type: "user" | "shift" | "signup";
   id: number;
   error: string;
 }
@@ -431,28 +424,28 @@ export interface ProgressEvent {
 /**
  * Types of progress events
  */
-export type ProgressEventType = 
-  | 'status'
-  | 'progress'
-  | 'error'
-  | 'complete'
-  | 'heartbeat';
+export type ProgressEventType =
+  | "status"
+  | "progress"
+  | "error"
+  | "complete"
+  | "heartbeat";
 
 /**
  * Migration stages
  */
-export type MigrationStage = 
-  | 'connecting'
-  | 'fetching'
-  | 'processing'
-  | 'complete'
-  | 'error';
+export type MigrationStage =
+  | "connecting"
+  | "fetching"
+  | "processing"
+  | "complete"
+  | "error";
 
 /**
  * Status progress event
  */
 export interface StatusProgressEvent extends ProgressEvent {
-  type: 'status';
+  type: "status";
   totalUsers?: number;
   currentUser?: string;
 }
@@ -461,7 +454,7 @@ export interface StatusProgressEvent extends ProgressEvent {
  * Progress update event
  */
 export interface ProgressUpdateEvent extends ProgressEvent {
-  type: 'progress';
+  type: "progress";
   currentUser: string;
   usersProcessed: number;
   totalUsers: number;
@@ -474,7 +467,7 @@ export interface ProgressUpdateEvent extends ProgressEvent {
  * Error progress event
  */
 export interface ErrorProgressEvent extends ProgressEvent {
-  type: 'error';
+  type: "error";
   error: string;
   details?: string;
 }
@@ -483,7 +476,7 @@ export interface ErrorProgressEvent extends ProgressEvent {
  * Complete progress event
  */
 export interface CompleteProgressEvent extends ProgressEvent {
-  type: 'complete';
+  type: "complete";
   result: BulkMigrationResponse;
 }
 
@@ -491,13 +484,13 @@ export interface CompleteProgressEvent extends ProgressEvent {
  * Heartbeat progress event
  */
 export interface HeartbeatProgressEvent extends ProgressEvent {
-  type: 'heartbeat';
+  type: "heartbeat";
 }
 
 /**
  * Union type for all progress events
  */
-export type MigrationProgressEvent = 
+export type MigrationProgressEvent =
   | StatusProgressEvent
   | ProgressUpdateEvent
   | ErrorProgressEvent
@@ -612,8 +605,10 @@ export interface MigrationFormData {
 /**
  * Extract field value helper type
  */
-export type ExtractFieldValue<T extends NovaField, K extends string> = 
-  T extends { attribute: K } ? T['value'] : never;
+export type ExtractFieldValue<
+  T extends NovaField,
+  K extends string
+> = T extends { attribute: K } ? T["value"] : never;
 
 /**
  * Nova API response wrapper
@@ -669,4 +664,3 @@ export interface MigrationErrorDetails {
 // ==============================================================================
 // EXPORTS
 // ==============================================================================
-

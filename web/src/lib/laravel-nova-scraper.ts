@@ -101,7 +101,7 @@ export class LaravelNovaScraper {
     try {
       console.log(`[AUTH] Starting authentication for ${this.config.baseUrl}`);
       console.log(`[AUTH] Using email: ${this.config.email}`);
-      
+
       // Step 1: Get CSRF token and session cookies from login page
       console.log(`[AUTH] Step 1: Fetching login page...`);
       const loginPageResponse = await fetch(
@@ -117,8 +117,13 @@ export class LaravelNovaScraper {
         }
       );
 
-      console.log(`[AUTH] Login page response status: ${loginPageResponse.status}`);
-      console.log(`[AUTH] Login page response headers:`, Object.fromEntries(loginPageResponse.headers.entries()));
+      console.log(
+        `[AUTH] Login page response status: ${loginPageResponse.status}`
+      );
+      console.log(
+        `[AUTH] Login page response headers:`,
+        Object.fromEntries(loginPageResponse.headers.entries())
+      );
 
       if (!loginPageResponse.ok) {
         throw new Error(
@@ -130,14 +135,18 @@ export class LaravelNovaScraper {
       const setCookieHeaders = loginPageResponse.headers.raw()["set-cookie"];
       if (setCookieHeaders) {
         this.cookies = setCookieHeaders.map((cookie) => cookie.split(";")[0]);
-        console.log(`[AUTH] Extracted ${this.cookies.length} cookies from login page`);
+        console.log(
+          `[AUTH] Extracted ${this.cookies.length} cookies from login page`
+        );
         console.log(`[AUTH] Cookies:`, this.cookies);
       } else {
         console.log(`[AUTH] No cookies found in login page response`);
       }
 
       const loginPageHtml = await loginPageResponse.text();
-      console.log(`[AUTH] Login page HTML length: ${loginPageHtml.length} characters`);
+      console.log(
+        `[AUTH] Login page HTML length: ${loginPageHtml.length} characters`
+      );
 
       // Extract CSRF token from meta tag
       console.log(`[AUTH] Step 2: Looking for CSRF token in HTML...`);
@@ -146,16 +155,28 @@ export class LaravelNovaScraper {
       );
       if (csrfMatch) {
         this.csrfToken = csrfMatch[1];
-        console.log(`[AUTH] Found CSRF token via meta tag: ${this.csrfToken.substring(0, 10)}...`);
+        console.log(
+          `[AUTH] Found CSRF token via meta tag: ${this.csrfToken.substring(
+            0,
+            10
+          )}...`
+        );
       } else {
-        console.log(`[AUTH] No CSRF token found in meta tag, trying alternative pattern...`);
+        console.log(
+          `[AUTH] No CSRF token found in meta tag, trying alternative pattern...`
+        );
         // Try alternative pattern for Laravel
         const altCsrfMatch = loginPageHtml.match(
           /name="_token"[^>]*value="([^"]+)"/
         );
         if (altCsrfMatch) {
           this.csrfToken = altCsrfMatch[1];
-          console.log(`[AUTH] Found CSRF token via input field: ${this.csrfToken.substring(0, 10)}...`);
+          console.log(
+            `[AUTH] Found CSRF token via input field: ${this.csrfToken.substring(
+              0,
+              10
+            )}...`
+          );
         } else {
           console.log(`[AUTH] No CSRF token found in input field either`);
           // Log a snippet of HTML to help debug
@@ -178,16 +199,18 @@ export class LaravelNovaScraper {
 
       console.log(`[AUTH] Login data:`, {
         email: this.config.email,
-        password: '[REDACTED]',
-        _token: this.csrfToken.substring(0, 10) + '...',
+        password: "[REDACTED]",
+        _token: this.csrfToken.substring(0, 10) + "...",
       });
 
-      console.log(`[AUTH] Making POST request to: ${this.config.baseUrl}/nova/login`);
+      console.log(
+        `[AUTH] Making POST request to: ${this.config.baseUrl}/nova/login`
+      );
       console.log(`[AUTH] Request headers:`, {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRF-TOKEN': this.csrfToken.substring(0, 10) + '...',
-        'Cookie': this.cookies.join('; '),
-        'Referer': `${this.config.baseUrl}/nova/login`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRF-TOKEN": this.csrfToken.substring(0, 10) + "...",
+        Cookie: this.cookies.join("; "),
+        Referer: `${this.config.baseUrl}/nova/login`,
       });
 
       const loginResponse = await fetch(`${this.config.baseUrl}/nova/login`, {
@@ -206,8 +229,13 @@ export class LaravelNovaScraper {
         redirect: "manual", // Handle redirects manually to capture cookies
       });
 
-      console.log(`[AUTH] Login response status: ${loginResponse.status} ${loginResponse.statusText}`);
-      console.log(`[AUTH] Login response headers:`, Object.fromEntries(loginResponse.headers.entries()));
+      console.log(
+        `[AUTH] Login response status: ${loginResponse.status} ${loginResponse.statusText}`
+      );
+      console.log(
+        `[AUTH] Login response headers:`,
+        Object.fromEntries(loginResponse.headers.entries())
+      );
 
       // Update cookies from login response
       const loginSetCookieHeaders = loginResponse.headers.raw()["set-cookie"];
@@ -218,24 +246,26 @@ export class LaravelNovaScraper {
         // Replace existing cookies with new ones (especially session cookies)
         const cookieNames = new Set();
         const updatedCookies = [];
-        
+
         // Add new cookies first (they take precedence)
         for (const cookie of newCookies) {
-          const cookieName = cookie.split('=')[0];
+          const cookieName = cookie.split("=")[0];
           cookieNames.add(cookieName);
           updatedCookies.push(cookie);
         }
-        
+
         // Add existing cookies that don't conflict
         for (const cookie of this.cookies) {
-          const cookieName = cookie.split('=')[0];
+          const cookieName = cookie.split("=")[0];
           if (!cookieNames.has(cookieName)) {
             updatedCookies.push(cookie);
           }
         }
-        
+
         this.cookies = updatedCookies;
-        console.log(`[AUTH] Updated cookies from login response. Total cookies: ${this.cookies.length}`);
+        console.log(
+          `[AUTH] Updated cookies from login response. Total cookies: ${this.cookies.length}`
+        );
         console.log(`[AUTH] Current cookies:`, this.cookies);
       } else {
         console.log(`[AUTH] No new cookies from login response`);
@@ -244,15 +274,20 @@ export class LaravelNovaScraper {
       // Check if login was successful (usually redirects to dashboard)
       if (loginResponse.status === 302 || loginResponse.status === 200) {
         console.log("[AUTH] ✅ Successfully authenticated with Laravel Nova");
-        const redirectLocation = loginResponse.headers.get('location');
+        const redirectLocation = loginResponse.headers.get("location");
         if (redirectLocation) {
           console.log(`[AUTH] Redirect location: ${redirectLocation}`);
         }
       } else {
         // Log response body for debugging
         const responseText = await loginResponse.text();
-        console.log(`[AUTH] ❌ Login failed response body:`, responseText.substring(0, 500));
-        throw new Error(`Login failed with status: ${loginResponse.status} ${loginResponse.statusText}`);
+        console.log(
+          `[AUTH] ❌ Login failed response body:`,
+          responseText.substring(0, 500)
+        );
+        throw new Error(
+          `Login failed with status: ${loginResponse.status} ${loginResponse.statusText}`
+        );
       }
     } catch (error) {
       throw new Error(
@@ -287,12 +322,9 @@ export class LaravelNovaScraper {
       ...options.headers,
     };
 
-
     const response = await fetch(url, {
-      ...options,
       headers: requestHeaders,
     });
-
 
     // Update cookies from API response (Nova might rotate session cookies)
     const apiSetCookieHeaders = response.headers.raw()["set-cookie"];
@@ -303,38 +335,40 @@ export class LaravelNovaScraper {
       // Replace existing cookies with new ones
       const cookieNames = new Set();
       const updatedCookies = [];
-      
+
       // Add new cookies first
       for (const cookie of newCookies) {
-        const cookieName = cookie.split('=')[0];
+        const cookieName = cookie.split("=")[0];
         cookieNames.add(cookieName);
         updatedCookies.push(cookie);
       }
-      
+
       // Add existing cookies that don't conflict
       for (const cookie of this.cookies) {
-        const cookieName = cookie.split('=')[0];
+        const cookieName = cookie.split("=")[0];
         if (!cookieNames.has(cookieName)) {
           updatedCookies.push(cookie);
         }
       }
-      
+
       this.cookies = updatedCookies;
     }
 
     if (!response.ok) {
       const responseText = await response.text();
       throw new Error(
-        `Nova API request failed: ${response.status} ${response.statusText} - ${responseText.substring(0, 100)}`
+        `Nova API request failed: ${response.status} ${
+          response.statusText
+        } - ${responseText.substring(0, 100)}`
       );
     }
 
     const jsonResponse = await response.json();
-    
-    if (typeof jsonResponse === 'object' && jsonResponse !== null) {
+
+    if (typeof jsonResponse === "object" && jsonResponse !== null) {
       return jsonResponse as Record<string, unknown>;
     }
-    
+
     return {};
   }
 
@@ -342,7 +376,9 @@ export class LaravelNovaScraper {
    * Scrape users from Nova
    */
   async scrapeUsers(limit?: number): Promise<NovaUser[]> {
-    console.log(`Scraping users from Laravel Nova${limit ? ` (limit: ${limit})` : ''}...`);
+    console.log(
+      `Scraping users from Laravel Nova${limit ? ` (limit: ${limit})` : ""}...`
+    );
     const users: NovaUser[] = [];
     let page = 1;
     let hasMorePages = true;
@@ -352,19 +388,22 @@ export class LaravelNovaScraper {
         // Calculate how many to request for this page
         const remainingUsers = limit ? limit - users.length : 100;
         const perPage = Math.min(100, remainingUsers);
-        
+
         const response = await this.novaApiRequest(
           `/users?page=${page}&perPage=${perPage}`
         );
 
         if (response.resources && response.resources.length > 0) {
-          const usersToAdd = limit ? response.resources.slice(0, limit - users.length) : response.resources;
+          const usersToAdd = limit
+            ? response.resources.slice(0, limit - users.length)
+            : response.resources;
           users.push(...usersToAdd);
           console.log(`Scraped page ${page}, total users: ${users.length}`);
           page++;
 
           // Check if we've reached the limit or there are no more pages
-          hasMorePages = response.next_page_url && (!limit || users.length < limit);
+          hasMorePages =
+            response.next_page_url && (!limit || users.length < limit);
         } else {
           hasMorePages = false;
         }
@@ -526,7 +565,7 @@ export class LaravelNovaScraper {
     try {
       console.log(`[TEST] 🔌 Testing connection to: ${this.config.baseUrl}`);
       console.log(`[TEST] 👤 Using email: ${this.config.email}`);
-      
+
       console.log(`[TEST] 🔐 Starting authentication process...`);
       await this.authenticate();
       console.log("[TEST] ✅ Authentication successful, testing API access...");

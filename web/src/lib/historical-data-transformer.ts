@@ -4,7 +4,6 @@ import {
   ScrapedData,
   NovaUser,
   NovaUserLegacy,
-  NovaLegacyUser,
   NovaShift,
   NovaShiftSignup,
   NovaEvent,
@@ -688,7 +687,7 @@ export class HistoricalDataTransformer {
   /**
    * Safely parse date values, returning current date if invalid
    */
-  private parseDate(dateValue: string): Date {
+  private parseDate(dateValue: string | undefined): Date {
     if (!dateValue) return new Date();
     const parsed = new Date(dateValue);
     return isNaN(parsed.getTime()) ? new Date() : parsed;
