@@ -12,7 +12,7 @@ import {
   MigrationProgressEvent,
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
-import { sendProgress as sendProgressUpdate } from "../progress/route";
+import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 import { SignupStatus } from "@prisma/client";
 
 interface ScrapeUserRequest {
