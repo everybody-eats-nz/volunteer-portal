@@ -21,7 +21,7 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Overview", slug: "index" },
+                { label: "Overview", link: "/" },
                 { label: "Admin Dashboard", slug: "overview/admin-dashboard" },
                 { label: "User Roles & Permissions", slug: "overview/user-roles" },
                 { label: "Navigation Guide", slug: "overview/navigation" },
@@ -110,7 +110,8 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Technology Stack", slug: "developers/tech-stack" }
+                { label: "Technology Stack", slug: "developers/tech-stack" },
+                { label: "Hosting & Infrastructure", slug: "developers/hosting-infrastructure" }
               ]
             },
             {
@@ -118,14 +119,7 @@ export default defineConfig({
               items: [
                 { label: "Authentication & Authorization", slug: "developers/authentication-authorization" },
                 { label: "OAuth Authentication", slug: "developers/oauth-authentication" },
-                { label: "Admin Permissions", slug: "reference/permissions" },
-                { label: "Notification System", slug: "reference/notifications" }
-              ]
-            },
-            {
-              label: "API Documentation",
-              items: [
-                { label: "API Endpoints", slug: "reference/api-endpoints" }
+                { label: "Admin Permissions", slug: "reference/permissions" }
               ]
             }
           ]
