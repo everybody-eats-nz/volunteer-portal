@@ -2,17 +2,14 @@ import fetch from "node-fetch";
 import {
   NovaAuthConfig,
   NovaUser,
-  NovaShiftLegacy,
-  NovaShiftSignupResource,
   NovaEventResource,
   NovaUserResource,
   NovaPaginatedResponse,
   ScrapedData,
   NovaShift,
   NovaShiftSignup,
-  NovaEvent
+  NovaEvent,
 } from "../types/nova-migration";
-
 
 export class LaravelNovaScraper {
   private config: NovaAuthConfig;
@@ -323,7 +320,11 @@ export class LaravelNovaScraper {
           `/users?page=${page}&perPage=${perPage}`
         );
 
-        if ('resources' in response && Array.isArray(response.resources) && response.resources.length > 0) {
+        if (
+          "resources" in response &&
+          Array.isArray(response.resources) &&
+          response.resources.length > 0
+        ) {
           const usersToAdd = limit
             ? response.resources.slice(0, limit - users.length)
             : response.resources;
@@ -333,7 +334,9 @@ export class LaravelNovaScraper {
 
           // Check if we've reached the limit or there are no more pages
           hasMorePages = Boolean(
-            'next_page_url' in response && response.next_page_url && (!limit || users.length < limit)
+            "next_page_url" in response &&
+              response.next_page_url &&
+              (!limit || users.length < limit)
           );
         } else {
           hasMorePages = false;
@@ -363,12 +366,21 @@ export class LaravelNovaScraper {
           `/shifts?page=${page}&perPage=100`
         );
 
-        if ('data' in response && Array.isArray(response.data) && response.data.length > 0) {
+        if (
+          "data" in response &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
           shifts.push(...response.data);
           console.log(`Scraped page ${page}, total shifts: ${shifts.length}`);
           page++;
 
-          hasMorePages = Boolean('links' in response && response.links && 'next' in response.links && response.links.next);
+          hasMorePages = Boolean(
+            "links" in response &&
+              response.links &&
+              "next" in response.links &&
+              response.links.next
+          );
         } else {
           hasMorePages = false;
         }
@@ -400,12 +412,21 @@ export class LaravelNovaScraper {
           `/event-applications?page=${page}&perPage=100`
         );
 
-        if ('data' in response && Array.isArray(response.data) && response.data.length > 0) {
+        if (
+          "data" in response &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
           signups.push(...response.data);
           console.log(`Scraped page ${page}, total signups: ${signups.length}`);
           page++;
 
-          hasMorePages = Boolean('links' in response && response.links && 'next' in response.links && response.links.next);
+          hasMorePages = Boolean(
+            "links" in response &&
+              response.links &&
+              "next" in response.links &&
+              response.links.next
+          );
         } else {
           hasMorePages = false;
         }
@@ -434,12 +455,21 @@ export class LaravelNovaScraper {
           `/events?page=${page}&perPage=100`
         );
 
-        if ('data' in response && Array.isArray(response.data) && response.data.length > 0) {
+        if (
+          "data" in response &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
           events.push(...response.data);
           console.log(`Scraped page ${page}, total events: ${events.length}`);
           page++;
 
-          hasMorePages = Boolean('links' in response && response.links && 'next' in response.links && response.links.next);
+          hasMorePages = Boolean(
+            "links" in response &&
+              response.links &&
+              "next" in response.links &&
+              response.links.next
+          );
         } else {
           hasMorePages = false;
         }
