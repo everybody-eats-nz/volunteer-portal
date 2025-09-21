@@ -88,12 +88,16 @@ graph TD
 
     A --> E[Main Branch]
     E --> F[Vercel Production]
+    E --> J[Vercel Demo]
     F --> G[Production Supabase]
+    J --> D[Demo Supabase]
 
     H[Campaign Monitor] --> F
+    H --> J
     H --> C
 
     I[PostHog] --> F
+    I --> J
     I --> C
 ```
 
