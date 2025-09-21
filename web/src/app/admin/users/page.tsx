@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { AdminUsersSearch } from "@/components/admin-users-search";
 import { InviteUserDialog } from "@/components/invite-user-dialog";
 import { PageContainer } from "@/components/page-container";
 import { UsersDataTable } from "@/components/users-data-table";
@@ -192,6 +193,12 @@ export default async function AdminUsersPage({
         </div>
       </section>
 
+      {/* Search and Filters */}
+      <AdminUsersSearch 
+        initialSearch={searchQuery}
+        roleFilter={roleFilter}
+      />
+
       {/* Users DataTable */}
       <section data-testid="users-section">
         {users.length === 0 ? (
@@ -222,11 +229,7 @@ export default async function AdminUsersPage({
         ) : (
           <div data-testid="users-table">
             <div data-testid="users-list">
-              <UsersDataTable
-                users={users}
-                searchQuery={searchQuery}
-                roleFilter={roleFilter}
-              />
+              <UsersDataTable users={users} />
             </div>
           </div>
         )}

@@ -345,9 +345,6 @@ test.describe("Profile Page", () => {
   });
 
   test("should validate profile data display", async ({ page }) => {
-    // Check that personal information fields show appropriate content
-    const personalInfoSection = page.getByTestId("personal-info-section");
-
     // Check name field - should not be empty
     const nameLabel = page.getByTestId("personal-info-name-label");
     await expect(nameLabel).toBeVisible();

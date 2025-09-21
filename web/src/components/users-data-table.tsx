@@ -4,28 +4,18 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  ColumnFiltersState,
   SortingState,
-  VisibilityState,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { ArrowUpDown, ChevronDown, Mail, Calendar, Shield, Users, ChevronRight, X } from "lucide-react";
+import { ArrowUpDown, Mail, Calendar, Shield, Users, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -56,8 +46,6 @@ export interface User {
 
 interface UsersDataTableProps {
   users: User[];
-  searchQuery?: string;
-  roleFilter?: string;
 }
 
 function getUserInitials(user: User): string {
@@ -245,28 +233,21 @@ export const columns: ColumnDef<User>[] = [
   },
 ];
 
-export function UsersDataTable({ users, searchQuery, roleFilter }: UsersDataTableProps) {
+export function UsersDataTable({ users }: UsersDataTableProps) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true }
   ]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data: users,
     columns,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
-      columnFilters,
-      columnVisibility,
     },
     initialState: {
       pagination: {
@@ -277,127 +258,6 @@ export function UsersDataTable({ users, searchQuery, roleFilter }: UsersDataTabl
 
   return (
     <div className="w-full" data-testid="users-datatable">
-      <div className="flex items-center py-4 gap-4">
-        <Input
-          placeholder="Filter by name or email..."
-          value={(table.getColumn("user")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("user")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-          data-testid="users-search-input"
-        />
-        
-        {/* Role Filter Buttons */}
-        <div className="flex gap-2" data-testid="role-filter-buttons">
-          <Link
-            href={{
-              pathname: "/admin/users",
-              query: searchQuery ? { search: searchQuery } : {},
-            }}
-          >
-            <Button
-              variant={!roleFilter ? "default" : "outline"}
-              size="sm"
-              className={
-                !roleFilter
-                  ? "btn-primary shadow-sm"
-                  : "hover:bg-slate-50"
-              }
-              data-testid="filter-all-roles"
-            >
-              All Roles
-            </Button>
-          </Link>
-          <Link
-            href={{
-              pathname: "/admin/users",
-              query: {
-                role: "VOLUNTEER",
-                ...(searchQuery ? { search: searchQuery } : {}),
-              },
-            }}
-          >
-            <Button
-              variant={
-                roleFilter === "VOLUNTEER" ? "default" : "outline"
-              }
-              size="sm"
-              className={
-                roleFilter === "VOLUNTEER"
-                  ? "btn-primary shadow-sm"
-                  : "hover:bg-slate-50"
-              }
-              data-testid="filter-volunteers"
-            >
-              Volunteers
-            </Button>
-          </Link>
-          <Link
-            href={{
-              pathname: "/admin/users",
-              query: {
-                role: "ADMIN",
-                ...(searchQuery ? { search: searchQuery } : {}),
-              },
-            }}
-          >
-            <Button
-              variant={roleFilter === "ADMIN" ? "default" : "outline"}
-              size="sm"
-              className={
-                roleFilter === "ADMIN"
-                  ? "btn-primary shadow-sm"
-                  : "hover:bg-slate-50"
-              }
-              data-testid="filter-admins"
-            >
-              Admins
-            </Button>
-          </Link>
-          {(searchQuery || roleFilter) && (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="text-slate-500 hover:text-slate-700 gap-1"
-              data-testid="clear-filters-button"
-            >
-              <Link href="/admin/users">
-                <X className="h-3 w-3" />
-                Clear filters
-              </Link>
-            </Button>
-          )}
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto" data-testid="columns-toggle">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
       
       <div className="rounded-md border shadow-sm">
         <Table>

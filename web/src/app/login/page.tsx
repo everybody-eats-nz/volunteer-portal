@@ -112,6 +112,10 @@ export default function LoginPage() {
       setSuccessMessage(
         "Password reset successful! You can now sign in with your new password."
       );
+    } else if (message === "migration-complete") {
+      setSuccessMessage(
+        "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile."
+      );
     }
   }, [searchParams]);
 

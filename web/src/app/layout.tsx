@@ -66,7 +66,7 @@ export default async function RootLayout({
             <MainContentWrapper>{children}</MainContentWrapper>
           </main>
           <SiteFooterWrapper session={session} />
-          <Toaster />
+          <Toaster position="top-right" closeButton />
         </Providers>
         <SpeedInsights />
       </body>

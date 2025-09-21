@@ -18,7 +18,7 @@ async function loginAsVolunteer(page: Page) {
         timeout: 10000,
       });
     } catch (error) {
-      console.log("Login may have failed or taken too long");
+      console.log("Login may have failed or taken too long: ", error);
     }
 
     await page.waitForLoadState("load");
@@ -28,20 +28,27 @@ async function loginAsVolunteer(page: Page) {
 }
 
 // Helper function to navigate to shifts with location selected
-async function navigateToShiftsWithLocation(page: Page, location = "Wellington") {
+async function navigateToShiftsWithLocation(
+  page: Page,
+  location = "Wellington"
+) {
   await page.goto("/shifts");
   await page.waitForLoadState("load");
-  
+
   // Check if location selection screen is shown
   const locationSelectionTitle = page.getByTestId("location-selection-title");
-  
+
   if (await locationSelectionTitle.isVisible()) {
     const locationKey = location.toLowerCase().replace(/\s+/g, "-");
-    
+
     // Try preferred location first (for authenticated users)
-    const preferredLocationOption = page.getByTestId(`preferred-location-${locationKey}`);
-    const regularLocationOption = page.getByTestId(`location-option-${locationKey}`);
-    
+    const preferredLocationOption = page.getByTestId(
+      `preferred-location-${locationKey}`
+    );
+    const regularLocationOption = page.getByTestId(
+      `location-option-${locationKey}`
+    );
+
     // Click whichever option is visible
     if (await preferredLocationOption.isVisible()) {
       await preferredLocationOption.click();
@@ -74,9 +81,13 @@ test.describe("Shifts Browse Page", () => {
       await expect(selectionTitle).toBeVisible();
       await expect(selectionTitle).toContainText("Choose Your Location");
 
-      const selectionDescription = page.getByTestId("location-selection-description");
+      const selectionDescription = page.getByTestId(
+        "location-selection-description"
+      );
       await expect(selectionDescription).toBeVisible();
-      await expect(selectionDescription).toContainText("Please select a location to view available volunteer shifts");
+      await expect(selectionDescription).toContainText(
+        "Please select a location to view available volunteer shifts"
+      );
     });
 
     test("should display location options for selection", async ({ page }) => {
@@ -88,7 +99,7 @@ test.describe("Shifts Browse Page", () => {
       const wellingtonOption = page.getByTestId("location-option-wellington");
       await expect(wellingtonOption).toBeVisible();
 
-      const glenInnesOption = page.getByTestId("location-option-glen-innes");  
+      const glenInnesOption = page.getByTestId("location-option-glen-innes");
       await expect(glenInnesOption).toBeVisible();
 
       const onehungaOption = page.getByTestId("location-option-onehunga");
@@ -107,7 +118,7 @@ test.describe("Shifts Browse Page", () => {
       await wellingtonOption.click();
       await page.waitForLoadState("load");
 
-      // Should navigate to filtered URL  
+      // Should navigate to filtered URL
       await expect(page).toHaveURL("/shifts?location=Wellington");
 
       // Should now show the shifts page with Wellington as title
@@ -117,7 +128,9 @@ test.describe("Shifts Browse Page", () => {
       await expect(pageTitle).toBeVisible();
 
       // Should show back to locations button now
-      const backToLocationsButton = page.getByTestId("back-to-locations-button");
+      const backToLocationsButton = page.getByTestId(
+        "back-to-locations-button"
+      );
       await expect(backToLocationsButton).toBeVisible();
     });
   });
@@ -133,10 +146,12 @@ test.describe("Shifts Browse Page", () => {
       }
     });
 
-    test("should display location selection screen with authentication", async ({ page }) => {
+    test("should display location selection screen with authentication", async ({
+      page,
+    }) => {
       await page.goto("/shifts");
       await page.waitForLoadState("load");
-      
+
       // Check page loads successfully
       await expect(page).toHaveURL("/shifts");
 
@@ -149,7 +164,9 @@ test.describe("Shifts Browse Page", () => {
       await expect(selectionTitle).toBeVisible();
     });
 
-    test("should display shifts page after location selection", async ({ page }) => {
+    test("should display shifts page after location selection", async ({
+      page,
+    }) => {
       await navigateToShiftsWithLocation(page);
 
       // Check main elements are visible after location selection (should show location name)
@@ -168,7 +185,7 @@ test.describe("Shifts Browse Page", () => {
       page,
     }) => {
       await navigateToShiftsWithLocation(page);
-      
+
       // Look for shift cards using testids
       const shiftCards = page.locator('[data-testid^="shift-card-"]');
       const shiftCount = await shiftCards.count();
@@ -684,7 +701,9 @@ test.describe("Shifts Browse Page", () => {
       await expect(errorMessage).not.toBeVisible();
     });
 
-    test("should handle navigation between location selection and shifts", async ({ page }) => {
+    test("should handle navigation between location selection and shifts", async ({
+      page,
+    }) => {
       await page.goto("/shifts");
       await page.waitForLoadState("load");
 
@@ -1000,11 +1019,13 @@ test.describe("Shifts Browse Page", () => {
   });
 
   test.describe("Accessibility", () => {
-    test("should have proper accessibility attributes for location selection", async ({ page }) => {
+    test("should have proper accessibility attributes for location selection", async ({
+      page,
+    }) => {
       await page.goto("/shifts");
       await page.waitForLoadState("load");
 
-      // Check main heading structure  
+      // Check main heading structure
       const mainHeading = page.getByTestId("location-selection-title");
       await expect(mainHeading).toBeVisible();
 
@@ -1017,7 +1038,9 @@ test.describe("Shifts Browse Page", () => {
       await expect(wellingtonOption).toBeVisible();
     });
 
-    test("should have proper accessibility attributes for shifts page", async ({ page }) => {
+    test("should have proper accessibility attributes for shifts page", async ({
+      page,
+    }) => {
       await page.goto("/shifts?location=Wellington");
       await page.waitForLoadState("load");
 

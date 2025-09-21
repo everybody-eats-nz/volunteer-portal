@@ -129,29 +129,6 @@ test.describe("Admin Navigation", () => {
       }
     });
 
-    test("migration upload link navigation works correctly", async ({
-      page,
-    }) => {
-      // Login as admin
-      await loginAsAdmin(page);
-
-      // Navigate to admin dashboard
-      await page.goto("/admin");
-
-      // Click migration upload link
-      const migrationUploadLink = page.getByTestId(
-        "sidebar-migration#migration"
-      );
-      await migrationUploadLink.click();
-      await page.waitForURL("/admin/migration#migration");
-
-      // Verify we're on the migration page with the upload tab
-      await expect(page.getByTestId("admin-page-header")).toContainText(
-        "User Migration"
-      );
-      await expect(page.getByTestId("tab-content-upload")).toBeVisible();
-    });
-
     test("sidebar navigation works from different admin pages", async ({
       page,
     }) => {

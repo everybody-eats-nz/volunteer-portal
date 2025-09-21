@@ -1,56 +1,122 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { RefreshCw, Users, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  RefreshCw,
+  Users,
+  CheckCircle,
+  Calendar,
+  MapPin,
+  Clock,
+  Tag,
+} from "lucide-react";
 
-interface MigrationStats {
-  totalMigrated: number;
-  pendingInvitations: number;
-  completedRegistrations: number;
-  failedInvitations: number;
-  lastMigrationDate?: string;
-  recentActivity: Array<{
-    id: string;
-    type: 'migration' | 'invitation' | 'registration';
-    email: string;
-    status: 'success' | 'failed' | 'pending';
-    timestamp: string;
-  }>;
+interface MigratedDataResponse {
+  success: boolean;
+  data: {
+    users: {
+      total: number;
+      migrated: number;
+      recent: Array<{
+        id: string;
+        email: string;
+        name: string;
+        isMigrated: boolean;
+        createdAt: string;
+        shiftsCount: number;
+        signupsCount: number;
+      }>;
+    };
+    shiftTypes: {
+      total: number;
+      recent: Array<{
+        id: string;
+        name: string;
+        description: string;
+        createdAt: string;
+        shiftsCount: number;
+      }>;
+    };
+    shifts: {
+      total: number;
+      migratedFromNova: number;
+      recent: Array<{
+        id: string;
+        start: string;
+        end: string;
+        location: string;
+        capacity: number;
+        notes: string;
+        shiftType: {
+          name: string;
+        };
+        signupsCount: number;
+        createdAt: string;
+      }>;
+    };
+    signups: {
+      total: number;
+      migratedFromNova: number;
+      recent: Array<{
+        id: string;
+        status: string;
+        createdAt: string;
+        user: {
+          email: string;
+          name: string;
+        };
+        shift: {
+          start: string;
+          end: string;
+          shiftType: {
+            name: string;
+          };
+        };
+      }>;
+    };
+  };
+  error?: string;
 }
 
 export function MigrationStatus() {
-  const [stats, setStats] = useState<MigrationStats | null>(null);
+  const [data, setData] = useState<MigratedDataResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/migration/stats");
+      const response = await fetch("/api/admin/migration/migrated-data");
       if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        const result = await response.json();
+        setData(result);
       }
     } catch (error) {
-      console.error("Failed to fetch migration stats:", error);
+      console.error("Failed to fetch migrated data:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, []);
 
-  if (!stats) {
+  if (!data) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Migration Status</CardTitle>
-          <CardDescription>Loading migration statistics...</CardDescription>
+          <CardTitle>Migrated Data</CardTitle>
+          <CardDescription>Loading migrated data...</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
@@ -61,144 +127,324 @@ export function MigrationStatus() {
     );
   }
 
-  const completionRate = stats.totalMigrated > 0 
-    ? (stats.completedRegistrations / stats.totalMigrated) * 100 
-    : 0;
-
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card data-testid="total-migrations-card">
+        <Card data-testid="migrated-users-card">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium">Total Migrations</span>
+              <span className="text-sm font-medium">Migrated Users</span>
             </div>
-            <div className="text-2xl font-bold">{stats.totalMigrated}</div>
+            <div className="text-2xl font-bold">{data.data.users.migrated}</div>
+            <p className="text-xs text-muted-foreground">
+              of {data.data.users.total} total
+            </p>
           </CardContent>
         </Card>
 
-        <Card data-testid="successful-migrations-card">
+        <Card data-testid="migrated-shifts-card">
           <CardContent className="pt-6">
             <div className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium">Successful</span>
-            </div>
-            <div className="text-2xl font-bold">{stats.completedRegistrations}</div>
-          </CardContent>
-        </Card>
-
-        <Card data-testid="failed-migrations-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm font-medium">Failed</span>
-            </div>
-            <div className="text-2xl font-bold">{stats.failedInvitations}</div>
-          </CardContent>
-        </Card>
-
-        <Card data-testid="last-migration-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <Mail className="h-4 w-4 text-amber-600" />
-              <span className="text-sm font-medium">Last Migration</span>
+              <Calendar className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium">Nova Shifts</span>
             </div>
             <div className="text-2xl font-bold">
-              {stats.lastMigrationDate 
-                ? new Date(stats.lastMigrationDate).toLocaleDateString()
-                : 'Never'
-              }
+              {data.data.shifts.migratedFromNova}
             </div>
+            <p className="text-xs text-muted-foreground">
+              of {data.data.shifts.total} total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="migrated-signups-card">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-purple-600" />
+              <span className="text-sm font-medium">Nova Signups</span>
+            </div>
+            <div className="text-2xl font-bold">
+              {data.data.signups.migratedFromNova}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              of {data.data.signups.total} total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="shift-types-card">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-2">
+              <Tag className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium">Shift Types</span>
+            </div>
+            <div className="text-2xl font-bold">
+              {data.data.shiftTypes.total}
+            </div>
+            <p className="text-xs text-muted-foreground">categories</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Progress Overview */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Registration Progress</CardTitle>
-              <CardDescription>
-                User registration completion rate
-              </CardDescription>
-            </div>
-            <Button
-              onClick={fetchStats}
-              disabled={isLoading}
-              size="sm"
-              variant="outline"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Completion Rate</span>
-              <span>{completionRate.toFixed(1)}%</span>
-            </div>
-            <Progress value={completionRate} className="w-full" />
-          </div>
-          
-          {stats.lastMigrationDate && (
-            <p className="text-sm text-muted-foreground">
-              Last migration: {new Date(stats.lastMigrationDate).toLocaleDateString()}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-semibold">All Migrated Data</h2>
+        <Button
+          onClick={fetchData}
+          disabled={isLoading}
+          size="sm"
+          variant="outline"
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </Button>
+      </div>
 
-      {/* Recent Activity */}
-      <Card data-testid="recent-migration-activity">
-        <CardHeader>
-          <CardTitle>Recent Migration Activity</CardTitle>
-          <CardDescription>
-            Latest migration and registration events
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stats.recentActivity.length > 0 ? (
-            <div className="space-y-4">
-              {stats.recentActivity.slice(0, 10).map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      {activity.type === 'migration' && <Users className="h-4 w-4 text-blue-600" />}
-                      {activity.type === 'invitation' && <Mail className="h-4 w-4 text-amber-600" />}
-                      {activity.type === 'registration' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                      <span className="text-sm font-medium capitalize">{activity.type}</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{activity.email}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      variant={
-                        activity.status === 'success' ? 'default' :
-                        activity.status === 'failed' ? 'destructive' :
-                        'secondary'
-                      }
+      {/* Detailed Data Tabs */}
+      <Tabs defaultValue="users" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="users">
+            Users ({data.data.users.recent.length})
+          </TabsTrigger>
+          <TabsTrigger value="shifts">
+            Shifts ({data.data.shifts.recent.length})
+          </TabsTrigger>
+          <TabsTrigger value="signups">
+            Signups ({data.data.signups.recent.length})
+          </TabsTrigger>
+          <TabsTrigger value="shift-types">
+            Types ({data.data.shiftTypes.recent.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Migrated Users</CardTitle>
+              <CardDescription>
+                Users that have been migrated from Nova (showing latest 10)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.data.users.recent.length > 0 ? (
+                <div className="space-y-4">
+                  {data.data.users.recent.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between py-3 border-b last:border-b-0"
                     >
-                      {activity.status}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(activity.timestamp).toLocaleDateString()}
-                    </span>
-                  </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{user.name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {user.signupsCount} signups
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(user.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No recent activity found. Start by migrating users from the Upload CSV tab.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No migrated users found.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="shifts" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Nova Shifts</CardTitle>
+              <CardDescription>
+                Shifts imported from Nova (showing latest 10)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.data.shifts.recent.length > 0 ? (
+                <div className="space-y-4">
+                  {data.data.shifts.recent.map((shift) => (
+                    <div
+                      key={shift.id}
+                      className="py-3 border-b last:border-b-0"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary">
+                            {shift.shiftType.name}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {shift.signupsCount} signups
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(shift.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-4 text-sm">
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>
+                              {new Date(shift.start).toLocaleDateString()}{" "}
+                              {new Date(shift.start).toLocaleTimeString()} -{" "}
+                              {new Date(shift.end).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{shift.location || "No location"}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Capacity: {shift.capacity} volunteers
+                        </p>
+                        {shift.notes && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {shift.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No migrated shifts found.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="signups" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Nova Signups</CardTitle>
+              <CardDescription>
+                Signups imported from Nova (showing latest 10)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.data.signups.recent.length > 0 ? (
+                <div className="space-y-4">
+                  {data.data.signups.recent.map((signup) => (
+                    <div
+                      key={signup.id}
+                      className="flex items-center justify-between py-3 border-b last:border-b-0"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">
+                            {signup.user.name}
+                          </span>
+                          <Badge
+                            variant={
+                              signup.status === "CONFIRMED"
+                                ? "default"
+                                : signup.status === "CANCELED"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {signup.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {signup.user.email}
+                        </p>
+                        <div className="text-sm">
+                          <Badge variant="outline" className="mr-2">
+                            {signup.shift.shiftType.name}
+                          </Badge>
+                          <span className="text-muted-foreground">
+                            {new Date(signup.shift.start).toLocaleDateString()}{" "}
+                            {new Date(signup.shift.start).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {new Date(signup.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(signup.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No migrated signups found.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="shift-types" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Shift Types</CardTitle>
+              <CardDescription>
+                All shift types in the system (showing latest 10)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.data.shiftTypes.recent.length > 0 ? (
+                <div className="space-y-4">
+                  {data.data.shiftTypes.recent.map((shiftType) => (
+                    <div
+                      key={shiftType.id}
+                      className="flex items-center justify-between py-3 border-b last:border-b-0"
+                    >
+                      <div className="space-y-1">
+                        <h4 className="font-medium">{shiftType.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {shiftType.description}
+                        </p>
+                        <p className="text-sm">
+                          <Badge variant="outline">
+                            {shiftType.shiftsCount} shifts
+                          </Badge>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {new Date(shiftType.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(shiftType.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No shift types found.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

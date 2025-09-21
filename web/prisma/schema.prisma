@@ -264,6 +264,8 @@ enum SignupStatus {
   CONFIRMED
   WAITLISTED
   CANCELED
+  NOT_NEEDED       // Shift/position was not needed (Nova status 7)
+  UNAVAILABLE      // User became unavailable (Nova status 8)
   NO_SHOW
 }
 

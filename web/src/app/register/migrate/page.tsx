@@ -87,6 +87,7 @@ async function validateToken(token: string) {
         medicalConditions: true,
         availableDays: true,
         availableLocations: true,
+        profilePhotoUrl: true,
         migrationTokenExpiresAt: true, // Include for debugging
       }
     });

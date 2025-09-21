@@ -75,10 +75,10 @@ import {
 } from "lucide-react";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
+import { isShiftCompleted } from "@/lib/shift-utils";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
-import { isShiftCompleted } from "@/lib/shift-utils";
 
 // Layout update context for triggering masonry recalculation
 const LayoutUpdateContext = createContext<(() => void) | null>(null);
@@ -382,9 +382,11 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         >
                           {confirmed}/{shift.capacity}
                         </Badge>
-                        <p className="text-xs text-slate-600 mt-1">
-                          {staffingStatus.text}
-                        </p>
+                        {!isCompleted && (
+                          <p className="text-xs text-slate-600 mt-1">
+                            {staffingStatus.text}
+                          </p>
+                        )}
                       </div>
                     </div>
 

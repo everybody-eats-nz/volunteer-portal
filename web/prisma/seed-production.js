@@ -35,37 +35,39 @@ async function main() {
   } else {
     // Create the admin user
     adminUser = await prisma.user.create({
-    data: {
-      email: adminEmail,
-      hashedPassword: adminHash,
-      firstName: adminFirstName,
-      lastName: adminLastName,
-      role: "ADMIN",
-      profileCompleted: true,
-      emailVerified: true,
-      dateOfBirth: new Date("1990-01-01"), // Default DOB
-      phone: "021-000-0000", // Default phone
-      emergencyContactName: "Emergency Contact",
-      emergencyContactPhone: "021-111-1111",
-      emergencyContactRelationship: "Next of Kin",
-      medicalConditions: "",
-      pronouns: "",
-      howDidYouHearAboutUs: "System",
-      volunteerAgreementAccepted: true,
-      healthSafetyPolicyAccepted: true,
-      parentalConsentReceived: true,
-    },
+      data: {
+        email: adminEmail,
+        hashedPassword: adminHash,
+        firstName: adminFirstName,
+        lastName: adminLastName,
+        role: "ADMIN",
+        profileCompleted: true,
+        emailVerified: true,
+        dateOfBirth: new Date("1990-01-01"), // Default DOB
+        phone: "021-000-0000", // Default phone
+        emergencyContactName: "Emergency Contact",
+        emergencyContactPhone: "021-111-1111",
+        emergencyContactRelationship: "Next of Kin",
+        medicalConditions: "",
+        pronouns: "",
+        howDidYouHearAboutUs: "System",
+        volunteerAgreementAccepted: true,
+        healthSafetyPolicyAccepted: true,
+        parentalConsentReceived: true,
+      },
     });
 
     console.log(`✅ Admin user created successfully: ${adminUser.email}`);
     console.log(`📧 Email: ${adminEmail}`);
     console.log("🔐 Initial Password: [HIDDEN] (from ADMIN_PASSWORD env var)");
-    console.log("⚠️  Please store your admin initial password securely and change it after first login!");
+    console.log(
+      "⚠️  Please store your admin initial password securely and change it after first login!"
+    );
   }
 
   // Create essential shift types
   console.log("Creating shift types...");
-  
+
   const dishwasher = await prisma.shiftType.upsert({
     where: { name: "Dishwasher" },
     update: {},
@@ -79,7 +81,7 @@ async function main() {
     where: { name: "FOH Set-Up & Service" },
     update: {},
     create: {
-      name: "FOH Set-Up & Service", 
+      name: "FOH Set-Up & Service",
       description: "Front of house setup and service support (4:30pm-9:00pm)",
     },
   });
@@ -116,7 +118,8 @@ async function main() {
     update: {},
     create: {
       name: "Media Role",
-      description: "Photography, social media content creation, and community engagement (5:00pm-7:00pm)",
+      description:
+        "Photography, social media content creation, and community engagement (5:00pm-7:00pm)",
     },
   });
 
@@ -147,7 +150,7 @@ async function main() {
     },
     {
       name: "Wellington Kitchen Service & Pack Down",
-      location: "Wellington", 
+      location: "Wellington",
       shiftType: kitchenServicePack,
       startTime: "17:30",
       endTime: "21:00",
@@ -159,7 +162,7 @@ async function main() {
       location: "Wellington",
       shiftType: frontOfHouse,
       startTime: "17:30",
-      endTime: "21:00", 
+      endTime: "21:00",
       capacity: 8,
       notes: "Guest service and dining room support",
     },
@@ -188,7 +191,8 @@ async function main() {
       startTime: "17:00",
       endTime: "19:00",
       capacity: 1,
-      notes: "Photography, social media content creation, and community engagement",
+      notes:
+        "Photography, social media content creation, and community engagement",
     },
 
     // Glen Innes templates
@@ -205,7 +209,7 @@ async function main() {
       name: "Glen Innes Kitchen Service & Pack Down",
       location: "Glen Innes",
       shiftType: kitchenServicePack,
-      startTime: "17:30", 
+      startTime: "17:30",
       endTime: "21:00",
       capacity: 4,
       notes: "Cooking service and kitchen cleanup",
@@ -230,7 +234,7 @@ async function main() {
     },
     {
       name: "Glen Innes Dishwasher",
-      location: "Glen Innes", 
+      location: "Glen Innes",
       shiftType: dishwasher,
       startTime: "17:30",
       endTime: "21:00",
@@ -244,7 +248,8 @@ async function main() {
       startTime: "17:00",
       endTime: "19:00",
       capacity: 1,
-      notes: "Photography, social media content creation, and community engagement",
+      notes:
+        "Photography, social media content creation, and community engagement",
     },
 
     // Onehunga templates
@@ -285,7 +290,7 @@ async function main() {
       notes: "Front of house setup and service support",
     },
     {
-      name: "Onehunga Dishwasher", 
+      name: "Onehunga Dishwasher",
       location: "Onehunga",
       shiftType: dishwasher,
       startTime: "17:30",
@@ -300,17 +305,18 @@ async function main() {
       startTime: "17:00",
       endTime: "19:00",
       capacity: 1,
-      notes: "Photography, social media content creation, and community engagement",
+      notes:
+        "Photography, social media content creation, and community engagement",
     },
   ];
 
   for (const config of templateConfigs) {
     await prisma.shiftTemplate.upsert({
-      where: { 
+      where: {
         name_location: {
           name: config.name,
           location: config.location,
-        }
+        },
       },
       update: {},
       create: {

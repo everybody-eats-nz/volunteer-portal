@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getProviders } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,6 @@ import {
   FileText,
   Check,
   AlertCircle,
-  Camera,
 } from "lucide-react";
 import {
   AccountStep,
@@ -33,7 +32,6 @@ import {
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionCard } from "@/components/motion-card";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { ProfileImageUpload } from "@/components/ui/profile-image-upload";
 
 // Extend the form data to include profile image requirement for migration
 interface MigrationFormData extends UserProfileFormData {
@@ -53,6 +51,15 @@ interface User {
   medicalConditions?: string | null;
   availableDays?: string | null;
   availableLocations?: string | null;
+  profilePhotoUrl?: string | null;
+}
+
+interface Provider {
+  id: string;
+  name: string;
+  type: string;
+  signinUrl: string;
+  callbackUrl: string;
 }
 
 interface MigrationRegistrationFormProps {
@@ -66,6 +73,239 @@ interface MigrationRegistrationFormProps {
  * Migration registration form that reuses components from the main registration flow
  * Eliminates duplication by leveraging existing form steps and validation logic
  */
+// OAuth provider helper functions
+const getProviderIcon = (providerId: string) => {
+  switch (providerId) {
+    case "google":
+      return (
+        <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <path
+            fill="currentColor"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="currentColor"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="currentColor"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+          />
+          <path
+            fill="currentColor"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+          />
+        </svg>
+      );
+    case "facebook":
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      );
+    case "apple":
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
+const getProviderButtonStyle = (providerId: string) => {
+  switch (providerId) {
+    case "google":
+      return "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600";
+    case "facebook":
+      return "bg-[#1877F2] hover:bg-[#166FE5] text-white";
+    case "apple":
+      return "bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black";
+    default:
+      return "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100";
+  }
+};
+
+// Account step with OAuth options component
+function AccountStepWithOAuth({
+  formData,
+  onInputChange,
+  loading,
+  user,
+  token,
+}: {
+  formData: MigrationFormData;
+  onInputChange: (
+    field: string,
+    value: string | boolean | string[] | number
+  ) => void;
+  loading: boolean;
+  user: User;
+  token: string;
+}) {
+  const [providers, setProviders] = useState<Record<string, Provider>>({});
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
+
+  // Load OAuth providers
+  useEffect(() => {
+    const loadProviders = async () => {
+      const res = await getProviders();
+      if (res) {
+        setProviders(res);
+      }
+    };
+    loadProviders();
+  }, []);
+
+  const handleOAuthSignIn = async (providerId: string) => {
+    setOauthLoading(providerId);
+
+    try {
+      // First save the current form data to the migration user
+      const processedData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        dateOfBirth: formData.dateOfBirth,
+        pronouns: formData.pronouns === "none" ? null : formData.pronouns,
+        customPronouns: formData.customPronouns,
+        emergencyContactName: formData.emergencyContactName,
+        emergencyContactRelationship: formData.emergencyContactRelationship,
+        emergencyContactPhone: formData.emergencyContactPhone,
+        medicalConditions: formData.medicalConditions,
+        willingToProvideReference: formData.willingToProvideReference,
+        howDidYouHearAboutUs: "migration",
+        availableDays: formData.availableDays,
+        availableLocations: formData.availableLocations,
+        emailNewsletterSubscription: formData.emailNewsletterSubscription,
+        notificationPreference: formData.notificationPreference,
+        receiveShortageNotifications: formData.receiveShortageNotifications,
+        excludedShortageNotificationTypes:
+          formData.excludedShortageNotificationTypes,
+        volunteerAgreementAccepted: formData.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: formData.healthSafetyPolicyAccepted,
+        profilePhotoUrl: formData.profilePhotoUrl,
+      };
+
+      // Save form data to migration user before OAuth
+      const saveResponse = await fetch("/api/auth/save-migration-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token,
+          data: processedData,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save migration data");
+      }
+
+      // Now proceed with OAuth
+      const callbackUrl = `/api/auth/complete-migration?token=${encodeURIComponent(
+        token
+      )}`;
+      await signIn(providerId, {
+        callbackUrl,
+      });
+    } catch (error) {
+      console.error("OAuth sign in error:", error);
+      setOauthLoading(null);
+    }
+  };
+
+  // Filter out credentials provider for OAuth buttons
+  const oauthProviders = Object.values(providers).filter(
+    (provider) => provider.type === "oauth"
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* OAuth Options */}
+      {oauthProviders.length > 0 && (
+        <div className="mb-6">
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 pt-0.5">
+                <svg
+                  className="w-5 h-5 text-blue-600 dark:text-blue-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  Recommended: Use Social Login
+                </h3>
+                <p className="text-blue-800 dark:text-blue-200 text-sm leading-relaxed">
+                  We recommend using your Google, Facebook, or Apple account to
+                  sign in. This is more secure and convenient than creating a
+                  password.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {oauthProviders.map((provider) => (
+              <Button
+                key={provider.id}
+                onClick={(e) => {
+                  e.preventDefault(); // Prevent form submission
+                  e.stopPropagation(); // Stop event bubbling
+                  handleOAuthSignIn(provider.id);
+                }}
+                disabled={oauthLoading !== null || loading}
+                className={`w-full h-11 ${getProviderButtonStyle(provider.id)}`}
+                variant="outline"
+                data-testid={`oauth-${provider.id}-button`}
+                type="button" // Explicitly set as button to prevent form submission
+              >
+                {oauthLoading === provider.id ? (
+                  <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {getProviderIcon(provider.id)}
+                    <span className="ml-3">Continue with {provider.name}</span>
+                  </>
+                )}
+              </Button>
+            ))}
+          </div>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or set a password
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Traditional Account Step */}
+      <AccountStep
+        formData={formData}
+        onInputChange={onInputChange}
+        loading={loading}
+        hideEmail={true}
+      />
+    </div>
+  );
+}
+
 export function MigrationRegistrationForm({
   user,
   token,
@@ -76,8 +316,10 @@ export function MigrationRegistrationForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [volunteerAgreementContent, setVolunteerAgreementContent] = useState("");
-  const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] = useState("");
+  const [volunteerAgreementContent, setVolunteerAgreementContent] =
+    useState("");
+  const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] =
+    useState("");
   const [volunteerAgreementOpen, setVolunteerAgreementOpen] = useState(false);
   const [healthSafetyPolicyOpen, setHealthSafetyPolicyOpen] = useState(false);
 
@@ -123,9 +365,9 @@ export function MigrationRegistrationForm({
     excludedShortageNotificationTypes: [],
     volunteerAgreementAccepted: false,
     healthSafetyPolicyAccepted: false,
-    
-    // Profile image (required for migration)
-    profilePhotoUrl: undefined,
+
+    // Profile image (pre-populate with migrated photo if available)
+    profilePhotoUrl: user.profilePhotoUrl || undefined,
   });
 
   // Load policy content
@@ -178,11 +420,11 @@ export function MigrationRegistrationForm({
       color: "bg-orange-500",
     },
     {
-      id: "photo",
-      title: "Profile Photo",
-      description: "Upload your profile photo",
-      icon: Camera,
-      color: "bg-purple-500",
+      id: "agreements",
+      title: "Review Policies",
+      description: "Review and accept policies",
+      icon: FileText,
+      color: "bg-indigo-500",
     },
     {
       id: "account",
@@ -191,21 +433,20 @@ export function MigrationRegistrationForm({
       icon: UserPlus,
       color: "bg-green-500",
     },
-    {
-      id: "agreements",
-      title: "Final Steps",
-      description: "Review and accept policies",
-      icon: FileText,
-      color: "bg-indigo-500",
-    },
   ];
 
-  const handleInputChange = (field: string, value: string | boolean | string[] | number) => {
+  const handleInputChange = (
+    field: string,
+    value: string | boolean | string[] | number
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleImageChange = (base64Image: string | null) => {
-    setFormData((prev) => ({ ...prev, profilePhotoUrl: base64Image || undefined }));
+    setFormData((prev) => ({
+      ...prev,
+      profilePhotoUrl: base64Image || undefined,
+    }));
   };
 
   const handleDayToggle = (day: string) => {
@@ -246,14 +487,25 @@ export function MigrationRegistrationForm({
         ) {
           toast({
             title: "Required fields missing",
-            description: "Please provide complete emergency contact information",
+            description:
+              "Please provide complete emergency contact information",
             variant: "destructive",
           });
           return false;
         }
         break;
-      case 3: // Photo upload - now optional
-        // Photo upload is optional, user can skip
+      case 3: // Agreements
+        if (
+          !formData.volunteerAgreementAccepted ||
+          !formData.healthSafetyPolicyAccepted
+        ) {
+          toast({
+            title: "Agreements required",
+            description: "Please accept all required agreements to continue",
+            variant: "destructive",
+          });
+          return false;
+        }
         break;
       case 4: // Account setup
         if (!formData.password || !formData.confirmPassword) {
@@ -276,19 +528,6 @@ export function MigrationRegistrationForm({
           toast({
             title: "Password too short",
             description: "Password must be at least 6 characters long",
-            variant: "destructive",
-          });
-          return false;
-        }
-        break;
-      case 5: // Agreements
-        if (
-          !formData.volunteerAgreementAccepted ||
-          !formData.healthSafetyPolicyAccepted
-        ) {
-          toast({
-            title: "Agreements required",
-            description: "Please accept all required agreements to continue",
             variant: "destructive",
           });
           return false;
@@ -347,7 +586,8 @@ export function MigrationRegistrationForm({
 
       toast({
         title: "Registration completed!",
-        description: "Your account has been successfully migrated. Signing you in...",
+        description:
+          "Your account has been successfully migrated. Signing you in...",
       });
 
       // Auto sign-in after successful migration
@@ -366,7 +606,9 @@ export function MigrationRegistrationForm({
       toast({
         title: "Registration failed",
         description:
-          error instanceof Error ? error.message : "Failed to complete registration",
+          error instanceof Error
+            ? error.message
+            : "Failed to complete registration",
         variant: "destructive",
       });
     } finally {
@@ -427,58 +669,7 @@ export function MigrationRegistrationForm({
             </div>
           </div>
         );
-      case 3: // Photo upload
-        return (
-          <div className="space-y-6">
-            <Alert>
-              <Camera className="h-4 w-4" />
-              <AlertDescription>
-                Please upload a profile photo. This helps other volunteers recognize you during shifts.
-                You can skip this step and add a photo later if needed.
-              </AlertDescription>
-            </Alert>
-            <div className="flex justify-center">
-              <ProfileImageUpload
-                currentImage={formData.profilePhotoUrl}
-                onImageChange={handleImageChange}
-                disabled={loading}
-                size="lg"
-                fallbackText={`${formData.firstName} ${formData.lastName}`.trim()}
-              />
-            </div>
-            <div className="flex justify-center">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={loading}
-                data-testid="skip-photo-button"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Skip for now
-              </Button>
-            </div>
-          </div>
-        );
-      case 4: // Account setup
-        return (
-          <div className="space-y-6">
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                Create a secure password for your new account.
-                Your email address ({user.email}) will be your username.
-              </AlertDescription>
-            </Alert>
-            <AccountStep
-              formData={formData}
-              onInputChange={handleInputChange}
-              loading={loading}
-              hideEmail={true} // Hide email field since it's pre-filled
-            />
-          </div>
-        );
-      case 5: // Agreements
+      case 3: // Agreements
         return (
           <CommunicationStep
             formData={formData}
@@ -490,7 +681,16 @@ export function MigrationRegistrationForm({
             setVolunteerAgreementOpen={setVolunteerAgreementOpen}
             healthSafetyPolicyOpen={healthSafetyPolicyOpen}
             setHealthSafetyPolicyOpen={setHealthSafetyPolicyOpen}
-            shiftTypes={shiftTypes}
+          />
+        );
+      case 4: // Account setup (Password)
+        return (
+          <AccountStepWithOAuth
+            formData={formData}
+            onInputChange={handleInputChange}
+            loading={loading}
+            user={user}
+            token={token}
           />
         );
       default:
@@ -525,7 +725,11 @@ export function MigrationRegistrationForm({
       <div className="hidden md:block bg-card rounded-xl shadow-sm border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Migration Progress</h2>
-          <Badge variant="outline" className="text-xs" data-testid="step-indicator">
+          <Badge
+            variant="outline"
+            className="text-xs"
+            data-testid="step-indicator"
+          >
             Step {currentStep + 1} of {steps.length}
           </Badge>
         </div>
@@ -580,7 +784,10 @@ export function MigrationRegistrationForm({
       {/* Form Content */}
       <MotionCard className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
         <CardHeader className="pb-6">
-          <CardTitle className="flex items-center gap-3 text-xl" data-testid="step-card-title">
+          <CardTitle
+            className="flex items-center gap-3 text-xl"
+            data-testid="step-card-title"
+          >
             {React.createElement(steps[currentStep].icon, {
               className: "h-6 w-6",
             })}

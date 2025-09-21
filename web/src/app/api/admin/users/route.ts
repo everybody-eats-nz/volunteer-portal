@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -11,11 +12,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  try {
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get("q");
-    const limit = searchParams.get("limit");
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get("q");
+  const limit = searchParams.get("limit");
 
+  try {
     let whereClause = {};
 
     // If there's a search query, add search conditions

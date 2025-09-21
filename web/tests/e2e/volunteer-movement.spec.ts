@@ -378,9 +378,7 @@ test.describe("General Volunteer Movement System", () => {
       });
     });
 
-    test("system tracks original shift ID when volunteer is moved", async ({
-      page,
-    }) => {
+    test("system tracks original shift ID when volunteer is moved", async ({}) => {
       // Ensure volunteer is moved with proper tracking for this test
       await prisma.signup.update({
         where: { id: signupId },
@@ -399,7 +397,7 @@ test.describe("General Volunteer Movement System", () => {
       expect(signup?.shiftId).toBe(targetShiftId);
     });
 
-    test("system maintains audit trail of movements", async ({ page }) => {
+    test("system maintains audit trail of movements", async ({}) => {
       // Create movement notification for this test
       await prisma.notification.create({
         data: {
