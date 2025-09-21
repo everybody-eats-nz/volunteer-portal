@@ -21,7 +21,7 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Overview", slug: "index" },
+                { label: "Overview", link: "/" },
                 { label: "Admin Dashboard", slug: "overview/admin-dashboard" },
                 { label: "User Roles & Permissions", slug: "overview/user-roles" },
                 { label: "Navigation Guide", slug: "overview/navigation" },
