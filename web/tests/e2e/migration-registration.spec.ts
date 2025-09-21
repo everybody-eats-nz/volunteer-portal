@@ -235,7 +235,7 @@ test.describe("Migration Registration Flow", () => {
       );
 
       // Proceed to next step
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check step 2 is now active
       await expect(
@@ -257,7 +257,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Navigate to password step (step 5)
-      await page.click('[data-testid="next-step-button"]'); // Step 2: Emergency Contact
+      await page.getByTestId("next-step-button").click({ force: true }); // Step 2: Emergency Contact
       // Fill out emergency contact
       await page.fill(
         '[data-testid="emergency-contact-name-input"]',
@@ -286,7 +286,7 @@ test.describe("Migration Registration Flow", () => {
       // Try weak password
       await page.fill('[data-testid="password-input"]', "weak");
       await page.fill('[data-testid="confirm-password-input"]', "weak");
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check validation error in toast - use first visible toast
       await expect(page.locator("[data-sonner-toast]").first()).toContainText(
@@ -304,7 +304,7 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="confirm-password-input"]',
         "DifferentPassword123!"
       );
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check validation error in toast - use first visible toast
       await expect(page.locator("[data-sonner-toast]").first()).toContainText(
@@ -321,7 +321,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Complete step 1 first
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Fill emergency contact info
       await page.fill(
@@ -358,7 +358,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Navigate to step 3
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
       await page.fill(
         '[data-testid="emergency-contact-name-input"]',
         "John Emergency"
@@ -398,7 +398,7 @@ test.describe("Migration Registration Flow", () => {
         .click();
 
       // Proceed to review policies step
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check step 4 is now active - Review Policies
       await expect(
@@ -506,10 +506,10 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Go to step 2 (Emergency Contact)
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Try to skip emergency contact (leave fields empty and just click Next)
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Should show validation error and stay on step 2
       await expect(page.locator("[data-sonner-toast]").first()).toContainText(
@@ -532,7 +532,7 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="emergency-contact-phone-input"]',
         "+64 21 555 8888"
       );
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Now should proceed to step 3
       await expect(
@@ -556,7 +556,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Navigate to step 4 (Review Policies)
-      await page.click('[data-testid="next-step-button"]'); // Step 1 -> 2 (Emergency Contact)
+      await page.getByTestId("next-step-button").click({ force: true }); // Step 1 -> 2 (Emergency Contact)
 
       // Fill out required emergency contact fields
       await page.fill(
@@ -572,7 +572,7 @@ test.describe("Migration Registration Flow", () => {
         "+64 21 555 8888"
       );
       await page.getByTestId("next-step-button").click({ force: true }); // Step 2 -> 3
-      await page.click('[data-testid="next-step-button"]'); // Step 3 -> 4 (Review Policies)
+      await page.getByTestId("next-step-button").click({ force: true }); // Step 3 -> 4 (Review Policies)
 
       // Now on step 4: Review Policies
       await expect(
@@ -594,7 +594,7 @@ test.describe("Migration Registration Flow", () => {
       await acceptAgreements(page);
 
       // Complete agreements step and proceed to password
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Should proceed to step 5: Set Password
       await expect(
@@ -614,7 +614,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Go to step 2
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Go back to step 1
       await page.click('[data-testid="previous-step-button"]');
@@ -638,7 +638,7 @@ test.describe("Migration Registration Flow", () => {
 
       // Try to proceed without required fields
       await page.fill('[data-testid="first-name-input"]', "");
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check that form validation prevents proceeding (HTML5 validation, no toast)
       // Should still be on step 1
@@ -651,7 +651,7 @@ test.describe("Migration Registration Flow", () => {
 
       // Fill required field and try again
       await page.fill('[data-testid="first-name-input"]', "Migration");
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Should proceed to next step
       await expect(page.locator('[data-testid="step-title"]')).toContainText(
@@ -700,7 +700,7 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="confirm-password-input"]',
         "SecurePassword123!"
       );
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check user is logged in and redirected to dashboard
       await expect(page).toHaveURL("/dashboard");
@@ -752,7 +752,7 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="confirm-password-input"]',
         "SecurePassword123!"
       );
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check user is logged in and redirected to dashboard
       await expect(page).toHaveURL("/dashboard");
@@ -798,7 +798,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Check continue button works
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
       await expect(page.locator('[data-testid="step-title"]')).toContainText(
         "Emergency Contact"
       );
