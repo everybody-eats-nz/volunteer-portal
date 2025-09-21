@@ -1,3 +1,9 @@
+## [0.43.0] - 2025-09-21
+
+### Changes
+- feat: implement comprehensive Laravel Nova scraper with data migration and user registration ([#148](https://github.com/everybody-eats-nz/volunteer-portal/pull/148)) by @malinmalliyawadu
+
+
 ## [0.42.3] - 2025-09-18
 
 ### Changes
