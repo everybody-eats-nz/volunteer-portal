@@ -23,23 +23,4 @@ Technical documentation for authentication systems and user management:
 ## Quick Links
 
 - **[GitHub Repository](https://github.com/everybody-eats-nz/volunteer-portal)** - Source code and issue tracking
-- **[Live Application](http://localhost:3000)** - Development environment access
-
-## Architecture Overview
-
-The Everybody Eats Volunteer Portal is built with:
-
-- **Next.js 15.4** with App Router
-- **TypeScript** with strict configuration
-- **Prisma ORM** with PostgreSQL
-- **NextAuth.js** for authentication
-- **Tailwind CSS v4** + shadcn/ui components
-- **Playwright** for end-to-end testing
-
-## Development Setup
-
-For detailed setup instructions, database management, and development workflows, see the main project documentation at the repository root.
-
-:::note
-Technical documentation is actively being expanded. For immediate development questions, refer to the codebase documentation in `/web/docs/` or the main project README.
-:::
+- **[Demo Application](http://demo.everybody-eats.vercel.app)** - Demo environment access
