@@ -161,14 +161,17 @@ graph LR
     A[Developer Push] --> B[GitHub]
     B --> C{Branch Type}
     C -->|PR| D[Vercel Preview]
-    C -->|Main| E[Vercel Production]
-    D --> F[Demo Supabase]
-    E --> G[Prod Supabase]
+    C -->|Main| E[Parallel Deploy]
+    E --> F[Vercel Production]
+    E --> G[Vercel Demo]
+    D --> H[Demo Supabase]
+    F --> I[Prod Supabase]
+    G --> H
 
-    H[Build Process] --> I[Type Check]
-    H --> J[Lint]
-    H --> K[Build Next.js]
-    H --> L[Deploy]
+    J[Build Process] --> K[Type Check]
+    J --> L[Lint]
+    J --> M[Build Next.js]
+    J --> N[Deploy]
 ```
 
 ### Database Migrations
