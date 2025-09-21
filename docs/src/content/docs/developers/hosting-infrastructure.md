@@ -346,7 +346,7 @@ npm run prisma:studio
 
 ### Support Channels
 
-- **Vercel**: Pro support via dashboard
-- **Supabase**: Pro support tickets
-- **Campaign Monitor**: Email support
-- **PostHog**: Community and paid support
+- **Vercel**: [Pro support via dashboard](https://vercel.com/support)
+- **Supabase**: [Pro support tickets](https://supabase.com/support)
+- **Campaign Monitor**: [Email support](https://www.campaignmonitor.com/support/)
+- **PostHog**: [Community support](https://posthog.com/questions) | [Paid support](https://posthog.com/pricing)
