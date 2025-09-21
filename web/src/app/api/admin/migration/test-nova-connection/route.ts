@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Test Nova connection
-      const scraper = await createNovaScraper({
+      await createNovaScraper({
         baseUrl: novaConfig.baseUrl,
         email: novaConfig.email,
         password: novaConfig.password,
@@ -41,15 +41,16 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Successfully connected to Laravel Nova",
       });
-
     } catch (error) {
       console.error("Nova connection test failed:", error);
-      return NextResponse.json({
-        success: false,
-        error: error instanceof Error ? error.message : "Connection failed",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "Connection failed",
+        },
+        { status: 400 }
+      );
     }
-
   } catch (error) {
     console.error("Request processing error:", error);
     return NextResponse.json(

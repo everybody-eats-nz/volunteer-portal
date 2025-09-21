@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
               typeof novaUser.id === "object" &&
               "value" in novaUser.id
             ) {
-              userId = (novaUser.id as any).value.toString();
+              userId = (novaUser.id as { value: number }).value.toString();
             } else if ("id" in novaUser && typeof novaUser.id === "number") {
               userId = novaUser.id.toString();
             }
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
             typeof novaUser.id === "object" &&
             "value" in novaUser.id
           ) {
-            userId = (novaUser.id as any).value.toString();
+            userId = (novaUser.id as { value: number }).value.toString();
           } else if ("id" in novaUser && typeof novaUser.id === "number") {
             userId = novaUser.id.toString();
           }

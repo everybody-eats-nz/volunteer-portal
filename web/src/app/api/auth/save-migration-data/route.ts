@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
         phone: data.phone,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
         pronouns: data.pronouns,
-        customPronouns: data.customPronouns,
         emergencyContactName: data.emergencyContactName,
         emergencyContactRelationship: data.emergencyContactRelationship,
         emergencyContactPhone: data.emergencyContactPhone,

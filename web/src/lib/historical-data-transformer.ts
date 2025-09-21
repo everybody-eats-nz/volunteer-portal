@@ -424,10 +424,15 @@ export class HistoricalDataTransformer {
       lastName = legacyUser.last_name;
       phone = legacyUser.phone;
       profilePhoto =
-        (legacyUser as any).profile_photo ||
-        (legacyUser as any).photo ||
-        (legacyUser as any).avatar;
-      approvedAt = (legacyUser as any).approved_at;
+        "profile_photo" in legacyUser
+          ? legacyUser.profile_photo
+          : "photo" in legacyUser
+          ? legacyUser.photo
+          : "avatar" in legacyUser
+          ? legacyUser.avatar
+          : undefined;
+      approvedAt =
+        "approved_at" in legacyUser ? legacyUser.approved_at : undefined;
     }
 
     const name = `${firstName || ""} ${lastName || ""}`.trim() || email;
@@ -545,7 +550,8 @@ export class HistoricalDataTransformer {
     novaShift: NovaShift,
     shiftTypeMap: Map<string, string>
   ): TransformedShiftData {
-    const shiftType = (novaShift as any).shift_type || "default";
+    const shiftType =
+      "shift_type" in novaShift ? novaShift.shift_type : "default";
     const shiftTypeId = shiftTypeMap.get(shiftType);
 
     if (!shiftTypeId) {
@@ -555,13 +561,16 @@ export class HistoricalDataTransformer {
     return {
       shiftTypeId,
       shiftTypeName: shiftType,
-      start: new Date((novaShift as any).start_time),
-      end: new Date((novaShift as any).end_time),
-      location: (novaShift as any).location,
-      capacity: (novaShift as any).capacity,
-      notes: (novaShift as any).notes,
-      createdAt: new Date((novaShift as any).created_at || new Date()),
-      updatedAt: new Date((novaShift as any).updated_at || new Date()),
+      start: new Date(
+        "start_time" in novaShift ? novaShift.start_time : new Date()
+      ),
+      end: new Date("end_time" in novaShift ? novaShift.end_time : new Date()),
+      location:
+        "location" in novaShift ? novaShift.location : "Unknown Location",
+      capacity: "capacity" in novaShift ? novaShift.capacity : 10,
+      notes: ("notes" in novaShift ? novaShift.notes : "") || "",
+      createdAt: new Date(novaShift.created_at ?? new Date()),
+      updatedAt: new Date(novaShift.updated_at ?? new Date()),
     };
   }
 
@@ -736,9 +745,9 @@ export class HistoricalDataTransformer {
     const rawStatus = novaSignup.status?.toLowerCase();
 
     const status =
-      statusMap[statusId] ||
-      statusMap[statusName] ||
-      statusMap[rawStatus] ||
+      (statusId && statusMap[statusId]) ||
+      (statusName && statusMap[statusName]) ||
+      (rawStatus && statusMap[rawStatus]) ||
       SignupStatus.PENDING;
 
     console.log(

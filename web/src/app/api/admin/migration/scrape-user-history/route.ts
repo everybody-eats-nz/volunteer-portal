@@ -6,12 +6,10 @@ import { createNovaScraper } from "@/lib/laravel-nova-scraper";
 import {
   NovaAuthConfig,
   NovaUser,
-  ScrapeUserHistoryRequest,
-  ScrapeUserHistoryResponse,
   NovaUserResource,
   NovaEventResource,
   NovaField,
-  MigrationProgressEvent
+  MigrationProgressEvent,
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "../progress/route";
@@ -60,7 +58,10 @@ interface SignupWithDetails {
 }
 
 // Helper function to send progress updates
-async function sendProgress(sessionId: string | undefined, data: Partial<MigrationProgressEvent>) {
+async function sendProgress(
+  sessionId: string | undefined,
+  data: Partial<MigrationProgressEvent>
+) {
   if (!sessionId) return;
 
   try {
@@ -141,7 +142,11 @@ export async function POST(request: NextRequest) {
           `/users?search=${encodeURIComponent(userEmail)}&perPage=100`
         );
 
-        if (novaResponse.resources && Array.isArray(novaResponse.resources) && novaResponse.resources.length > 0) {
+        if (
+          novaResponse.resources &&
+          Array.isArray(novaResponse.resources) &&
+          novaResponse.resources.length > 0
+        ) {
           // Look through search results to find exact email match
           for (const user of novaResponse.resources) {
             // Extract email from Nova's field structure
@@ -152,6 +157,7 @@ export async function POST(request: NextRequest) {
 
             if (
               userEmail_fromNova &&
+              typeof userEmail_fromNova === "string" &&
               userEmail_fromNova.toLowerCase() === userEmail.toLowerCase()
             ) {
               targetNovaUser = user;
@@ -174,10 +180,13 @@ export async function POST(request: NextRequest) {
               );
               // Log first user's email for debugging
               if (novaResponse.resources[0]?.fields) {
-                const firstUserEmailField = novaResponse.resources[0].fields.find(
-                  (field: NovaField) => field.attribute === "email"
+                const firstUserEmailField =
+                  novaResponse.resources[0].fields.find(
+                    (field: NovaField) => field.attribute === "email"
+                  );
+                console.log(
+                  `First result email: ${firstUserEmailField?.value}`
                 );
-                console.log(`First result email: ${firstUserEmailField?.value}`);
               }
             }
           }
@@ -214,7 +223,7 @@ export async function POST(request: NextRequest) {
           });
 
           if (!targetNovaUser) {
-            throw new Error('Target Nova user is null');
+            throw new Error("Target Nova user is null");
           }
 
           const fullUserResponse = await scraper.novaApiRequest(
@@ -259,8 +268,10 @@ export async function POST(request: NextRequest) {
               `/event-applications?viaResource=users&viaResourceId=${novaUserId}&viaRelationship=event_applications&perPage=50&page=${page}`
             );
 
-            const resources = Array.isArray(signupsResponse.resources) ? signupsResponse.resources : [];
-            
+            const resources = Array.isArray(signupsResponse.resources)
+              ? signupsResponse.resources
+              : [];
+
             console.log(`[SINGLE] Page ${page} signups response:`, {
               resourceCount: resources.length,
               hasNextPage: !!signupsResponse.next_page_url,
@@ -271,10 +282,7 @@ export async function POST(request: NextRequest) {
               allSignups.push(...resources);
 
               // Check if there are more pages using next_page_url
-              if (
-                signupsResponse.next_page_url &&
-                resources.length > 0
-              ) {
+              if (signupsResponse.next_page_url && resources.length > 0) {
                 page++;
               } else {
                 hasMorePages = false;
@@ -313,11 +321,26 @@ export async function POST(request: NextRequest) {
               signupData.push({
                 id: signup.id.value,
                 eventId: eventField?.belongsToId,
-                eventName: (eventField?.value && eventField.value !== null && typeof eventField.value !== 'object') ? eventField.value : undefined,
+                eventName:
+                  eventField?.value &&
+                  eventField.value !== null &&
+                  typeof eventField.value !== "object"
+                    ? eventField.value
+                    : undefined,
                 positionId: positionField?.belongsToId,
-                positionName: (positionField?.value && positionField.value !== null && typeof positionField.value !== 'object') ? positionField.value : undefined,
+                positionName:
+                  positionField?.value &&
+                  positionField.value !== null &&
+                  typeof positionField.value !== "object"
+                    ? positionField.value
+                    : undefined,
                 statusId: statusField?.belongsToId,
-                statusName: (statusField?.value && statusField.value !== null && typeof statusField.value !== 'object') ? statusField.value : undefined,
+                statusName:
+                  statusField?.value &&
+                  statusField.value !== null &&
+                  typeof statusField.value !== "object"
+                    ? statusField.value
+                    : undefined,
               });
             }
 
@@ -328,8 +351,14 @@ export async function POST(request: NextRequest) {
                 const eventResponse = await scraper.novaApiRequest(
                   `/events/${eventId}`
                 );
-                if (eventResponse.resource && typeof eventResponse.resource === 'object' && 'id' in eventResponse.resource) {
-                  eventDetails.push(eventResponse.resource as NovaEventResource);
+                if (
+                  eventResponse.resource &&
+                  typeof eventResponse.resource === "object" &&
+                  "id" in eventResponse.resource
+                ) {
+                  eventDetails.push(
+                    eventResponse.resource as NovaEventResource
+                  );
                 }
               } catch (error) {
                 console.error(`Error fetching event ${eventId}:`, error);
@@ -360,15 +389,16 @@ export async function POST(request: NextRequest) {
 
                     // Transform event to shift format with signup position data
                     // Convert SignupWithDetails to SignupDataWithPosition format
-                    const mappedSignups = eventSignups.map(signup => ({
-                      eventId: signup.eventId,
-                      positionName: signup.positionName,
-                      // Add other required fields as needed
+                    const mappedSignups = eventSignups.map((signup) => ({
+                      positionName:
+                        typeof signup.positionName === "string"
+                          ? signup.positionName
+                          : "Unknown Position",
                     }));
-                    
+
                     const shiftData = transformer.transformEvent(
                       eventDetail,
-                      mappedSignups as any
+                      mappedSignups
                     );
 
                     // Ensure shift type exists
@@ -398,19 +428,19 @@ export async function POST(request: NextRequest) {
                     let shift = existingShift;
                     if (!existingShift) {
                       const { shiftTypeName, ...shiftCreateData } = shiftData;
-                      
+
                       // Generate clean notes - include meaningful info only
                       const noteParts = [];
                       if (shiftData.notes && shiftData.notes.trim()) {
                         noteParts.push(shiftData.notes.trim());
                       }
                       noteParts.push(`Nova ID: ${eventDetail.id.value}`);
-                      
+
                       shift = await prisma.shift.create({
                         data: {
                           ...shiftCreateData,
                           shiftTypeId: shiftType.id,
-                          notes: noteParts.join(' • '),
+                          notes: noteParts.join(" • "),
                         },
                       });
                       shiftsImported++;
@@ -438,7 +468,7 @@ export async function POST(request: NextRequest) {
                             data: {
                               userId: ourUser.id,
                               shiftId: shift.id,
-                              status: 'CONFIRMED' as SignupStatus,
+                              status: "CONFIRMED" as SignupStatus,
                               createdAt: new Date(),
                               updatedAt: new Date(),
                             },
@@ -498,9 +528,11 @@ export async function POST(request: NextRequest) {
           shiftsImported: 0,
           signupsFound: 0,
           signupsImported: 0,
-          errors: [`Nova scraping failed: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`],
+          errors: [
+            `Nova scraping failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          ],
         },
         { status: 500 }
       );

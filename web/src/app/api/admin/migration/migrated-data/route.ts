@@ -70,7 +70,7 @@ interface MigratedDataResponse {
   error?: string;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication and admin role
     const session = await getServerSession(authOptions);
@@ -83,9 +83,9 @@ export async function GET(request: NextRequest) {
     // Get users data
     const totalUsers = await prisma.user.count();
     const migratedUsers = await prisma.user.count({
-      where: { isMigrated: true }
+      where: { isMigrated: true },
     });
-    
+
     const recentUsers = await prisma.user.findMany({
       where: { isMigrated: true },
       select: {
@@ -96,12 +96,12 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         _count: {
           select: {
-            signups: true
-          }
-        }
+            signups: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
 
     // Get shift types data
@@ -114,12 +114,12 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         _count: {
           select: {
-            shifts: true
-          }
-        }
+            shifts: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
 
     // Get shifts data
@@ -127,16 +127,16 @@ export async function GET(request: NextRequest) {
     const migratedShifts = await prisma.shift.count({
       where: {
         notes: {
-          contains: "Nova Event ID:"
-        }
-      }
+          contains: "Nova Event ID:",
+        },
+      },
     });
 
     const recentShifts = await prisma.shift.findMany({
       where: {
         notes: {
-          contains: "Nova Event ID:"
-        }
+          contains: "Nova Event ID:",
+        },
       },
       select: {
         id: true,
@@ -148,17 +148,17 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         shiftType: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         _count: {
           select: {
-            signups: true
-          }
-        }
+            signups: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
 
     // Get signups data
@@ -167,19 +167,19 @@ export async function GET(request: NextRequest) {
       where: {
         shift: {
           notes: {
-            contains: "Nova Event ID:"
-          }
-        }
-      }
+            contains: "Nova Event ID:",
+          },
+        },
+      },
     });
 
     const recentSignups = await prisma.signup.findMany({
       where: {
         shift: {
           notes: {
-            contains: "Nova Event ID:"
-          }
-        }
+            contains: "Nova Event ID:",
+          },
+        },
       },
       select: {
         id: true,
@@ -188,8 +188,8 @@ export async function GET(request: NextRequest) {
         user: {
           select: {
             email: true,
-            name: true
-          }
+            name: true,
+          },
         },
         shift: {
           select: {
@@ -197,14 +197,14 @@ export async function GET(request: NextRequest) {
             end: true,
             shiftType: {
               select: {
-                name: true
-              }
-            }
-          }
-        }
+                name: true,
+              },
+            },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
 
     const response: MigratedDataResponse = {
@@ -213,77 +213,78 @@ export async function GET(request: NextRequest) {
         users: {
           total: totalUsers,
           migrated: migratedUsers,
-          recent: recentUsers.map(user => ({
+          recent: recentUsers.map((user) => ({
             id: user.id,
             email: user.email,
-            name: user.name || 'No name',
+            name: user.name || "No name",
             isMigrated: user.isMigrated,
             createdAt: user.createdAt,
             shiftsCount: 0, // We'll calculate this from signups
-            signupsCount: user._count.signups
-          }))
+            signupsCount: user._count.signups,
+          })),
         },
         shiftTypes: {
           total: totalShiftTypes,
-          recent: recentShiftTypes.map(st => ({
+          recent: recentShiftTypes.map((st) => ({
             id: st.id,
             name: st.name,
-            description: st.description || '',
+            description: st.description || "",
             createdAt: st.createdAt,
-            shiftsCount: st._count.shifts
-          }))
+            shiftsCount: st._count.shifts,
+          })),
         },
         shifts: {
           total: totalShifts,
           migratedFromNova: migratedShifts,
-          recent: recentShifts.map(shift => ({
+          recent: recentShifts.map((shift) => ({
             id: shift.id,
             start: shift.start,
             end: shift.end,
-            location: shift.location || '',
+            location: shift.location || "",
             capacity: shift.capacity,
-            notes: shift.notes || '',
+            notes: shift.notes || "",
             shiftType: {
-              name: shift.shiftType.name
+              name: shift.shiftType.name,
             },
             signupsCount: shift._count.signups,
-            createdAt: shift.createdAt
-          }))
+            createdAt: shift.createdAt,
+          })),
         },
         signups: {
           total: totalSignups,
           migratedFromNova: migratedSignups,
-          recent: recentSignups.map(signup => ({
+          recent: recentSignups.map((signup) => ({
             id: signup.id,
             status: signup.status,
             createdAt: signup.createdAt,
             user: {
               email: signup.user.email,
-              name: signup.user.name || 'No name'
+              name: signup.user.name || "No name",
             },
             shift: {
               start: signup.shift.start,
               end: signup.shift.end,
               shiftType: {
-                name: signup.shift.shiftType.name
-              }
-            }
-          }))
-        }
-      }
+                name: signup.shift.shiftType.name,
+              },
+            },
+          })),
+        },
+      },
     };
 
-    console.log(`[MIGRATED-DATA] Summary: ${migratedUsers}/${totalUsers} users, ${migratedShifts}/${totalShifts} shifts, ${migratedSignups}/${totalSignups} signups`);
-    
-    return NextResponse.json(response);
+    console.log(
+      `[MIGRATED-DATA] Summary: ${migratedUsers}/${totalUsers} users, ${migratedShifts}/${totalShifts} shifts, ${migratedSignups}/${totalSignups} signups`
+    );
 
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching migrated data:", error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
-      }, 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

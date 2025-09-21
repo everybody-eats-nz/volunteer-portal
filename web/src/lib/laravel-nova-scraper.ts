@@ -1,88 +1,18 @@
 import fetch from "node-fetch";
+import {
+  NovaAuthConfig,
+  NovaUser,
+  NovaShiftLegacy,
+  NovaShiftSignupResource,
+  NovaEventResource,
+  NovaUserResource,
+  NovaPaginatedResponse,
+  ScrapedData,
+  NovaShift,
+  NovaShiftSignup,
+  NovaEvent
+} from "../types/nova-migration";
 
-interface NovaAuthConfig {
-  baseUrl: string;
-  email: string;
-  password: string;
-}
-
-interface NovaShift {
-  id: number;
-  shift_type: string;
-  start_time: string;
-  end_time: string;
-  location: string;
-  capacity: number;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface NovaShiftSignup {
-  id: {
-    value: number;
-  };
-  fields: Array<{
-    attribute: string;
-    belongsToId?: number;
-    value: string | number;
-    name: string;
-  }>;
-}
-
-interface NovaEvent {
-  id: {
-    value: number;
-  };
-  fields: Array<{
-    attribute: string;
-    value: string | number;
-    name: string;
-  }>;
-}
-
-interface NovaUser {
-  id: number;
-  name: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  phone?: string;
-  date_of_birth?: string;
-  emergency_contact_name?: string;
-  emergency_contact_relationship?: string;
-  emergency_contact_phone?: string;
-  medical_conditions?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface NovaUserResource {
-  id: {
-    value: number;
-  };
-  fields: Array<{
-    attribute: string;
-    value: string | number;
-    name: string;
-  }>;
-}
-
-interface ScrapedData {
-  users: NovaUser[];
-  events: NovaEvent[];
-  signups: NovaShiftSignup[];
-  metadata: {
-    scrapedAt: string;
-    totalUsers: number;
-    totalEvents: number;
-    totalSignups: number;
-    dateRange: {
-      earliest: string;
-      latest: string;
-    };
-  };
-}
 
 export class LaravelNovaScraper {
   private config: NovaAuthConfig;
@@ -304,7 +234,7 @@ export class LaravelNovaScraper {
   async novaApiRequest(
     endpoint: string,
     options: RequestInit = {}
-  ): Promise<Record<string, unknown>> {
+  ): Promise<NovaPaginatedResponse> {
     if (!this.csrfToken) {
       throw new Error("Not authenticated. Call authenticate() first.");
     }
@@ -366,7 +296,7 @@ export class LaravelNovaScraper {
     const jsonResponse = await response.json();
 
     if (typeof jsonResponse === "object" && jsonResponse !== null) {
-      return jsonResponse as Record<string, unknown>;
+      return jsonResponse;
     }
 
     return {};
@@ -393,7 +323,7 @@ export class LaravelNovaScraper {
           `/users?page=${page}&perPage=${perPage}`
         );
 
-        if (response.resources && response.resources.length > 0) {
+        if ('resources' in response && Array.isArray(response.resources) && response.resources.length > 0) {
           const usersToAdd = limit
             ? response.resources.slice(0, limit - users.length)
             : response.resources;
@@ -402,8 +332,9 @@ export class LaravelNovaScraper {
           page++;
 
           // Check if we've reached the limit or there are no more pages
-          hasMorePages =
-            response.next_page_url && (!limit || users.length < limit);
+          hasMorePages = Boolean(
+            'next_page_url' in response && response.next_page_url && (!limit || users.length < limit)
+          );
         } else {
           hasMorePages = false;
         }
@@ -432,12 +363,12 @@ export class LaravelNovaScraper {
           `/shifts?page=${page}&perPage=100`
         );
 
-        if (response.data && response.data.length > 0) {
+        if ('data' in response && Array.isArray(response.data) && response.data.length > 0) {
           shifts.push(...response.data);
           console.log(`Scraped page ${page}, total shifts: ${shifts.length}`);
           page++;
 
-          hasMorePages = response.links && response.links.next;
+          hasMorePages = Boolean('links' in response && response.links && 'next' in response.links && response.links.next);
         } else {
           hasMorePages = false;
         }
@@ -469,12 +400,12 @@ export class LaravelNovaScraper {
           `/event-applications?page=${page}&perPage=100`
         );
 
-        if (response.data && response.data.length > 0) {
+        if ('data' in response && Array.isArray(response.data) && response.data.length > 0) {
           signups.push(...response.data);
           console.log(`Scraped page ${page}, total signups: ${signups.length}`);
           page++;
 
-          hasMorePages = response.links && response.links.next;
+          hasMorePages = Boolean('links' in response && response.links && 'next' in response.links && response.links.next);
         } else {
           hasMorePages = false;
         }
@@ -491,9 +422,9 @@ export class LaravelNovaScraper {
   /**
    * Scrape all events (shifts) from Nova
    */
-  async scrapeEvents(): Promise<NovaShift[]> {
+  async scrapeEvents(): Promise<NovaEventResource[]> {
     console.log("Scraping events from Laravel Nova...");
-    const events: NovaShift[] = [];
+    const events: NovaEventResource[] = [];
     let page = 1;
     let hasMorePages = true;
 
@@ -503,12 +434,12 @@ export class LaravelNovaScraper {
           `/events?page=${page}&perPage=100`
         );
 
-        if (response.data && response.data.length > 0) {
+        if ('data' in response && Array.isArray(response.data) && response.data.length > 0) {
           events.push(...response.data);
           console.log(`Scraped page ${page}, total events: ${events.length}`);
           page++;
 
-          hasMorePages = response.links && response.links.next;
+          hasMorePages = Boolean('links' in response && response.links && 'next' in response.links && response.links.next);
         } else {
           hasMorePages = false;
         }
