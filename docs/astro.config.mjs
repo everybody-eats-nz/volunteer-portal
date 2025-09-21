@@ -110,7 +110,8 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Technology Stack", slug: "developers/tech-stack" }
+                { label: "Technology Stack", slug: "developers/tech-stack" },
+                { label: "Hosting & Infrastructure", slug: "developers/hosting-infrastructure" }
               ]
             },
             {
