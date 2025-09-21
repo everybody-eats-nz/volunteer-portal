@@ -19,7 +19,6 @@ import {
   FileText,
   Check,
   AlertCircle,
-  Camera,
 } from "lucide-react";
 import {
   AccountStep,
@@ -33,7 +32,6 @@ import {
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionCard } from "@/components/motion-card";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { ProfileImageUpload } from "@/components/ui/profile-image-upload";
 
 // Extend the form data to include profile image requirement for migration
 interface MigrationFormData extends UserProfileFormData {
@@ -138,7 +136,10 @@ function AccountStepWithOAuth({
   token,
 }: {
   formData: MigrationFormData;
-  onInputChange: (field: string, value: string | boolean | string[] | number) => void;
+  onInputChange: (
+    field: string,
+    value: string | boolean | string[] | number
+  ) => void;
   loading: boolean;
   user: User;
   token: string;
@@ -180,7 +181,8 @@ function AccountStepWithOAuth({
         emailNewsletterSubscription: formData.emailNewsletterSubscription,
         notificationPreference: formData.notificationPreference,
         receiveShortageNotifications: formData.receiveShortageNotifications,
-        excludedShortageNotificationTypes: formData.excludedShortageNotificationTypes,
+        excludedShortageNotificationTypes:
+          formData.excludedShortageNotificationTypes,
         volunteerAgreementAccepted: formData.volunteerAgreementAccepted,
         healthSafetyPolicyAccepted: formData.healthSafetyPolicyAccepted,
         profilePhotoUrl: formData.profilePhotoUrl,
@@ -203,7 +205,9 @@ function AccountStepWithOAuth({
       }
 
       // Now proceed with OAuth
-      const callbackUrl = `/api/auth/complete-migration?token=${encodeURIComponent(token)}`;
+      const callbackUrl = `/api/auth/complete-migration?token=${encodeURIComponent(
+        token
+      )}`;
       await signIn(providerId, {
         callbackUrl,
       });
@@ -226,14 +230,26 @@ function AccountStepWithOAuth({
           <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 pt-0.5">
-                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5 text-blue-600 dark:text-blue-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div>
-                <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Recommended: Use Social Login</h3>
+                <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  Recommended: Use Social Login
+                </h3>
                 <p className="text-blue-800 dark:text-blue-200 text-sm leading-relaxed">
-                  We recommend using your Google, Facebook, or Apple account to sign in. This is more secure and convenient than creating a password.
+                  We recommend using your Google, Facebook, or Apple account to
+                  sign in. This is more secure and convenient than creating a
+                  password.
                 </p>
               </div>
             </div>
@@ -259,9 +275,7 @@ function AccountStepWithOAuth({
                 ) : (
                   <>
                     {getProviderIcon(provider.id)}
-                    <span className="ml-3">
-                      Continue with {provider.name}
-                    </span>
+                    <span className="ml-3">Continue with {provider.name}</span>
                   </>
                 )}
               </Button>
@@ -302,8 +316,10 @@ export function MigrationRegistrationForm({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [volunteerAgreementContent, setVolunteerAgreementContent] = useState("");
-  const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] = useState("");
+  const [volunteerAgreementContent, setVolunteerAgreementContent] =
+    useState("");
+  const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] =
+    useState("");
   const [volunteerAgreementOpen, setVolunteerAgreementOpen] = useState(false);
   const [healthSafetyPolicyOpen, setHealthSafetyPolicyOpen] = useState(false);
 
@@ -349,7 +365,7 @@ export function MigrationRegistrationForm({
     excludedShortageNotificationTypes: [],
     volunteerAgreementAccepted: false,
     healthSafetyPolicyAccepted: false,
-    
+
     // Profile image (pre-populate with migrated photo if available)
     profilePhotoUrl: user.profilePhotoUrl || undefined,
   });
@@ -419,12 +435,18 @@ export function MigrationRegistrationForm({
     },
   ];
 
-  const handleInputChange = (field: string, value: string | boolean | string[] | number) => {
+  const handleInputChange = (
+    field: string,
+    value: string | boolean | string[] | number
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleImageChange = (base64Image: string | null) => {
-    setFormData((prev) => ({ ...prev, profilePhotoUrl: base64Image || undefined }));
+    setFormData((prev) => ({
+      ...prev,
+      profilePhotoUrl: base64Image || undefined,
+    }));
   };
 
   const handleDayToggle = (day: string) => {
@@ -465,7 +487,8 @@ export function MigrationRegistrationForm({
         ) {
           toast({
             title: "Required fields missing",
-            description: "Please provide complete emergency contact information",
+            description:
+              "Please provide complete emergency contact information",
             variant: "destructive",
           });
           return false;
@@ -563,7 +586,8 @@ export function MigrationRegistrationForm({
 
       toast({
         title: "Registration completed!",
-        description: "Your account has been successfully migrated. Signing you in...",
+        description:
+          "Your account has been successfully migrated. Signing you in...",
       });
 
       // Auto sign-in after successful migration
@@ -582,7 +606,9 @@ export function MigrationRegistrationForm({
       toast({
         title: "Registration failed",
         description:
-          error instanceof Error ? error.message : "Failed to complete registration",
+          error instanceof Error
+            ? error.message
+            : "Failed to complete registration",
         variant: "destructive",
       });
     } finally {
@@ -699,7 +725,11 @@ export function MigrationRegistrationForm({
       <div className="hidden md:block bg-card rounded-xl shadow-sm border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Migration Progress</h2>
-          <Badge variant="outline" className="text-xs" data-testid="step-indicator">
+          <Badge
+            variant="outline"
+            className="text-xs"
+            data-testid="step-indicator"
+          >
             Step {currentStep + 1} of {steps.length}
           </Badge>
         </div>
@@ -754,7 +784,10 @@ export function MigrationRegistrationForm({
       {/* Form Content */}
       <MotionCard className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
         <CardHeader className="pb-6">
-          <CardTitle className="flex items-center gap-3 text-xl" data-testid="step-card-title">
+          <CardTitle
+            className="flex items-center gap-3 text-xl"
+            data-testid="step-card-title"
+          >
             {React.createElement(steps[currentStep].icon, {
               className: "h-6 w-6",
             })}

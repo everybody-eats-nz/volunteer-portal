@@ -161,11 +161,11 @@ test.describe("Admin Users Management", () => {
       await waitForPageLoad(page);
 
       // Check filters section
-      const filtersSection = page.getByTestId("role-filter-buttons");
+      const filtersSection = page.getByTestId("main-role-filter-buttons");
       await expect(filtersSection).toBeVisible();
 
       // Check search input
-      const searchInput = page.getByTestId("users-search-input");
+      const searchInput = page.getByTestId("search-input");
       await expect(searchInput).toBeVisible();
 
       // Check invite user button
