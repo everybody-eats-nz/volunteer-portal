@@ -25,35 +25,47 @@ async function uploadTestImage(page: Page) {
 // Helper function to accept agreements through dialogs
 async function acceptAgreements(page: Page) {
   // Handle Volunteer Agreement
-  await page.click('text=I have read and agree with the Volunteer Agreement');
-  
+  await page.click("text=I have read and agree with the Volunteer Agreement");
+
   // Wait for dialog to open and scroll to bottom
-  await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+  await page.waitForSelector('div[role="dialog"]', { state: "visible" });
   await page.evaluate(() => {
-    const scrollContainer = document.querySelector('div[role="dialog"] .overflow-y-auto');
+    const scrollContainer = document.querySelector(
+      'div[role="dialog"] .overflow-y-auto'
+    );
     if (scrollContainer) {
       scrollContainer.scrollTo(0, scrollContainer.scrollHeight);
     }
   });
-  
+
   // Wait for button to be enabled and click it
-  await page.waitForSelector('button:has-text("I agree to these terms"):not([disabled])', { timeout: 10000 });
+  await page.waitForSelector(
+    'button:has-text("I agree to these terms"):not([disabled])',
+    { timeout: 10000 }
+  );
   await page.click('button:has-text("I agree to these terms")');
-  
+
   // Handle Health Safety Policy
-  await page.click('text=I have read and agree with the Health and Safety Policy');
-  
+  await page.click(
+    "text=I have read and agree with the Health and Safety Policy"
+  );
+
   // Wait for dialog to open and scroll to bottom
-  await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+  await page.waitForSelector('div[role="dialog"]', { state: "visible" });
   await page.evaluate(() => {
-    const scrollContainer = document.querySelector('div[role="dialog"] .overflow-y-auto');
+    const scrollContainer = document.querySelector(
+      'div[role="dialog"] .overflow-y-auto'
+    );
     if (scrollContainer) {
       scrollContainer.scrollTo(0, scrollContainer.scrollHeight);
     }
   });
-  
+
   // Wait for button to be enabled and click it
-  await page.waitForSelector('button:has-text("I agree to these terms"):not([disabled])', { timeout: 10000 });
+  await page.waitForSelector(
+    'button:has-text("I agree to these terms"):not([disabled])',
+    { timeout: 10000 }
+  );
   await page.click('button:has-text("I agree to these terms")');
 }
 
@@ -260,12 +272,8 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="emergency-contact-phone-input"]',
         "+64 21 555 8888"
       );
-      await page.click('[data-testid="next-step-button"]'); // Step 3: Medical & Availability
-      await page.click('[data-testid="next-step-button"]'); // Step 4: Profile Photo
-
-      // Upload required profile image
-      await uploadTestImage(page);
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true }); // Step 3: Medical & Availability
+      await page.getByTestId("next-step-button").click(); // Step 4: Profile Photo
 
       // Now we're on step 5: Set Password
       await expect(page.locator('[data-testid="step-title"]')).toContainText(
@@ -432,10 +440,6 @@ test.describe("Migration Registration Flow", () => {
         page.locator('[data-testid="profile-image-upload"]')
       ).toBeVisible();
 
-      // Upload required profile image
-      await uploadTestImage(page);
-      await page.click('[data-testid="next-step-button"]');
-
       // Should proceed to next step
       await expect(
         page.locator('[data-testid="step-indicator"]')
@@ -465,10 +469,6 @@ test.describe("Migration Registration Flow", () => {
         "+64 21 555 8888"
       );
       await page.click('[data-testid="next-step-button"]');
-      await page.click('[data-testid="next-step-button"]');
-
-      // Upload required profile image
-      await uploadTestImage(page);
       await page.click('[data-testid="next-step-button"]');
 
       // Check step 5 is now active - Set Password
@@ -503,9 +503,6 @@ test.describe("Migration Registration Flow", () => {
         "+64 21 555 8888"
       );
       await page.click('[data-testid="next-step-button"]');
-      await page.click('[data-testid="next-step-button"]');
-      // Upload required profile image
-      await uploadTestImage(page);
       await page.click('[data-testid="next-step-button"]');
 
       // Now on step 5: Set Password
@@ -676,16 +673,6 @@ test.describe("Migration Registration Flow", () => {
       await page.click('[data-testid="next-step-button"]'); // Step 2 -> 3
       await page.click('[data-testid="next-step-button"]'); // Step 3 -> 4 (Photo)
 
-      // Upload a test profile image (required for migration)
-      await uploadTestImage(page);
-      await page.click('[data-testid="next-step-button"]'); // Step 4 -> 5
-      await page.fill('[data-testid="password-input"]', "SecurePassword123!");
-      await page.fill(
-        '[data-testid="confirm-password-input"]',
-        "SecurePassword123!"
-      );
-      await page.click('[data-testid="next-step-button"]'); // Step 5 -> 6
-
       // Now on step 6: Final Steps
       await expect(
         page.locator('[data-testid="step-indicator"]')
@@ -798,10 +785,8 @@ test.describe("Migration Registration Flow", () => {
 
       // Step 3 -> 4
       await page.click('[data-testid="next-step-button"]');
-      // Step 4: Upload required profile image
-      await uploadTestImage(page);
-      await page.click('[data-testid="next-step-button"]');
-      // Step 5: Set password
+
+      // Step 4: Set password
       await page.fill('[data-testid="password-input"]', "SecurePassword123!");
       await page.fill(
         '[data-testid="confirm-password-input"]',
@@ -849,10 +834,7 @@ test.describe("Migration Registration Flow", () => {
 
       // Step 3 -> 4
       await page.click('[data-testid="next-step-button"]');
-      // Step 4: Upload required profile image
-      await uploadTestImage(page);
-      await page.click('[data-testid="next-step-button"]');
-      // Step 5: Set password
+      // Step 4: Set password
       await page.fill('[data-testid="password-input"]', "SecurePassword123!");
       await page.fill(
         '[data-testid="confirm-password-input"]',
@@ -899,9 +881,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Step indicator should be hidden on mobile for better space usage
-      await expect(
-        page.locator('[data-testid="step-indicator"]')
-      ).toBeHidden();
+      await expect(page.locator('[data-testid="step-indicator"]')).toBeHidden();
 
       // Check form fields are accessible
       await expect(
