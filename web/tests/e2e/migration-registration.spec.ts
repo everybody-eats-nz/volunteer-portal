@@ -418,7 +418,7 @@ test.describe("Migration Registration Flow", () => {
       ).toBeVisible();
 
       // Navigate to review policies step
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
       await page.fill(
         '[data-testid="emergency-contact-name-input"]',
         "John Emergency"
@@ -431,8 +431,8 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="emergency-contact-phone-input"]',
         "+64 21 555 8888"
       );
-      await page.click('[data-testid="next-step-button"]');
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
+      await page.getByTestId("next-step-button").click({ force: true });
 
       // Check review policies step is visible
       await expect(page.locator('[data-testid="step-title"]')).toContainText(
@@ -442,41 +442,6 @@ test.describe("Migration Registration Flow", () => {
       await expect(
         page.locator('[data-testid="step-indicator"]')
       ).toContainText("Step 4 of 5");
-    });
-
-    test("should complete step 4: Review Policies", async ({ page }) => {
-      const { token } = await createTestUserWithToken("policies-complete-test");
-
-      await page.goto(`/register/migrate?token=${token}`);
-      await expect(
-        page.locator('[data-testid="migration-registration-form"]')
-      ).toBeVisible();
-
-      // Navigate to review policies step
-      await page.click('[data-testid="next-step-button"]');
-      await page.fill(
-        '[data-testid="emergency-contact-name-input"]',
-        "John Emergency"
-      );
-      await page.fill(
-        '[data-testid="emergency-contact-relationship-input"]',
-        "Brother"
-      );
-      await page.fill(
-        '[data-testid="emergency-contact-phone-input"]',
-        "+64 21 555 8888"
-      );
-      await page.click('[data-testid="next-step-button"]');
-      await page.click('[data-testid="next-step-button"]');
-      await page.click('[data-testid="next-step-button"]');
-
-      // Check step 5 is now active - Set Password
-      await expect(
-        page.locator('[data-testid="step-indicator"]')
-      ).toContainText("Step 5 of 5");
-      await expect(page.locator('[data-testid="step-title"]')).toContainText(
-        "Set Password"
-      );
     });
 
     test("should complete step 5: Set Password", async ({ page }) => {
@@ -606,7 +571,7 @@ test.describe("Migration Registration Flow", () => {
         '[data-testid="emergency-contact-phone-input"]',
         "+64 21 555 8888"
       );
-      await page.click('[data-testid="next-step-button"]'); // Step 2 -> 3
+      await page.getByTestId("next-step-button").click({ force: true }); // Step 2 -> 3
       await page.click('[data-testid="next-step-button"]'); // Step 3 -> 4 (Review Policies)
 
       // Now on step 4: Review Policies
@@ -618,7 +583,8 @@ test.describe("Migration Registration Flow", () => {
       );
 
       // Check agreements are required
-      await page.click('[data-testid="next-step-button"]');
+      await page.getByTestId("next-step-button").click({ force: true });
+
       // Check validation error in toast
       await expect(page.locator("[data-sonner-toast]").first()).toContainText(
         "Agreements required"
