@@ -119,14 +119,7 @@ export default defineConfig({
               items: [
                 { label: "Authentication & Authorization", slug: "developers/authentication-authorization" },
                 { label: "OAuth Authentication", slug: "developers/oauth-authentication" },
-                { label: "Admin Permissions", slug: "reference/permissions" },
-                { label: "Notification System", slug: "reference/notifications" }
-              ]
-            },
-            {
-              label: "API Documentation",
-              items: [
-                { label: "API Endpoints", slug: "reference/api-endpoints" }
+                { label: "Admin Permissions", slug: "reference/permissions" }
               ]
             }
           ]
