@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
+import { checkForBot } from "@/lib/bot-protection";
 
 const resendVerificationSchema = z.object({
   email: z.string().email("Invalid email address").optional(),
@@ -33,6 +34,12 @@ const resendVerificationSchema = z.object({
  */
 export async function POST(req: Request) {
   try {
+    // Check for bot traffic first
+    const botResponse = await checkForBot("Verification email blocked due to automated activity detection.");
+    if (botResponse) {
+      return botResponse;
+    }
+
     const body = await req.json();
     const validatedData = resendVerificationSchema.parse(body);
     

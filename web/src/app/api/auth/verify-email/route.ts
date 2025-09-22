@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyEmailToken } from "@/lib/email-verification";
+import { checkForBot } from "@/lib/bot-protection";
 
 const verifyEmailSchema = z.object({
   token: z.string().min(1, "Verification token is required"),
@@ -23,6 +24,12 @@ const verifyEmailSchema = z.object({
  */
 export async function POST(req: Request) {
   try {
+    // Check for bot traffic first
+    const botResponse = await checkForBot("Email verification blocked due to automated activity detection.");
+    if (botResponse) {
+      return botResponse;
+    }
+
     const body = await req.json();
     const validatedData = verifyEmailSchema.parse(body);
 
