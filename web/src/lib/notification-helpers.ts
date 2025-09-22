@@ -182,23 +182,3 @@ export function isUserConnected(userId: string): boolean {
   return notificationSSEManager.getUserConnectionCount(userId) > 0;
 }
 
-/**
- * Send a test notification (for admin testing)
- */
-export async function sendTestNotification(
-  userId: string,
-  role: "VOLUNTEER" | "ADMIN"
-): Promise<boolean> {
-  const testNotification: NotificationPayload = {
-    title: "Test Notification",
-    message: `This is a test notification for ${role.toLowerCase()} users`,
-    type: "info",
-    metadata: {
-      test: true,
-      role,
-      timestamp: Date.now(),
-    },
-  };
-
-  return sendNotificationToUser(userId, testNotification);
-}
