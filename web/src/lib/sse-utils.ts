@@ -1,7 +1,7 @@
 import { MigrationProgressEvent } from "@/types/nova-migration";
 
-// Import the sendProgress function from the new progress-stream route
-import { sendProgress as sendProgressToStream } from "@/app/api/admin/migration/progress-stream/route";
+// Import the sendProgress function from the migration SSE utils
+import { sendProgress as sendProgressToStream } from "./migration-sse-utils";
 
 /**
  * Sends progress updates to connected SSE clients using better-sse

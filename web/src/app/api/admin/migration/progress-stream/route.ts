@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { createSession } from "better-sse";
-import { MigrationProgressEvent } from "@/types/nova-migration";
-
-// Store sessions by sessionId for cross-request communication
-const sessions = new Map<string, WritableStreamDefaultWriter>();
+import { addMigrationSession, removeMigrationSession } from "@/lib/migration-sse-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,7 +37,7 @@ export async function GET(request: NextRequest) {
     const writer = stream.writable.getWriter();
 
     // Store the writer for this session
-    sessions.set(sessionId, writer);
+    addMigrationSession(sessionId, writer);
 
     // Send initial connection event
     writer.write(
@@ -60,14 +56,14 @@ export async function GET(request: NextRequest) {
         await writer.write(encoder.encode(":ping\n\n"));
       } catch (error) {
         clearInterval(pingInterval);
-        sessions.delete(sessionId);
+        removeMigrationSession(sessionId);
       }
     }, 30000); // Ping every 30 seconds
 
     // Clean up on disconnect
     request.signal.addEventListener("abort", () => {
       clearInterval(pingInterval);
-      sessions.delete(sessionId);
+      removeMigrationSession(sessionId);
       writer.close().catch(() => {});
       console.log(`[SSE] Session ${sessionId} disconnected`);
     });
@@ -83,41 +79,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-// Helper function to send progress updates (called from other endpoints)
-export async function sendProgress(
-  sessionId: string,
-  data: Partial<MigrationProgressEvent>
-) {
-  const writer = sessions.get(sessionId);
-
-  if (!writer) {
-    console.log(`[SSE] No active session for ${sessionId}`);
-    return false;
-  }
-
-  try {
-    const encoder = new TextEncoder();
-    const event: MigrationProgressEvent = {
-      ...data,
-      timestamp: new Date().toISOString(),
-    } as MigrationProgressEvent;
-
-    // Format as SSE event
-    const message = `data: ${JSON.stringify(event)}\n\n`;
-
-    await writer.write(encoder.encode(message));
-
-    console.log(
-      `[SSE] Sent ${data.type || "progress"} event to session ${sessionId}`
-    );
-    return true;
-  } catch (error) {
-    console.error(`[SSE] Failed to send to session ${sessionId}:`, error);
-    sessions.delete(sessionId); // Remove dead session
-    return false;
-  }
-}
-
-// Export for use in other migration endpoints
-export { sessions as migrationSessions };
