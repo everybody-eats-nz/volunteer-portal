@@ -106,7 +106,7 @@ export async function notifyAdminsMigrationComplete(
     duration: number;
   }
 ): Promise<number> {
-  const { type, usersProcessed, usersCreated, errors, duration } = migrationDetails;
+  const { type, usersCreated, errors, duration } = migrationDetails;
 
   const message = `${type === "bulk" ? "Bulk" : "Single"} migration completed: ${usersCreated} users migrated${
     errors > 0 ? ` (${errors} errors)` : ""

@@ -21,7 +21,7 @@ class SSEBroadcaster {
   /**
    * @deprecated Use notificationSSEManager.removeConnection instead
    */
-  removeClient(userId: string, controller: ReadableStreamDefaultController) {
+  removeClient(_userId: string, _controller: ReadableStreamDefaultController) {
     console.warn("[SSE] Using deprecated removeClient method. Please use notificationSSEManager directly.");
     // Legacy method - no direct equivalent in new system
   }
@@ -31,10 +31,14 @@ class SSEBroadcaster {
    */
   broadcast(userId: string, event: Record<string, unknown>) {
     console.warn("[SSE] Using deprecated broadcast method. Please use notificationSSEManager.sendToUser instead.");
+    const eventType = event.type as string;
+    const validTypes = ["notification", "connected", "heartbeat", "unread_count_changed", "system_update"];
+    const safeType = validTypes.includes(eventType) ? eventType : "notification";
+
     notificationSSEManager.sendToUser(userId, {
-      type: event.type as any || "notification",
+      type: safeType as "notification" | "connected" | "heartbeat" | "unread_count_changed" | "system_update",
       timestamp: Date.now(),
-      data: event.data as any,
+      data: event.data as Record<string, unknown>,
     });
   }
 
