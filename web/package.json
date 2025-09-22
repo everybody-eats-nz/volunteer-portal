@@ -21,9 +21,6 @@
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:reset": "prisma migrate reset",
-    "migrate-users": "tsx scripts/migrate-users.ts",
-    "validate-migration": "tsx scripts/validate-migration.ts",
-    "scrape-historical-shifts": "tsx scripts/scrape-historical-shifts.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
