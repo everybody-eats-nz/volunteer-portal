@@ -20,6 +20,7 @@ import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { randomBytes } from "crypto";
+import { checkForBot } from "@/lib/bot-protection";
 
 // Types are now imported from @/types/nova-migration
 
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Check for bot traffic first
+    const botResponse = await checkForBot("Bulk migration blocked due to automated activity detection.");
+    if (botResponse) {
+      return botResponse;
+    }
+
     // Check authentication and admin role
     const session = await getServerSession(authOptions);
     if (session?.user?.role !== "ADMIN") {

@@ -10,6 +10,7 @@ import { Providers } from "@/components/providers";
 import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { BotProtectionClient } from "@/components/bot-protection-client";
 
 const libreFranklin = Libre_Franklin({
   variable: "--font-libre-franklin",
@@ -68,6 +69,7 @@ export default async function RootLayout({
           <SiteFooterWrapper session={session} />
           <Toaster position="top-right" closeButton />
         </Providers>
+        <BotProtectionClient />
         <SpeedInsights />
       </body>
     </html>

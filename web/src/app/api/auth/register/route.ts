@@ -6,6 +6,7 @@ import { autoLabelUnder18User, autoLabelNewVolunteer } from "@/lib/auto-label-ut
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { validatePassword } from "@/lib/utils/password-validation";
+import { checkForBot } from "@/lib/bot-protection";
 
 /**
  * Validation schema for user registration
@@ -83,6 +84,12 @@ const registerSchema = z
  */
 export async function POST(req: Request) {
   try {
+    // Check for bot traffic first
+    const botResponse = await checkForBot("Registration blocked due to automated activity detection.");
+    if (botResponse) {
+      return botResponse;
+    }
+
     const body = await req.json();
     
     // Check if this is a migration registration
