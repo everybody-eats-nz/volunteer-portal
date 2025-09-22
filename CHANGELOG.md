@@ -1,3 +1,9 @@
+## [0.43.1] - 2025-09-22
+
+### Changes
+- chore: remove obsolete scripts for random profile image generation an… ([#151](https://github.com/everybody-eats-nz/volunteer-portal/pull/151)) by @malinmalliyawadu
+
+
 ## [0.43.0] - 2025-09-21
 
 ### Changes
