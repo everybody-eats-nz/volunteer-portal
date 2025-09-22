@@ -1,35 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import { addMigrationSession, removeMigrationSession } from "@/lib/migration-sse-utils";
+import {
+  validateSSERequest,
+  getSSEHeaders,
+  checkRateLimit,
+  validateConnectionToken
+} from "@/lib/sse-security";
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication and admin role
-    const session = await getServerSession(authOptions);
-    if (session?.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    // Validate session with admin role requirement
+    const validation = await validateSSERequest(request, "ADMIN");
+
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { error: validation.error || "Unauthorized" },
+        { status: 401, headers: validation.headers }
+      );
+    }
+
+    const { userId } = validation;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Invalid admin session" },
+        { status: 401, headers: validation.headers }
+      );
     }
 
     // Get session ID from query params
     const url = new URL(request.url);
     const sessionId = url.searchParams.get("sessionId");
+    const connectionToken = url.searchParams.get("token");
 
     if (!sessionId) {
-      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing sessionId" },
+        { status: 400, headers: validation.headers }
+      );
     }
 
-    // Create response with appropriate headers for SSE
-    const responseInit: ResponseInit = {
-      status: 200,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-        "X-Accel-Buffering": "no", // Disable Nginx buffering
-        "Access-Control-Allow-Origin": "*",
-      },
-    };
+    // Rate limiting for migration streams (more restrictive)
+    const rateLimitKey = `sse-migration:${userId}`;
+    if (!checkRateLimit(rateLimitKey, 3, 60000)) { // 3 migration streams per minute
+      return NextResponse.json(
+        { error: "Migration stream rate limit exceeded" },
+        { status: 429, headers: validation.headers }
+      );
+    }
+
+    // Validate connection token if provided
+    if (connectionToken && !validateConnectionToken(connectionToken, userId, sessionId)) {
+      return NextResponse.json(
+        { error: "Invalid migration connection token" },
+        { status: 403, headers: validation.headers }
+      );
+    }
+
+    // Create response with secure headers
+    const responseHeaders = getSSEHeaders(validation.headers);
 
     // Create a TransformStream for SSE
     const encoder = new TextEncoder();
@@ -70,7 +99,10 @@ export async function GET(request: NextRequest) {
 
     console.log(`[SSE] New session connected: ${sessionId}`);
 
-    return new Response(stream.readable, responseInit);
+    return new Response(stream.readable, {
+      status: 200,
+      headers: responseHeaders,
+    });
   } catch (error) {
     console.error("SSE connection error:", error);
     return NextResponse.json(
