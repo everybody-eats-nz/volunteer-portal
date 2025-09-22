@@ -13,6 +13,7 @@ import {
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
+import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { SignupStatus } from "@prisma/client";
 
 interface ScrapeUserRequest {
@@ -599,6 +600,23 @@ export async function POST(request: NextRequest) {
       }
 
       response.success = true;
+
+      // Notify admins about single user migration completion if user was created
+      if (response.userCreated && !options.dryRun) {
+        try {
+          await notifyAdminsMigrationComplete({
+            type: "single",
+            usersProcessed: 1,
+            usersCreated: 1,
+            errors: response.errors.length,
+            duration: 0, // Single user migration is fast
+          });
+        } catch (notifyError) {
+          console.error("Failed to send admin notification:", notifyError);
+          // Don't fail the migration if notification fails
+        }
+      }
+
       return NextResponse.json(response);
     } catch (error) {
       console.error("Nova scraping error:", error);

@@ -5,7 +5,7 @@ import { createSession } from "better-sse";
 import { MigrationProgressEvent } from "@/types/nova-migration";
 
 // Store sessions by sessionId for cross-request communication
-const sessions = new Map<string, any>();
+const sessions = new Map<string, WritableStreamDefaultWriter>();
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "X-Accel-Buffering": "no", // Disable Nginx buffering
         "Access-Control-Allow-Origin": "*",
       },
@@ -108,7 +108,9 @@ export async function sendProgress(
 
     await writer.write(encoder.encode(message));
 
-    console.log(`[SSE] Sent ${data.type || "progress"} event to session ${sessionId}`);
+    console.log(
+      `[SSE] Sent ${data.type || "progress"} event to session ${sessionId}`
+    );
     return true;
   } catch (error) {
     console.error(`[SSE] Failed to send to session ${sessionId}:`, error);

@@ -18,6 +18,7 @@ import {
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
+import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { randomBytes } from "crypto";
 
 // Types are now imported from @/types/nova-migration
@@ -602,6 +603,20 @@ export async function POST(request: NextRequest) {
         stage: "complete",
         ...response,
       });
+
+      // Notify all admins about migration completion
+      try {
+        await notifyAdminsMigrationComplete({
+          type: "bulk",
+          usersProcessed: response.usersProcessed,
+          usersCreated: response.usersCreated,
+          errors: response.errors.length,
+          duration: response.duration,
+        });
+      } catch (notifyError) {
+        console.error("Failed to send admin notification:", notifyError);
+        // Don't fail the migration if notification fails
+      }
 
       return NextResponse.json(response);
     } catch (error) {

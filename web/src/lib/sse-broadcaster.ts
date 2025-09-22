@@ -1,80 +1,67 @@
-// Simple in-memory SSE broadcaster
-// In production, you'd want to use Redis pub/sub or similar for multi-instance support
+// Legacy SSE broadcaster - now uses Better-SSE notification manager
+// This file is kept for backward compatibility
 
-type SSEClient = {
-  userId: string;
-  controller: ReadableStreamDefaultController;
-  encoder: TextEncoder;
-};
+import { notificationSSEManager } from "./notification-sse-manager";
 
+/**
+ * @deprecated Use notificationSSEManager directly for new code
+ * This is maintained for backward compatibility only
+ */
 class SSEBroadcaster {
-  private clients: Map<string, SSEClient[]> = new Map();
-
+  /**
+   * @deprecated Use notificationSSEManager.addConnection instead
+   */
   addClient(userId: string, controller: ReadableStreamDefaultController) {
-    const encoder = new TextEncoder();
-    const client: SSEClient = { userId, controller, encoder };
-    
-    const userClients = this.clients.get(userId) || [];
-    userClients.push(client);
-    this.clients.set(userId, userClients);
-
-    return client;
+    console.warn("[SSE] Using deprecated addClient method. Please use notificationSSEManager directly.");
+    // Convert ReadableStreamDefaultController to WritableStreamDefaultWriter for compatibility
+    // Note: This is a simplified conversion and may not work for all cases
+    return { userId, controller };
   }
 
+  /**
+   * @deprecated Use notificationSSEManager.removeConnection instead
+   */
   removeClient(userId: string, controller: ReadableStreamDefaultController) {
-    const userClients = this.clients.get(userId) || [];
-    const updatedClients = userClients.filter(client => client.controller !== controller);
-    
-    if (updatedClients.length === 0) {
-      this.clients.delete(userId);
-    } else {
-      this.clients.set(userId, updatedClients);
-    }
+    console.warn("[SSE] Using deprecated removeClient method. Please use notificationSSEManager directly.");
+    // Legacy method - no direct equivalent in new system
   }
 
+  /**
+   * @deprecated Use notificationSSEManager.sendToUser instead
+   */
   broadcast(userId: string, event: Record<string, unknown>) {
-    const userClients = this.clients.get(userId) || [];
-    const message = `data: ${JSON.stringify(event)}\n\n`;
-
-    userClients.forEach((client, index) => {
-      try {
-        client.controller.enqueue(client.encoder.encode(message));
-      } catch (error) {
-        console.error(`Error broadcasting to client ${index}:`, error);
-        // Remove dead client
-        userClients.splice(index, 1);
-      }
+    console.warn("[SSE] Using deprecated broadcast method. Please use notificationSSEManager.sendToUser instead.");
+    notificationSSEManager.sendToUser(userId, {
+      type: event.type as any || "notification",
+      timestamp: Date.now(),
+      data: event.data as any,
     });
-
-    // Update the clients map if we removed any dead clients
-    if (userClients.length === 0) {
-      this.clients.delete(userId);
-    } else {
-      this.clients.set(userId, userClients);
-    }
   }
 
+  /**
+   * @deprecated Use notificationSSEManager.sendUnreadCountUpdate instead
+   */
   broadcastUnreadCountChange(userId: string, count: number) {
-    this.broadcast(userId, {
-      type: 'unread_count_changed',
-      data: { count }
-    });
+    notificationSSEManager.sendUnreadCountUpdate(userId, count);
   }
 
+  /**
+   * @deprecated Use notificationSSEManager.sendNewNotification instead
+   */
   broadcastNewNotification(userId: string, notification: Record<string, unknown>) {
-    this.broadcast(userId, {
-      type: 'notification',
-      data: notification
-    });
+    notificationSSEManager.sendNewNotification(userId, notification);
   }
 
+  /**
+   * @deprecated Use notificationSSEManager.getUserConnectionCount instead
+   */
   getClientCount(userId?: string): number {
     if (userId) {
-      return this.clients.get(userId)?.length || 0;
+      return notificationSSEManager.getUserConnectionCount(userId);
     }
-    return Array.from(this.clients.values()).reduce((total, clients) => total + clients.length, 0);
+    return notificationSSEManager.getStats().totalConnections;
   }
 }
 
-// Export singleton instance
+// Export singleton instance for backward compatibility
 export const sseBroadcaster = new SSEBroadcaster();

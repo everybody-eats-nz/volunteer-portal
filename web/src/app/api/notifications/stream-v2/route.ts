@@ -12,8 +12,6 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user?.id;
-    const userRole = session.user?.role as "VOLUNTEER" | "ADMIN" | undefined;
-
     if (!userId) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -31,13 +29,13 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Create a TransformStream for SSE using Better-SSE approach
+    // Create a TransformStream for SSE
     const encoder = new TextEncoder();
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
 
-    // Register the connection with our Better-SSE notification manager
-    notificationSSEManager.addConnection(userId, writer, userRole);
+    // Register the connection with our notification manager
+    notificationSSEManager.addConnection(userId, writer);
 
     // Send initial connection event
     await writer.write(
@@ -45,7 +43,6 @@ export async function GET(request: NextRequest) {
         `data: ${JSON.stringify({
           type: "connected",
           userId,
-          role: userRole,
           timestamp: Date.now(),
         })}\n\n`
       )
@@ -73,10 +70,10 @@ export async function GET(request: NextRequest) {
       clearInterval(pingInterval);
       notificationSSEManager.removeConnection(userId, writer);
       writer.close().catch(() => {});
-      console.log(`[SSE] Notification stream disconnected for user ${userId} (${userRole})`);
+      console.log(`[SSE] Notification stream disconnected for user ${userId}`);
     });
 
-    console.log(`[SSE] New notification stream connected for user ${userId} (${userRole})`);
+    console.log(`[SSE] New notification stream connected for user ${userId}`);
 
     return new Response(stream.readable, responseInit);
   } catch (error) {
