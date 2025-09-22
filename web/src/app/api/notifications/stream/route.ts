@@ -1,35 +1,57 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth-options";
 import { notificationSSEManager } from "@/lib/notification-sse-manager";
+import {
+  validateSSERequest,
+  getSSEHeaders,
+  checkRateLimit,
+  validateConnectionToken
+} from "@/lib/sse-security";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // Validate session and get secure headers
+    const validation = await validateSSERequest(request);
 
-    if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+    if (!validation.isValid) {
+      return new Response(validation.error || "Unauthorized", {
+        status: 401,
+        headers: validation.headers,
+      });
     }
 
-    const userId = session.user?.id;
-    const userRole = session.user?.role as "VOLUNTEER" | "ADMIN" | undefined;
+    const { userId, userRole } = validation;
 
     if (!userId) {
-      return new Response("Unauthorized", { status: 401 });
+      return new Response("Invalid session", {
+        status: 401,
+        headers: validation.headers,
+      });
     }
 
-    // Create response with appropriate headers for SSE
-    const responseInit: ResponseInit = {
-      status: 200,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no", // Disable Nginx buffering
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Cache-Control, Content-Type",
-      },
-    };
+    // Rate limiting per user
+    const rateLimitKey = `sse-notifications:${userId}`;
+    if (!checkRateLimit(rateLimitKey, 5, 60000)) { // 5 connections per minute
+      return new Response("Rate limit exceeded", {
+        status: 429,
+        headers: validation.headers,
+      });
+    }
+
+    // Check for optional connection token (for enhanced security)
+    const url = new URL(request.url);
+    const connectionToken = url.searchParams.get("token");
+    const sessionId = url.searchParams.get("sessionId") || `session-${Date.now()}`;
+
+    // Validate token if provided (optional for backward compatibility)
+    if (connectionToken && !validateConnectionToken(connectionToken, userId, sessionId)) {
+      return new Response("Invalid connection token", {
+        status: 403,
+        headers: validation.headers,
+      });
+    }
+
+    // Create response with secure headers
+    const responseHeaders = getSSEHeaders(validation.headers);
 
     // Create a TransformStream for SSE using Better-SSE approach
     const encoder = new TextEncoder();
@@ -37,7 +59,8 @@ export async function GET(request: NextRequest) {
     const writer = stream.writable.getWriter();
 
     // Register the connection with our Better-SSE notification manager
-    notificationSSEManager.addConnection(userId, writer, userRole);
+    const validRole = userRole === "ADMIN" || userRole === "VOLUNTEER" ? userRole : undefined;
+    notificationSSEManager.addConnection(userId, writer, validRole);
 
     // Send initial connection event
     await writer.write(
@@ -45,7 +68,7 @@ export async function GET(request: NextRequest) {
         `data: ${JSON.stringify({
           type: "connected",
           userId,
-          role: userRole,
+          role: validRole,
           timestamp: Date.now(),
         })}\n\n`
       )
@@ -73,12 +96,15 @@ export async function GET(request: NextRequest) {
       clearInterval(pingInterval);
       notificationSSEManager.removeConnection(userId, writer);
       writer.close().catch(() => {});
-      console.log(`[SSE] Notification stream disconnected for user ${userId} (${userRole})`);
+      console.log(`[SSE] Notification stream disconnected for user ${userId} (${validRole || "unknown role"})`);
     });
 
-    console.log(`[SSE] New notification stream connected for user ${userId} (${userRole})`);
+    console.log(`[SSE] New notification stream connected for user ${userId} (${validRole || "unknown role"})`);
 
-    return new Response(stream.readable, responseInit);
+    return new Response(stream.readable, {
+      status: 200,
+      headers: responseHeaders,
+    });
   } catch (error) {
     console.error("SSE notification connection error:", error);
     return new Response("Failed to establish SSE connection", { status: 500 });
