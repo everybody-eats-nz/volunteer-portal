@@ -21,6 +21,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { adminNavCategories, publicNavItems } from "@/lib/admin-navigation";
 import { Session } from "next-auth";
+import { isDemoEnvironment, getDemoEnvironmentLabel } from "@/lib/environment";
 
 interface AdminSidebarProps {
   session: Session | null;
@@ -41,6 +42,8 @@ export function AdminSidebar({
   displayName,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const showDemoIndicator = isDemoEnvironment();
+  const demoLabel = getDemoEnvironmentLabel();
 
   const isActive = (href: string, exact = false) => {
     if (exact) {
@@ -54,14 +57,21 @@ export function AdminSidebar({
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center justify-between gap-3 px-2">
           <Link href="/" className="flex items-center gap-2 group">
-            <Image
-              src="/logo.svg"
-              alt="Everybody Eats"
-              width={120}
-              height={44}
-              priority
-              className="h-8 w-auto transition-all duration-300 group-hover:scale-105 filter invert dark:invert-0"
-            />
+            <div className="relative">
+              <Image
+                src="/logo.svg"
+                alt="Everybody Eats"
+                width={120}
+                height={44}
+                priority
+                className="h-8 w-auto transition-all duration-300 group-hover:scale-105 filter invert dark:invert-0"
+              />
+              {showDemoIndicator && (
+                <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                  {demoLabel}
+                </div>
+              )}
+            </div>
           </Link>
 
           {userProfile?.id && (
