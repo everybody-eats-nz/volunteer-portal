@@ -1,3 +1,9 @@
+## [0.46.0] - 2025-09-22
+
+### Changes
+- Add demo environment indicator to header logos ([#155](https://github.com/everybody-eats-nz/volunteer-portal/pull/155)) by @malinmalliyawadu
+
+
 ## [0.45.0] - 2025-09-22
 
 ### Changes
