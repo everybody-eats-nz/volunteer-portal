@@ -1,3 +1,9 @@
+## [0.44.0] - 2025-09-22
+
+### Changes
+- feat: Implement Better-SSE for admin user migration ([#152](https://github.com/everybody-eats-nz/volunteer-portal/pull/152)) by @malinmalliyawadu
+
+
 ## [0.43.1] - 2025-09-22
 
 ### Changes
