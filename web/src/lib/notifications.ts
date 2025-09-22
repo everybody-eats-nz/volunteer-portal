@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@prisma/client";
-import { sseBroadcaster } from "./sse-broadcaster";
+import { sendNotificationToUser, updateUnreadCount } from "./notification-helpers";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -27,12 +27,23 @@ export async function createNotification(params: CreateNotificationParams) {
       },
     });
 
-    // Broadcast new notification via SSE
-    sseBroadcaster.broadcastNewNotification(params.userId, notification);
+    // Send notification via Better-SSE
+    await sendNotificationToUser(params.userId, {
+      title: params.title,
+      message: params.message,
+      type: "info", // Map NotificationType to our notification type
+      actionUrl: params.actionUrl,
+      metadata: {
+        notificationId: notification.id,
+        type: params.type,
+        relatedId: params.relatedId,
+        createdAt: notification.createdAt,
+      },
+    });
 
-    // Broadcast updated unread count
+    // Update unread count
     const unreadCount = await getUnreadNotificationCount(params.userId);
-    sseBroadcaster.broadcastUnreadCountChange(params.userId, unreadCount);
+    await updateUnreadCount(params.userId, unreadCount);
 
     return notification;
   } catch (error) {
@@ -115,9 +126,9 @@ export async function markNotificationAsRead(notificationId: string, userId: str
       },
     });
 
-    // Broadcast updated unread count
+    // Update unread count via Better-SSE
     const unreadCount = await getUnreadNotificationCount(userId);
-    sseBroadcaster.broadcastUnreadCountChange(userId, unreadCount);
+    await updateUnreadCount(userId, unreadCount);
 
     return notification;
   } catch (error) {
@@ -141,8 +152,8 @@ export async function markAllNotificationsAsRead(userId: string) {
       },
     });
 
-    // Broadcast updated unread count (should be 0 now)
-    sseBroadcaster.broadcastUnreadCountChange(userId, 0);
+    // Update unread count via Better-SSE (should be 0 now)
+    await updateUnreadCount(userId, 0);
 
     return result;
   } catch (error) {

@@ -183,48 +183,105 @@ export function NovaBulkMigration() {
       "hex"
     )}`;
 
-    // Connect to SSE stream
-    const eventSource = new EventSource(
-      `/api/admin/migration/progress?sessionId=${sessionId}`
+    // Connect to SSE stream using the new better-sse endpoint
+    let eventSource: EventSource | null = new EventSource(
+      `/api/admin/migration/progress-stream?sessionId=${sessionId}`
     );
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("SSE received:", data);
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000; // 2 seconds
 
-        // Add log entry with timestamp
-        const timestamp = new Date().toLocaleTimeString();
-        const logEntry = `[${timestamp}] ${
-          data.message || JSON.stringify(data)
-        }`;
-        setMigrationLogs((prev) => [...prev, logEntry]);
+    const connectEventSource = () => {
+      if (!eventSource) {
+        eventSource = new EventSource(
+          `/api/admin/migration/progress-stream?sessionId=${sessionId}`
+        );
+      }
 
-        if (data.type === "status" || data.type === "progress") {
-          setCurrentStep(data.message);
-          setProgressData(data);
-        } else if (data.type === "complete") {
-          setCurrentStep("Migration completed!");
-          setMigrationLogs((prev) => [
-            ...prev,
-            `[${timestamp}] ✅ Migration completed successfully!`,
-          ]);
-          eventSource.close();
-        }
-      } catch (error) {
-        console.error("SSE parse error:", error);
+      eventSource.onopen = () => {
+        console.log("SSE connection opened");
+        reconnectAttempts = 0;
         const timestamp = new Date().toLocaleTimeString();
         setMigrationLogs((prev) => [
           ...prev,
-          `[${timestamp}] ❌ Error parsing SSE data: ${error}`,
+          `[${timestamp}] 📡 Connected to progress stream`,
         ]);
-      }
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("SSE received:", data);
+
+          // Add log entry with timestamp
+          const timestamp = new Date().toLocaleTimeString();
+
+          // Filter out ping/connected messages from logs
+          if (data.type !== "connected" && data.message) {
+            const logEntry = `[${timestamp}] ${data.message}`;
+            setMigrationLogs((prev) => [...prev, logEntry]);
+          }
+
+          if (data.type === "status" || data.type === "progress") {
+            setCurrentStep(data.message);
+            setProgressData(data);
+          } else if (data.type === "complete") {
+            setCurrentStep("Migration completed!");
+            setMigrationLogs((prev) => [
+              ...prev,
+              `[${timestamp}] ✅ Migration completed successfully!`,
+            ]);
+            eventSource?.close();
+            eventSource = null;
+          }
+        } catch (error) {
+          console.error("SSE parse error:", error);
+          const timestamp = new Date().toLocaleTimeString();
+          setMigrationLogs((prev) => [
+            ...prev,
+            `[${timestamp}] ⚠️ Error parsing progress data`,
+          ]);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error("SSE error:", error);
+        const timestamp = new Date().toLocaleTimeString();
+
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          // Connection was closed
+          setMigrationLogs((prev) => [
+            ...prev,
+            `[${timestamp}] 🔌 Connection closed`,
+          ]);
+
+          // Attempt to reconnect if still running and haven't exceeded max attempts
+          if (isRunning && reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            setMigrationLogs((prev) => [
+              ...prev,
+              `[${timestamp}] 🔄 Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`,
+            ]);
+
+            eventSource?.close();
+            eventSource = null;
+
+            setTimeout(() => {
+              if (isRunning) {
+                connectEventSource();
+              }
+            }, reconnectDelay);
+          } else {
+            eventSource?.close();
+            eventSource = null;
+          }
+        }
+      };
     };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE error:", error);
-      eventSource.close();
-    };
+    // Start the connection
+    connectEventSource();
 
     try {
       if (migrationMode === "single") {
@@ -406,7 +463,8 @@ export function NovaBulkMigration() {
       });
     } finally {
       setIsRunning(false);
-      eventSource.close();
+      eventSource?.close();
+      eventSource = null;
     }
   };
 

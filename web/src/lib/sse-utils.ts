@@ -1,106 +1,30 @@
 import { MigrationProgressEvent } from "@/types/nova-migration";
 
-// Store for SSE connections
-const connections = new Map<string, ReadableStreamDefaultController>();
-const progressData = new Map<string, MigrationProgressEvent>();
+// Import the sendProgress function from the migration SSE utils
+import { sendProgress as sendProgressToStream } from "./migration-sse-utils";
 
 /**
- * Registers an SSE connection for a given session ID
- * @param sessionId - Unique identifier for the migration session
- * @param controller - ReadableStreamDefaultController for the SSE connection
- */
-export function registerConnection(
-  sessionId: string,
-  controller: ReadableStreamDefaultController
-) {
-  connections.set(sessionId, controller);
-}
-
-/**
- * Removes an SSE connection for a given session ID
- * @param sessionId - Unique identifier for the migration session
- */
-export function removeConnection(sessionId: string) {
-  connections.delete(sessionId);
-  progressData.delete(sessionId);
-}
-
-/**
- * Gets stored progress data for a session
- * @param sessionId - Unique identifier for the migration session
- * @returns Stored progress data or undefined if none exists
- */
-export function getProgressData(
-  sessionId: string
-): MigrationProgressEvent | undefined {
-  return progressData.get(sessionId);
-}
-
-/**
- * Stores progress data for a session
- * @param sessionId - Unique identifier for the migration session
- * @param data - Progress event data to store
- */
-export function setProgressData(
-  sessionId: string,
-  data: MigrationProgressEvent
-) {
-  progressData.set(sessionId, data);
-}
-
-/**
- * Sends progress updates to connected SSE clients
+ * Sends progress updates to connected SSE clients using better-sse
  * @param sessionId - Unique identifier for the migration session
  * @param data - Partial progress event data to send
  */
-export function sendProgress(
+export async function sendProgress(
   sessionId: string,
   data: Partial<MigrationProgressEvent>
 ) {
-  console.log(`[SSE-UTILS] Looking for connection for session: ${sessionId}`);
-  console.log(`[SSE-UTILS] Active connections: ${connections.size}`);
+  console.log(`[SSE-UTILS] Sending progress for session: ${sessionId}`);
+  console.log(`[SSE-UTILS] Event type: ${data.type}, message: ${data.message}`);
 
-  const controller = connections.get(sessionId);
-  if (controller) {
-    console.log(
-      `[SSE-UTILS] Found controller, sending data:`,
-      data.message || data.type
-    );
+  // Send to the better-sse stream
+  try {
+    const success = await sendProgressToStream(sessionId, data);
 
-    // Store progress data
-    const progressEvent: MigrationProgressEvent = {
-      ...data,
-      timestamp: new Date().toISOString(),
-    } as MigrationProgressEvent;
-    progressData.set(sessionId, progressEvent);
-
-    try {
-      // Send data to SSE stream
-      const event = `data: ${JSON.stringify({
-        ...data,
-        timestamp: new Date().toISOString(),
-      })}\n\n`;
-      controller.enqueue(new TextEncoder().encode(event));
-      console.log(
-        `[SSE-UTILS] Successfully sent progress update for ${sessionId}`
-      );
-    } catch (e) {
-      console.error(
-        `[SSE-UTILS] Failed to send progress update for ${sessionId}:`,
-        e
-      );
-      // Remove dead connection
-      connections.delete(sessionId);
+    if (success) {
+      console.log(`[SSE-UTILS] Successfully sent progress update for ${sessionId}`);
+    } else {
+      console.log(`[SSE-UTILS] No active stream for session ${sessionId}`);
     }
-  } else {
-    console.log(`[SSE-UTILS] No controller found for session ${sessionId}`);
+  } catch (error) {
+    console.error(`[SSE-UTILS] Failed to send progress update:`, error);
   }
-}
-
-/**
- * Gets the number of active SSE connections
- * @returns Number of active connections
- */
-export function getConnectionCount(): number {
-  return connections.size;
 }

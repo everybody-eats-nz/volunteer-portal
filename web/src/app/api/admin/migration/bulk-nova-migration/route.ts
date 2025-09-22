@@ -18,6 +18,7 @@ import {
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
+import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { randomBytes } from "crypto";
 
 // Types are now imported from @/types/nova-migration
@@ -53,7 +54,7 @@ async function sendProgress(
       `[SSE] Sending progress update for session ${sessionId}:`,
       data.message || data.type
     );
-    sendProgressUpdate(sessionId, data);
+    await sendProgressUpdate(sessionId, data);
   } catch (error) {
     console.error("[SSE] Failed to send progress update:", error);
   }
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       // Create Nova scraper instance and authenticate
       await sendProgress(sessionId, {
         type: "status",
-        message: "Authenticating with Nova...",
+        message: `🔐 Authenticating with Nova at ${novaConfig.baseUrl}...`,
         stage: "connecting",
       });
 
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       );
       await sendProgress(sessionId, {
         type: "status",
-        message: "Fetching users from Nova...",
+        message: `👥 Fetching user list from Nova (batch size: ${batchSize})...`,
         stage: "fetching",
       });
 
@@ -141,9 +142,15 @@ export async function POST(request: NextRequest) {
 
       await sendProgress(sessionId, {
         type: "status",
-        message: `Found ${allNovaUsers.length} users to migrate`,
+        message: `✅ Found ${allNovaUsers.length} users in Nova database`,
         stage: "processing",
         totalUsers: allNovaUsers.length,
+      });
+
+      await sendProgress(sessionId, {
+        type: "status",
+        message: `🚀 Starting migration process...`,
+        stage: "processing",
       });
 
       // Step 2: Process users in batches
@@ -177,7 +184,7 @@ export async function POST(request: NextRequest) {
             // Send progress update for current user
             await sendProgress(sessionId, {
               type: "progress",
-              message: `Processing user: ${userEmail}`,
+              message: `🔄 Processing user ${response.usersProcessed}/${response.totalUsers}: ${userEmail}`,
               stage: "processing",
               currentUser: userEmail,
               usersProcessed: response.usersProcessed,
@@ -195,6 +202,11 @@ export async function POST(request: NextRequest) {
               if (existingUser) {
                 response.usersSkipped++;
                 console.log(`[BULK] Skipping existing user: ${userEmail}`);
+                await sendProgress(sessionId, {
+                  type: "status",
+                  message: `⏩ Skipping existing user: ${userEmail}`,
+                  stage: "processing",
+                });
                 continue;
               }
             }
@@ -204,7 +216,7 @@ export async function POST(request: NextRequest) {
 
             await sendProgress(sessionId, {
               type: "status",
-              message: `Fetching full details for ${userEmail}...`,
+              message: `📥 Fetching full user details for ${userEmail}...`,
               stage: "processing",
             });
 
@@ -255,7 +267,7 @@ export async function POST(request: NextRequest) {
 
                 await sendProgress(sessionId, {
                   type: "status",
-                  message: `Importing historical data for ${userEmail}...`,
+                  message: `📊 Starting historical data import for ${userEmail}...`,
                   stage: "processing",
                 });
 
@@ -264,8 +276,23 @@ export async function POST(request: NextRequest) {
                 let page = 1;
                 let hasMorePages = true;
 
+                await sendProgress(sessionId, {
+                  type: "status",
+                  message: `🔍 Fetching event applications for ${userEmail}...`,
+                  stage: "processing",
+                });
+
                 // Get all user's event applications with pagination
                 while (hasMorePages) {
+                  // Send progress for each page fetch
+                  if (page > 1) {
+                    await sendProgress(sessionId, {
+                      type: "status",
+                      message: `📑 Fetching event applications page ${page} for ${userEmail}...`,
+                      stage: "processing",
+                    });
+                  }
+
                   const signupsResponse = await scraper.novaApiRequest(
                     `/event-applications?viaResource=users&viaResourceId=${novaUserId}&viaRelationship=event_applications&perPage=50&page=${page}`
                   );
@@ -306,7 +333,7 @@ export async function POST(request: NextRequest) {
 
                   await sendProgress(sessionId, {
                     type: "status",
-                    message: `Found ${allSignups.length} shifts for ${userEmail}, processing...`,
+                    message: `✅ Found ${allSignups.length} event signups for ${userEmail}`,
                     stage: "processing",
                   });
                 }
@@ -331,7 +358,7 @@ export async function POST(request: NextRequest) {
 
                   await sendProgress(sessionId, {
                     type: "status",
-                    message: `Processing ${eventIds.size} unique shifts for ${userEmail}...`,
+                    message: `🎯 Processing ${eventIds.size} unique events for ${userEmail}...`,
                     stage: "processing",
                   });
 
@@ -347,12 +374,18 @@ export async function POST(request: NextRequest) {
                       ) {
                         await sendProgress(sessionId, {
                           type: "status",
-                          message: `Processing shift ${processedEvents}/${eventIds.size} for ${userEmail}...`,
+                          message: `📅 Processing event ${processedEvents}/${eventIds.size} for ${userEmail}...`,
                           stage: "processing",
                         });
                       }
 
                       // Get event details
+                      await sendProgress(sessionId, {
+                        type: "status",
+                        message: `📥 Fetching event data (ID: ${eventId}) for ${userEmail}...`,
+                        stage: "processing",
+                      });
+
                       const eventResponse = await scraper.novaApiRequest(
                         `/events/${eventId}`
                       );
@@ -520,7 +553,7 @@ export async function POST(request: NextRequest) {
 
                   await sendProgress(sessionId, {
                     type: "status",
-                    message: `✅ Completed ${userEmail}: ${shiftsImported} shifts, ${signupsImported} signups imported`,
+                    message: `✅ Completed ${userEmail}: ${shiftsImported} events created, ${signupsImported} signups imported`,
                     stage: "processing",
                   });
                 }
@@ -570,6 +603,20 @@ export async function POST(request: NextRequest) {
         stage: "complete",
         ...response,
       });
+
+      // Notify all admins about migration completion
+      try {
+        await notifyAdminsMigrationComplete({
+          type: "bulk",
+          usersProcessed: response.usersProcessed,
+          usersCreated: response.usersCreated,
+          errors: response.errors.length,
+          duration: response.duration,
+        });
+      } catch (notifyError) {
+        console.error("Failed to send admin notification:", notifyError);
+        // Don't fail the migration if notification fails
+      }
 
       return NextResponse.json(response);
     } catch (error) {

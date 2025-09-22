@@ -13,6 +13,7 @@ import {
 } from "@/types/nova-migration";
 import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
+import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { SignupStatus } from "@prisma/client";
 
 interface ScrapeUserRequest {
@@ -65,7 +66,7 @@ async function sendProgress(
   if (!sessionId) return;
 
   try {
-    sendProgressUpdate(sessionId, data);
+    await sendProgressUpdate(sessionId, data);
   } catch (error) {
     console.log("Failed to send progress update:", error);
   }
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
 
       await sendProgress(sessionId, {
         type: "status",
-        message: "Connecting to Nova...",
+        message: `🔐 Authenticating with Nova at ${novaConfig.baseUrl}...`,
         stage: "connecting",
       });
 
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
 
       await sendProgress(sessionId, {
         type: "status",
-        message: `Searching for user: ${userEmail}`,
+        message: `🔍 Searching Nova database for: ${userEmail}`,
         stage: "fetching",
       });
 
@@ -138,6 +139,12 @@ export async function POST(request: NextRequest) {
 
       try {
         // Use Nova's search functionality to find user by email
+        await sendProgress(sessionId, {
+          type: "status",
+          message: `📡 Querying Nova API for user data...`,
+          stage: "fetching",
+        });
+
         const novaResponse = await scraper.novaApiRequest(
           `/users?search=${encodeURIComponent(userEmail)}&perPage=100`
         );
@@ -166,6 +173,11 @@ export async function POST(request: NextRequest) {
               console.log(
                 `Found user in Nova search results: ${userEmail_fromNova}`
               );
+              await sendProgress(sessionId, {
+                type: "status",
+                message: `✅ User found in Nova: ${userEmail_fromNova}`,
+                stage: "fetching",
+              });
               break;
             }
           }
@@ -204,6 +216,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (!userFound) {
+        await sendProgress(sessionId, {
+          type: "status",
+          message: `❌ User not found in Nova: ${userEmail}`,
+          stage: "complete",
+        });
         return NextResponse.json({
           ...response,
           success: true,
@@ -217,6 +234,11 @@ export async function POST(request: NextRequest) {
       let ourUser = existingUser;
       if (!existingUser && !options.dryRun) {
         try {
+          await sendProgress(sessionId, {
+            type: "status",
+            message: `👤 Creating user account for ${userEmail}...`,
+            stage: "processing",
+          });
           const transformer = new HistoricalDataTransformer({
             dryRun: false,
             markAsMigrated: true,
@@ -225,6 +247,12 @@ export async function POST(request: NextRequest) {
           if (!targetNovaUser) {
             throw new Error("Target Nova user is null");
           }
+
+          await sendProgress(sessionId, {
+            type: "status",
+            message: `📥 Fetching complete user profile from Nova...`,
+            stage: "processing",
+          });
 
           const fullUserResponse = await scraper.novaApiRequest(
             `/users/${targetNovaUser.id.value}`
@@ -241,6 +269,11 @@ export async function POST(request: NextRequest) {
 
           response.userCreated = true;
           console.log(`Created user in our system: ${ourUser.email}`);
+          await sendProgress(sessionId, {
+            type: "status",
+            message: `✅ User account created: ${ourUser.email}`,
+            stage: "processing",
+          });
         } catch (error) {
           response.errors.push(
             `Error creating user: ${
@@ -256,6 +289,11 @@ export async function POST(request: NextRequest) {
           // Extract user ID from Nova structure
           const novaUserId = targetNovaUser.id?.value || targetNovaUser.id;
           console.log(`Scraping event applications for user ${novaUserId}...`);
+          await sendProgress(sessionId, {
+            type: "status",
+            message: `📊 Fetching historical shift data for user...`,
+            stage: "processing",
+          });
 
           // Get user's event applications (shift signups) - need to paginate through all results
           const allSignups: NovaUserResource[] = [];
@@ -264,6 +302,14 @@ export async function POST(request: NextRequest) {
 
           // Get all user's event applications with pagination
           while (hasMorePages) {
+            if (page > 1) {
+              await sendProgress(sessionId, {
+                type: "status",
+                message: `📑 Fetching event applications page ${page}...`,
+                stage: "processing",
+              });
+            }
+
             const signupsResponse = await scraper.novaApiRequest(
               `/event-applications?viaResource=users&viaResourceId=${novaUserId}&viaRelationship=event_applications&perPage=50&page=${page}`
             );
@@ -294,6 +340,11 @@ export async function POST(request: NextRequest) {
 
           if (allSignups.length > 0) {
             console.log(`Found ${allSignups.length} signups for user`);
+            await sendProgress(sessionId, {
+              type: "status",
+              message: `✅ Found ${allSignups.length} historical shift signups`,
+              stage: "processing",
+            });
           }
 
           if (allSignups.length > 0) {
@@ -346,8 +397,23 @@ export async function POST(request: NextRequest) {
 
             // Get details for events (shifts)
             const eventDetails: NovaEventResource[] = [];
+
+            await sendProgress(sessionId, {
+              type: "status",
+              message: `🎯 Processing ${eventIds.size} unique events...`,
+              stage: "processing",
+            });
+
+            let eventCount = 0;
             for (const eventId of eventIds) {
+              eventCount++;
               try {
+                await sendProgress(sessionId, {
+                  type: "status",
+                  message: `📥 Fetching event ${eventCount}/${eventIds.size} (ID: ${eventId})...`,
+                  stage: "processing",
+                });
+
                 const eventResponse = await scraper.novaApiRequest(
                   `/events/${eventId}`
                 );
@@ -370,6 +436,11 @@ export async function POST(request: NextRequest) {
             // Transform and import data if not dry run
             if (!options.dryRun && ourUser) {
               try {
+                await sendProgress(sessionId, {
+                  type: "status",
+                  message: `🔄 Starting data import for ${ourUser.email}...`,
+                  stage: "processing",
+                });
                 const transformer = new HistoricalDataTransformer({
                   dryRun: false,
                   skipExistingUsers: true,
@@ -380,7 +451,14 @@ export async function POST(request: NextRequest) {
                 let shiftsImported = 0;
                 let signupsImported = 0;
 
+                let processedEventCount = 0;
                 for (const eventDetail of eventDetails) {
+                  processedEventCount++;
+                  await sendProgress(sessionId, {
+                    type: "status",
+                    message: `💾 Importing event ${processedEventCount}/${eventDetails.length}...`,
+                    stage: "processing",
+                  });
                   try {
                     // Get signups for this event to determine position/shift type
                     const eventSignups = signupData.filter(
@@ -488,6 +566,12 @@ export async function POST(request: NextRequest) {
 
                 response.shiftsImported = shiftsImported;
                 response.signupsImported = signupsImported;
+
+                await sendProgress(sessionId, {
+                  type: "status",
+                  message: `✅ Import complete: ${shiftsImported} events, ${signupsImported} signups created`,
+                  stage: "complete",
+                });
               } catch (error) {
                 response.errors.push(
                   `Error transforming data: ${
@@ -516,6 +600,23 @@ export async function POST(request: NextRequest) {
       }
 
       response.success = true;
+
+      // Notify admins about single user migration completion if user was created
+      if (response.userCreated && !options.dryRun) {
+        try {
+          await notifyAdminsMigrationComplete({
+            type: "single",
+            usersProcessed: 1,
+            usersCreated: 1,
+            errors: response.errors.length,
+            duration: 0, // Single user migration is fast
+          });
+        } catch (notifyError) {
+          console.error("Failed to send admin notification:", notifyError);
+          // Don't fail the migration if notification fails
+        }
+      }
+
       return NextResponse.json(response);
     } catch (error) {
       console.error("Nova scraping error:", error);
