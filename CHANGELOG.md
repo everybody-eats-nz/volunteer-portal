@@ -1,3 +1,9 @@
+## [0.45.0] - 2025-09-22
+
+### Changes
+- feat: implement Vercel Bot ID protection ([#154](https://github.com/everybody-eats-nz/volunteer-portal/pull/154)) by @malinmalliyawadu
+
+
 ## [0.44.1] - 2025-09-22
 
 ### Changes
