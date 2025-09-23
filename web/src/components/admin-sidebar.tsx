@@ -21,7 +21,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { adminNavCategories, publicNavItems } from "@/lib/admin-navigation";
 import { Session } from "next-auth";
-import { isDemoEnvironment, getDemoEnvironmentLabel } from "@/lib/environment";
+import { isDemoEnvironment, getEnvironmentLabel } from "@/lib/environment";
 
 interface AdminSidebarProps {
   session: Session | null;
@@ -35,7 +35,6 @@ interface AdminSidebarProps {
   displayName: string;
 }
 
-
 export function AdminSidebar({
   session,
   userProfile,
@@ -43,7 +42,7 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const showDemoIndicator = isDemoEnvironment();
-  const demoLabel = getDemoEnvironmentLabel();
+  const demoLabel = getEnvironmentLabel();
 
   const isActive = (href: string, exact = false) => {
     if (exact) {
@@ -136,7 +135,9 @@ export function AdminSidebar({
                     <Link
                       href={item.href}
                       target={item.opensInNewTab ? "_blank" : undefined}
-                      rel={item.opensInNewTab ? "noopener noreferrer" : undefined}
+                      rel={
+                        item.opensInNewTab ? "noopener noreferrer" : undefined
+                      }
                     >
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
