@@ -1,3 +1,21 @@
+## [0.46.2] - 2025-09-23
+
+### Changes
+- refactor: replace isDemoEnvironment with showEnvironmentLabel in side… ([#161](https://github.com/everybody-eats-nz/volunteer-portal/pull/161)) by @malinmalliyawadu
+
+
+## [0.46.1] - 2025-09-23
+
+### Changes
+- refactor: update environment utility functions and clean up sidebar/h… ([#160](https://github.com/everybody-eats-nz/volunteer-portal/pull/160)) by @malinmalliyawadu
+
+
+## [0.46.0] - 2025-09-22
+
+### Changes
+- Add demo environment indicator to header logos ([#155](https://github.com/everybody-eats-nz/volunteer-portal/pull/155)) by @malinmalliyawadu
+
+
 ## [0.45.0] - 2025-09-22
 
 ### Changes

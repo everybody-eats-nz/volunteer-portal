@@ -3,12 +3,15 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightSidebarTopics from 'starlight-sidebar-topics';
 import mermaid from 'astro-mermaid';
+import vercel from '@astrojs/vercel';
 
 // Get the app URL from environment variable, default to localhost for development
 const APP_URL = process.env.VOLUNTEER_PORTAL_URL || 'http://localhost:3000';
 
 // https://astro.build/config
 export default defineConfig({
+  output: 'server',
+  adapter: vercel(),
   integrations: [
     mermaid(),
     starlight({
@@ -226,8 +229,11 @@ export default defineConfig({
             // Also initialize after view transitions (Starlight SPA navigation)
             document.addEventListener('astro:page-load', initImageZoom);
           `
-        }
+        },
       ],
+      components: {
+        Footer: './src/components/Footer.astro',
+      },
       logo: {
         src: "./src/assets/logo.svg",
         replacesTitle: true,

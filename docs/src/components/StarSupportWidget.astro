@@ -1,0 +1,45 @@
+---
+// Get auth key from environment variables
+const authKey = import.meta.env.STAR_SUPPORT_AUTH_KEY || '';
+---
+
+<script src="/star-support.min.js" defer></script>
+<script define:vars={{ authKey }}>
+  function initStarSupport() {
+    if (!window.StarSupport) {
+      console.error('StarSupport widget not loaded');
+      return;
+    }
+    
+    // Don't initialize if already exists
+    if (document.getElementById('star-support-widget')) {
+      return;
+    }
+    
+    const config = {
+      apiEndpoint: '/api/star-support/chat',
+      welcomeMessage: 'Hi! How can I help you with the Volunteer Portal documentation today?',
+      botName: 'Docs Assistant',
+      topicContext: 'Volunteer Portal documentation',
+      primaryColor: '#0066cc',
+      position: 'bottom-right',
+      suggestedQuestions: [
+        'How do I manage volunteers?',
+        'How do shift signups work?',
+        'What are the admin permissions?',
+        'How do I view reports?',
+        'How does parental consent work?'
+      ]
+    };
+    
+    // Add auth key if available
+    if (authKey) {
+      config.authKey = authKey;
+    }
+    
+    new window.StarSupport(config);
+  }
+  
+  document.addEventListener('DOMContentLoaded', initStarSupport);
+  document.addEventListener('astro:page-load', initStarSupport);
+</script>
