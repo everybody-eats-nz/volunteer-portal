@@ -21,7 +21,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
 import { adminNavCategories, publicNavItems } from "@/lib/admin-navigation";
 import { Session } from "next-auth";
-import { isDemoEnvironment, getEnvironmentLabel } from "@/lib/environment";
+import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
 
 interface AdminSidebarProps {
   session: Session | null;
@@ -41,7 +41,7 @@ export function AdminSidebar({
   displayName,
 }: AdminSidebarProps) {
   const pathname = usePathname();
-  const showDemoIndicator = isDemoEnvironment();
+  const showDemoIndicator = showEnvironmentLabel();
   const demoLabel = getEnvironmentLabel();
 
   const isActive = (href: string, exact = false) => {

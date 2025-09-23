@@ -1,3 +1,9 @@
+## [0.46.2] - 2025-09-23
+
+### Changes
+- refactor: replace isDemoEnvironment with showEnvironmentLabel in side… ([#161](https://github.com/everybody-eats-nz/volunteer-portal/pull/161)) by @malinmalliyawadu
+
+
 ## [0.46.1] - 2025-09-23
 
 ### Changes

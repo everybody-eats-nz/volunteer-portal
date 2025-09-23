@@ -11,7 +11,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 import { Session } from "next-auth";
 import { Menu, X } from "lucide-react";
-import { isDemoEnvironment, getEnvironmentLabel } from "@/lib/environment";
+import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
 
 interface SiteHeaderProps {
   session: Session | null;
@@ -32,7 +32,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const showDemoIndicator = isDemoEnvironment();
+  const showDemoIndicator = showEnvironmentLabel();
   const demoLabel = getEnvironmentLabel();
 
   const isActive = (path: string) => {
