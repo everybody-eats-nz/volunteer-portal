@@ -61,10 +61,12 @@ const formFieldVariants: Variants = {
 
 export default function LoginPage() {
   const [email, setEmail] = useState(
-    process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production' ? "volunteer@example.com" : ""
+    process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
+      ? "volunteer@example.com"
+      : ""
   );
   const [password, setPassword] = useState(
-    process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production' ? "volunteer123" : ""
+    process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" ? "volunteer123" : ""
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +91,7 @@ export default function LoginPage() {
     const message = searchParams.get("message");
     const urlEmail = searchParams.get("email");
     const verified = searchParams.get("verified");
-    
+
     if (message === "registration-success") {
       setSuccessMessage(
         "Registration successful! You can now sign in with your new account."
@@ -137,10 +139,12 @@ export default function LoginPage() {
       // Check for specific error types that indicate email verification issues
       if (res.error === "EmailNotVerified") {
         // Redirect to verify-email page with email pre-filled for resending
-        window.location.href = `/verify-email?email=${encodeURIComponent(email || "")}&from=login`;
+        window.location.href = `/verify-email?email=${encodeURIComponent(
+          email || ""
+        )}&from=login`;
         return;
       }
-      
+
       setError("Invalid credentials");
     } else if (res?.ok) {
       // Add a small delay to ensure session is established
@@ -172,11 +176,15 @@ export default function LoginPage() {
 
     const credentials = {
       volunteer: {
-        email: process.env.NEXT_PUBLIC_DEMO_VOLUNTEER_EMAIL || "volunteer@example.com",
-        password: process.env.NEXT_PUBLIC_DEMO_VOLUNTEER_PASSWORD || "volunteer123",
+        email:
+          process.env.NEXT_PUBLIC_DEMO_VOLUNTEER_EMAIL ||
+          "volunteer@example.com",
+        password:
+          process.env.NEXT_PUBLIC_DEMO_VOLUNTEER_PASSWORD || "volunteer123",
       },
       admin: {
-        email: process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL || "admin@everybodyeats.nz",
+        email:
+          process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL || "admin@everybodyeats.nz",
         password: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD || "admin123",
       },
     };
@@ -274,7 +282,7 @@ export default function LoginPage() {
         </div>
 
         <MotionCard className="" testid="login-form-card">
-          <CardContent className="p-8">
+          <CardContent className="md:p-8">
             {/* OAuth Providers */}
             {oauthProviders.length > 0 && (
               <motion.div
@@ -393,7 +401,10 @@ export default function LoginPage() {
                 />
               </motion.div>
 
-              <MotionFormSuccess show={!!successMessage} data-testid="success-message">
+              <MotionFormSuccess
+                show={!!successMessage}
+                data-testid="success-message"
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 pt-0.5">
                     <svg
@@ -481,7 +492,7 @@ export default function LoginPage() {
               </div>
 
               {/* Only show demo credentials when not in production */}
-              {process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production' && (
+              {process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
                 <div
                   className="bg-accent/10 rounded-lg p-4 text-center"
                   data-testid="demo-credentials"
