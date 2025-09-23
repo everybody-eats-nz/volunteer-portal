@@ -1,182 +1,346 @@
 // @ts-check
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
-import starlightSidebarTopics from 'starlight-sidebar-topics';
-import mermaid from 'astro-mermaid';
-import vercel from '@astrojs/vercel';
+import starlightSidebarTopics from "starlight-sidebar-topics";
+import mermaid from "astro-mermaid";
+import vercel from "@astrojs/vercel";
 
 // Get the app URL from environment variable, default to localhost for development
-const APP_URL = process.env.VOLUNTEER_PORTAL_URL || 'http://localhost:3000';
+const APP_URL = process.env.VOLUNTEER_PORTAL_URL || "http://localhost:3000";
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'server',
+  output: "server",
   adapter: vercel(),
   integrations: [
     mermaid(),
     starlight({
-      plugins: [starlightSidebarTopics([
-        {
-          label: 'Admin Guide',
-          link: '/',
-          icon: 'star',
-          items: [
-            {
-              label: "Getting Started",
-              items: [
-                { label: "🏠 Overview", link: "/" },
-                { label: "📊 Admin Dashboard", slug: "overview/admin-dashboard" },
-                { label: "👥 User Roles & Permissions", slug: "overview/user-roles" },
-                { label: "🧭 Navigation Guide", slug: "overview/navigation" },
-              ],
-            },
-            {
-              label: "System Administration",
-              items: [
-                {
-                  label: "👨‍👩‍👧‍👦 Parental Consent",
-                  slug: "user-management/parental-consent",
-                },
-                { label: "📸 Profile Photos", slug: "user-management/profile-photos", badge: "WIP" },
-                { label: "✉️ Email Verification", slug: "user-management/email-verification", badge: "WIP" },
-                { label: "⌘ Admin Command Palette", slug: "user-management/command-palette", badge: "WIP" },
-              ],
-            },
-            {
-              label: "System Overview",
-              items: [
-                {
-                  label: "📅 Calendar Overview",
-                  slug: "shift-management/calendar-overview",
-                },
-                {
-                  label: "✍️ Managing Signups",
-                  slug: "shift-management/managing-signups",
-                },
-              ],
-            },
-            {
-              label: "Troubleshooting",
-              items: [
-                { label: "🛠️ Common Issues", slug: "troubleshooting/common-issues" },
-                {
-                  label: "🆘 Helping Volunteers",
-                  slug: "troubleshooting/user-problems",
-                },
-                { label: "⚠️ System Errors", slug: "troubleshooting/system-errors" },
-              ],
-            }
-          ]
-        },
-        {
-          label: 'Restaurant Managers',
-          link: '/restaurant-managers/',
-          icon: 'open-book',
-          items: [
-            {
-              label: "Getting Started",
-              items: [
-                { label: "🏢 Multi-Location Features", slug: "location-management/location-filtering" },
-                { label: "🔌 Restaurant Manager API", slug: "location-management/restaurant-manager-api" }
-              ]
-            },
-            {
-              label: "Volunteer Management",
-              items: [
-                {
-                  label: "👀 Viewing Volunteers",
-                  slug: "user-management/viewing-volunteers",
-                },
-                {
-                  label: "👤 Volunteer Profiles",
-                  slug: "user-management/volunteer-profiles",
-                },
-                { label: "📝 Admin Notes", slug: "user-management/admin-notes" },
-                { label: "🏷️ Volunteer Labels", slug: "user-management/volunteer-labels", badge: "WIP" },
-                { label: "⭐ Volunteer Grading System", slug: "user-management/volunteer-grading", badge: "WIP" },
-                { label: "🔄 Regular Volunteers", slug: "user-management/regular-volunteers", badge: "WIP" },
-                { label: "👥 Friend System", slug: "user-management/friend-system", badge: "WIP" },
-                { label: "🔔 Notification System", slug: "user-management/notification-system", badge: "WIP" },
-              ]
-            },
-            {
-              label: "Shift Management",
-              items: [
-                { label: "➕ Creating Shifts", slug: "shift-management/creating-shifts" },
-                { label: "👨‍👩‍👧‍👦 Group Bookings", slug: "shift-management/group-bookings" },
-                { label: "✅ Attendance Tracking", slug: "shift-management/attendance-tracking" },
-                { label: "❌ Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications", badge: "WIP" },
-                { label: "🎯 Volunteer Selection", slug: "shift-management/volunteer-selection", badge: "WIP" },
-                { label: "🌅 Day and Evening Periods", slug: "shift-management/period-separation", badge: "WIP" },
-                { label: "📋 Shift Templates", slug: "shift-management/shift-templates", badge: "WIP" },
-                { label: "⚡ Auto-Accept Rules", slug: "shift-management/auto-accept-rules", badge: "WIP" },
-                { label: "📍 Volunteer Placement", slug: "shift-management/volunteer-placement", badge: "WIP" },
-                { label: "✏️ Editing and Deleting Shifts", slug: "shift-management/shift-editing", badge: "WIP" },
-                { label: "🏢 Location Configuration", slug: "shift-management/location-configuration", badge: "WIP" },
-                { label: "📧 Email Confirmations", slug: "shift-management/email-confirmations", badge: "WIP" },
-              ]
-            },
-            {
-              label: "Reports & Analytics",
-              items: [
-                { label: "📊 Dashboard Metrics", slug: "reports-analytics/dashboard-metrics" },
-                { label: "📈 Volunteer Activity", slug: "reports-analytics/volunteer-activity" },
-                { label: "📉 Shift Analytics", slug: "reports-analytics/shift-analytics" }
-              ]
-            }
-          ]
-        },
-        {
-          label: 'Developer Reference',
-          link: '/developers/',
-          icon: 'laptop',
-          items: [
-            {
-              label: "Getting Started",
-              items: [
-                { label: "⚙️ Technology Stack", slug: "developers/tech-stack" },
-                { label: "🏗️ Hosting & Infrastructure", slug: "developers/hosting-infrastructure" }
-              ]
-            },
-            {
-              label: "Authentication & Authorization",
-              items: [
-                { label: "🔐 Authentication & Authorization", slug: "developers/authentication-authorization" },
-                { label: "🌐 OAuth Authentication", slug: "developers/oauth-authentication" },
-                { label: "🔑 Admin Permissions", slug: "reference/permissions" },
-                { label: "🔒 Password Reset System", slug: "developers/password-reset-system", badge: "WIP" },
-                { label: "🛡️ Security Implementation", slug: "developers/security-implementation", badge: "WIP" }
-              ]
-            },
-            {
-              label: "System Integration",
-              items: [
-                { label: "📧 Email Systems", slug: "developers/email-systems", badge: "WIP" },
-                { label: "📊 Analytics Integration", slug: "developers/analytics-integration", badge: "WIP" },
-                { label: "🔄 Data Migration", slug: "developers/data-migration", badge: "WIP" },
-                { label: "🌍 Environment Configuration", slug: "developers/environment-configuration", badge: "WIP" }
-              ]
-            },
-            {
-              label: "Development",
-              items: [
-                { label: "🎨 UI Components System", slug: "developers/ui-components-system", badge: "WIP" },
-                { label: "🧪 Testing Framework", slug: "developers/testing-framework", badge: "WIP" },
-                { label: "🕐 Timezone Handling", slug: "developers/timezone-handling", badge: "WIP" }
-              ]
-            }
-          ]
-        }
-      ])],
+      plugins: [
+        starlightSidebarTopics([
+          {
+            label: "Admin Guide",
+            link: "/",
+            icon: "star",
+            items: [
+              {
+                label: "Getting Started",
+                items: [
+                  { label: "🏠 Overview", link: "/" },
+                  {
+                    label: "📊 Admin Dashboard",
+                    slug: "overview/admin-dashboard",
+                  },
+                  {
+                    label: "👥 User Roles & Permissions",
+                    slug: "overview/user-roles",
+                  },
+                  { label: "🧭 Navigation Guide", slug: "overview/navigation" },
+                ],
+              },
+              {
+                label: "System Administration",
+                items: [
+                  {
+                    label: "👨‍👩‍👧‍👦 Parental Consent",
+                    slug: "user-management/parental-consent",
+                  },
+                  {
+                    label: "📸 Profile Photos",
+                    slug: "user-management/profile-photos",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "✉️ Email Verification",
+                    slug: "user-management/email-verification",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "⌘ Admin Command Palette",
+                    slug: "user-management/command-palette",
+                    badge: "WIP",
+                  },
+                ],
+              },
+              {
+                label: "System Overview",
+                items: [
+                  {
+                    label: "📅 Calendar Overview",
+                    slug: "shift-management/calendar-overview",
+                  },
+                  {
+                    label: "✍️ Managing Signups",
+                    slug: "shift-management/managing-signups",
+                  },
+                ],
+              },
+              {
+                label: "Troubleshooting",
+                items: [
+                  {
+                    label: "🛠️ Common Issues",
+                    slug: "troubleshooting/common-issues",
+                  },
+                  {
+                    label: "🆘 Helping Volunteers",
+                    slug: "troubleshooting/user-problems",
+                  },
+                  {
+                    label: "⚠️ System Errors",
+                    slug: "troubleshooting/system-errors",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            label: "Restaurant Managers",
+            link: "/restaurant-managers/",
+            icon: "open-book",
+            items: [
+              {
+                label: "Getting Started",
+                items: [
+                  {
+                    label: "🏢 Multi-Location Features",
+                    slug: "location-management/location-filtering",
+                  },
+                  {
+                    label: "🔌 Restaurant Manager API",
+                    slug: "location-management/restaurant-manager-api",
+                  },
+                ],
+              },
+              {
+                label: "Volunteer Management",
+                items: [
+                  {
+                    label: "👀 Viewing Volunteers",
+                    slug: "user-management/viewing-volunteers",
+                  },
+                  {
+                    label: "👤 Volunteer Profiles",
+                    slug: "user-management/volunteer-profiles",
+                  },
+                  {
+                    label: "📝 Admin Notes",
+                    slug: "user-management/admin-notes",
+                  },
+                  {
+                    label: "🏷️ Volunteer Labels",
+                    slug: "user-management/volunteer-labels",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "⭐ Volunteer Grading System",
+                    slug: "user-management/volunteer-grading",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🔄 Regular Volunteers",
+                    slug: "user-management/regular-volunteers",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "👥 Friend System",
+                    slug: "user-management/friend-system",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🔔 Notification System",
+                    slug: "user-management/notification-system",
+                    badge: "WIP",
+                  },
+                ],
+              },
+              {
+                label: "Shift Management",
+                items: [
+                  {
+                    label: "➕ Creating Shifts",
+                    slug: "shift-management/creating-shifts",
+                  },
+                  {
+                    label: "👨‍👩‍👧‍👦 Group Bookings",
+                    slug: "shift-management/group-bookings",
+                  },
+                  {
+                    label: "✅ Attendance Tracking",
+                    slug: "shift-management/attendance-tracking",
+                  },
+                  {
+                    label: "❌ Shift Cancellation Notifications",
+                    slug: "shift-management/shift-cancellation-notifications",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🎯 Volunteer Selection",
+                    slug: "shift-management/volunteer-selection",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🌅 Day and Evening Periods",
+                    slug: "shift-management/period-separation",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "📋 Shift Templates",
+                    slug: "shift-management/shift-templates",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "⚡ Auto-Accept Rules",
+                    slug: "shift-management/auto-accept-rules",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "📍 Volunteer Placement",
+                    slug: "shift-management/volunteer-placement",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "✏️ Editing and Deleting Shifts",
+                    slug: "shift-management/shift-editing",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🏢 Location Configuration",
+                    slug: "shift-management/location-configuration",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "📧 Email Confirmations",
+                    slug: "shift-management/email-confirmations",
+                    badge: "WIP",
+                  },
+                ],
+              },
+              {
+                label: "Reports & Analytics",
+                items: [
+                  {
+                    label: "📊 Dashboard Metrics",
+                    slug: "reports-analytics/dashboard-metrics",
+                  },
+                  {
+                    label: "📈 Volunteer Activity",
+                    slug: "reports-analytics/volunteer-activity",
+                  },
+                  {
+                    label: "📉 Shift Analytics",
+                    slug: "reports-analytics/shift-analytics",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            label: "Developer Reference",
+            link: "/developers/",
+            icon: "laptop",
+            items: [
+              {
+                label: "Getting Started",
+                items: [
+                  {
+                    label: "🔑 Developer Access Guide",
+                    slug: "developers/developer-access-guide",
+                  },
+                  {
+                    label: "⚙️ Technology Stack",
+                    slug: "developers/tech-stack",
+                  },
+                  {
+                    label: "🏗️ Hosting & Infrastructure",
+                    slug: "developers/hosting-infrastructure",
+                  },
+                ],
+              },
+              {
+                label: "Authentication & Authorization",
+                items: [
+                  {
+                    label: "🔐 Authentication & Authorization",
+                    slug: "developers/authentication-authorization",
+                  },
+                  {
+                    label: "🌐 OAuth Authentication",
+                    slug: "developers/oauth-authentication",
+                  },
+                  {
+                    label: "🔑 Admin Permissions",
+                    slug: "reference/permissions",
+                  },
+                  {
+                    label: "🔒 Password Reset System",
+                    slug: "developers/password-reset-system",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🛡️ Security Implementation",
+                    slug: "developers/security-implementation",
+                    badge: "WIP",
+                  },
+                ],
+              },
+              {
+                label: "System Integration",
+                items: [
+                  {
+                    label: "📧 Email Systems",
+                    slug: "developers/email-systems",
+                  },
+                  {
+                    label: "📊 Analytics Integration",
+                    slug: "developers/analytics-integration",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🔄 Data Migration",
+                    slug: "developers/data-migration",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🌍 Environment Configuration",
+                    slug: "developers/environment-configuration",
+                    badge: "WIP",
+                  },
+                ],
+              },
+              {
+                label: "Development",
+                items: [
+                  {
+                    label: "🎨 UI Components System",
+                    slug: "developers/ui-components-system",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🧪 Testing Framework",
+                    slug: "developers/testing-framework",
+                    badge: "WIP",
+                  },
+                  {
+                    label: "🕐 Timezone Handling",
+                    slug: "developers/timezone-handling",
+                    badge: "WIP",
+                  },
+                ],
+              },
+            ],
+          },
+        ]),
+      ],
       title: "Everybody Eats Admin Guide",
       description: "Administrator documentation for the volunteer portal",
       customCss: ["./src/styles/custom.css"],
       editLink: {
-        baseUrl: 'https://github.com/everybody-eats-nz/volunteer-portal/edit/main/docs/',
+        baseUrl:
+          "https://github.com/everybody-eats-nz/volunteer-portal/edit/main/docs/",
       },
       head: [
         {
-          tag: 'script',
+          tag: "script",
           content: `
             // Wait for DOM and handle dynamic content
             function initImageZoom() {
@@ -268,11 +432,11 @@ export default defineConfig({
             
             // Also initialize after view transitions (Starlight SPA navigation)
             document.addEventListener('astro:page-load', initImageZoom);
-          `
+          `,
         },
       ],
       components: {
-        Footer: './src/components/Footer.astro',
+        Footer: "./src/components/Footer.astro",
       },
       logo: {
         src: "./src/assets/logo.svg",

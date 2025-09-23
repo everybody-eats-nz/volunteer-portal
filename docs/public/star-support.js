@@ -431,8 +431,8 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
       .star-support-message-content {
         padding: 16px 20px;
         border-radius: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        color: ${this.config.textColor};
+        background: rgba(255, 255, 255, 0.95);
+        color: ${this.config.textColor} !important;
         line-height: 1.6;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
         border: 1px solid rgba(0, 0, 0, 0.04);
@@ -454,32 +454,38 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         font-size: 1.2em;
         font-weight: 600;
         margin: 0.5em 0;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content h3 {
         font-size: 1.1em;
         font-weight: 600;
         margin: 0.5em 0;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content h4 {
         font-size: 1em;
         font-weight: 600;
         margin: 0.5em 0;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content p {
         margin: 0.5em 0;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content ul,
       .star-support-message-content ol {
         margin: 0.5em 0;
         padding-left: 1.5em;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content li {
         margin: 0.25em 0;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content code {
@@ -516,10 +522,16 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
 
       .star-support-message-content strong {
         font-weight: 600;
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-message-content em {
         font-style: italic;
+        color: ${this.config.textColor} !important;
+      }
+
+      .star-support-message-content * {
+        color: inherit !important;
       }
 
       .star-support-message.user .star-support-message-content {
@@ -596,6 +608,7 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         background: rgba(255, 255, 255, 0.9);
         transition: all 0.2s ease;
         backdrop-filter: blur(10px);
+        color: ${this.config.textColor} !important;
       }
 
       .star-support-input:focus {
