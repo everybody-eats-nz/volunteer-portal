@@ -37,9 +37,9 @@ export default defineConfig({
                   label: "Parental Consent",
                   slug: "user-management/parental-consent",
                 },
-                { label: "Profile Photos", slug: "user-management/profile-photos" },
-                { label: "Email Verification", slug: "user-management/email-verification" },
-                { label: "Admin Command Palette", slug: "user-management/command-palette" },
+                { label: "Profile Photos", slug: "user-management/profile-photos", badge: "WIP" },
+                { label: "Email Verification", slug: "user-management/email-verification", badge: "WIP" },
+                { label: "Admin Command Palette", slug: "user-management/command-palette", badge: "WIP" },
               ],
             },
             {
@@ -92,11 +92,11 @@ export default defineConfig({
                   slug: "user-management/volunteer-profiles",
                 },
                 { label: "Admin Notes", slug: "user-management/admin-notes" },
-                { label: "Volunteer Labels", slug: "user-management/volunteer-labels" },
-                { label: "Volunteer Grading System", slug: "user-management/volunteer-grading" },
-                { label: "Regular Volunteers", slug: "user-management/regular-volunteers" },
-                { label: "Friend System", slug: "user-management/friend-system" },
-                { label: "Notification System", slug: "user-management/notification-system" },
+                { label: "Volunteer Labels", slug: "user-management/volunteer-labels", badge: "WIP" },
+                { label: "Volunteer Grading System", slug: "user-management/volunteer-grading", badge: "WIP" },
+                { label: "Regular Volunteers", slug: "user-management/regular-volunteers", badge: "WIP" },
+                { label: "Friend System", slug: "user-management/friend-system", badge: "WIP" },
+                { label: "Notification System", slug: "user-management/notification-system", badge: "WIP" },
               ]
             },
             {
@@ -105,15 +105,15 @@ export default defineConfig({
                 { label: "Creating Shifts", slug: "shift-management/creating-shifts" },
                 { label: "Group Bookings", slug: "shift-management/group-bookings" },
                 { label: "Attendance Tracking", slug: "shift-management/attendance-tracking" },
-                { label: "Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications" },
-                { label: "Volunteer Selection", slug: "shift-management/volunteer-selection" },
-                { label: "Day and Evening Periods", slug: "shift-management/period-separation" },
-                { label: "Shift Templates", slug: "shift-management/shift-templates" },
-                { label: "Auto-Accept Rules", slug: "shift-management/auto-accept-rules" },
-                { label: "Volunteer Placement", slug: "shift-management/volunteer-placement" },
-                { label: "Editing and Deleting Shifts", slug: "shift-management/shift-editing" },
-                { label: "Location Configuration", slug: "shift-management/location-configuration" },
-                { label: "Email Confirmations", slug: "shift-management/email-confirmations" },
+                { label: "Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications", badge: "WIP" },
+                { label: "Volunteer Selection", slug: "shift-management/volunteer-selection", badge: "WIP" },
+                { label: "Day and Evening Periods", slug: "shift-management/period-separation", badge: "WIP" },
+                { label: "Shift Templates", slug: "shift-management/shift-templates", badge: "WIP" },
+                { label: "Auto-Accept Rules", slug: "shift-management/auto-accept-rules", badge: "WIP" },
+                { label: "Volunteer Placement", slug: "shift-management/volunteer-placement", badge: "WIP" },
+                { label: "Editing and Deleting Shifts", slug: "shift-management/shift-editing", badge: "WIP" },
+                { label: "Location Configuration", slug: "shift-management/location-configuration", badge: "WIP" },
+                { label: "Email Confirmations", slug: "shift-management/email-confirmations", badge: "WIP" },
               ]
             },
             {
@@ -144,25 +144,25 @@ export default defineConfig({
                 { label: "Authentication & Authorization", slug: "developers/authentication-authorization" },
                 { label: "OAuth Authentication", slug: "developers/oauth-authentication" },
                 { label: "Admin Permissions", slug: "reference/permissions" },
-                { label: "Password Reset System", slug: "developers/password-reset-system" },
-                { label: "Security Implementation", slug: "developers/security-implementation" }
+                { label: "Password Reset System", slug: "developers/password-reset-system", badge: "WIP" },
+                { label: "Security Implementation", slug: "developers/security-implementation", badge: "WIP" }
               ]
             },
             {
               label: "System Integration",
               items: [
-                { label: "Email Systems", slug: "developers/email-systems" },
-                { label: "Analytics Integration", slug: "developers/analytics-integration" },
-                { label: "Data Migration", slug: "developers/data-migration" },
-                { label: "Environment Configuration", slug: "developers/environment-configuration" }
+                { label: "Email Systems", slug: "developers/email-systems", badge: "WIP" },
+                { label: "Analytics Integration", slug: "developers/analytics-integration", badge: "WIP" },
+                { label: "Data Migration", slug: "developers/data-migration", badge: "WIP" },
+                { label: "Environment Configuration", slug: "developers/environment-configuration", badge: "WIP" }
               ]
             },
             {
               label: "Development",
               items: [
-                { label: "UI Components System", slug: "developers/ui-components-system" },
-                { label: "Testing Framework", slug: "developers/testing-framework" },
-                { label: "Timezone Handling", slug: "developers/timezone-handling" }
+                { label: "UI Components System", slug: "developers/ui-components-system", badge: "WIP" },
+                { label: "Testing Framework", slug: "developers/testing-framework", badge: "WIP" },
+                { label: "Timezone Handling", slug: "developers/timezone-handling", badge: "WIP" }
               ]
             }
           ]
