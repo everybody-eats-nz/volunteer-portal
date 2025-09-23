@@ -80,23 +80,23 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             this.messages = [];
             this.isOpen = false;
             this.isLoading = false;
-            this.conversationId = '';
+            this.conversationId = "";
             this.config = {
-                apiEndpoint: '/api/star-support/chat',
-                welcomeMessage: 'Hi! How can I help you with the documentation today?',
-                botName: 'Docs Assistant',
-                topicContext: 'documentation',
-                primaryColor: '#0066cc',
-                backgroundColor: '#ffffff',
-                textColor: '#333333',
-                position: 'bottom-right',
+                apiEndpoint: "/api/star-support/chat",
+                welcomeMessage: "Hi! How can I help you with the documentation today?",
+                botName: "Docs Assistant",
+                topicContext: "documentation",
+                primaryColor: "#0066cc",
+                backgroundColor: "#ffffff",
+                textColor: "#333333",
+                position: "bottom-right",
                 suggestedQuestions: [
-                    'How do I manage volunteers?',
-                    'How do shift signups work?',
-                    'What are the admin permissions?',
-                    'How do I view reports?'
+                    "How do I manage volunteers?",
+                    "How do shift signups work?",
+                    "What are the admin permissions?",
+                    "How do I view reports?",
                 ],
-                ...config
+                ...config,
             };
             this.conversationId = this.generateId();
             this.init();
@@ -105,11 +105,11 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             return Math.random().toString(36).substring(2) + Date.now().toString(36);
         }
         init() {
-            if (typeof window === 'undefined')
+            if (typeof window === "undefined")
                 return;
             // Wait for DOM to be ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => this.createWidget());
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", () => this.createWidget());
             }
             else {
                 this.createWidget();
@@ -117,8 +117,8 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         }
         createWidget() {
             // Create main container
-            this.container = document.createElement('div');
-            this.container.id = 'star-support-widget';
+            this.container = document.createElement("div");
+            this.container.id = "star-support-widget";
             this.container.className = `star-support-container ${this.config.position}`;
             // Add styles
             this.addStyles();
@@ -176,19 +176,20 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             this.setupEventListeners();
             // Add to DOM
             document.body.appendChild(this.container);
-            this.chatContainer = this.container.querySelector('.star-support-chat');
+            this.chatContainer = this.container.querySelector(".star-support-chat");
         }
         createSuggestedQuestions() {
-            if (!this.config.suggestedQuestions || this.config.suggestedQuestions.length === 0) {
-                return '';
+            if (!this.config.suggestedQuestions ||
+                this.config.suggestedQuestions.length === 0) {
+                return "";
             }
             const questions = this.config.suggestedQuestions
-                .map(question => `<button class="star-support-suggestion" data-question="${this.escapeHtml(question)}">${this.escapeHtml(question)}</button>`)
-                .join('');
+                .map((question) => `<button class="star-support-suggestion" data-question="${this.escapeHtml(question)}">${this.escapeHtml(question)}</button>`)
+                .join("");
             return `<div class="star-support-suggestions">${questions}</div>`;
         }
         escapeHtml(text) {
-            const div = document.createElement('div');
+            const div = document.createElement("div");
             div.textContent = text;
             return div.innerHTML;
         }
@@ -200,38 +201,38 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             });
             // Render markdown to HTML
             const html = d.parse(text);
-            // Ensure all links open in new tabs
-            return html.replace(/<a href/g, '<a target="_blank" rel="noopener" href');
+            // Return HTML as-is (links open in same tab)
+            return html;
         }
         setupEventListeners() {
             if (!this.container)
                 return;
             // Toggle button
-            const toggle = this.container.querySelector('.star-support-toggle');
-            toggle?.addEventListener('click', () => this.toggleChat());
+            const toggle = this.container.querySelector(".star-support-toggle");
+            toggle?.addEventListener("click", () => this.toggleChat());
             // Close button
-            const closeBtn = this.container.querySelector('.star-support-close');
-            closeBtn?.addEventListener('click', () => this.closeChat());
+            const closeBtn = this.container.querySelector(".star-support-close");
+            closeBtn?.addEventListener("click", () => this.closeChat());
             // Input and send
-            const input = this.container.querySelector('.star-support-input');
-            const sendBtn = this.container.querySelector('.star-support-send');
-            input?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+            const input = this.container.querySelector(".star-support-input");
+            const sendBtn = this.container.querySelector(".star-support-send");
+            input?.addEventListener("keypress", (e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     this.sendMessage(input.value.trim());
                 }
             });
-            sendBtn?.addEventListener('click', () => {
+            sendBtn?.addEventListener("click", () => {
                 const value = input?.value?.trim();
                 if (value) {
                     this.sendMessage(value);
                 }
             });
             // Suggested questions
-            this.container.addEventListener('click', (e) => {
+            this.container.addEventListener("click", (e) => {
                 const target = e.target;
-                if (target.classList.contains('star-support-suggestion')) {
-                    const question = target.getAttribute('data-question');
+                if (target.classList.contains("star-support-suggestion")) {
+                    const question = target.getAttribute("data-question");
                     if (question) {
                         this.sendMessage(question);
                     }
@@ -239,10 +240,10 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             });
         }
         addStyles() {
-            const styleId = 'star-support-styles';
+            const styleId = "star-support-styles";
             if (document.getElementById(styleId))
                 return;
-            const style = document.createElement('style');
+            const style = document.createElement("style");
             style.id = styleId;
             style.textContent = `
       .star-support-container {
@@ -264,39 +265,61 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
       }
 
       .star-support-toggle {
-        width: 60px;
-        height: 60px;
-        background: ${this.config.primaryColor};
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, ${this.config.primaryColor}, #0052a3);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 8px 32px rgba(0, 102, 204, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
       }
 
       .star-support-toggle:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 12px 40px rgba(0, 102, 204, 0.4), 0 4px 16px rgba(0, 0, 0, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .star-support-toggle:active {
+        transform: translateY(0) scale(1.02);
+        transition: all 0.1s ease;
       }
 
       .star-support-chat {
         position: absolute;
-        bottom: 80px;
+        bottom: 84px;
         right: 0;
-        width: 420px;
+        width: 440px;
         max-width: calc(100vw - 40px);
-        height: 550px;
+        height: 600px;
         max-height: calc(100vh - 120px);
         background: ${this.config.backgroundColor};
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 10px rgba(0, 0, 0, 0.08);
+        border-radius: 20px;
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.15),
+          0 8px 24px rgba(0, 0, 0, 0.08);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.08);
+        backdrop-filter: blur(20px);
+        animation: chatSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      @keyframes chatSlideIn {
+        0% {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
 
       .star-support-container.bottom-left .star-support-chat {
@@ -305,44 +328,91 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
       }
 
       .star-support-header {
-        background: ${this.config.primaryColor};
+        background: linear-gradient(135deg, ${this.config.primaryColor}, #0052a3);
         color: white;
-        padding: 16px 20px;
+        padding: 20px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        border-radius: 20px 20px 0 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .star-support-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+        pointer-events: none;
       }
 
       .star-support-title {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         font-weight: 600;
+        font-size: 16px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .star-support-title svg {
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
       }
 
       .star-support-close {
-        background: none;
+        background: rgba(255, 255, 255, 0.1);
         border: none;
         color: white;
         cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        opacity: 0.8;
-        transition: opacity 0.2s;
+        padding: 8px;
+        border-radius: 10px;
+        opacity: 0.9;
+        transition: all 0.2s ease;
+        position: relative;
+        z-index: 1;
+        backdrop-filter: blur(10px);
       }
 
       .star-support-close:hover {
         opacity: 1;
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
+      }
+
+      .star-support-close:active {
+        transform: scale(0.95);
       }
 
       .star-support-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 20px;
+        padding: 24px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 20px;
+        background: linear-gradient(to bottom, rgba(248, 250, 252, 0.5), rgba(241, 245, 249, 0.3));
+      }
+
+      .star-support-messages::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .star-support-messages::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .star-support-messages::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+      }
+
+      .star-support-messages::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.2);
       }
 
       .star-support-message {
@@ -359,11 +429,25 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
       }
 
       .star-support-message-content {
-        padding: 12px 16px;
-        border-radius: 18px;
-        background: #f5f5f5;
+        padding: 16px 20px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.9);
         color: ${this.config.textColor};
-        line-height: 1.5;
+        line-height: 1.6;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        backdrop-filter: blur(10px);
+        position: relative;
+      }
+
+      .star-support-message.assistant .star-support-message-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0, 102, 204, 0.1), transparent);
       }
 
       .star-support-message-content h2 {
@@ -439,8 +523,14 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
       }
 
       .star-support-message.user .star-support-message-content {
-        background: ${this.config.primaryColor};
+        background: linear-gradient(135deg, ${this.config.primaryColor}, #0052a3);
         color: white;
+        box-shadow: 0 4px 20px rgba(0, 102, 204, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .star-support-message.user .star-support-message-content::before {
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
       }
 
       .star-support-message.user .star-support-message-content code {
@@ -456,69 +546,97 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
       }
 
       .star-support-suggestion {
-        background: transparent;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(0, 102, 204, 0.2);
+        border-radius: 12px;
+        padding: 12px 16px;
         text-align: left;
         cursor: pointer;
-        transition: all 0.2s;
-        font-size: 13px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 14px;
         color: ${this.config.textColor};
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       }
 
       .star-support-suggestion:hover {
         border-color: ${this.config.primaryColor};
-        background: rgba(0, 102, 204, 0.05);
+        background: rgba(0, 102, 204, 0.08);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(0, 102, 204, 0.15);
+      }
+
+      .star-support-suggestion:active {
+        transform: translateY(0);
+        transition: all 0.1s ease;
       }
 
       .star-support-input-area {
-        border-top: 1px solid #e0e0e0;
-        padding: 16px 20px;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        padding: 20px 24px;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
       }
 
       .star-support-input-container {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         align-items: flex-end;
       }
 
       .star-support-input {
         flex: 1;
-        border: 1px solid #e0e0e0;
-        border-radius: 20px;
-        padding: 10px 16px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 24px;
+        padding: 12px 18px;
         font-size: 14px;
         outline: none;
         resize: none;
         max-height: 80px;
+        background: rgba(255, 255, 255, 0.9);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(10px);
       }
 
       .star-support-input:focus {
         border-color: ${this.config.primaryColor};
+        box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        background: rgba(255, 255, 255, 1);
+      }
+
+      .star-support-input::placeholder {
+        color: rgba(0, 0, 0, 0.4);
       }
 
       .star-support-send {
-        background: ${this.config.primaryColor};
+        background: linear-gradient(135deg, ${this.config.primaryColor}, #0052a3);
         border: none;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         color: white;
-        transition: opacity 0.2s;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 12px rgba(0, 102, 204, 0.3);
+        flex-shrink: 0;
       }
 
       .star-support-send:hover {
-        opacity: 0.9;
+        transform: scale(1.05);
+        box-shadow: 0 4px 16px rgba(0, 102, 204, 0.4);
+      }
+
+      .star-support-send:active {
+        transform: scale(0.95);
       }
 
       .star-support-send:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none;
       }
 
       .star-support-sources {
@@ -592,29 +710,29 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         openChat() {
             if (!this.chatContainer)
                 return;
-            this.chatContainer.style.display = 'flex';
+            this.chatContainer.style.display = "flex";
             this.isOpen = true;
             // Focus input
-            const input = this.chatContainer.querySelector('.star-support-input');
+            const input = this.chatContainer.querySelector(".star-support-input");
             setTimeout(() => input?.focus(), 100);
         }
         closeChat() {
             if (!this.chatContainer)
                 return;
-            this.chatContainer.style.display = 'none';
+            this.chatContainer.style.display = "none";
             this.isOpen = false;
         }
         async sendMessage(content) {
             if (!content.trim() || this.isLoading)
                 return;
-            const input = this.container?.querySelector('.star-support-input');
+            const input = this.container?.querySelector(".star-support-input");
             if (input) {
-                input.value = '';
+                input.value = "";
             }
             // Add user message
-            this.addMessage({ role: 'user', content, timestamp: Date.now() });
+            this.addMessage({ role: "user", content, timestamp: Date.now() });
             // Remove suggestions after first message
-            const suggestions = this.container?.querySelector('.star-support-suggestions');
+            const suggestions = this.container?.querySelector(".star-support-suggestions");
             if (suggestions) {
                 suggestions.remove();
             }
@@ -625,35 +743,38 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
                 this.hideLoading();
                 if (response.message) {
                     this.addMessage({
-                        role: 'assistant',
+                        role: "assistant",
                         content: response.message,
                         sources: response.sources,
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
                     });
                 }
             }
             catch (error) {
                 this.hideLoading();
-                console.error('Chat error:', error);
+                console.error("Chat error:", error);
                 this.addMessage({
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error. Please try again.',
-                    timestamp: Date.now()
+                    role: "assistant",
+                    content: "Sorry, I encountered an error. Please try again.",
+                    timestamp: Date.now(),
                 });
             }
             this.isLoading = false;
         }
         async callAPI(message) {
-            const messages = [...this.messages, { role: 'user', content: message }];
+            const messages = [
+                ...this.messages,
+                { role: "user", content: message },
+            ];
             const headers = {
-                'Content-Type': 'application/json',
-                'x-conversation-id': this.conversationId,
+                "Content-Type": "application/json",
+                "x-conversation-id": this.conversationId,
             };
             if (this.config.authKey) {
-                headers['x-auth-key'] = this.config.authKey;
+                headers["x-auth-key"] = this.config.authKey;
             }
             const response = await fetch(this.config.apiEndpoint, {
-                method: 'POST',
+                method: "POST",
                 headers,
                 body: JSON.stringify({ messages }),
             });
@@ -664,20 +785,20 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         }
         addMessage(message) {
             this.messages.push(message);
-            const messagesContainer = this.container?.querySelector('.star-support-messages');
+            const messagesContainer = this.container?.querySelector(".star-support-messages");
             if (!messagesContainer)
                 return;
-            const messageElement = document.createElement('div');
+            const messageElement = document.createElement("div");
             messageElement.className = `star-support-message ${message.role}`;
-            let sourcesHtml = '';
+            let sourcesHtml = "";
             if (message.sources && message.sources.length > 0) {
                 const sourceLinks = message.sources
-                    .map(source => `<a href="${source.url}" class="star-support-source" target="_blank" rel="noopener">${source.title}</a>`)
-                    .join('');
+                    .map((source) => `<a href="${source.url}" class="star-support-source">${source.title}</a>`)
+                    .join("");
                 sourcesHtml = `<div class="star-support-sources">Sources: ${sourceLinks}</div>`;
             }
             // Render markdown for assistant messages, escape HTML for user messages
-            const content = message.role === 'assistant'
+            const content = message.role === "assistant"
                 ? this.renderMarkdown(message.content)
                 : this.escapeHtml(message.content);
             messageElement.innerHTML = `
@@ -688,11 +809,11 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         showLoading() {
-            const messagesContainer = this.container?.querySelector('.star-support-messages');
+            const messagesContainer = this.container?.querySelector(".star-support-messages");
             if (!messagesContainer)
                 return;
-            const loadingElement = document.createElement('div');
-            loadingElement.className = 'star-support-message assistant';
+            const loadingElement = document.createElement("div");
+            loadingElement.className = "star-support-message assistant";
             loadingElement.innerHTML = `
       <div class="star-support-message-content star-support-loading">
         <div class="star-support-loader"></div>
@@ -703,9 +824,9 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         hideLoading() {
-            const loadingElement = this.container?.querySelector('.star-support-loading');
+            const loadingElement = this.container?.querySelector(".star-support-loading");
             if (loadingElement) {
-                loadingElement.closest('.star-support-message')?.remove();
+                loadingElement.closest(".star-support-message")?.remove();
             }
         }
         // Public API
@@ -717,7 +838,7 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         }
         destroy() {
             this.container?.remove();
-            const styles = document.getElementById('star-support-styles');
+            const styles = document.getElementById("star-support-styles");
             styles?.remove();
         }
     }
@@ -729,19 +850,19 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         }
         connectedCallback() {
             const config = {
-                apiEndpoint: this.getAttribute('api-endpoint') || undefined,
-                welcomeMessage: this.getAttribute('welcome-message') || undefined,
-                botName: this.getAttribute('bot-name') || undefined,
-                topicContext: this.getAttribute('topic-context') || undefined,
-                primaryColor: this.getAttribute('primary-color') || undefined,
-                backgroundColor: this.getAttribute('background-color') || undefined,
-                textColor: this.getAttribute('text-color') || undefined,
-                position: this.getAttribute('position') || undefined,
-                authKey: this.getAttribute('auth-key') || undefined,
-                suggestedQuestions: this.getAttribute('suggested-questions')?.split('|') || undefined,
+                apiEndpoint: this.getAttribute("api-endpoint") || undefined,
+                welcomeMessage: this.getAttribute("welcome-message") || undefined,
+                botName: this.getAttribute("bot-name") || undefined,
+                topicContext: this.getAttribute("topic-context") || undefined,
+                primaryColor: this.getAttribute("primary-color") || undefined,
+                backgroundColor: this.getAttribute("background-color") || undefined,
+                textColor: this.getAttribute("text-color") || undefined,
+                position: this.getAttribute("position") || undefined,
+                authKey: this.getAttribute("auth-key") || undefined,
+                suggestedQuestions: this.getAttribute("suggested-questions")?.split("|") || undefined,
             };
             // Remove undefined values
-            Object.keys(config).forEach(key => {
+            Object.keys(config).forEach((key) => {
                 if (config[key] === undefined) {
                     delete config[key];
                 }
@@ -753,11 +874,11 @@ Please report this to https://github.com/markedjs/marked.`,e){let r="<p>An error
         }
     }
     // Register web component
-    if (typeof window !== 'undefined' && !customElements.get('star-support')) {
-        customElements.define('star-support', StarSupportElement);
+    if (typeof window !== "undefined" && !customElements.get("star-support")) {
+        customElements.define("star-support", StarSupportElement);
     }
     // Global namespace for script tag usage
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
         window.StarSupport = StarSupport;
     }
 
