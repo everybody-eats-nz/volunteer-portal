@@ -6,6 +6,7 @@ import { sendInvitationEmail } from "@/lib/email";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { checkForBot } from "@/lib/bot-protection";
 
 const inviteUserSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -15,6 +16,12 @@ const inviteUserSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Check for bot traffic first
+  const botResponse = await checkForBot("User invitation blocked due to automated activity detection.");
+  if (botResponse) {
+    return botResponse;
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

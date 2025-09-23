@@ -26,13 +26,12 @@ import {
   ExternalLink,
   Bell,
   CalendarIcon,
-  Check,
-  X,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { PasswordRequirements } from "@/components/password-requirements";
 
 // Shared constants
 export const daysOfWeek = [
@@ -95,6 +94,7 @@ export interface UserProfileFormData {
   medicalConditions: string;
   willingToProvideReference: boolean;
   howDidYouHearAboutUs: string;
+  customHowDidYouHearAboutUs?: string;
 
   // Availability
   availableDays: string[];
@@ -145,7 +145,6 @@ export function AccountStep({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   return (
     <div className="space-y-6" data-testid="account-step">
-
       {!hideEmail && (
         <div className="space-y-2" data-testid="email-field">
           <Label htmlFor="email" className="text-sm font-medium">
@@ -187,58 +186,14 @@ export function AccountStep({
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             data-testid="toggle-password-visibility"
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
-        {formData.password && (
-          <div className="space-y-1" data-testid="password-requirements">
-            <div className="flex items-center gap-2 text-xs">
-              {(formData.password || "").length >= 6 ? (
-                <Check className="h-3 w-3 text-green-600" />
-              ) : (
-                <X className="h-3 w-3 text-red-500" />
-              )}
-              <span className={(formData.password || "").length >= 6 ? "text-green-600" : "text-red-500"}>
-                At least 6 characters
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              {/[A-Z]/.test(formData.password || "") ? (
-                <Check className="h-3 w-3 text-green-600" />
-              ) : (
-                <X className="h-3 w-3 text-red-500" />
-              )}
-              <span className={/[A-Z]/.test(formData.password || "") ? "text-green-600" : "text-red-500"}>
-                Contains uppercase letter
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              {/[a-z]/.test(formData.password || "") ? (
-                <Check className="h-3 w-3 text-green-600" />
-              ) : (
-                <X className="h-3 w-3 text-red-500" />
-              )}
-              <span className={/[a-z]/.test(formData.password || "") ? "text-green-600" : "text-red-500"}>
-                Contains lowercase letter
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              {/[0-9]/.test(formData.password || "") ? (
-                <Check className="h-3 w-3 text-green-600" />
-              ) : (
-                <X className="h-3 w-3 text-red-500" />
-              )}
-              <span className={/[0-9]/.test(formData.password || "") ? "text-green-600" : "text-red-500"}>
-                Contains number
-              </span>
-            </div>
-          </div>
-        )}
-        {!formData.password && (
-          <p className="text-xs text-muted-foreground" data-testid="password-hint">
-            Password must be at least 6 characters long and contain uppercase, lowercase, and number
-          </p>
-        )}
+        <PasswordRequirements password={formData.password || ""} />
       </div>
 
       <div className="space-y-2" data-testid="confirm-password-field">
@@ -263,18 +218,37 @@ export function AccountStep({
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             data-testid="toggle-confirm-password-visibility"
           >
-            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showConfirmPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
         {formData.confirmPassword && formData.password && (
-          <div className="flex items-center gap-2 text-xs" data-testid="password-match-check">
+          <div
+            className="flex items-center gap-2 text-xs"
+            data-testid="password-match-check"
+          >
             {formData.password === formData.confirmPassword ? (
-              <Check className="h-3 w-3 text-green-600" />
+              <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
             ) : (
-              <X className="h-3 w-3 text-red-500" />
+              <svg className="h-3 w-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
             )}
-            <span className={formData.password === formData.confirmPassword ? "text-green-600" : "text-red-500"}>
-              {formData.password === formData.confirmPassword ? "Passwords match" : "Passwords do not match"}
+            <span
+              className={
+                formData.password === formData.confirmPassword
+                  ? "text-green-600"
+                  : "text-red-500"
+              }
+            >
+              {formData.password === formData.confirmPassword
+                ? "Passwords match"
+                : "Passwords do not match"}
             </span>
           </div>
         )}
@@ -451,60 +425,79 @@ export function PersonalInfoStep({
       </div>
 
       {/* Parental Consent for Minors */}
-      {isRegistration && dateOfBirth && (() => {
-        const today = new Date();
-        const age = today.getFullYear() - dateOfBirth.getFullYear();
-        const hasHadBirthdayThisYear = 
-          today.getMonth() > dateOfBirth.getMonth() ||
-          (today.getMonth() === dateOfBirth.getMonth() && today.getDate() >= dateOfBirth.getDate());
-        const actualAge = hasHadBirthdayThisYear ? age : age - 1;
-        
-        if (actualAge < 18) {
-          return (
-            <div className="space-y-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4" data-testid="parental-consent-notice">
-              <div className="flex items-start space-x-3">
-                <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                    Parental Consent Required
-                  </h4>
-                  <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                    Since you are under 18, we require a signed parental consent form before you can volunteer.
-                  </p>
+      {isRegistration &&
+        dateOfBirth &&
+        (() => {
+          const today = new Date();
+          const age = today.getFullYear() - dateOfBirth.getFullYear();
+          const hasHadBirthdayThisYear =
+            today.getMonth() > dateOfBirth.getMonth() ||
+            (today.getMonth() === dateOfBirth.getMonth() &&
+              today.getDate() >= dateOfBirth.getDate());
+          const actualAge = hasHadBirthdayThisYear ? age : age - 1;
+
+          if (actualAge < 18) {
+            return (
+              <div
+                className="space-y-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4"
+                data-testid="parental-consent-notice"
+              >
+                <div className="flex items-start space-x-3">
+                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                      Parental Consent Required
+                    </h4>
+                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                      Since you are under 18, we require a signed parental
+                      consent form before you can volunteer.
+                    </p>
+                  </div>
+                </div>
+                <div className="ml-8 space-y-3">
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                      onClick={() => {
+                        window.open("/parental-consent-form.pdf", "_blank");
+                      }}
+                      data-testid="download-consent-form-button"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Download Consent Form
+                    </Button>
+                  </div>
+                  <div className="text-sm text-orange-700 dark:text-orange-300">
+                    <p className="font-medium mb-2">
+                      You can continue registering now - parental consent can be
+                      submitted separately:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li>Complete your registration below</li>
+                      <li>Download the parental consent form above</li>
+                      <li>
+                        Print and have your parent/guardian complete and sign it
+                      </li>
+                      <li>
+                        Email the signed form to:{" "}
+                        <strong>volunteers@everybodyeats.nz</strong>
+                      </li>
+                      <li>
+                        We&apos;ll approve your profile once we receive the
+                        consent form
+                      </li>
+                      <li>Please allow up to 10 days for approval</li>
+                    </ol>
+                  </div>
                 </div>
               </div>
-              <div className="ml-8 space-y-3">
-                <div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
-                    onClick={() => {
-                      window.open('/parental-consent-form.pdf', '_blank');
-                    }}
-                    data-testid="download-consent-form-button"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Download Consent Form
-                  </Button>
-                </div>
-                <div className="text-sm text-orange-700 dark:text-orange-300">
-                  <p className="font-medium mb-2">You can continue registering now - parental consent can be submitted separately:</p>
-                  <ol className="list-decimal list-inside space-y-1 text-xs">
-                    <li>Complete your registration below</li>
-                    <li>Download the parental consent form above</li>
-                    <li>Print and have your parent/guardian complete and sign it</li>
-                    <li>Email the signed form to: <strong>volunteers@everybodyeats.nz</strong></li>
-                    <li>We&apos;ll approve your profile once we receive the consent form</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          );
-        }
-        return null;
-      })()}
+            );
+          }
+          return null;
+        })()}
 
       <div className="space-y-2">
         <Label htmlFor="profilePhoto" className="text-sm font-medium">
@@ -550,12 +543,12 @@ export function EmergencyContactStep({
 }) {
   return (
     <div className="space-y-6">
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-lg p-4 mb-6">
         <div className="flex items-start space-x-3">
-          <Shield className="h-5 w-5 text-amber-600 mt-0.5" />
+          <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-amber-800">Important</h4>
-            <p className="text-sm text-amber-700">
+            <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">Important</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
               This information is kept confidential and used only in case of
               emergencies during volunteer activities.
             </p>
@@ -690,6 +683,20 @@ export function MedicalInfoStep({
           className="h-11"
           data-testid="how-did-you-hear-select"
         />
+        
+        {formData.howDidYouHearAboutUs === "other" && (
+          <div className="mt-3">
+            <Input
+              id="customHowDidYouHearAboutUs"
+              data-testid="custom-how-did-you-hear-input"
+              value={formData.customHowDidYouHearAboutUs || ""}
+              onChange={(e) => onInputChange("customHowDidYouHearAboutUs", e.target.value)}
+              placeholder="Please specify how you heard about us"
+              disabled={loading}
+              className="h-11"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

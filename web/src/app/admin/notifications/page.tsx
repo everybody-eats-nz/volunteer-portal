@@ -1,7 +1,4 @@
 import { Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { NotificationsContent } from "./notifications-content";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -12,12 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function NotificationsPage() {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || session.user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   // Fetch shift types on the server
   const shiftTypes = await prisma.shiftType.findMany({
     select: {

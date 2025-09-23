@@ -2,7 +2,7 @@ import { test as base } from '@playwright/test';
 
 // Extend base test to add e2e-testing class
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  page: async ({ page }, pageHandler) => {
     // Add e2e-testing class to disable animations
     await page.addInitScript(() => {
       document.addEventListener('DOMContentLoaded', () => {
@@ -14,7 +14,7 @@ export const test = base.extend({
       }
     });
     
-    await use(page);
+    await pageHandler(page);
   },
 });
 

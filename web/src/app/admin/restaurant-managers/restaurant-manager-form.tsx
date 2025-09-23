@@ -18,9 +18,9 @@ import { toast } from "sonner";
 interface User {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
   role: string;
 }
 
@@ -30,46 +30,16 @@ interface Location {
 }
 
 interface RestaurantManagerFormProps {
+  adminUsers: User[];
+  locations: Location[];
   onManagerAssigned?: () => void;
 }
 
-export default function RestaurantManagerForm({ onManagerAssigned }: RestaurantManagerFormProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
+export default function RestaurantManagerForm({ adminUsers, locations, onManagerAssigned }: RestaurantManagerFormProps) {
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [receiveNotifications, setReceiveNotifications] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch admin users
-        const usersResponse = await fetch("/api/admin/users");
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          // Filter for admin users only
-          const adminUsers = usersData.filter((user: User) => user.role === "ADMIN");
-          setUsers(adminUsers);
-        }
-
-        // Fetch available locations
-        const locationsResponse = await fetch("/api/locations");
-        if (locationsResponse.ok) {
-          const locationsData = await locationsResponse.json();
-          setLocations(locationsData);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to load form data");
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   const handleLocationSelect = (location: string) => {
     if (!selectedLocations.includes(location)) {
@@ -144,11 +114,7 @@ export default function RestaurantManagerForm({ onManagerAssigned }: RestaurantM
     return user.name || user.email;
   };
 
-  if (loadingData) {
-    return <div className="text-center py-4">Loading...</div>;
-  }
-
-  if (users.length === 0) {
+  if (adminUsers.length === 0) {
     return (
       <div className="text-center py-4 text-muted-foreground">
         <p>No admin users available for assignment.</p>
@@ -166,7 +132,7 @@ export default function RestaurantManagerForm({ onManagerAssigned }: RestaurantM
             <SelectValue placeholder="Select an admin user..." />
           </SelectTrigger>
           <SelectContent>
-            {users.map((user) => (
+            {adminUsers.map((user) => (
               <SelectItem key={user.id} value={user.id}>
                 <div>
                   <div className="font-medium">{getUserDisplayName(user)}</div>

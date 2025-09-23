@@ -2,6 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Seed configuration
+// For development: uses regular seed.js with demo data
+// For production: uses seed-production.js with essential data only
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -44,6 +48,15 @@ model User {
   // Shift shortage notification preferences
   receiveShortageNotifications Boolean                @default(true)
   excludedShortageNotificationTypes String[]          @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
+  
+  // Email verification
+  emailVerified                Boolean                @default(false) // Whether email is verified
+  emailVerificationToken       String?                @unique // Token for email verification
+  emailVerificationTokenExpiresAt DateTime?          // When verification token expires
+  
+  // Password reset
+  passwordResetToken           String?                @unique // Token for password reset
+  passwordResetTokenExpiresAt  DateTime?              // When password reset token expires
   
   // Migration invitation tracking
   isMigrated                   Boolean                @default(false)
@@ -251,6 +264,8 @@ enum SignupStatus {
   CONFIRMED
   WAITLISTED
   CANCELED
+  NOT_NEEDED       // Shift/position was not needed (Nova status 7)
+  UNAVAILABLE      // User became unavailable (Nova status 8)
   NO_SHOW
 }
 

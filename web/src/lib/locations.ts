@@ -25,6 +25,13 @@ export const LOCATION_CONFIG = {
   },
 } as const;
 
+// Restaurant addresses for Google Maps
+export const LOCATION_ADDRESSES: Record<Location, string> = {
+  "Wellington": "60 Dixon Street, Te Aro, Wellington, New Zealand",
+  "Glen Innes": "133 Line Road, Glen Innes, Auckland, New Zealand", 
+  "Onehunga": "306 Onehunga Mall, Auckland, New Zealand"
+};
+
 // Helper function to validate location
 export function isValidLocation(location: string): location is Location {
   return LOCATIONS.includes(location as Location);

@@ -1,4 +1,5 @@
 import MillionLint from "@million/lint";
+import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -53,4 +54,4 @@ const nextConfig: NextConfig = {
 export default MillionLint.next({
   enabled: false,
   rsc: true,
-})(nextConfig);
+})(withBotId(nextConfig));

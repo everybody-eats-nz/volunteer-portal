@@ -5,7 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import RestaurantManagerForm from "./restaurant-manager-form";
 import RestaurantManagersTable from "./restaurant-managers-table";
 
-export function RestaurantManagersContent() {
+interface User {
+  id: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+  role: string;
+}
+
+interface Location {
+  value: string;
+  label: string;
+}
+
+interface RestaurantManagersContentProps {
+  adminUsers: User[];
+  locations: Location[];
+}
+
+export function RestaurantManagersContent({ adminUsers, locations }: RestaurantManagersContentProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleManagerUpdate = () => {
@@ -24,7 +43,11 @@ export function RestaurantManagersContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RestaurantManagerForm onManagerAssigned={handleManagerUpdate} />
+          <RestaurantManagerForm 
+            adminUsers={adminUsers}
+            locations={locations}
+            onManagerAssigned={handleManagerUpdate} 
+          />
         </CardContent>
       </Card>
 

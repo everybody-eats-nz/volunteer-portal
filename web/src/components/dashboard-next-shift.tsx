@@ -4,8 +4,9 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MotionContentCard } from "@/components/motion-content-card";
-import { Clock, Calendar } from "lucide-react";
+import { Clock, Calendar, MapPin } from "lucide-react";
 import Link from "next/link";
+import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
 
 interface DashboardNextShiftProps {
   userId: string;
@@ -41,26 +42,39 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
                 <h3 className="font-semibold text-lg">
                   {nextShift.shift.shiftType.name}
                 </h3>
-                <p className="text-muted-foreground">
-                  {nextShift.shift.location}
-                </p>
+                {nextShift.shift.location && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      `Everybody Eats ${LOCATION_ADDRESSES[nextShift.shift.location as Location] || nextShift.shift.location}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary inline-flex items-center gap-1 transition-colors"
+                    data-testid="shift-location-link"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    {LOCATION_ADDRESSES[nextShift.shift.location as Location]?.replace(', New Zealand', '') || nextShift.shift.location}
+                  </a>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <Badge variant="secondary">
+                  {formatDistanceToNow(nextShift.shift.start, {
+                    addSuffix: true,
+                  })}
+                </Badge>
                 {nextShift.status === "PENDING" && (
                   <Badge
                     variant="outline"
-                    className="bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800/50 mt-2"
+                    className="bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800/50"
                   >
                     Pending Approval
                   </Badge>
                 )}
                 {nextShift.status === "CONFIRMED" && (
-                  <Badge className="mt-2">Confirmed</Badge>
+                  <Badge>Confirmed</Badge>
                 )}
               </div>
-              <Badge variant="secondary">
-                {formatDistanceToNow(nextShift.shift.start, {
-                  addSuffix: true,
-                })}
-              </Badge>
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">

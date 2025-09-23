@@ -3,22 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Users,
-  Calendar,
-  ChefHat,
-  Star,
-  Plus,
-  Upload,
-  CheckCircle,
-  Mail,
-  ExternalLink,
-  Bell,
-  Settings,
-  FileText,
-  Tags,
-} from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,7 +19,9 @@ import {
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { adminNavCategories, publicNavItems } from "@/lib/admin-navigation";
 import { Session } from "next-auth";
+import { isDemoEnvironment, getDemoEnvironmentLabel } from "@/lib/environment";
 
 interface AdminSidebarProps {
   session: Session | null;
@@ -48,99 +35,6 @@ interface AdminSidebarProps {
   displayName: string;
 }
 
-const adminNavCategories = [
-  {
-    label: "Overview",
-    items: [
-      {
-        title: "Dashboard",
-        href: "/admin",
-        icon: LayoutDashboard,
-        exact: true,
-      },
-    ],
-  },
-  {
-    label: "Volunteer Management",
-    items: [
-      {
-        title: "All Users",
-        href: "/admin/users",
-        icon: Users,
-      },
-      {
-        title: "Regular Volunteers",
-        href: "/admin/regulars",
-        icon: Star,
-      },
-      {
-        title: "Restaurant Managers",
-        href: "/admin/restaurant-managers",
-        icon: ChefHat,
-      },
-      {
-        title: "Parental Consent",
-        href: "/admin/parental-consent",
-        icon: FileText,
-      },
-      {
-        title: "Custom Labels",
-        href: "/admin/custom-labels",
-        icon: Tags,
-      },
-    ],
-  },
-  {
-    label: "Shift Management",
-    items: [
-      {
-        title: "Create Shift",
-        href: "/admin/shifts/new",
-        icon: Plus,
-      },
-      {
-        title: "Manage Shifts",
-        href: "/admin/shifts",
-        icon: Calendar,
-      },
-      {
-        title: "Shortage Notifications",
-        href: "/admin/notifications",
-        icon: Bell,
-      },
-      {
-        title: "Auto-Accept Rules",
-        href: "/admin/auto-accept-rules",
-        icon: Settings,
-      },
-    ],
-  },
-  {
-    label: "User Migration",
-    items: [
-      {
-        title: "Upload CSV",
-        href: "/admin/migration#upload",
-        icon: Upload,
-      },
-      {
-        title: "Migration Status",
-        href: "/admin/migration#status",
-        icon: CheckCircle,
-      },
-      {
-        title: "User Invitations",
-        href: "/admin/migration#invitations",
-        icon: Mail,
-      },
-      {
-        title: "Migrated Users",
-        href: "/admin/migration#users",
-        icon: Users,
-      },
-    ],
-  },
-];
 
 export function AdminSidebar({
   session,
@@ -148,6 +42,8 @@ export function AdminSidebar({
   displayName,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const showDemoIndicator = isDemoEnvironment();
+  const demoLabel = getDemoEnvironmentLabel();
 
   const isActive = (href: string, exact = false) => {
     if (exact) {
@@ -161,14 +57,21 @@ export function AdminSidebar({
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center justify-between gap-3 px-2">
           <Link href="/" className="flex items-center gap-2 group">
-            <Image
-              src="/logo.svg"
-              alt="Everybody Eats"
-              width={120}
-              height={44}
-              priority
-              className="h-8 w-auto transition-all duration-300 group-hover:scale-105 filter invert dark:invert-0"
-            />
+            <div className="relative">
+              <Image
+                src="/logo.svg"
+                alt="Everybody Eats"
+                width={120}
+                height={44}
+                priority
+                className="h-8 w-auto transition-all duration-300 group-hover:scale-105 filter invert dark:invert-0"
+              />
+              {showDemoIndicator && (
+                <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                  {demoLabel}
+                </div>
+              )}
+            </div>
           </Link>
 
           {userProfile?.id && (
@@ -224,22 +127,26 @@ export function AdminSidebar({
           <SidebarGroupLabel>Public</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  data-testid="view-public-shifts-button"
-                >
-                  <Link
-                    href="/shifts"
-                    target="_blank"
-                    rel="noopener noreferrer"
+              {publicNavItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    data-testid="view-public-shifts-button"
                   >
-                    <Calendar className="w-4 h-4" />
-                    <span>View Public Shifts</span>
-                    <ExternalLink className="w-3 h-3 ml-auto opacity-60" />
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    <Link
+                      href={item.href}
+                      target={item.opensInNewTab ? "_blank" : undefined}
+                      rel={item.opensInNewTab ? "noopener noreferrer" : undefined}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                      {item.opensInNewTab && (
+                        <ExternalLink className="w-3 h-3 ml-auto opacity-60" />
+                      )}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

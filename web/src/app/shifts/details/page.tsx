@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { format, parseISO } from "date-fns";
+import { startOfDay, endOfDay } from "date-fns";
+import { formatInNZT, toUTC, parseISOInNZT } from "@/lib/timezone";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -142,7 +143,7 @@ function ShiftCard({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="secondary"
-                      className={`text-xs font-medium ${theme.textColor} ${theme.bgColor} border ${theme.borderColor}`}
+                      className={`text-xs font-medium text-gray-700 dark:text-gray-200 ${theme.bgColor} border ${theme.borderColor}`}
                     >
                       {duration}
                     </Badge>
@@ -184,10 +185,10 @@ function ShiftCard({
                 <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <div className="text-sm">
                   <div className="font-medium text-gray-900 dark:text-white">
-                    {format(shift.start, "h:mm a")}
+                    {formatInNZT(shift.start, "h:mm a")}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    to {format(shift.end, "h:mm a")}
+                    to {formatInNZT(shift.end, "h:mm a")}
                   </div>
                 </div>
               </div>
@@ -286,7 +287,7 @@ function ShiftCard({
                 <Button
                   disabled
                   data-testid="shift-signup-button-disabled"
-                  className="w-full font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
+                  className="w-full font-medium bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                   variant="outline"
                 >
                   {needsParentalConsent
@@ -341,7 +342,7 @@ export default async function ShiftDetailsPage({
     );
   }
 
-  const selectedDate = parseISO(dateParam);
+  const selectedDate = parseISOInNZT(dateParam);
   const selectedLocation = locationParam ? decodeURIComponent(locationParam) : undefined;
 
   // Get current user and their friends
@@ -393,12 +394,20 @@ export default async function ShiftDetailsPage({
   const userId = currentUser?.id || "anonymous";
   const isFlexiblePlacementEnabled = await isFeatureEnabled("flexible-placement", userId);
 
-  // Fetch shifts for the specific date and optionally location
+  // Fetch shifts for the specific date and optionally location (using NZ timezone)
+  // Calculate day boundaries in NZ timezone - selectedDate is already in NZT
+  const startOfDayNZ = startOfDay(selectedDate);
+  const endOfDayNZ = endOfDay(selectedDate);
+  
+  // Convert TZDate objects to explicit UTC for reliable Prisma queries
+  const startOfDayUTC = toUTC(startOfDayNZ);
+  const endOfDayUTC = toUTC(endOfDayNZ);
+  
   const allShifts = (await prisma.shift.findMany({
     where: {
       start: {
-        gte: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()),
-        lt: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + 1),
+        gte: startOfDayUTC,
+        lte: endOfDayUTC,
       },
       ...(selectedLocation ? { location: selectedLocation } : {}),
     },
@@ -432,9 +441,9 @@ export default async function ShiftDetailsPage({
     ? allShifts
     : allShifts.filter(shift => !shift.shiftType.name.includes("Anywhere I'm Needed"));
 
-  // Helper function to determine if a shift is AM or PM
+  // Helper function to determine if a shift is AM or PM (using NZ timezone)
   const isAMShift = (shift: ShiftWithRelations) => {
-    const hour = shift.start.getHours();
+    const hour = parseInt(formatInNZT(shift.start, "HH"));
     return hour < 16; // Before 4pm (16:00) is considered "AM"
   };
 
@@ -465,7 +474,7 @@ export default async function ShiftDetailsPage({
       </div>
 
       <PageHeader
-        title={`Shifts for ${format(selectedDate, "EEEE, MMMM d, yyyy")}${selectedLocation ? ` - ${selectedLocation}` : ""}`}
+        title={`Shifts for ${formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}${selectedLocation ? ` - ${selectedLocation}` : ""}`}
         description={`${selectedLocation ? `Available shifts in ${selectedLocation}` : "All available shifts"} for this date. Click on any shift to view details and sign up.`}
         className="mb-8"
         data-testid="shifts-details-page-header"
@@ -485,7 +494,7 @@ export default async function ShiftDetailsPage({
             No shifts scheduled
           </h3>
           <p className="text-muted-foreground max-w-md mx-auto" data-testid="empty-state-description">
-            No shifts are scheduled for {format(selectedDate, "MMMM d, yyyy")}
+            No shifts are scheduled for {formatInNZT(selectedDate, "MMMM d, yyyy")}
             {selectedLocation ? ` in ${selectedLocation}` : ""}.
           </p>
           <div className="mt-6 space-x-4">
@@ -532,7 +541,7 @@ export default async function ShiftDetailsPage({
                     {session && (
                       <GroupBookingDialogWrapper
                         shifts={[...locationTimeShifts.AM, ...locationTimeShifts.PM]}
-                        date={format(selectedDate, "EEEE, MMMM d, yyyy")}
+                        date={formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
                         location={locationKey}
                         testid={`group-booking-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
                         currentUserEmail={session.user?.email || undefined}

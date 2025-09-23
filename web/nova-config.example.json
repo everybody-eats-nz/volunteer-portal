@@ -1,0 +1,13 @@
+{
+  "novaUrl": "https://app.everybodyeats.nz",
+  "email": "admin@example.com",
+  "password": "your-admin-password",
+  "dryRun": true,
+  "outputFile": "historical-data.json",
+  "transformationOptions": {
+    "skipExistingUsers": true,
+    "skipExistingShifts": true,
+    "markAsMigrated": true,
+    "defaultPassword": "temp_password_123"
+  }
+}

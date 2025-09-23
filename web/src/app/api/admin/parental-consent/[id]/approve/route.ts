@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { getEmailService } from "@/lib/email-service";
 
 const approveSchema = z.object({
   notes: z.string().optional(),
@@ -88,6 +89,18 @@ export async function POST(req: Request, { params }: RouteParams) {
           createdBy: session.user.id,
         },
       });
+    }
+
+    // Send approval confirmation email to the volunteer
+    try {
+      const emailService = getEmailService();
+      await emailService.sendParentalConsentApprovalNotification({
+        to: updatedUser.email,
+        volunteerName: updatedUser.firstName || updatedUser.lastName || 'Volunteer',
+      });
+    } catch (emailError) {
+      console.error("Error sending parental consent approval email:", emailError);
+      // Don't fail the approval if email fails
     }
 
     return NextResponse.json({

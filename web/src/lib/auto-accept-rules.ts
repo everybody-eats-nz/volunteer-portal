@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { type VolunteerGrade, type AutoAcceptRule, type Shift, type ShiftType } from "@prisma/client";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
+import { getEmailService } from "@/lib/email-service";
+import { format } from "date-fns";
 
 interface UserWithStats {
   id: string;
@@ -221,11 +223,22 @@ export async function processAutoApproval(
       },
     });
     
-    // Send confirmation notification
+    // Send confirmation notification and email
     try {
       const shift = await prisma.shift.findUniqueOrThrow({
         where: { id: shiftId },
         include: { shiftType: true },
+      });
+      
+      // Get user details for email
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: {
+          email: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+        },
       });
       
       const shiftDate = new Intl.DateTimeFormat('en-NZ', {
@@ -235,12 +248,37 @@ export async function processAutoApproval(
         day: 'numeric',
       }).format(shift.start);
       
+      // Send in-app notification
       await createShiftConfirmedNotification(
         userId,
         shift.shiftType.name,
         shiftDate,
         shiftId
       );
+      
+      // Send email confirmation
+      try {
+        const emailService = getEmailService();
+        const formattedShiftDate = format(shift.start, "EEEE, MMMM d, yyyy");
+        const shiftTime = `${format(shift.start, "h:mm a")} - ${format(shift.end, "h:mm a")}`;
+        
+        await emailService.sendShiftConfirmationNotification({
+          to: user.email,
+          volunteerName: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          shiftName: shift.shiftType.name,
+          shiftDate: formattedShiftDate,
+          shiftTime: shiftTime,
+          location: shift.location || 'TBD',
+          shiftId: shiftId,
+          shiftStart: shift.start,
+          shiftEnd: shift.end,
+        });
+        
+        console.log("Auto-approval confirmation email sent successfully to:", user.email);
+      } catch (emailError) {
+        console.error("Error sending auto-approval confirmation email:", emailError);
+        // Don't fail the auto-approval if email fails
+      }
     } catch (notificationError) {
       console.error("Error sending auto-approval notification:", notificationError);
     }

@@ -10,7 +10,7 @@ import {
 
 test.describe("Admin Shift Shortage Notifications", () => {
   let adminEmail: string;
-  let volunteerEmails: string[] = [];
+  const volunteerEmails: string[] = [];
   let shiftId: string;
 
   test.beforeEach(async ({ page }) => {

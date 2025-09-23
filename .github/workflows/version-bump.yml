@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
-    paths: ['web/**']
+    paths: ["web/**"]
 
 jobs:
   version-bump:
@@ -145,6 +145,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
           git add web/package.json
+          git add web/package-lock.json
           if [ -f CHANGELOG.md ]; then
             git add CHANGELOG.md
           fi

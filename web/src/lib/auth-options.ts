@@ -1,4 +1,4 @@
-import type { NextAuthOptions, Session } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -17,6 +17,7 @@ declare module "next-auth" {
     phone?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    emailVerified?: boolean;
   }
 }
 
@@ -26,6 +27,7 @@ declare module "next-auth/jwt" {
     phone?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    emailVerified?: boolean;
   }
 }
 
@@ -34,6 +36,7 @@ type TokenWithProfile = JWT & {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  emailVerified?: boolean;
 };
 
 type SessionUserWithProfile = {
@@ -42,6 +45,7 @@ type SessionUserWithProfile = {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  emailVerified?: boolean;
 };
 
 export const authOptions: NextAuthOptions = {
@@ -88,6 +92,17 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            phone: true,
+            firstName: true,
+            lastName: true,
+            hashedPassword: true,
+            emailVerified: true,
+          },
         });
         if (!user) return null;
         const valid = await bcrypt.compare(
@@ -95,6 +110,9 @@ export const authOptions: NextAuthOptions = {
           user.hashedPassword
         );
         if (!valid) return null;
+        
+        // Allow all authenticated users to sign in, including unverified ones
+        // Email verification will be checked at the application level
         return {
           id: user.id,
           email: user.email,
@@ -103,6 +121,7 @@ export const authOptions: NextAuthOptions = {
           phone: user.phone,
           firstName: user.firstName,
           lastName: user.lastName,
+          emailVerified: user.emailVerified,
         };
       },
     }),
@@ -167,6 +186,7 @@ export const authOptions: NextAuthOptions = {
         token.phone = user.phone;
         token.firstName = user.firstName;
         token.lastName = user.lastName;
+        token.emailVerified = Boolean(user.emailVerified);
       }
 
       // Handle session updates (like profile changes)
@@ -180,6 +200,7 @@ export const authOptions: NextAuthOptions = {
             role: true,
             firstName: true,
             lastName: true,
+            emailVerified: true,
           },
         });
         if (dbUser) {
@@ -188,6 +209,7 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role;
           token.firstName = dbUser.firstName || undefined;
           token.lastName = dbUser.lastName || undefined;
+          token.emailVerified = dbUser.emailVerified || false;
         }
       }
 
@@ -203,6 +225,7 @@ export const authOptions: NextAuthOptions = {
         u.phone = t.phone;
         u.firstName = t.firstName;
         u.lastName = t.lastName;
+        u.emailVerified = t.emailVerified;
       }
       return s;
     },

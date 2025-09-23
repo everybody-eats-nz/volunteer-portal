@@ -11,6 +11,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 import { Session } from "next-auth";
 import { Menu, X } from "lucide-react";
+import { isDemoEnvironment, getDemoEnvironmentLabel } from "@/lib/environment";
 
 interface SiteHeaderProps {
   session: Session | null;
@@ -31,6 +32,8 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const showDemoIndicator = isDemoEnvironment();
+  const demoLabel = getDemoEnvironmentLabel();
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -83,6 +86,11 @@ export function SiteHeader({
                 priority
                 className="h-14 w-auto transition-all duration-300 ease-out group-hover:scale-105 group-active:scale-95 drop-shadow-sm"
               />
+              {showDemoIndicator && (
+                <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                  {demoLabel}
+                </div>
+              )}
               <div className="absolute inset-0 bg-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl" />
             </div>
             <span className="sr-only">Everybody Eats logo</span>

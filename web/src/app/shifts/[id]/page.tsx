@@ -107,6 +107,7 @@ export default async function ShiftDetailPage({
               firstName: true,
               lastName: true,
               email: true,
+              friendVisibility: true,
             },
           },
         },
@@ -132,6 +133,55 @@ export default async function ShiftDetailPage({
   if (!shift) {
     notFound();
   }
+
+  // Get current user's friends if they're logged in
+  let userFriendIds: string[] = [];
+  if (userId) {
+    const friendships = await prisma.friendship.findMany({
+      where: {
+        OR: [
+          { userId: userId, status: "ACCEPTED" },
+          { friendId: userId, status: "ACCEPTED" }
+        ]
+      },
+      select: {
+        userId: true,
+        friendId: true,
+      }
+    });
+    
+    // Extract friend IDs (excluding current user)
+    userFriendIds = friendships.flatMap(f => 
+      f.userId === userId ? [f.friendId] : [f.userId]
+    );
+  }
+
+  // Filter signups based on privacy settings
+  const visibleSignups = shift.signups.filter(signup => {
+    // Always show current user's own signup
+    if (userId && signup.user.id === userId) {
+      return true;
+    }
+    
+    // If not logged in, don't show any volunteers
+    if (!userId) {
+      return false;
+    }
+    
+    // Check user's privacy settings
+    const { friendVisibility } = signup.user;
+    
+    switch (friendVisibility) {
+      case "PUBLIC":
+        return true;
+      case "FRIENDS_ONLY":
+        return userFriendIds.includes(signup.user.id);
+      case "PRIVATE":
+        return false;
+      default:
+        return false;
+    }
+  });
 
   // Check if the shift is in the past
   const isPastShift = new Date(shift.end) < new Date();
@@ -284,13 +334,13 @@ export default async function ShiftDetailPage({
           </div>
 
           {/* Current Volunteers */}
-          {shift.signups.length > 0 && (
+          {visibleSignups.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-muted-foreground">
                 Current Volunteers
               </h3>
               <AvatarList
-                users={shift.signups.map((signup) => ({
+                users={visibleSignups.map((signup) => ({
                   id: signup.user.id,
                   name:
                     signup.user.name ||

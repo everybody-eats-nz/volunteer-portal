@@ -19,6 +19,7 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
   const userName = session?.user?.name;
+  const firstName = userName?.split(" ")[0];
 
   if (!userId) {
     redirect("/login?callbackUrl=/dashboard");
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
     <PageContainer testid="dashboard-page">
       {/* Header renders immediately */}
       <PageHeader
-        title={`Welcome back${userName ? `, ${userName}` : ""}!`}
+        title={`Welcome back${firstName ? `, ${firstName}` : ""}!`}
         description="Here's what's happening with your volunteer journey"
       />
 

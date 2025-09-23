@@ -13,6 +13,7 @@ import {
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,41 +102,6 @@ function getShiftTheme(shiftTypeName: string) {
   );
 }
 
-function generateCalendarUrls(shift: {
-  id: string;
-  start: Date;
-  end: Date;
-  location: string | null;
-  shiftType: {
-    name: string;
-    description: string | null;
-  };
-}) {
-  const startDate = format(shift.start, "yyyyMMdd'T'HHmmss");
-  const endDate = format(shift.end, "yyyyMMdd'T'HHmmss");
-  const title = encodeURIComponent(`Volunteer Shift: ${shift.shiftType.name}`);
-  const description = encodeURIComponent(
-    `${shift.shiftType.description || ""}\nLocation: ${shift.location || "TBD"}`
-  );
-  const location = encodeURIComponent(shift.location || "");
-
-  return {
-    google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${description}&location=${location}`,
-    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${startDate}&enddt=${endDate}&body=${description}&location=${location}`,
-    ics: `data:text/calendar;charset=utf8,BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Volunteer Portal//EN
-BEGIN:VEVENT
-UID:${shift.id}@volunteerportal.com
-DTSTART:${startDate}
-DTEND:${endDate}
-SUMMARY:${decodeURIComponent(title)}
-DESCRIPTION:${decodeURIComponent(description)}
-LOCATION:${decodeURIComponent(location)}
-END:VEVENT
-END:VCALENDAR`.replace(/\n/g, "%0A"),
-  };
-}
 
 export default async function MyShiftsPage({
   searchParams,

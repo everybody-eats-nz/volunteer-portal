@@ -123,7 +123,9 @@ export default async function AdminVolunteerPage({
           },
         },
         orderBy: {
-          createdAt: "desc",
+          shift: {
+            start: "desc",
+          },
         },
         where: {
           // Exclude canceled signups that were never confirmed (PENDING cancellations)

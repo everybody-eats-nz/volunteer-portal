@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { createShiftConfirmedNotification, createShiftWaitlistedNotification } from "@/lib/notifications";
+import { createShiftConfirmedNotification, createShiftWaitlistedNotification, createShiftCanceledNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { format } from "date-fns";
+import { LOCATION_ADDRESSES } from "@/lib/locations";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -140,6 +141,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const emailService = getEmailService();
         const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
         const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(signup.shift.end, "h:mm a")}`;
+        const fullAddress = signup.shift.location 
+          ? LOCATION_ADDRESSES[signup.shift.location as keyof typeof LOCATION_ADDRESSES] || signup.shift.location
+          : 'TBD';
         
         await emailService.sendShiftConfirmationNotification({
           to: signup.user.email!,
@@ -147,8 +151,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           shiftName: signup.shift.shiftType.name,
           shiftDate: shiftDate,
           shiftTime: shiftTime,
-          location: signup.shift.location || 'TBD',
+          location: fullAddress,
           shiftId: signup.shift.id,
+          shiftStart: signup.shift.start,
+          shiftEnd: signup.shift.end,
         });
       } catch (emailError) {
         console.error("Error sending confirmation email:", emailError);
@@ -204,6 +210,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const emailService = getEmailService();
         const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
         const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(signup.shift.end, "h:mm a")}`;
+        const fullAddress = signup.shift.location 
+          ? LOCATION_ADDRESSES[signup.shift.location as keyof typeof LOCATION_ADDRESSES] || signup.shift.location
+          : 'TBD';
         
         await emailService.sendVolunteerCancellationNotification({
           to: signup.user.email!,
@@ -211,11 +220,31 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           shiftName: signup.shift.shiftType.name,
           shiftDate: shiftDate,
           shiftTime: shiftTime,
-          location: signup.shift.location || 'TBD',
+          location: fullAddress,
         });
       } catch (emailError) {
         console.error("Error sending cancellation email:", emailError);
         // Don't fail the API call if email fails
+      }
+
+      // Create in-app notification
+      try {
+        const shiftDate = new Intl.DateTimeFormat('en-NZ', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }).format(signup.shift.start);
+
+        await createShiftCanceledNotification(
+          signup.user.id,
+          signup.shift.shiftType.name,
+          shiftDate,
+          signup.shift.id
+        );
+      } catch (notificationError) {
+        console.error("Error creating cancellation notification:", notificationError);
+        // Don't fail the API call if notification fails
       }
 
       return NextResponse.json({
@@ -236,6 +265,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const emailService = getEmailService();
         const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
         const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(signup.shift.end, "h:mm a")}`;
+        const fullAddress = signup.shift.location 
+          ? LOCATION_ADDRESSES[signup.shift.location as keyof typeof LOCATION_ADDRESSES] || signup.shift.location
+          : 'TBD';
         
         await emailService.sendShiftConfirmationNotification({
           to: signup.user.email!,
@@ -243,8 +275,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           shiftName: signup.shift.shiftType.name,
           shiftDate: shiftDate,
           shiftTime: shiftTime,
-          location: signup.shift.location || 'TBD',
+          location: fullAddress,
           shiftId: signup.shift.id,
+          shiftStart: signup.shift.start,
+          shiftEnd: signup.shift.end,
         });
       } catch (emailError) {
         console.error("Error sending confirmation email:", emailError);

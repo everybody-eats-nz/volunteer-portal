@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder18User } from "@/lib/auto-label-utils";
+import { checkForBot } from "@/lib/bot-protection";
 
 const updateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -21,6 +22,7 @@ const updateProfileSchema = z.object({
   medicalConditions: z.string().optional(),
   willingToProvideReference: z.boolean().optional(),
   howDidYouHearAboutUs: z.string().optional(),
+  customHowDidYouHearAboutUs: z.string().optional(),
   availableDays: z.array(z.string()).optional(),
   availableLocations: z.array(z.string()).optional(),
   emailNewsletterSubscription: z.boolean().optional(),
@@ -86,6 +88,12 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  // Check for bot traffic first
+  const botResponse = await checkForBot("Profile update blocked due to automated activity detection.");
+  if (botResponse) {
+    return botResponse;
+  }
+
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -137,7 +145,9 @@ export async function PUT(req: Request) {
         validatedData.willingToProvideReference;
     if (validatedData.howDidYouHearAboutUs !== undefined)
       updateData.howDidYouHearAboutUs =
-        validatedData.howDidYouHearAboutUs || null;
+        validatedData.howDidYouHearAboutUs === "other"
+          ? validatedData.customHowDidYouHearAboutUs || null
+          : validatedData.howDidYouHearAboutUs || null;
     if (validatedData.emailNewsletterSubscription !== undefined)
       updateData.emailNewsletterSubscription =
         validatedData.emailNewsletterSubscription;

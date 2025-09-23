@@ -63,7 +63,7 @@ npm run prisma:seed
 cp .env.example .env.local
 ```
 
-   Then edit `.env.local` as needed. See the [Environment Variables](#-environment-variables) section below for detailed configuration.
+Then edit `.env.local` as needed. See the [Environment Variables](#-environment-variables) section below for detailed configuration.
 
 5. **🔒 Generate auth secret:**
 
@@ -119,9 +119,14 @@ DIRECT_URL="postgresql://postgres:password@localhost:5432/volunteer-portal"
 NEXTAUTH_SECRET="your-secret-here"
 NEXTAUTH_URL="http://localhost:3000"
 
-# Campaign Monitor (for user migration emails)
+# Campaign Monitor (for transactional emails)
 CAMPAIGN_MONITOR_API_KEY="your-campaign-monitor-api-key"
-CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID="your-smart-email-template-id"
+CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID="your-migration-email-template-id"
+CAMPAIGN_MONITOR_SHIFT_ADMIN_CANCELLATION_EMAIL_ID="your-shift-cancellation-template-id"
+CAMPAIGN_MONITOR_SHIFT_SHORTAGE_EMAIL_ID="your-shift-shortage-template-id"
+CAMPAIGN_MONITOR_SHIFT_CONFIRMATION_EMAIL_ID="your-shift-confirmation-template-id"
+CAMPAIGN_MONITOR_VOLUNTEER_CANCELLATION_EMAIL_ID="your-volunteer-cancellation-template-id"
+CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID="your-parental-consent-approval-template-id"
 ```
 
 ### Optional OAuth Providers
@@ -142,16 +147,43 @@ APPLE_CLIENT_SECRET=""
 
 ### Campaign Monitor Setup
 
-The application uses Campaign Monitor for sending migration invitation emails:
+The application uses Campaign Monitor for sending various transactional emails:
 
 1. **Get API Key**: Sign in to your Campaign Monitor account and navigate to Account Settings > API Keys
-2. **Create Smart Email Template**: Create a transactional email template for migration invites
-3. **Get Template ID**: Copy the Smart Email ID from your template settings
-4. **Configure Variables**: The email template should support these merge variables:
-   - `{firstName}` - User's first name
-   - `{link}` - Migration registration URL
+2. **Create Smart Email Templates**: Create transactional email templates for each email type
+3. **Get Template IDs**: Copy the Smart Email ID from each template's settings
 
-**Note**: Both `CAMPAIGN_MONITOR_API_KEY` and `CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID` are required for the user migration system to work properly.
+#### Required Email Templates:
+
+**Migration Invitation (`CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID`)**
+
+- Variables: `{firstName}`, `{link}`
+- Used for user migration invitations
+
+**Shift Confirmation (`CAMPAIGN_MONITOR_SHIFT_CONFIRMATION_EMAIL_ID`)**
+
+- Variables: `{firstName}`, `{shiftType}`, `{shiftDate}`, `{shiftTime}`, `{location}`, `{linkToShift}`, `{addToCalendarLink}`, `{locationMapLink}`
+- Used when shifts are confirmed (auto-approval or admin approval)
+
+**Shift Cancellation - Manager (`CAMPAIGN_MONITOR_SHIFT_ADMIN_CANCELLATION_EMAIL_ID`)**
+
+- Variables: `{managerName}`, `{volunteerName}`, `{volunteerEmail}`, `{shiftName}`, `{shiftDate}`, `{shiftTime}`, `{location}`, `{cancellationTime}`, `{remainingVolunteers}`, `{shiftCapacity}`
+- Sent to restaurant managers when volunteers cancel
+
+**Volunteer Cancellation (`CAMPAIGN_MONITOR_VOLUNTEER_CANCELLATION_EMAIL_ID`)**
+
+- Variables: `{firstName}`, `{shiftType}`, `{shiftDate}`, `{shiftTime}`, `{location}`
+- Sent to volunteers when admins cancel their shifts
+
+**Shift Shortage (`CAMPAIGN_MONITOR_SHIFT_SHORTAGE_EMAIL_ID`)**
+
+- Variables: `{firstName}`, `{shiftType}`, `{shiftDate}`, `{restarauntLocation}`, `{linkToEvent}`
+- Sent to notify volunteers about shifts needing more volunteers
+
+**Parental Consent Approval (`CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID`)**
+
+- Variables: `{firstName}`, `{linkToDashboard}`
+- Sent to volunteers under 18 when their parental consent is approved by an admin
 
 ## 🤝 Contributing
 

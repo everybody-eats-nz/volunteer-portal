@@ -79,16 +79,30 @@ export async function GET(request: NextRequest) {
 
 ### Protected Routes Pattern
 
-For admin-only routes:
+Routes are now automatically protected by middleware. For additional granular permissions within protected routes:
 
 ```typescript
 // app/api/admin/*/route.ts
-const session = await getServerSession(authOptions)
+import { getAuthInfo } from "@/lib/auth-utils"
 
-if (session?.user?.role !== "ADMIN") {
+const { user } = await getAuthInfo()
+
+// Middleware already verified admin access
+// Additional checks if needed:
+if (user?.role !== "SUPER_ADMIN") {
   return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 }
 ```
+
+### Middleware-Based Authentication
+
+The application uses centralized middleware for route protection with a secure-by-default approach:
+
+- **All routes require admin access by default**
+- **Public and user routes must be explicitly allowlisted**
+- **Route protection happens at the edge before page rendering**
+
+See `middleware.ts` for route configuration and `src/lib/auth-utils.ts` for component-level helpers.
 
 ### Loading & Error States
 

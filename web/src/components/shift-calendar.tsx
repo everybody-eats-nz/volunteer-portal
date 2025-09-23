@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Users } from "lucide-react";
-import { format } from "date-fns";
 import { formatInNZT, isSameDayInNZT, nowInNZT } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
@@ -143,7 +142,7 @@ export function ShiftCalendar({
             components={{
               DayButton: (props) => {
                 const shiftData = getShiftDataForDate(props.day.date);
-                const dayNum = format(props.day.date, "d");
+                const dayNum = formatInNZT(props.day.date, "d");
                 
                 return (
                   <CalendarDayButton

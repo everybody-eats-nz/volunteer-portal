@@ -7,6 +7,21 @@ import {
   deleteTestShifts,
 } from "./helpers/test-helpers";
 import { randomUUID } from "crypto";
+import { format } from "date-fns";
+import { tz } from "@date-fns/tz";
+
+// NZ timezone helpers for consistent test behavior
+const NZ_TIMEZONE = "Pacific/Auckland";
+const nzTimezone = tz(NZ_TIMEZONE);
+
+function nowInNZT() {
+  return nzTimezone(new Date());
+}
+
+function formatInNZT(date: Date, formatStr: string): string {
+  const nzTime = nzTimezone(date);
+  return format(nzTime, formatStr, { in: nzTimezone });
+}
 
 test.describe("Admin Shifts Page", () => {
   const testId = randomUUID().slice(0, 8);
@@ -112,8 +127,8 @@ test.describe("Admin Shifts Page", () => {
     // Click today button
     await page.getByTestId("today-button").click();
 
-    // Check that we're now on today's date
-    const today = new Date().toISOString().split("T")[0];
+    // Check that we're now on today's date (NZ timezone)
+    const today = formatInNZT(nowInNZT(), "yyyy-MM-dd");
     await expect(page).toHaveURL(new RegExp(`date=${today}`));
   });
 
@@ -130,10 +145,10 @@ test.describe("Admin Shifts Page", () => {
   test("should display no shifts message when no shifts exist", async ({
     page,
   }) => {
-    // Navigate to a date with no shifts
-    const futureDate = new Date();
+    // Navigate to a date with no shifts (future date in NZ timezone)
+    const futureDate = nowInNZT();
     futureDate.setFullYear(futureDate.getFullYear() + 1);
-    const futureDateStr = futureDate.toISOString().split("T")[0];
+    const futureDateStr = formatInNZT(futureDate, "yyyy-MM-dd");
 
     await page.goto(`/admin/shifts?date=${futureDateStr}`);
     await page.waitForLoadState("load");
@@ -154,13 +169,10 @@ test.describe("Admin Shifts Page", () => {
 
   test.describe("With Test Shifts", () => {
     test.beforeEach(async () => {
-      // Create test shifts for different scenarios
-      const today = new Date();
-      const shiftDate = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate() + 1
-      );
+      // Create test shifts for different scenarios using NZ timezone
+      const today = nowInNZT();
+      const shiftDate = new Date(today);
+      shiftDate.setDate(shiftDate.getDate() + 1); // Tomorrow in NZ timezone
 
       const shift1 = await createShift({
         location: "Wellington",
@@ -180,9 +192,10 @@ test.describe("Admin Shifts Page", () => {
     test("should display shift cards with correct information", async ({
       page,
     }) => {
-      const tomorrow = new Date();
+      // Use NZ timezone to calculate tomorrow
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -198,9 +211,10 @@ test.describe("Admin Shifts Page", () => {
     });
 
     test("should show volunteer grade information", async ({ page }) => {
-      const tomorrow = new Date();
+      // Use NZ timezone to calculate tomorrow
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -212,9 +226,10 @@ test.describe("Admin Shifts Page", () => {
     });
 
     test("should display staffing status correctly", async ({ page }) => {
-      const tomorrow = new Date();
+      // Use NZ timezone to calculate tomorrow
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -233,9 +248,10 @@ test.describe("Admin Shifts Page", () => {
     test("should show status indicators for different volunteer statuses", async ({
       page,
     }) => {
-      const tomorrow = new Date();
+      // Use NZ timezone to calculate tomorrow
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");

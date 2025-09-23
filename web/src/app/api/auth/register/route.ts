@@ -3,6 +3,10 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 import { autoLabelUnder18User, autoLabelNewVolunteer } from "@/lib/auto-label-utils";
+import { createVerificationToken } from "@/lib/email-verification";
+import { getEmailService } from "@/lib/email-service";
+import { validatePassword } from "@/lib/utils/password-validation";
+import { checkForBot } from "@/lib/bot-protection";
 
 /**
  * Validation schema for user registration
@@ -12,7 +16,12 @@ const registerSchema = z
   .object({
     // Basic account info
     email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().refine((password) => {
+      const validation = validatePassword(password);
+      return validation.isValid;
+    }, {
+      message: "Password must be at least 6 characters long and contain uppercase, lowercase letter, and number"
+    }),
     confirmPassword: z.string(),
 
     // Personal information
@@ -32,6 +41,7 @@ const registerSchema = z
     medicalConditions: z.string().optional(),
     willingToProvideReference: z.boolean().optional(),
     howDidYouHearAboutUs: z.string().nullable().optional(),
+    customHowDidYouHearAboutUs: z.string().optional(),
 
     // Availability
     availableDays: z.array(z.string()).optional(),
@@ -74,6 +84,12 @@ const registerSchema = z
  */
 export async function POST(req: Request) {
   try {
+    // Check for bot traffic first
+    const botResponse = await checkForBot("Registration blocked due to automated activity detection.");
+    if (botResponse) {
+      return botResponse;
+    }
+
     const body = await req.json();
     
     // Check if this is a migration registration
@@ -177,7 +193,10 @@ export async function POST(req: Request) {
       medicalConditions: validatedData.medicalConditions || null,
       willingToProvideReference:
         validatedData.willingToProvideReference || false,
-      howDidYouHearAboutUs: validatedData.howDidYouHearAboutUs || null,
+      howDidYouHearAboutUs:
+        validatedData.howDidYouHearAboutUs === "other"
+          ? validatedData.customHowDidYouHearAboutUs || null
+          : validatedData.howDidYouHearAboutUs || null,
 
       // Availability - store as JSON strings
       availableDays: validatedData.availableDays
@@ -254,10 +273,29 @@ export async function POST(req: Request) {
       }
     }
 
+    // Send email verification for new registrations (not migrations)
+    if (!isMigration && user.id) {
+      try {
+        const verificationToken = await createVerificationToken(user.id);
+        const emailService = getEmailService();
+        const verificationLink = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+        
+        await emailService.sendEmailVerification({
+          to: user.email,
+          firstName: validatedData.firstName,
+          verificationLink,
+        });
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Don't fail registration if email sending fails, just log the error
+      }
+    }
+
     return NextResponse.json(
       {
         message: isMigration ? "Migration successful" : "Registration successful",
         user,
+        requiresEmailVerification: !isMigration, // Let frontend know email verification is required
       },
       { status: 201 }
     );

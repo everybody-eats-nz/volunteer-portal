@@ -2,6 +2,7 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightSidebarTopics from 'starlight-sidebar-topics';
+import mermaid from 'astro-mermaid';
 
 // Get the app URL from environment variable, default to localhost for development
 const APP_URL = process.env.VOLUNTEER_PORTAL_URL || 'http://localhost:3000';
@@ -9,6 +10,7 @@ const APP_URL = process.env.VOLUNTEER_PORTAL_URL || 'http://localhost:3000';
 // https://astro.build/config
 export default defineConfig({
   integrations: [
+    mermaid(),
     starlight({
       plugins: [starlightSidebarTopics([
         {
@@ -19,7 +21,7 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Overview", slug: "index" },
+                { label: "Overview", link: "/" },
                 { label: "Admin Dashboard", slug: "overview/admin-dashboard" },
                 { label: "User Roles & Permissions", slug: "overview/user-roles" },
                 { label: "Navigation Guide", slug: "overview/navigation" },
@@ -106,16 +108,18 @@ export default defineConfig({
           icon: 'laptop',
           items: [
             {
-              label: "System Administration",
+              label: "Getting Started",
               items: [
-                { label: "Admin Permissions", slug: "reference/permissions" },
-                { label: "Notification System", slug: "reference/notifications" }
+                { label: "Technology Stack", slug: "developers/tech-stack" },
+                { label: "Hosting & Infrastructure", slug: "developers/hosting-infrastructure" }
               ]
             },
             {
-              label: "API Documentation",
+              label: "Authentication & Authorization",
               items: [
-                { label: "API Endpoints", slug: "reference/api-endpoints" }
+                { label: "Authentication & Authorization", slug: "developers/authentication-authorization" },
+                { label: "OAuth Authentication", slug: "developers/oauth-authentication" },
+                { label: "Admin Permissions", slug: "reference/permissions" }
               ]
             }
           ]

@@ -1,3 +1,111 @@
+## [0.46.0] - 2025-09-22
+
+### Changes
+- Add demo environment indicator to header logos ([#155](https://github.com/everybody-eats-nz/volunteer-portal/pull/155)) by @malinmalliyawadu
+
+
+## [0.45.0] - 2025-09-22
+
+### Changes
+- feat: implement Vercel Bot ID protection ([#154](https://github.com/everybody-eats-nz/volunteer-portal/pull/154)) by @malinmalliyawadu
+
+
+## [0.44.1] - 2025-09-22
+
+### Changes
+- feat: implement comprehensive SSE security improvements ([#153](https://github.com/everybody-eats-nz/volunteer-portal/pull/153)) by @malinmalliyawadu
+
+
+## [0.44.0] - 2025-09-22
+
+### Changes
+- feat: Implement Better-SSE for admin user migration ([#152](https://github.com/everybody-eats-nz/volunteer-portal/pull/152)) by @malinmalliyawadu
+
+
+## [0.43.1] - 2025-09-22
+
+### Changes
+- chore: remove obsolete scripts for random profile image generation an… ([#151](https://github.com/everybody-eats-nz/volunteer-portal/pull/151)) by @malinmalliyawadu
+
+
+## [0.43.0] - 2025-09-21
+
+### Changes
+- feat: implement comprehensive Laravel Nova scraper with data migration and user registration ([#148](https://github.com/everybody-eats-nz/volunteer-portal/pull/148)) by @malinmalliyawadu
+
+
+## [0.42.3] - 2025-09-18
+
+### Changes
+- feat: add admin command palette with user search and navigation ([#147](https://github.com/everybody-eats-nz/volunteer-portal/pull/147)) by @malinmalliyawadu
+
+
+## [0.42.2] - 2025-09-17
+
+### Changes
+- fix: improve mobile layout for registration pages ([#143](https://github.com/everybody-eats-nz/volunteer-portal/pull/143)) by @malinmalliyawadu
+
+
+## [0.42.1] - 2025-09-17
+
+### Changes
+- Fix: Improve dashboard shift links and resolve profile edit performance issues ([#145](https://github.com/everybody-eats-nz/volunteer-portal/pull/145)) by @malinmalliyawadu
+
+
+## [0.42.0] - 2025-09-16
+
+### Changes
+- feat: implement password reset functionality with shared validation utilities ([#139](https://github.com/everybody-eats-nz/volunteer-portal/pull/139)) by @malinmalliyawadu
+
+
+## [0.41.0] - 2025-09-15
+
+### Changes
+- Centralized middleware-based authorization system ([#137](https://github.com/everybody-eats-nz/volunteer-portal/pull/137)) by @malinmalliyawadu
+
+
+## [0.40.1] - 2025-09-14
+
+### Changes
+- feat: production environment setup with secure demo credentials ([#135](https://github.com/everybody-eats-nz/volunteer-portal/pull/135)) by @malinmalliyawadu
+
+
+## [0.40.0] - 2025-09-14
+
+### Changes
+- feat: production environment setup with environment-aware seeding ([#132](https://github.com/everybody-eats-nz/volunteer-portal/pull/132)) by @malinmalliyawadu
+
+
+## [0.39.1] - 2025-09-14
+
+### Changes
+- feat: implement comprehensive email verification system ([#119](https://github.com/everybody-eats-nz/volunteer-portal/pull/119)) by @malinmalliyawadu
+
+
+## [0.39.0] - 2025-09-14
+
+### Changes
+- feat: add email confirmation for auto-approved and admin-confirmed signups ([#100](https://github.com/everybody-eats-nz/volunteer-portal/pull/100)) by @malinmalliyawadu
+
+
+## [0.38.5] - 2025-09-13
+
+### Changes
+- fix: ensure shifts/details page respects NZT timezone ([#118](https://github.com/everybody-eats-nz/volunteer-portal/pull/118)) by @malinmalliyawadu
+
+
+## [0.38.4] - 2025-09-13
+
+### Changes
+- chore(deps): bump hono from 4.9.6 to 4.9.7 in /web in the npm_and_yarn group across 1 directory ([#116](https://github.com/everybody-eats-nz/volunteer-portal/pull/116)) by @dependabot[bot]
+
+
+## [0.38.3] - 2025-09-13
+
+### Changes
+- fix: resolve timezone issues in admin shifts page ([#115](https://github.com/everybody-eats-nz/volunteer-portal/pull/115)) by @malinmalliyawadu
+
+
 ## [0.38.2] - 2025-09-12
 
 ### Changes

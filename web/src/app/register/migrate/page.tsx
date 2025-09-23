@@ -14,6 +14,53 @@ interface PageProps {
   }>;
 }
 
+async function getLocationOptions() {
+  // Get all unique locations from shifts that are not null
+  const shifts = await prisma.shift.findMany({
+    select: {
+      location: true,
+    },
+    where: {
+      location: {
+        not: null,
+      },
+    },
+  });
+
+  // Extract unique locations, clean all whitespace, and sort them
+  const uniqueLocations = [
+    ...new Set(
+      shifts
+        .map((shift: { location: string | null }) => shift.location)
+        .filter(
+          (location: string | null): location is string => location !== null
+        )
+        .map((location: string) => location.replace(/\s+/g, " ").trim()) // Clean all whitespace
+        .filter((location: string) => location.length > 0) // Remove empty strings
+    ),
+  ].sort();
+
+  // Transform to the format expected by the frontend
+  return uniqueLocations.map((location) => ({
+    value: location,
+    label: location,
+  }));
+}
+
+async function getShiftTypes() {
+  const shiftTypes = await prisma.shiftType.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return shiftTypes;
+}
+
 async function validateToken(token: string) {
   if (!token) return null;
 
@@ -40,6 +87,7 @@ async function validateToken(token: string) {
         medicalConditions: true,
         availableDays: true,
         availableLocations: true,
+        profilePhotoUrl: true,
         migrationTokenExpiresAt: true, // Include for debugging
       }
     });
@@ -115,7 +163,11 @@ export default async function MigrationRegistrationPage({ searchParams }: PagePr
     );
   }
 
-  const user = await validateToken(token);
+  const [user, locationOptions, shiftTypes] = await Promise.all([
+    validateToken(token),
+    getLocationOptions(),
+    getShiftTypes(),
+  ]);
 
   if (!user) {
     return (
@@ -152,9 +204,8 @@ export default async function MigrationRegistrationPage({ searchParams }: PagePr
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        <div className="text-center mb-8">
             <h1 className="text-3xl font-bold tracking-tight">Welcome to Everybody Eats!</h1>
             <p className="text-muted-foreground mt-2">
               Complete your registration to access the new volunteer portal
@@ -170,11 +221,15 @@ export default async function MigrationRegistrationPage({ searchParams }: PagePr
             </CardHeader>
             <CardContent>
               <Suspense fallback={<div>Loading...</div>}>
-                <MigrationRegistrationForm user={user} token={token} />
+                <MigrationRegistrationForm 
+                  user={user} 
+                  token={token} 
+                  locationOptions={locationOptions}
+                  shiftTypes={shiftTypes}
+                />
               </Suspense>
             </CardContent>
           </Card>
-        </div>
       </div>
     </div>
   );

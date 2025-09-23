@@ -449,8 +449,9 @@ test.describe("Registration Page", () => {
       const registerPage = page.getByTestId("register-page");
       await expect(registerPage).toBeVisible();
 
+      // Progress indicator should be hidden on mobile for better space usage
       const progressIndicator = page.getByTestId("progress-indicator");
-      await expect(progressIndicator).toBeVisible();
+      await expect(progressIndicator).toBeHidden();
 
       const formCard = page.getByTestId("registration-form-card");
       await expect(formCard).toBeVisible();

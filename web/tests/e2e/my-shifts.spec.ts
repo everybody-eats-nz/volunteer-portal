@@ -1,6 +1,12 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 
+// Helper function to wait for page to load completely
+async function waitForPageLoad(page: Page) {
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1000); // Small buffer for animations
+}
+
 // Helper function to get responsive element by viewport
 async function getResponsiveElement(
   page: Page,
@@ -79,7 +85,7 @@ test.describe("My Shifts Calendar Page", () => {
 
     // Navigate to my shifts page
     await page.goto("/shifts/mine");
-    await page.waitForLoadState("load");
+    await waitForPageLoad(page);
 
     // Skip tests if login failed (we're still on login page)
     const currentUrl = page.url();

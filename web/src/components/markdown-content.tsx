@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface PolicyContentProps {
   content: string;
@@ -32,111 +34,104 @@ export function PolicyContent({
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer || !showAgreeButton) return;
 
+    let ticking = false;
+
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
-      setHasScrolledToBottom(isAtBottom);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+          const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px threshold
+          
+          // Only update state if the value actually changed to prevent unnecessary re-renders
+          setHasScrolledToBottom(prev => prev !== isAtBottom ? isAtBottom : prev);
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    scrollContainer.addEventListener('scroll', handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
     // Check initial state
     handleScroll();
 
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, [showAgreeButton]);
 
-  // Simple function to convert basic markdown to JSX
-  const formatContent = (text: string) => {
-    const lines = text.split("\n");
-    const elements: React.JSX.Element[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (!line) {
-        elements.push(<br key={i} />);
-        continue;
-      }
-
-      if (line.startsWith("# ")) {
-        elements.push(
-          <h1 key={i} className="text-xl font-bold mb-4 text-foreground">
-            {line.substring(2)}
-          </h1>
-        );
-      } else if (line.startsWith("## ")) {
-        elements.push(
-          <h2
-            key={i}
-            className="text-lg font-semibold mb-3 mt-6 text-foreground"
-          >
-            {line.substring(3)}
-          </h2>
-        );
-      } else if (line.startsWith("### ")) {
-        elements.push(
-          <h3
-            key={i}
-            className="text-base font-medium mb-2 mt-4 text-foreground"
-          >
-            {line.substring(4)}
-          </h3>
-        );
-      } else if (line.startsWith("- ")) {
-        elements.push(
-          <div key={i} className="ml-4 mb-1">
-            <span className="text-sm text-muted-foreground">
-              • {line.substring(2)}
-            </span>
-          </div>
-        );
-      } else if (line.startsWith("---")) {
-        elements.push(<hr key={i} className="my-6 border-border" />);
-      } else if (line.startsWith("*") && line.endsWith("*")) {
-        elements.push(
-          <p
-            key={i}
-            className="mb-3 text-sm text-muted-foreground italic leading-relaxed"
-          >
-            {line.substring(1, line.length - 1)}
-          </p>
-        );
-      } else {
-        // Process bold text
-        const boldText = line.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-        elements.push(
-          <p
-            key={i}
-            className="mb-3 text-sm text-muted-foreground leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: boldText }}
-          />
-        );
-      }
-    }
-
-    return elements;
-  };
-
   return (
-    <div className={`max-w-none ${className}`}>
+    <div className={`max-w-none ${className} ${showAgreeButton ? 'flex flex-col h-[70vh] max-h-[500px]' : ''}`}>
       <div 
         ref={scrollContainerRef}
-        className={showAgreeButton ? "max-h-96 overflow-y-auto pr-2" : ""}
+        className={showAgreeButton ? "flex-1 overflow-y-auto pr-2 min-h-0" : ""}
       >
-        {formatContent(content)}
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => (
+              <h1 className="text-lg font-bold mb-4 text-foreground font-accent">
+                {children}
+              </h1>
+            ),
+            h2: ({ children }) => (
+              <h2 className="text-base font-semibold mb-3 mt-5 text-foreground font-accent">
+                {children}
+              </h2>
+            ),
+            h3: ({ children }) => (
+              <h3 className="text-sm font-medium mb-2 mt-4 text-foreground font-accent">
+                {children}
+              </h3>
+            ),
+            p: ({ children }) => (
+              <p className="mb-4 text-sm text-muted-foreground leading-relaxed">
+                {children}
+              </p>
+            ),
+            li: ({ children }) => (
+              <li className="text-sm text-muted-foreground mb-1">
+                {children}
+              </li>
+            ),
+            ul: ({ children }) => (
+              <ul className="mb-4 ml-4 list-disc space-y-1">
+                {children}
+              </ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="mb-4 ml-4 list-decimal space-y-1">
+                {children}
+              </ol>
+            ),
+            hr: () => (
+              <hr className="my-5 border-border" />
+            ),
+            strong: ({ children }) => (
+              <strong className="text-foreground font-semibold">
+                {children}
+              </strong>
+            ),
+            em: ({ children }) => (
+              <em className="text-muted-foreground italic">
+                {children}
+              </em>
+            ),
+          }}
+        >
+          {content}
+        </Markdown>
       </div>
       {showAgreeButton && (
-        <div className="mt-4 pt-4 border-t border-border">
+        <div className="flex-shrink-0 mt-6 pt-6 border-t border-border bg-background/80 backdrop-blur-sm">
           <Button
             onClick={onAgree}
             disabled={!hasScrolledToBottom}
-            className="w-full"
+            className="w-full h-12 text-base"
             variant="default"
           >
             {hasScrolledToBottom ? "I agree to these terms" : "Please scroll to the bottom to continue"}
           </Button>
           {!hasScrolledToBottom && (
-            <p className="text-xs text-muted-foreground mt-2 text-center">
+            <p className="text-xs text-muted-foreground mt-3 text-center">
               You must scroll to the bottom to read the complete policy before agreeing
             </p>
           )}
