@@ -8,7 +8,7 @@
     "build": "npm run build:widget && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "build:widget": "cd widget && npm run build",
+    "build:widget": "cd widget && npm i && npm run build",
     "screenshots": "node scripts/generate-screenshots.js",
     "screenshots:dev": "DOCS_SCREENSHOT_URL=http://localhost:3000 node scripts/generate-screenshots.js"
   },
