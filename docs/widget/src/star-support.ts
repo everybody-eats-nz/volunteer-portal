@@ -1,3 +1,5 @@
+import { marked } from 'marked';
+
 interface StarSupportConfig {
   apiEndpoint?: string;
   welcomeMessage?: string;
@@ -151,6 +153,20 @@ class StarSupport {
     return div.innerHTML;
   }
 
+  private renderMarkdown(text: string): string {
+    // Configure marked for better rendering
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+    });
+
+    // Render markdown to HTML
+    const html = marked.parse(text) as string;
+
+    // Ensure all links open in new tabs
+    return html.replace(/<a href/g, '<a target="_blank" rel="noopener" href');
+  }
+
   private setupEventListeners(): void {
     if (!this.container) return;
 
@@ -240,16 +256,17 @@ class StarSupport {
         position: absolute;
         bottom: 80px;
         right: 0;
-        width: 380px;
+        width: 420px;
         max-width: calc(100vw - 40px);
-        height: 500px;
+        height: 550px;
         max-height: calc(100vh - 120px);
         background: ${this.config.backgroundColor};
         border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 10px rgba(0, 0, 0, 0.08);
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.08);
       }
 
       .star-support-container.bottom-left .star-support-chat {
@@ -316,10 +333,88 @@ class StarSupport {
         border-radius: 18px;
         background: #f5f5f5;
         color: ${this.config.textColor};
+        line-height: 1.5;
+      }
+
+      .star-support-message-content h2 {
+        font-size: 1.2em;
+        font-weight: 600;
+        margin: 0.5em 0;
+      }
+
+      .star-support-message-content h3 {
+        font-size: 1.1em;
+        font-weight: 600;
+        margin: 0.5em 0;
+      }
+
+      .star-support-message-content h4 {
+        font-size: 1em;
+        font-weight: 600;
+        margin: 0.5em 0;
+      }
+
+      .star-support-message-content p {
+        margin: 0.5em 0;
+      }
+
+      .star-support-message-content ul,
+      .star-support-message-content ol {
+        margin: 0.5em 0;
+        padding-left: 1.5em;
+      }
+
+      .star-support-message-content li {
+        margin: 0.25em 0;
+      }
+
+      .star-support-message-content code {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.9em;
+      }
+
+      .star-support-message-content pre {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 0.5em 0;
+      }
+
+      .star-support-message-content pre code {
+        background: none;
+        padding: 0;
+      }
+
+      .star-support-message-content a {
+        color: ${this.config.primaryColor};
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.2s;
+      }
+
+      .star-support-message-content a:hover {
+        border-bottom-color: ${this.config.primaryColor};
+      }
+
+      .star-support-message-content strong {
+        font-weight: 600;
+      }
+
+      .star-support-message-content em {
+        font-style: italic;
       }
 
       .star-support-message.user .star-support-message-content {
         background: ${this.config.primaryColor};
+        color: white;
+      }
+
+      .star-support-message.user .star-support-message-content code {
+        background: rgba(255, 255, 255, 0.2);
         color: white;
       }
 
@@ -398,22 +493,27 @@ class StarSupport {
 
       .star-support-sources {
         margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
         font-size: 12px;
         color: #666;
       }
 
       .star-support-source {
         display: inline-block;
-        background: #f0f0f0;
-        padding: 2px 6px;
-        border-radius: 4px;
-        margin: 2px 4px 2px 0;
+        background: rgba(0, 102, 204, 0.08);
+        padding: 4px 8px;
+        border-radius: 6px;
+        margin: 4px 4px 0 0;
         text-decoration: none;
         color: ${this.config.primaryColor};
+        transition: all 0.2s;
+        font-weight: 500;
       }
 
       .star-support-source:hover {
-        background: #e0e0e0;
+        background: rgba(0, 102, 204, 0.15);
+        transform: translateY(-1px);
       }
 
       .star-support-loading {
@@ -551,13 +651,13 @@ class StarSupport {
 
   private addMessage(message: ChatMessage): void {
     this.messages.push(message);
-    
+
     const messagesContainer = this.container?.querySelector('.star-support-messages');
     if (!messagesContainer) return;
 
     const messageElement = document.createElement('div');
     messageElement.className = `star-support-message ${message.role}`;
-    
+
     let sourcesHtml = '';
     if (message.sources && message.sources.length > 0) {
       const sourceLinks = message.sources
@@ -566,8 +666,13 @@ class StarSupport {
       sourcesHtml = `<div class="star-support-sources">Sources: ${sourceLinks}</div>`;
     }
 
+    // Render markdown for assistant messages, escape HTML for user messages
+    const content = message.role === 'assistant'
+      ? this.renderMarkdown(message.content)
+      : this.escapeHtml(message.content);
+
     messageElement.innerHTML = `
-      <div class="star-support-message-content">${this.escapeHtml(message.content)}</div>
+      <div class="star-support-message-content">${content}</div>
       ${sourcesHtml}
     `;
 
