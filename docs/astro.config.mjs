@@ -24,33 +24,33 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Overview", link: "/" },
-                { label: "Admin Dashboard", slug: "overview/admin-dashboard" },
-                { label: "User Roles & Permissions", slug: "overview/user-roles" },
-                { label: "Navigation Guide", slug: "overview/navigation" },
+                { label: "🏠 Overview", link: "/" },
+                { label: "📊 Admin Dashboard", slug: "overview/admin-dashboard" },
+                { label: "👥 User Roles & Permissions", slug: "overview/user-roles" },
+                { label: "🧭 Navigation Guide", slug: "overview/navigation" },
               ],
             },
             {
               label: "System Administration",
               items: [
                 {
-                  label: "Parental Consent",
+                  label: "👨‍👩‍👧‍👦 Parental Consent",
                   slug: "user-management/parental-consent",
                 },
-                { label: "Profile Photos", slug: "user-management/profile-photos", badge: "WIP" },
-                { label: "Email Verification", slug: "user-management/email-verification", badge: "WIP" },
-                { label: "Admin Command Palette", slug: "user-management/command-palette", badge: "WIP" },
+                { label: "📸 Profile Photos", slug: "user-management/profile-photos", badge: "WIP" },
+                { label: "✉️ Email Verification", slug: "user-management/email-verification", badge: "WIP" },
+                { label: "⌘ Admin Command Palette", slug: "user-management/command-palette", badge: "WIP" },
               ],
             },
             {
               label: "System Overview",
               items: [
                 {
-                  label: "Calendar Overview",
+                  label: "📅 Calendar Overview",
                   slug: "shift-management/calendar-overview",
                 },
                 {
-                  label: "Managing Signups",
+                  label: "✍️ Managing Signups",
                   slug: "shift-management/managing-signups",
                 },
               ],
@@ -58,12 +58,12 @@ export default defineConfig({
             {
               label: "Troubleshooting",
               items: [
-                { label: "Common Issues", slug: "troubleshooting/common-issues" },
+                { label: "🛠️ Common Issues", slug: "troubleshooting/common-issues" },
                 {
-                  label: "Helping Volunteers",
+                  label: "🆘 Helping Volunteers",
                   slug: "troubleshooting/user-problems",
                 },
-                { label: "System Errors", slug: "troubleshooting/system-errors" },
+                { label: "⚠️ System Errors", slug: "troubleshooting/system-errors" },
               ],
             }
           ]
@@ -76,52 +76,52 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Multi-Location Features", slug: "location-management/location-filtering" },
-                { label: "Restaurant Manager API", slug: "location-management/restaurant-manager-api" }
+                { label: "🏢 Multi-Location Features", slug: "location-management/location-filtering" },
+                { label: "🔌 Restaurant Manager API", slug: "location-management/restaurant-manager-api" }
               ]
             },
             {
               label: "Volunteer Management",
               items: [
                 {
-                  label: "Viewing Volunteers",
+                  label: "👀 Viewing Volunteers",
                   slug: "user-management/viewing-volunteers",
                 },
                 {
-                  label: "Volunteer Profiles",
+                  label: "👤 Volunteer Profiles",
                   slug: "user-management/volunteer-profiles",
                 },
-                { label: "Admin Notes", slug: "user-management/admin-notes" },
-                { label: "Volunteer Labels", slug: "user-management/volunteer-labels", badge: "WIP" },
-                { label: "Volunteer Grading System", slug: "user-management/volunteer-grading", badge: "WIP" },
-                { label: "Regular Volunteers", slug: "user-management/regular-volunteers", badge: "WIP" },
-                { label: "Friend System", slug: "user-management/friend-system", badge: "WIP" },
-                { label: "Notification System", slug: "user-management/notification-system", badge: "WIP" },
+                { label: "📝 Admin Notes", slug: "user-management/admin-notes" },
+                { label: "🏷️ Volunteer Labels", slug: "user-management/volunteer-labels", badge: "WIP" },
+                { label: "⭐ Volunteer Grading System", slug: "user-management/volunteer-grading", badge: "WIP" },
+                { label: "🔄 Regular Volunteers", slug: "user-management/regular-volunteers", badge: "WIP" },
+                { label: "👥 Friend System", slug: "user-management/friend-system", badge: "WIP" },
+                { label: "🔔 Notification System", slug: "user-management/notification-system", badge: "WIP" },
               ]
             },
             {
               label: "Shift Management",
               items: [
-                { label: "Creating Shifts", slug: "shift-management/creating-shifts" },
-                { label: "Group Bookings", slug: "shift-management/group-bookings" },
-                { label: "Attendance Tracking", slug: "shift-management/attendance-tracking" },
-                { label: "Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications", badge: "WIP" },
-                { label: "Volunteer Selection", slug: "shift-management/volunteer-selection", badge: "WIP" },
-                { label: "Day and Evening Periods", slug: "shift-management/period-separation", badge: "WIP" },
-                { label: "Shift Templates", slug: "shift-management/shift-templates", badge: "WIP" },
-                { label: "Auto-Accept Rules", slug: "shift-management/auto-accept-rules", badge: "WIP" },
-                { label: "Volunteer Placement", slug: "shift-management/volunteer-placement", badge: "WIP" },
-                { label: "Editing and Deleting Shifts", slug: "shift-management/shift-editing", badge: "WIP" },
-                { label: "Location Configuration", slug: "shift-management/location-configuration", badge: "WIP" },
-                { label: "Email Confirmations", slug: "shift-management/email-confirmations", badge: "WIP" },
+                { label: "➕ Creating Shifts", slug: "shift-management/creating-shifts" },
+                { label: "👨‍👩‍👧‍👦 Group Bookings", slug: "shift-management/group-bookings" },
+                { label: "✅ Attendance Tracking", slug: "shift-management/attendance-tracking" },
+                { label: "❌ Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications", badge: "WIP" },
+                { label: "🎯 Volunteer Selection", slug: "shift-management/volunteer-selection", badge: "WIP" },
+                { label: "🌅 Day and Evening Periods", slug: "shift-management/period-separation", badge: "WIP" },
+                { label: "📋 Shift Templates", slug: "shift-management/shift-templates", badge: "WIP" },
+                { label: "⚡ Auto-Accept Rules", slug: "shift-management/auto-accept-rules", badge: "WIP" },
+                { label: "📍 Volunteer Placement", slug: "shift-management/volunteer-placement", badge: "WIP" },
+                { label: "✏️ Editing and Deleting Shifts", slug: "shift-management/shift-editing", badge: "WIP" },
+                { label: "🏢 Location Configuration", slug: "shift-management/location-configuration", badge: "WIP" },
+                { label: "📧 Email Confirmations", slug: "shift-management/email-confirmations", badge: "WIP" },
               ]
             },
             {
               label: "Reports & Analytics",
               items: [
-                { label: "Dashboard Metrics", slug: "reports-analytics/dashboard-metrics" },
-                { label: "Volunteer Activity", slug: "reports-analytics/volunteer-activity" },
-                { label: "Shift Analytics", slug: "reports-analytics/shift-analytics" }
+                { label: "📊 Dashboard Metrics", slug: "reports-analytics/dashboard-metrics" },
+                { label: "📈 Volunteer Activity", slug: "reports-analytics/volunteer-activity" },
+                { label: "📉 Shift Analytics", slug: "reports-analytics/shift-analytics" }
               ]
             }
           ]
@@ -134,35 +134,35 @@ export default defineConfig({
             {
               label: "Getting Started",
               items: [
-                { label: "Technology Stack", slug: "developers/tech-stack" },
-                { label: "Hosting & Infrastructure", slug: "developers/hosting-infrastructure" }
+                { label: "⚙️ Technology Stack", slug: "developers/tech-stack" },
+                { label: "🏗️ Hosting & Infrastructure", slug: "developers/hosting-infrastructure" }
               ]
             },
             {
               label: "Authentication & Authorization",
               items: [
-                { label: "Authentication & Authorization", slug: "developers/authentication-authorization" },
-                { label: "OAuth Authentication", slug: "developers/oauth-authentication" },
-                { label: "Admin Permissions", slug: "reference/permissions" },
-                { label: "Password Reset System", slug: "developers/password-reset-system", badge: "WIP" },
-                { label: "Security Implementation", slug: "developers/security-implementation", badge: "WIP" }
+                { label: "🔐 Authentication & Authorization", slug: "developers/authentication-authorization" },
+                { label: "🌐 OAuth Authentication", slug: "developers/oauth-authentication" },
+                { label: "🔑 Admin Permissions", slug: "reference/permissions" },
+                { label: "🔒 Password Reset System", slug: "developers/password-reset-system", badge: "WIP" },
+                { label: "🛡️ Security Implementation", slug: "developers/security-implementation", badge: "WIP" }
               ]
             },
             {
               label: "System Integration",
               items: [
-                { label: "Email Systems", slug: "developers/email-systems", badge: "WIP" },
-                { label: "Analytics Integration", slug: "developers/analytics-integration", badge: "WIP" },
-                { label: "Data Migration", slug: "developers/data-migration", badge: "WIP" },
-                { label: "Environment Configuration", slug: "developers/environment-configuration", badge: "WIP" }
+                { label: "📧 Email Systems", slug: "developers/email-systems", badge: "WIP" },
+                { label: "📊 Analytics Integration", slug: "developers/analytics-integration", badge: "WIP" },
+                { label: "🔄 Data Migration", slug: "developers/data-migration", badge: "WIP" },
+                { label: "🌍 Environment Configuration", slug: "developers/environment-configuration", badge: "WIP" }
               ]
             },
             {
               label: "Development",
               items: [
-                { label: "UI Components System", slug: "developers/ui-components-system", badge: "WIP" },
-                { label: "Testing Framework", slug: "developers/testing-framework", badge: "WIP" },
-                { label: "Timezone Handling", slug: "developers/timezone-handling", badge: "WIP" }
+                { label: "🎨 UI Components System", slug: "developers/ui-components-system", badge: "WIP" },
+                { label: "🧪 Testing Framework", slug: "developers/testing-framework", badge: "WIP" },
+                { label: "🕐 Timezone Handling", slug: "developers/timezone-handling", badge: "WIP" }
               ]
             }
           ]
