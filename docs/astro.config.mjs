@@ -31,33 +31,19 @@ export default defineConfig({
               ],
             },
             {
-              label: "User Management",
+              label: "System Administration",
               items: [
-                {
-                  label: "Viewing Volunteers",
-                  slug: "user-management/viewing-volunteers",
-                },
-                {
-                  label: "Volunteer Profiles",
-                  slug: "user-management/volunteer-profiles",
-                },
-                { label: "Admin Notes", slug: "user-management/admin-notes" },
                 {
                   label: "Parental Consent",
                   slug: "user-management/parental-consent",
                 },
-                { label: "Volunteer Labels", slug: "user-management/volunteer-labels" },
-                { label: "Volunteer Grading System", slug: "user-management/volunteer-grading" },
-                { label: "Regular Volunteers", slug: "user-management/regular-volunteers" },
                 { label: "Profile Photos", slug: "user-management/profile-photos" },
                 { label: "Email Verification", slug: "user-management/email-verification" },
                 { label: "Admin Command Palette", slug: "user-management/command-palette" },
-                { label: "Friend System", slug: "user-management/friend-system" },
-                { label: "Notification System", slug: "user-management/notification-system" },
               ],
             },
             {
-              label: "Shift Management",
+              label: "System Overview",
               items: [
                 {
                   label: "Calendar Overview",
@@ -67,13 +53,6 @@ export default defineConfig({
                   label: "Managing Signups",
                   slug: "shift-management/managing-signups",
                 },
-                { label: "Shift Templates", slug: "shift-management/shift-templates" },
-                { label: "Auto-Accept Rules", slug: "shift-management/auto-accept-rules" },
-                { label: "Volunteer Placement", slug: "shift-management/volunteer-placement" },
-                { label: "Editing and Deleting Shifts", slug: "shift-management/shift-editing" },
-                { label: "Location Configuration", slug: "shift-management/location-configuration" },
-                { label: "Group Bookings", slug: "shift-management/group-bookings" },
-                { label: "Email Confirmations", slug: "shift-management/email-confirmations" },
               ],
             },
             {
@@ -93,13 +72,31 @@ export default defineConfig({
           label: 'Restaurant Managers',
           link: '/restaurant-managers/',
           icon: 'open-book',
-          badge: 'New',
           items: [
             {
               label: "Getting Started",
               items: [
                 { label: "Multi-Location Features", slug: "location-management/location-filtering" },
                 { label: "Restaurant Manager API", slug: "location-management/restaurant-manager-api" }
+              ]
+            },
+            {
+              label: "Volunteer Management",
+              items: [
+                {
+                  label: "Viewing Volunteers",
+                  slug: "user-management/viewing-volunteers",
+                },
+                {
+                  label: "Volunteer Profiles",
+                  slug: "user-management/volunteer-profiles",
+                },
+                { label: "Admin Notes", slug: "user-management/admin-notes" },
+                { label: "Volunteer Labels", slug: "user-management/volunteer-labels" },
+                { label: "Volunteer Grading System", slug: "user-management/volunteer-grading" },
+                { label: "Regular Volunteers", slug: "user-management/regular-volunteers" },
+                { label: "Friend System", slug: "user-management/friend-system" },
+                { label: "Notification System", slug: "user-management/notification-system" },
               ]
             },
             {
@@ -110,7 +107,13 @@ export default defineConfig({
                 { label: "Attendance Tracking", slug: "shift-management/attendance-tracking" },
                 { label: "Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications" },
                 { label: "Volunteer Selection", slug: "shift-management/volunteer-selection" },
-                { label: "Day and Evening Periods", slug: "shift-management/period-separation" }
+                { label: "Day and Evening Periods", slug: "shift-management/period-separation" },
+                { label: "Shift Templates", slug: "shift-management/shift-templates" },
+                { label: "Auto-Accept Rules", slug: "shift-management/auto-accept-rules" },
+                { label: "Volunteer Placement", slug: "shift-management/volunteer-placement" },
+                { label: "Editing and Deleting Shifts", slug: "shift-management/shift-editing" },
+                { label: "Location Configuration", slug: "shift-management/location-configuration" },
+                { label: "Email Confirmations", slug: "shift-management/email-confirmations" },
               ]
             },
             {
