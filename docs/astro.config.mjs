@@ -46,6 +46,14 @@ export default defineConfig({
                   label: "Parental Consent",
                   slug: "user-management/parental-consent",
                 },
+                { label: "Volunteer Labels", slug: "user-management/volunteer-labels" },
+                { label: "Volunteer Grading System", slug: "user-management/volunteer-grading" },
+                { label: "Regular Volunteers", slug: "user-management/regular-volunteers" },
+                { label: "Profile Photos", slug: "user-management/profile-photos" },
+                { label: "Email Verification", slug: "user-management/email-verification" },
+                { label: "Admin Command Palette", slug: "user-management/command-palette" },
+                { label: "Friend System", slug: "user-management/friend-system" },
+                { label: "Notification System", slug: "user-management/notification-system" },
               ],
             },
             {
@@ -59,6 +67,13 @@ export default defineConfig({
                   label: "Managing Signups",
                   slug: "shift-management/managing-signups",
                 },
+                { label: "Shift Templates", slug: "shift-management/shift-templates" },
+                { label: "Auto-Accept Rules", slug: "shift-management/auto-accept-rules" },
+                { label: "Volunteer Placement", slug: "shift-management/volunteer-placement" },
+                { label: "Editing and Deleting Shifts", slug: "shift-management/shift-editing" },
+                { label: "Location Configuration", slug: "shift-management/location-configuration" },
+                { label: "Group Bookings", slug: "shift-management/group-bookings" },
+                { label: "Email Confirmations", slug: "shift-management/email-confirmations" },
               ],
             },
             {
@@ -92,7 +107,10 @@ export default defineConfig({
               items: [
                 { label: "Creating Shifts", slug: "shift-management/creating-shifts" },
                 { label: "Group Bookings", slug: "shift-management/group-bookings" },
-                { label: "Attendance Tracking", slug: "shift-management/attendance-tracking" }
+                { label: "Attendance Tracking", slug: "shift-management/attendance-tracking" },
+                { label: "Shift Cancellation Notifications", slug: "shift-management/shift-cancellation-notifications" },
+                { label: "Volunteer Selection", slug: "shift-management/volunteer-selection" },
+                { label: "Day and Evening Periods", slug: "shift-management/period-separation" }
               ]
             },
             {
@@ -122,7 +140,26 @@ export default defineConfig({
               items: [
                 { label: "Authentication & Authorization", slug: "developers/authentication-authorization" },
                 { label: "OAuth Authentication", slug: "developers/oauth-authentication" },
-                { label: "Admin Permissions", slug: "reference/permissions" }
+                { label: "Admin Permissions", slug: "reference/permissions" },
+                { label: "Password Reset System", slug: "developers/password-reset-system" },
+                { label: "Security Implementation", slug: "developers/security-implementation" }
+              ]
+            },
+            {
+              label: "System Integration",
+              items: [
+                { label: "Email Systems", slug: "developers/email-systems" },
+                { label: "Analytics Integration", slug: "developers/analytics-integration" },
+                { label: "Data Migration", slug: "developers/data-migration" },
+                { label: "Environment Configuration", slug: "developers/environment-configuration" }
+              ]
+            },
+            {
+              label: "Development",
+              items: [
+                { label: "UI Components System", slug: "developers/ui-components-system" },
+                { label: "Testing Framework", slug: "developers/testing-framework" },
+                { label: "Timezone Handling", slug: "developers/timezone-handling" }
               ]
             }
           ]
