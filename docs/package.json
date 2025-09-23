@@ -3,18 +3,26 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "npm run build:widget && astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "npm run build:widget && astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "build:widget": "cd widget && npm i && npm run build",
     "screenshots": "node scripts/generate-screenshots.js",
     "screenshots:dev": "DOCS_SCREENSHOT_URL=http://localhost:3000 node scripts/generate-screenshots.js"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.15",
+    "@ai-sdk/openai": "^2.0.28",
     "@astrojs/starlight": "^0.35.2",
+    "@astrojs/vercel": "^8.2.8",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "ai": "^5.0.41",
     "astro": "^5.6.1",
     "astro-mermaid": "^1.0.4",
+    "fs-extra": "^11.3.1",
+    "gray-matter": "^4.0.3",
     "mermaid": "^11.11.0",
     "sharp": "^0.34.2",
     "starlight-sidebar-topics": "^0.6.0"
