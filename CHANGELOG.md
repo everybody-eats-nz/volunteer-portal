@@ -1,3 +1,9 @@
+## [0.46.1] - 2025-09-23
+
+### Changes
+- refactor: update environment utility functions and clean up sidebar/h… ([#160](https://github.com/everybody-eats-nz/volunteer-portal/pull/160)) by @malinmalliyawadu
+
+
 ## [0.46.0] - 2025-09-22
 
 ### Changes
