@@ -40,6 +40,7 @@ npm run dev
 ```
 
 This will:
+
 1. Build the chat widget (`npm run build:widget`)
 2. Start the Astro development server with the widget integrated
 
@@ -84,17 +85,17 @@ The widget can be customized in `astro.config.mjs`:
 
 ```javascript
 new window.StarSupport.default({
-  apiEndpoint: '/api/star-support/chat',
-  welcomeMessage: 'Hi! How can I help you with the documentation today?',
-  botName: 'Docs Assistant',
-  topicContext: 'Volunteer Portal documentation',
-  primaryColor: '#0066cc',
-  position: 'bottom-right',
+  apiEndpoint: "/api/star-support/chat",
+  welcomeMessage: "Hi! How can I help you with the documentation today?",
+  botName: "Docs Assistant",
+  topicContext: "Volunteer Portal documentation",
+  primaryColor: "#0066cc",
+  position: "bottom-right",
   suggestedQuestions: [
-    'How do I manage volunteers?',
-    'How do shift signups work?',
+    "How do I manage volunteers?",
+    "How do shift signups work?",
     // ... more questions
-  ]
+  ],
 });
 ```
 
@@ -102,7 +103,7 @@ new window.StarSupport.default({
 
 Environment variables for the API:
 
-- `OPENAI_API_KEY`: Required - Your OpenAI API key
+- `ANTHROPIC_API_KEY`: Required - Your Anthropic API key
 - `STAR_SUPPORT_MODEL`: AI model to use (default: gpt-4o-mini)
 - `STAR_SUPPORT_AUTH_KEY`: Optional API authentication
 - `STAR_SUPPORT_GENERATE_SUMMARIES`: Generate AI summaries for docs
@@ -127,6 +128,7 @@ The widget appearance can be customized by:
 ### Documentation Sources
 
 The system automatically indexes:
+
 - All `.md` and `.mdx` files in `/src/content/docs/`
 - Frontmatter metadata (title, description)
 - Cleaned markdown content
@@ -142,6 +144,7 @@ The system automatically indexes:
 ### Other Platforms
 
 Ensure your deployment:
+
 1. Builds the widget (`npm run build:widget`)
 2. Has Node.js runtime for API routes
 3. Sets required environment variables
@@ -156,7 +159,7 @@ Ensure your deployment:
 
 ### API Errors
 
-1. Verify `OPENAI_API_KEY` is set correctly
+1. Verify `ANTHROPIC_API_KEY` is set correctly
 2. Check API route logs for detailed errors
 3. Test API endpoint directly: `POST /api/star-support/chat`
 
