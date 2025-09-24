@@ -21,6 +21,7 @@ import { MotionSpinner } from "@/components/motion-spinner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { calculateAge } from "@/lib/utils";
 
 interface ShiftSignupDialogProps {
   shift: {
@@ -94,13 +95,7 @@ export function ShiftSignupDialog({
           if (response.ok) {
             const userData = await response.json();
             if (userData.dateOfBirth) {
-              const birthDate = new Date(userData.dateOfBirth);
-              const today = new Date();
-              let age = today.getFullYear() - birthDate.getFullYear();
-              const monthDiff = today.getMonth() - birthDate.getMonth();
-              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-              }
+              const age = calculateAge(new Date(userData.dateOfBirth));
               setIsUnderage(age <= 14);
             }
           } else {
