@@ -8,7 +8,10 @@ const deleteUserSchema = z.object({
   confirmEmail: z.string().email("Please enter a valid email address"),
 });
 
-export async function DELETE(req: Request) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,10 +28,7 @@ export async function DELETE(req: Request) {
     );
   }
 
-  // Extract user ID from the URL
-  const url = new URL(req.url);
-  const segments = url.pathname.split("/");
-  const userId = segments[segments.indexOf("users") + 1];
+  const userId = params.id;
 
   if (!userId) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });
