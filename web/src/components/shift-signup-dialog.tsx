@@ -95,12 +95,27 @@ export function ShiftSignupDialog({
               }
               setIsUnderage(age <= 14);
             }
+          } else {
+            console.warn('Profile fetch failed:', response.status);
+            setIsUnderage(false); // Default to not underage if we can't check
           }
         } catch (error) {
           console.error('Error checking user age:', error);
+          setIsUnderage(false); // Default to not underage if there's an error
         }
       };
-      checkAge();
+
+      // Add timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        console.warn('Age check timed out, defaulting to not underage');
+        setIsUnderage(false);
+      }, 3000); // 3 second timeout
+
+      checkAge().finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+      return () => clearTimeout(timeoutId);
     }
   }, [open, session]);
 
@@ -118,6 +133,7 @@ export function ShiftSignupDialog({
               loading: false
             });
           } else {
+            console.warn('Auto-approval check failed:', response.status);
             setAutoApprovalEligible({ eligible: false, loading: false });
           }
         } catch (error) {
@@ -126,7 +142,16 @@ export function ShiftSignupDialog({
         }
       };
 
-      checkEligibility();
+      // Add a small delay and timeout to prevent blocking the dialog
+      const timeoutId = setTimeout(() => {
+        setAutoApprovalEligible({ eligible: false, loading: false });
+      }, 5000); // 5 second timeout
+
+      checkEligibility().finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+      return () => clearTimeout(timeoutId);
     } else {
       // For waitlist or no user, skip eligibility check
       setAutoApprovalEligible({ eligible: false, loading: false });

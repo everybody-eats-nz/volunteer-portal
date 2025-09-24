@@ -169,7 +169,9 @@ export default function LoginPage() {
     }
   }
 
-  async function handleQuickLogin(userType: "volunteer" | "admin" | "minor16" | "minor13") {
+  async function handleQuickLogin(
+    userType: "volunteer" | "admin" | "minor16" | "minor13"
+  ) {
     setError(null);
     setSuccessMessage(null);
     setIsLoading(true);
@@ -528,7 +530,9 @@ export default function LoginPage() {
                       Login as Admin
                     </Button>
                     <div className="pt-2 border-t border-border/50">
-                      <p className="text-xs font-medium text-primary mb-2">Underage Users (for testing):</p>
+                      <p className="text-xs font-medium text-primary mb-2">
+                        Underage Users (for testing):
+                      </p>
                       <div className="flex flex-col gap-1.5">
                         <Button
                           onClick={() => handleQuickLogin("minor16")}
@@ -537,7 +541,7 @@ export default function LoginPage() {
                           disabled={isLoading || oauthLoading !== null}
                           data-testid="quick-login-minor16-button"
                         >
-                          Emma (16yr) - Under 18
+                          16 year old (not approved)
                         </Button>
                         <Button
                           onClick={() => handleQuickLogin("minor13")}
@@ -546,7 +550,7 @@ export default function LoginPage() {
                           disabled={isLoading || oauthLoading !== null}
                           data-testid="quick-login-minor13-button"
                         >
-                          Logan (13yr) - Under 14
+                          13 year old
                         </Button>
                       </div>
                     </div>
