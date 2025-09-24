@@ -38,7 +38,7 @@ export function StatCard({ children }: DashboardAnimatedProps) {
 export function ContentGrid({ children }: DashboardAnimatedProps) {
   return (
     <motion.div
-      className="flex flex-wrap gap-6"
+      className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       variants={staggerContainer}
       initial="hidden"
       animate="visible"

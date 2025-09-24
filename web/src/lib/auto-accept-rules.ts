@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { type VolunteerGrade, type AutoAcceptRule, type Shift, type ShiftType } from "@prisma/client";
+import {
+  type VolunteerGrade,
+  type AutoAcceptRule,
+  type Shift,
+  type ShiftType,
+} from "@prisma/client";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { format } from "date-fns";
@@ -31,7 +36,10 @@ const GRADE_PRIORITY: Record<VolunteerGrade, number> = {
 };
 
 // Get user statistics for rule evaluation
-async function getUserWithStats(userId: string, shiftTypeId: string): Promise<UserWithStats> {
+async function getUserWithStats(
+  userId: string,
+  shiftTypeId: string
+): Promise<UserWithStats> {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     include: {
@@ -50,22 +58,27 @@ async function getUserWithStats(userId: string, shiftTypeId: string): Promise<Us
   // Calculate statistics
   const now = new Date();
   const completedShifts = user.signups.filter(
-    s => s.status === "CONFIRMED" && s.shift.end < now
+    (s) => s.status === "CONFIRMED" && s.shift.end < now
   ).length;
-  
+
   const canceledShifts = user.signups.filter(
-    s => s.status === "CANCELED" && s.canceledAt !== null && s.previousStatus === "CONFIRMED"
+    (s) =>
+      s.status === "CANCELED" &&
+      s.canceledAt !== null &&
+      s.previousStatus === "CONFIRMED"
   ).length;
-  
+
   const totalConfirmedShifts = completedShifts + canceledShifts;
-  const attendanceRate = totalConfirmedShifts > 0 
-    ? ((completedShifts / totalConfirmedShifts) * 100) 
-    : 100; // Default to 100% if no history
-  
+  const attendanceRate =
+    totalConfirmedShifts > 0
+      ? (completedShifts / totalConfirmedShifts) * 100
+      : 100; // Default to 100% if no history
+
   const hasShiftTypeExperience = user.signups.some(
-    s => s.shift.shiftTypeId === shiftTypeId && 
-        s.status === "CONFIRMED" && 
-        s.shift.end < now
+    (s) =>
+      s.shift.shiftTypeId === shiftTypeId &&
+      s.status === "CONFIRMED" &&
+      s.shift.end < now
   );
 
   return {
@@ -88,24 +101,27 @@ function evaluateRule(
   shift: Shift & { shiftType: ShiftType }
 ): boolean {
   const criteria: boolean[] = [];
-  
+
   // Check volunteer grade
   if (rule.minVolunteerGrade) {
     const userGradePriority = GRADE_PRIORITY[user.volunteerGrade];
     const minGradePriority = GRADE_PRIORITY[rule.minVolunteerGrade];
     criteria.push(userGradePriority >= minGradePriority);
   }
-  
+
   // Check completed shifts
-  if (rule.minCompletedShifts !== null && rule.minCompletedShifts !== undefined) {
+  if (
+    rule.minCompletedShifts !== null &&
+    rule.minCompletedShifts !== undefined
+  ) {
     criteria.push(user.completedShifts >= rule.minCompletedShifts);
   }
-  
+
   // Check attendance rate
   if (rule.minAttendanceRate !== null && rule.minAttendanceRate !== undefined) {
     criteria.push(user.attendanceRate >= rule.minAttendanceRate);
   }
-  
+
   // Check account age
   if (rule.minAccountAgeDays !== null && rule.minAccountAgeDays !== undefined) {
     const accountAgeDays = Math.floor(
@@ -113,7 +129,7 @@ function evaluateRule(
     );
     criteria.push(accountAgeDays >= rule.minAccountAgeDays);
   }
-  
+
   // Check days in advance
   if (rule.maxDaysInAdvance !== null && rule.maxDaysInAdvance !== undefined) {
     const daysInAdvance = Math.floor(
@@ -121,22 +137,22 @@ function evaluateRule(
     );
     criteria.push(daysInAdvance <= rule.maxDaysInAdvance);
   }
-  
+
   // Check shift type experience
   if (rule.requireShiftTypeExperience) {
     criteria.push(user.hasShiftTypeExperience);
   }
-  
+
   // If no criteria are set, the rule doesn't apply
   if (criteria.length === 0) {
     return false;
   }
-  
+
   // Apply logic (AND/OR)
   if (rule.criteriaLogic === "AND") {
-    return criteria.every(c => c);
+    return criteria.every((c) => c);
   } else {
-    return criteria.some(c => c);
+    return criteria.some((c) => c);
   }
 }
 
@@ -151,10 +167,10 @@ export async function evaluateAutoAcceptRules(
       where: { id: shiftId },
       include: { shiftType: true },
     });
-    
+
     // Get user statistics
     const userStats = await getUserWithStats(userId, shift.shiftTypeId);
-    
+
     // Get applicable rules (global + shift type specific + location specific)
     const rules = await prisma.autoAcceptRule.findMany({
       where: {
@@ -168,7 +184,7 @@ export async function evaluateAutoAcceptRules(
       },
       orderBy: { priority: "desc" }, // Higher priority first
     });
-    
+
     // Evaluate each rule
     for (const rule of rules) {
       if (evaluateRule(rule, userStats, shift)) {
@@ -179,13 +195,13 @@ export async function evaluateAutoAcceptRules(
           reason: `Auto-approved by rule: ${rule.name}`,
         };
       }
-      
+
       // Stop if this rule has stopOnMatch set
       if (rule.stopOnMatch) {
         break;
       }
     }
-    
+
     return {
       approved: false,
       reason: "No auto-accept rules matched",
@@ -207,14 +223,14 @@ export async function processAutoApproval(
   shiftId: string
 ): Promise<{ autoApproved: boolean; status: string }> {
   const evaluationResult = await evaluateAutoAcceptRules(userId, shiftId);
-  
+
   if (evaluationResult.approved && evaluationResult.ruleId) {
     // Update signup to CONFIRMED
     await prisma.signup.update({
       where: { id: signupId },
       data: { status: "CONFIRMED" },
     });
-    
+
     // Create auto-approval record
     await prisma.autoApproval.create({
       data: {
@@ -222,14 +238,14 @@ export async function processAutoApproval(
         ruleId: evaluationResult.ruleId,
       },
     });
-    
+
     // Send confirmation notification and email
     try {
       const shift = await prisma.shift.findUniqueOrThrow({
         where: { id: shiftId },
         include: { shiftType: true },
       });
-      
+
       // Get user details for email
       const user = await prisma.user.findUniqueOrThrow({
         where: { id: userId },
@@ -240,14 +256,14 @@ export async function processAutoApproval(
           lastName: true,
         },
       });
-      
-      const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+
+      const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       }).format(shift.start);
-      
+
       // Send in-app notification
       await createShiftConfirmedNotification(
         userId,
@@ -255,37 +271,53 @@ export async function processAutoApproval(
         shiftDate,
         shiftId
       );
-      
+
       // Send email confirmation
       try {
         const emailService = getEmailService();
         const formattedShiftDate = format(shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(shift.start, "h:mm a")} - ${format(shift.end, "h:mm a")}`;
-        
+        const shiftTime = `${format(shift.start, "h:mm a")} - ${format(
+          shift.end,
+          "h:mm a"
+        )}`;
+
         await emailService.sendShiftConfirmationNotification({
           to: user.email,
-          volunteerName: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          volunteerName:
+            user.name ||
+            `${user.firstName || ""} ${user.lastName || ""}`.trim(),
           shiftName: shift.shiftType.name,
           shiftDate: formattedShiftDate,
           shiftTime: shiftTime,
-          location: shift.location || 'TBD',
+          location: shift.location || "TBD",
           shiftId: shiftId,
           shiftStart: shift.start,
           shiftEnd: shift.end,
         });
-        
-        console.log("Auto-approval confirmation email sent successfully to:", user.email);
+
+        console.log(
+          "Auto-approval confirmation email sent successfully to:",
+          user.email
+        );
       } catch (emailError) {
-        console.error("Error sending auto-approval confirmation email:", emailError);
+        console.error(
+          "Error sending auto-approval confirmation email:",
+          emailError
+        );
         // Don't fail the auto-approval if email fails
       }
     } catch (notificationError) {
-      console.error("Error sending auto-approval notification:", notificationError);
+      console.error(
+        "Error sending auto-approval notification:",
+        notificationError
+      );
     }
-    
+
+    // Achievements will be calculated when user visits dashboard/achievements page
+
     return { autoApproved: true, status: "CONFIRMED" };
   }
-  
+
   return { autoApproved: false, status: "PENDING" };
 }
 
@@ -303,62 +335,64 @@ export async function checkAutoApprovalEligibility(
 
 // Get statistics about auto-approvals
 export async function getAutoApprovalStats() {
-  const [totalAutoApprovals, recentAutoApprovals, topRules, overrideRate] = await Promise.all([
-    // Total auto-approvals
-    prisma.autoApproval.count(),
-    
-    // Recent auto-approvals (last 7 days)
-    prisma.autoApproval.count({
-      where: {
-        approvedAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  const [totalAutoApprovals, recentAutoApprovals, topRules, overrideRate] =
+    await Promise.all([
+      // Total auto-approvals
+      prisma.autoApproval.count(),
+
+      // Recent auto-approvals (last 7 days)
+      prisma.autoApproval.count({
+        where: {
+          approvedAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
         },
-      },
-    }),
-    
-    // Top performing rules
-    prisma.autoApproval.groupBy({
-      by: ['ruleId'],
-      _count: {
-        id: true,
-      },
-      orderBy: {
+      }),
+
+      // Top performing rules
+      prisma.autoApproval.groupBy({
+        by: ["ruleId"],
         _count: {
-          id: 'desc',
+          id: true,
         },
-      },
-      take: 5,
-    }),
-    
-    // Override rate
-    prisma.autoApproval.aggregate({
-      _count: {
-        id: true,
-        overridden: true,
-      },
-    }),
-  ]);
-  
+        orderBy: {
+          _count: {
+            id: "desc",
+          },
+        },
+        take: 5,
+      }),
+
+      // Override rate
+      prisma.autoApproval.aggregate({
+        _count: {
+          id: true,
+          overridden: true,
+        },
+      }),
+    ]);
+
   // Get rule details for top rules
-  const topRuleIds = topRules.map(r => r.ruleId);
+  const topRuleIds = topRules.map((r) => r.ruleId);
   const ruleDetails = await prisma.autoAcceptRule.findMany({
     where: { id: { in: topRuleIds } },
     select: { id: true, name: true },
   });
-  
-  const ruleMap = new Map(ruleDetails.map(r => [r.id, r.name]));
-  const topRulesWithNames = topRules.map(r => ({
+
+  const ruleMap = new Map(ruleDetails.map((r) => [r.id, r.name]));
+  const topRulesWithNames = topRules.map((r) => ({
     ruleId: r.ruleId,
-    ruleName: ruleMap.get(r.ruleId) || 'Unknown',
+    ruleName: ruleMap.get(r.ruleId) || "Unknown",
     count: r._count.id,
   }));
-  
+
   return {
     totalAutoApprovals,
     recentAutoApprovals,
     topRules: topRulesWithNames,
-    overrideRate: overrideRate._count.id > 0 
-      ? (overrideRate._count.overridden / overrideRate._count.id) * 100 
-      : 0,
+    overrideRate:
+      overrideRate._count.id > 0
+        ? (overrideRate._count.overridden / overrideRate._count.id) * 100
+        : 0,
   };
 }

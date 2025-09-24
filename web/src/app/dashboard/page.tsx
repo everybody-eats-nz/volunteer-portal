@@ -14,6 +14,7 @@ import { DashboardContentSkeleton } from "@/components/dashboard-content-skeleto
 import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
 import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
+import { AchievementTracker } from "@/components/achievement-tracker";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -49,6 +50,11 @@ export default async function DashboardPage() {
           <DashboardNextShift userId={userId} />
         </Suspense>
 
+        {/* Achievements - streams in when ready */}
+        <Suspense fallback={<DashboardContentSkeleton />}>
+          <AchievementsCard />
+        </Suspense>
+
         {/* Recent Activity - streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardRecentActivity userId={userId} />
@@ -56,11 +62,6 @@ export default async function DashboardPage() {
       </ContentGrid>
 
       <BottomGrid>
-        {/* Achievements - streams in when ready */}
-        <Suspense fallback={<DashboardContentSkeleton />}>
-          <AchievementsCard />
-        </Suspense>
-
         {/* Impact & Community Stats - streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardImpactStats userId={userId} />
@@ -69,6 +70,9 @@ export default async function DashboardPage() {
 
       {/* Quick Actions - renders immediately (no data dependencies) */}
       <DashboardQuickActions />
+
+      {/* Achievement Tracker - client component for celebration dialog */}
+      <AchievementTracker userId={userId} />
     </PageContainer>
   );
 }

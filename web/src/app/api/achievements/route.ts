@@ -25,7 +25,7 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check for new achievements first
+    // Calculate achievements based on current history
     const newAchievements = await checkAndUnlockAchievements(user.id);
 
     // Get user's current achievements and available ones

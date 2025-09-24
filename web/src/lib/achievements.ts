@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours, differenceInDays } from "date-fns";
+import { differenceInHours, differenceInDays, differenceInMonths } from "date-fns";
 
 export interface AchievementCriteria {
   type:
@@ -32,7 +32,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "shifts_completed",
       value: 1,
-    } as AchievementCriteria),
+    }),
     points: 10,
   },
   {
@@ -43,7 +43,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "shifts_completed",
       value: 5,
-    } as AchievementCriteria),
+    }),
     points: 25,
   },
   {
@@ -54,7 +54,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "shifts_completed",
       value: 10,
-    } as AchievementCriteria),
+    }),
     points: 50,
   },
   {
@@ -65,7 +65,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "shifts_completed",
       value: 25,
-    } as AchievementCriteria),
+    }),
     points: 100,
   },
   {
@@ -76,7 +76,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "shifts_completed",
       value: 50,
-    } as AchievementCriteria),
+    }),
     points: 200,
   },
 
@@ -89,7 +89,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "hours_volunteered",
       value: 10,
-    } as AchievementCriteria),
+    }),
     points: 30,
   },
   {
@@ -100,7 +100,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "hours_volunteered",
       value: 25,
-    } as AchievementCriteria),
+    }),
     points: 75,
   },
   {
@@ -111,7 +111,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "hours_volunteered",
       value: 50,
-    } as AchievementCriteria),
+    }),
     points: 150,
   },
   {
@@ -122,7 +122,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "hours_volunteered",
       value: 100,
-    } as AchievementCriteria),
+    }),
     points: 300,
   },
 
@@ -135,7 +135,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "consecutive_months",
       value: 3,
-    } as AchievementCriteria),
+    }),
     points: 50,
   },
   {
@@ -146,7 +146,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "consecutive_months",
       value: 6,
-    } as AchievementCriteria),
+    }),
     points: 100,
   },
   {
@@ -157,7 +157,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "consecutive_months",
       value: 12,
-    } as AchievementCriteria),
+    }),
     points: 200,
   },
 
@@ -170,7 +170,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "years_volunteering",
       value: 1,
-    } as AchievementCriteria),
+    }),
     points: 150,
   },
   {
@@ -181,7 +181,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "years_volunteering",
       value: 2,
-    } as AchievementCriteria),
+    }),
     points: 300,
   },
 
@@ -194,7 +194,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "community_impact",
       value: 100,
-    } as AchievementCriteria),
+    }),
     points: 75,
   },
   {
@@ -205,7 +205,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "community_impact",
       value: 500,
-    } as AchievementCriteria),
+    }),
     points: 200,
   },
   {
@@ -216,7 +216,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
     criteria: JSON.stringify({
       type: "community_impact",
       value: 1000,
-    } as AchievementCriteria),
+    }),
     points: 400,
   },
 ];
@@ -288,11 +288,10 @@ export async function calculateUserProgress(
 
       const prevDate = new Date(prevYear, prevMonth);
       const currDate = new Date(currYear, currMonth);
-      const monthsDiff =
-        (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      const monthsDiff = differenceInMonths(currDate, prevDate);
 
-      if (monthsDiff <= 1.5) {
-        // Allow some tolerance
+      if (monthsDiff === 1) {
+        // Exactly one month apart - consecutive
         currentStreak++;
       } else {
         consecutiveMonths = Math.max(consecutiveMonths, currentStreak);
