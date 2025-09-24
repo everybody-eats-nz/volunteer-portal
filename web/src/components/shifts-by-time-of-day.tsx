@@ -25,6 +25,7 @@ interface Shift {
       lastName: string | null;
       volunteerGrade: string | null;
       profilePhotoUrl: string | null;
+      dateOfBirth: Date | null;
       adminNotes: Array<{
         id: string;
         content: string;

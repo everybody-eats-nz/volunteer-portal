@@ -80,6 +80,22 @@ import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
 
+// Helper function to calculate age from date of birth
+function calculateAge(dateOfBirth: Date | null): number | null {
+  if (!dateOfBirth) return null;
+
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  return age;
+}
+
 // Layout update context for triggering masonry recalculation
 const LayoutUpdateContext = createContext<(() => void) | null>(null);
 
@@ -110,6 +126,7 @@ interface Shift {
       lastName: string | null;
       volunteerGrade: string | null;
       profilePhotoUrl: string | null;
+      dateOfBirth: Date | null;
       adminNotes: Array<{
         id: string;
         content: string;
@@ -564,6 +581,18 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                         }
                                       />
                                     )}
+                                    {(() => {
+                                      const age = calculateAge(signup.user.dateOfBirth);
+                                      return age !== null && age <= 18 ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs bg-orange-50 text-orange-700 border-orange-200 ml-1 px-1.5 py-0.5"
+                                          data-testid={`volunteer-age-${signup.id}`}
+                                        >
+                                          {age}yr
+                                        </Badge>
+                                      ) : null;
+                                    })()}
                                   </div>
                                   {signup.note && (
                                     <div className="text-xs text-muted-foreground mt-1 p-2 bg-gray-50 rounded-md">
