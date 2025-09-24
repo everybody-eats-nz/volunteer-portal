@@ -23,3 +23,7 @@ pnpm-debug.log*
 
 # Vercel
 .vercel/
+
+# Built widget
+public/star-support.js
+public/star-support.min.js
