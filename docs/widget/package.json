@@ -13,5 +13,10 @@
     "rollup": "^4.21.2",
     "tslib": "^2.7.0",
     "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@types/dompurify": "^3.0.5",
+    "dompurify": "^3.2.7",
+    "marked": "^16.3.0"
   }
 }

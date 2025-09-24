@@ -1,3 +1,9 @@
+## [0.46.3] - 2025-09-23
+
+### Changes
+- refactor: clean up CSS and improve layout responsiveness ([#162](https://github.com/everybody-eats-nz/volunteer-portal/pull/162)) by @malinmalliyawadu
+
+
 ## [0.46.2] - 2025-09-23
 
 ### Changes
