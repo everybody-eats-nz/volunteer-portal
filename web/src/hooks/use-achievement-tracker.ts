@@ -47,12 +47,12 @@ export function useAchievementTracker() {
   const checkAchievements = async (): Promise<AchievementsData | null> => {
     try {
       setIsLoading(true);
-      
+
       // Get last dashboard visit time from localStorage
-      const lastVisitKey = 'dashboard_last_visit';
+      const lastVisitKey = "dashboard_last_visit";
       const lastVisit = localStorage.getItem(lastVisitKey);
       const lastVisitTime = lastVisit ? new Date(lastVisit) : new Date(0); // Use epoch if never visited
-      
+
       // Trigger achievement calculation to unlock any new ones
       const response = await fetch("/api/achievements");
       if (!response.ok) {
@@ -60,24 +60,26 @@ export function useAchievementTracker() {
         return null;
       }
       const data: AchievementsData = await response.json();
-      
+
       // Find achievements unlocked since last visit
       const recentAchievements: Achievement[] = [];
-      data.userAchievements.forEach(userAchievement => {
+      data.userAchievements.forEach((userAchievement) => {
         const unlockedAt = new Date(userAchievement.unlockedAt);
         if (unlockedAt > lastVisitTime) {
           recentAchievements.push(userAchievement.achievement);
         }
       });
-      
+
       if (recentAchievements.length > 0) {
         setNewAchievements(recentAchievements);
         setShowCelebration(true);
-        
-        console.log(`🎉 Found ${recentAchievements.length} achievements unlocked since last visit:`, 
-          recentAchievements.map(a => a.name));
+
+        console.log(
+          `🎉 Found ${recentAchievements.length} achievements unlocked since last visit:`,
+          recentAchievements.map((a) => a.name)
+        );
       }
-      
+
       // Update last visit time AFTER checking for new achievements
       localStorage.setItem(lastVisitKey, new Date().toISOString());
 
@@ -89,7 +91,6 @@ export function useAchievementTracker() {
       setIsLoading(false);
     }
   };
-
 
   /**
    * Close the celebration dialog
@@ -112,7 +113,7 @@ export function useAchievementTracker() {
     newAchievements,
     showCelebration,
     isLoading,
-    
+
     // Actions
     checkAchievements,
     closeCelebration,
