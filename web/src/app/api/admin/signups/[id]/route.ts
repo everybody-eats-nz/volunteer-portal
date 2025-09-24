@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { createShiftConfirmedNotification, createShiftWaitlistedNotification, createShiftCanceledNotification } from "@/lib/notifications";
+import {
+  createShiftConfirmedNotification,
+  createShiftWaitlistedNotification,
+  createShiftCanceledNotification,
+} from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { format } from "date-fns";
 import { LOCATION_ADDRESSES } from "@/lib/locations";
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -30,7 +37,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const body = await req.json();
     const { action } = body; // "approve", "reject", "cancel", "confirm", "mark_present", or "mark_absent"
 
-    if (!["approve", "reject", "cancel", "confirm", "mark_present", "mark_absent"].includes(action)) {
+    if (
+      ![
+        "approve",
+        "reject",
+        "cancel",
+        "confirm",
+        "mark_present",
+        "mark_absent",
+      ].includes(action)
+    ) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
@@ -43,26 +59,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             shiftType: true,
           },
         },
-        user: { 
-          select: { 
-            id: true, 
-            email: true, 
-            name: true, 
-            firstName: true, 
-            lastName: true 
-          } 
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+          },
         },
       },
     });
 
     if (!signup) {
       console.error(`Signup not found: signupId=${signupId}`);
-      
-      return NextResponse.json({ 
-        error: "Signup not found", 
-        signupId,
-        debug: "The signup may have been deleted, canceled, or the ID is incorrect. Please refresh the page to see the current status."
-      }, { status: 404 });
+
+      return NextResponse.json(
+        {
+          error: "Signup not found",
+          signupId,
+          debug:
+            "The signup may have been deleted, canceled, or the ID is incorrect. Please refresh the page to see the current status.",
+        },
+        { status: 404 }
+      );
     }
 
     // Different status requirements for different actions
@@ -107,11 +127,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         // Create waitlist notification
         try {
-          const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+          const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           }).format(signup.shift.start);
 
           await createShiftWaitlistedNotification(
@@ -121,7 +141,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             signup.shift.id
           );
         } catch (notificationError) {
-          console.error("Error creating waitlist notification:", notificationError);
+          console.error(
+            "Error creating waitlist notification:",
+            notificationError
+          );
         }
 
         return NextResponse.json({
@@ -140,14 +163,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       try {
         const emailService = getEmailService();
         const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(signup.shift.end, "h:mm a")}`;
-        const fullAddress = signup.shift.location 
-          ? LOCATION_ADDRESSES[signup.shift.location as keyof typeof LOCATION_ADDRESSES] || signup.shift.location
-          : 'TBD';
-        
+        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(
+          signup.shift.end,
+          "h:mm a"
+        )}`;
+        const fullAddress = signup.shift.location
+          ? LOCATION_ADDRESSES[
+              signup.shift.location as keyof typeof LOCATION_ADDRESSES
+            ] || signup.shift.location
+          : "TBD";
+
         await emailService.sendShiftConfirmationNotification({
           to: signup.user.email!,
-          volunteerName: signup.user.name || `${signup.user.firstName || ''} ${signup.user.lastName || ''}`.trim(),
+          volunteerName:
+            signup.user.name ||
+            `${signup.user.firstName || ""} ${
+              signup.user.lastName || ""
+            }`.trim(),
           shiftName: signup.shift.shiftType.name,
           shiftDate: shiftDate,
           shiftTime: shiftTime,
@@ -162,11 +194,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
       // Create in-app notification
       try {
-        const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+        const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         }).format(signup.shift.start);
 
         await createShiftConfirmedNotification(
@@ -176,15 +208,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           signup.shift.id
         );
       } catch (notificationError) {
-        console.error("Error creating confirmation notification:", notificationError);
+        console.error(
+          "Error creating confirmation notification:",
+          notificationError
+        );
       }
+
+      // Achievements will be calculated when user visits dashboard/achievements page
 
       return NextResponse.json({
         ...updatedSignup,
         message: "Signup approved and confirmed",
       });
     }
-    
+
     if (action === "reject") {
       // Reject the signup
       const updatedSignup = await prisma.signup.update({
@@ -197,7 +234,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         message: "Signup rejected",
       });
     }
-    
+
     if (action === "cancel") {
       // Cancel a confirmed signup
       const updatedSignup = await prisma.signup.update({
@@ -209,14 +246,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       try {
         const emailService = getEmailService();
         const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(signup.shift.end, "h:mm a")}`;
-        const fullAddress = signup.shift.location 
-          ? LOCATION_ADDRESSES[signup.shift.location as keyof typeof LOCATION_ADDRESSES] || signup.shift.location
-          : 'TBD';
-        
+        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(
+          signup.shift.end,
+          "h:mm a"
+        )}`;
+        const fullAddress = signup.shift.location
+          ? LOCATION_ADDRESSES[
+              signup.shift.location as keyof typeof LOCATION_ADDRESSES
+            ] || signup.shift.location
+          : "TBD";
+
         await emailService.sendVolunteerCancellationNotification({
           to: signup.user.email!,
-          volunteerName: signup.user.name || `${signup.user.firstName || ''} ${signup.user.lastName || ''}`.trim(),
+          volunteerName:
+            signup.user.name ||
+            `${signup.user.firstName || ""} ${
+              signup.user.lastName || ""
+            }`.trim(),
           shiftName: signup.shift.shiftType.name,
           shiftDate: shiftDate,
           shiftTime: shiftTime,
@@ -229,11 +275,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
       // Create in-app notification
       try {
-        const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+        const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         }).format(signup.shift.start);
 
         await createShiftCanceledNotification(
@@ -243,7 +289,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           signup.shift.id
         );
       } catch (notificationError) {
-        console.error("Error creating cancellation notification:", notificationError);
+        console.error(
+          "Error creating cancellation notification:",
+          notificationError
+        );
         // Don't fail the API call if notification fails
       }
 
@@ -252,7 +301,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         message: "Signup cancelled and volunteer notified",
       });
     }
-    
+
     if (action === "confirm") {
       // Confirm a waitlisted signup (allow over-capacity)
       const updatedSignup = await prisma.signup.update({
@@ -264,14 +313,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       try {
         const emailService = getEmailService();
         const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(signup.shift.end, "h:mm a")}`;
-        const fullAddress = signup.shift.location 
-          ? LOCATION_ADDRESSES[signup.shift.location as keyof typeof LOCATION_ADDRESSES] || signup.shift.location
-          : 'TBD';
-        
+        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(
+          signup.shift.end,
+          "h:mm a"
+        )}`;
+        const fullAddress = signup.shift.location
+          ? LOCATION_ADDRESSES[
+              signup.shift.location as keyof typeof LOCATION_ADDRESSES
+            ] || signup.shift.location
+          : "TBD";
+
         await emailService.sendShiftConfirmationNotification({
           to: signup.user.email!,
-          volunteerName: signup.user.name || `${signup.user.firstName || ''} ${signup.user.lastName || ''}`.trim(),
+          volunteerName:
+            signup.user.name ||
+            `${signup.user.firstName || ""} ${
+              signup.user.lastName || ""
+            }`.trim(),
           shiftName: signup.shift.shiftType.name,
           shiftDate: shiftDate,
           shiftTime: shiftTime,
@@ -287,11 +345,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
       // Create in-app notification
       try {
-        const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
+        const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         }).format(signup.shift.start);
 
         await createShiftConfirmedNotification(
@@ -301,7 +359,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           signup.shift.id
         );
       } catch (notificationError) {
-        console.error("Error creating confirmation notification:", notificationError);
+        console.error(
+          "Error creating confirmation notification:",
+          notificationError
+        );
       }
 
       return NextResponse.json({
@@ -342,7 +403,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       // Mark volunteer as present (confirm attendance for a past shift)
       if (signup.status !== "NO_SHOW" && signup.status !== "CONFIRMED") {
         return NextResponse.json(
-          { error: "Only confirmed or no-show signups can have attendance marked" },
+          {
+            error:
+              "Only confirmed or no-show signups can have attendance marked",
+          },
           { status: 400 }
         );
       }

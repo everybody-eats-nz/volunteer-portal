@@ -8,7 +8,9 @@ interface DashboardImpactStatsProps {
   userId: string;
 }
 
-export async function DashboardImpactStats({ userId }: DashboardImpactStatsProps) {
+export async function DashboardImpactStats({
+  userId,
+}: DashboardImpactStatsProps) {
   const now = new Date();
 
   // Get completed shifts and community stats
@@ -69,7 +71,7 @@ export async function DashboardImpactStats({ userId }: DashboardImpactStatsProps
             </div>
 
             <div className="text-center">
-              <div className="text-3xl font-bold text-accent dark:text-yellow-400 mb-2">
+              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-2">
                 {totalVolunteers}
               </div>
               <p className="text-sm text-muted-foreground">
