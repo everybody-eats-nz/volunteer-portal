@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PolicyContent } from "@/components/markdown-content";
 import { ProfileImageUpload } from "@/components/ui/profile-image-upload";
+import { calculateAge } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -428,13 +429,7 @@ export function PersonalInfoStep({
       {isRegistration &&
         dateOfBirth &&
         (() => {
-          const today = new Date();
-          const age = today.getFullYear() - dateOfBirth.getFullYear();
-          const hasHadBirthdayThisYear =
-            today.getMonth() > dateOfBirth.getMonth() ||
-            (today.getMonth() === dateOfBirth.getMonth() &&
-              today.getDate() >= dateOfBirth.getDate());
-          const actualAge = hasHadBirthdayThisYear ? age : age - 1;
+          const actualAge = calculateAge(dateOfBirth);
 
           if (actualAge < 18) {
             return (

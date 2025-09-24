@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInYears } from "date-fns";
+import { calculateAge } from "@/lib/utils";
 
 /**
  * Checks if a user is under 18 years old based on their date of birth
  */
 export function isUserUnder18(dateOfBirth: Date | null): boolean {
   if (!dateOfBirth) return false;
-  
-  const age = differenceInYears(new Date(), dateOfBirth);
+
+  const age = calculateAge(dateOfBirth);
   return age < 18;
 }
 
