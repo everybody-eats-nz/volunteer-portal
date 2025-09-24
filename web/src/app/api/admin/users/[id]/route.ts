@@ -10,7 +10,7 @@ const deleteUserSchema = z.object({
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -28,7 +28,7 @@ export async function DELETE(
     );
   }
 
-  const userId = params.id;
+  const { id: userId } = await params;
 
   if (!userId) {
     return NextResponse.json({ error: "User ID is required" }, { status: 400 });

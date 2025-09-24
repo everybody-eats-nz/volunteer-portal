@@ -112,7 +112,7 @@ export function DeleteUserDialog({ user, children }: DeleteUserDialogProps) {
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="confirm-email" className="text-sm font-medium">
-              To confirm, please enter the user's email address:
+              To confirm, please enter the user&apos;s email address:
             </Label>
             <Input
               id="confirm-email"
