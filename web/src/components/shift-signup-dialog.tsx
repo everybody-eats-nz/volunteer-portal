@@ -68,6 +68,7 @@ export function ShiftSignupDialog({
   const [note, setNote] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [isUnderage, setIsUnderage] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [autoApprovalEligible, setAutoApprovalEligible] = useState<{
     eligible: boolean;
     ruleName?: string;
@@ -76,6 +77,13 @@ export function ShiftSignupDialog({
 
   const duration = getDurationInHours(shift.start, shift.end);
   const remaining = Math.max(0, shift.capacity - confirmedCount);
+
+  // Clear error when dialog opens
+  useEffect(() => {
+    if (open) {
+      setError(null);
+    }
+  }, [open]);
 
   // Check if user is underage (14 and under)
   useEffect(() => {
@@ -159,9 +167,12 @@ export function ShiftSignupDialog({
   }, [open, currentUserId, shift.id, isWaitlist]);
 
   const handleSignup = async () => {
+    // Clear any previous errors
+    setError(null);
+
     // Validate guardian name for underage users
     if (isUnderage && !guardianName.trim()) {
-      alert("Please provide your guardian's name");
+      setError("Please provide your guardian's name");
       return;
     }
 
@@ -242,15 +253,15 @@ export function ShiftSignupDialog({
           });
         }
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to sign up");
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to sign up");
       }
     } catch (error) {
       console.error("Signup error:", error);
-      alert("Failed to sign up. Please try again.");
+      setError("Failed to sign up. Please try again.");
     } finally {
       setIsSubmitting(false);
-      setOpen(false);
+      // Only close dialog on success - error state will keep it open
     }
   };
 
@@ -350,6 +361,17 @@ export function ShiftSignupDialog({
                 data-testid="shift-signup-guardian"
               />
             </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <InfoBox
+              title="Error"
+              variant="red"
+              testId="signup-error"
+            >
+              <p className="text-red-700">{error}</p>
+            </InfoBox>
           )}
 
           {/* Approval Process Info */}
