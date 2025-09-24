@@ -74,12 +74,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (signup.status === "CONFIRMED") confirmedCount += 1;
   }
 
-  // Read optional waitlist flag from form body
+  // Read optional waitlist flag and note from form body
   let waitlistRequested = false;
+  let note: string | null = null;
   try {
     const form = await req.formData();
     const val = form.get("waitlist");
     waitlistRequested = val === "1" || val === "true" || val === "on";
+
+    // Get optional note
+    const noteValue = form.get("note");
+    if (noteValue && typeof noteValue === "string") {
+      note = noteValue.trim() || null;
+    }
   } catch {
     // ignore body parse errors for non-form requests
   }
@@ -153,11 +160,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const isFlexibleShift = shift.shiftType.name === "Anywhere I'm Needed (PM)";
     
     const signup = await prisma.signup.create({
-      data: { 
-        userId: user.id, 
-        shiftId: shift.id, 
+      data: {
+        userId: user.id,
+        shiftId: shift.id,
         status: "WAITLISTED",
         isFlexiblePlacement: isFlexibleShift,
+        note: note,
       },
     });
 
@@ -178,11 +186,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const isFlexibleShift = shift.shiftType.name === "Anywhere I'm Needed (PM)";
     
     const signup = await prisma.signup.create({
-      data: { 
-        userId: user.id, 
-        shiftId: shift.id, 
+      data: {
+        userId: user.id,
+        shiftId: shift.id,
         status: "PENDING",
         isFlexiblePlacement: isFlexibleShift,
+        note: note,
       },
     });
 

@@ -134,16 +134,8 @@ const ResponsiveDialogContent = ({
 
   if (isDesktop) {
     return (
-      <DialogContent
-        className={cn(
-          "max-h-[85vh] overflow-hidden flex flex-col p-0",
-          className
-        )}
-        {...props}
-      >
-        <ScrollArea className="h-full max-h-[calc(85vh-2rem)] p-6">
-          {children}
-        </ScrollArea>
+      <DialogContent className={className} {...props}>
+        {children}
       </DialogContent>
     );
   }

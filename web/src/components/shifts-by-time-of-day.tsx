@@ -17,6 +17,7 @@ interface Shift {
   signups: Array<{
     id: string;
     status: string;
+    note: string | null;
     user: {
       id: string;
       name: string | null;
@@ -24,6 +25,7 @@ interface Shift {
       lastName: string | null;
       volunteerGrade: string | null;
       profilePhotoUrl: string | null;
+      dateOfBirth: Date | null;
       adminNotes: Array<{
         id: string;
         content: string;

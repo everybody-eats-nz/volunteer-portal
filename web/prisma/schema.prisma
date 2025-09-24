@@ -174,6 +174,9 @@ model Signup {
   originalShiftId     String?    // Original flexible shift ID before placement
   placedAt           DateTime?   // When volunteer was moved to final shift
   placementNotes     String?     // Admin notes about the placement
+
+  // Volunteer-provided note
+  note           String?        // Optional note from volunteer when signing up
   
   shift          Shift          @relation(fields: [shiftId], references: [id])
   user           User           @relation(fields: [userId], references: [id])

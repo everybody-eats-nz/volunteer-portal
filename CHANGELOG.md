@@ -1,3 +1,9 @@
+## [0.47.0] - 2025-09-24
+
+### Changes
+- feat: Add optional notes and guardian name for shift signups ([#164](https://github.com/everybody-eats-nz/volunteer-portal/pull/164)) by @malinmalliyawadu
+
+
 ## [0.46.3] - 2025-09-23
 
 ### Changes
