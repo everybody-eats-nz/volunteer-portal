@@ -236,7 +236,7 @@ export const columns: ColumnDef<User>[] = [
                 <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48" sideOffset={4} portal={true}>
+            <DropdownMenuContent align="end" className="w-48" sideOffset={4}>
               <DropdownMenuItem asChild>
                 <Link
                   href={`/admin/volunteers/${user.id}`}
