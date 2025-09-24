@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours, differenceInDays, differenceInMonths } from "date-fns";
+import {
+  differenceInHours,
+  differenceInMonths,
+  differenceInYears,
+  format,
+} from "date-fns";
 
 export interface AchievementCriteria {
   type:
@@ -263,14 +268,12 @@ export async function calculateUserProgress(
     0
   );
   const estimatedMeals = totalHours * 15; // ~15 meals per hour
-  const yearsVolunteering = Math.floor(
-    differenceInDays(new Date(), user.createdAt) / 365
-  );
+  const yearsVolunteering = differenceInYears(new Date(), user.createdAt);
 
   // Calculate consecutive months (simplified - volunteers who have at least one shift per month)
   const monthlyActivity = new Map<string, boolean>();
   completedShifts.forEach((signup: (typeof completedShifts)[0]) => {
-    const monthKey = `${signup.shift.start.getFullYear()}-${signup.shift.start.getMonth()}`;
+    const monthKey = format(signup.shift.start, "yyyy-MM");
     monthlyActivity.set(monthKey, true);
   });
 
