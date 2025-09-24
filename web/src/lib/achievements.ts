@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours, differenceInDays } from "date-fns";
+import { differenceInHours, differenceInDays, differenceInMonths } from "date-fns";
 
 export interface AchievementCriteria {
   type:
@@ -288,11 +288,10 @@ export async function calculateUserProgress(
 
       const prevDate = new Date(prevYear, prevMonth);
       const currDate = new Date(currYear, currMonth);
-      const monthsDiff =
-        (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      const monthsDiff = differenceInMonths(currDate, prevDate);
 
-      if (monthsDiff <= 1.5) {
-        // Allow some tolerance
+      if (monthsDiff === 1) {
+        // Exactly one month apart - consecutive
         currentStreak++;
       } else {
         consecutiveMonths = Math.max(consecutiveMonths, currentStreak);
