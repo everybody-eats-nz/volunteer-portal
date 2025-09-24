@@ -18,22 +18,12 @@ export function AchievementTracker({ userId }: AchievementTrackerProps) {
     newAchievements,
     showCelebration,
     checkAchievements,
-    initializeTracker,
     closeCelebration,
   } = useAchievementTracker();
 
-  // Initialize tracker and check for achievements when component mounts
+  // Check for achievements when component mounts
   useEffect(() => {
-    const initAndCheck = async () => {
-      // First, initialize the tracker with current state
-      await initializeTracker();
-      
-      // Then check for any new achievements
-      // This will detect if new achievements were unlocked since last visit
-      await checkAchievements();
-    };
-
-    initAndCheck();
+    checkAchievements();
   }, [userId]); // Re-run if userId changes
 
   // Only render the celebration dialog - this component is invisible otherwise

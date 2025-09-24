@@ -34,55 +34,52 @@ interface AchievementsData {
 
 /**
  * Hook to track achievements and detect new unlocks
- * Stores previous achievement state and compares with current to find new ones
+ * Uses localStorage to track last dashboard visit and unlockedAt timestamps
  */
 export function useAchievementTracker() {
-  const [previousAchievementIds, setPreviousAchievementIds] = useState<Set<string>>(new Set());
   const [newAchievements, setNewAchievements] = useState<Achievement[]>([]);
   const [showCelebration, setShowCelebration] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   /**
-   * Check for achievements and detect new ones
+   * Check for achievements unlocked since last dashboard visit
    */
   const checkAchievements = async (): Promise<AchievementsData | null> => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/achievements");
       
+      // Get last dashboard visit time from localStorage
+      const lastVisitKey = 'dashboard_last_visit';
+      const lastVisit = localStorage.getItem(lastVisitKey);
+      const lastVisitTime = lastVisit ? new Date(lastVisit) : new Date(0); // Use epoch if never visited
+      
+      // Trigger achievement calculation to unlock any new ones
+      const response = await fetch("/api/achievements");
       if (!response.ok) {
         console.error("Failed to fetch achievements");
         return null;
       }
-
       const data: AchievementsData = await response.json();
       
-      // Get current achievement IDs
-      const currentAchievementIds = new Set(
-        data.userAchievements.map(ua => ua.achievement.id)
-      );
-
-      // Find newly unlocked achievements
-      const newlyUnlocked: Achievement[] = [];
+      // Find achievements unlocked since last visit
+      const recentAchievements: Achievement[] = [];
+      data.userAchievements.forEach(userAchievement => {
+        const unlockedAt = new Date(userAchievement.unlockedAt);
+        if (unlockedAt > lastVisitTime) {
+          recentAchievements.push(userAchievement.achievement);
+        }
+      });
       
-      // Only check for new achievements if we have a previous state
-      if (previousAchievementIds.size > 0) {
-        data.userAchievements.forEach(userAchievement => {
-          if (!previousAchievementIds.has(userAchievement.achievement.id)) {
-            newlyUnlocked.push(userAchievement.achievement);
-          }
-        });
-      }
-
-      // Update state
-      setPreviousAchievementIds(currentAchievementIds);
-      
-      if (newlyUnlocked.length > 0) {
-        setNewAchievements(newlyUnlocked);
+      if (recentAchievements.length > 0) {
+        setNewAchievements(recentAchievements);
         setShowCelebration(true);
         
-        console.log(`🎉 New achievements unlocked:`, newlyUnlocked.map(a => a.name));
+        console.log(`🎉 Found ${recentAchievements.length} achievements unlocked since last visit:`, 
+          recentAchievements.map(a => a.name));
       }
+      
+      // Update last visit time AFTER checking for new achievements
+      localStorage.setItem(lastVisitKey, new Date().toISOString());
 
       return data;
     } catch (error) {
@@ -93,34 +90,6 @@ export function useAchievementTracker() {
     }
   };
 
-  /**
-   * Initialize the tracker with current achievements (without showing celebration)
-   */
-  const initializeTracker = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/achievements");
-      
-      if (!response.ok) {
-        console.error("Failed to initialize achievement tracker");
-        return;
-      }
-
-      const data: AchievementsData = await response.json();
-      
-      // Set initial state without triggering celebration
-      const currentAchievementIds = new Set(
-        data.userAchievements.map(ua => ua.achievement.id)
-      );
-      
-      setPreviousAchievementIds(currentAchievementIds);
-      console.log(`📊 Achievement tracker initialized with ${currentAchievementIds.size} achievements`);
-    } catch (error) {
-      console.error("Error initializing achievement tracker:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   /**
    * Close the celebration dialog
@@ -134,7 +103,6 @@ export function useAchievementTracker() {
    * Reset the tracker (useful for testing or manual reset)
    */
   const resetTracker = () => {
-    setPreviousAchievementIds(new Set());
     setNewAchievements([]);
     setShowCelebration(false);
   };
@@ -147,7 +115,6 @@ export function useAchievementTracker() {
     
     // Actions
     checkAchievements,
-    initializeTracker,
     closeCelebration,
     resetTracker,
   };

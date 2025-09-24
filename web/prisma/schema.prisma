@@ -204,15 +204,17 @@ model Achievement {
 }
 
 model UserAchievement {
-  id            String      @id @default(cuid())
-  userId        String
-  achievementId String
-  unlockedAt    DateTime    @default(now())
-  progress      Int         @default(0)
-  achievement   Achievement @relation(fields: [achievementId], references: [id])
-  user          User        @relation(fields: [userId], references: [id])
+  id               String      @id @default(cuid())
+  userId           String
+  achievementId    String
+  unlockedAt       DateTime    @default(now())
+  progress         Int         @default(0)
+  celebrationShown Boolean     @default(false)
+  achievement      Achievement @relation(fields: [achievementId], references: [id])
+  user             User        @relation(fields: [userId], references: [id])
 
   @@unique([userId, achievementId])
+  @@index([userId, celebrationShown])
 }
 
 model GroupBooking {
