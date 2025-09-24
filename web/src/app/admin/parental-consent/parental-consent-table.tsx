@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { calculateAge } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
@@ -122,13 +123,7 @@ export function ParentalConsentTable() {
   };
 
   const getAge = (dateOfBirth: string) => {
-    const birthDate = new Date(dateOfBirth);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    const hasHadBirthdayThisYear = 
-      today.getMonth() > birthDate.getMonth() ||
-      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
-    return hasHadBirthdayThisYear ? age : age - 1;
+    return calculateAge(new Date(dateOfBirth));
   };
 
   if (loading) {

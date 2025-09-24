@@ -7,6 +7,7 @@ import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { validatePassword } from "@/lib/utils/password-validation";
 import { checkForBot } from "@/lib/bot-protection";
+import { calculateAge } from "@/lib/utils";
 
 /**
  * Validation schema for user registration
@@ -158,13 +159,8 @@ export async function POST(req: Request) {
     let requiresParentalConsent = false;
     if (validatedData.dateOfBirth) {
       const birthDate = new Date(validatedData.dateOfBirth);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
-      const hasHadBirthdayThisYear = 
-        today.getMonth() > birthDate.getMonth() ||
-        (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
-      const actualAge = hasHadBirthdayThisYear ? age : age - 1;
-      requiresParentalConsent = actualAge < 18;
+      const age = calculateAge(birthDate);
+      requiresParentalConsent = age < 18;
     }
 
     // Prepare data for database insertion

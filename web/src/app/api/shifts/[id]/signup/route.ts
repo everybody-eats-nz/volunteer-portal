@@ -6,6 +6,9 @@ import { getNotificationService } from "@/lib/notification-service";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { isFeatureEnabled } from "@/lib/posthog-server";
 import { checkForBot } from "@/lib/bot-protection";
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
 
 export async function POST(
   req: Request,
@@ -33,6 +36,7 @@ export async function POST(
       firstName: true,
       lastName: true,
       role: true,
+      dateOfBirth: true,
     },
   });
   if (!user)
@@ -93,7 +97,38 @@ export async function POST(
     // Get optional note
     const noteValue = form.get("note");
     if (noteValue && typeof noteValue === "string") {
-      note = noteValue.trim() || null;
+      const trimmedNote = noteValue.trim();
+
+      // Add length validation
+      if (trimmedNote.length > MAX_NOTE_LENGTH) {
+        return NextResponse.json(
+          { error: "Note too long" },
+          { status: 400 }
+        );
+      }
+
+      // Add input sanitization using DOMPurify
+      if (trimmedNote) {
+        const window = new JSDOM('').window;
+        const purify = DOMPurify(window);
+        note = purify.sanitize(trimmedNote) || null;
+      } else {
+        note = null;
+      }
+
+      // Add server-side age validation for guardian requirement
+      if (user.dateOfBirth) {
+        const userAge = calculateAge(user.dateOfBirth);
+        if (userAge <= GUARDIAN_REQUIRED_AGE && note && !note.toLowerCase().includes('guardian')) {
+          return NextResponse.json(
+            {
+              error: "Guardian name required",
+              message: "Since you are under 15, please include your guardian's name in the note."
+            },
+            { status: 400 }
+          );
+        }
+      }
     }
   } catch {
     // ignore body parse errors for non-form requests
