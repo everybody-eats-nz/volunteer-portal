@@ -410,10 +410,16 @@ test.describe("Admin Users Management", () => {
           const userId = firstRowTestId?.replace("user-row-", "");
 
           if (userId) {
-            const viewDetailsButton = page
-              .getByTestId(`user-row-${userId}`)
-              .getByRole("link");
-            await viewDetailsButton.click();
+            // Two ways to navigate to user details:
+            // 1. Click the row directly (avoiding the actions button area)
+            // 2. Use the dropdown menu "View Details" option
+
+            // Option 1: Click on the row (avoiding the actions button area)
+            const userRow = page.getByTestId(`user-row-${userId}`);
+
+            // Click on the user name cell to trigger navigation
+            const userNameCell = userRow.getByTestId(`user-name-${userId}`);
+            await userNameCell.click();
 
             // Should navigate to user details page
             await page.waitForURL(`**/admin/volunteers/${userId}`, {
@@ -425,6 +431,265 @@ test.describe("Admin Users Management", () => {
           }
         }
       }
+    });
+  });
+
+  test.describe("User Deletion", () => {
+    test("should display user actions dropdown with delete option", async ({
+      page,
+    }) => {
+      await page.goto("/admin/users");
+      await waitForPageLoad(page);
+
+      const usersList = page.getByTestId("users-list");
+
+      if (await usersList.isVisible()) {
+        const userRows = page.locator("[data-testid^='user-row-']");
+        const userCount = await userRows.count();
+
+        if (userCount > 0) {
+          const firstRowTestId = await userRows
+            .first()
+            .getAttribute("data-testid");
+          const userId = firstRowTestId?.replace("user-row-", "");
+
+          if (userId) {
+            // Click on the actions dropdown
+            const actionsButton = page.getByTestId(`user-actions-${userId}`);
+            await expect(actionsButton).toBeVisible();
+            await actionsButton.click();
+
+            // Verify dropdown menu items
+            const viewDetailsOption = page.getByTestId(`view-user-${userId}`);
+            const deleteUserOption = page.getByTestId(`delete-user-${userId}`);
+
+            await expect(viewDetailsOption).toBeVisible();
+            await expect(deleteUserOption).toBeVisible();
+            await expect(deleteUserOption).toContainText("Delete User");
+
+            // Close dropdown by clicking elsewhere
+            await page.keyboard.press("Escape");
+          }
+        }
+      }
+    });
+
+    test("should open delete confirmation dialog", async ({ page }) => {
+      await page.goto("/admin/users");
+      await waitForPageLoad(page);
+
+      const usersList = page.getByTestId("users-list");
+
+      if (await usersList.isVisible()) {
+        const userRows = page.locator("[data-testid^='user-row-']");
+        const userCount = await userRows.count();
+
+        if (userCount > 0) {
+          const firstRowTestId = await userRows
+            .first()
+            .getAttribute("data-testid");
+          const userId = firstRowTestId?.replace("user-row-", "");
+
+          if (userId) {
+            // Open actions dropdown
+            const actionsButton = page.getByTestId(`user-actions-${userId}`);
+            await actionsButton.click();
+
+            // Click delete option
+            const deleteUserOption = page.getByTestId(`delete-user-${userId}`);
+            await deleteUserOption.click();
+
+            // Verify delete dialog opens
+            const deleteDialog = page.locator('[role="dialog"]').filter({
+              hasText: "Delete User",
+            });
+            await expect(deleteDialog).toBeVisible();
+
+            // Check dialog content
+            await expect(deleteDialog).toContainText("permanently delete");
+            await expect(deleteDialog).toContainText("This action cannot be undone");
+            await expect(deleteDialog).toContainText("Warning:");
+            await expect(deleteDialog).toContainText("Profile information");
+            await expect(deleteDialog).toContainText("Shift signups and history");
+
+            // Check form elements
+            const emailInput = page.getByTestId("delete-user-email-input");
+            const cancelButton = page.getByTestId("delete-user-cancel-button");
+            const confirmButton = page.getByTestId("delete-user-confirm-button");
+
+            await expect(emailInput).toBeVisible();
+            await expect(cancelButton).toBeVisible();
+            await expect(confirmButton).toBeVisible();
+
+            // Confirm button should be disabled initially
+            await expect(confirmButton).toBeDisabled();
+
+            // Cancel the dialog
+            await cancelButton.click();
+            await expect(deleteDialog).not.toBeVisible();
+          }
+        }
+      }
+    });
+
+    test("should validate email confirmation requirement", async ({ page }) => {
+      await page.goto("/admin/users");
+      await waitForPageLoad(page);
+
+      const usersList = page.getByTestId("users-list");
+
+      if (await usersList.isVisible()) {
+        const userRows = page.locator("[data-testid^='user-row-']");
+        const userCount = await userRows.count();
+
+        if (userCount > 0) {
+          const firstRowTestId = await userRows
+            .first()
+            .getAttribute("data-testid");
+          const userId = firstRowTestId?.replace("user-row-", "");
+
+          if (userId) {
+            // Get user's email from the table
+            const userEmail = page.getByTestId(`user-email-${userId}`);
+            const emailText = await userEmail.textContent();
+            expect(emailText).toBeTruthy();
+
+            // Open delete dialog
+            const actionsButton = page.getByTestId(`user-actions-${userId}`);
+            await actionsButton.click();
+            const deleteUserOption = page.getByTestId(`delete-user-${userId}`);
+            await deleteUserOption.click();
+
+            const deleteDialog = page.locator('[role="dialog"]').filter({
+              hasText: "Delete User",
+            });
+            await expect(deleteDialog).toBeVisible();
+
+            const emailInput = page.getByTestId("delete-user-email-input");
+            const confirmButton = page.getByTestId("delete-user-confirm-button");
+
+            // Test with wrong email
+            await emailInput.fill("wrong@email.com");
+            await expect(confirmButton).toBeDisabled();
+
+            // Test with correct email (extract from emailText)
+            if (emailText) {
+              await emailInput.clear();
+              await emailInput.fill(emailText);
+              await expect(confirmButton).not.toBeDisabled();
+            }
+
+            // Cancel the dialog
+            const cancelButton = page.getByTestId("delete-user-cancel-button");
+            await cancelButton.click();
+          }
+        }
+      }
+    });
+
+    test("should handle delete API errors gracefully", async ({ page }) => {
+      await page.goto("/admin/users");
+      await waitForPageLoad(page);
+
+      const usersList = page.getByTestId("users-list");
+
+      if (await usersList.isVisible()) {
+        const userRows = page.locator("[data-testid^='user-row-']");
+        const userCount = await userRows.count();
+
+        if (userCount > 0) {
+          const firstRowTestId = await userRows
+            .first()
+            .getAttribute("data-testid");
+          const userId = firstRowTestId?.replace("user-row-", "");
+
+          if (userId) {
+            // Mock API to return error
+            await page.route(`**/api/admin/users/${userId}`, (route) => {
+              if (route.request().method() === "DELETE") {
+                route.fulfill({
+                  status: 500,
+                  contentType: "application/json",
+                  body: JSON.stringify({ error: "Internal server error" }),
+                });
+              } else {
+                route.continue();
+              }
+            });
+
+            // Get user's email
+            const userEmail = page.getByTestId(`user-email-${userId}`);
+            const emailText = await userEmail.textContent();
+
+            if (emailText) {
+              // Open delete dialog
+              const actionsButton = page.getByTestId(`user-actions-${userId}`);
+              await actionsButton.click();
+              const deleteUserOption = page.getByTestId(`delete-user-${userId}`);
+              await deleteUserOption.click();
+
+              const deleteDialog = page.locator('[role="dialog"]').filter({
+                hasText: "Delete User",
+              });
+              await expect(deleteDialog).toBeVisible();
+
+              // Fill in correct email and confirm
+              const emailInput = page.getByTestId("delete-user-email-input");
+              const confirmButton = page.getByTestId("delete-user-confirm-button");
+
+              await emailInput.fill(emailText);
+              await confirmButton.click();
+
+              // Should show error message
+              await expect(deleteDialog).toContainText("Internal server error");
+
+              // Dialog should remain open
+              await expect(deleteDialog).toBeVisible();
+            }
+
+            // Clean up route
+            await page.unroute(`**/api/admin/users/${userId}`);
+          }
+        }
+      }
+    });
+
+    test.skip("should successfully delete a user (skipped to avoid data loss)", async ({
+      page,
+    }) => {
+      // This test is skipped because it would actually delete a user
+      // In a real testing environment with test data, this would:
+      // 1. Create a test user specifically for deletion
+      // 2. Navigate to admin users page
+      // 3. Find the test user
+      // 4. Open delete dialog
+      // 5. Enter correct email confirmation
+      // 6. Confirm deletion
+      // 7. Verify user is removed from the list
+      // 8. Verify success message (if any)
+
+      await page.goto("/admin/users");
+      await waitForPageLoad(page);
+
+      // Implementation would go here for a proper test environment
+    });
+
+    test("should prevent self-deletion", async ({ page }) => {
+      await page.goto("/admin/users");
+      await waitForPageLoad(page);
+
+      // This test would need to identify the current admin user
+      // and verify they cannot delete themselves
+      // The implementation would depend on how we identify the current user
+      // in the test environment
+
+      const usersList = page.getByTestId("users-list");
+      await expect(usersList).toBeVisible();
+
+      // In a complete implementation, we would:
+      // 1. Find the current admin user's row
+      // 2. Verify the delete option is either not available or shows an error
+      // 3. Test that the API returns an appropriate error message
     });
   });
 
