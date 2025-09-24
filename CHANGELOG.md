@@ -1,3 +1,9 @@
+## [0.47.2] - 2025-09-24
+
+### Changes
+- Fix achievement system with history-based calculation ([#166](https://github.com/everybody-eats-nz/volunteer-portal/pull/166)) by @malinmalliyawadu
+
+
 ## [0.47.1] - 2025-09-24
 
 ### Changes
