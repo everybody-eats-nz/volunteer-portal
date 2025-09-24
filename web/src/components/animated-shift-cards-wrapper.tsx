@@ -17,6 +17,7 @@ interface Shift {
   signups: Array<{
     id: string;
     status: string;
+    note: string | null;
     user: {
       id: string;
       name: string | null;

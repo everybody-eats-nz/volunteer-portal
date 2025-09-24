@@ -452,6 +452,31 @@ const REALISTIC_VOLUNTEERS = [
     requiresParentalConsent: true,
     parentalConsentReceived: false, // Pending approval
   },
+  {
+    email: "logan.johnson@school.nz",
+    firstName: "Logan",
+    lastName: "Johnson",
+    phone: "+64 27 123 4567",
+    dateOfBirth: subYears(new Date(), 13), // 13 years old - under 14
+    pronouns: "he/him",
+    emergencyContactName: "Rebecca Johnson",
+    emergencyContactRelationship: "Mother",
+    emergencyContactPhone: "+64 27 890 1234",
+    medicalConditions: "No medical conditions",
+    willingToProvideReference: false,
+    howDidYouHearAboutUs: "School newsletter",
+    availableDays: JSON.stringify(["Saturday"]),
+    availableLocations: JSON.stringify(["Wellington"]),
+    emailNewsletterSubscription: true,
+    notificationPreference: "EMAIL",
+    receiveShortageNotifications: false,
+    excludedShortageNotificationTypes: [],
+    volunteerAgreementAccepted: true,
+    healthSafetyPolicyAccepted: true,
+    requiresParentalConsent: true,
+    parentalConsentReceived: true, // Already approved for testing
+    parentalConsentReceivedAt: subDays(new Date(), 3),
+  },
 ];
 
 async function main() {

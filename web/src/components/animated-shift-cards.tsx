@@ -102,6 +102,7 @@ interface Shift {
   signups: Array<{
     id: string;
     status: string;
+    note: string | null;
     user: {
       id: string;
       name: string | null;
@@ -564,6 +565,12 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                       />
                                     )}
                                   </div>
+                                  {signup.note && (
+                                    <div className="text-xs text-muted-foreground mt-1 p-2 bg-gray-50 rounded-md">
+                                      <span className="font-medium">Note: </span>
+                                      {signup.note}
+                                    </div>
+                                  )}
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1 flex-wrap">
                                       <div
