@@ -36,55 +36,15 @@ async function generateRandomProfileImagesForAllUsers() {
   });
 
   return allUsers.map(({ email, pronouns, firstName }) => {
-    // Determine gender category based on pronouns, with fallback logic
+    // Simple gender determination based on pronouns
     let gender = "women"; // Default
-    if (pronouns) {
-      if (pronouns.includes("he/him")) {
-        gender = "men";
-      } else if (pronouns.includes("she/her")) {
-        gender = "women";
-      } else {
-        // For they/them or other pronouns, randomly assign or use name heuristics
-        gender = Math.random() > 0.5 ? "men" : "women";
-      }
+    if (pronouns?.includes("he/him")) {
+      gender = "men";
+    } else if (pronouns?.includes("she/her")) {
+      gender = "women";
     } else {
-      // Fallback: use email or firstName for gender guess, or random
-      const maleNames = [
-        "james",
-        "mike",
-        "tom",
-        "david",
-        "john",
-        "alex",
-        "noah",
-        "ethan",
-        "lucas",
-        "mason",
-        "oliver",
-        "liam",
-      ];
-      const femaleNames = [
-        "sarah",
-        "priya",
-        "maria",
-        "lucy",
-        "emma",
-        "olivia",
-        "ava",
-        "isabella",
-        "sophia",
-        "mia",
-      ];
-
-      const nameToCheck =
-        firstName?.toLowerCase() || email.split("@")[0].toLowerCase();
-      if (maleNames.some((name) => nameToCheck.includes(name))) {
-        gender = "men";
-      } else if (femaleNames.some((name) => nameToCheck.includes(name))) {
-        gender = "women";
-      } else {
-        gender = Math.random() > 0.5 ? "men" : "women";
-      }
+      // For they/them or missing pronouns, default to women
+      gender = "women";
     }
 
     // Generate random number between 0-99 for profile diversity
