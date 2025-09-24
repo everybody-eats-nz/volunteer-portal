@@ -28,7 +28,7 @@ export default async function Home() {
 
   return (
     <HomePageWrapper data-testid="home-page">
-      <section className="section-hero py-14" data-testid="hero-section">
+      <section className="section-hero md:py-14" data-testid="hero-section">
         <div className="grid gap-8 md:grid-cols-2 md:items-center">
           <HeroContent>
             <h1

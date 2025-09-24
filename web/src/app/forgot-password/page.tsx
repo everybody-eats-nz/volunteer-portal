@@ -31,7 +31,10 @@ const formFieldVariants = {
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const searchParams = useSearchParams();
-  const [state, formAction, isPending] = useActionState(forgotPasswordAction, null);
+  const [state, formAction, isPending] = useActionState(
+    forgotPasswordAction,
+    null
+  );
 
   // Pre-fill email if provided in URL
   useEffect(() => {
@@ -50,7 +53,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <MotionPageContainer
-      className="min-h-[80vh] flex items-center justify-center"
+      className="md:min-h-[80vh] flex items-center justify-center"
       testid="forgot-password-page"
     >
       <div className="w-full max-w-md">
@@ -96,7 +99,10 @@ export default function ForgotPasswordPage() {
                 />
               </motion.div>
 
-              <MotionFormSuccess show={!!state?.success} data-testid="success-message">
+              <MotionFormSuccess
+                show={!!state?.success}
+                data-testid="success-message"
+              >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 pt-0.5">
                     <svg
@@ -117,7 +123,10 @@ export default function ForgotPasswordPage() {
                 </div>
               </MotionFormSuccess>
 
-              <MotionFormError show={state?.success === false} data-testid="error-message">
+              <MotionFormError
+                show={state?.success === false}
+                data-testid="error-message"
+              >
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   <div className="flex items-center gap-2">
                     <svg
