@@ -56,7 +56,13 @@ export function useAchievementTracker() {
       // Trigger achievement calculation to unlock any new ones
       const response = await fetch("/api/achievements");
       if (!response.ok) {
-        console.error("Failed to fetch achievements");
+        console.error("Failed to fetch achievements:", {
+          status: response.status,
+          statusText: response.statusText,
+        });
+        if (response.status === 401) {
+          console.error("User not authenticated - skipping achievement check");
+        }
         return null;
       }
       const data: AchievementsData = await response.json();

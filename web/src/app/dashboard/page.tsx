@@ -50,6 +50,11 @@ export default async function DashboardPage() {
           <DashboardNextShift userId={userId} />
         </Suspense>
 
+        {/* Achievements - streams in when ready */}
+        <Suspense fallback={<DashboardContentSkeleton />}>
+          <AchievementsCard />
+        </Suspense>
+
         {/* Recent Activity - streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardRecentActivity userId={userId} />
@@ -57,11 +62,6 @@ export default async function DashboardPage() {
       </ContentGrid>
 
       <BottomGrid>
-        {/* Achievements - streams in when ready */}
-        <Suspense fallback={<DashboardContentSkeleton />}>
-          <AchievementsCard />
-        </Suspense>
-
         {/* Impact & Community Stats - streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardImpactStats userId={userId} />
