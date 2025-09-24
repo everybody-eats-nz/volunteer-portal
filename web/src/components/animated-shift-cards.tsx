@@ -79,22 +79,8 @@ import { isShiftCompleted } from "@/lib/shift-utils";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
+import { calculateAge } from "@/lib/utils";
 
-// Helper function to calculate age from date of birth
-function calculateAge(dateOfBirth: Date | null): number | null {
-  if (!dateOfBirth) return null;
-
-  const today = new Date();
-  const birthDate = new Date(dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-
-  return age;
-}
 
 // Layout update context for triggering masonry recalculation
 const LayoutUpdateContext = createContext<(() => void) | null>(null);
@@ -582,7 +568,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                       />
                                     )}
                                     {(() => {
-                                      const age = calculateAge(signup.user.dateOfBirth);
+                                      const age = signup.user.dateOfBirth ? calculateAge(signup.user.dateOfBirth) : null;
                                       return age !== null && age <= 18 ? (
                                         <Badge
                                           variant="outline"
