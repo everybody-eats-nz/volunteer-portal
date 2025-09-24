@@ -1,3 +1,9 @@
+## [0.47.1] - 2025-09-24
+
+### Changes
+- fix: add comprehensive input sanitization and validation security improvements ([#165](https://github.com/everybody-eats-nz/volunteer-portal/pull/165)) by @malinmalliyawadu
+
+
 ## [0.47.0] - 2025-09-24
 
 ### Changes
