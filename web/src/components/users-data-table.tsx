@@ -10,7 +10,7 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { ArrowUpDown, Mail, Calendar, Shield, Users, ChevronRight } from "lucide-react";
+import { ArrowUpDown, Mail, Calendar, Shield, Users, ChevronRight, Trash2, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -26,7 +26,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { type VolunteerGrade } from "@prisma/client";
+import { DeleteUserDialog } from "@/components/delete-user-dialog";
 
 export interface User {
   id: string;
@@ -217,17 +224,42 @@ export const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const user = row.original;
       return (
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 hover:bg-slate-100 transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Link href={`/admin/volunteers/${user.id}`}>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </Button>
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-slate-100 transition-colors"
+                data-testid={`user-actions-${user.id}`}
+              >
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48" sideOffset={4} portal={true}>
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/admin/volunteers/${user.id}`}
+                  className="flex items-center gap-2"
+                  data-testid={`view-user-${user.id}`}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                  View Details
+                </Link>
+              </DropdownMenuItem>
+              <DeleteUserDialog user={user}>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                  onSelect={(e) => e.preventDefault()}
+                  data-testid={`delete-user-${user.id}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete User
+                </DropdownMenuItem>
+              </DeleteUserDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       );
     },
   },
