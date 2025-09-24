@@ -289,8 +289,8 @@ export async function calculateUserProgress(
       const [prevYear, prevMonth] = sortedMonths[i - 1].split("-").map(Number);
       const [currYear, currMonth] = sortedMonths[i].split("-").map(Number);
 
-      const prevDate = new Date(prevYear, prevMonth);
-      const currDate = new Date(currYear, currMonth);
+      const prevDate = new Date(prevYear, prevMonth - 1);
+      const currDate = new Date(currYear, currMonth - 1);
       const monthsDiff = differenceInMonths(currDate, prevDate);
 
       if (monthsDiff === 1) {
