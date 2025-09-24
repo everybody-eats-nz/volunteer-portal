@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 export async function POST(req: Request) {
   try {
@@ -137,13 +136,7 @@ export async function POST(req: Request) {
       return signup;
     });
 
-    // Check for achievements after successful signup
-    try {
-      await checkAndUnlockAchievements(user.id);
-    } catch (achievementError) {
-      console.error("Error checking achievements:", achievementError);
-      // Don't fail the signup if achievement checking fails
-    }
+    // Achievements will be calculated when user visits dashboard/achievements page
 
     // TODO: Send notification email to group leader
 
