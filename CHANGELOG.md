@@ -1,3 +1,9 @@
+## [0.48.0] - 2025-09-24
+
+### Changes
+- feat: add user deletion functionality with email confirmation ([#167](https://github.com/everybody-eats-nz/volunteer-portal/pull/167)) by @malinmalliyawadu
+
+
 ## [0.47.2] - 2025-09-24
 
 ### Changes
