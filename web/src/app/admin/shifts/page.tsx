@@ -86,6 +86,7 @@ export default async function AdminShiftsPage({
               lastName: true,
               volunteerGrade: true,
               profilePhotoUrl: true,
+              dateOfBirth: true,
               adminNotes: {
                 where: {
                   isArchived: false,

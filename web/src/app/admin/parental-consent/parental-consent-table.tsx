@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { 
-  CheckCircle, 
-  Clock, 
-  Phone, 
-  Mail, 
+import Link from "next/link";
+import {
+  CheckCircle,
+  Clock,
+  Phone,
+  Mail,
   User,
   AlertCircle
 } from "lucide-react";
@@ -167,7 +168,12 @@ export function ParentalConsentTable() {
                           <div className="flex items-center gap-2">
                             <div>
                               <div className="font-medium">
-                                {user.firstName} {user.lastName}
+                                <Link
+                                  href={`/admin/volunteers/${user.id}`}
+                                  className="hover:underline font-medium"
+                                >
+                                  {user.firstName} {user.lastName}
+                                </Link>
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 {user.email}
@@ -262,7 +268,12 @@ export function ParentalConsentTable() {
                         <td className="px-4 py-3">
                           <div>
                             <div className="font-medium">
-                              {user.firstName} {user.lastName}
+                              <Link
+                                href={`/admin/volunteers/${user.id}`}
+                                className="hover:underline font-medium"
+                              >
+                                {user.firstName} {user.lastName}
+                              </Link>
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {user.email}

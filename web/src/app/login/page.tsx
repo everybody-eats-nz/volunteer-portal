@@ -169,7 +169,9 @@ export default function LoginPage() {
     }
   }
 
-  async function handleQuickLogin(userType: "volunteer" | "admin") {
+  async function handleQuickLogin(
+    userType: "volunteer" | "admin" | "minor16" | "minor13"
+  ) {
     setError(null);
     setSuccessMessage(null);
     setIsLoading(true);
@@ -186,6 +188,14 @@ export default function LoginPage() {
         email:
           process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL || "admin@everybodyeats.nz",
         password: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD || "admin123",
+      },
+      minor16: {
+        email: "emma.parker@student.ac.nz",
+        password: "volunteer123", // Same password as demo volunteers
+      },
+      minor13: {
+        email: "logan.johnson@school.nz",
+        password: "volunteer123", // Same password as demo volunteers
       },
     };
 
@@ -519,6 +529,31 @@ export default function LoginPage() {
                     >
                       Login as Admin
                     </Button>
+                    <div className="pt-2 border-t border-border/50">
+                      <p className="text-xs font-medium text-primary mb-2">
+                        Underage Users (for testing):
+                      </p>
+                      <div className="flex flex-col gap-1.5">
+                        <Button
+                          onClick={() => handleQuickLogin("minor16")}
+                          className="w-full btn-secondary text-xs"
+                          size="sm"
+                          disabled={isLoading || oauthLoading !== null}
+                          data-testid="quick-login-minor16-button"
+                        >
+                          16 year old (not approved)
+                        </Button>
+                        <Button
+                          onClick={() => handleQuickLogin("minor13")}
+                          className="w-full btn-secondary text-xs"
+                          size="sm"
+                          disabled={isLoading || oauthLoading !== null}
+                          data-testid="quick-login-minor13-button"
+                        >
+                          13 year old
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
                     Volunteer: volunteer@example.com | Admin:

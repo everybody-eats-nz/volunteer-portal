@@ -28,75 +28,55 @@ function setInNZT(date, options) {
 
 const prisma = new PrismaClient();
 
-// Generate random profile images using randomuser.me for all users
+// Generate random profile images and names using randomuser.me for all users
 async function generateRandomProfileImagesForAllUsers() {
   // Get all users from database
   const allUsers = await prisma.user.findMany({
-    select: { email: true, pronouns: true, firstName: true },
+    select: { email: true, pronouns: true, firstName: true, id: true },
   });
 
-  return allUsers.map(({ email, pronouns, firstName }) => {
-    // Determine gender category based on pronouns, with fallback logic
-    let gender = "women"; // Default
-    if (pronouns) {
-      if (pronouns.includes("he/him")) {
-        gender = "men";
-      } else if (pronouns.includes("she/her")) {
-        gender = "women";
-      } else {
-        // For they/them or other pronouns, randomly assign or use name heuristics
-        gender = Math.random() > 0.5 ? "men" : "women";
-      }
-    } else {
-      // Fallback: use email or firstName for gender guess, or random
-      const maleNames = [
-        "james",
-        "mike",
-        "tom",
-        "david",
-        "john",
-        "alex",
-        "noah",
-        "ethan",
-        "lucas",
-        "mason",
-        "oliver",
-        "liam",
-      ];
-      const femaleNames = [
-        "sarah",
-        "priya",
-        "maria",
-        "lucy",
-        "emma",
-        "olivia",
-        "ava",
-        "isabella",
-        "sophia",
-        "mia",
-      ];
+  const userUpdates = [];
 
-      const nameToCheck =
-        firstName?.toLowerCase() || email.split("@")[0].toLowerCase();
-      if (maleNames.some((name) => nameToCheck.includes(name))) {
-        gender = "men";
-      } else if (femaleNames.some((name) => nameToCheck.includes(name))) {
-        gender = "women";
-      } else {
-        gender = Math.random() > 0.5 ? "men" : "women";
-      }
+  for (const { email, pronouns, id } of allUsers) {
+    // Simple gender determination based on pronouns
+    let gender = "female"; // Default for API
+    if (pronouns?.includes("he/him")) {
+      gender = "male";
+    } else if (pronouns?.includes("she/her")) {
+      gender = "female";
+    } else {
+      // For they/them or missing pronouns, default to female
+      gender = "female";
     }
 
-    // Generate random number between 0-99 for profile diversity
-    const randomId = Math.floor(Math.random() * 100);
-    const filename = `${email.split("@")[0].replace(".", "-")}-${randomId}.jpg`;
+    try {
+      // Get full user data from randomuser.me API
+      const response = await fetch(`https://randomuser.me/api/?gender=${gender}&inc=name,picture&nat=us,au,ca,gb,nz`);
+      const data = await response.json();
 
-    return {
-      url: `https://randomuser.me/api/portraits/${gender}/${randomId}.jpg`,
-      filename,
-      email,
-    };
-  });
+      if (data.results && data.results.length > 0) {
+        const user = data.results[0];
+        const firstName = user.name.first;
+        const lastName = user.name.last;
+        const photoUrl = user.picture.large;
+
+        userUpdates.push({
+          id,
+          email,
+          firstName,
+          lastName,
+          photoUrl,
+        });
+      }
+
+      // Add delay to be respectful to API
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.log(`⚠️ Failed to get data for ${email}: ${error.message}`);
+    }
+  }
+
+  return userUpdates;
 }
 
 function downloadImageAsBase64(url) {
@@ -144,46 +124,34 @@ async function downloadAndConvertProfileImages() {
     "🎲 Generating random profile photos from randomuser.me for all users...\n"
   );
 
-  // Generate profile images for all users dynamically
-  const profileImages = await generateRandomProfileImagesForAllUsers();
-  console.log(`📊 Found ${profileImages.length} users to process`);
+  // Generate profile data for all users dynamically
+  const userUpdates = await generateRandomProfileImagesForAllUsers();
+  console.log(`📊 Found ${userUpdates.length} users to process`);
 
-  for (const image of profileImages) {
+  for (const update of userUpdates) {
     try {
-      console.log(`📸 Processing ${image.email} with random photo...`);
+      console.log(`📸 Processing ${update.email} (${update.firstName} ${update.lastName}) with random data...`);
 
       // Download image directly as base64 (no file storage needed)
-      const base64Data = await downloadImageAsBase64(image.url);
+      const base64Data = await downloadImageAsBase64(update.photoUrl);
 
       if (base64Data) {
-        await prisma.user.updateMany({
-          where: { email: image.email },
-          data: { profilePhotoUrl: base64Data },
+        await prisma.user.update({
+          where: { id: update.id },
+          data: {
+            firstName: update.firstName,
+            lastName: update.lastName,
+            name: `${update.firstName} ${update.lastName}`,
+            profilePhotoUrl: base64Data
+          },
         });
-        console.log(`✅ Updated random profile image for ${image.email}`);
+        console.log(`✅ Updated profile for ${update.email} (${update.firstName} ${update.lastName})`);
       }
 
       // Add a small delay to be respectful to the API
       await new Promise((resolve) => setTimeout(resolve, 300));
     } catch (error) {
-      console.log(`⚠️ Failed to process ${image.email}: ${error.message}`);
-      // Try a fallback image
-      try {
-        const fallbackId = Math.floor(Math.random() * 50); // Different random range for fallback
-        const gender = image.url.includes("/women/") ? "women" : "men";
-        const fallbackUrl = `https://randomuser.me/api/portraits/${gender}/${fallbackId}.jpg`;
-        const fallbackBase64 = await downloadImageAsBase64(fallbackUrl);
-
-        if (fallbackBase64) {
-          await prisma.user.updateMany({
-            where: { email: image.email },
-            data: { profilePhotoUrl: fallbackBase64 },
-          });
-          console.log(`✅ Updated ${image.email} with fallback random image`);
-        }
-      } catch (fallbackError) {
-        console.log(`❌ Fallback also failed for ${image.email}`);
-      }
+      console.log(`⚠️ Failed to process ${update.email}: ${error.message}`);
     }
   }
 
@@ -452,6 +420,31 @@ const REALISTIC_VOLUNTEERS = [
     requiresParentalConsent: true,
     parentalConsentReceived: false, // Pending approval
   },
+  {
+    email: "logan.johnson@school.nz",
+    firstName: "Logan",
+    lastName: "Johnson",
+    phone: "+64 27 123 4567",
+    dateOfBirth: subYears(new Date(), 13), // 13 years old - under 14
+    pronouns: "he/him",
+    emergencyContactName: "Rebecca Johnson",
+    emergencyContactRelationship: "Mother",
+    emergencyContactPhone: "+64 27 890 1234",
+    medicalConditions: "No medical conditions",
+    willingToProvideReference: false,
+    howDidYouHearAboutUs: "School newsletter",
+    availableDays: JSON.stringify(["Saturday"]),
+    availableLocations: JSON.stringify(["Wellington"]),
+    emailNewsletterSubscription: true,
+    notificationPreference: "EMAIL",
+    receiveShortageNotifications: false,
+    excludedShortageNotificationTypes: [],
+    volunteerAgreementAccepted: true,
+    healthSafetyPolicyAccepted: true,
+    requiresParentalConsent: true,
+    parentalConsentReceived: true, // Already approved for testing
+    parentalConsentReceivedAt: subDays(new Date(), 3),
+  },
 ];
 
 async function main() {
@@ -581,88 +574,8 @@ async function main() {
   // Need enough volunteers to fill all daily shifts (83 total spots across all locations)
   for (let i = 1; i <= 70; i++) {
     const email = `vol${i}@example.com`;
-    const firstNames = [
-      "Emma",
-      "Liam",
-      "Olivia",
-      "Noah",
-      "Ava",
-      "Oliver",
-      "Isabella",
-      "Ethan",
-      "Sophia",
-      "Lucas",
-      "Mia",
-      "Mason",
-      "Charlotte",
-      "William",
-      "Amelia",
-      "James",
-      "Harper",
-      "Benjamin",
-      "Evelyn",
-      "Alexander",
-      "Abigail",
-      "Michael",
-      "Emily",
-      "Daniel",
-      "Elizabeth",
-      "Matthew",
-      "Sofia",
-      "Jackson",
-      "Avery",
-      "Sebastian",
-      "Ella",
-      "Henry",
-      "Madison",
-      "Samuel",
-      "Scarlett",
-      "David",
-      "Victoria",
-      "Joseph",
-      "Aria",
-      "John",
-      "Grace",
-      "Wyatt",
-      "Chloe",
-      "Owen",
-      "Camila",
-      "Luke",
-      "Penelope",
-      "Gabriel",
-      "Riley",
-      "Isaac",
-      "Layla",
-      "Carter",
-      "Lillian",
-      "Julian",
-      "Nora",
-      "Jayden",
-      "Zoey",
-      "Mason",
-      "Mila",
-      "Anthony",
-      "Aubrey",
-      "Hudson",
-      "Hannah",
-      "Eli",
-      "Lily",
-      "Connor",
-      "Addison",
-      "Caleb",
-      "Eleanor",
-      "Ryan",
-      "Natalie",
-      "Nathan",
-      "Luna",
-      "Zachary",
-      "Savannah",
-      "Christian",
-      "Leah",
-      "Andrew",
-      "Bella",
-      "Joshua",
-    ];
+    // Placeholder names - these will be replaced by randomuser.me API data
+    const placeholderNames = ["User", "Volunteer", "Person", "Individual"];
     const lastNames = [
       "Smith",
       "Wilson",
@@ -746,7 +659,8 @@ async function main() {
       "Diaz",
     ];
 
-    const firstName = firstNames[(i - 1) % firstNames.length];
+    // Use simple placeholders - these will be replaced by randomuser.me API
+    const firstName = `User${i}`;
     const lastName = lastNames[(i - 1) % lastNames.length];
     const age = 20 + (i % 40); // Ages between 20-59
 

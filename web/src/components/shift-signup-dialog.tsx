@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -17,6 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InfoBox } from "@/components/ui/info-box";
 import { MotionSpinner } from "@/components/motion-spinner";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface ShiftSignupDialogProps {
   shift: {
@@ -58,8 +62,13 @@ export function ShiftSignupDialog({
   children,
 }: ShiftSignupDialogProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [note, setNote] = useState("");
+  const [guardianName, setGuardianName] = useState("");
+  const [isUnderage, setIsUnderage] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [autoApprovalEligible, setAutoApprovalEligible] = useState<{
     eligible: boolean;
     ruleName?: string;
@@ -69,6 +78,55 @@ export function ShiftSignupDialog({
   const duration = getDurationInHours(shift.start, shift.end);
   const remaining = Math.max(0, shift.capacity - confirmedCount);
 
+  // Clear error when dialog opens
+  useEffect(() => {
+    if (open) {
+      setError(null);
+    }
+  }, [open]);
+
+  // Check if user is underage (14 and under)
+  useEffect(() => {
+    if (open && session?.user) {
+      const checkAge = async () => {
+        try {
+          const response = await fetch('/api/profile');
+          if (response.ok) {
+            const userData = await response.json();
+            if (userData.dateOfBirth) {
+              const birthDate = new Date(userData.dateOfBirth);
+              const today = new Date();
+              let age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+              }
+              setIsUnderage(age <= 14);
+            }
+          } else {
+            console.warn('Profile fetch failed:', response.status);
+            setIsUnderage(false); // Default to not underage if we can't check
+          }
+        } catch (error) {
+          console.error('Error checking user age:', error);
+          setIsUnderage(false); // Default to not underage if there's an error
+        }
+      };
+
+      // Add timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        console.warn('Age check timed out, defaulting to not underage');
+        setIsUnderage(false);
+      }, 3000); // 3 second timeout
+
+      checkAge().finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [open, session]);
+
   // Check auto-approval eligibility when dialog opens (only for non-waitlist signups)
   useEffect(() => {
     if (open && currentUserId && !isWaitlist) {
@@ -77,12 +135,13 @@ export function ShiftSignupDialog({
           const response = await fetch(`/api/shifts/${shift.id}/auto-approval-check?userId=${currentUserId}`);
           if (response.ok) {
             const data = await response.json();
-            setAutoApprovalEligible({ 
-              eligible: data.eligible, 
+            setAutoApprovalEligible({
+              eligible: data.eligible,
               ruleName: data.ruleName,
-              loading: false 
+              loading: false
             });
           } else {
+            console.warn('Auto-approval check failed:', response.status);
             setAutoApprovalEligible({ eligible: false, loading: false });
           }
         } catch (error) {
@@ -90,8 +149,17 @@ export function ShiftSignupDialog({
           setAutoApprovalEligible({ eligible: false, loading: false });
         }
       };
-      
-      checkEligibility();
+
+      // Add a small delay and timeout to prevent blocking the dialog
+      const timeoutId = setTimeout(() => {
+        setAutoApprovalEligible({ eligible: false, loading: false });
+      }, 5000); // 5 second timeout
+
+      checkEligibility().finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+      return () => clearTimeout(timeoutId);
     } else {
       // For waitlist or no user, skip eligibility check
       setAutoApprovalEligible({ eligible: false, loading: false });
@@ -99,11 +167,32 @@ export function ShiftSignupDialog({
   }, [open, currentUserId, shift.id, isWaitlist]);
 
   const handleSignup = async () => {
+    // Clear any previous errors
+    setError(null);
+
+    // Validate guardian name for underage users
+    if (isUnderage && !guardianName.trim()) {
+      setError("Please provide your guardian's name");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const formData = new FormData();
       if (isWaitlist) {
         formData.append("waitlist", "1");
+      }
+
+      // Prepare the note with guardian info if underage
+      let finalNote = note.trim();
+      if (isUnderage && guardianName.trim()) {
+        finalNote = finalNote
+          ? `${finalNote}\n\nGuardian: ${guardianName.trim()}`
+          : `Guardian: ${guardianName.trim()}`;
+      }
+
+      if (finalNote) {
+        formData.append("note", finalNote);
       }
 
       const response = await fetch(`/api/shifts/${shift.id}/signup`, {
@@ -164,22 +253,22 @@ export function ShiftSignupDialog({
           });
         }
       } else {
-        const error = await response.json();
-        alert(error.error || "Failed to sign up");
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to sign up");
       }
     } catch (error) {
       console.error("Signup error:", error);
-      alert("Failed to sign up. Please try again.");
+      setError("Failed to sign up. Please try again.");
     } finally {
       setIsSubmitting(false);
-      setOpen(false);
+      // Only close dialog on success - error state will keep it open
     }
   };
 
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild data-testid="shift-signup-trigger">{children}</ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className="sm:max-w-md" data-testid="shift-signup-dialog">
+      <ResponsiveDialogContent className="sm:max-w-md flex flex-col max-h-[85vh]" data-testid="shift-signup-dialog">
         <ResponsiveDialogHeader data-testid="shift-signup-dialog-header">
           <ResponsiveDialogTitle className="flex items-center gap-2" data-testid="shift-signup-dialog-title">
             {isWaitlist ? "🎯 Join Waitlist" : autoApprovalEligible.eligible && !autoApprovalEligible.loading ? "🚀 Instant Signup" : "✨ Confirm Signup"}
@@ -193,7 +282,7 @@ export function ShiftSignupDialog({
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        <div className="space-y-4 py-4" data-testid="shift-signup-dialog-content-body">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0" data-testid="shift-signup-dialog-content-body">
           {/* Shift Details */}
           <div className="rounded-lg border p-4 bg-muted/50" data-testid="shift-details-section">
             <h3 className="font-semibold text-lg mb-2" data-testid="shift-details-name">
@@ -240,6 +329,50 @@ export function ShiftSignupDialog({
               </div>
             </div>
           </div>
+
+          {/* Note Field */}
+          <div className="space-y-2">
+            <Label htmlFor="note">Note (optional)</Label>
+            <Textarea
+              id="note"
+              placeholder="Add any notes for the shift coordinator..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              className="resize-none"
+              data-testid="shift-signup-note"
+            />
+          </div>
+
+          {/* Guardian Field for Underage Users */}
+          {isUnderage && (
+            <div className="space-y-2">
+              <Label htmlFor="guardian" className="flex items-center gap-2">
+                Guardian Name
+                <span className="text-red-500">*</span>
+                <span className="text-xs text-muted-foreground">(required for volunteers 14 and under)</span>
+              </Label>
+              <Input
+                id="guardian"
+                placeholder="Enter your parent/guardian's full name"
+                value={guardianName}
+                onChange={(e) => setGuardianName(e.target.value)}
+                required
+                data-testid="shift-signup-guardian"
+              />
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <InfoBox
+              title="Error"
+              variant="red"
+              testId="signup-error"
+            >
+              <p className="text-red-700">{error}</p>
+            </InfoBox>
+          )}
 
           {/* Approval Process Info */}
           {autoApprovalEligible.loading ? (

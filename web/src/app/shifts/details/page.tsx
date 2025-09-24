@@ -12,6 +12,7 @@ import { AvatarList } from "@/components/ui/avatar-list";
 import { ShiftSignupDialog } from "@/components/shift-signup-dialog";
 import { CancelSignupButton } from "../mine/cancel-signup-button";
 import { PageHeader } from "@/components/page-header";
+import { ShiftSignupButton } from "@/components/shift-signup-button";
 import {
   Calendar,
   Clock,
@@ -253,36 +254,13 @@ function ShiftCard({
               />
             ) : session ? (
               canSignUp ? (
-                <ShiftSignupDialog
-                  shift={{
-                    id: shift.id,
-                    start: shift.start,
-                    end: shift.end,
-                    location: shift.location,
-                    capacity: shift.capacity,
-                    shiftType: {
-                      name: shift.shiftType.name,
-                      description: shift.shiftType.description,
-                    },
-                  }}
+                <ShiftSignupButton
+                  isFull={isFull}
+                  theme={theme}
+                  shift={shift}
                   confirmedCount={confirmedCount}
-                  isWaitlist={isFull}
                   currentUserId={currentUserId}
-                >
-                  <Button
-                    data-testid="shift-signup-button"
-                    className={`w-full font-medium transition-all duration-200 ${
-                      isFull
-                        ? "bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 hover:border-orange-300"
-                        : "bg-gradient-to-r " +
-                          theme.fullGradient +
-                          " hover:shadow-lg transform hover:scale-[1.02] text-white"
-                    }`}
-                    variant={isFull ? "outline" : "default"}
-                  >
-                    {isFull ? "🎯 Join Waitlist" : "✨ Sign Up Now"}
-                  </Button>
-                </ShiftSignupDialog>
+                />
               ) : (
                 <Button
                   disabled
@@ -302,7 +280,9 @@ function ShiftCard({
                 asChild
                 className={`w-full font-medium bg-gradient-to-r ${theme.fullGradient} hover:shadow-lg transform hover:scale-[1.02] text-white transition-all duration-200`}
               >
-                <Link href="/login?callbackUrl=/shifts/details">✨ Sign Up Now</Link>
+                <Link href="/login?callbackUrl=/shifts/details">
+                  ✨ Sign Up Now
+                </Link>
               </Button>
             )}
           </div>
@@ -322,7 +302,9 @@ export default async function ShiftDetailsPage({
 
   // Get date and location from params
   const dateParam = Array.isArray(params.date) ? params.date[0] : params.date;
-  const locationParam = Array.isArray(params.location) ? params.location[0] : params.location;
+  const locationParam = Array.isArray(params.location)
+    ? params.location[0]
+    : params.location;
 
   if (!dateParam) {
     // Redirect to calendar if no date specified
@@ -343,7 +325,9 @@ export default async function ShiftDetailsPage({
   }
 
   const selectedDate = parseISOInNZT(dateParam);
-  const selectedLocation = locationParam ? decodeURIComponent(locationParam) : undefined;
+  const selectedLocation = locationParam
+    ? decodeURIComponent(locationParam)
+    : undefined;
 
   // Get current user and their friends
   let currentUser = null;
@@ -389,20 +373,22 @@ export default async function ShiftDetailsPage({
     needsParentalConsent = profileStatus.needsParentalConsent || false;
   }
 
-
   // Check feature flag for flexible placement
   const userId = currentUser?.id || "anonymous";
-  const isFlexiblePlacementEnabled = await isFeatureEnabled("flexible-placement", userId);
+  const isFlexiblePlacementEnabled = await isFeatureEnabled(
+    "flexible-placement",
+    userId
+  );
 
   // Fetch shifts for the specific date and optionally location (using NZ timezone)
   // Calculate day boundaries in NZ timezone - selectedDate is already in NZT
   const startOfDayNZ = startOfDay(selectedDate);
   const endOfDayNZ = endOfDay(selectedDate);
-  
+
   // Convert TZDate objects to explicit UTC for reliable Prisma queries
   const startOfDayUTC = toUTC(startOfDayNZ);
   const endOfDayUTC = toUTC(endOfDayNZ);
-  
+
   const allShifts = (await prisma.shift.findMany({
     where: {
       start: {
@@ -437,9 +423,11 @@ export default async function ShiftDetailsPage({
   })) as ShiftWithRelations[];
 
   // Filter out flexible placement shifts if feature is disabled
-  const shifts = isFlexiblePlacementEnabled 
+  const shifts = isFlexiblePlacementEnabled
     ? allShifts
-    : allShifts.filter(shift => !shift.shiftType.name.includes("Anywhere I'm Needed"));
+    : allShifts.filter(
+        (shift) => !shift.shiftType.name.includes("Anywhere I'm Needed")
+      );
 
   // Helper function to determine if a shift is AM or PM (using NZ timezone)
   const isAMShift = (shift: ShiftWithRelations) => {
@@ -448,11 +436,14 @@ export default async function ShiftDetailsPage({
   };
 
   // Group shifts by location and then by AM/PM
-  const shiftsByLocationAndTime = new Map<string, { AM: ShiftWithRelations[]; PM: ShiftWithRelations[] }>();
+  const shiftsByLocationAndTime = new Map<
+    string,
+    { AM: ShiftWithRelations[]; PM: ShiftWithRelations[] }
+  >();
   for (const shift of shifts) {
     const locationKey = shift.location || "TBD";
     const timeOfDay = isAMShift(shift) ? "AM" : "PM";
-    
+
     if (!shiftsByLocationAndTime.has(locationKey)) {
       shiftsByLocationAndTime.set(locationKey, { AM: [], PM: [] });
     }
@@ -466,7 +457,13 @@ export default async function ShiftDetailsPage({
       {/* Back button */}
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
-          <Link href={selectedLocation ? `/shifts?location=${encodeURIComponent(selectedLocation)}` : "/shifts"}>
+          <Link
+            href={
+              selectedLocation
+                ? `/shifts?location=${encodeURIComponent(selectedLocation)}`
+                : "/shifts"
+            }
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Calendar
           </Link>
@@ -474,8 +471,14 @@ export default async function ShiftDetailsPage({
       </div>
 
       <PageHeader
-        title={`Shifts for ${formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}${selectedLocation ? ` - ${selectedLocation}` : ""}`}
-        description={`${selectedLocation ? `Available shifts in ${selectedLocation}` : "All available shifts"} for this date. Click on any shift to view details and sign up.`}
+        title={`Shifts for ${formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}${
+          selectedLocation ? ` - ${selectedLocation}` : ""
+        }`}
+        description={`${
+          selectedLocation
+            ? `Available shifts in ${selectedLocation}`
+            : "All available shifts"
+        } for this date. Click on any shift to view details and sign up.`}
         className="mb-8"
         data-testid="shifts-details-page-header"
       />
@@ -490,11 +493,18 @@ export default async function ShiftDetailsPage({
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <Calendar className="w-10 h-10 text-primary/60" />
           </div>
-          <h3 className="text-2xl font-semibold mb-3" data-testid="empty-state-title">
+          <h3
+            className="text-2xl font-semibold mb-3"
+            data-testid="empty-state-title"
+          >
             No shifts scheduled
           </h3>
-          <p className="text-muted-foreground max-w-md mx-auto" data-testid="empty-state-description">
-            No shifts are scheduled for {formatInNZT(selectedDate, "MMMM d, yyyy")}
+          <p
+            className="text-muted-foreground max-w-md mx-auto"
+            data-testid="empty-state-description"
+          >
+            No shifts are scheduled for{" "}
+            {formatInNZT(selectedDate, "MMMM d, yyyy")}
             {selectedLocation ? ` in ${selectedLocation}` : ""}.
           </p>
           <div className="mt-6 space-x-4">
@@ -503,7 +513,9 @@ export default async function ShiftDetailsPage({
             </Button>
             {selectedLocation && (
               <Button asChild>
-                <Link href={`/shifts/details?date=${dateParam}`}>View All Locations</Link>
+                <Link href={`/shifts/details?date=${dateParam}`}>
+                  View All Locations
+                </Link>
               </Button>
             )}
           </div>
@@ -511,8 +523,10 @@ export default async function ShiftDetailsPage({
       ) : (
         <div className="space-y-8" data-testid="shifts-list">
           {sortedLocations.map((locationKey) => {
-            const locationTimeShifts = shiftsByLocationAndTime.get(locationKey)!;
-            const totalShifts = locationTimeShifts.AM.length + locationTimeShifts.PM.length;
+            const locationTimeShifts =
+              shiftsByLocationAndTime.get(locationKey)!;
+            const totalShifts =
+              locationTimeShifts.AM.length + locationTimeShifts.PM.length;
             const hasAMShifts = locationTimeShifts.AM.length > 0;
             const hasPMShifts = locationTimeShifts.PM.length > 0;
 
@@ -522,7 +536,9 @@ export default async function ShiftDetailsPage({
               <section
                 key={locationKey}
                 className="space-y-6"
-                data-testid={`shifts-location-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
+                data-testid={`shifts-location-section-${locationKey
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}`}
               >
                 {/* Location Header (only show if multiple locations) */}
                 {!selectedLocation && sortedLocations.length > 1 && (
@@ -532,7 +548,8 @@ export default async function ShiftDetailsPage({
                       <div>
                         <h2 className="text-xl font-semibold">{locationKey}</h2>
                         <p className="text-sm text-muted-foreground">
-                          {totalShifts} shift{totalShifts !== 1 ? "s" : ""} available
+                          {totalShifts} shift{totalShifts !== 1 ? "s" : ""}{" "}
+                          available
                         </p>
                       </div>
                     </div>
@@ -540,10 +557,15 @@ export default async function ShiftDetailsPage({
                     {/* Group Booking Button at Location Level */}
                     {session && (
                       <GroupBookingDialogWrapper
-                        shifts={[...locationTimeShifts.AM, ...locationTimeShifts.PM]}
+                        shifts={[
+                          ...locationTimeShifts.AM,
+                          ...locationTimeShifts.PM,
+                        ]}
                         date={formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
                         location={locationKey}
-                        testid={`group-booking-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
+                        testid={`group-booking-${locationKey
+                          .toLowerCase()
+                          .replace(/\s+/g, "-")}`}
                         currentUserEmail={session.user?.email || undefined}
                       />
                     )}
@@ -552,7 +574,12 @@ export default async function ShiftDetailsPage({
 
                 {/* AM Shifts Section */}
                 {hasAMShifts && (
-                  <div className="space-y-4" data-testid={`shifts-am-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <div
+                    className="space-y-4"
+                    data-testid={`shifts-am-section-${locationKey
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")}`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-lg">
                         ☀️
@@ -560,7 +587,9 @@ export default async function ShiftDetailsPage({
                       <div>
                         <h3 className="text-lg font-semibold">Day Shifts</h3>
                         <p className="text-sm text-muted-foreground">
-                          {locationTimeShifts.AM.length} shift{locationTimeShifts.AM.length !== 1 ? "s" : ""} available (before 4pm)
+                          {locationTimeShifts.AM.length} shift
+                          {locationTimeShifts.AM.length !== 1 ? "s" : ""}{" "}
+                          available (before 4pm)
                         </p>
                       </div>
                     </div>
@@ -582,15 +611,24 @@ export default async function ShiftDetailsPage({
 
                 {/* PM Shifts Section */}
                 {hasPMShifts && (
-                  <div className="space-y-4" data-testid={`shifts-pm-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
+                  <div
+                    className="space-y-4"
+                    data-testid={`shifts-pm-section-${locationKey
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")}`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-lg">
                         🌙
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold">Evening Shifts</h3>
+                        <h3 className="text-lg font-semibold">
+                          Evening Shifts
+                        </h3>
                         <p className="text-sm text-muted-foreground">
-                          {locationTimeShifts.PM.length} shift{locationTimeShifts.PM.length !== 1 ? "s" : ""} available (4pm onwards)
+                          {locationTimeShifts.PM.length} shift
+                          {locationTimeShifts.PM.length !== 1 ? "s" : ""}{" "}
+                          available (4pm onwards)
                         </p>
                       </div>
                     </div>
