@@ -410,10 +410,16 @@ test.describe("Admin Users Management", () => {
           const userId = firstRowTestId?.replace("user-row-", "");
 
           if (userId) {
-            const viewDetailsButton = page
-              .getByTestId(`user-row-${userId}`)
-              .getByRole("link");
-            await viewDetailsButton.click();
+            // Two ways to navigate to user details:
+            // 1. Click the row directly (avoiding the actions button area)
+            // 2. Use the dropdown menu "View Details" option
+
+            // Option 1: Click on the row (avoiding the actions button area)
+            const userRow = page.getByTestId(`user-row-${userId}`);
+
+            // Click on the user name cell to trigger navigation
+            const userNameCell = userRow.getByTestId(`user-name-${userId}`);
+            await userNameCell.click();
 
             // Should navigate to user details page
             await page.waitForURL(`**/admin/volunteers/${userId}`, {
