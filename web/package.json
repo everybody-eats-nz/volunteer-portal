@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:ci": "playwright test --project=chromium --reporter=list",
-    "test:e2e:coverage": "COVERAGE=true NODE_ENV=test playwright test --config=playwright.coverage.config.ts && npx nyc report",
+    "test:e2e:coverage": "./scripts/run-coverage.sh",
     "test:e2e:migration": "playwright test admin-migration.spec.ts migration-registration.spec.ts migration-api.spec.ts --project=chromium --reporter=list",
     "test:migration": "./tests/scripts/run-migration-tests.sh",
     "prisma:migrate": "prisma migrate dev",
