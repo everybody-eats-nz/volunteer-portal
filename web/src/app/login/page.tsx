@@ -6,9 +6,14 @@ import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
+import { motion, Variants } from "motion/react";
+import { MotionSpinner } from "@/components/motion-spinner";
+import { MotionFormError, MotionFormSuccess } from "@/components/motion-form";
+import { MotionPageContainer } from "@/components/motion-page-container";
+import { MotionCard } from "@/components/motion-card";
 
 interface Provider {
   id: string;
@@ -18,9 +23,51 @@ interface Provider {
   callbackUrl: string;
 }
 
+// Animation variants for staggered button animations
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
+  },
+};
+
+const formFieldVariants: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
+  },
+};
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("volunteer@example.com");
-  const [password, setPassword] = useState("volunteer123");
+  const [email, setEmail] = useState(
+    process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
+      ? "volunteer@example.com"
+      : ""
+  );
+  const [password, setPassword] = useState(
+    process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" ? "volunteer123" : ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
@@ -42,12 +89,35 @@ export default function LoginPage() {
   // Check for registration success message
   useEffect(() => {
     const message = searchParams.get("message");
+    const urlEmail = searchParams.get("email");
+    const verified = searchParams.get("verified");
+
     if (message === "registration-success") {
       setSuccessMessage(
         "Registration successful! You can now sign in with your new account."
       );
       setEmail(""); // Clear demo email for new users
       setPassword(""); // Clear demo password for new users
+    } else if (message === "verify-email") {
+      setSuccessMessage(
+        "Registration successful! Please check your email and click the verification link to complete your registration."
+      );
+      if (urlEmail) {
+        setEmail(urlEmail); // Pre-fill with registered email
+      }
+      setPassword(""); // Clear demo password for new users
+    } else if (verified === "true") {
+      setSuccessMessage(
+        "Email verified successfully! You can now sign in to your account."
+      );
+    } else if (message === "password-reset-success") {
+      setSuccessMessage(
+        "Password reset successful! You can now sign in with your new password."
+      );
+    } else if (message === "migration-complete") {
+      setSuccessMessage(
+        "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile."
+      );
     }
   }, [searchParams]);
 
@@ -66,10 +136,19 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (res?.error) {
+      // Check for specific error types that indicate email verification issues
+      if (res.error === "EmailNotVerified") {
+        // Redirect to verify-email page with email pre-filled for resending
+        window.location.href = `/verify-email?email=${encodeURIComponent(
+          email || ""
+        )}&from=login`;
+        return;
+      }
+
       setError("Invalid credentials");
     } else if (res?.ok) {
       // Add a small delay to ensure session is established
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       window.location.href = "/";
     }
   }
@@ -81,7 +160,7 @@ export default function LoginPage() {
 
     try {
       await signIn(providerId, {
-        callbackUrl: "/",
+        callbackUrl: "/dashboard",
       });
     } catch (error) {
       console.error("OAuth sign in error:", error);
@@ -90,19 +169,33 @@ export default function LoginPage() {
     }
   }
 
-  async function handleQuickLogin(userType: "volunteer" | "admin") {
+  async function handleQuickLogin(
+    userType: "volunteer" | "admin" | "minor16" | "minor13"
+  ) {
     setError(null);
     setSuccessMessage(null);
     setIsLoading(true);
 
     const credentials = {
       volunteer: {
-        email: "volunteer@example.com",
-        password: "volunteer123",
+        email:
+          process.env.NEXT_PUBLIC_DEMO_VOLUNTEER_EMAIL ||
+          "volunteer@example.com",
+        password:
+          process.env.NEXT_PUBLIC_DEMO_VOLUNTEER_PASSWORD || "volunteer123",
       },
       admin: {
-        email: "admin@everybodyeats.nz",
-        password: "admin123",
+        email:
+          process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL || "admin@everybodyeats.nz",
+        password: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD || "admin123",
+      },
+      minor16: {
+        email: "emma.parker@student.ac.nz",
+        password: "volunteer123", // Same password as demo volunteers
+      },
+      minor13: {
+        email: "logan.johnson@school.nz",
+        password: "volunteer123", // Same password as demo volunteers
       },
     };
 
@@ -174,18 +267,21 @@ export default function LoginPage() {
   const getProviderButtonStyle = (providerId: string) => {
     switch (providerId) {
       case "google":
-        return "bg-white hover:bg-gray-50 text-gray-900 border border-gray-300";
+        return "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600";
       case "facebook":
         return "bg-[#1877F2] hover:bg-[#166FE5] text-white";
       case "apple":
-        return "bg-black hover:bg-gray-900 text-white";
+        return "bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black";
       default:
-        return "bg-gray-100 hover:bg-gray-200 text-gray-900";
+        return "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100";
     }
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center animate-fade-in" data-testid="login-page">
+    <MotionPageContainer
+      className="min-h-[80vh] flex items-center justify-center"
+      testid="login-page"
+    >
       <div className="w-full max-w-md">
         <div className="text-center">
           <PageHeader
@@ -195,41 +291,55 @@ export default function LoginPage() {
           />
         </div>
 
-        <Card className="animate-slide-up" data-testid="login-form-card">
-          <CardContent className="p-8">
+        <MotionCard className="" testid="login-form-card">
+          <CardContent className="md:p-8">
             {/* OAuth Providers */}
             {oauthProviders.length > 0 && (
-              <div className="space-y-3 mb-6" data-testid="oauth-providers">
-                <div className="text-center">
+              <motion.div
+                className="mb-6"
+                data-testid="oauth-providers"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                <motion.div className="text-center" variants={itemVariants}>
                   <p className="text-sm text-muted-foreground mb-4">
                     Sign in with your preferred method
                   </p>
+                </motion.div>
+                <div className="space-y-3">
+                  {oauthProviders.map((provider) => (
+                    <motion.div key={provider.id} variants={itemVariants}>
+                      <Button
+                        key={provider.id}
+                        onClick={() => handleOAuthSignIn(provider.id)}
+                        disabled={oauthLoading !== null || isLoading}
+                        className={`w-full h-11 ${getProviderButtonStyle(
+                          provider.id
+                        )}`}
+                        variant="outline"
+                        data-testid={`oauth-${provider.id}-button`}
+                      >
+                        {oauthLoading === provider.id ? (
+                          <MotionSpinner size="sm" />
+                        ) : (
+                          <>
+                            {getProviderIcon(provider.id)}
+                            <span className="ml-3">
+                              Continue with {provider.name}
+                            </span>
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  ))}
                 </div>
-                {oauthProviders.map((provider) => (
-                  <Button
-                    key={provider.id}
-                    onClick={() => handleOAuthSignIn(provider.id)}
-                    disabled={oauthLoading !== null || isLoading}
-                    className={`w-full h-11 ${getProviderButtonStyle(
-                      provider.id
-                    )}`}
-                    variant="outline"
-                    data-testid={`oauth-${provider.id}-button`}
-                  >
-                    {oauthLoading === provider.id ? (
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        {getProviderIcon(provider.id)}
-                        <span className="ml-3">
-                          Continue with {provider.name}
-                        </span>
-                      </>
-                    )}
-                  </Button>
-                ))}
 
-                <div className="relative my-6" data-testid="oauth-divider">
+                <motion.div
+                  className="relative my-6"
+                  data-testid="oauth-divider"
+                  variants={itemVariants}
+                >
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border" />
                   </div>
@@ -238,12 +348,23 @@ export default function LoginPage() {
                       Or continue with email
                     </span>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
 
-            <form onSubmit={onSubmit} className="space-y-6" data-testid="login-form">
-              <div className="space-y-2" data-testid="email-field">
+            <motion.form
+              onSubmit={onSubmit}
+              className="space-y-6"
+              data-testid="login-form"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div
+                className="space-y-2"
+                data-testid="email-field"
+                variants={formFieldVariants}
+              >
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email address
                 </Label>
@@ -258,12 +379,25 @@ export default function LoginPage() {
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="email-input"
                 />
-              </div>
+              </motion.div>
 
-              <div className="space-y-2" data-testid="password-field">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
+              <motion.div
+                className="space-y-2"
+                data-testid="password-field"
+                variants={formFieldVariants}
+              >
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </Label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-primary hover:underline"
+                    data-testid="forgot-password-link"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   placeholder="Enter your password"
@@ -275,31 +409,34 @@ export default function LoginPage() {
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="password-input"
                 />
-              </div>
+              </motion.div>
 
-              {successMessage && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm" data-testid="success-message">
-                  <div className="flex items-center gap-2">
+              <MotionFormSuccess
+                show={!!successMessage}
+                data-testid="success-message"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 pt-0.5">
                     <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                      className="w-5 h-5 text-green-600 dark:text-green-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
                     >
                       <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
                       />
                     </svg>
+                  </div>
+                  <div className="text-green-800 dark:text-green-200 font-medium text-sm leading-relaxed">
                     {successMessage}
                   </div>
                 </div>
-              )}
+              </MotionFormSuccess>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm" data-testid="error-message">
+              <MotionFormError show={!!error} data-testid="error-message">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-4 h-4"
@@ -317,81 +454,117 @@ export default function LoginPage() {
                     {error}
                   </div>
                 </div>
-              )}
+              </MotionFormError>
 
-              <Button
-                type="submit"
-                className="w-full btn-primary"
-                size="lg"
-                disabled={isLoading || oauthLoading !== null}
-                data-testid="login-submit-button"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 animate-spin"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Sign in with Email"
-                )}
-              </Button>
-            </form>
+              <motion.div variants={formFieldVariants}>
+                <Button
+                  type="submit"
+                  className="w-full btn-primary"
+                  size="lg"
+                  disabled={isLoading || oauthLoading !== null}
+                  data-testid="login-submit-button"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <MotionSpinner size="sm" color="white" />
+                      Signing in...
+                    </div>
+                  ) : (
+                    "Sign in with Email"
+                  )}
+                </Button>
+              </motion.div>
+            </motion.form>
 
-            <div className="mt-6 pt-6 border-t border-border" data-testid="login-footer">
+            <motion.div
+              className="mt-6 pt-6 border-t border-border"
+              data-testid="login-footer"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.5,
+                delay: 0.8,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
               <div className="text-center mb-4">
                 <p className="text-sm text-muted-foreground">
                   Don&apos;t have an account yet?
                 </p>
-                <Button asChild variant="outline" className="mt-2" data-testid="register-link">
+                <Button
+                  asChild
+                  variant="outline"
+                  className="mt-2"
+                  data-testid="register-link"
+                >
                   <Link href="/register">Create Volunteer Account</Link>
                 </Button>
               </div>
 
-              <div className="bg-accent/10 rounded-lg p-4 text-center" data-testid="demo-credentials">
-                <p className="text-sm font-medium text-primary mb-3">
-                  Demo Credentials
-                </p>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    onClick={() => handleQuickLogin("volunteer")}
-                    className="w-full btn-secondary"
-                    size="sm"
-                    disabled={isLoading || oauthLoading !== null}
-                    data-testid="quick-login-volunteer-button"
-                  >
-                    Login as Volunteer
-                  </Button>
-                  <Button
-                    onClick={() => handleQuickLogin("admin")}
-                    className="w-full btn-secondary"
-                    size="sm"
-                    disabled={isLoading || oauthLoading !== null}
-                    data-testid="quick-login-admin-button"
-                  >
-                    Login as Admin
-                  </Button>
+              {/* Only show demo credentials when not in production */}
+              {process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
+                <div
+                  className="bg-accent/10 rounded-lg p-4 text-center"
+                  data-testid="demo-credentials"
+                >
+                  <p className="text-sm font-medium text-primary mb-3">
+                    Demo Credentials
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => handleQuickLogin("volunteer")}
+                      className="w-full btn-secondary"
+                      size="sm"
+                      disabled={isLoading || oauthLoading !== null}
+                      data-testid="quick-login-volunteer-button"
+                    >
+                      Login as Volunteer
+                    </Button>
+                    <Button
+                      onClick={() => handleQuickLogin("admin")}
+                      className="w-full btn-secondary"
+                      size="sm"
+                      disabled={isLoading || oauthLoading !== null}
+                      data-testid="quick-login-admin-button"
+                    >
+                      Login as Admin
+                    </Button>
+                    <div className="pt-2 border-t border-border/50">
+                      <p className="text-xs font-medium text-primary mb-2">
+                        Underage Users (for testing):
+                      </p>
+                      <div className="flex flex-col gap-1.5">
+                        <Button
+                          onClick={() => handleQuickLogin("minor16")}
+                          className="w-full btn-secondary text-xs"
+                          size="sm"
+                          disabled={isLoading || oauthLoading !== null}
+                          data-testid="quick-login-minor16-button"
+                        >
+                          16 year old (not approved)
+                        </Button>
+                        <Button
+                          onClick={() => handleQuickLogin("minor13")}
+                          className="w-full btn-secondary text-xs"
+                          size="sm"
+                          disabled={isLoading || oauthLoading !== null}
+                          data-testid="quick-login-minor13-button"
+                        >
+                          13 year old
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Volunteer: volunteer@example.com | Admin:
+                    admin@everybodyeats.nz
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Volunteer: volunteer@example.com | Admin:
-                  admin@everybodyeats.nz
-                </p>
-              </div>
-            </div>
+              )}
+            </motion.div>
           </CardContent>
-        </Card>
+        </MotionCard>
       </div>
-    </div>
+    </MotionPageContainer>
   );
 }

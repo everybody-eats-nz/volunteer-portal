@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+} from "@/components/ui/responsive-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Shield, User, ChevronDown, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -63,8 +63,8 @@ export function UserRoleToggle({ userId, currentRole }: UserRoleToggleProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1 h-8" data-testid={`role-toggle-button-${userId}`}>
           {currentRole === "ADMIN" ? (
             <>
@@ -79,18 +79,18 @@ export function UserRoleToggle({ userId, currentRole }: UserRoleToggleProps) {
           )}
           <ChevronDown className="h-3 w-3" />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[420px]" data-testid="role-change-dialog">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2" data-testid="role-change-dialog-title">
+      </ResponsiveDialogTrigger>
+      <ResponsiveDialogContent className="sm:max-w-[420px]" data-testid="role-change-dialog">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2" data-testid="role-change-dialog-title">
             {targetRole === "ADMIN" ? (
               <Shield className="h-5 w-5 text-purple-600" />
             ) : (
               <User className="h-5 w-5 text-blue-600" />
             )}
             Change User Role
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             {targetRole === "ADMIN" ? (
               <>
                 You&apos;re about to promote this user to{" "}
@@ -104,8 +104,8 @@ export function UserRoleToggle({ userId, currentRole }: UserRoleToggleProps) {
                 privileges and only be able to sign up for shifts.
               </>
             )}
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         <div className="flex flex-col gap-4 py-4">
           <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-testid="current-role-display">
@@ -198,7 +198,7 @@ export function UserRoleToggle({ userId, currentRole }: UserRoleToggleProps) {
             )}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

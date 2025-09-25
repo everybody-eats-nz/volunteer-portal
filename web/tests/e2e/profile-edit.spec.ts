@@ -58,53 +58,52 @@ test.describe("Profile Edit Page", () => {
       await expect(pageDescription).toBeVisible();
 
       // Check back to profile button
-      const backButton = page.getByRole("link", { name: /back to profile/i });
+      const backButton = page.getByTestId("back-to-profile-link");
       await expect(backButton).toBeVisible();
       await expect(backButton).toHaveAttribute("href", "/profile");
     });
 
     test("should display progress indicator with all sections", async ({ page }) => {
       // Check progress heading
-      const progressHeading = page.getByRole("heading", { name: /profile setup progress/i });
+      const progressHeading = page.getByTestId("profile-setup-progress-heading");
       await expect(progressHeading).toBeVisible();
 
       // Check step indicator
-      const stepBadge = page.getByText(/step \d+ of \d+/i);
+      const stepBadge = page.getByTestId("step-indicator");
       await expect(stepBadge).toBeVisible();
 
       // Check all section tabs are present
-      const personalTab = page.getByRole("button", { name: /personal information/i });
+      const personalTab = page.getByTestId("personal-tab-button");
       await expect(personalTab).toBeVisible();
 
-      const emergencyTab = page.getByRole("button", { name: /emergency contact/i });
+      const emergencyTab = page.getByTestId("emergency-tab-button");
       await expect(emergencyTab).toBeVisible();
 
-      const medicalTab = page.getByRole("button", { name: /medical & references/i });
+      const medicalTab = page.getByTestId("medical-tab-button");
       await expect(medicalTab).toBeVisible();
 
-      const availabilityTab = page.getByRole("button", { name: /availability & location/i });
+      const availabilityTab = page.getByTestId("availability-tab-button");
       await expect(availabilityTab).toBeVisible();
 
-      const communicationTab = page.getByRole("button", { name: /communication & agreements/i });
+      const communicationTab = page.getByTestId("communication-tab-button");
       await expect(communicationTab).toBeVisible();
     });
 
     test("should display form content with save button", async ({ page }) => {
       // Check form section title
-      const sectionTitle = page.getByRole("heading", { name: /personal information/i }).last();
+      const sectionTitle = page.getByTestId("current-section-title");
       await expect(sectionTitle).toBeVisible();
 
       // Check save button is always visible
-      const saveButtons = page.getByRole("button", { name: /save/i });
-      const saveButtonCount = await saveButtons.count();
-      expect(saveButtonCount).toBeGreaterThan(0);
+      const headerSaveButton = page.getByTestId("header-save-button");
+      await expect(headerSaveButton).toBeVisible();
 
       // Check navigation buttons
-      const previousButton = page.getByRole("button", { name: /previous/i });
+      const previousButton = page.getByTestId("previous-section-button");
       await expect(previousButton).toBeVisible();
       await expect(previousButton).toBeDisabled(); // Should be disabled on first section
 
-      const nextButton = page.getByRole("button", { name: /next/i });
+      const nextButton = page.getByTestId("next-section-button");
       await expect(nextButton).toBeVisible();
       await expect(nextButton).toBeEnabled();
     });
@@ -113,57 +112,57 @@ test.describe("Profile Edit Page", () => {
   test.describe("Section Navigation", () => {
     test("should navigate between sections using next/previous buttons", async ({ page }) => {
       // Start on Personal Information section
-      await expect(page.getByRole("heading", { name: /personal information/i }).last()).toBeVisible();
+      await expect(page.getByTestId("current-section-title")).toContainText("Personal Information");
 
       // Click Next to go to Emergency Contact
-      const nextButton = page.getByRole("button", { name: /next/i });
+      const nextButton = page.getByTestId("next-section-button");
       await nextButton.click();
       await page.waitForTimeout(500);
-      await expect(page.getByRole("heading", { name: /emergency contact/i }).last()).toBeVisible();
+      await expect(page.getByTestId("current-section-title")).toContainText("Emergency Contact");
 
       // Click Previous to go back to Personal Information
-      const previousButton = page.getByRole("button", { name: /previous/i });
+      const previousButton = page.getByTestId("previous-section-button");
       await previousButton.click();
       await page.waitForTimeout(500);
-      await expect(page.getByRole("heading", { name: /personal information/i }).last()).toBeVisible();
+      await expect(page.getByTestId("current-section-title")).toContainText("Personal Information");
     });
 
     test("should navigate between sections using tab buttons", async ({ page }) => {
       // Click on Medical & References tab
-      const medicalTab = page.getByRole("button", { name: /medical & references/i });
+      const medicalTab = page.getByTestId("medical-tab-button");
       await medicalTab.click();
       await page.waitForTimeout(500);
-      await expect(page.getByRole("heading", { name: /medical & references/i }).last()).toBeVisible();
+      await expect(page.getByTestId("current-section-title")).toContainText("Medical & References");
 
       // Click on Availability & Location tab
-      const availabilityTab = page.getByRole("button", { name: /availability & location/i });
+      const availabilityTab = page.getByTestId("availability-tab-button");
       await availabilityTab.click();
       await page.waitForTimeout(500);
-      await expect(page.getByRole("heading", { name: /availability & location/i }).last()).toBeVisible();
+      await expect(page.getByTestId("current-section-title")).toContainText("Availability & Location");
     });
 
     test("should update progress indicator when navigating", async ({ page }) => {
       // Start on step 1
-      await expect(page.getByText("Step 1 of 5")).toBeVisible();
+      await expect(page.getByTestId("step-indicator")).toContainText("Step 1 of 5");
 
       // Navigate to next section
-      const nextButton = page.getByRole("button", { name: /next/i });
+      const nextButton = page.getByTestId("next-section-button");
       await nextButton.click();
       await page.waitForTimeout(500);
-      await expect(page.getByText("Step 2 of 5")).toBeVisible();
+      await expect(page.getByTestId("step-indicator")).toContainText("Step 2 of 5");
 
       // Navigate to a specific section via tab
-      const availabilityTab = page.getByRole("button", { name: /availability & location/i });
+      const availabilityTab = page.getByTestId("availability-tab-button");
       await availabilityTab.click();
       await page.waitForTimeout(500);
-      await expect(page.getByText("Step 4 of 5")).toBeVisible();
+      await expect(page.getByTestId("step-indicator")).toContainText("Step 4 of 5");
     });
   });
 
   test.describe("Personal Information Section", () => {
     test("should display all personal information fields", async ({ page }) => {
       // Ensure we're on the personal information section
-      const personalTab = page.getByRole("button", { name: /personal information/i });
+      const personalTab = page.getByTestId("personal-tab-button");
       await personalTab.click();
       await page.waitForTimeout(500);
 
@@ -180,17 +179,17 @@ test.describe("Profile Edit Page", () => {
       await expect(emailField).toBeVisible();
 
       // Check phone field
-      const phoneField = page.getByRole("textbox", { name: /phone/i });
+      const phoneField = page.getByRole("textbox", { name: /mobile number/i });
       await expect(phoneField).toBeVisible();
 
-      // Check date of birth field
-      const dobField = page.getByLabel(/date of birth/i);
+      // Check date of birth field (it's a button, not an input)
+      const dobField = page.getByTestId("date-of-birth-input");
       await expect(dobField).toBeVisible();
     });
 
     test.skip("should allow editing personal information fields", async ({ page }) => {
       // Navigate to personal information section
-      const personalTab = page.getByRole("button", { name: /personal information/i });
+      const personalTab = page.getByTestId("personal-tab-button");
       await personalTab.click();
       await page.waitForTimeout(500);
 
@@ -220,7 +219,7 @@ test.describe("Profile Edit Page", () => {
   test.describe("Emergency Contact Section", () => {
     test("should display emergency contact fields", async ({ page }) => {
       // Navigate to emergency contact section
-      const emergencyTab = page.getByRole("button", { name: /emergency contact/i });
+      const emergencyTab = page.getByTestId("emergency-tab-button");
       await emergencyTab.click();
       await page.waitForTimeout(500);
 
@@ -233,13 +232,13 @@ test.describe("Profile Edit Page", () => {
       await expect(relationshipField).toBeVisible();
 
       // Check emergency contact phone field
-      const contactPhoneField = page.getByRole("textbox", { name: /emergency contact phone/i });
+      const contactPhoneField = page.getByRole("textbox", { name: /emergency contact mobile/i });
       await expect(contactPhoneField).toBeVisible();
     });
 
     test.skip("should allow editing emergency contact information", async ({ page }) => {
       // Navigate to emergency contact section
-      const emergencyTab = page.getByRole("button", { name: /emergency contact/i });
+      const emergencyTab = page.getByTestId("emergency-tab-button");
       await emergencyTab.click();
       await page.waitForTimeout(500);
 
@@ -266,7 +265,7 @@ test.describe("Profile Edit Page", () => {
   test.describe("Form Submission", () => {
     test("should save profile changes successfully", async ({ page }) => {
       // Make a small change in personal information
-      const personalTab = page.getByRole("button", { name: /personal information/i });
+      const personalTab = page.getByTestId("personal-tab-button");
       await personalTab.click();
       await page.waitForTimeout(500);
 
@@ -276,7 +275,7 @@ test.describe("Profile Edit Page", () => {
       await firstNameField.fill(originalValue + " Updated");
 
       // Click save button
-      const saveButton = page.getByRole("button", { name: /save/i }).first();
+      const saveButton = page.getByTestId("header-save-button");
       await saveButton.click();
 
       // Wait for save to complete
@@ -295,7 +294,7 @@ test.describe("Profile Edit Page", () => {
 
     test("should show loading state during save", async ({ page }) => {
       // Click save button
-      const saveButton = page.getByRole("button", { name: /save/i }).first();
+      const saveButton = page.getByTestId("header-save-button");
       await saveButton.click();
 
       // Should show loading state briefly
@@ -327,11 +326,11 @@ test.describe("Profile Edit Page", () => {
       await expect(progressHeading).toBeVisible();
 
       // Check form content is accessible
-      const sectionTitle = page.getByRole("heading", { name: /personal information/i }).last();
+      const sectionTitle = page.getByTestId("current-section-title");
       await expect(sectionTitle).toBeVisible();
 
       // Check navigation buttons are accessible
-      const nextButton = page.getByRole("button", { name: /next/i });
+      const nextButton = page.getByTestId("next-section-button");
       await expect(nextButton).toBeVisible();
     });
   });
@@ -421,10 +420,10 @@ test.describe("Profile Edit Page", () => {
       await expect(lastNameField).toBeVisible();
 
       // Check that buttons have accessible names
-      const saveButton = page.getByRole("button", { name: /save/i }).first();
+      const saveButton = page.getByTestId("header-save-button");
       await expect(saveButton).toBeVisible();
 
-      const nextButton = page.getByRole("button", { name: /next/i });
+      const nextButton = page.getByTestId("next-section-button");
       await expect(nextButton).toBeVisible();
     });
 

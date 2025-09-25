@@ -4,6 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+    paths: ["web/**"]
 
 jobs:
   version-bump:
@@ -144,6 +145,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
 
           git add web/package.json
+          git add web/package-lock.json
           if [ -f CHANGELOG.md ]; then
             git add CHANGELOG.md
           fi
@@ -168,7 +170,7 @@ jobs:
       - name: Push changes
         if: steps.version-type.outputs.bump_type != 'skip'
         run: |
-          git remote set-url origin git@github.com:malinmalliyawadu/volunteer-portal.git
+          git remote set-url origin git@github.com:everybody-eats-nz/volunteer-portal.git
           git push origin main "v${{ steps.bump-version.outputs.new_version }}"
 
       - name: Create GitHub Release

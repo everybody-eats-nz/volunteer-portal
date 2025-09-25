@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { motion } from "motion/react";
+import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
 
 interface Achievement {
   id: string;
@@ -69,19 +71,29 @@ export default function AchievementsCard() {
 
   if (loading) {
     return (
-      <Card className="animate-slide-up">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">🏆</span>
-            Achievements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <motion.div
+        variants={slideUpVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">🏆</span>
+              Achievements
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-8">
+              <motion.div 
+                animate={{ rotate: 360 }} 
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="rounded-full h-8 w-8 border-b-2 border-primary"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
@@ -95,7 +107,12 @@ export default function AchievementsCard() {
   const nextAchievements = availableAchievements.slice(0, 3);
 
   return (
-    <Card className="animate-slide-up">
+    <motion.div
+      variants={slideUpVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -119,11 +136,17 @@ export default function AchievementsCard() {
             <h4 className="font-medium text-sm text-muted-foreground mb-3">
               Recent Achievements
             </h4>
-            <div className="grid gap-3">
+            <motion.div 
+              className="grid gap-3"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
               {recentAchievements.map((userAchievement) => (
-                <div
+                <motion.div
+                  variants={staggerItem}
                   key={userAchievement.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700"
                 >
                   <div className="text-2xl flex-shrink-0">
                     {userAchievement.achievement.icon}
@@ -149,12 +172,12 @@ export default function AchievementsCard() {
                       {userAchievement.achievement.description}
                     </p>
                   </div>
-                  <div className="text-xs font-medium text-yellow-700">
+                  <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
                     +{userAchievement.achievement.points}
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         )}
 
@@ -164,9 +187,15 @@ export default function AchievementsCard() {
             <h4 className="font-medium text-sm text-muted-foreground mb-3">
               Next Goals
             </h4>
-            <div className="grid gap-3">
+            <motion.div 
+              className="grid gap-3"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
               {nextAchievements.map((achievement) => (
-                <div
+                <motion.div
+                  variants={staggerItem}
                   key={achievement.id}
                   className="flex items-center gap-3 p-3 rounded-lg border border-muted/10"
                 >
@@ -196,9 +225,9 @@ export default function AchievementsCard() {
                   <div className="text-xs font-medium text-muted-foreground">
                     {achievement.points} pts
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         )}
 
@@ -230,7 +259,7 @@ export default function AchievementsCard() {
                   {userAchievements.slice(3).map((userAchievement) => (
                     <div
                       key={userAchievement.id}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200"
+                      className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700"
                     >
                       <div className="text-lg flex-shrink-0">
                         {userAchievement.achievement.icon}
@@ -240,7 +269,7 @@ export default function AchievementsCard() {
                           {userAchievement.achievement.name}
                         </h5>
                       </div>
-                      <div className="text-xs font-medium text-yellow-700">
+                      <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
                         +{userAchievement.achievement.points}
                       </div>
                     </div>
@@ -291,5 +320,6 @@ export default function AchievementsCard() {
         )}
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

@@ -1,9 +1,10 @@
-import type { NextAuthOptions, Session } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import FacebookProvider from "next-auth/providers/facebook";
-import AppleProvider from "next-auth/providers/apple";
+import FacebookProvider, {
+  FacebookProfile,
+} from "next-auth/providers/facebook";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
@@ -16,6 +17,7 @@ declare module "next-auth" {
     phone?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    emailVerified?: boolean;
   }
 }
 
@@ -25,6 +27,7 @@ declare module "next-auth/jwt" {
     phone?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    emailVerified?: boolean;
   }
 }
 
@@ -33,6 +36,7 @@ type TokenWithProfile = JWT & {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  emailVerified?: boolean;
 };
 
 type SessionUserWithProfile = {
@@ -41,6 +45,7 @@ type SessionUserWithProfile = {
   phone?: string;
   firstName?: string;
   lastName?: string;
+  emailVerified?: boolean;
 };
 
 export const authOptions: NextAuthOptions = {
@@ -50,14 +55,31 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          // Request higher quality image (400x400 instead of default ~96x96)
+          image:
+            profile.picture?.replace(/=s\d+-c$/, "=s400-c") || profile.picture,
+        };
+      },
     }),
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID!,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-    }),
-    AppleProvider({
-      clientId: process.env.APPLE_ID!,
-      clientSecret: process.env.APPLE_SECRET!,
+      // Request highest quality profile picture (800x800)
+      profileUrl:
+        "https://graph.facebook.com/me?fields=id,name,email,picture.width(800).height(800)",
+      profile(profile: FacebookProfile) {
+        return {
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture?.data?.url,
+        };
+      },
     }),
     // Credentials Provider
     Credentials({
@@ -70,6 +92,17 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            phone: true,
+            firstName: true,
+            lastName: true,
+            hashedPassword: true,
+            emailVerified: true,
+          },
         });
         if (!user) return null;
         const valid = await bcrypt.compare(
@@ -77,6 +110,9 @@ export const authOptions: NextAuthOptions = {
           user.hashedPassword
         );
         if (!valid) return null;
+        
+        // Allow all authenticated users to sign in, including unverified ones
+        // Email verification will be checked at the application level
         return {
           id: user.id,
           email: user.email,
@@ -85,6 +121,7 @@ export const authOptions: NextAuthOptions = {
           phone: user.phone,
           firstName: user.firstName,
           lastName: user.lastName,
+          emailVerified: user.emailVerified,
         };
       },
     }),
@@ -145,16 +182,11 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        const u = user as {
-          role?: AppRole;
-          phone?: string | null;
-          firstName?: string | null;
-          lastName?: string | null;
-        };
-        token.role = u.role;
-        token.phone = u.phone;
-        token.firstName = u.firstName;
-        token.lastName = u.lastName;
+        token.role = user.role;
+        token.phone = user.phone;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.emailVerified = Boolean(user.emailVerified);
       }
 
       // Handle session updates (like profile changes)
@@ -168,6 +200,7 @@ export const authOptions: NextAuthOptions = {
             role: true,
             firstName: true,
             lastName: true,
+            emailVerified: true,
           },
         });
         if (dbUser) {
@@ -176,6 +209,7 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role;
           token.firstName = dbUser.firstName || undefined;
           token.lastName = dbUser.lastName || undefined;
+          token.emailVerified = dbUser.emailVerified || false;
         }
       }
 
@@ -183,7 +217,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       const t = token as TokenWithProfile & { sub?: string };
-      const s = session as Session;
+      const s = session;
       if (s.user) {
         const u = s.user as SessionUserWithProfile;
         u.id = t.sub;
@@ -191,6 +225,7 @@ export const authOptions: NextAuthOptions = {
         u.phone = t.phone;
         u.firstName = t.firstName;
         u.lastName = t.lastName;
+        u.emailVerified = t.emailVerified;
       }
       return s;
     },

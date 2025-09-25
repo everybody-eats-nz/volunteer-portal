@@ -6,7 +6,7 @@ test.describe("Home Page", () => {
     test("should display home page with all main elements", async ({ page }) => {
       // Navigate to home page
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Verify we're on the home page (not redirected)
       await expect(page).toHaveURL("/");
@@ -44,7 +44,7 @@ test.describe("Home Page", () => {
 
     test("should display hero image", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check hero image (on desktop)
       const heroImage = page.getByTestId("hero-image");
@@ -56,7 +56,7 @@ test.describe("Home Page", () => {
 
     test("should display features section", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check features section
       const featuresSection = page.getByTestId("features-section");
@@ -78,7 +78,7 @@ test.describe("Home Page", () => {
 
     test("should display call-to-action section for unauthenticated users", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check CTA section
       const ctaSection = page.getByTestId("cta-section");
@@ -99,7 +99,7 @@ test.describe("Home Page", () => {
 
     test("should display opportunities grid", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check opportunities grid
       const opportunitiesGrid = page.getByTestId("opportunities-grid");
@@ -121,7 +121,7 @@ test.describe("Home Page", () => {
 
     test("should display final call-to-action section for unauthenticated users", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check final CTA section
       const finalCtaSection = page.getByTestId("final-cta-section");
@@ -146,72 +146,72 @@ test.describe("Home Page", () => {
 
     test("should navigate to shifts page from hero browse button", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const browseShiftsButton = page.getByTestId("hero-browse-shifts-button");
       await expect(browseShiftsButton).toBeVisible();
       await browseShiftsButton.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/shifts");
     });
 
     test("should navigate to registration page from hero join button", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const joinVolunteerButton = page.getByTestId("hero-join-volunteer-button");
       await expect(joinVolunteerButton).toBeVisible();
       await joinVolunteerButton.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/register");
     });
 
     test("should navigate to registration page from CTA join button", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const joinVolunteerButton = page.getByTestId("cta-join-volunteer-button");
       await expect(joinVolunteerButton).toBeVisible();
       await joinVolunteerButton.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/register");
     });
 
     test("should navigate to shifts page from CTA browse button", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const browseShiftsButton = page.getByTestId("cta-browse-shifts-unauthenticated");
       await expect(browseShiftsButton).toBeVisible();
       await browseShiftsButton.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/shifts");
     });
 
     test("should navigate to registration page from final get started button", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const getStartedButton = page.getByTestId("final-get-started-button");
       await expect(getStartedButton).toBeVisible();
       await getStartedButton.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/register");
     });
 
     test("should navigate to login page from final sign in button", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const signInButton = page.getByTestId("final-sign-in-button");
       await expect(signInButton).toBeVisible();
       await signInButton.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/login");
     });
@@ -220,7 +220,7 @@ test.describe("Home Page", () => {
       // Set mobile viewport
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check that main elements are still visible and accessible
       const heroTitle = page.getByTestId("hero-title");
@@ -242,7 +242,7 @@ test.describe("Home Page", () => {
 
     test("should have proper accessibility attributes", async ({ page }) => {
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check that the main title is properly marked as heading
       const heroTitle = page.getByTestId("hero-title");
@@ -280,7 +280,7 @@ test.describe("Home Page", () => {
   test.describe("Authenticated User Experience", () => {
     async function loginAsVolunteer(page: Page) {
       await page.goto("/login");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const volunteerLoginButton = page.getByRole("button", {
         name: /login as volunteer/i,
@@ -296,12 +296,12 @@ test.describe("Home Page", () => {
         console.log("Login may have failed or taken too long");
       }
 
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     }
 
     async function loginAsAdmin(page: Page) {
       await page.goto("/login");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       const adminLoginButton = page.getByRole("button", {
         name: /login as admin/i,
@@ -317,7 +317,7 @@ test.describe("Home Page", () => {
         console.log("Login may have failed or taken too long");
       }
 
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
     }
 
     test("should redirect volunteer users to dashboard", async ({ page }) => {
@@ -325,7 +325,7 @@ test.describe("Home Page", () => {
 
       // Try to navigate to home page
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Should be redirected to dashboard
       await expect(page).toHaveURL("/dashboard");
@@ -336,7 +336,7 @@ test.describe("Home Page", () => {
 
       // Try to navigate to home page
       await page.goto("/");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Should be redirected to admin dashboard
       await expect(page).toHaveURL("/admin");
@@ -348,7 +348,7 @@ test.describe("Home Page", () => {
       // Navigate directly to home page multiple times
       for (let i = 0; i < 3; i++) {
         await page.goto("/");
-        await page.waitForLoadState("networkidle");
+        await page.waitForLoadState("load");
         await expect(page).toHaveURL("/dashboard");
       }
     });

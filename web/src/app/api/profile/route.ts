@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { safeParseAvailability } from "@/lib/parse-availability";
+import { autoLabelUnder18User } from "@/lib/auto-label-utils";
+import { checkForBot } from "@/lib/bot-protection";
 
 const updateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -19,10 +22,13 @@ const updateProfileSchema = z.object({
   medicalConditions: z.string().optional(),
   willingToProvideReference: z.boolean().optional(),
   howDidYouHearAboutUs: z.string().optional(),
+  customHowDidYouHearAboutUs: z.string().optional(),
   availableDays: z.array(z.string()).optional(),
   availableLocations: z.array(z.string()).optional(),
   emailNewsletterSubscription: z.boolean().optional(),
   notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
+  receiveShortageNotifications: z.boolean().optional(),
+  excludedShortageNotificationTypes: z.array(z.string()).optional(),
   volunteerAgreementAccepted: z.boolean().optional(),
   healthSafetyPolicyAccepted: z.boolean().optional(),
 });
@@ -57,8 +63,12 @@ export async function GET() {
       availableLocations: true,
       emailNewsletterSubscription: true,
       notificationPreference: true,
+      receiveShortageNotifications: true,
+      excludedShortageNotificationTypes: true,
       volunteerAgreementAccepted: true,
       healthSafetyPolicyAccepted: true,
+      requiresParentalConsent: true,
+      parentalConsentReceived: true,
       createdAt: true,
     },
   });
@@ -67,19 +77,23 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Parse JSON fields
+  // Parse JSON fields safely (handles both JSON arrays and plain text from migration)
   const userWithParsedFields = {
     ...user,
-    availableDays: user.availableDays ? JSON.parse(user.availableDays) : [],
-    availableLocations: user.availableLocations
-      ? JSON.parse(user.availableLocations)
-      : [],
+    availableDays: safeParseAvailability(user.availableDays),
+    availableLocations: safeParseAvailability(user.availableLocations),
   };
 
   return NextResponse.json(userWithParsedFields);
 }
 
 export async function PUT(req: Request) {
+  // Check for bot traffic first
+  const botResponse = await checkForBot("Profile update blocked due to automated activity detection.");
+  if (botResponse) {
+    return botResponse;
+  }
+
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -96,6 +110,7 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
+    console.log("Received profile update:", body);
     const validatedData = updateProfileSchema.parse(body);
 
     // Prepare update data
@@ -130,7 +145,9 @@ export async function PUT(req: Request) {
         validatedData.willingToProvideReference;
     if (validatedData.howDidYouHearAboutUs !== undefined)
       updateData.howDidYouHearAboutUs =
-        validatedData.howDidYouHearAboutUs || null;
+        validatedData.howDidYouHearAboutUs === "other"
+          ? validatedData.customHowDidYouHearAboutUs || null
+          : validatedData.howDidYouHearAboutUs || null;
     if (validatedData.emailNewsletterSubscription !== undefined)
       updateData.emailNewsletterSubscription =
         validatedData.emailNewsletterSubscription;
@@ -142,6 +159,12 @@ export async function PUT(req: Request) {
     if (validatedData.healthSafetyPolicyAccepted !== undefined)
       updateData.healthSafetyPolicyAccepted =
         validatedData.healthSafetyPolicyAccepted;
+    if (validatedData.receiveShortageNotifications !== undefined)
+      updateData.receiveShortageNotifications =
+        validatedData.receiveShortageNotifications;
+    if (validatedData.excludedShortageNotificationTypes !== undefined)
+      updateData.excludedShortageNotificationTypes =
+        validatedData.excludedShortageNotificationTypes;
 
     // Handle date field
     if (validatedData.dateOfBirth !== undefined) {
@@ -198,25 +221,32 @@ export async function PUT(req: Request) {
         availableLocations: true,
         emailNewsletterSubscription: true,
         notificationPreference: true,
+        receiveShortageNotifications: true,
+        excludedShortageNotificationTypes: true,
         volunteerAgreementAccepted: true,
         healthSafetyPolicyAccepted: true,
+        requiresParentalConsent: true,
+        parentalConsentReceived: true,
       },
     });
 
-    // Parse JSON fields for response
+    // Auto-label users under 18 if date of birth was updated
+    if (validatedData.dateOfBirth !== undefined) {
+      const dateOfBirth = validatedData.dateOfBirth ? new Date(validatedData.dateOfBirth) : null;
+      await autoLabelUnder18User(user.id, dateOfBirth);
+    }
+
+    // Parse JSON fields for response safely
     const responseUser = {
       ...updatedUser,
-      availableDays: updatedUser.availableDays
-        ? JSON.parse(updatedUser.availableDays)
-        : [],
-      availableLocations: updatedUser.availableLocations
-        ? JSON.parse(updatedUser.availableLocations)
-        : [],
+      availableDays: safeParseAvailability(updatedUser.availableDays),
+      availableLocations: safeParseAvailability(updatedUser.availableLocations),
     };
 
     return NextResponse.json(responseUser);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("Validation error:", error.issues);
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
         { status: 400 }

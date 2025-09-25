@@ -7,11 +7,10 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/page-header";
+import { Plus, Star as StarIcon, User as UserIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const LOCATIONS = ["Wellington", "Glenn Innes", "Onehunga"] as const;
-type LocationOption = (typeof LOCATIONS)[number];
+import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { LOCATIONS, LocationOption } from "@/lib/locations";
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -19,8 +18,7 @@ export default async function AdminDashboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: "ADMIN" | "VOLUNTEER" } | undefined)
-    ?.role;
+  const role = session?.user?.role;
 
   if (!session?.user) {
     redirect("/login?callbackUrl=/admin");
@@ -189,18 +187,6 @@ export default async function AdminDashboardPage({
     signups: Array<{ status: string }>;
   };
 
-  type SignupWithUserAndShift = {
-    id: string;
-    status: "PENDING" | "CONFIRMED" | "WAITLISTED" | "CANCELED";
-    createdAt: Date;
-    user: { id: string; name: string | null; email: string };
-    shift: {
-      start: Date;
-      location: string | null;
-      shiftType: { name: string };
-    };
-  };
-
   // Filter shifts that need attention (less than 50% capacity filled)
   const lowSignupShifts = shiftsNeedingAttention.filter(
     (shift: ShiftWithSignups) => {
@@ -211,31 +197,34 @@ export default async function AdminDashboardPage({
   );
 
   return (
-    <div className="animate-fade-in">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <PageHeader
-            title="Admin Dashboard"
-            description="Overview of volunteer portal activity and management tools."
-            className="flex-1"
-            data-testid="admin-dashboard-heading"
-          />
-
+    <AdminPageWrapper
+      title="Admin Dashboard"
+      description="Overview of volunteer portal activity and management tools."
+    >
+      <div data-testid="admin-dashboard-page" className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           {/* Compact location filter using tabs */}
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-muted-foreground" data-testid="location-filter-label">
+            <span
+              className="text-sm font-medium text-muted-foreground"
+              data-testid="location-filter-label"
+            >
               Filter by location:
             </span>
             <Tabs value={selectedLocation || "all"} className="w-fit">
               <TabsList className="bg-accent-subtle">
                 <TabsTrigger value="all" asChild>
-                  <Link href="/admin" data-testid="location-filter-all">All</Link>
+                  <Link href="/admin" data-testid="location-filter-all">
+                    All
+                  </Link>
                 </TabsTrigger>
                 {LOCATIONS.map((loc) => (
                   <TabsTrigger key={loc} value={loc} asChild>
                     <Link
                       href={{ pathname: "/admin", query: { location: loc } }}
-                      data-testid={`location-filter-${loc.toLowerCase().replace(" ", "-")}`}
+                      data-testid={`location-filter-${loc
+                        .toLowerCase()
+                        .replace(" ", "-")}`}
                     >
                       {loc}
                     </Link>
@@ -247,7 +236,7 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card data-testid="total-users-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -256,7 +245,10 @@ export default async function AdminDashboardPage({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalUsers}</div>
-              <p className="text-xs text-muted-foreground" data-testid="users-breakdown">
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="users-breakdown"
+              >
                 {totalVolunteers} volunteers, {totalAdmins} admins
               </p>
             </CardContent>
@@ -270,7 +262,10 @@ export default async function AdminDashboardPage({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalShifts}</div>
-              <p className="text-xs text-muted-foreground" data-testid="shifts-breakdown">
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="shifts-breakdown"
+              >
                 {upcomingShifts} upcoming, {pastShifts} completed
               </p>
             </CardContent>
@@ -286,7 +281,10 @@ export default async function AdminDashboardPage({
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 Total Signups
                 {pendingSignups > 0 && (
-                  <Badge className="bg-orange-100 text-orange-800 border-orange-200" data-testid="pending-signups-badge">
+                  <Badge
+                    className="bg-orange-100 text-orange-800 border-orange-200"
+                    data-testid="pending-signups-badge"
+                  >
                     {pendingSignups} pending
                   </Badge>
                 )}
@@ -294,7 +292,10 @@ export default async function AdminDashboardPage({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalSignups}</div>
-              <p className="text-xs text-muted-foreground" data-testid="signups-breakdown">
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="signups-breakdown"
+              >
                 {confirmedSignups} confirmed, {pendingSignups} pending,{" "}
                 {waitlistedSignups} waitlisted
               </p>
@@ -309,10 +310,16 @@ export default async function AdminDashboardPage({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{monthlySignups}</div>
-              <p className="text-xs text-muted-foreground" data-testid="monthly-signups-text">
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="monthly-signups-text"
+              >
                 signups for {monthlyShifts} shifts
               </p>
-              <p className="text-xs text-muted-foreground" data-testid="monthly-new-users-text">
+              <p
+                className="text-xs text-muted-foreground"
+                data-testid="monthly-new-users-text"
+              >
                 {newUsersThisMonth} new users
               </p>
             </CardContent>
@@ -320,22 +327,61 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle data-testid="quick-actions-heading">Quick Actions</CardTitle>
+              <CardTitle data-testid="quick-actions-heading">
+                Quick Actions
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button asChild className="w-full btn-primary" data-testid="create-shift-button">
+              <Button
+                asChild
+                className="w-full btn-primary"
+                data-testid="create-shift-button"
+              >
                 <Link href="/admin/shifts/new">Create New Shift</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full" data-testid="manage-shifts-button">
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+                data-testid="dashboard-manage-shifts-button"
+              >
                 <Link href="/admin/shifts">Manage All Shifts</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full" data-testid="manage-users-button">
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+                data-testid="dashboard-manage-users-button"
+              >
                 <Link href="/admin/users">Manage Users</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full" data-testid="view-public-shifts-button">
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+                data-testid="restaurant-managers-button"
+              >
+                <Link href="/admin/restaurant-managers">
+                  Restaurant Managers
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+                data-testid="user-migration-button"
+              >
+                <Link href="/admin/migration">User Migration</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full"
+                data-testid="dashboard-view-public-shifts-button"
+              >
                 <Link href="/shifts">View Public Shifts</Link>
               </Button>
             </CardContent>
@@ -365,7 +411,10 @@ export default async function AdminDashboardPage({
                       }{" "}
                       / {nextShift.capacity}
                     </Badge>
-                    <span className="text-xs text-muted-foreground" data-testid="shift-volunteers-badge">
+                    <span
+                      className="text-xs text-muted-foreground"
+                      data-testid="shift-volunteers-badge"
+                    >
                       volunteers
                     </span>
                   </div>
@@ -382,7 +431,10 @@ export default async function AdminDashboardPage({
                   </Button>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm" data-testid="no-upcoming-shifts">
+                <p
+                  className="text-muted-foreground text-sm"
+                  data-testid="no-upcoming-shifts"
+                >
                   No upcoming shifts scheduled
                 </p>
               )}
@@ -392,12 +444,17 @@ export default async function AdminDashboardPage({
           {/* Shifts Needing Attention */}
           <Card>
             <CardHeader>
-              <CardTitle data-testid="needs-attention-heading">Needs Attention</CardTitle>
+              <CardTitle data-testid="needs-attention-heading">
+                Needs Attention
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {lowSignupShifts.length > 0 ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground" data-testid="low-signup-rates-text">
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid="low-signup-rates-text"
+                  >
                     {lowSignupShifts.length} shifts with low signup rates
                   </p>
                   {lowSignupShifts
@@ -431,23 +488,77 @@ export default async function AdminDashboardPage({
                   </Button>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm" data-testid="good-signup-rates-message">
-                  All upcoming shifts have good signup rates! <span data-testid="celebration-emoji">🎉</span>
+                <p
+                  className="text-muted-foreground text-sm"
+                  data-testid="good-signup-rates-message"
+                >
+                  All upcoming shifts have good signup rates!{" "}
+                  <span data-testid="celebration-emoji">🎉</span>
                 </p>
               )}
             </CardContent>
           </Card>
         </div>
 
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button asChild className="h-auto p-4 flex-col gap-2">
+                <Link href="/admin/shifts/new">
+                  <Plus className="h-5 w-5" />
+                  <span className="font-medium">Create Shift</span>
+                  <span className="text-xs opacity-75">
+                    Schedule new volunteer shifts
+                  </span>
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto p-4 flex-col gap-2"
+              >
+                <Link href="/admin/regulars">
+                  <StarIcon className="h-5 w-5" />
+                  <span className="font-medium">Regular Volunteers</span>
+                  <span className="text-xs opacity-75">
+                    Manage recurring assignments
+                  </span>
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="h-auto p-4 flex-col gap-2"
+              >
+                <Link href="/admin/users">
+                  <UserIcon className="h-5 w-5" />
+                  <span className="font-medium">User Management</span>
+                  <span className="text-xs opacity-75">
+                    View and manage volunteers
+                  </span>
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle data-testid="recent-signups-heading">Recent Signups</CardTitle>
+            <CardTitle data-testid="recent-signups-heading">
+              Recent Signups
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {recentSignups.length > 0 ? (
               <div className="space-y-3">
-                {recentSignups.map((signup: SignupWithUserAndShift) => (
+                {recentSignups.map((signup) => (
                   <div
                     key={signup.id}
                     className="flex items-center justify-between py-2 border-b border-border last:border-0"
@@ -494,11 +605,16 @@ export default async function AdminDashboardPage({
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm" data-testid="no-recent-signups">No recent signups</p>
+              <p
+                className="text-muted-foreground text-sm"
+                data-testid="no-recent-signups"
+              >
+                No recent signups
+              </p>
             )}
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminPageWrapper>
   );
 }

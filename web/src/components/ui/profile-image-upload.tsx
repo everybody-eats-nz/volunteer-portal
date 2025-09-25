@@ -8,15 +8,14 @@ import ReactCrop, {
   makeAspectCrop,
 } from "react-image-crop";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Camera, Upload, X } from "lucide-react";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
+import { Camera, Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import "react-image-crop/dist/ReactCrop.css";
@@ -28,6 +27,7 @@ interface ProfileImageUploadProps {
   disabled?: boolean;
   size?: "sm" | "md" | "lg";
   fallbackText?: string;
+  required?: boolean;
   toast?: (options: {
     title: string;
     description?: string;
@@ -124,6 +124,7 @@ export function ProfileImageUpload({
   disabled = false,
   size = "md",
   fallbackText = "?",
+  required = false,
   toast,
 }: ProfileImageUploadProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -132,6 +133,7 @@ export function ProfileImageUpload({
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [imageKey, setImageKey] = useState(0); // Add this to force re-renders
 
   const imgRef = useRef<HTMLImageElement>(null);
@@ -169,10 +171,20 @@ export function ProfileImageUpload({
       }
 
       setSelectedFile(file);
+      setIsLoadingImage(true);
       const reader = new FileReader();
       reader.onload = () => {
         setImageSrc(reader.result as string);
+        setIsLoadingImage(false);
         setIsDialogOpen(true);
+      };
+      reader.onerror = () => {
+        setIsLoadingImage(false);
+        toast?.({
+          title: "Error loading image",
+          description: "Please try again with a different image",
+          variant: "destructive",
+        });
       };
       reader.readAsDataURL(file);
     },
@@ -228,6 +240,7 @@ export function ProfileImageUpload({
     setSelectedFile(null);
     setCrop(undefined);
     setCompletedCrop(undefined);
+    setIsLoadingImage(false);
 
     // Reset file input
     if (fileInputRef.current) {
@@ -236,16 +249,17 @@ export function ProfileImageUpload({
   }, []);
 
   return (
-    <div className="space-y-3">
-      <Label className="text-sm font-medium">Profile Photo</Label>
-
+    <div className="space-y-3" data-testid="profile-image-upload">
       <div className="flex items-center gap-4">
         {/* Avatar Display */}
         <div className="relative">
           <div
             className={cn(
               sizeClasses[size],
-              "border-2 border-muted rounded-full overflow-hidden bg-muted flex items-center justify-center"
+              "border-2 rounded-full overflow-hidden bg-muted flex items-center justify-center",
+              required && !currentImage 
+                ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/20"
+                : "border-muted"
             )}
           >
             {currentImage ? (
@@ -253,6 +267,8 @@ export function ProfileImageUpload({
                 key={`profile-img-${imageKey}`}
                 src={currentImage}
                 alt="Profile"
+                width={96}
+                height={96}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   console.error("Failed to load profile image");
@@ -260,7 +276,12 @@ export function ProfileImageUpload({
                 }}
               />
             ) : (
-              <span className="text-lg font-semibold text-foreground">
+              <span className={cn(
+                "text-lg font-semibold",
+                required && !currentImage 
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-foreground"
+              )}>
                 {fallbackText}
               </span>
             )}
@@ -286,27 +307,31 @@ export function ProfileImageUpload({
             type="button"
             variant="outline"
             size="sm"
-            disabled={disabled}
+            disabled={disabled || isLoadingImage}
             onClick={() => fileInputRef.current?.click()}
             className="gap-2"
           >
-            <Camera className="h-4 w-4" />
-            {currentImage ? "Change Photo" : "Upload Photo"}
+            {isLoadingImage ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+            {isLoadingImage ? "Loading..." : currentImage ? "Change Photo" : "Upload Photo"}
           </Button>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Crop Your Profile Photo</DialogTitle>
-                <DialogDescription>
+          <ResponsiveDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <ResponsiveDialogContent className="max-w-2xl" data-testid="crop-dialog">
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>Crop Your Profile Photo</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>
                   Adjust the crop area to frame your photo perfectly. The image
                   will be resized to a square format.
-                </DialogDescription>
-              </DialogHeader>
+                </ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
 
               <div className="space-y-4">
                 {imageSrc && (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center overflow-auto max-h-[500px]">
                     <ReactCrop
                       crop={crop}
                       onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -315,11 +340,18 @@ export function ProfileImageUpload({
                       minWidth={100}
                       minHeight={100}
                     >
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         ref={imgRef}
                         alt="Crop preview"
                         src={imageSrc}
-                        style={{ maxHeight: "400px", maxWidth: "100%" }}
+                        style={{ 
+                          maxHeight: "400px", 
+                          maxWidth: "100%",
+                          height: "auto",
+                          width: "auto",
+                          display: "block"
+                        }}
                         onLoad={onImageLoad}
                       />
                     </ReactCrop>
@@ -340,14 +372,19 @@ export function ProfileImageUpload({
                     onClick={handleCropComplete}
                     disabled={!completedCrop || isProcessing}
                     className="gap-2"
+                    data-testid="apply-crop-button"
                   >
-                    <Upload className="h-4 w-4" />
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                     {isProcessing ? "Processing..." : "Apply Crop"}
                   </Button>
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
+            </ResponsiveDialogContent>
+          </ResponsiveDialog>
 
           {/* Hidden file input */}
           <input

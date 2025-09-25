@@ -1,0 +1,51 @@
+---
+// Component to generate links to live application pages
+interface Props {
+  path: string;
+  text?: string;
+  external?: boolean;
+}
+
+const { path, text = "View Live Page", external = true } = Astro.props;
+
+// Get the app URL from environment variable
+const APP_URL = import.meta.env.VOLUNTEER_PORTAL_URL || 'http://localhost:3000';
+const fullUrl = `${APP_URL}${path}`;
+---
+
+<a 
+  href={fullUrl} 
+  class="app-link"
+  target={external ? "_blank" : "_self"}
+  rel={external ? "noopener noreferrer" : undefined}
+>
+  {text}
+  {external && <span class="external-icon">↗</span>}
+</a>
+
+<style>
+  .app-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    background: var(--sl-color-accent);
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin: 0.5rem 0;
+  }
+  
+  .app-link:hover {
+    background: var(--sl-color-accent-high);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .external-icon {
+    font-size: 0.875rem;
+    opacity: 0.8;
+  }
+</style>

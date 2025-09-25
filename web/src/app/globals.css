@@ -53,30 +53,30 @@
 
 .dark {
   /* Dark mode values for --ee-* custom properties */
-  --ee-bg: #0a0f0a !important;
+  --ee-bg: #0f1114 !important;
   --ee-fg: #e5f0e8 !important;
   --ee-primary: #1d5337;
   --ee-primary-700: #3d8b40;
   --ee-primary-light: #1a2f1a;
   --ee-accent: #f8fb69;
   --ee-accent-subtle: #e4e85a;
-  --ee-muted: #9ca3af;
+  --ee-muted: #0f1419;
   --ee-border: #1f2937;
-  --ee-card-bg: #111827;
+  --ee-card-bg: #1a1d23;
 
   /* shadcn/ui dark mode variables */
-  --background: oklch(0.147 0.004 49.25);
+  --background: oklch(0.12 0.002 240);
   --foreground: oklch(0.985 0.001 106.423);
-  --card: oklch(0.216 0.006 56.043);
+  --card: oklch(0.15 0.002 240);
   --card-foreground: oklch(0.985 0.001 106.423);
-  --popover: oklch(0.216 0.006 56.043);
+  --popover: oklch(0.15 0.002 240);
   --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.923 0.003 48.717);
-  --primary-foreground: oklch(0.216 0.006 56.043);
+  --primary: oklch(0.248 0.067 157.1);
+  --primary-foreground: oklch(0.985 0.001 106.423);
   --secondary: oklch(0.268 0.007 34.298);
   --secondary-foreground: oklch(0.985 0.001 106.423);
-  --muted: oklch(0.268 0.007 34.298);
-  --muted-foreground: oklch(0.709 0.01 56.259);
+  --muted: oklch(0.12 0.005 34.298);
+  --muted-foreground: oklch(0.85 0.005 56.259);
   --accent: oklch(0.268 0.007 34.298);
   --accent-foreground: oklch(0.985 0.001 106.423);
   --destructive: oklch(0.704 0.191 22.216);
@@ -217,6 +217,16 @@ h6 {
   color: white;
 }
 
+/* Dark mode specific styling for better contrast */
+.dark .btn-outline {
+  border-color: #4ade80; /* light green for better contrast */
+  color: #4ade80;
+}
+.dark .btn-outline:hover {
+  background: #4ade80;
+  color: #0f1114; /* dark background color for contrast */
+}
+
 .header-link {
   color: white;
   transition: all 0.2s ease;
@@ -273,9 +283,6 @@ h6 {
 }
 
 /* Page sections */
-.section-hero {
-}
-
 .section-content {
   background: var(--ee-bg);
 }
@@ -290,34 +297,8 @@ h6 {
   background: linear-gradient(90deg, var(--ee-primary), var(--ee-primary-700));
 }
 
-/* Animation utilities */
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.6s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Animation utilities - Now handled by motion.dev */
+/* See /src/lib/motion.ts for animation variants */
 
 /* Focus states */
 .focus-ring {
@@ -341,4 +322,13 @@ h6 {
   animation-delay: 0s !important;
   transition-duration: 0s !important;
   transition-delay: 0s !important;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

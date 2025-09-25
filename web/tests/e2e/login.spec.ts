@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await page.waitForTimeout(500); // Small buffer for animations
 }
 

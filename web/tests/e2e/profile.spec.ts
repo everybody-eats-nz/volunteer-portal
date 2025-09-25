@@ -1,31 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to login
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    const volunteerLoginButton = page.getByRole("button", {
-      name: /login as volunteer/i,
-    });
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 5000 });
-    await volunteerLoginButton.click();
-
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch (error) {
-      console.log("Login may have failed or taken too long");
-    }
-
-    await page.waitForLoadState("networkidle");
-  } catch (error) {
-    console.log("Error during login:", error);
-  }
-}
+import { loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Profile Page", () => {
   test.beforeEach(async ({ page }) => {
@@ -33,13 +7,7 @@ test.describe("Profile Page", () => {
 
     // Navigate to profile and wait for it to load
     await page.goto("/profile");
-    await page.waitForLoadState("networkidle");
-
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Login failed - skipping profile tests");
-    }
+    await page.waitForLoadState("domcontentloaded");
   });
 
   test("should display profile page with all main elements", async ({
@@ -56,11 +24,11 @@ test.describe("Profile Page", () => {
     const description = page.getByText(
       /manage your volunteer account and track your impact/i
     );
-    await expect(description).toBeVisible();
+    await expect(description.first()).toBeVisible();
 
     // Check profile header card is visible by finding the "Active Member" badge
     const activeMemberBadge = page.getByText("Active Member");
-    await expect(activeMemberBadge).toBeVisible();
+    await expect(activeMemberBadge.first()).toBeVisible();
 
     // Check edit profile button
     const editButton = page.getByRole("link", { name: /edit profile/i });
@@ -69,12 +37,12 @@ test.describe("Profile Page", () => {
   });
 
   test("should display user information correctly", async ({ page }) => {
-    // Check avatar is visible
-    const avatar = page
-      .getByRole("img", { name: /profile/i })
-      .or(page.locator('[data-slot="avatar"], [class*="avatar"]').first());
-    if ((await avatar.count()) > 0) {
-      await expect(avatar).toBeVisible();
+    // Check main profile avatar is visible (not the header avatar)
+    const mainProfileAvatar = page
+      .getByTestId("profile-page")
+      .getByRole("img", { name: /profile/i });
+    if ((await mainProfileAvatar.count()) > 0) {
+      await expect(mainProfileAvatar).toBeVisible();
     }
 
     // Check user name is displayed
@@ -93,7 +61,7 @@ test.describe("Profile Page", () => {
 
     // Check active member badge
     const activeBadge = page.getByText("Active Member");
-    await expect(activeBadge).toBeVisible();
+    await expect(activeBadge.first()).toBeVisible();
   });
 
   test("should display personal information section", async ({ page }) => {
@@ -103,7 +71,7 @@ test.describe("Profile Page", () => {
 
     // Check account details subheading
     const accountDetails = page.getByText("Your account details");
-    await expect(accountDetails).toBeVisible();
+    await expect(accountDetails.first()).toBeVisible();
 
     // Check common fields that should always be present
     const nameLabel = page.getByTestId("personal-info-name-label");
@@ -112,7 +80,9 @@ test.describe("Profile Page", () => {
     const emailLabel = page.getByTestId("personal-info-email-label");
     await expect(emailLabel).toBeVisible();
 
-    const accountTypeLabel = page.getByTestId("personal-info-account-type-label");
+    const accountTypeLabel = page.getByTestId(
+      "personal-info-account-type-label"
+    );
     await expect(accountTypeLabel).toBeVisible();
   });
 
@@ -125,7 +95,7 @@ test.describe("Profile Page", () => {
     const emergencyDescription = page.getByText(
       "Emergency contact information"
     );
-    await expect(emergencyDescription).toBeVisible();
+    await expect(emergencyDescription.first()).toBeVisible();
 
     // Check either emergency contact info or empty state message
     const hasEmergencyContact =
@@ -142,7 +112,7 @@ test.describe("Profile Page", () => {
       const noContactMessage = page.getByText(
         "No emergency contact information provided"
       );
-      await expect(noContactMessage).toBeVisible();
+      await expect(noContactMessage.first()).toBeVisible();
     }
   });
 
@@ -155,7 +125,7 @@ test.describe("Profile Page", () => {
     const availabilityDescription = page.getByText(
       "When and where you can volunteer"
     );
-    await expect(availabilityDescription).toBeVisible();
+    await expect(availabilityDescription.first()).toBeVisible();
 
     // Check either availability info or empty state
     const hasAvailability =
@@ -175,7 +145,7 @@ test.describe("Profile Page", () => {
       const noAvailabilityMessage = page.getByText(
         "No availability preferences set"
       );
-      await expect(noAvailabilityMessage).toBeVisible();
+      await expect(noAvailabilityMessage.first()).toBeVisible();
     }
   });
 
@@ -188,7 +158,7 @@ test.describe("Profile Page", () => {
     const quickActionsDescription = page.getByText(
       "Manage your volunteer experience"
     );
-    await expect(quickActionsDescription).toBeVisible();
+    await expect(quickActionsDescription.first()).toBeVisible();
 
     // Check action buttons exist
     const browseShiftsButton = page.getByTestId("browse-shifts-button");
@@ -201,7 +171,7 @@ test.describe("Profile Page", () => {
 
     // Check complete profile reminder
     const completeProfileMessage = page.getByText("Complete your profile!");
-    await expect(completeProfileMessage).toBeVisible();
+    await expect(completeProfileMessage.first()).toBeVisible();
   });
 
   test("should navigate to edit profile page", async ({ page }) => {
@@ -215,12 +185,14 @@ test.describe("Profile Page", () => {
     page,
   }) => {
     // Check that the link exists and is clickable
-    const browseShiftsLink = page.locator('a[href="/shifts"]').filter({ hasText: "Browse Available Shifts" });
-    await expect(browseShiftsLink).toBeVisible();
-    
+    const browseShiftsLink = page
+      .locator('a[href="/shifts"]')
+      .filter({ hasText: "Browse Available Shifts" });
+    await expect(browseShiftsLink.first()).toBeVisible();
+
     await browseShiftsLink.click();
-    await page.waitForLoadState("networkidle");
-    
+    await page.waitForLoadState("load");
+
     await expect(page).toHaveURL("/shifts");
   });
 
@@ -228,12 +200,14 @@ test.describe("Profile Page", () => {
     page,
   }) => {
     // Check that the link exists and is clickable
-    const viewScheduleLink = page.locator('a[href="/shifts/mine"]').filter({ hasText: "View My Schedule" });
-    await expect(viewScheduleLink).toBeVisible();
-    
+    const viewScheduleLink = page
+      .locator('a[href="/shifts/mine"]')
+      .filter({ hasText: "View My Schedule" });
+    await expect(viewScheduleLink.first()).toBeVisible();
+
     await viewScheduleLink.click();
-    await page.waitForLoadState("networkidle");
-    
+    await page.waitForLoadState("load");
+
     await expect(page).toHaveURL("/shifts/mine");
   });
 
@@ -297,12 +271,12 @@ test.describe("Profile Page", () => {
 
     // Check active member badge
     const activeBadge = page.getByText("Active Member");
-    await expect(activeBadge).toBeVisible();
+    await expect(activeBadge.first()).toBeVisible();
 
     // Check for agreement signed badge if present
     const agreementBadge = page.getByText("Agreement Signed");
     if ((await agreementBadge.count()) > 0) {
-      await expect(agreementBadge).toBeVisible();
+      await expect(agreementBadge.first()).toBeVisible();
     }
   });
 
@@ -371,9 +345,6 @@ test.describe("Profile Page", () => {
   });
 
   test("should validate profile data display", async ({ page }) => {
-    // Check that personal information fields show appropriate content
-    const personalInfoSection = page.getByTestId("personal-info-section");
-
     // Check name field - should not be empty
     const nameLabel = page.getByTestId("personal-info-name-label");
     await expect(nameLabel).toBeVisible();
@@ -385,7 +356,9 @@ test.describe("Profile Page", () => {
     await expect(emailLabel).toContainText("Email");
 
     // Check account type - should be Volunteer or Administrator
-    const accountTypeLabel = page.getByTestId("personal-info-account-type-label");
+    const accountTypeLabel = page.getByTestId(
+      "personal-info-account-type-label"
+    );
     await expect(accountTypeLabel).toBeVisible();
     await expect(accountTypeLabel).toContainText("Account Type");
   });
@@ -393,11 +366,11 @@ test.describe("Profile Page", () => {
   test("should show complete profile reminder", async ({ page }) => {
     // Check for profile completion reminder
     const completeProfileMessage = page.getByText("Complete your profile!");
-    await expect(completeProfileMessage).toBeVisible();
+    await expect(completeProfileMessage.first()).toBeVisible();
 
     const reminderText = page.getByText(
       /add your emergency contact, availability, and preferences/i
     );
-    await expect(reminderText).toBeVisible();
+    await expect(reminderText.first()).toBeVisible();
   });
 });

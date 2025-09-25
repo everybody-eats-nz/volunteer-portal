@@ -1,13 +1,27 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 
+// Helper function to wait for dashboard content to load (including Suspense boundaries)
+async function waitForDashboardContent(page: Page) {
+  // Wait for the welcome heading to appear (renders immediately)
+  await page.getByRole("heading", { name: /welcome back/i }).waitFor({ state: "visible" });
+  
+  // Wait for at least some stats to load (Suspense content) - be more flexible with what we wait for
+  try {
+    await page.getByText(/shifts completed|hours contributed|confirmed shifts|this month/i).first().waitFor({ state: "visible", timeout: 8000 });
+  } catch (error) {
+    // If stats don't load, at least wait for Quick Actions which always renders
+    await page.getByText("Quick Actions").waitFor({ state: "visible", timeout: 5000 });
+  }
+}
+
 // Helper function to login
 async function loginAsVolunteer(page: Page) {
   try {
     await page.goto("/login");
 
     // Wait for the page to load
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     // Check if login form is visible
     const volunteerLoginButton = page.getByRole("button", {
@@ -28,7 +42,7 @@ async function loginAsVolunteer(page: Page) {
       console.log("Login may have failed or taken too long");
     }
 
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
   } catch (error) {
     console.log("Error during login:", error);
   }
@@ -38,15 +52,18 @@ test.describe("Dashboard Page", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
 
-    // Navigate to dashboard and wait for it to load
+    // Navigate to dashboard and wait for content to load (including Suspense)
     await page.goto("/dashboard");
-    await page.waitForLoadState("networkidle");
-
+    await page.waitForLoadState("load");
+    
     // Skip tests if login failed (we're still on login page)
     const currentUrl = page.url();
     if (currentUrl.includes("/login")) {
       test.skip(true, "Login failed - skipping dashboard tests");
     }
+    
+    // Wait for dashboard content to stream in
+    await waitForDashboardContent(page);
   });
 
   test("should display dashboard with all main elements", async ({ page }) => {
@@ -165,49 +182,49 @@ test.describe("Dashboard Page", () => {
   });
 
   test("should display impact and community stats", async ({ page }) => {
-    // Check for impact section - it's in a CardTitle, not a heading
+    // Wait for impact section to load (it's in a Suspense boundary)
     const impactHeading = page.getByText("Your Impact & Community");
-    await expect(impactHeading).toBeVisible();
+    await expect(impactHeading.first()).toBeVisible({ timeout: 10000 });
 
     // Check for estimated meals stat
     const estimatedMealsText = page.getByText(
       /estimated meals helped prepare/i
     );
-    await expect(estimatedMealsText).toBeVisible();
+    await expect(estimatedMealsText.first()).toBeVisible({ timeout: 10000 });
 
     // Check for active volunteers stat
     const activeVolunteersText = page.getByText(
       /active volunteers in our community/i
     );
-    await expect(activeVolunteersText).toBeVisible();
+    await expect(activeVolunteersText.first()).toBeVisible({ timeout: 10000 });
 
     // Check for food waste prevented stat
     const foodWasteText = page.getByText(/estimated food waste prevented/i);
-    await expect(foodWasteText).toBeVisible();
+    await expect(foodWasteText.first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should display quick actions section", async ({ page }) => {
     // Check for quick actions heading - it's in a CardTitle, not a heading
     const quickActionsHeading = page.getByText("Quick Actions");
-    await expect(quickActionsHeading).toBeVisible();
+    await expect(quickActionsHeading.first()).toBeVisible();
 
     // Check all quick action buttons
     const findShiftsButton = page.getByRole("link", { name: /find shifts/i });
-    await expect(findShiftsButton).toBeVisible();
+    await expect(findShiftsButton.first()).toBeVisible();
     await expect(findShiftsButton).toHaveAttribute("href", "/shifts");
 
     const myScheduleButton = page.getByRole("link", { name: /my schedule/i });
-    await expect(myScheduleButton).toBeVisible();
+    await expect(myScheduleButton.first()).toBeVisible();
     await expect(myScheduleButton).toHaveAttribute("href", "/shifts/mine");
 
     const myProfileButton = page
       .getByRole("main")
       .getByRole("link", { name: "My Profile" });
-    await expect(myProfileButton).toBeVisible();
+    await expect(myProfileButton.first()).toBeVisible();
     await expect(myProfileButton).toHaveAttribute("href", "/profile");
 
     const mainSiteLink = page.getByRole("link", { name: /visit main site/i });
-    await expect(mainSiteLink).toBeVisible();
+    await expect(mainSiteLink.first()).toBeVisible();
     await expect(mainSiteLink).toHaveAttribute(
       "href",
       "https://everybodyeats.nz"
@@ -219,6 +236,7 @@ test.describe("Dashboard Page", () => {
     page,
   }) => {
     const findShiftsButton = page.getByRole("link", { name: /find shifts/i });
+    await expect(findShiftsButton.first()).toBeVisible();
     await findShiftsButton.click();
 
     await expect(page).toHaveURL("/shifts");
@@ -228,6 +246,7 @@ test.describe("Dashboard Page", () => {
     page,
   }) => {
     const myScheduleButton = page.getByRole("link", { name: /my schedule/i });
+    await expect(myScheduleButton.first()).toBeVisible();
     await myScheduleButton.click();
 
     await expect(page).toHaveURL("/shifts/mine");
@@ -237,6 +256,7 @@ test.describe("Dashboard Page", () => {
     const myProfileButton = page
       .getByRole("main")
       .getByRole("link", { name: "My Profile" });
+    await expect(myProfileButton.first()).toBeVisible();
     await myProfileButton.click();
 
     await expect(page).toHaveURL("/profile");
@@ -310,6 +330,9 @@ test.describe("Dashboard Page", () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
+    // Give the page a moment to adjust to new viewport
+    await page.waitForTimeout(500);
+
     // Check that main elements are still visible
     const welcomeHeading = page.getByRole("heading", { name: /welcome back/i });
     await expect(welcomeHeading).toBeVisible();
@@ -322,7 +345,7 @@ test.describe("Dashboard Page", () => {
 
     // Check quick actions are visible - use text instead of heading role
     const quickActionsHeading = page.getByText("Quick Actions");
-    await expect(quickActionsHeading).toBeVisible();
+    await expect(quickActionsHeading.first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should handle loading state gracefully", async ({ page }) => {
@@ -398,7 +421,7 @@ test.describe("Dashboard Page", () => {
 
     // Refresh the page and verify stats are consistent
     await page.reload();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     const refreshedStatNumbers = page.locator(
       '[class*="text-2xl"][class*="font-bold"]'

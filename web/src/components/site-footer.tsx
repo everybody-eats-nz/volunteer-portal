@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Session } from "next-auth";
+import { Facebook, Instagram, Globe, Mail } from "lucide-react";
 import packageJson from "../../package.json";
 
 interface SiteFooterProps {
@@ -19,12 +20,13 @@ interface SiteFooterProps {
  */
 export function SiteFooter({ session }: SiteFooterProps) {
   const currentYear = new Date().getFullYear();
+  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
     <footer className="border-t mt-12 bg-slate-900 dark:bg-slate-950">
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Main footer content */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid gap-8 mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {/* About section */}
           <div>
             <h3 className="text-white font-semibold mb-4">Everybody Eats</h3>
@@ -39,49 +41,95 @@ export function SiteFooter({ session }: SiteFooterProps) {
             </p>
           </div>
 
-          {/* Quick links */}
+          {/* Social Media */}
           <div>
-            <h3 className="text-white font-semibold mb-4">Quick Links</h3>
-            <nav className="space-y-2">
-              <Link
-                href="/shifts"
-                className="block text-slate-300 hover:text-white text-sm transition-colors"
+            <h3 className="text-white font-semibold mb-4">Connect With Us</h3>
+            <div className="space-y-3">
+              <a
+                href="https://www.facebook.com/everybodyeatsnz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-slate-300 hover:text-white text-sm transition-colors group"
               >
-                Browse Shifts
-              </Link>
-              {session?.user ? (
-                <>
-                  <Link
-                    href="/dashboard"
-                    className="block text-slate-300 hover:text-white text-sm transition-colors"
-                  >
-                    My Dashboard
-                  </Link>
-                  <Link
-                    href="/profile"
-                    className="block text-slate-300 hover:text-white text-sm transition-colors"
-                  >
-                    My Profile
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="block text-slate-300 hover:text-white text-sm transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="block text-slate-300 hover:text-white text-sm transition-colors"
-                  >
-                    Join as Volunteer
-                  </Link>
-                </>
-              )}
-            </nav>
+                <Facebook
+                  size={16}
+                  className="group-hover:scale-110 transition-transform"
+                />
+                Follow us on Facebook
+              </a>
+              <a
+                href="https://www.instagram.com/everybodyeatsnz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-slate-300 hover:text-white text-sm transition-colors group"
+              >
+                <Instagram
+                  size={16}
+                  className="group-hover:scale-110 transition-transform"
+                />
+                Follow us on Instagram
+              </a>
+              <a
+                href="https://www.everybodyeats.nz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-slate-300 hover:text-white text-sm transition-colors group"
+              >
+                <Globe
+                  size={16}
+                  className="group-hover:scale-110 transition-transform"
+                />
+                Visit our website
+              </a>
+              <a
+                href="mailto:info@everybodyeats.nz"
+                className="flex items-center gap-3 text-slate-300 hover:text-white text-sm transition-colors group"
+              >
+                <Mail
+                  size={16}
+                  className="group-hover:scale-110 transition-transform"
+                />
+                Contact us
+              </a>
+            </div>
           </div>
+
+          {/* Quick links for logged-in users */}
+          {session?.user && (
+            <div>
+              <h3 className="text-white font-semibold mb-4">Quick Links</h3>
+              <nav className="space-y-2">
+                <Link
+                  href="/dashboard"
+                  className="block text-slate-300 hover:text-white text-sm transition-colors"
+                >
+                  My Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  className="block text-slate-300 hover:text-white text-sm transition-colors"
+                >
+                  My Profile
+                </Link>
+                {!isAdmin && (
+                  <>
+                    <Link
+                      href="/shifts/mine"
+                      className="block text-slate-300 hover:text-white text-sm transition-colors"
+                    >
+                      My Shifts
+                    </Link>
+                    <Link
+                      href="/friends"
+                      className="block text-slate-300 hover:text-white text-sm transition-colors"
+                    >
+                      Friends
+                    </Link>
+                  </>
+                )}
+              </nav>
+            </div>
+          )}
 
           {/* Call to action for non-logged-in users */}
           {!session?.user && (
@@ -117,7 +165,9 @@ export function SiteFooter({ session }: SiteFooterProps) {
           <div className="flex items-center gap-4 text-sm text-slate-400">
             <p>Making a difference, one meal at a time.</p>
             <span className="hidden sm:inline text-slate-600">•</span>
-            <span className="text-xs text-slate-500">v{packageJson.version}</span>
+            <span className="text-xs text-slate-500">
+              v{packageJson.version}
+            </span>
           </div>
         </div>
       </div>

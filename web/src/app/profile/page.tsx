@@ -1,20 +1,25 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-container";
+import { MotionCard } from "@/components/motion-card";
+import { safeParseAvailability } from "@/lib/parse-availability";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
-  // Fetch complete user profile data
+  // Fetch complete user profile data and shift types
   let userProfile = null;
+  let shiftTypes: { id: string; name: string; }[] = [];
   if (session?.user?.email) {
-    userProfile = await prisma.user.findUnique({
+    [userProfile, shiftTypes] = await Promise.all([
+      prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -36,11 +41,23 @@ export default async function ProfilePage() {
         availableLocations: true,
         emailNewsletterSubscription: true,
         notificationPreference: true,
+        receiveShortageNotifications: true,
+        excludedShortageNotificationTypes: true,
         volunteerAgreementAccepted: true,
         healthSafetyPolicyAccepted: true,
         role: true,
       },
-    });
+      }),
+      prisma.shiftType.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      })
+    ]);
   }
 
   const userInitials =
@@ -53,15 +70,11 @@ export default async function ProfilePage() {
           .toUpperCase()
       : "U";
 
-  const availableDays = userProfile?.availableDays
-    ? JSON.parse(userProfile.availableDays)
-    : [];
-  const availableLocations = userProfile?.availableLocations
-    ? JSON.parse(userProfile.availableLocations)
-    : [];
+  const availableDays = safeParseAvailability(userProfile?.availableDays);
+  const availableLocations = safeParseAvailability(userProfile?.availableLocations);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-8 animate-fade-in">
+    <PageContainer testid="profile-page">
       <PageHeader
         title="Your Profile"
         description="Manage your volunteer account and track your impact"
@@ -70,7 +83,7 @@ export default async function ProfilePage() {
       {session?.user ? (
         <div className="space-y-8">
           {/* Profile Header */}
-          <Card className="animate-slide-up">
+          <MotionCard>
             <CardContent className="p-8">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="relative">
@@ -111,12 +124,13 @@ export default async function ProfilePage() {
                     {userProfile?.volunteerAgreementAccepted && (
                       <Badge
                         variant="outline"
-                        className="text-green-600 border-green-200"
+                        className="text-green-600 border-green-200 dark:text-green-400 dark:border-green-800"
                       >
                         Agreement Signed
                       </Badge>
                     )}
                   </div>
+
                 </div>
 
                 <div className="flex gap-2">
@@ -144,20 +158,17 @@ export default async function ProfilePage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </MotionCard>
 
           {/* Profile Details Grid */}
           <div className="grid md:grid-cols-2 gap-8">
             {/* Personal Information */}
-            <Card
-              className="animate-slide-up h-fit"
-              style={{ animationDelay: "0.4s" }}
-            >
+            <MotionCard className="h-fit">
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-6 h-6 text-primary"
+                      className="w-6 h-6 text-blue-600 dark:text-blue-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -171,7 +182,10 @@ export default async function ProfilePage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold" data-testid="personal-info-heading">
+                    <h2
+                      className="text-xl font-semibold"
+                      data-testid="personal-info-heading"
+                    >
                       Personal Information
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -182,7 +196,10 @@ export default async function ProfilePage() {
 
                 <div className="space-y-4" data-testid="personal-info-section">
                   <div className="flex justify-between items-center py-3 border-b border-border">
-                    <span className="text-sm font-medium text-muted-foreground" data-testid="personal-info-name-label">
+                    <span
+                      className="text-sm font-medium text-muted-foreground"
+                      data-testid="personal-info-name-label"
+                    >
                       Name
                     </span>
                     <span className="font-medium">
@@ -190,7 +207,10 @@ export default async function ProfilePage() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-3 border-b border-border">
-                    <span className="text-sm font-medium text-muted-foreground" data-testid="personal-info-email-label">
+                    <span
+                      className="text-sm font-medium text-muted-foreground"
+                      data-testid="personal-info-email-label"
+                    >
                       Email
                     </span>
                     <span className="font-medium">
@@ -216,7 +236,10 @@ export default async function ProfilePage() {
                     </div>
                   )}
                   <div className="flex justify-between items-center py-3">
-                    <span className="text-sm font-medium text-muted-foreground" data-testid="personal-info-account-type-label">
+                    <span
+                      className="text-sm font-medium text-muted-foreground"
+                      data-testid="personal-info-account-type-label"
+                    >
                       Account Type
                     </span>
                     <span className="font-medium">
@@ -227,18 +250,15 @@ export default async function ProfilePage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </MotionCard>
 
             {/* Emergency Contact & Availability */}
-            <Card
-              className="animate-slide-up h-fit"
-              style={{ animationDelay: "0.5s" }}
-            >
+            <MotionCard className="h-fit">
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-6 h-6 text-primary"
+                      className="w-6 h-6 text-green-600 dark:text-green-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -252,18 +272,29 @@ export default async function ProfilePage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold" data-testid="emergency-contact-heading">Emergency Contact</h2>
+                    <h2
+                      className="text-xl font-semibold"
+                      data-testid="emergency-contact-heading"
+                    >
+                      Emergency Contact
+                    </h2>
                     <p className="text-sm text-muted-foreground">
                       Emergency contact information
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-4" data-testid="emergency-contact-section">
+                <div
+                  className="space-y-4"
+                  data-testid="emergency-contact-section"
+                >
                   {userProfile?.emergencyContactName ? (
                     <>
                       <div className="flex justify-between items-center py-3 border-b border-border">
-                        <span className="text-sm font-medium text-muted-foreground" data-testid="emergency-contact-name-label">
+                        <span
+                          className="text-sm font-medium text-muted-foreground"
+                          data-testid="emergency-contact-name-label"
+                        >
                           Name
                         </span>
                         <span className="font-medium">
@@ -298,18 +329,15 @@ export default async function ProfilePage() {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </MotionCard>
 
             {/* Availability Information */}
-            <Card
-              className="animate-slide-up h-fit"
-              style={{ animationDelay: "0.6s" }}
-            >
+            <MotionCard className="h-fit">
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-6 h-6 text-blue-600"
+                      className="w-6 h-6 text-purple-600 dark:text-purple-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -323,7 +351,12 @@ export default async function ProfilePage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold" data-testid="availability-heading">Availability</h2>
+                    <h2
+                      className="text-xl font-semibold"
+                      data-testid="availability-heading"
+                    >
+                      Availability
+                    </h2>
                     <p className="text-sm text-muted-foreground">
                       When and where you can volunteer
                     </p>
@@ -376,18 +409,125 @@ export default async function ProfilePage() {
                     )}
                 </div>
               </CardContent>
-            </Card>
+            </MotionCard>
+
+            {/* Notification Preferences */}
+            <MotionCard className="h-fit">
+              <CardContent className="px-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
+                    <svg
+                      className="w-6 h-6 text-orange-600 dark:text-orange-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      Shift Shortage Notifications
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Control your notification preferences
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4" data-testid="notification-preferences-section">
+                  <div className="flex justify-between items-center py-3 border-b border-border">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Receive Notifications
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={userProfile?.receiveShortageNotifications || false}
+                        readOnly
+                        data-testid="receive-notifications-toggle"
+                        className="rounded border-gray-300"
+                      />
+                      <span className="text-sm">
+                        {userProfile?.receiveShortageNotifications ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {userProfile?.receiveShortageNotifications && (
+                    <>
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Shift types you&apos;d like notifications for:
+                        </span>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {shiftTypes
+                            .filter((type) => 
+                              !userProfile?.excludedShortageNotificationTypes?.includes(type.id)
+                            )
+                            .map((type) => (
+                              <Badge
+                                key={type.id}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {type.name}
+                              </Badge>
+                            ))}
+                        </div>
+                      </div>
+                      
+                      {userProfile?.excludedShortageNotificationTypes?.length > 0 && (
+                        <div>
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Excluded shift types:
+                          </span>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {shiftTypes
+                              .filter((type) => 
+                                userProfile?.excludedShortageNotificationTypes?.includes(type.id)
+                              )
+                              .map((type) => (
+                                <Badge
+                                  key={type.id}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {type.name}
+                                </Badge>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="pt-4 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      data-testid="edit-notification-preferences"
+                      asChild
+                    >
+                      <Link href="/profile/edit?step=communication">Edit Preferences</Link>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </MotionCard>
 
             {/* Quick Actions */}
-            <Card
-              className="animate-slide-up h-fit"
-              style={{ animationDelay: "0.7s" }}
-            >
+            <MotionCard className="h-fit">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-6 h-6 text-primary"
+                      className="w-6 h-6 text-amber-600 dark:text-amber-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -407,7 +547,12 @@ export default async function ProfilePage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold" data-testid="quick-actions-heading">Quick Actions</h2>
+                    <h2
+                      className="text-xl font-semibold"
+                      data-testid="quick-actions-heading"
+                    >
+                      Quick Actions
+                    </h2>
                     <p className="text-sm text-muted-foreground">
                       Manage your volunteer experience
                     </p>
@@ -467,7 +612,7 @@ export default async function ProfilePage() {
                   </Button>
 
                   <div className="pt-4 border-t border-border">
-                    <div className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border border-primary/20 dark:border-primary/30">
                       <div className="flex items-start gap-3">
                         <svg
                           className="w-5 h-5 text-primary mt-0.5"
@@ -497,11 +642,11 @@ export default async function ProfilePage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </MotionCard>
           </div>
         </div>
       ) : (
-        <Card className="animate-slide-up">
+        <MotionCard>
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
@@ -526,8 +671,8 @@ export default async function ProfilePage() {
               <Link href="/login">Sign in to your account</Link>
             </Button>
           </CardContent>
-        </Card>
+        </MotionCard>
       )}
-    </div>
+    </PageContainer>
   );
 }

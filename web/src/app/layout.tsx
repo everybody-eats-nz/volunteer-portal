@@ -4,10 +4,13 @@ import "./globals.css";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-import { ThemeProvider } from "@/components/theme-provider";
+import { SiteHeaderClientWrapper } from "@/components/site-header-client-wrapper";
+import { SiteFooterWrapper } from "@/components/site-footer-wrapper";
+import { Providers } from "@/components/providers";
+import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { BotProtectionClient } from "@/components/bot-protection-client";
 
 const libreFranklin = Libre_Franklin({
   variable: "--font-libre-franklin",
@@ -37,6 +40,7 @@ export default async function RootLayout({
     userProfile = await prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
+        id: true,
         profilePhotoUrl: true,
         name: true,
         firstName: true,
@@ -44,13 +48,6 @@ export default async function RootLayout({
       },
     });
   }
-
-  // Use profile name if available, otherwise fall back to session name/email
-  const displayName =
-    userProfile?.name ||
-    (session?.user as { name?: string | null })?.name ||
-    (session?.user as { email?: string | null })?.email ||
-    "Account";
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -61,21 +58,19 @@ export default async function RootLayout({
       <body
         className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SiteHeader
+        <Providers>
+          <SiteHeaderClientWrapper
             session={session}
             userProfile={userProfile}
-            displayName={displayName}
           />
-          <main className="max-w-6xl mx-auto p-4">{children}</main>
-          <SiteFooter session={session} />
-          <Toaster />
-        </ThemeProvider>
+          <main className="min-h-screen">
+            <MainContentWrapper>{children}</MainContentWrapper>
+          </main>
+          <SiteFooterWrapper session={session} />
+          <Toaster position="top-right" closeButton />
+        </Providers>
+        <BotProtectionClient />
+        <SpeedInsights />
       </body>
     </html>
   );

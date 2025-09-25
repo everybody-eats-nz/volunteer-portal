@@ -1,728 +1,360 @@
 import { prisma } from "@/lib/prisma";
-import { format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay } from "date-fns";
+import { formatInNZT, toUTC, parseISOInNZT, getDSTTransitionInfo } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { isFeatureEnabled } from "@/lib/posthog-server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SignupActions } from "@/components/signup-actions";
-import { FilterControls } from "@/components/filter-controls";
-import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Plus,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  X,
-  Edit,
-  CheckCircle,
-  Trash2,
-} from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { Plus, Calendar, MapPin } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PageContainer } from "@/components/page-container";
+import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { ShiftLocationSelector } from "@/components/shift-location-selector";
+import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
+import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
+import { LOCATIONS, LocationOption, DEFAULT_LOCATION } from "@/lib/locations";
 
-const LOCATIONS = ["Wellington", "Glenn Innes", "Onehunga"] as const;
-
-type LocationOption = (typeof LOCATIONS)[number];
-
-function getDurationInHours(start: Date, end: Date): string {
-  const durationMs = end.getTime() - start.getTime();
-  const hours = durationMs / (1000 * 60 * 60);
-  const wholeHours = Math.floor(hours);
-  const minutes = Math.round((hours - wholeHours) * 60);
-
-  if (minutes === 0) {
-    return `${wholeHours}h`;
-  }
-  return `${wholeHours}h ${minutes}m`;
+interface AdminShiftsPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function AdminShiftsPage({
   searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}: AdminShiftsPageProps) {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: "ADMIN" | "VOLUNTEER" } | undefined)
-    ?.role;
-  if (!session?.user) {
-    redirect("/login?callbackUrl=/admin/shifts");
-  }
-  if (role !== "ADMIN") {
-    redirect("/shifts");
+
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/dashboard");
   }
 
   const params = await searchParams;
-  const now = new Date();
 
-  // Handle success messages
-  const created = params.created;
-  const updated = params.updated;
-  const deleted = params.deleted;
-  const isPastEdit = params.past;
-
-  // Get location filter from search params
-  const rawLocation = Array.isArray(params.location)
-    ? params.location[0]
-    : params.location;
-  const selectedLocation: LocationOption | undefined = LOCATIONS.includes(
-    (rawLocation as LocationOption) ?? ("" as LocationOption)
-  )
-    ? (rawLocation as LocationOption)
-    : undefined;
-
-  // Get date filters from search params
-  const rawDateFrom = Array.isArray(params.dateFrom)
-    ? params.dateFrom[0]
-    : params.dateFrom;
-  const rawDateTo = Array.isArray(params.dateTo)
-    ? params.dateTo[0]
-    : params.dateTo;
-
-  let dateFrom: Date | undefined;
-  let dateTo: Date | undefined;
-
-  try {
-    if (rawDateFrom) {
-      dateFrom = startOfDay(parseISO(rawDateFrom));
-    }
-    if (rawDateTo) {
-      dateTo = endOfDay(parseISO(rawDateTo));
-    }
-  } catch (error) {
-    // Invalid date format, ignore
-    console.warn("Invalid date format in search params:", error);
+  // Parse search parameters (handle dates consistently in NZ timezone)
+  const today = formatInNZT(new Date(), "yyyy-MM-dd");
+  const dateString = (params.date as string) || today;
+  const selectedLocation = (params.location as LocationOption) || DEFAULT_LOCATION;
+  
+  // Parse the date string directly in NZ timezone to avoid local time confusion
+  const selectedDateNZT = parseISOInNZT(dateString);
+  const isToday = dateString === today;
+  
+  // Check for DST transition issues
+  const dstInfo = getDSTTransitionInfo(selectedDateNZT);
+  if (dstInfo.nearTransition && process.env.NODE_ENV === 'development') {
+    console.warn(`Admin Schedule: ${dstInfo.message}`, { date: dateString, dstInfo });
   }
 
-  const uPage = Math.max(
-    1,
-    parseInt(
-      Array.isArray(params.uPage)
-        ? params.uPage[0] ?? "1"
-        : params.uPage ?? "1",
-      10
-    ) || 1
-  );
-  const pPage = Math.max(
-    1,
-    parseInt(
-      Array.isArray(params.pPage)
-        ? params.pPage[0] ?? "1"
-        : params.pPage ?? "1",
-      10
-    ) || 1
-  );
-  const uSize = Math.max(
-    1,
-    parseInt(
-      Array.isArray(params.uSize)
-        ? params.uSize[0] ?? "10"
-        : params.uSize ?? "10",
-      10
-    ) || 10
-  );
-  const pSize = Math.max(
-    1,
-    parseInt(
-      Array.isArray(params.pSize)
-        ? params.pSize[0] ?? "10"
-        : params.pSize ?? "10",
-      10
-    ) || 10
+  // Check feature flag for flexible placement
+  const isFlexiblePlacementEnabled = await isFeatureEnabled(
+    "flexible-placement",
+    session.user.id || "admin"
   );
 
-  // Create filters for queries
-  const locationFilter = selectedLocation ? { location: selectedLocation } : {};
-  const dateFilter: {
-    start?: {
-      gte?: Date;
-      lte?: Date;
-      lt?: Date;
-    };
-  } = {};
+  // Fetch shifts for the selected date and location (using NZ timezone)
+  // Calculate day boundaries in NZ timezone - selectedDateNZT is already in NZT
+  const startOfDayNZ = startOfDay(selectedDateNZT);
+  const endOfDayNZ = endOfDay(selectedDateNZT);
+  
+  // Convert TZDate objects to explicit UTC for reliable Prisma queries
+  const startOfDayUTC = toUTC(startOfDayNZ);
+  const endOfDayUTC = toUTC(endOfDayNZ);
+  
+  const allShifts = await prisma.shift.findMany({
+    where: {
+      location: selectedLocation,
+      start: {
+        gte: startOfDayUTC,
+        lte: endOfDayUTC,
+      },
+    },
+    include: {
+      shiftType: true,
+      signups: {
+        where: {
+          status: {
+            in: ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING", "NO_SHOW"],
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              lastName: true,
+              volunteerGrade: true,
+              profilePhotoUrl: true,
+              dateOfBirth: true,
+              adminNotes: {
+                where: {
+                  isArchived: false,
+                },
+                select: {
+                  id: true,
+                  content: true,
+                  createdAt: true,
+                  creator: {
+                    select: {
+                      name: true,
+                      firstName: true,
+                      lastName: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  createdAt: "desc",
+                },
+                take: 1,
+              },
+              customLabels: {
+                include: {
+                  label: true,
+                },
+                orderBy: {
+                  assignedAt: "desc",
+                },
+              },
+            },
+          },
+        },
+      },
+      groupBookings: {
+        include: {
+          signups: {
+            where: {
+              status: {
+                in: ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING", "NO_SHOW"],
+              },
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          signups: {
+            where: {
+              status: "CONFIRMED",
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      start: "asc",
+    },
+  });
 
-  if (dateFrom && dateTo) {
-    dateFilter.start = {
-      gte: dateFrom,
-      lte: dateTo,
-    };
-  } else if (dateFrom) {
-    dateFilter.start = {
-      gte: dateFrom,
-    };
-  } else if (dateTo) {
-    dateFilter.start = {
-      lte: dateTo,
-    };
-  }
+  // Filter out flexible placement shifts if feature is disabled
+  const shifts = isFlexiblePlacementEnabled
+    ? allShifts
+    : allShifts.filter(
+        (shift) => !shift.shiftType.name.includes("Anywhere I'm Needed")
+      );
 
-  const upcomingFilter = {
-    start: { gte: now },
-    ...locationFilter,
-    ...dateFilter,
-  };
-  const pastFilter = { start: { lt: now }, ...locationFilter, ...dateFilter };
+  // Get shift data for the calendar with location, capacity, and confirmed counts
+  // Include past shifts for attendance tracking - show last 30 days + future shifts
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const allCalendarShifts = await prisma.shift.findMany({
+    where: {
+      start: {
+        gte: thirtyDaysAgo,
+      },
+    },
+    select: {
+      start: true,
+      location: true,
+      capacity: true,
+      shiftType: {
+        select: {
+          name: true,
+        },
+      },
+      signups: {
+        where: {
+          status: "CONFIRMED",
+        },
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
 
-  const [upcomingCount, pastCount, upcoming, past] = await Promise.all([
-    prisma.shift.count({ where: upcomingFilter }),
-    prisma.shift.count({ where: pastFilter }),
-    prisma.shift.findMany({
-      where: upcomingFilter,
-      orderBy: { start: "asc" },
-      include: { shiftType: true, signups: { include: { user: true } } },
-      skip: (uPage - 1) * uSize,
-      take: uSize,
-    }),
-    prisma.shift.findMany({
-      where: pastFilter,
-      orderBy: { start: "desc" },
-      include: { shiftType: true, signups: { include: { user: true } } },
-      skip: (pPage - 1) * pSize,
-      take: pSize,
-    }),
-  ]);
+  // Filter calendar shifts based on feature flag
+  const calendarShifts = isFlexiblePlacementEnabled
+    ? allCalendarShifts
+    : allCalendarShifts.filter(
+        (shift) => !shift.shiftType.name.includes("Anywhere I'm Needed")
+      );
 
-  type ShiftWithAll = (typeof upcoming)[number];
-
-  const uTotalPages = Math.max(1, Math.ceil(upcomingCount / uSize));
-  const pTotalPages = Math.max(1, Math.ceil(pastCount / pSize));
-
-  function counts(s: ShiftWithAll) {
-    let confirmed = 0;
-    let pending = 0;
-    let waitlisted = 0;
-    for (const su of s.signups) {
-      if (su.status === "CONFIRMED") confirmed += 1;
-      if (su.status === "PENDING") pending += 1;
-      if (su.status === "WAITLISTED") waitlisted += 1;
-      // Note: CANCELED signups are excluded from all counts
+  // Process shifts into calendar-friendly format
+  const shiftSummariesMap = new Map<
+    string,
+    {
+      count: number;
+      totalCapacity: number;
+      totalConfirmed: number;
+      locations: string[];
     }
-    return {
-      confirmed,
-      pending,
-      waitlisted,
-      remaining: Math.max(0, s.capacity - confirmed - pending),
-    };
-  }
+  >();
 
-  function SignupRow({
-    name,
-    email,
-    phone,
-    status,
-    userId,
-    signupId,
-  }: {
-    name: string | null;
-    email: string;
-    phone: string | null;
-    status: "PENDING" | "CONFIRMED" | "WAITLISTED" | "CANCELED";
-    userId: string;
-    signupId: string;
-  }) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 text-sm py-3 px-1 hover:bg-slate-50 rounded-lg transition-colors" data-testid={`signup-row-${signupId}`}>
-        <div className="truncate">
-          <Link
-            href={`/admin/volunteers/${userId}`}
-            className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2"
-          >
-            <User className="h-3 w-3" />
-            {name ?? "(No name)"}
-          </Link>
-        </div>
-        <div className="truncate text-slate-600">{email}</div>
-        <div className="truncate text-slate-600">{phone ?? "—"}</div>
-        <div>
-          {status === "PENDING" && (
-            <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-              Pending Approval
-            </Badge>
-          )}
-          {status === "CONFIRMED" && (
-            <Badge className="bg-green-100 text-green-800 border-green-200">
-              Confirmed
-            </Badge>
-          )}
-          {status === "WAITLISTED" && (
-            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-              Waitlisted
-            </Badge>
-          )}
-          {status === "CANCELED" && (
-            <Badge className="bg-gray-100 text-gray-800 border-gray-200">
-              Canceled
-            </Badge>
-          )}
-        </div>
-        <div>
-          <SignupActions signupId={signupId} status={status} />
-        </div>
-      </div>
-    );
-  }
+  calendarShifts.forEach((shift) => {
+    const dateKey = formatInNZT(shift.start, "yyyy-MM-dd");
+    const location = shift.location || "Unknown";
 
-  function ShiftCard({ s }: { s: ShiftWithAll }) {
-    const { confirmed, pending, waitlisted, remaining } = counts(s);
-
-    async function deleteShift() {
-      "use server";
-
-      try {
-        // First delete all signups for this shift
-        await prisma.signup.deleteMany({
-          where: { shiftId: s.id },
-        });
-
-        // Then delete the shift
-        await prisma.shift.delete({
-          where: { id: s.id },
-        });
-      } catch {
-        // Handle error - could redirect to error page or show toast
-        console.error("Failed to delete shift");
-      }
-
-      redirect("/admin/shifts?deleted=1");
+    if (!shiftSummariesMap.has(dateKey)) {
+      shiftSummariesMap.set(dateKey, {
+        count: 0,
+        totalCapacity: 0,
+        totalConfirmed: 0,
+        locations: [],
+      });
     }
 
-    return (
-      <Card className="shadow-sm border-slate-200 hover:shadow-md transition-shadow" data-testid={`shift-card-${s.id}`}>
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-2">
-                <Calendar className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                <h3 className="font-semibold text-lg text-slate-900 truncate" data-testid={`shift-name-${s.id}`}>
-                  {s.shiftType.name}
-                </h3>
-              </div>
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center gap-2 text-sm text-slate-600" data-testid={`shift-time-${s.id}`}>
-                  <Clock className="h-3 w-3" />
-                  {format(s.start, "h:mm a")} - {format(s.end, "h:mm a")}
-                </div>
-                {s.location && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs bg-slate-100 text-slate-700 border-slate-300"
-                    data-testid={`shift-location-${s.id}`}
-                  >
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {s.location}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-4 text-sm text-slate-600 ml-8">
-                <div className="flex items-center gap-1" data-testid={`shift-date-${s.id}`}>
-                  <Calendar className="h-3 w-3" />
-                  {format(s.start, "EEE dd MMM, yyyy")}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Duration: {getDurationInHours(s.start, s.end)}
-                </div>
-              </div>
-            </div>
+    const summary = shiftSummariesMap.get(dateKey)!;
+    summary.count++;
+    summary.totalCapacity += shift.capacity;
+    summary.totalConfirmed += shift.signups.length;
 
-            <div className="text-right">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="text-slate-500 hover:text-slate-700 h-8 px-2"
-                    data-testid={`edit-shift-${s.id}`}
-                  >
-                    <Link href={`/admin/shifts/${s.id}/edit`}>
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
-                    </Link>
-                  </Button>
-                  <DeleteShiftDialog
-                    shiftId={s.id}
-                    shiftName={s.shiftType.name}
-                    shiftDate={format(s.start, "EEEE, MMMM d, yyyy")}
-                    hasSignups={
-                      s.signups.filter(
-                        (signup: ShiftWithAll["signups"][number]) =>
-                          signup.status !== "CANCELED"
-                      ).length > 0
-                    }
-                    signupCount={
-                      s.signups.filter(
-                        (signup: ShiftWithAll["signups"][number]) =>
-                          signup.status !== "CANCELED"
-                      ).length
-                    }
-                    onDelete={deleteShift}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2"
-                      data-testid={`delete-shift-${s.id}`}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Delete
-                    </Button>
-                  </DeleteShiftDialog>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-green-50 text-green-700 border-green-200"
-                    data-testid={`confirmed-signups-${s.id}`}
-                  >
-                    ✓ {confirmed} confirmed
-                  </Badge>
-                  {pending > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="bg-orange-50 text-orange-700 border-orange-200"
-                      data-testid={`pending-signups-${s.id}`}
-                    >
-                      ⏳ {pending} pending
-                    </Badge>
-                  )}
-                  {waitlisted > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="bg-yellow-50 text-yellow-700 border-yellow-200"
-                      data-testid={`waitlisted-signups-${s.id}`}
-                    >
-                      📋 {waitlisted} waitlisted
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-sm text-slate-600" data-testid={`shift-capacity-${s.id}`}>
-                  {remaining > 0 ? (
-                    <span className="text-green-600 font-medium">
-                      {remaining} spots remaining
-                    </span>
-                  ) : (
-                    <span className="text-slate-500">Full</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+    if (!summary.locations.includes(location)) {
+      summary.locations.push(location);
+    }
+  });
 
-          {s.signups.length === 0 ? (
-            <div className="text-center py-6 text-slate-500 bg-slate-50 rounded-lg" data-testid={`no-signups-${s.id}`}>
-              <Users className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-              <p>No signups yet</p>
-            </div>
-          ) : (
-            <div className="border-t border-slate-100 pt-4" data-testid={`signups-list-${s.id}`}>
-              <div className="hidden md:grid md:grid-cols-5 md:gap-4 text-xs uppercase tracking-wide text-slate-500 font-medium pb-2 px-1">
-                <div>Volunteer</div>
-                <div>Email</div>
-                <div>Phone</div>
-                <div>Status</div>
-                <div>Actions</div>
-              </div>
-              <div className="space-y-1">
-                {s.signups
-                  .slice()
-                  .sort(
-                    (
-                      a: ShiftWithAll["signups"][number],
-                      b: ShiftWithAll["signups"][number]
-                    ) => {
-                      type Status = ShiftWithAll["signups"][number]["status"];
-                      const order: Record<Status, number> = {
-                        PENDING: 0,
-                        CONFIRMED: 1,
-                        WAITLISTED: 2,
-                        CANCELED: 3,
-                      };
-                      const ao = order[a.status];
-                      const bo = order[b.status];
-                      if (ao !== bo) return ao - bo;
-                      return (a.user.name ?? a.user.email).localeCompare(
-                        b.user.name ?? b.user.email
-                      );
-                    }
-                  )
-                  .map((su: ShiftWithAll["signups"][number]) => (
-                    <SignupRow
-                      key={su.id}
-                      name={su.user.name}
-                      email={su.user.email}
-                      phone={su.user.phone}
-                      status={su.status}
-                      userId={su.user.id}
-                      signupId={su.id}
-                    />
-                  ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  function Pagination({
-    page,
-    totalPages,
-    size,
-    type,
-  }: {
-    page: number;
-    totalPages: number;
-    size: number;
-    type: "u" | "p";
-  }) {
-    const isFirst = page <= 1;
-    const isLast = page >= totalPages;
-    const basePath = "/admin/shifts";
-    const query = (nextPage: number) => {
-      const baseQuery =
-        type === "u"
-          ? {
-              uPage: String(nextPage),
-              uSize: String(size),
-              pPage: String(pPage),
-              pSize: String(pSize),
-            }
-          : {
-              pPage: String(nextPage),
-              pSize: String(size),
-              uPage: String(uPage),
-              uSize: String(uSize),
-            };
-
-      return {
-        ...baseQuery,
-        ...(selectedLocation && { location: selectedLocation }),
-        ...(rawDateFrom && { dateFrom: rawDateFrom }),
-        ...(rawDateTo && { dateTo: rawDateTo }),
-      };
-    };
-
-    const typePrefix = type === "u" ? "upcoming" : "historical";
-
-    return (
-      <div className="flex items-center gap-2">
-        {isFirst ? (
-          <Button variant="outline" size="sm" disabled className="opacity-50" data-testid={`${typePrefix}-prev-button`}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-        ) : (
-          <Button asChild variant="outline" size="sm" data-testid={`${typePrefix}-prev-button`}>
-            <Link href={{ pathname: basePath, query: query(page - 1) }}>
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
-            </Link>
-          </Button>
-        )}
-        <span className="text-sm text-slate-600 px-3" data-testid={`${typePrefix}-page-info`}>
-          Page {page} of {totalPages}
-        </span>
-        {isLast ? (
-          <Button variant="outline" size="sm" disabled className="opacity-50" data-testid={`${typePrefix}-next-button`}>
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        ) : (
-          <Button asChild variant="outline" size="sm" data-testid={`${typePrefix}-next-button`}>
-            <Link href={{ pathname: basePath, query: query(page + 1) }}>
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
-        )}
-      </div>
-    );
-  }
+  const processedShiftSummaries = Array.from(shiftSummariesMap.entries()).map(
+    ([date, data]) => ({
+      date,
+      ...data,
+    })
+  );
 
   return (
-    <div className="min-h-screen" data-testid="admin-shifts-page">
-      <div className="max-w-7xl mx-auto p-4">
-        <PageHeader
-          title="Admin · Shifts"
-          description="Manage volunteer shifts and view signup details"
-          actions={
-            <Button asChild size="sm" className="btn-primary gap-2" data-testid="create-shift-button">
-              <Link href="/admin/shifts/new">
-                <Plus className="h-4 w-4" />
-                Create shift
-              </Link>
-            </Button>
-          }
-        />
-
+    <AdminPageWrapper
+      title="Restaurant Schedule"
+      actions={
+        <Button asChild size="sm" data-testid="create-shift-button">
+          <Link href="/admin/shifts/new">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add Shift
+          </Link>
+        </Button>
+      }
+    >
+      <PageContainer>
         {/* Success Messages */}
-        {created && (
-          <Alert className="mb-6 border-green-200 bg-green-50" data-testid="shift-created-message">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              {created === "1"
-                ? "Shift created successfully!"
-                : `${created} shifts created successfully!`}
+        {params.created && (
+          <Alert className="mb-6 bg-green-50 border-green-200">
+            <AlertDescription
+              data-testid="shift-created-message"
+              className="text-green-800"
+            >
+              Shift created successfully!
             </AlertDescription>
           </Alert>
         )}
-
-        {updated && (
-          <Alert className="mb-6 border-green-200 bg-green-50" data-testid="shift-updated-message">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
+        {params.updated && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertDescription
+              data-testid="shift-updated-message"
+              className="text-blue-800"
+            >
               Shift updated successfully!
-              {isPastEdit && " (Note: This was a past shift)"}
+            </AlertDescription>
+          </Alert>
+        )}
+        {params.deleted && (
+          <Alert className="mb-6 bg-red-50 border-red-200">
+            <AlertDescription
+              data-testid="shift-deleted-message"
+              className="text-red-800"
+            >
+              Shift deleted successfully!
             </AlertDescription>
           </Alert>
         )}
 
-        {deleted && (
-          <Alert className="mb-6 border-green-200 bg-green-50" data-testid="shift-deleted-message">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              Shift deleted successfully! All associated signups have been
-              removed.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Navigation Controls */}
+        <div className="mb-6 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6">
+            <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
+              {/* Left Section: Date Navigation */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <ShiftCalendarWrapper
+                    selectedDate={selectedDateNZT}
+                    selectedLocation={selectedLocation}
+                    shiftSummaries={processedShiftSummaries}
+                  />
+                </div>
 
-        {/* Filters */}
-        <div className="mb-6" data-testid="filters-section">
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Filter className="h-5 w-5 text-slate-600" />
-                  Filters
-                </CardTitle>
-                {(selectedLocation || dateFrom || dateTo) && (
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="text-slate-500 hover:text-slate-700 gap-1"
-                    data-testid="clear-filters-button"
-                  >
-                    <Link href="/admin/shifts">
-                      <X className="h-3 w-3" />
-                      Clear all filters
-                    </Link>
-                  </Button>
-                )}
+                <div className="hidden sm:block h-8 w-px bg-slate-200" />
+
+                {/* Location Selector */}
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-green-50 flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-green-600" />
+                  </div>
+                  <ShiftLocationSelector
+                    selectedLocation={selectedLocation}
+                    dateString={dateString}
+                    locations={LOCATIONS}
+                  />
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FilterControls
-                selectedLocation={selectedLocation}
-                rawDateFrom={rawDateFrom}
-                rawDateTo={rawDateTo}
-                locations={LOCATIONS}
-              />
-            </CardContent>
-          </Card>
+
+              {/* Right Section: Quick Actions */}
+              <div className="flex items-center gap-3">
+                <Button
+                  asChild
+                  variant={isToday ? "default" : "outline"}
+                  size="sm"
+                  className="h-10"
+                  data-testid="today-button"
+                >
+                  <Link
+                    href={`/admin/shifts?date=${today}&location=${selectedLocation}`}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Today
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Upcoming Shifts */}
-        <section className="mb-12" data-testid="upcoming-shifts-section">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-slate-900">
-                Upcoming Shifts
-              </h2>
-              <Badge
-                variant="outline"
-                className="border-blue-200 text-blue-700"
-              >
-                {upcomingCount}
-              </Badge>
+        {/* Shifts Display */}
+        {shifts.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg border border-slate-200">
+            <div className="h-12 w-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Plus className="h-6 w-6 text-slate-400" />
             </div>
-            <div data-testid="upcoming-pagination">
-              <Pagination
-                page={uPage}
-                totalPages={uTotalPages}
-                size={uSize}
-                type="u"
-              />
-            </div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              No shifts scheduled
+            </h3>
+            <p className="text-slate-600 mb-6">
+              Get started by creating your first shift for{" "}
+              {formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")} in {selectedLocation}
+              .
+            </p>
+            <Button asChild size="sm" className="btn-primary">
+              <Link href="/admin/shifts/new">
+                <Plus className="h-4 w-4 mr-1.5" />
+                Create First Shift
+              </Link>
+            </Button>
           </div>
-          {upcoming.length === 0 ? (
-            <Card className="shadow-sm border-slate-200">
-              <CardContent className="text-center py-12" data-testid="no-upcoming-shifts-message">
-                <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No upcoming shifts
-                </h3>
-                <p className="text-slate-500">
-                  {selectedLocation || dateFrom || dateTo
-                    ? "No upcoming shifts found matching your filters"
-                    : "There are no upcoming shifts scheduled"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6" data-testid="upcoming-shifts-list">
-              {upcoming.map((s: ShiftWithAll) => (
-                <ShiftCard key={s.id} s={s} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Historical Shifts */}
-        <section data-testid="historical-shifts-section">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-slate-900">
-                Historical Shifts
-              </h2>
-              <Badge
-                variant="outline"
-                className="border-slate-300 text-slate-600"
-              >
-                {pastCount}
-              </Badge>
-            </div>
-            <div data-testid="historical-pagination">
-              <Pagination
-                page={pPage}
-                totalPages={pTotalPages}
-                size={pSize}
-                type="p"
-              />
-            </div>
-          </div>
-          {past.length === 0 ? (
-            <Card className="shadow-sm border-slate-200">
-              <CardContent className="text-center py-12" data-testid="no-historical-shifts-message">
-                <Clock className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">
-                  No historical shifts
-                </h3>
-                <p className="text-slate-500">
-                  {selectedLocation || dateFrom || dateTo
-                    ? "No past shifts found matching your filters"
-                    : "There are no past shifts to display"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6" data-testid="historical-shifts-list">
-              {past.map((s: ShiftWithAll) => (
-                <ShiftCard key={s.id} s={s} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+        ) : (
+          <ShiftsByTimeOfDay shifts={shifts} />
+        )}
+      </PageContainer>
+    </AdminPageWrapper>
   );
 }

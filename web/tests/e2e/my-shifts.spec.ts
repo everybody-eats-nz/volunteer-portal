@@ -1,11 +1,63 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 
+// Helper function to wait for page to load completely
+async function waitForPageLoad(page: Page) {
+  await page.waitForLoadState("load");
+  await page.waitForTimeout(1000); // Small buffer for animations
+}
+
+// Helper function to get responsive element by viewport
+async function getResponsiveElement(
+  page: Page,
+  mobileTestId: string,
+  desktopTestId: string
+) {
+  const viewport = page.viewportSize();
+  const isMobile = viewport && viewport.width < 768;
+
+  if (isMobile) {
+    return page.getByTestId(mobileTestId);
+  } else {
+    return page.getByTestId(desktopTestId);
+  }
+}
+
+// Helper function to get calendar title regardless of viewport
+async function getCalendarTitle(page: Page) {
+  return getResponsiveElement(page, "mobile-calendar-title", "calendar-title");
+}
+
+// Helper function to get navigation buttons
+async function getNavigationButton(
+  page: Page,
+  buttonType: "prev" | "next" | "today"
+) {
+  const viewport = page.viewportSize();
+  const isMobile = viewport && viewport.width < 768;
+
+  if (buttonType === "today") {
+    const prefix = isMobile ? "mobile-" : "";
+    return page.getByTestId(`${prefix}today-button`);
+  } else {
+    const prefix = isMobile ? "mobile-" : "";
+    return page.getByTestId(`${prefix}${buttonType}-month-button`);
+  }
+}
+
+// Helper function to get visible shift elements with time information
+function getShiftElements(page: Page) {
+  return page.locator(".bg-gradient-to-br").filter({
+    hasText: /\d{2}:\d{2}/,
+    visible: true,
+  });
+}
+
 // Helper function to login as volunteer
 async function loginAsVolunteer(page: Page) {
   try {
     await page.goto("/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
 
     const volunteerLoginButton = page.getByRole("button", {
       name: /login as volunteer/i,
@@ -21,19 +73,19 @@ async function loginAsVolunteer(page: Page) {
       console.log("Login may have failed or taken too long");
     }
 
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("load");
   } catch (error) {
     console.log("Error during login:", error);
   }
 }
 
-test.describe("My Shifts Page", () => {
+test.describe("My Shifts Calendar Page", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
 
     // Navigate to my shifts page
     await page.goto("/shifts/mine");
-    await page.waitForLoadState("networkidle");
+    await waitForPageLoad(page);
 
     // Skip tests if login failed (we're still on login page)
     const currentUrl = page.url();
@@ -42,8 +94,10 @@ test.describe("My Shifts Page", () => {
     }
   });
 
-  test.describe("Page Structure and Navigation", () => {
-    test("should display my shifts page with main elements", async ({ page }) => {
+  test.describe("Page Structure and Layout", () => {
+    test("should display my shifts page with main elements", async ({
+      page,
+    }) => {
       // Check page loads successfully
       await expect(page).toHaveURL("/shifts/mine");
 
@@ -51,326 +105,373 @@ test.describe("My Shifts Page", () => {
       const myShiftsPage = page.getByTestId("my-shifts-page");
       await expect(myShiftsPage).toBeVisible();
 
-      // Check page title
+      // Check page title and description
       const pageTitle = page.getByRole("heading", { name: /my shifts/i });
       await expect(pageTitle).toBeVisible();
 
-      // Check page description
-      const pageDescription = page.getByText("View your upcoming and past volunteer shifts");
+      const pageDescription = page.getByText(
+        "Your volunteer schedule and shift history"
+      );
       await expect(pageDescription).toBeVisible();
     });
 
-    test("should display location filter with all location tabs", async ({ page }) => {
-      // Check location filter section
-      const locationFilter = page.getByTestId("location-filter");
-      await expect(locationFilter).toBeVisible();
+    test("should display stats overview cards", async ({ page }) => {
+      // Check stats overview section
+      const statsOverview = page.getByTestId("stats-overview");
+      await expect(statsOverview).toBeVisible();
 
-      // Check location tabs container
-      const locationTabs = page.getByTestId("location-tabs");
-      await expect(locationTabs).toBeVisible();
+      // Check all 4 stat cards are visible
+      const completedCard = page.getByTestId("completed-shifts-card");
+      await expect(completedCard).toBeVisible();
 
-      // Check "All" tab
-      const allTab = page.getByTestId("location-tab-all");
-      await expect(allTab).toBeVisible();
-      await expect(allTab).toContainText("All");
+      const upcomingCard = page.getByTestId("upcoming-shifts-card");
+      await expect(upcomingCard).toBeVisible();
 
-      // Check specific location tabs
-      const wellingtonTab = page.getByTestId("location-tab-wellington");
-      await expect(wellingtonTab).toBeVisible();
-      await expect(wellingtonTab).toContainText("Wellington");
+      const thisMonthCard = page.getByTestId("this-month-shifts-card");
+      await expect(thisMonthCard).toBeVisible();
 
-      const glennInnesTab = page.getByTestId("location-tab-glenn-innes");
-      await expect(glennInnesTab).toBeVisible();
-      await expect(glennInnesTab).toContainText("Glenn Innes");
+      const totalHoursCard = page.getByTestId("total-hours-card");
+      await expect(totalHoursCard).toBeVisible();
 
-      const onehungaTab = page.getByTestId("location-tab-onehunga");
-      await expect(onehungaTab).toBeVisible();
-      await expect(onehungaTab).toContainText("Onehunga");
+      // Check that each card has a numeric value
+      const completedCount = await page
+        .getByTestId("completed-shifts-card-count")
+        .textContent();
+      const upcomingCount = await page
+        .getByTestId("upcoming-shifts-card-count")
+        .textContent();
+      const thisMonthCount = await page
+        .getByTestId("this-month-shifts-card-count")
+        .textContent();
+      const totalHoursCount = await page
+        .getByTestId("total-hours-card-count")
+        .textContent();
+
+      expect(completedCount).toMatch(/^\d+$/);
+      expect(upcomingCount).toMatch(/^\d+$/);
+      expect(thisMonthCount).toMatch(/^\d+$/);
+      expect(totalHoursCount).toMatch(/^\d+$/);
     });
 
-    test("should display upcoming shifts section", async ({ page }) => {
-      // Check upcoming shifts section
-      const upcomingSection = page.getByTestId("upcoming-shifts-section");
-      await expect(upcomingSection).toBeVisible();
+    test("should display calendar view with navigation", async ({ page }) => {
+      // Check calendar view is visible
+      const calendarView = page.getByTestId("calendar-view");
+      await expect(calendarView).toBeVisible();
 
-      // Check section title
-      const upcomingTitle = page.getByTestId("upcoming-shifts-title");
-      await expect(upcomingTitle).toBeVisible();
-      await expect(upcomingTitle).toContainText("Upcoming Shifts");
+      // Check calendar title shows current month/year
+      const calendarTitle = await getCalendarTitle(page);
+      await expect(calendarTitle).toBeVisible();
 
-      // Check shifts count badge
-      const upcomingCount = page.getByTestId("upcoming-shifts-count");
-      await expect(upcomingCount).toBeVisible();
+      const titleText = await calendarTitle.textContent();
+      expect(titleText).toMatch(/^\w+ \d{4}$/); // Format: "Month Year"
 
-      // Check pagination controls
-      const upcomingPagination = page.getByTestId("upcoming-shifts-pagination");
-      await expect(upcomingPagination).toBeVisible();
+      // Check calendar description
+      const calendarDescription = page.getByTestId("calendar-description");
+      await expect(calendarDescription).toBeVisible();
+      await expect(calendarDescription).toContainText(
+        "Your volunteer schedule"
+      );
+
+      // Check navigation section
+      const navigation = page.getByTestId("calendar-navigation");
+      await expect(navigation).toBeVisible();
+
+      // Check navigation buttons
+      const prevButton = await getNavigationButton(page, "prev");
+      await expect(prevButton).toBeVisible();
+
+      const nextButton = await getNavigationButton(page, "next");
+      await expect(nextButton).toBeVisible();
     });
 
-    test("should display past shifts section", async ({ page }) => {
-      // Check past shifts section
-      const pastSection = page.getByTestId("past-shifts-section");
-      await expect(pastSection).toBeVisible();
+    test("should display calendar grid with day headers", async ({ page }) => {
+      // Check calendar grid exists
+      const calendarGrid = page.getByTestId("calendar-grid");
+      await expect(calendarGrid).toBeVisible();
 
-      // Check section title
-      const pastTitle = page.getByTestId("past-shifts-title");
-      await expect(pastTitle).toBeVisible();
-      await expect(pastTitle).toContainText("Shift History");
+      // Check day headers
+      const dayHeaders = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      for (const day of dayHeaders) {
+        const dayHeader = page.getByText(day).first();
+        await expect(dayHeader).toBeVisible();
+      }
 
-      // Check shifts count badge
-      const pastCount = page.getByTestId("past-shifts-count");
-      await expect(pastCount).toBeVisible();
+      // Check that calendar has day cells or mobile list items
+      const viewport = page.viewportSize();
+      const isMobile = viewport && viewport.width < 768;
 
-      // Check pagination controls
-      const pastPagination = page.getByTestId("past-shifts-pagination");
-      await expect(pastPagination).toBeVisible();
+      if (isMobile) {
+        // On mobile, look for mobile list view
+        const mobileListView = page.getByTestId("mobile-list-view");
+        await expect(mobileListView).toBeVisible();
+      } else {
+        // On desktop, look for calendar grid cells
+        const dayCells = page.locator(".min-h-\\[140px\\]");
+        const dayCount = await dayCells.count();
+        expect(dayCount).toBeGreaterThanOrEqual(28);
+      }
     });
   });
 
-  test.describe("Location Filtering", () => {
-    test("should filter by location when clicking location tabs", async ({ page }) => {
-      // Click on Wellington tab
-      const wellingtonTab = page.getByTestId("location-tab-wellington");
-      await wellingtonTab.click();
-      await page.waitForLoadState("networkidle");
+  test.describe("Calendar Navigation", () => {
+    test("should navigate to previous month", async ({ page }) => {
+      // Get current month from title
+      const calendarTitle = await getCalendarTitle(page);
+      await calendarTitle.waitFor({ state: "visible", timeout: 5000 });
+      const initialTitle = await calendarTitle.textContent();
 
-      // Should navigate to filtered URL
-      await expect(page).toHaveURL("/shifts/mine?location=Wellington");
+      // Click previous month button
+      const prevButton = await getNavigationButton(page, "prev");
+      await page.waitForTimeout(500);
+      await prevButton.click();
+      await page.waitForURL("/shifts/mine?*");
+      await page.waitForLoadState("load");
 
-      // Click on "All" tab to clear filter
-      const allTab = page.getByTestId("location-tab-all");
-      await allTab.click();
-      await page.waitForLoadState("networkidle");
+      // Check month title has changed
+      const newCalendarTitle = await getCalendarTitle(page);
+      const newTitle = await newCalendarTitle.textContent();
+      expect(newTitle).not.toBe(initialTitle);
+    });
 
-      // Should navigate back to unfiltered URL
+    test("should navigate to next month", async ({ page }) => {
+      // Get current month from title
+      const calendarTitle = await getCalendarTitle(page);
+      const initialTitle = await calendarTitle.textContent();
+
+      // Click next month button
+      const nextButton = await getNavigationButton(page, "next");
+      await page.waitForTimeout(500);
+      await nextButton.click();
+      await page.waitForURL("/shifts/mine?*");
+      await page.waitForLoadState("load");
+
+      // Check month title has changed
+      const newCalendarTitle = await getCalendarTitle(page);
+      const newTitle = await newCalendarTitle.textContent();
+      expect(newTitle).not.toBe(initialTitle);
+    });
+
+    test("should show 'Today' button when not viewing current month", async ({
+      page,
+    }) => {
+      // Navigate to next month
+      await page.waitForTimeout(500);
+      const nextButton = await getNavigationButton(page, "next");
+      await nextButton.click();
+      await page.waitForURL("/shifts/mine?*");
+
+      // Today button should now be visible
+      const todayButton = await getNavigationButton(page, "today");
+      await expect(todayButton).toBeVisible();
+
+      // Click today button to return to current month
+      await page.waitForTimeout(500);
+      await todayButton.click();
+      await page.waitForLoadState("load");
+
+      // Should be back to base URL
       await expect(page).toHaveURL("/shifts/mine");
     });
-
-    test("should maintain selected location tab state", async ({ page }) => {
-      // Navigate directly to filtered URL
-      await page.goto("/shifts/mine?location=Glenn%20Innes");
-      await page.waitForLoadState("networkidle");
-
-      // Glenn Innes tab should be active
-      const glennInnesTab = page.getByTestId("location-tab-glenn-innes");
-      await expect(glennInnesTab).toHaveAttribute("data-state", "active");
-    });
   });
 
-  test.describe("Empty States", () => {
-    test("should display empty state for upcoming shifts when none exist", async ({ page }) => {
-      // Check if empty state is visible
-      const upcomingEmptyState = page.getByTestId("upcoming-shifts-empty-state");
-      
-      // Only test if empty state is present
-      if (await upcomingEmptyState.isVisible()) {
-        await expect(upcomingEmptyState).toContainText("No upcoming shifts yet");
-        await expect(upcomingEmptyState).toContainText("Ready to make a difference?");
-        
-        // Check browse shifts button
-        const browseShiftsButton = page.getByTestId("browse-shifts-button");
-        await expect(browseShiftsButton).toBeVisible();
-        await expect(browseShiftsButton).toContainText("Browse Shifts");
+  test.describe("Calendar Days and Shifts", () => {
+    test("should highlight today's date", async ({ page }) => {
+      const today = new Date().getDate();
+
+      // Look for today's date with special styling
+      const todayCell = page.locator(".bg-blue-500").first();
+      if (await todayCell.isVisible()) {
+        const todayText = await todayCell.textContent();
+        expect(todayText?.trim()).toBe(today.toString());
       }
     });
 
-    test("should display empty state for past shifts when none exist", async ({ page }) => {
-      // Check if empty state is visible
-      const pastEmptyState = page.getByTestId("past-shifts-empty-state");
-      
-      // Only test if empty state is present
-      if (await pastEmptyState.isVisible()) {
-        await expect(pastEmptyState).toContainText("No shift history yet");
-        await expect(pastEmptyState).toContainText("Your completed shifts will appear here");
-      }
-    });
+    test("should show shift information on calendar days", async ({ page }) => {
+      // Look for shift elements on calendar
+      const shiftElements = page.locator(".bg-gradient-to-br");
+      const shiftCount = await shiftElements.count();
 
-    test("should navigate to shifts page from browse shifts button", async ({ page }) => {
-      // Only test if empty state and button are present
-      const browseShiftsButton = page.getByTestId("browse-shifts-button");
-      
-      if (await browseShiftsButton.isVisible()) {
-        await browseShiftsButton.click();
-        await page.waitForLoadState("networkidle");
-        await expect(page).toHaveURL("/shifts");
-      }
-    });
-  });
+      if (shiftCount > 0) {
+        // Check first shift element
+        const firstShift = shiftElements.first();
+        await expect(firstShift).toBeVisible();
 
-  test.describe("Shift Cards Display", () => {
-    test("should display upcoming shift cards with all information", async ({ page }) => {
-      // Check if upcoming shifts list exists
-      const upcomingShiftsList = page.getByTestId("upcoming-shifts-list");
-      
-      if (await upcomingShiftsList.isVisible()) {
-        // Get all upcoming shift cards
-        const shiftCards = page.locator('[data-testid^="upcoming-shift-"]');
-        const shiftCount = await shiftCards.count();
-        
-        if (shiftCount > 0) {
-          const firstShift = shiftCards.first();
-          
-          // Check shift name
-          const shiftName = firstShift.getByTestId("shift-name");
-          await expect(shiftName).toBeVisible();
-          
-          // Check shift status
-          const shiftStatus = firstShift.getByTestId("shift-status");
-          await expect(shiftStatus).toBeVisible();
-          
-          // Check shift datetime
-          const shiftDateTime = firstShift.getByTestId("shift-datetime");
-          await expect(shiftDateTime).toBeVisible();
-          
-          // Check shift location
-          const shiftLocation = firstShift.getByTestId("shift-location");
-          await expect(shiftLocation).toBeVisible();
-          
-          // Check shift actions (cancel button)
-          const shiftActions = firstShift.getByTestId("shift-actions");
-          await expect(shiftActions).toBeVisible();
-          
-          // Check cancel button
-          const cancelButton = firstShift.getByTestId("cancel-shift-button");
-          await expect(cancelButton).toBeVisible();
-          await expect(cancelButton).toContainText("Cancel");
+        // Shift should have time and emoji
+        const shiftTime = firstShift.locator(
+          ".font-bold.text-xs, .font-bold.text-sm"
+        );
+        if ((await shiftTime.count()) > 0) {
+          const timeText = await shiftTime.textContent();
+          expect(timeText).toMatch(/^\d{2}:\d{2}$/); // Time format HH:MM
         }
       }
     });
 
-    test("should display past shift cards with all information", async ({ page }) => {
-      // Check if past shifts list exists
-      const pastShiftsList = page.getByTestId("past-shifts-list");
-      
-      if (await pastShiftsList.isVisible()) {
-        // Get all past shift cards
-        const shiftCards = page.locator('[data-testid^="past-shift-"]');
-        const shiftCount = await shiftCards.count();
-        
-        if (shiftCount > 0) {
-          const firstShift = shiftCards.first();
-          
-          // Check shift name
-          const shiftName = firstShift.getByTestId("shift-name");
-          await expect(shiftName).toBeVisible();
-          
-          // Check shift status
-          const shiftStatus = firstShift.getByTestId("shift-status");
-          await expect(shiftStatus).toBeVisible();
-          
-          // Check shift datetime
-          const shiftDateTime = firstShift.getByTestId("shift-datetime");
-          await expect(shiftDateTime).toBeVisible();
-          
-          // Check shift location
-          const shiftLocation = firstShift.getByTestId("shift-location");
-          await expect(shiftLocation).toBeVisible();
-          
-          // Past shifts should not have cancel button
-          const cancelButton = firstShift.getByTestId("cancel-shift-button");
-          await expect(cancelButton).not.toBeVisible();
+    test("should show available shifts button on days with openings", async ({
+      page,
+    }) => {
+      // Look for "available" buttons
+      const availableButtons = page.getByText(/available/);
+      const buttonCount = await availableButtons.count();
+
+      if (buttonCount > 0) {
+        const firstButton = availableButtons.first();
+        await expect(firstButton).toBeVisible();
+
+        // Button should link to shifts page
+        const parentLink = firstButton.locator("..").locator("a");
+        if ((await parentLink.count()) > 0) {
+          const href = await parentLink.getAttribute("href");
+          expect(href).toBe("/shifts");
         }
       }
     });
   });
 
-  test.describe("Shift Cancellation", () => {
-    test("should open cancel confirmation dialog when clicking cancel button", async ({ page }) => {
-      // Check if upcoming shifts list exists
-      const upcomingShiftsList = page.getByTestId("upcoming-shifts-list");
-      
-      if (await upcomingShiftsList.isVisible()) {
-        // Get first upcoming shift with cancel button
-        const firstShift = page.locator('[data-testid^="upcoming-shift-"]').first();
-        const cancelButton = firstShift.getByTestId("cancel-shift-button");
-        
-        if (await cancelButton.isVisible()) {
-          await cancelButton.click();
-          
-          // Check cancel dialog appears
-          const cancelDialog = page.getByTestId("cancel-shift-dialog");
-          await expect(cancelDialog).toBeVisible();
-          
-          // Check dialog title
-          const dialogTitle = page.getByTestId("cancel-dialog-title");
-          await expect(dialogTitle).toBeVisible();
-          await expect(dialogTitle).toContainText("Cancel Shift Signup");
-          
-          // Check dialog description
-          const dialogDescription = page.getByTestId("cancel-dialog-description");
-          await expect(dialogDescription).toBeVisible();
-          await expect(dialogDescription).toContainText("Are you sure you want to cancel");
-          
-          // Check dialog buttons
-          const keepButton = page.getByTestId("keep-signup-button");
-          await expect(keepButton).toBeVisible();
-          await expect(keepButton).toContainText("Keep Signup");
-          
-          const confirmCancelButton = page.getByTestId("confirm-cancel-button");
-          await expect(confirmCancelButton).toBeVisible();
-          await expect(confirmCancelButton).toContainText("Cancel Signup");
+  test.describe("Shift Details Dialog", () => {
+    test("should open shift details when clicking on a shift", async ({
+      page,
+    }) => {
+      const calendar = page.getByTestId("calendar-grid");
+      await expect(calendar).toHaveCSS("opacity", "1");
+
+      // Look for clickable shifts
+      const shiftElements = getShiftElements(page);
+      const shiftCount = await shiftElements.count();
+
+      if (shiftCount > 0) {
+        // Click on first shift
+        await shiftElements.first().waitFor({ state: "visible" });
+        await shiftElements.first().click();
+
+        // Dialog should open
+        const dialog = page.locator("[role='dialog']");
+        await expect(dialog).toBeVisible();
+
+        // Dialog should have title
+        const dialogTitle = dialog.locator("h2, .font-semibold").first();
+        await expect(dialogTitle).toBeVisible();
+
+        // Close dialog by clicking outside or escape
+        await page.keyboard.press("Escape");
+        await expect(dialog).not.toBeVisible();
+      }
+    });
+
+    test("should display shift information in dialog", async ({ page }) => {
+      const calendar = page.getByTestId("calendar-grid");
+      await expect(calendar).toHaveCSS("opacity", "1");
+
+      const shiftElements = getShiftElements(page);
+      const shiftCount = await shiftElements.count();
+
+      if (shiftCount > 0) {
+        await shiftElements.first().click();
+
+        const dialog = page.locator("[role='dialog']");
+        await expect(dialog).toBeVisible();
+
+        // Should show status
+        const statusText = dialog.getByText(/pending|confirmed|waitlisted/i);
+        if ((await statusText.count()) > 0) {
+          await expect(statusText.first()).toBeVisible();
+        }
+
+        // Should show time information
+        const timeInfo = dialog.locator("text=/\\d{1,2}:\\d{2}\\s*(am|pm)/i");
+        if ((await timeInfo.count()) > 0) {
+          await expect(timeInfo.first()).toBeVisible();
+        }
+
+        await page.keyboard.press("Escape");
+      }
+    });
+
+    test("should show cancel button for upcoming shifts", async ({ page }) => {
+      const calendar = page.getByTestId("calendar-grid");
+      await expect(calendar).toHaveCSS("opacity", "1");
+
+      const shiftElements = getShiftElements(page);
+      const shiftCount = await shiftElements.count();
+
+      if (shiftCount > 0) {
+        await shiftElements.first().click();
+
+        const dialog = page.locator("[role='dialog']");
+        await expect(dialog).toBeVisible();
+
+        // Look for cancel button
+        const cancelButton = dialog.getByText(/cancel/i);
+        if ((await cancelButton.count()) > 0) {
+          await expect(cancelButton.first()).toBeVisible();
+
+          // Cancel button should be clickable
+          await expect(cancelButton.first()).toBeEnabled();
+        }
+
+        await page.keyboard.press("Escape");
+      }
+    });
+  });
+
+  test.describe("Friends Integration", () => {
+    test("should show friends joining shifts", async ({ page }) => {
+      const shiftElements = getShiftElements(page);
+      const shiftCount = await shiftElements.count();
+
+      if (shiftCount > 0) {
+        // Look for friend indicators on calendar
+        const friendIndicators = page.locator(".bg-white\\/20");
+        const friendCount = await friendIndicators.count();
+
+        if (friendCount > 0) {
+          const firstIndicator = friendIndicators.first();
+          await expect(firstIndicator).toBeVisible();
+
+          // Should show friend count (may be empty if no friends)
+          const countText = await firstIndicator.textContent();
+          if (countText && countText.trim()) {
+            expect(countText).toMatch(/\+\d+/);
+          }
         }
       }
     });
 
-    test("should close dialog when clicking 'Keep Signup' button", async ({ page }) => {
-      // Check if upcoming shifts list exists
-      const upcomingShiftsList = page.getByTestId("upcoming-shifts-list");
-      
-      if (await upcomingShiftsList.isVisible()) {
-        // Get first upcoming shift with cancel button
-        const firstShift = page.locator('[data-testid^="upcoming-shift-"]').first();
-        const cancelButton = firstShift.getByTestId("cancel-shift-button");
-        
-        if (await cancelButton.isVisible()) {
-          await cancelButton.click();
-          
-          // Wait for dialog to appear
-          const cancelDialog = page.getByTestId("cancel-shift-dialog");
-          await expect(cancelDialog).toBeVisible();
-          
-          // Click "Keep Signup" button
-          const keepButton = page.getByTestId("keep-signup-button");
-          await keepButton.click();
-          
-          // Dialog should be closed
-          await expect(cancelDialog).not.toBeVisible();
-        }
-      }
-    });
+    test("should display friend details in shift dialog", async ({ page }) => {
+      const calendar = page.getByTestId("calendar-grid");
+      await expect(calendar).toHaveCSS("opacity", "1");
+      const shiftElements = getShiftElements(page);
+      const shiftCount = await shiftElements.count();
 
-    test("should show loading state when canceling signup", async ({ page }) => {
-      // Check if upcoming shifts list exists
-      const upcomingShiftsList = page.getByTestId("upcoming-shifts-list");
-      
-      if (await upcomingShiftsList.isVisible()) {
-        // Get first upcoming shift with cancel button
-        const firstShift = page.locator('[data-testid^="upcoming-shift-"]').first();
-        const cancelButton = firstShift.getByTestId("cancel-shift-button");
-        
-        if (await cancelButton.isVisible()) {
-          await cancelButton.click();
-          
-          // Wait for dialog to appear
-          const cancelDialog = page.getByTestId("cancel-shift-dialog");
-          await expect(cancelDialog).toBeVisible();
-          
-          // Click "Cancel Signup" button
-          const confirmCancelButton = page.getByTestId("confirm-cancel-button");
-          await confirmCancelButton.click();
-          
-          // Should show loading state briefly
-          await expect(confirmCancelButton).toContainText("Canceling...");
-          
-          // Wait for action to complete (either success or error)
-          await page.waitForLoadState("networkidle");
+      if (shiftCount > 0) {
+        await shiftElements.first().click();
+
+        const dialog = page.locator("[role='dialog']");
+        await expect(dialog).toBeVisible();
+
+        // Look for friends section
+        const friendsSection = dialog.getByText("Friends Joining");
+        if (await friendsSection.isVisible()) {
+          await expect(friendsSection).toBeVisible();
+
+          // Should show friend avatars/names
+          const friendElements = dialog.locator(
+            "[data-testid*='friend'], .flex.items-center.gap-3"
+          );
+          if ((await friendElements.count()) > 0) {
+            await expect(friendElements.first()).toBeVisible();
+          }
         }
+
+        await page.keyboard.press("Escape");
       }
     });
   });
 
   test.describe("Authentication and Access Control", () => {
-    test("should require authentication to access my shifts page", async ({ context }) => {
+    test("should require authentication to access my shifts page", async ({
+      context,
+    }) => {
       // Create a new context (fresh browser session)
       const newContext = await context.browser()?.newContext();
       if (!newContext) throw new Error("Could not create new context");
@@ -379,7 +480,7 @@ test.describe("My Shifts Page", () => {
 
       // Try to access my shifts directly without authentication
       await newPage.goto("/shifts/mine");
-      await newPage.waitForLoadState("networkidle");
+      await newPage.waitForLoadState("load");
 
       // Should be redirected to login with callback URL
       await expect(newPage).toHaveURL(/\/login.*callbackUrl.*shifts\/mine/);
@@ -394,71 +495,141 @@ test.describe("My Shifts Page", () => {
       // Set mobile viewport
       await page.setViewportSize({ width: 375, height: 667 });
       await page.reload();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("load");
 
       // Check that main elements are still visible and accessible
       const myShiftsPage = page.getByTestId("my-shifts-page");
       await expect(myShiftsPage).toBeVisible();
 
-      // Check location filter is accessible
-      const locationFilter = page.getByTestId("location-filter");
-      await expect(locationFilter).toBeVisible();
+      // Check stats cards stack properly on mobile
+      const statsGrid = page.getByTestId("stats-overview");
+      await expect(statsGrid).toBeVisible();
 
-      // Check sections are accessible
-      const upcomingSection = page.getByTestId("upcoming-shifts-section");
-      await expect(upcomingSection).toBeVisible();
+      // On mobile, calendar grid should be hidden and mobile view should be visible
+      const calendarGrid = page.getByTestId("calendar-grid");
+      await expect(calendarGrid).toBeHidden();
 
-      const pastSection = page.getByTestId("past-shifts-section");
-      await expect(pastSection).toBeVisible();
+      const mobileListView = page.getByTestId("mobile-list-view");
+      await expect(mobileListView).toBeVisible();
+
+      // Check navigation buttons are accessible
+      const prevButton = await getNavigationButton(page, "prev");
+      await expect(prevButton).toBeVisible();
+    });
+
+    test("should show mobile list view on mobile", async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 667 });
+      await page.reload();
+      await page.waitForLoadState("load");
+
+      // Mobile should show list view instead of calendar grid
+      const mobileListView = page.getByTestId("mobile-list-view");
+      await expect(mobileListView).toBeVisible();
+
+      // Calendar grid should be hidden on mobile
+      const calendarGrid = page.getByTestId("calendar-grid");
+      await expect(calendarGrid).toBeHidden();
     });
   });
 
-  test.describe("Loading and Error Handling", () => {
-    test("should handle loading state gracefully", async ({ page }) => {
-      // Navigate to my shifts page
+  test.describe("Performance and Loading", () => {
+    test("should load within reasonable time", async ({ page }) => {
+      const startTime = Date.now();
+
       await page.goto("/shifts/mine");
+      await page.waitForLoadState("load");
 
-      // Wait for the main content to be visible
+      // Wait for main content to be visible
       const myShiftsPage = page.getByTestId("my-shifts-page");
-      await expect(myShiftsPage).toBeVisible({ timeout: 10000 });
+      await expect(myShiftsPage).toBeVisible();
 
-      // Check that no error messages are displayed
-      const errorMessage = page.getByText(/error|failed|something went wrong/i);
-      await expect(errorMessage).not.toBeVisible();
+      const loadTime = Date.now() - startTime;
+      expect(loadTime).toBeLessThan(10000); // Should load within 10 seconds
     });
 
-    test("should display shift counts correctly", async ({ page }) => {
-      // Check upcoming shifts count is a number
-      const upcomingCount = page.getByTestId("upcoming-shifts-count");
-      await expect(upcomingCount).toBeVisible();
-      const upcomingCountText = await upcomingCount.textContent();
-      expect(upcomingCountText).toMatch(/^\d+$/);
+    test("should display stats without errors", async ({ page }) => {
+      // Check that no error messages are displayed
+      const errorMessage = page.getByText(/error|failed|something went wrong/i);
+      await expect(errorMessage.first()).not.toBeVisible();
 
-      // Check past shifts count is a number
-      const pastCount = page.getByTestId("past-shifts-count");
-      await expect(pastCount).toBeVisible();
-      const pastCountText = await pastCount.textContent();
-      expect(pastCountText).toMatch(/^\d+$/);
+      // Check that all stat numbers are displayed
+      const statNumbers = page.locator(".text-2xl.font-bold");
+      const count = await statNumbers.count();
+      expect(count).toBe(4); // Should have 4 stat cards
+
+      // Check each stat card's number display
+      const completedCount = await page
+        .getByTestId("completed-shifts-card-count")
+        .textContent();
+      const upcomingCount = await page
+        .getByTestId("upcoming-shifts-card-count")
+        .textContent();
+      const thisMonthCount = await page
+        .getByTestId("this-month-shifts-card-count")
+        .textContent();
+      const totalHoursCount = await page
+        .getByTestId("total-hours-card-count")
+        .textContent();
+
+      expect(completedCount).toMatch(/^\d+$/);
+      expect(upcomingCount).toMatch(/^\d+$/);
+      expect(thisMonthCount).toMatch(/^\d+$/);
+      expect(totalHoursCount).toMatch(/^\d+$/);
     });
   });
 
   test.describe("Accessibility", () => {
-    test("should have proper accessibility attributes", async ({ page }) => {
-      // Check that main sections have proper headings
-      const upcomingTitle = page.getByTestId("upcoming-shifts-title");
-      await expect(upcomingTitle).toHaveRole("heading");
+    test("should have proper heading hierarchy", async ({ page }) => {
+      // Check main heading
+      const mainHeading = page.getByRole("heading", { name: /my shifts/i });
+      await expect(mainHeading).toBeVisible();
 
-      const pastTitle = page.getByTestId("past-shifts-title");
-      await expect(pastTitle).toHaveRole("heading");
+      // Check calendar heading
+      const calendarHeading = await getCalendarTitle(page);
+      await expect(calendarHeading).toBeVisible();
+    });
 
-      // Check that interactive elements are accessible
-      const locationTabs = page.getByTestId("location-tabs");
-      await expect(locationTabs).toBeVisible();
+    test("should have accessible navigation buttons", async ({ page }) => {
+      // Navigation buttons should be proper links
+      const prevButton = await getNavigationButton(page, "prev");
+      await expect(prevButton).toBeVisible();
+      await expect(prevButton).toHaveAttribute("href");
 
-      // Check that buttons have accessible names
-      const browseShiftsButton = page.getByTestId("browse-shifts-button");
-      if (await browseShiftsButton.isVisible()) {
-        await expect(browseShiftsButton).toHaveAttribute("href", "/shifts");
+      const nextButton = await getNavigationButton(page, "next");
+      await expect(nextButton).toBeVisible();
+      await expect(nextButton).toHaveAttribute("href");
+
+      // Today button (only visible when not viewing current month)
+      // Navigate to see if today button appears
+      await nextButton.click();
+      await page.waitForLoadState("load");
+
+      const todayButton = await getNavigationButton(page, "today");
+      if (await todayButton.isVisible()) {
+        await expect(todayButton).toHaveAttribute("href");
+      }
+    });
+
+    test("should have accessible shift interactions", async ({ page }) => {
+      // Shift elements should be clickable
+      const shiftElements = getShiftElements(page);
+      const shiftCount = await shiftElements.count();
+
+      if (shiftCount > 0) {
+        const firstShift = shiftElements.first();
+
+        // Should be clickable (has cursor pointer or is button/link)
+        await expect(firstShift).toBeVisible();
+
+        // Should be able to interact with it
+        await firstShift.click();
+
+        // Dialog should be accessible
+        const dialog = page.locator("[role='dialog']");
+        if (await dialog.isVisible()) {
+          await expect(dialog).toBeVisible();
+          await page.keyboard.press("Escape");
+        }
       }
     });
   });

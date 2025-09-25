@@ -3,8 +3,10 @@ name: Test
 on:
   push:
     branches: [main]
+    paths: ["web/**", ".github/workflows/test.yml"]
   pull_request:
     branches: [main]
+    paths: ["web/**", ".github/workflows/test.yml"]
 
 permissions:
   contents: read
@@ -17,7 +19,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard:
+          [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+          ]
 
     services:
       postgres:
@@ -50,18 +74,31 @@ jobs:
           cd web
           npm ci
 
+      - name: Get Playwright version
+        run: |
+          cd web
+          echo "PLAYWRIGHT_VERSION=$(npx playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)" >> $GITHUB_ENV
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
+        id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
 
       - name: Install Playwright Browsers
         run: |
           cd web
           npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - name: Setup test database
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+          DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+          TZ: Pacific/Auckland
         run: |
           cd web
           cp .env.example .env
@@ -71,6 +108,12 @@ jobs:
           npx prisma db seed
 
       - name: Run Playwright tests
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+          DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+          NEXTAUTH_SECRET: test-secret-for-ci
+          NEXTAUTH_URL: http://localhost:3000
+          TZ: Pacific/Auckland
         run: |
           cd web
           npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --project=chromium --reporter=blob
@@ -122,8 +165,56 @@ jobs:
           path: web/playwright-report/
           retention-days: 30
 
+  coverage:
+    name: Code Coverage
+    if: github.event_name == 'pull_request'
+    needs: [test]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: volunteer-portal
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Setup test database
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+          DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+          TZ: Pacific/Auckland
+        run: |
+          cd web
+          cp .env.example .env
+          echo "NEXTAUTH_SECRET=test-secret-for-ci" >> .env.local
+          echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
+          npx prisma migrate deploy
+          npx prisma db seed
+
       - name: Run coverage tests
-        if: github.event_name == 'pull_request'
         working-directory: web
         run: |
           # Run tests with coverage collection
@@ -136,25 +227,24 @@ jobs:
           COVERAGE: true
 
       - name: Generate coverage report
-        if: github.event_name == 'pull_request'
         working-directory: web
         run: |
           # Check if playwright-test-coverage generated coverage data
           if [ -f "coverage/coverage-summary.json" ]; then
             echo "Coverage data found, generating report..."
-            
+
             # Create markdown summary from playwright-test-coverage output
             echo "# 📊 Code Coverage Report" > coverage-report.md
             echo "" >> coverage-report.md
             echo "## Coverage Summary" >> coverage-report.md
             echo "" >> coverage-report.md
-            
+
             # Parse coverage summary and create table
             node -e "
               const fs = require('fs');
               const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
               const total = summary.total;
-              
+
               console.log('| Metric | Coverage | Covered/Total |');
               console.log('|--------|----------|---------------|');
               console.log(\`| **Statements** | \${total.statements.pct}% | \${total.statements.covered}/\${total.statements.total} |\`);
@@ -162,17 +252,17 @@ jobs:
               console.log(\`| **Functions** | \${total.functions.pct}% | \${total.functions.covered}/\${total.functions.total} |\`);
               console.log(\`| **Lines** | \${total.lines.pct}% | \${total.lines.covered}/\${total.lines.total} |\`);
             " >> coverage-report.md
-            
+
             echo "" >> coverage-report.md
             echo "## Files with Coverage" >> coverage-report.md
             echo "" >> coverage-report.md
-            
+
             # List files with coverage (limit to top 20 to avoid too long comments)
             node -e "
               const fs = require('fs');
               const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
               const files = Object.keys(summary).filter(key => key !== 'total').slice(0, 20);
-              
+
               if (files.length === 0) {
                 console.log('No individual file coverage data available.');
               } else {
@@ -180,20 +270,20 @@ jobs:
                   const fileCov = summary[file];
                   console.log(\`- \\\`\${file}\\\` - \${fileCov.statements.pct}% statements, \${fileCov.lines.pct}% lines\`);
                 });
-                
+
                 if (Object.keys(summary).length - 1 > 20) {
                   console.log(\`\n... and \${Object.keys(summary).length - 1 - 20} more files\`);
                 }
               }
             " >> coverage-report.md
-            
+
           elif [ -f "coverage/lcov.info" ]; then
             echo "LCOV coverage data found..."
             echo "# 📊 Code Coverage Report" > coverage-report.md
             echo "" >> coverage-report.md
             echo "Coverage data was generated but summary is not available in the expected format." >> coverage-report.md
             echo "Check the full coverage report in the artifacts." >> coverage-report.md
-            
+
           else
             echo "# 📊 Code Coverage Report" > coverage-report.md
             echo "" >> coverage-report.md
@@ -206,7 +296,6 @@ jobs:
           fi
 
       - name: Upload coverage reports
-        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
@@ -216,36 +305,35 @@ jobs:
           retention-days: 30
 
       - name: Comment PR with coverage
-        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            
+
             let coverageReport = '';
             try {
               coverageReport = fs.readFileSync('web/coverage-report.md', 'utf8');
             } catch (error) {
               coverageReport = '# Test Coverage Report\n\nNo coverage report generated.';
             }
-            
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
+
             // Find existing coverage comment
-            const existingComment = comments.find(comment => 
-              comment.body.includes('📊 Code Coverage Report') && 
+            const existingComment = comments.find(comment =>
+              comment.body.includes('📊 Code Coverage Report') &&
               comment.user.type === 'Bot'
             );
-            
+
             const commentBody = `${coverageReport}
-            
+
             ---
             *Generated from Playwright e2e tests with JavaScript coverage collection.*`;
-            
+
             if (existingComment) {
               // Update existing comment
               await github.rest.issues.updateComment({
@@ -264,11 +352,11 @@ jobs:
               });
             }
 
-  summary:
+  tests-passed:
     if: always()
     needs: [test, merge-reports]
     runs-on: ubuntu-latest
-    name: Test Summary
+    name: Tests passed
     steps:
       - name: Check all jobs
         run: |

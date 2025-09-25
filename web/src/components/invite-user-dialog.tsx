@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogTrigger,
+} from "@/components/ui/responsive-dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Mail, UserPlus, Loader2 } from "lucide-react";
@@ -79,20 +79,20 @@ export function InviteUserDialog({ children }: InviteUserDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]" data-testid="invite-user-dialog">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2" data-testid="invite-user-dialog-title">
+    <ResponsiveDialog open={open} onOpenChange={setOpen}>
+      <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+      <ResponsiveDialogContent className="sm:max-w-[480px]" data-testid="invite-user-dialog">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle className="flex items-center gap-2" data-testid="invite-user-dialog-title">
             <UserPlus className="h-5 w-5" />
             Invite New User
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Send an invitation email to a new volunteer or administrator.
             They&apos;ll receive an email with instructions to set up their
             account.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6" data-testid="invite-user-form">
           {/* Email Field */}
@@ -217,7 +217,7 @@ export function InviteUserDialog({ children }: InviteUserDialogProps) {
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

@@ -1,0 +1,6 @@
+First Name,Last Name,Email,Phone,Date of Birth,Contact Name,Contact Relationship,Contact Phone,Medical Conditions,Experience Points,Days Available,Locations,Positions
+,Doe,invalid-email,021-555-0001,01/15/1990,Jane Doe,Spouse,021-555-0002,No known allergies,100,Monday Wednesday Friday,Wellington,Kitchen Prep
+Sarah,Smith,sarah.smith@test.com,027-555-0003,99/99/1985,Bob Smith,Father,027-555-0004,Vegetarian,250,Tuesday Thursday,Glen Innes,Front of House
+Mike,,mike.johnson@test.com,022-555-0005,07/10/1992,Lisa Johnson,Sister,022-555-0006,None,abc,Monday Friday Saturday,Onehunga,Dishwasher
+Emma,Wilson,duplicate@test.com,021-555-0007,12/05/1988,Tom Wilson,Partner,021-555-0008,Mild asthma,300,Wednesday Sunday,Wellington Glen Innes,Kitchen Service
+Alex,Brown,duplicate@test.com,029-555-0009,09/18/1995,Morgan Brown,Parent,029-555-0010,Lactose intolerant,75,Thursday Friday,Wellington,Food Service

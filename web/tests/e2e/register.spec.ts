@@ -3,22 +3,22 @@ import type { Page } from "@playwright/test";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("load");
   await page.waitForTimeout(300); // Reduced timeout for faster tests
 }
 
 // Helper function to fill step 1 with valid data
 async function fillStep1ValidData(page: Page, email = "test@example.com") {
   await page.getByTestId("email-input").fill(email);
-  await page.getByTestId("password-input").fill("password123");
-  await page.getByTestId("confirm-password-input").fill("password123");
+  await page.getByTestId("password-input").fill("Password123!");
+  await page.getByTestId("confirm-password-input").fill("Password123!");
 }
 
 // Helper function to fill step 2 with valid data
 async function fillStep2ValidData(page: Page) {
   await page.getByRole("textbox", { name: /first name/i }).fill("Test");
   await page.getByRole("textbox", { name: /last name/i }).fill("User");
-  await page.getByRole("textbox", { name: /phone/i }).fill("(555) 123-4567");
+  await page.getByRole("textbox", { name: /mobile number/i }).fill("(555) 123-4567");
 }
 
 // Helper function to navigate to a specific step
@@ -148,13 +148,11 @@ test.describe("Registration Page", () => {
         // Check for specific OAuth provider buttons
         const googleButton = page.getByTestId("oauth-google-button");
         const facebookButton = page.getByTestId("oauth-facebook-button");
-        const appleButton = page.getByTestId("oauth-apple-button");
 
         // At least one OAuth provider should be visible if the section exists
         const hasOAuthButtons = 
           (await googleButton.isVisible()) ||
-          (await facebookButton.isVisible()) ||
-          (await appleButton.isVisible());
+          (await facebookButton.isVisible());
 
         expect(hasOAuthButtons).toBe(true);
       }
@@ -362,7 +360,7 @@ test.describe("Registration Page", () => {
 
     test("should preserve form data when navigating between steps", async ({ page }) => {
       const testEmail = "test@example.com";
-      const testPassword = "testpassword123";
+      const testPassword = "TestPassword123!";
 
       // Fill step 1 data
       const emailInput = page.getByTestId("email-input");
@@ -451,8 +449,9 @@ test.describe("Registration Page", () => {
       const registerPage = page.getByTestId("register-page");
       await expect(registerPage).toBeVisible();
 
+      // Progress indicator should be hidden on mobile for better space usage
       const progressIndicator = page.getByTestId("progress-indicator");
-      await expect(progressIndicator).toBeVisible();
+      await expect(progressIndicator).toBeHidden();
 
       const formCard = page.getByTestId("registration-form-card");
       await expect(formCard).toBeVisible();
