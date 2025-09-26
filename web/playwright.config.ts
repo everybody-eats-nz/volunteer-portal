@@ -11,6 +11,14 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // Enable coverage collection
+    ...(process.env.COLLECT_COVERAGE && {
+      contextOptions: {
+        // Collect JS coverage for all pages
+        recordVideo: undefined, // Disable video to save space when collecting coverage
+        recordHar: undefined,   // Disable HAR to save space when collecting coverage
+      },
+    }),
   },
 
   projects: [
@@ -28,10 +36,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: process.env.SKIP_WEBSERVER
+    ? undefined
+    : {
+        command: "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120 * 1000,
+      },
 });
