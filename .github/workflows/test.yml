@@ -107,6 +107,12 @@ jobs:
           npx prisma migrate deploy
           npx prisma db seed
 
+      - name: Setup Babel config for coverage
+        if: github.event_name == 'pull_request'
+        run: |
+          cd web
+          cp .babelrc.coverage.js .babelrc.js
+
       - name: Run Playwright tests
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
@@ -114,9 +120,25 @@ jobs:
           NEXTAUTH_SECRET: test-secret-for-ci
           NEXTAUTH_URL: http://localhost:3000
           TZ: Pacific/Auckland
+          COVERAGE: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          NODE_ENV: ${{ github.event_name == 'pull_request' && 'test' || 'production' }}
         run: |
           cd web
           npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --project=chromium --reporter=blob
+
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && always()
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: web/.nyc_output/
+          retention-days: 1
+
+      - name: Clean up Babel config
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          cd web
+          rm -f .babelrc.js
 
       - name: Upload blob report
         uses: actions/upload-artifact@v4
@@ -167,23 +189,9 @@ jobs:
 
   coverage:
     name: Code Coverage
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && always()
     needs: [test]
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: volunteer-portal
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - name: Checkout
@@ -201,98 +209,98 @@ jobs:
           cd web
           npm ci
 
-      - name: Setup test database
-        env:
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          TZ: Pacific/Auckland
-        run: |
-          cd web
-          cp .env.example .env
-          echo "NEXTAUTH_SECRET=test-secret-for-ci" >> .env.local
-          echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
-          npx prisma migrate deploy
-          npx prisma db seed
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-coverage-data
+          pattern: coverage-*
+          merge-multiple: true
 
-      - name: Run coverage tests
+      - name: Merge coverage data and generate report
         working-directory: web
         run: |
-          # Run tests with coverage collection
-          npm run test:e2e:coverage
-        env:
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          NEXTAUTH_URL: http://localhost:3000
-          NEXTAUTH_SECRET: test-secret-for-ci
-          NODE_ENV: test
-          COVERAGE: true
+          # Create local .nyc_output directory
+          mkdir -p .nyc_output coverage
 
-      - name: Generate coverage report
-        working-directory: web
-        run: |
-          # Check if playwright-test-coverage generated coverage data
-          if [ -f "coverage/coverage-summary.json" ]; then
-            echo "Coverage data found, generating report..."
+          # Check if we have coverage data from matrix runs
+          if [ -d "../all-coverage-data" ] && [ "$(ls -A ../all-coverage-data 2>/dev/null)" ]; then
+            echo "Found coverage data from matrix runs, merging..."
 
-            # Create markdown summary from playwright-test-coverage output
-            echo "# 📊 Code Coverage Report" > coverage-report.md
-            echo "" >> coverage-report.md
-            echo "## Coverage Summary" >> coverage-report.md
-            echo "" >> coverage-report.md
+            # Copy all coverage files to local .nyc_output
+            find ../all-coverage-data -name "*.json" -exec cp {} .nyc_output/ \;
 
-            # Parse coverage summary and create table
-            node -e "
-              const fs = require('fs');
-              const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
-              const total = summary.total;
+            # Generate merged coverage reports
+            npx nyc report --reporter=json-summary --reporter=lcov --reporter=html --report-dir=coverage
 
-              console.log('| Metric | Coverage | Covered/Total |');
-              console.log('|--------|----------|---------------|');
-              console.log(\`| **Statements** | \${total.statements.pct}% | \${total.statements.covered}/\${total.statements.total} |\`);
-              console.log(\`| **Branches** | \${total.branches.pct}% | \${total.branches.covered}/\${total.branches.total} |\`);
-              console.log(\`| **Functions** | \${total.functions.pct}% | \${total.functions.covered}/\${total.functions.total} |\`);
-              console.log(\`| **Lines** | \${total.lines.pct}% | \${total.lines.covered}/\${total.lines.total} |\`);
-            " >> coverage-report.md
+            if [ -f "coverage/coverage-summary.json" ]; then
+              echo "Coverage merge successful, generating markdown report..."
 
-            echo "" >> coverage-report.md
-            echo "## Files with Coverage" >> coverage-report.md
-            echo "" >> coverage-report.md
+              # Create markdown summary
+              echo "# 📊 Code Coverage Report" > coverage-report.md
+              echo "" >> coverage-report.md
+              echo "_Generated from full test matrix execution_" >> coverage-report.md
+              echo "" >> coverage-report.md
+              echo "## Coverage Summary" >> coverage-report.md
+              echo "" >> coverage-report.md
 
-            # List files with coverage (limit to top 20 to avoid too long comments)
-            node -e "
-              const fs = require('fs');
-              const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
-              const files = Object.keys(summary).filter(key => key !== 'total').slice(0, 20);
+              # Parse coverage summary and create table
+              node -e "
+                const fs = require('fs');
+                const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+                const total = summary.total;
 
-              if (files.length === 0) {
-                console.log('No individual file coverage data available.');
-              } else {
-                files.forEach(file => {
-                  const fileCov = summary[file];
-                  console.log(\`- \\\`\${file}\\\` - \${fileCov.statements.pct}% statements, \${fileCov.lines.pct}% lines\`);
-                });
+                console.log('| Metric | Coverage | Covered/Total |');
+                console.log('|--------|----------|---------------|');
+                console.log(\`| **Statements** | \${total.statements.pct}% | \${total.statements.covered}/\${total.statements.total} |\`);
+                console.log(\`| **Branches** | \${total.branches.pct}% | \${total.branches.covered}/\${total.branches.total} |\`);
+                console.log(\`| **Functions** | \${total.functions.pct}% | \${total.functions.covered}/\${total.functions.total} |\`);
+                console.log(\`| **Lines** | \${total.lines.pct}% | \${total.lines.covered}/\${total.lines.total} |\`);
+              " >> coverage-report.md
 
-                if (Object.keys(summary).length - 1 > 20) {
-                  console.log(\`\n... and \${Object.keys(summary).length - 1 - 20} more files\`);
+              echo "" >> coverage-report.md
+              echo "## Files with Highest Coverage" >> coverage-report.md
+              echo "" >> coverage-report.md
+
+              # List top files by coverage percentage
+              node -e "
+                const fs = require('fs');
+                const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+                const files = Object.keys(summary)
+                  .filter(key => key !== 'total')
+                  .map(file => ({ file, cov: summary[file] }))
+                  .filter(({ cov }) => cov.statements.total > 0)
+                  .sort((a, b) => b.cov.statements.pct - a.cov.statements.pct)
+                  .slice(0, 15);
+
+                if (files.length === 0) {
+                  console.log('No individual file coverage data available.');
+                } else {
+                  files.forEach(({ file, cov }) => {
+                    console.log(\`- \\\`\${file}\\\` - \${cov.statements.pct}% statements (\${cov.statements.covered}/\${cov.statements.total})\`);
+                  });
+
+                  const totalFiles = Object.keys(summary).length - 1;
+                  if (totalFiles > 15) {
+                    console.log(\`\n... and \${totalFiles - 15} more files\`);
+                  }
                 }
-              }
-            " >> coverage-report.md
+              " >> coverage-report.md
 
-          elif [ -f "coverage/lcov.info" ]; then
-            echo "LCOV coverage data found..."
-            echo "# 📊 Code Coverage Report" > coverage-report.md
-            echo "" >> coverage-report.md
-            echo "Coverage data was generated but summary is not available in the expected format." >> coverage-report.md
-            echo "Check the full coverage report in the artifacts." >> coverage-report.md
+            else
+              echo "# 📊 Code Coverage Report" > coverage-report.md
+              echo "" >> coverage-report.md
+              echo "⚠️ Failed to generate merged coverage report." >> coverage-report.md
+            fi
 
           else
             echo "# 📊 Code Coverage Report" > coverage-report.md
             echo "" >> coverage-report.md
-            echo "⚠️ No coverage data was collected during test execution." >> coverage-report.md
+            echo "⚠️ No coverage data found from test matrix execution." >> coverage-report.md
             echo "" >> coverage-report.md
-            echo "This may be due to:" >> coverage-report.md
-            echo "- Tests not executing JavaScript application code" >> coverage-report.md
-            echo "- Coverage plugin not properly configured" >> coverage-report.md
-            echo "- Build optimizations removing instrumentation" >> coverage-report.md
+            echo "This may be because:" >> coverage-report.md
+            echo "- This is not a pull request (coverage only runs on PRs)" >> coverage-report.md
+            echo "- Coverage instrumentation failed during test execution" >> coverage-report.md
+            echo "- No JavaScript code was executed during tests" >> coverage-report.md
           fi
 
       - name: Upload coverage reports
@@ -354,18 +362,30 @@ jobs:
 
   tests-passed:
     if: always()
-    needs: [test, merge-reports]
+    needs: [test, merge-reports, coverage]
     runs-on: ubuntu-latest
     name: Tests passed
     steps:
       - name: Check all jobs
         run: |
+          # Check test and merge-reports (always required)
           if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.merge-reports.result }}" == "failure" ]]; then
             echo "❌ Tests failed"
             exit 1
           elif [[ "${{ needs.test.result }}" == "cancelled" || "${{ needs.merge-reports.result }}" == "cancelled" ]]; then
             echo "🟡 Tests cancelled"
             exit 1
-          else
-            echo "✅ All tests passed"
           fi
+
+          # Check coverage job only if it ran (for PRs)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            if [[ "${{ needs.coverage.result }}" == "failure" ]]; then
+              echo "⚠️  Coverage job failed, but continuing"
+              # Don't fail the entire workflow for coverage failures
+            elif [[ "${{ needs.coverage.result }}" == "cancelled" ]]; then
+              echo "🟡 Coverage cancelled"
+              exit 1
+            fi
+          fi
+
+          echo "✅ All tests passed"
