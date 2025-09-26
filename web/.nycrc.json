@@ -1,0 +1,26 @@
+{
+  "all": true,
+  "include": [
+    "app/**/*.{js,ts,jsx,tsx}",
+    "components/**/*.{js,ts,jsx,tsx}",
+    "lib/**/*.{js,ts,jsx,tsx}"
+  ],
+  "exclude": [
+    "**/*.d.ts",
+    "**/*.spec.{js,ts,jsx,tsx}",
+    "**/*.test.{js,ts,jsx,tsx}",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/coverage/**",
+    "**/tests/**"
+  ],
+  "reporter": [
+    "text",
+    "json",
+    "json-summary", 
+    "lcov",
+    "html"
+  ],
+  "temp-dir": ".nyc_output",
+  "report-dir": "coverage"
+}

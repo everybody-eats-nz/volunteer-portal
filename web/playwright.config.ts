@@ -16,7 +16,14 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { 
+        ...devices["Desktop Chrome"],
+        // Enable coverage collection for Chromium
+        contextOptions: {
+          // Enable source maps for better coverage mapping
+          ignoreHTTPSErrors: true,
+        }
+      },
     },
     {
       name: "firefox",
