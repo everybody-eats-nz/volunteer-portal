@@ -11,6 +11,14 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
+    // Enable coverage collection
+    ...(process.env.COLLECT_COVERAGE && {
+      contextOptions: {
+        // Collect JS coverage for all pages
+        recordVideo: undefined, // Disable video to save space when collecting coverage
+        recordHar: undefined,   // Disable HAR to save space when collecting coverage
+      },
+    }),
   },
 
   projects: [
