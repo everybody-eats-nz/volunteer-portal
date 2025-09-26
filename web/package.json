@@ -87,7 +87,10 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
     "@eslint/eslintrc": "^3",
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@playwright/test": "^1.54.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^5.0.2",
@@ -95,13 +98,16 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "babel-plugin-istanbul": "^7.0.1",
     "csv-parse": "^5.6.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
+    "nyc": "^17.1.0",
     "prisma": "^6.14.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.1"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

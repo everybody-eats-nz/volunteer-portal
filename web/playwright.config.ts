@@ -28,10 +28,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: process.env.SKIP_WEBSERVER
+    ? undefined
+    : {
+        command: "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120 * 1000,
+      },
 });
