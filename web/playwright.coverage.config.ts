@@ -1,39 +1,36 @@
-import { defineConfig, devices } from "playwright-test-coverage";
+import { defineConfig, devices } from "@playwright/test";
+import baseConfig from "./playwright.config";
 
 export default defineConfig({
-  testDir: "./tests/e2e",
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined, // Use single worker for coverage to avoid conflicts
-  reporter: [
-    ['json', { outputFile: 'test-results/results.json' }],
-    ['html']
-  ],
+  ...baseConfig,
 
+  // Use Playwright's native coverage collection
   use: {
-    baseURL: "http://localhost:3000",
-    trace: "off", // Disable trace for coverage runs to reduce overhead
-    screenshot: "only-on-failure",
+    ...baseConfig.use,
+    // Enable JavaScript coverage collection
+    coverage: {
+      enabled: true,
+      outputDir: '.coverage',
+      reportOnFailure: true,
+    },
+    // Disable trace for coverage runs to reduce overhead
+    trace: 'off',
   },
 
+  // Only run on Chromium for coverage
   projects: [
     {
-      name: "chromium-coverage",
+      name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        // Enable coverage collection
+        contextOptions: {
+          // Coverage collection settings
+          coverage: {
+            enabled: true,
+          }
+        }
       },
     }
   ],
-
-  webServer: {
-    command: "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true COVERAGE=true npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-    env: {
-      COVERAGE: "true",
-      NODE_ENV: "test"
-    }
-  },
 });
