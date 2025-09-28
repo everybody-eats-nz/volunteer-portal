@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn, getProviders } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { signIn, getProviders, useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,17 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [providers, setProviders] = useState<Record<string, Provider>>({});
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  // Redirect to appropriate page if already logged in
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      // Redirect admins to admin dashboard, volunteers to regular dashboard
+      const redirectPath = session.user?.role === "ADMIN" ? "/admin" : "/dashboard";
+      router.push(redirectPath);
+    }
+  }, [session, status, router]);
 
   // Load OAuth providers
   useEffect(() => {
@@ -276,6 +287,11 @@ export default function LoginPage() {
         return "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100";
     }
   };
+
+  // Don't render login form if already authenticated (will redirect)
+  if (status === "authenticated") {
+    return null;
+  }
 
   return (
     <MotionPageContainer

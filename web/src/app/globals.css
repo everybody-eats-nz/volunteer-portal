@@ -58,11 +58,11 @@
   --ee-primary: #1d5337;
   --ee-primary-700: #3d8b40;
   --ee-primary-light: #1a2f1a;
-  --ee-accent: #f8fb69;
-  --ee-accent-subtle: #e4e85a;
-  --ee-muted: #0f1419;
+  --ee-accent: #3a3b2a; /* Much darker olive for dark mode */
+  --ee-accent-subtle: #2a2b20; /* Very subtle for dark mode backgrounds */
+  --ee-muted: #1a1d23; /* Slightly lighter for better layering */
   --ee-border: #1f2937;
-  --ee-card-bg: #1a1d23;
+  --ee-card-bg: #16181d; /* Slightly adjusted for better contrast */
 
   /* shadcn/ui dark mode variables */
   --background: oklch(0.12 0.002 240);
@@ -75,8 +75,8 @@
   --primary-foreground: oklch(0.985 0.001 106.423);
   --secondary: oklch(0.268 0.007 34.298);
   --secondary-foreground: oklch(0.985 0.001 106.423);
-  --muted: oklch(0.12 0.005 34.298);
-  --muted-foreground: oklch(0.85 0.005 56.259);
+  --muted: oklch(0.18 0.005 240); /* Darker muted background */
+  --muted-foreground: oklch(0.65 0.005 240); /* Dimmer text for better contrast */
   --accent: oklch(0.268 0.007 34.298);
   --accent-foreground: oklch(0.985 0.001 106.423);
   --destructive: oklch(0.704 0.191 22.216);

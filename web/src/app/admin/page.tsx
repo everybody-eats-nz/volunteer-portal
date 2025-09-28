@@ -212,7 +212,7 @@ export default async function AdminDashboardPage({
               Filter by location:
             </span>
             <Tabs value={selectedLocation || "all"} className="w-fit">
-              <TabsList className="bg-accent-subtle">
+              <TabsList>
                 <TabsTrigger value="all" asChild>
                   <Link href="/admin" data-testid="location-filter-all">
                     All
