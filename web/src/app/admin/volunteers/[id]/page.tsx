@@ -317,8 +317,8 @@ export default async function AdminVolunteerPage({
                       className={
                         volunteer.regularVolunteer.isActive &&
                         !volunteer.regularVolunteer.isPausedByUser
-                          ? "border-yellow-500/20 text-yellow-700 bg-yellow-50"
-                          : "border-gray-500/20 text-gray-700 bg-gray-50"
+                          ? "border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
+                          : "border-gray-500/20 text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/20"
                       }
                     >
                       <Star className="h-3 w-3 mr-1" />
@@ -332,7 +332,7 @@ export default async function AdminVolunteerPage({
                   )}
                   <Badge
                     variant="outline"
-                    className="border-green-500/20 text-green-700 bg-green-50"
+                    className="border-green-500/20 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
                   >
                     <Heart className="h-3 w-3 mr-1" />
                     Active Member
@@ -340,7 +340,7 @@ export default async function AdminVolunteerPage({
                   {volunteer.volunteerAgreementAccepted && (
                     <Badge
                       variant="outline"
-                      className="border-emerald-500/20 text-emerald-700 bg-emerald-50"
+                      className="border-emerald-500/20 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20"
                     >
                       <Shield className="h-3 w-3 mr-1" />
                       Agreement Signed
@@ -368,7 +368,7 @@ export default async function AdminVolunteerPage({
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {completedShifts}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -377,7 +377,7 @@ export default async function AdminVolunteerPage({
                   </div>
                   {confirmedCancellations > 0 && (
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">
+                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                         {confirmedCancellations}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -387,7 +387,7 @@ export default async function AdminVolunteerPage({
                   )}
                   {noShows > 0 && (
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">
+                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                         {noShows}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -403,7 +403,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="admin-actions-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   Admin Actions
                 </CardTitle>
               </CardHeader>
@@ -415,8 +415,8 @@ export default async function AdminVolunteerPage({
                       variant="outline"
                       className={
                         volunteer.role === "ADMIN"
-                          ? "bg-gradient-to-r from-purple-50 to-violet-50 text-purple-700 border-purple-200 font-medium shadow-sm"
-                          : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 font-medium shadow-sm"
+                          ? "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-medium shadow-sm"
+                          : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-medium shadow-sm"
                       }
                     >
                       {volunteer.role === "ADMIN" ? (
@@ -476,7 +476,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="admin-notes-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-orange-600" />
+                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                   Admin Notes
                 </CardTitle>
               </CardHeader>
@@ -495,13 +495,13 @@ export default async function AdminVolunteerPage({
             <Card data-testid="contact-information-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-primary" />
+                  <Phone className="h-5 w-5 text-primary dark:text-primary" />
                   Contact Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div className="space-y-1">
                       <label className="text-sm font-medium">Phone</label>
@@ -510,7 +510,7 @@ export default async function AdminVolunteerPage({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div className="space-y-1">
                       <label className="text-sm font-medium">
@@ -531,7 +531,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="emergency-contact-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-red-500" />
+                  <Heart className="h-5 w-5 text-red-500 dark:text-red-400" />
                   Emergency Contact
                 </CardTitle>
               </CardHeader>
@@ -565,25 +565,25 @@ export default async function AdminVolunteerPage({
               <Card data-testid="regular-volunteer-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-600" />
+                    <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                     Regular Volunteer Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                       <label className="text-sm font-medium">Shift Type</label>
                       <p className="text-sm text-muted-foreground">
                         {volunteer.regularVolunteer.shiftType.name}
                       </p>
                     </div>
-                    <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                       <label className="text-sm font-medium">Location</label>
                       <p className="text-sm text-muted-foreground">
                         {volunteer.regularVolunteer.location}
                       </p>
                     </div>
-                    <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                       <label className="text-sm font-medium">Frequency</label>
                       <p className="text-sm text-muted-foreground">
                         {volunteer.regularVolunteer.frequency === "WEEKLY"
@@ -596,14 +596,14 @@ export default async function AdminVolunteerPage({
                           : volunteer.regularVolunteer.frequency}
                       </p>
                     </div>
-                    <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                       <label className="text-sm font-medium">Status</label>
                       <div className="flex items-center gap-2">
                         {volunteer.regularVolunteer.isActive ? (
                           volunteer.regularVolunteer.isPausedByUser ? (
                             <>
-                              <PauseCircle className="h-4 w-4 text-yellow-600" />
-                              <span className="text-sm text-yellow-600">
+                              <PauseCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                              <span className="text-sm text-yellow-600 dark:text-yellow-400">
                                 Paused
                               </span>
                               {volunteer.regularVolunteer.pausedUntil && (
@@ -618,16 +618,16 @@ export default async function AdminVolunteerPage({
                             </>
                           ) : (
                             <>
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span className="text-sm text-green-600">
+                              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              <span className="text-sm text-green-600 dark:text-green-400">
                                 Active
                               </span>
                             </>
                           )
                         ) : (
                           <>
-                            <PauseCircle className="h-4 w-4 text-gray-600" />
-                            <span className="text-sm text-gray-600">
+                            <PauseCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
                               Inactive
                             </span>
                           </>
@@ -646,7 +646,7 @@ export default async function AdminVolunteerPage({
                           <Badge
                             key={day}
                             variant="outline"
-                            className="border-yellow-500/20 text-yellow-700 bg-yellow-50"
+                            className="border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
                           >
                             {day}
                           </Badge>
@@ -658,7 +658,7 @@ export default async function AdminVolunteerPage({
                   {volunteer.regularVolunteer.notes && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Admin Notes</label>
-                      <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                      <p className="text-sm text-muted-foreground bg-muted/50 dark:bg-muted/30 p-3 rounded-lg">
                         {volunteer.regularVolunteer.notes}
                       </p>
                     </div>
@@ -674,7 +674,7 @@ export default async function AdminVolunteerPage({
                           (autoSignup) => (
                             <div
                               key={autoSignup.id}
-                              className="text-sm p-2 bg-muted/30 rounded flex items-center justify-between"
+                              className="text-sm p-2 bg-muted/30 dark:bg-muted/20 rounded flex items-center justify-between"
                             >
                               <span>
                                 {format(
@@ -701,7 +701,7 @@ export default async function AdminVolunteerPage({
             <Card data-testid="availability-preferences-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-green-600" />
+                  <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
                   Availability & Preferences
                 </CardTitle>
               </CardHeader>
@@ -714,7 +714,7 @@ export default async function AdminVolunteerPage({
                         <Badge
                           key={day}
                           variant="outline"
-                          className="border-primary/20 text-primary bg-primary/5"
+                          className="border-primary/20 text-primary dark:text-primary bg-primary/5 dark:bg-primary/10"
                         >
                           {dayLabels[day] || day}
                         </Badge>
@@ -736,7 +736,7 @@ export default async function AdminVolunteerPage({
                         <Badge
                           key={location}
                           variant="outline"
-                          className="border-green-500/20 text-green-700 bg-green-50"
+                          className="border-green-500/20 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
                         >
                           <MapPin className="h-3 w-3 mr-1" />
                           {locationLabels[location] || location}
@@ -767,13 +767,13 @@ export default async function AdminVolunteerPage({
             <Card data-testid="additional-information-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   Additional Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-1">
+                  <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                     <label className="text-sm font-medium">
                       Medical Conditions
                     </label>
@@ -781,7 +781,7 @@ export default async function AdminVolunteerPage({
                       {volunteer.medicalConditions || "None specified"}
                     </p>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-1">
+                  <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                     <label className="text-sm font-medium">
                       Willing to provide reference
                     </label>
@@ -789,13 +789,13 @@ export default async function AdminVolunteerPage({
                       {volunteer.willingToProvideReference ? "Yes" : "No"}
                     </p>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-1">
+                  <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                     <label className="text-sm font-medium">Member since</label>
                     <p className="text-sm text-muted-foreground">
                       {format(volunteer.createdAt, "dd MMM yyyy")}
                     </p>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-1">
+                  <div className="p-4 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
                     <label className="text-sm font-medium">Newsletter</label>
                     <p className="text-sm text-muted-foreground">
                       {volunteer.emailNewsletterSubscription
@@ -812,12 +812,12 @@ export default async function AdminVolunteerPage({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-indigo-600" />
+                    <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                     <CardTitle>Shift History</CardTitle>
                     {selectedLocation && (
                       <Badge
                         variant="outline"
-                        className="border-indigo-500/20 text-indigo-700 bg-indigo-50"
+                        className="border-indigo-500/20 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20"
                       >
                         <Filter className="h-3 w-3 mr-1" />
                         {selectedLocation}
@@ -826,7 +826,7 @@ export default async function AdminVolunteerPage({
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Location Filter Buttons */}
-                    <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                    <div className="flex items-center gap-1 bg-muted dark:bg-muted/50 rounded-lg p-1">
                       <Link
                         href={`/admin/volunteers/${id}`}
                         className={cn(
@@ -862,7 +862,7 @@ export default async function AdminVolunteerPage({
                     className="text-center py-8"
                     data-testid="shift-history-empty-state"
                   >
-                    <Clock className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <Clock className="h-12 w-12 text-muted-foreground/30 dark:text-muted-foreground/50 mx-auto mb-4" />
                     <p className="text-muted-foreground">
                       {selectedLocation
                         ? `No shift signups found for ${selectedLocation}`
@@ -876,7 +876,7 @@ export default async function AdminVolunteerPage({
                       .map((signup: (typeof volunteer.signups)[0]) => (
                         <div
                           key={signup.id}
-                          className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-4 bg-muted/30 dark:bg-muted/20 rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
@@ -913,13 +913,13 @@ export default async function AdminVolunteerPage({
                               }
                               className={cn(
                                 signup.status === "CONFIRMED" &&
-                                  "bg-green-100 text-green-800 border-green-200 hover:bg-green-100",
+                                  "bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/30",
                                 signup.status === "WAITLISTED" &&
-                                  "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100",
+                                  "bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-950/30",
                                 signup.status === "CANCELED" &&
-                                  "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100",
+                                  "bg-orange-100 dark:bg-orange-950/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/30",
                                 signup.status === "NO_SHOW" &&
-                                  "bg-red-100 text-red-800 border-red-200 hover:bg-red-100"
+                                  "bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950/30"
                               )}
                             >
                               {signup.status === "CONFIRMED" && "Confirmed"}
