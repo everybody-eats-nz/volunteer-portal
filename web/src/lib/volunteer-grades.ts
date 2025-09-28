@@ -10,19 +10,19 @@ export interface VolunteerGradeInfo {
 export const VOLUNTEER_GRADE_INFO: Record<VolunteerGrade, VolunteerGradeInfo> = {
   GREEN: {
     label: "Standard",
-    color: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+    color: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/30",
     description: "Standard volunteer with basic access",
     icon: "🟢",
   },
   YELLOW: {
-    label: "Experienced", 
-    color: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+    label: "Experienced",
+    color: "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950/30",
     description: "Experienced volunteer with additional privileges",
     icon: "🟡",
   },
   PINK: {
     label: "Shift Leader",
-    color: "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100", 
+    color: "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-950/30",
     description: "Shift leader with team management capabilities",
     icon: "🩷",
   },
