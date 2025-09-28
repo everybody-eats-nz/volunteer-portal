@@ -16,31 +16,45 @@ function addDarkModeSupport(originalColor: string): string {
     return originalColor;
   }
 
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Processing color:', originalColor);
+  }
+
   // Enhanced regex to handle more patterns including hover states
   let result = originalColor;
 
   // Handle regular color patterns: bg-{color}-{shade}, text-{color}-{shade}, border-{color}-{shade}
-  result = result.replace(/(\w+)-(\w+)-(\d+)/g, (match, prefix, color, shade) => {
-    switch (prefix) {
-      case 'bg':
-        if (shade === '50') {
-          return `${match} dark:bg-${color}-950/20`;
-        }
-        if (shade === '100') {
-          return `${match} dark:bg-${color}-950/30`;
-        }
-        break;
-      case 'text':
-        if (shade === '700') {
-          return `${match} dark:text-${color}-400`;
-        }
-        break;
-      case 'border':
-        if (shade === '200') {
-          return `${match} dark:border-${color}-800`;
-        }
-        break;
+  result = result.replace(/(\b(?:bg|text|border)-\w+-\d+\b)/g, (match) => {
+    // Extract the parts
+    const bgMatch = match.match(/bg-(\w+)-(\d+)/);
+    const textMatch = match.match(/text-(\w+)-(\d+)/);
+    const borderMatch = match.match(/border-(\w+)-(\d+)/);
+
+    if (bgMatch) {
+      const [, color, shade] = bgMatch;
+      if (shade === '50') {
+        return `${match} dark:bg-${color}-950/20`;
+      }
+      if (shade === '100') {
+        return `${match} dark:bg-${color}-950/30`;
+      }
     }
+
+    if (textMatch) {
+      const [, color, shade] = textMatch;
+      if (shade === '700') {
+        return `${match} dark:text-${color}-400`;
+      }
+    }
+
+    if (borderMatch) {
+      const [, color, shade] = borderMatch;
+      if (shade === '200') {
+        return `${match} dark:border-${color}-800`;
+      }
+    }
+
     return match;
   });
 
@@ -104,7 +118,14 @@ function addDarkModeSupport(originalColor: string): string {
     }
   }
 
-  return result.trim();
+  const finalResult = result.trim();
+
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Result:', finalResult);
+  }
+
+  return finalResult;
 }
 
 export function CustomLabelBadge({
