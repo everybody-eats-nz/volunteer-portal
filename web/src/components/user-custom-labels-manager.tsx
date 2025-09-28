@@ -9,6 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Command,
@@ -18,7 +20,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Plus, X, Tags } from "lucide-react";
+import { Plus, X, Tags, AlertTriangle, Loader2 } from "lucide-react";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { useToast } from "@/hooks/use-toast";
 import { type CustomLabel } from "@prisma/client";
@@ -41,7 +43,10 @@ export function UserCustomLabelsManager({
   const [labels, setLabels] = useState<UserCustomLabel[]>(currentLabels);
   const [availableLabels, setAvailableLabels] = useState<CustomLabel[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [labelToRemove, setLabelToRemove] = useState<CustomLabel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -97,18 +102,22 @@ export function UserCustomLabelsManager({
     }
   };
 
-  const handleRemoveLabel = async (labelId: string) => {
-    if (!confirm("Remove this label from the user?")) {
-      return;
-    }
+  const handleRemoveClick = (label: CustomLabel) => {
+    setLabelToRemove(label);
+    setRemoveDialogOpen(true);
+  };
 
+  const handleRemoveConfirm = async () => {
+    if (!labelToRemove) return;
+
+    setIsRemoving(true);
     try {
       const response = await fetch(`/api/admin/users/${userId}/labels`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ labelId }),
+        body: JSON.stringify({ labelId: labelToRemove.id }),
       });
 
       if (!response.ok) {
@@ -116,13 +125,15 @@ export function UserCustomLabelsManager({
         throw new Error(error.error || "Failed to remove label");
       }
 
-      setLabels(prev => prev.filter(ul => ul.label.id !== labelId));
-      
+      setLabels(prev => prev.filter(ul => ul.label.id !== labelToRemove.id));
+
       toast({
         title: "Success",
         description: "Label removed from user",
       });
-      
+
+      setRemoveDialogOpen(false);
+      setLabelToRemove(null);
       onChange?.();
     } catch (error) {
       toast({
@@ -130,6 +141,8 @@ export function UserCustomLabelsManager({
         description: error instanceof Error ? error.message : "Failed to remove label",
         variant: "destructive",
       });
+    } finally {
+      setIsRemoving(false);
     }
   };
 
@@ -200,8 +213,8 @@ export function UserCustomLabelsManager({
               >
                 <CustomLabelBadge label={userLabel.label} />
                 <button
-                  onClick={() => handleRemoveLabel(userLabel.label.id)}
-                  className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                  onClick={() => handleRemoveClick(userLabel.label)}
+                  className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 dark:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs hover:bg-red-600 dark:hover:bg-red-700"
                   data-testid={`remove-label-${userLabel.label.id}`}
                 >
                   <X className="h-2.5 w-2.5" />
@@ -211,6 +224,60 @@ export function UserCustomLabelsManager({
           </div>
         )}
       </CardContent>
+
+      {/* Remove Label Confirmation Dialog */}
+      <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-5 w-5" />
+              Remove Label
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this label from the user? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {labelToRemove && (
+            <div className="flex items-center justify-center p-4 bg-muted/50 dark:bg-muted/30 rounded-lg">
+              <CustomLabelBadge label={labelToRemove} />
+            </div>
+          )}
+
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setRemoveDialogOpen(false);
+                setLabelToRemove(null);
+              }}
+              disabled={isRemoving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleRemoveConfirm}
+              disabled={isRemoving}
+              data-testid="confirm-remove-label"
+            >
+              {isRemoving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  Remove Label
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
