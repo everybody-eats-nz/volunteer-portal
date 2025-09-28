@@ -12,17 +12,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { LOCATIONS } from "@/lib/locations";
-import { UserIcon } from "lucide-react";
+import { UserIcon, EditIcon } from "lucide-react";
 
 type RegularVolunteer = {
   id: string;
@@ -71,12 +71,16 @@ const DAYS = [
   "Sunday",
 ];
 
-export function EditRegularVolunteerForm({
+export function EditRegularVolunteerDialog({
   regular,
   shiftTypes,
+  open,
+  onOpenChange,
 }: {
   regular: RegularVolunteer;
   shiftTypes: ShiftType[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -131,7 +135,7 @@ export function EditRegularVolunteerForm({
       }
 
       toast.success("Regular volunteer updated successfully");
-      router.push("/admin/regulars");
+      onOpenChange(false);
       router.refresh();
     } catch (error) {
       toast.error(
@@ -159,39 +163,36 @@ export function EditRegularVolunteerForm({
       : regular.user.name || regular.user.email;
 
   return (
-    <div className="space-y-6">
-      {/* Volunteer Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Volunteer Information</CardTitle>
-          <CardDescription>
-            Editing regular assignment for this volunteer
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3">
-            <UserIcon className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="font-medium">{volunteerDisplayName}</div>
-              <div className="text-sm text-muted-foreground">
-                {regular.user.email}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <EditIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            Edit Regular Volunteer
+          </DialogTitle>
+          <DialogDescription>
+            Update the regular assignment for{" "}
+            <span className="font-medium">{volunteerDisplayName}</span>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Volunteer Info */}
+          <div className="bg-muted/50 dark:bg-muted/20 p-4 rounded-lg">
+            <div className="flex items-center gap-3">
+              <UserIcon className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <div className="font-medium">{volunteerDisplayName}</div>
+                <div className="text-sm text-muted-foreground">
+                  {regular.user.email}
+                </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Edit Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Regular Assignment Settings</CardTitle>
-          <CardDescription>
-            Update the recurring shift assignment details
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          {/* Edit Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Shift Type */}
               <div className="space-y-2">
                 <Label htmlFor="shiftTypeId">Shift Type *</Label>
@@ -326,11 +327,11 @@ export function EditRegularVolunteerForm({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/admin/regulars")}
+                onClick={() => onOpenChange(false)}
                 disabled={loading}
               >
                 Cancel
@@ -340,8 +341,8 @@ export function EditRegularVolunteerForm({
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -161,7 +161,7 @@ export default async function RegularVolunteersPage() {
       </div>
 
       {/* Regulars Table */}
-      <RegularsTable regulars={regulars} />
+      <RegularsTable regulars={regulars} shiftTypes={shiftTypes} />
       </PageContainer>
     </AdminPageWrapper>
   );

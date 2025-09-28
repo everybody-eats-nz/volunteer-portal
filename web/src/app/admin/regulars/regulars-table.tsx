@@ -41,6 +41,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { EditRegularVolunteerDialog } from "./edit-regular-volunteer-dialog";
 
 type RegularVolunteer = {
   id: string;
@@ -71,10 +72,22 @@ type RegularVolunteer = {
   };
 };
 
-export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
+type ShiftType = {
+  id: string;
+  name: string;
+};
+
+export function RegularsTable({
+  regulars,
+  shiftTypes
+}: {
+  regulars: RegularVolunteer[];
+  shiftTypes: ShiftType[];
+}) {
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [toggleId, setToggleId] = useState<string | null>(null);
+  const [editRegular, setEditRegular] = useState<RegularVolunteer | null>(null);
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
     try {
@@ -263,9 +276,7 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/admin/regulars/${regular.id}/edit`)
-                            }
+                            onClick={() => setEditRegular(regular)}
                           >
                             <EditIcon className="h-4 w-4 mr-2" />
                             Edit
@@ -390,6 +401,20 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Dialog */}
+      {editRegular && (
+        <EditRegularVolunteerDialog
+          regular={editRegular}
+          shiftTypes={shiftTypes}
+          open={!!editRegular}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditRegular(null);
+            }
+          }}
+        />
+      )}
     </>
   );
 }
