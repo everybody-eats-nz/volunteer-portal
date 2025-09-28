@@ -86,7 +86,7 @@ export function DeleteUserDialog({ user, children }: DeleteUserDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
+          <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
             <Trash2 className="h-5 w-5" />
             Delete User
           </DialogTitle>
@@ -96,9 +96,9 @@ export function DeleteUserDialog({ user, children }: DeleteUserDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <Alert className="border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+        <Alert className="border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20">
+          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertDescription className="text-red-800 dark:text-red-300">
             <strong>Warning:</strong> This will permanently delete all user data, including:
             <ul className="mt-2 ml-4 list-disc space-y-1">
               <li>Profile information</li>
@@ -127,16 +127,16 @@ export function DeleteUserDialog({ user, children }: DeleteUserDialogProps) {
           </div>
 
           {error && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
+            <Alert className="border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <AlertDescription className="text-red-800 dark:text-red-300">
                 {error}
               </AlertDescription>
             </Alert>
           )}
         </div>
 
-        <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+        <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end gap-2">
           <Button
             type="button"
             variant="outline"
@@ -151,7 +151,6 @@ export function DeleteUserDialog({ user, children }: DeleteUserDialogProps) {
             variant="destructive"
             onClick={handleDelete}
             disabled={!isConfirmationValid || isDeleting}
-            className="sm:ml-2"
             data-testid="delete-user-confirm-button"
           >
             {isDeleting ? (
