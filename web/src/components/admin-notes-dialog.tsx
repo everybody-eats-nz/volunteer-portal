@@ -89,7 +89,7 @@ export function AdminNotesDialog({
     <Button
       variant="ghost"
       size="sm"
-      className="h-6 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+      className="h-6 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
     >
       <Info className="h-3.5 w-3.5 mr-1" />
       <span className="text-xs">Notes</span>
@@ -104,7 +104,7 @@ export function AdminNotesDialog({
       <DialogContent className="max-w-2xl max-h-[80vh]" data-testid={`admin-notes-dialog-${volunteerId}`}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-orange-600" />
+            <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             Admin Notes for {volunteerName}
           </DialogTitle>
         </DialogHeader>
@@ -142,7 +142,7 @@ export function AdminNotesDialog({
                   {notes.map((note, index) => (
                     <Card 
                       key={note.id} 
-                      className={index === 0 ? "border-orange-200 bg-orange-50/30" : ""}
+                      className={index === 0 ? "border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20" : ""}
                       data-testid={`note-${note.id}`}
                     >
                       <CardContent className="pt-4">
@@ -165,7 +165,7 @@ export function AdminNotesDialog({
                             
                             <div className="flex items-center gap-2">
                               {index === 0 && notes.length > 1 && (
-                                <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                                <Badge variant="outline" className="text-xs text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800">
                                   Latest
                                 </Badge>
                               )}
@@ -194,7 +194,7 @@ export function AdminNotesDialog({
               asChild
               variant="outline"
               size="sm"
-              className="text-blue-600 hover:bg-blue-50 border-blue-200"
+              className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 border-blue-200 dark:border-blue-800"
               data-testid="open-volunteer-profile-button"
             >
               <a href={`/admin/volunteers/${volunteerId}`} target="_blank" rel="noopener noreferrer">
