@@ -24,35 +24,35 @@ interface CustomLabelDialogProps {
 const COLOR_OPTIONS = [
   {
     name: "Purple",
-    value: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
+    value: "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/30",
   },
   {
-    name: "Blue", 
-    value: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
+    name: "Blue",
+    value: "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30",
   },
   {
     name: "Green",
-    value: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+    value: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/30",
   },
   {
     name: "Yellow",
-    value: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+    value: "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950/30",
   },
   {
     name: "Pink",
-    value: "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100",
+    value: "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-950/30",
   },
   {
     name: "Indigo",
-    value: "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100",
+    value: "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/30",
   },
   {
     name: "Teal",
-    value: "bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100",
+    value: "bg-teal-50 dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-950/30",
   },
   {
     name: "Orange",
-    value: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
+    value: "bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/30",
   },
 ];
 
@@ -175,8 +175,8 @@ export function CustomLabelDialog({
                     type="button"
                     onClick={() => setIcon(emoji)}
                     className={`
-                      p-1 text-lg hover:bg-slate-100 rounded
-                      ${icon === emoji ? "bg-slate-200" : ""}
+                      p-1 text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 rounded
+                      ${icon === emoji ? "bg-slate-200 dark:bg-zinc-700" : ""}
                     `}
                     data-testid={`icon-option-${emoji}`}
                   >
@@ -189,7 +189,7 @@ export function CustomLabelDialog({
 
           <div className="space-y-2">
             <Label>Preview</Label>
-            <div className="p-3 bg-slate-50 rounded">
+            <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded">
               <CustomLabelBadge label={previewLabel} />
             </div>
           </div>

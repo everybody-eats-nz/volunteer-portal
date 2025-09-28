@@ -186,8 +186,8 @@ export function UserCustomLabelsManager({
       </CardHeader>
       <CardContent>
         {labels.length === 0 ? (
-          <div className="text-center py-4 text-slate-500">
-            <Tags className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+          <div className="text-center py-4 text-slate-500 dark:text-slate-400">
+            <Tags className="h-8 w-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
             <p className="text-sm">No custom labels assigned</p>
           </div>
         ) : (
