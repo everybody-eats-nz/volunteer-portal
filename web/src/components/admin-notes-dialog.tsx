@@ -142,7 +142,7 @@ export function AdminNotesDialog({
                   {notes.map((note, index) => (
                     <Card 
                       key={note.id} 
-                      className={index === 0 ? "border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20" : ""}
+                      className={index === 0 ? "border-orange-200 dark:border-orange-800/50 bg-orange-50/30 dark:bg-orange-500/10" : ""}
                       data-testid={`note-${note.id}`}
                     >
                       <CardContent className="pt-4">

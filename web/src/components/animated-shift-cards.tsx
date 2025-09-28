@@ -490,7 +490,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             return (
                               <div
                                 key={signup.id}
-                                className="flex items-center gap-3 p-2 bg-muted/50 dark:bg-slate-700/30 rounded-lg min-w-0"
+                                className="flex items-center gap-3 p-2 bg-muted/50 dark:bg-slate-800/40 rounded-lg min-w-0"
                               >
                                 <Link
                                   href={`/admin/volunteers/${signup.user.id}`}
@@ -577,7 +577,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                     })()}
                                   </div>
                                   {signup.note && (
-                                    <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted/50 dark:bg-muted/20 rounded-md">
+                                    <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted/50 dark:bg-slate-800/30 rounded-md">
                                       <span className="font-medium">Note: </span>
                                       {signup.note}
                                     </div>
