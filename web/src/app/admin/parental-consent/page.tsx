@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { ParentalConsentTable } from "./parental-consent-table";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Admin page for managing parental consent approvals
@@ -21,6 +22,43 @@ export default async function AdminParentalConsentPage() {
   if (role !== "ADMIN") {
     redirect("/dashboard");
   }
+
+  // Calculate age cutoff (18 years ago from today)
+  const eighteenYearsAgo = new Date();
+  eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+
+  // Get statistics for volunteers under 18
+  const [totalUnder18, pendingApproval, approved] = await Promise.all([
+    // Total volunteers under 18
+    prisma.user.count({
+      where: {
+        role: "VOLUNTEER",
+        dateOfBirth: {
+          gt: eighteenYearsAgo, // Born after 18 years ago (under 18)
+        },
+      },
+    }),
+    // Pending approval (under 18 and consent not received)
+    prisma.user.count({
+      where: {
+        role: "VOLUNTEER",
+        dateOfBirth: {
+          gt: eighteenYearsAgo,
+        },
+        parentalConsentReceived: false,
+      },
+    }),
+    // Approved (under 18 and consent received)
+    prisma.user.count({
+      where: {
+        role: "VOLUNTEER",
+        dateOfBirth: {
+          gt: eighteenYearsAgo,
+        },
+        parentalConsentReceived: true,
+      },
+    }),
+  ]);
 
   return (
     <PageContainer>
@@ -39,7 +77,7 @@ export default async function AdminParentalConsentPage() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-2xl font-bold text-orange-600">
-                -
+                {pendingApproval}
               </div>
             </div>
             
@@ -51,7 +89,7 @@ export default async function AdminParentalConsentPage() {
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-2xl font-bold text-green-600">
-                -
+                {approved}
               </div>
             </div>
             
@@ -63,7 +101,7 @@ export default async function AdminParentalConsentPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-2xl font-bold">
-                -
+                {totalUnder18}
               </div>
             </div>
           </div>
