@@ -16,27 +16,26 @@ function addDarkModeSupport(originalColor: string): string {
     return originalColor;
   }
 
-  // Parse and convert color classes dynamically
-  return originalColor.replace(/(\w+)-(\w+)-(\d+)/g, (match, prefix, color, shade) => {
+  // Enhanced regex to handle more patterns including hover states
+  let result = originalColor;
+
+  // Handle regular color patterns: bg-{color}-{shade}, text-{color}-{shade}, border-{color}-{shade}
+  result = result.replace(/(\w+)-(\w+)-(\d+)/g, (match, prefix, color, shade) => {
     switch (prefix) {
       case 'bg':
-        // Convert bg-{color}-50 to bg-{color}-50 dark:bg-{color}-950/20
         if (shade === '50') {
           return `${match} dark:bg-${color}-950/20`;
         }
-        // Convert bg-{color}-100 to bg-{color}-100 dark:bg-{color}-950/30 (hover states)
         if (shade === '100') {
           return `${match} dark:bg-${color}-950/30`;
         }
         break;
       case 'text':
-        // Convert text-{color}-700 to text-{color}-700 dark:text-{color}-400
         if (shade === '700') {
           return `${match} dark:text-${color}-400`;
         }
         break;
       case 'border':
-        // Convert border-{color}-200 to border-{color}-200 dark:border-{color}-800
         if (shade === '200') {
           return `${match} dark:border-${color}-800`;
         }
@@ -44,6 +43,37 @@ function addDarkModeSupport(originalColor: string): string {
     }
     return match;
   });
+
+  // Handle hover states: hover:bg-{color}-{shade}
+  result = result.replace(/hover:bg-(\w+)-(\d+)/g, (match, color, shade) => {
+    if (shade === '100') {
+      return `${match} dark:hover:bg-${color}-950/30`;
+    }
+    return match;
+  });
+
+  // Handle focus states: focus:bg-{color}-{shade}
+  result = result.replace(/focus:bg-(\w+)-(\d+)/g, (match, color, shade) => {
+    if (shade === '100') {
+      return `${match} dark:focus:bg-${color}-950/30`;
+    }
+    return match;
+  });
+
+  // Fallback: if no dark mode classes were added and we have common patterns, add basic dark mode support
+  if (!result.includes('dark:') && result.includes('bg-') && result.includes('text-') && result.includes('border-')) {
+    // Extract the primary color from the first color class we find
+    const colorMatch = result.match(/(?:bg|text|border)-(\w+)-\d+/);
+    if (colorMatch) {
+      const primaryColor = colorMatch[1];
+      // Add basic dark mode classes if none were added
+      if (!result.includes(`dark:bg-${primaryColor}`)) {
+        result += ` dark:bg-${primaryColor}-950/20 dark:text-${primaryColor}-400 dark:border-${primaryColor}-800 dark:hover:bg-${primaryColor}-950/30`;
+      }
+    }
+  }
+
+  return result;
 }
 
 export function CustomLabelBadge({
