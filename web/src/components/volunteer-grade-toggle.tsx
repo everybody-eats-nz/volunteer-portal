@@ -175,7 +175,7 @@ export function VolunteerGradeToggle({
 
         <div className="flex flex-col gap-4 py-4">
           <div
-            className="flex items-center justify-between p-4 bg-muted/50 dark:bg-muted/30 rounded-lg"
+            className="flex items-center p-4 bg-muted/50 dark:bg-muted/30 rounded-lg"
             data-testid="current-grade-display"
           >
             <div className="flex items-center gap-3">
@@ -225,7 +225,7 @@ export function VolunteerGradeToggle({
 
           {selectedGrade !== currentGrade && (
             <div
-              className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg"
+              className="flex items-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg"
               data-testid="new-grade-display"
             >
               <div className="flex items-center gap-3">
