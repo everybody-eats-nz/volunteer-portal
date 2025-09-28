@@ -60,20 +60,51 @@ function addDarkModeSupport(originalColor: string): string {
     return match;
   });
 
-  // Fallback: if no dark mode classes were added and we have common patterns, add basic dark mode support
-  if (!result.includes('dark:') && result.includes('bg-') && result.includes('text-') && result.includes('border-')) {
-    // Extract the primary color from the first color class we find
-    const colorMatch = result.match(/(?:bg|text|border)-(\w+)-\d+/);
-    if (colorMatch) {
-      const primaryColor = colorMatch[1];
-      // Add basic dark mode classes if none were added
-      if (!result.includes(`dark:bg-${primaryColor}`)) {
-        result += ` dark:bg-${primaryColor}-950/20 dark:text-${primaryColor}-400 dark:border-${primaryColor}-800 dark:hover:bg-${primaryColor}-950/30`;
+  // Enhanced fallback: if no dark mode classes were added, try to parse and add them
+  if (!result.includes('dark:')) {
+    // Extract all color information from the string
+    const bgMatch = result.match(/bg-(\w+)-(\d+)/);
+    const textMatch = result.match(/text-(\w+)-(\d+)/);
+    const borderMatch = result.match(/border-(\w+)-(\d+)/);
+    const hoverMatch = result.match(/hover:bg-(\w+)-(\d+)/);
+
+    let darkModeClasses = [];
+
+    if (bgMatch) {
+      const [, color, shade] = bgMatch;
+      if (shade === '50') {
+        darkModeClasses.push(`dark:bg-${color}-950/20`);
       }
+    }
+
+    if (textMatch) {
+      const [, color, shade] = textMatch;
+      if (shade === '700') {
+        darkModeClasses.push(`dark:text-${color}-400`);
+      }
+    }
+
+    if (borderMatch) {
+      const [, color, shade] = borderMatch;
+      if (shade === '200') {
+        darkModeClasses.push(`dark:border-${color}-800`);
+      }
+    }
+
+    if (hoverMatch) {
+      const [, color, shade] = hoverMatch;
+      if (shade === '100') {
+        darkModeClasses.push(`dark:hover:bg-${color}-950/30`);
+      }
+    }
+
+    // If we found any matches, add the dark mode classes
+    if (darkModeClasses.length > 0) {
+      result = `${result} ${darkModeClasses.join(' ')}`;
     }
   }
 
-  return result;
+  return result.trim();
 }
 
 export function CustomLabelBadge({
