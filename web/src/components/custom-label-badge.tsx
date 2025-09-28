@@ -74,49 +74,9 @@ function addDarkModeSupport(originalColor: string): string {
     return match;
   });
 
-  // Enhanced fallback: if no dark mode classes were added, try to parse and add them
-  if (!result.includes('dark:')) {
-    // Extract all color information from the string
-    const bgMatch = result.match(/bg-(\w+)-(\d+)/);
-    const textMatch = result.match(/text-(\w+)-(\d+)/);
-    const borderMatch = result.match(/border-(\w+)-(\d+)/);
-    const hoverMatch = result.match(/hover:bg-(\w+)-(\d+)/);
-
-    let darkModeClasses = [];
-
-    if (bgMatch) {
-      const [, color, shade] = bgMatch;
-      if (shade === '50') {
-        darkModeClasses.push(`dark:bg-${color}-950/20`);
-      }
-    }
-
-    if (textMatch) {
-      const [, color, shade] = textMatch;
-      if (shade === '700') {
-        darkModeClasses.push(`dark:text-${color}-400`);
-      }
-    }
-
-    if (borderMatch) {
-      const [, color, shade] = borderMatch;
-      if (shade === '200') {
-        darkModeClasses.push(`dark:border-${color}-800`);
-      }
-    }
-
-    if (hoverMatch) {
-      const [, color, shade] = hoverMatch;
-      if (shade === '100') {
-        darkModeClasses.push(`dark:hover:bg-${color}-950/30`);
-      }
-    }
-
-    // If we found any matches, add the dark mode classes
-    if (darkModeClasses.length > 0) {
-      result = `${result} ${darkModeClasses.join(' ')}`;
-    }
-  }
+  // Remove duplicate classes
+  const classes = result.split(' ').filter((cls, index, arr) => arr.indexOf(cls) === index);
+  result = classes.join(' ');
 
   const finalResult = result.trim();
 

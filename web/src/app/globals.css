@@ -3,6 +3,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Custom label color safelist for dynamic generation */
+@layer utilities {
+  /* Ensure all possible custom label dark mode colors are included */
+  .custom-label-colors {
+    /* Purple variants */
+    @apply dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-800 dark:hover:bg-purple-950/30;
+    /* Blue variants */
+    @apply dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950/30;
+    /* Emerald variants */
+    @apply dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/30;
+    /* Amber variants */
+    @apply dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-950/30;
+    /* Rose variants */
+    @apply dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/30;
+    /* Indigo variants */
+    @apply dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-950/30;
+    /* Teal variants */
+    @apply dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-800 dark:hover:bg-teal-950/30;
+    /* Orange variants */
+    @apply dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-950/30;
+  }
+}
+
 :root {
   /* Everybody Eats brand-inspired palette */
   --ee-bg: #fffdf7; /* warm off-white */
