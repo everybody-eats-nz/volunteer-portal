@@ -1,3 +1,9 @@
+## [0.48.2] - 2025-09-28
+
+### Changes
+- fix: resolve input field issues in profile edit form e2e test ([#170](https://github.com/everybody-eats-nz/volunteer-portal/pull/170)) by @malinmalliyawadu
+
+
 ## [0.48.1] - 2025-09-24
 
 ### Changes
