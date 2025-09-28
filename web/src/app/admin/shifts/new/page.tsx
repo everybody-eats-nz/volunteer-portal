@@ -640,27 +640,6 @@ export default async function NewShiftPage() {
                     createShiftTypeAction={createShiftType}
                   />
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="order-2 sm:order-1"
-                      data-testid="cancel-shift-creation-button"
-                    >
-                      <Link href="/admin/shifts">Cancel</Link>
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="order-1 sm:order-2 bg-primary hover:bg-primary/90"
-                      data-testid="create-shift-button"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Create shift
-                    </Button>
-                  </div>
                 </form>
               </CardContent>
             </Card>
