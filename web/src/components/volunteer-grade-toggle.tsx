@@ -199,7 +199,17 @@ export function VolunteerGradeToggle({
               onValueChange={(value: VolunteerGrade) => setSelectedGrade(value)}
             >
               <SelectTrigger data-testid="grade-select">
-                <SelectValue />
+                <SelectValue>
+                  <div className="flex items-center gap-2 text-left">
+                    <span>{getVolunteerGradeInfo(selectedGrade).icon}</span>
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">{getVolunteerGradeInfo(selectedGrade).label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {getVolunteerGradeInfo(selectedGrade).description}
+                      </span>
+                    </div>
+                  </div>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {VOLUNTEER_GRADE_OPTIONS.map((option) => (
