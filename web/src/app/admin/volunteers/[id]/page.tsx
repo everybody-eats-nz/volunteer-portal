@@ -714,7 +714,7 @@ export default async function AdminVolunteerPage({
                         <Badge
                           key={day}
                           variant="outline"
-                          className="border-primary/20 text-primary dark:text-primary bg-primary/5 dark:bg-primary/10"
+                          className="border-blue-500/20 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20"
                         >
                           {dayLabels[day] || day}
                         </Badge>
