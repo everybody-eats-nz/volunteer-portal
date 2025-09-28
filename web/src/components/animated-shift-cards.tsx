@@ -350,7 +350,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
               >
                 <Card
                   data-testid={`shift-card-${shift.id}`}
-                  className={`border-2 ${shiftTheme.borderColor} w-full relative overflow-hidden shadow-md`}
+                  className={`border-2 ${shiftTheme.borderColor} w-full relative overflow-hidden shadow-md dark:bg-slate-800/50`}
                 >
                   {/* Background gradient */}
                   <div
