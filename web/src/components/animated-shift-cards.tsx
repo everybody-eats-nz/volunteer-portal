@@ -31,12 +31,10 @@ const createStaggerItemVariants = (): Variants => ({
   hidden: {
     opacity: 0,
     y: 30,
-    scale: 0.95,
   },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
       duration: 0.4,
       ease: [0.4, 0, 0.2, 1],
@@ -45,7 +43,6 @@ const createStaggerItemVariants = (): Variants => ({
   exit: {
     opacity: 0,
     y: -10, // Only y-axis movement
-    scale: 0.9,
     transition: {
       duration: 0.3, // Faster exit for group cohesion
       ease: [0.4, 0, 1, 1],
@@ -493,7 +490,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             return (
                               <div
                                 key={signup.id}
-                                className="flex items-center gap-3 p-2 bg-muted/50 dark:bg-muted/20 rounded-lg min-w-0"
+                                className="flex items-center gap-3 p-2 bg-muted/50 dark:bg-slate-700/30 rounded-lg min-w-0"
                               >
                                 <Link
                                   href={`/admin/volunteers/${signup.user.id}`}
@@ -501,7 +498,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                   data-testid={`volunteer-avatar-link-${signup.id}`}
                                 >
                                   <Avatar
-                                    className="h-9 w-9 border-2 border-white shadow-md hover:shadow-lg transition-shadow"
+                                    className="h-9 w-9 border-2 border-white dark:border-gray-600 shadow-md hover:shadow-lg transition-shadow"
                                     data-testid={`volunteer-avatar-${signup.id}`}
                                   >
                                     <AvatarImage
@@ -530,7 +527,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                   <div className="flex items-center gap-1 mb-1">
                                     <Link
                                       href={`/admin/volunteers/${signup.user.id}`}
-                                      className="text-sm font-medium text-slate-900 truncate hover:text-blue-600"
+                                      className="text-sm font-medium text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-400"
                                       data-testid={`volunteer-name-link-${signup.id}`}
                                     >
                                       {signup.user.name ||
