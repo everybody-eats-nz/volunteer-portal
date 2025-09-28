@@ -47,7 +47,7 @@ export function ShiftCreationClientForm({
       {/* Shift Type Section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium text-gray-900 dark:text-gray-100">
+          <h3 className="font-medium">
             Shift Type
           </h3>
           <Dialog>
