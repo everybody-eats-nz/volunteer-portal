@@ -187,31 +187,25 @@ test.describe("Profile Edit Page", () => {
       await expect(dobField).toBeVisible();
     });
 
-    test.skip("should allow editing personal information fields", async ({ page }) => {
+    test("should allow editing personal information fields", async ({ page }) => {
       // Navigate to personal information section
       const personalTab = page.getByTestId("personal-tab-button");
       await personalTab.click();
       await page.waitForTimeout(500);
 
-      // Fill in first name with keyboard clearing
+      // Fill in first name using Playwright's fill method (properly clears and fills)
       const firstNameField = page.getByRole("textbox", { name: /first name/i });
-      await firstNameField.click();
-      await page.keyboard.press("Control+a"); // Select all
-      await page.keyboard.type("Test");
+      await firstNameField.fill("Test");
       await expect(firstNameField).toHaveValue("Test");
 
-      // Fill in last name with keyboard clearing
+      // Fill in last name
       const lastNameField = page.getByRole("textbox", { name: /last name/i });
-      await lastNameField.click();
-      await page.keyboard.press("Control+a"); // Select all
-      await page.keyboard.type("User");
+      await lastNameField.fill("User");
       await expect(lastNameField).toHaveValue("User");
 
-      // Fill in phone number with keyboard clearing
-      const phoneField = page.getByRole("textbox", { name: /phone/i });
-      await phoneField.click();
-      await page.keyboard.press("Control+a"); // Select all
-      await page.keyboard.type("+64 21 123 4567");
+      // Fill in phone number
+      const phoneField = page.getByRole("textbox", { name: /mobile number/i });
+      await phoneField.fill("+64 21 123 4567");
       await expect(phoneField).toHaveValue("+64 21 123 4567");
     });
   });
