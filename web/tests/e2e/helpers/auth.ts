@@ -17,6 +17,7 @@ export async function loginAsAdmin(page: Page) {
       timeout: 15000,
     });
     await page.waitForLoadState("load");
+    await page.waitForTimeout(1000);
   } catch (error) {
     console.log("Error during admin login:", error);
     throw error;
@@ -56,6 +57,7 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
       timeout: 15000,
     });
     await page.waitForLoadState("load");
+    await page.waitForTimeout(1000);
   } catch (error) {
     console.log("Error during volunteer login:", error);
     throw error;

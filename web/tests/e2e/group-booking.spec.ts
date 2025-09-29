@@ -9,15 +9,6 @@ test.describe("Group Booking Feature", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Skip test if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Volunteer login failed - skipping group booking test");
-    }
-
-    // Wait for page to fully load
-    await page.waitForTimeout(2000);
-
     // Look for "Book as Group" button (it should exist if shifts are available)
     const bookAsGroupButton = page.getByRole("button", {
       name: /book as group/i,

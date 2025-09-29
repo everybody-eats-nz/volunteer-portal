@@ -4,16 +4,6 @@ import { loginAsAdmin } from "./helpers/auth";
 test.describe("Auto-Accept Rules Admin Interface", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-
-    // Navigate to admin dashboard first
-    await page.goto("/admin");
-    await page.waitForLoadState("load");
-
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Admin login failed - skipping auto-accept rules tests");
-    }
   });
 
   test("should display auto-accept rules page with proper layout", async ({

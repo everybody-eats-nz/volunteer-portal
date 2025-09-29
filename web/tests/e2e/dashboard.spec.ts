@@ -4,14 +4,23 @@ import type { Page } from "@playwright/test";
 // Helper function to wait for dashboard content to load (including Suspense boundaries)
 async function waitForDashboardContent(page: Page) {
   // Wait for the welcome heading to appear (renders immediately)
-  await page.getByRole("heading", { name: /welcome back/i }).waitFor({ state: "visible" });
-  
+  await page
+    .getByRole("heading", { name: /welcome back/i })
+    .waitFor({ state: "visible" });
+
   // Wait for at least some stats to load (Suspense content) - be more flexible with what we wait for
   try {
-    await page.getByText(/shifts completed|hours contributed|confirmed shifts|this month/i).first().waitFor({ state: "visible", timeout: 8000 });
+    await page
+      .getByText(
+        /shifts completed|hours contributed|confirmed shifts|this month/i
+      )
+      .first()
+      .waitFor({ state: "visible", timeout: 8000 });
   } catch (error) {
     // If stats don't load, at least wait for Quick Actions which always renders
-    await page.getByText("Quick Actions").waitFor({ state: "visible", timeout: 5000 });
+    await page
+      .getByText("Quick Actions")
+      .waitFor({ state: "visible", timeout: 5000 });
   }
 }
 
@@ -52,16 +61,6 @@ test.describe("Dashboard Page", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
 
-    // Navigate to dashboard and wait for content to load (including Suspense)
-    await page.goto("/dashboard");
-    await page.waitForLoadState("load");
-    
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Login failed - skipping dashboard tests");
-    }
-    
     // Wait for dashboard content to stream in
     await waitForDashboardContent(page);
   });

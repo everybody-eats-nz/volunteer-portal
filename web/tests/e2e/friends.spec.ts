@@ -4,12 +4,6 @@ import { loginAsVolunteer, loginAsAdmin } from "./helpers/auth";
 test.describe("Friends System", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
-
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Login failed - skipping friends tests");
-    }
   });
 
   test("should navigate to friends page when logged in as volunteer", async ({
@@ -196,12 +190,6 @@ test.describe("Friends System", () => {
   }) => {
     // Login as admin
     await loginAsAdmin(page);
-
-    // Skip test if login failed
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Admin login failed - skipping test");
-    }
 
     // Check that Friends link is not in navigation
     await expect(page.locator('a[href="/friends"]')).not.toBeVisible();

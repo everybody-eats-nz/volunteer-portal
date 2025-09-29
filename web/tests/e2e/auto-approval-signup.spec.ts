@@ -4,12 +4,6 @@ import { loginAsVolunteer } from "./helpers/auth";
 test.describe("Auto-Approval Signup Flow", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
-
-    // Skip tests if login failed
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Volunteer login failed - skipping signup tests");
-    }
   });
 
   test("should display shift signup dialog with proper structure", async ({
