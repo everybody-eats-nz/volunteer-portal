@@ -33,9 +33,10 @@ test.describe("Regular Volunteers System", () => {
 
     test("should redirect non-admin users away from admin regular volunteers page", async ({
       page,
+      context,
     }) => {
       // Logout and login as volunteer
-      await page.goto("/api/auth/signout");
+      await context.clearCookies();
       await loginAsVolunteer(page);
 
       // Try to access admin regular volunteers page
@@ -677,8 +678,9 @@ test.describe("Regular Volunteers System", () => {
 
     test("should display volunteer regular settings responsively on mobile", async ({
       page,
+      context,
     }) => {
-      await page.goto("/api/auth/signout");
+      await context.clearCookies();
       await loginAsVolunteer(page);
 
       // Set mobile viewport
