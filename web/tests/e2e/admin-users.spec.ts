@@ -1,45 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to wait for page to load completely
-async function waitForPageLoad(page: Page) {
-  await page.waitForLoadState("load");
-  await page.waitForTimeout(500); // Small buffer for animations
-}
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-
-  const adminButton = page.getByTestId("quick-login-admin-button");
-  await adminButton.click();
-
-  // Wait for navigation away from login page
-  await page.waitForURL(
-    (url) => {
-      return url.pathname !== "/login";
-    },
-    { timeout: 10000 }
-  );
-}
-
-// Helper function to login as volunteer (for permission tests)
-async function loginAsVolunteer(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-
-  const volunteerButton = page.getByTestId("quick-login-volunteer-button");
-  await volunteerButton.click();
-
-  // Wait for navigation away from login page
-  await page.waitForURL(
-    (url) => {
-      return url.pathname !== "/login";
-    },
-    { timeout: 10000 }
-  );
-}
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Admin Users Management", () => {
   test.beforeEach(async ({ page }) => {
@@ -51,7 +11,6 @@ test.describe("Admin Users Management", () => {
       page,
     }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Verify we're on the admin users page
       const adminUsersPage = page.getByTestId("admin-users-page");
@@ -67,11 +26,13 @@ test.describe("Admin Users Management", () => {
     }) => {
       // Logout and login as volunteer
       await page.goto("/api/auth/signout");
+      await page.waitForURL((url) => url.pathname === "/login", {
+        timeout: 10000,
+      });
       await loginAsVolunteer(page);
 
       // Try to access admin users page
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Should be redirected away from admin page
       const currentUrl = page.url();
@@ -91,7 +52,6 @@ test.describe("Admin Users Management", () => {
 
       // Try to access admin users page
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Check final URL - should be redirected to login or access denied
       const currentUrl = page.url();
@@ -114,7 +74,6 @@ test.describe("Admin Users Management", () => {
   test.describe("Page Structure and Statistics", () => {
     test("should display user statistics correctly", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Check that stats grid is visible
       const statsGrid = page.getByTestId("user-stats-grid");
@@ -158,7 +117,6 @@ test.describe("Admin Users Management", () => {
       page,
     }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Check filters section
       const filtersSection = page.getByTestId("main-role-filter-buttons");
@@ -178,7 +136,6 @@ test.describe("Admin Users Management", () => {
       page,
     }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Check users table
       const usersTable = page.getByTestId("users-table");
@@ -191,7 +148,6 @@ test.describe("Admin Users Management", () => {
       page,
     }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Check if users list exists
       const usersList = page.getByTestId("users-list");
@@ -256,7 +212,6 @@ test.describe("Admin Users Management", () => {
     test("should handle empty user list state", async ({ page }) => {
       // This test simulates a scenario where no users match filters
       await page.goto("/admin/users?search=nonexistentuserxyz123");
-      await waitForPageLoad(page);
 
       // Should show no users message
       const noUsersMessage = page.getByTestId("no-users-message");
@@ -277,7 +232,6 @@ test.describe("Admin Users Management", () => {
   test.describe("User Invitation", () => {
     test("should open invite user dialog", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -323,7 +277,6 @@ test.describe("Admin Users Management", () => {
 
     test("should validate required fields in invite form", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -345,7 +298,6 @@ test.describe("Admin Users Management", () => {
 
     test("should fill out invite form correctly", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -380,7 +332,6 @@ test.describe("Admin Users Management", () => {
       // Skip this test as it would actually send an invitation email
       // In a real scenario, this would test the actual invitation functionality
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // This test would:
       // 1. Open invite dialog
@@ -395,7 +346,6 @@ test.describe("Admin Users Management", () => {
   test.describe("User Navigation and Details", () => {
     test("should navigate to user details page", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const usersList = page.getByTestId("users-list");
 
@@ -439,7 +389,6 @@ test.describe("Admin Users Management", () => {
       page,
     }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const usersList = page.getByTestId("users-list");
 
@@ -476,7 +425,6 @@ test.describe("Admin Users Management", () => {
 
     test("should open delete confirmation dialog", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const usersList = page.getByTestId("users-list");
 
@@ -507,15 +455,21 @@ test.describe("Admin Users Management", () => {
 
             // Check dialog content
             await expect(deleteDialog).toContainText("permanently delete");
-            await expect(deleteDialog).toContainText("This action cannot be undone");
+            await expect(deleteDialog).toContainText(
+              "This action cannot be undone"
+            );
             await expect(deleteDialog).toContainText("Warning:");
             await expect(deleteDialog).toContainText("Profile information");
-            await expect(deleteDialog).toContainText("Shift signups and history");
+            await expect(deleteDialog).toContainText(
+              "Shift signups and history"
+            );
 
             // Check form elements
             const emailInput = page.getByTestId("delete-user-email-input");
             const cancelButton = page.getByTestId("delete-user-cancel-button");
-            const confirmButton = page.getByTestId("delete-user-confirm-button");
+            const confirmButton = page.getByTestId(
+              "delete-user-confirm-button"
+            );
 
             await expect(emailInput).toBeVisible();
             await expect(cancelButton).toBeVisible();
@@ -534,7 +488,6 @@ test.describe("Admin Users Management", () => {
 
     test("should validate email confirmation requirement", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const usersList = page.getByTestId("users-list");
 
@@ -566,7 +519,9 @@ test.describe("Admin Users Management", () => {
             await expect(deleteDialog).toBeVisible();
 
             const emailInput = page.getByTestId("delete-user-email-input");
-            const confirmButton = page.getByTestId("delete-user-confirm-button");
+            const confirmButton = page.getByTestId(
+              "delete-user-confirm-button"
+            );
 
             // Test with wrong email
             await emailInput.fill("wrong@email.com");
@@ -589,7 +544,6 @@ test.describe("Admin Users Management", () => {
 
     test("should handle delete API errors gracefully", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       const usersList = page.getByTestId("users-list");
 
@@ -625,7 +579,9 @@ test.describe("Admin Users Management", () => {
               // Open delete dialog
               const actionsButton = page.getByTestId(`user-actions-${userId}`);
               await actionsButton.click();
-              const deleteUserOption = page.getByTestId(`delete-user-${userId}`);
+              const deleteUserOption = page.getByTestId(
+                `delete-user-${userId}`
+              );
               await deleteUserOption.click();
 
               const deleteDialog = page.locator('[role="dialog"]').filter({
@@ -635,7 +591,9 @@ test.describe("Admin Users Management", () => {
 
               // Fill in correct email and confirm
               const emailInput = page.getByTestId("delete-user-email-input");
-              const confirmButton = page.getByTestId("delete-user-confirm-button");
+              const confirmButton = page.getByTestId(
+                "delete-user-confirm-button"
+              );
 
               await emailInput.fill(emailText);
               await confirmButton.click();
@@ -669,14 +627,12 @@ test.describe("Admin Users Management", () => {
       // 8. Verify success message (if any)
 
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // Implementation would go here for a proper test environment
     });
 
     test("should prevent self-deletion", async ({ page }) => {
       await page.goto("/admin/users");
-      await waitForPageLoad(page);
 
       // This test would need to identify the current admin user
       // and verify they cannot delete themselves
@@ -702,9 +658,6 @@ test.describe("Admin Users Management", () => {
       });
 
       await page.goto("/admin/users");
-
-      // Page should eventually load
-      await waitForPageLoad(page);
 
       const adminUsersPage = page.getByTestId("admin-users-page");
       await expect(adminUsersPage).toBeVisible();

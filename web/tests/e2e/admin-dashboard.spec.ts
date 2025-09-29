@@ -1,57 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  try {
-    await page.goto("/login");
-
-    // Wait for the login page to load
-    await page.waitForLoadState("load");
-
-    // Wait for and click the admin login button using the correct test ID
-    const adminLoginButton = page.getByTestId("quick-login-admin-button");
-    await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await adminLoginButton.click();
-
-    // Wait for navigation away from login page
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
-
-    // Wait for page to be ready
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during admin login:", error);
-    throw error; // Re-throw to fail the test if login fails
-  }
-}
-
-// Helper function to login as volunteer (for testing unauthorized access)
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    // Wait for and click the volunteer login button using the correct test ID
-    const volunteerLoginButton = page.getByTestId(
-      "quick-login-volunteer-button"
-    );
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await volunteerLoginButton.click();
-
-    // Wait for navigation away from login page
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
-
-    // Wait for page to be ready
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during volunteer login:", error);
-    throw error; // Re-throw to fail the test if login fails
-  }
-}
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Admin Dashboard Page", () => {
   test.describe("Admin Authentication and Access", () => {

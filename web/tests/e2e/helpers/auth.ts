@@ -37,10 +37,10 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
       // Use credentials form for custom email
       // Clear the pre-filled email and enter custom email
       await page.getByLabel("Email address").fill(customEmail);
-      
+
       // Fill in password (test users have password "Test123456")
       await page.getByLabel("Password").fill("Test123456");
-      
+
       // Click login button
       await page.getByTestId("login-submit-button").click();
     } else {

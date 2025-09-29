@@ -1,55 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to login as volunteer
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("domcontentloaded");
-
-    const volunteerLoginButton = page.getByTestId(
-      "quick-login-volunteer-button"
-    );
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await volunteerLoginButton.click();
-
-    // Wait for navigation to complete (login redirects to dashboard)
-    await page.waitForURL("/dashboard", { timeout: 20000 });
-    await page.waitForLoadState("domcontentloaded");
-
-    // Wait for dashboard to be visible to ensure login completed
-    await page.waitForSelector('[data-testid="dashboard-page"]', {
-      timeout: 10000,
-    });
-  } catch (error) {
-    console.log("Error during volunteer login:", error);
-    throw error;
-  }
-}
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("domcontentloaded");
-
-    const adminLoginButton = page.getByTestId("quick-login-admin-button");
-    await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await adminLoginButton.click();
-
-    // Wait for navigation to complete (login redirects to dashboard)
-    await page.waitForURL("/dashboard", { timeout: 20000 });
-    await page.waitForLoadState("domcontentloaded");
-
-    // Wait for admin dashboard to be visible to ensure login completed
-    await page.waitForSelector('[data-testid="dashboard-page"]', {
-      timeout: 10000,
-    });
-  } catch (error) {
-    console.log("Error during admin login:", error);
-    throw error;
-  }
-}
+import { loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Auto-Approval Signup Flow", () => {
   test.beforeEach(async ({ page }) => {
@@ -118,11 +68,12 @@ test.describe("Auto-Approval Signup Flow", () => {
 
     // Look for shift cards in the details page
     const firstShiftCard = page.locator('[data-testid^="shift-card-"]').first();
-    
+
     // Try to find signup button
-    const signupButton = firstShiftCard.locator('button:has-text("Sign Up")').or(
-      firstShiftCard.locator('button:has-text("✨ Sign Up Now")')
-    ).first();
+    const signupButton = firstShiftCard
+      .locator('button:has-text("Sign Up")')
+      .or(firstShiftCard.locator('button:has-text("✨ Sign Up Now")'))
+      .first();
 
     if (await signupButton.isVisible()) {
       await signupButton.click();
@@ -160,11 +111,12 @@ test.describe("Auto-Approval Signup Flow", () => {
 
     // Look for shift cards in the details page
     const firstShiftCard = page.locator('[data-testid^="shift-card-"]').first();
-    
+
     // Try to find signup button
-    const signupButton = firstShiftCard.locator('button:has-text("Sign Up")').or(
-      firstShiftCard.locator('button:has-text("✨ Sign Up Now")')
-    ).first();
+    const signupButton = firstShiftCard
+      .locator('button:has-text("Sign Up")')
+      .or(firstShiftCard.locator('button:has-text("✨ Sign Up Now")'))
+      .first();
 
     if (await signupButton.isVisible()) {
       await signupButton.click();
@@ -221,11 +173,12 @@ test.describe("Auto-Approval Signup Flow", () => {
 
     // Look for shift cards in the details page
     const firstShiftCard = page.locator('[data-testid^="shift-card-"]').first();
-    
+
     // Try to find signup button
-    const signupButton = firstShiftCard.locator('button:has-text("Sign Up")').or(
-      firstShiftCard.locator('button:has-text("✨ Sign Up Now")')
-    ).first();
+    const signupButton = firstShiftCard
+      .locator('button:has-text("Sign Up")')
+      .or(firstShiftCard.locator('button:has-text("✨ Sign Up Now")'))
+      .first();
 
     if (await signupButton.isVisible()) {
       await signupButton.click();
@@ -309,12 +262,13 @@ test.describe("Auto-Approval Signup Flow", () => {
 
     // Look for shift cards in the details page
     const firstShiftCard = page.locator('[data-testid^="shift-card-"]').first();
-    
+
     // Try to find signup button
-    const signupButton = firstShiftCard.locator('button:has-text("Sign Up")').or(
-      firstShiftCard.locator('button:has-text("✨ Sign Up Now")')
-    ).first();
-    
+    const signupButton = firstShiftCard
+      .locator('button:has-text("Sign Up")')
+      .or(firstShiftCard.locator('button:has-text("✨ Sign Up Now")'))
+      .first();
+
     if (await signupButton.isVisible()) {
       await signupButton.click();
 
@@ -378,11 +332,12 @@ test.describe("Auto-Approval API Integration", () => {
 
     // Look for shift cards in the details page
     const firstShiftCard = page.locator('[data-testid^="shift-card-"]').first();
-    
+
     // Try to find signup button
-    const signupButton = firstShiftCard.locator('button:has-text("Sign Up")').or(
-      firstShiftCard.locator('button:has-text("✨ Sign Up Now")')
-    ).first();
+    const signupButton = firstShiftCard
+      .locator('button:has-text("Sign Up")')
+      .or(firstShiftCard.locator('button:has-text("✨ Sign Up Now")'))
+      .first();
 
     if (await signupButton.isVisible()) {
       await signupButton.click();

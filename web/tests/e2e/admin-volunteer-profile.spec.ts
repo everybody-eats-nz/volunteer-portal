@@ -1,44 +1,11 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { loginAsVolunteer, loginAsAdmin } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState("load");
   await page.waitForTimeout(500); // Small buffer for animations
-}
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-
-  const adminButton = page.getByTestId("quick-login-admin-button");
-  await adminButton.click();
-
-  // Wait for navigation away from login page
-  await page.waitForURL(
-    (url) => {
-      return url.pathname !== "/login";
-    },
-    { timeout: 10000 }
-  );
-}
-
-// Helper function to login as volunteer (for permission tests)
-async function loginAsVolunteer(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-
-  const volunteerButton = page.getByTestId("quick-login-volunteer-button");
-  await volunteerButton.click();
-
-  // Wait for navigation away from login page
-  await page.waitForURL(
-    (url) => {
-      return url.pathname !== "/login";
-    },
-    { timeout: 10000 }
-  );
 }
 
 // Helper function to get a volunteer ID from the admin users list

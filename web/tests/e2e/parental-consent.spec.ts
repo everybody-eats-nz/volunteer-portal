@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { loginAsAdmin } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -66,23 +67,6 @@ async function selectDateOfBirth(page: Page, birthYear: number) {
     // Fallback: close calendar and continue - the test might still work without exact date
     await page.keyboard.press("Escape");
   }
-}
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-
-  const adminButton = page.getByTestId("quick-login-admin-button");
-  await adminButton.click();
-
-  // Wait for navigation away from login page
-  await page.waitForURL(
-    (url) => {
-      return url.pathname !== "/login";
-    },
-    { timeout: 10000 }
-  );
 }
 
 // Helper function to register a new underage user
@@ -339,7 +323,9 @@ test.describe("Parental Consent System", () => {
       await expect(page.getByText("volunteers@everybodyeats.nz")).toBeVisible();
 
       // Should show list of users requiring consent (use exact text match to avoid ambiguity)
-      await expect(page.getByRole('heading', { name: 'Pending Approval', exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Pending Approval", exact: true })
+      ).toBeVisible();
     });
 
     test("should show underage users in parental consent table", async ({

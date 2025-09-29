@@ -1,47 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    const adminLoginButton = page.getByTestId("quick-login-admin-button");
-    await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await adminLoginButton.click();
-
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during admin login:", error);
-    throw error;
-  }
-}
-
-// Helper function to login as volunteer
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    const volunteerLoginButton = page.getByTestId(
-      "quick-login-volunteer-button"
-    );
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await volunteerLoginButton.click();
-
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during volunteer login:", error);
-    throw error;
-  }
-}
+import { loginAsAdmin } from "./helpers/auth";
 
 test.describe("Auto-Accept Rules Admin Interface", () => {
   test.beforeEach(async ({ page }) => {
