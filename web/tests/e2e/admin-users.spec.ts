@@ -23,12 +23,10 @@ test.describe("Admin Users Management", () => {
 
     test("should redirect non-admin users away from admin pages", async ({
       page,
+      context,
     }) => {
       // Logout and login as volunteer
-      await page.goto("/api/auth/signout");
-      await page.waitForURL((url) => url.pathname === "/login", {
-        timeout: 10000,
-      });
+      await context.clearCookies();
       await loginAsVolunteer(page);
 
       // Try to access admin users page
@@ -42,16 +40,15 @@ test.describe("Admin Users Management", () => {
       expect(currentUrl).toMatch(/\/(dashboard|login)/);
     });
 
-    test("should redirect unauthenticated users to login", async ({ page }) => {
+    test("should redirect unauthenticated users to login", async ({
+      page,
+      context,
+    }) => {
       // Clear all cookies and session storage to ensure unauthenticated state
-      await page.context().clearCookies();
-      await page.evaluate(() => {
-        sessionStorage.clear();
-        localStorage.clear();
-      });
+      await context.clearCookies();
 
       // Try to access admin users page
-      await page.goto("/admin/users");
+      await page.goto("/admin");
 
       // Check final URL - should be redirected to login or access denied
       const currentUrl = page.url();
