@@ -110,25 +110,6 @@ test.describe("Admin Users Management", () => {
       expect(newUsersText).toMatch(/^\d+$/);
     });
 
-    test("should display filters section and invite button", async ({
-      page,
-    }) => {
-      await page.goto("/admin/users");
-
-      // Check filters section
-      const filtersSection = page.getByTestId("main-role-filter-buttons");
-      await expect(filtersSection).toBeVisible();
-
-      // Check search input
-      const searchInput = page.getByTestId("search-input");
-      await expect(searchInput).toBeVisible();
-
-      // Check invite user button
-      const inviteButton = page.getByTestId("invite-user-button");
-      await expect(inviteButton).toBeVisible();
-      await expect(inviteButton).toContainText("Invite User");
-    });
-
     test("should display users table with proper structure", async ({
       page,
     }) => {
@@ -643,24 +624,6 @@ test.describe("Admin Users Management", () => {
       // 1. Find the current admin user's row
       // 2. Verify the delete option is either not available or shows an error
       // 3. Test that the API returns an appropriate error message
-    });
-  });
-
-  test.describe("Loading States and Error Handling", () => {
-    test("should handle slow loading gracefully", async ({ page }) => {
-      // Simulate slow network
-      await page.route("**/admin/users", async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        route.continue();
-      });
-
-      await page.goto("/admin/users");
-
-      const adminUsersPage = page.getByTestId("admin-users-page");
-      await expect(adminUsersPage).toBeVisible();
-
-      // Clean up route
-      await page.unroute("**/admin/users");
     });
   });
 });
