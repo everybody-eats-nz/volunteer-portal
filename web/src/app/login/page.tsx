@@ -80,12 +80,18 @@ export default function LoginPage() {
   // Redirect to appropriate page if already logged in
   useEffect(() => {
     if (status === "authenticated" && session) {
-      // Redirect admins to admin dashboard, volunteers to regular dashboard
-      const redirectPath =
-        session.user?.role === "ADMIN" ? "/admin" : "/dashboard";
-      router.push(redirectPath);
+      const callbackUrl = searchParams.get("callbackUrl");
+      if (callbackUrl) {
+        // Use the callback URL if provided
+        router.push(callbackUrl);
+      } else {
+        // Redirect admins to admin dashboard, volunteers to regular dashboard
+        const redirectPath =
+          session.user?.role === "ADMIN" ? "/admin" : "/dashboard";
+        router.push(redirectPath);
+      }
     }
-  }, [session, status, router]);
+  }, [session, status, router, searchParams]);
 
   // Load OAuth providers
   useEffect(() => {
@@ -98,11 +104,17 @@ export default function LoginPage() {
     loadProviders();
   }, []);
 
-  // Check for registration success message
+  // Check for registration success message and authentication errors
   useEffect(() => {
     const message = searchParams.get("message");
     const urlEmail = searchParams.get("email");
     const verified = searchParams.get("verified");
+    const authError = searchParams.get("error");
+
+    // Check for authentication errors first
+    if (authError === "CredentialsSignin") {
+      setError("Invalid credentials. Please check your email and password and try again.");
+    }
 
     if (message === "registration-success") {
       setSuccessMessage(
@@ -139,11 +151,13 @@ export default function LoginPage() {
     setSuccessMessage(null);
     setIsLoading(true);
 
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
     const res = await signIn("credentials", {
       email,
       password,
       redirect: true,
-      callbackUrl: "/dashboard",
+      callbackUrl,
     });
 
     setIsLoading(false);
@@ -171,9 +185,11 @@ export default function LoginPage() {
     setSuccessMessage(null);
     setOauthLoading(providerId);
 
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
     try {
       await signIn(providerId, {
-        callbackUrl: "/dashboard",
+        callbackUrl,
       });
     } catch (error) {
       console.error("OAuth sign in error:", error);
@@ -188,6 +204,8 @@ export default function LoginPage() {
     setError(null);
     setSuccessMessage(null);
     setIsLoading(true);
+
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
     const credentials = {
       volunteer: {
@@ -219,6 +237,7 @@ export default function LoginPage() {
       email: loginEmail,
       password: loginPassword,
       redirect: false,
+      callbackUrl,
     });
 
     setIsLoading(false);
@@ -228,7 +247,7 @@ export default function LoginPage() {
     } else if (res?.ok) {
       // Add a small delay to ensure session is established
       await new Promise((resolve) => setTimeout(resolve, 500));
-      window.location.href = "/";
+      window.location.href = callbackUrl;
     }
   }
 
