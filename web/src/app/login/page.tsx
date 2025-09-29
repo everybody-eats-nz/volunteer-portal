@@ -205,7 +205,9 @@ export default function LoginPage() {
     setSuccessMessage(null);
     setIsLoading(true);
 
-    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+    // Use the callbackUrl from query params, or redirect based on user type
+    const defaultCallbackUrl = userType === "admin" ? "/admin" : "/dashboard";
+    const callbackUrl = searchParams.get("callbackUrl") || defaultCallbackUrl;
 
     const credentials = {
       volunteer: {
