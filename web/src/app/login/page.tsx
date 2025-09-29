@@ -81,7 +81,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (status === "authenticated" && session) {
       // Redirect admins to admin dashboard, volunteers to regular dashboard
-      const redirectPath = session.user?.role === "ADMIN" ? "/admin" : "/dashboard";
+      const redirectPath =
+        session.user?.role === "ADMIN" ? "/admin" : "/dashboard";
       router.push(redirectPath);
     }
   }, [session, status, router]);
@@ -141,7 +142,8 @@ export default function LoginPage() {
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: false,
+      redirect: true,
+      callbackUrl: "/dashboard",
     });
 
     setIsLoading(false);
