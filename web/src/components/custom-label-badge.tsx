@@ -12,13 +12,8 @@ interface CustomLabelBadgeProps {
 // Automatically convert old color formats to include dark mode support
 function addDarkModeSupport(originalColor: string): string {
   // If the color already has dark mode classes, return as-is
-  if (originalColor.includes('dark:')) {
+  if (originalColor.includes("dark:")) {
     return originalColor;
-  }
-
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Processing color:', originalColor);
   }
 
   // Enhanced regex to handle more patterns including hover states
@@ -33,24 +28,24 @@ function addDarkModeSupport(originalColor: string): string {
 
     if (bgMatch) {
       const [, color, shade] = bgMatch;
-      if (shade === '50') {
+      if (shade === "50") {
         return `${match} dark:bg-${color}-950/20`;
       }
-      if (shade === '100') {
+      if (shade === "100") {
         return `${match} dark:bg-${color}-950/30`;
       }
     }
 
     if (textMatch) {
       const [, color, shade] = textMatch;
-      if (shade === '700') {
+      if (shade === "700") {
         return `${match} dark:text-${color}-400`;
       }
     }
 
     if (borderMatch) {
       const [, color, shade] = borderMatch;
-      if (shade === '200') {
+      if (shade === "200") {
         return `${match} dark:border-${color}-800`;
       }
     }
@@ -60,7 +55,7 @@ function addDarkModeSupport(originalColor: string): string {
 
   // Handle hover states: hover:bg-{color}-{shade}
   result = result.replace(/hover:bg-(\w+)-(\d+)/g, (match, color, shade) => {
-    if (shade === '100') {
+    if (shade === "100") {
       return `${match} dark:hover:bg-${color}-950/30`;
     }
     return match;
@@ -68,21 +63,23 @@ function addDarkModeSupport(originalColor: string): string {
 
   // Handle focus states: focus:bg-{color}-{shade}
   result = result.replace(/focus:bg-(\w+)-(\d+)/g, (match, color, shade) => {
-    if (shade === '100') {
+    if (shade === "100") {
       return `${match} dark:focus:bg-${color}-950/30`;
     }
     return match;
   });
 
   // Remove duplicate classes
-  const classes = result.split(' ').filter((cls, index, arr) => arr.indexOf(cls) === index);
-  result = classes.join(' ');
+  const classes = result
+    .split(" ")
+    .filter((cls, index, arr) => arr.indexOf(cls) === index);
+  result = classes.join(" ");
 
   const finalResult = result.trim();
 
   // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Result:', finalResult);
+  if (process.env.NODE_ENV === "development") {
+    console.log("Result:", finalResult);
   }
 
   return finalResult;
