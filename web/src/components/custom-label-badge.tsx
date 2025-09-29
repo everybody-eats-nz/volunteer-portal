@@ -77,11 +77,6 @@ function addDarkModeSupport(originalColor: string): string {
 
   const finalResult = result.trim();
 
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === "development") {
-    console.log("Result:", finalResult);
-  }
-
   return finalResult;
 }
 
