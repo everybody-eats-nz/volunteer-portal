@@ -260,45 +260,45 @@ test.describe("Registration Page", () => {
       await expect(stepCounter).toContainText("Step 1 of 6");
     });
 
-    test.skip("should validate password mismatch", async ({ page }) => {
+    test("should validate password mismatch", async ({ page }) => {
       // Fill email
       const emailInput = page.getByTestId("email-input");
       await emailInput.fill("test@example.com");
 
-      // Fill mismatched passwords
+      // Fill mismatched passwords - using valid password that meets all requirements
       const passwordInput = page.getByTestId("password-input");
-      await passwordInput.fill("password123");
+      await passwordInput.fill("Password123");
 
       const confirmPasswordInput = page.getByTestId("confirm-password-input");
-      await confirmPasswordInput.fill("different123");
+      await confirmPasswordInput.fill("Different123");
 
       // Try to proceed
       const nextButton = page.getByTestId("next-submit-button");
       await nextButton.click();
 
-      // Should show password mismatch error
-      const errorToast = page.locator('[role="alert"], .destructive').filter({ hasText: /passwords don't match|password.*match/i });
+      // Should show password mismatch error in sonner toast
+      const errorToast = page.locator('[data-sonner-toast]').filter({ hasText: /don't match/i });
       await expect(errorToast.first()).toBeVisible({ timeout: 5000 });
     });
 
-    test.skip("should validate password length", async ({ page }) => {
+    test("should validate password length", async ({ page }) => {
       // Fill email
       const emailInput = page.getByTestId("email-input");
       await emailInput.fill("test@example.com");
 
-      // Fill short password
+      // Fill short password (less than 6 characters)
       const passwordInput = page.getByTestId("password-input");
-      await passwordInput.fill("123");
+      await passwordInput.fill("Ab1");
 
       const confirmPasswordInput = page.getByTestId("confirm-password-input");
-      await confirmPasswordInput.fill("123");
+      await confirmPasswordInput.fill("Ab1");
 
       // Try to proceed
       const nextButton = page.getByTestId("next-submit-button");
       await nextButton.click();
 
-      // Should show password length error
-      const errorToast = page.locator('[role="alert"], .destructive').filter({ hasText: /password too short|at least 6 characters/i });
+      // Should show password length error in sonner toast
+      const errorToast = page.locator('[data-sonner-toast]').filter({ hasText: /at least 6 characters/i });
       await expect(errorToast.first()).toBeVisible({ timeout: 5000 });
     });
 
@@ -422,16 +422,21 @@ test.describe("Registration Page", () => {
   });
 
   test.describe("Accessibility and Responsive Design", () => {
-    test.skip("should be keyboard accessible", async ({ page }) => {
-      // Tab to email input
-      await page.keyboard.press("Tab");
+    test("should be keyboard accessible", async ({ page }) => {
+      // Click on email input to focus the form
       const emailInput = page.getByTestId("email-input");
+      await emailInput.click();
       await expect(emailInput).toBeFocused();
 
       // Tab to password input
       await page.keyboard.press("Tab");
       const passwordInput = page.getByTestId("password-input");
       await expect(passwordInput).toBeFocused();
+
+      // Tab to password visibility toggle
+      await page.keyboard.press("Tab");
+      const passwordToggle = page.getByTestId("toggle-password-visibility");
+      await expect(passwordToggle).toBeFocused();
 
       // Tab to confirm password input
       await page.keyboard.press("Tab");
