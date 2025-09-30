@@ -46,12 +46,6 @@ export default async function AdminShiftsPage({
     console.warn(`Admin Schedule: ${dstInfo.message}`, { date: dateString, dstInfo });
   }
 
-  // Check feature flag for flexible placement
-  const isFlexiblePlacementEnabled = await isFeatureEnabled(
-    "flexible-placement",
-    session.user.id || "admin"
-  );
-
   // Fetch shifts for the selected date and location (using NZ timezone)
   // Calculate day boundaries in NZ timezone - selectedDateNZT is already in NZT
   const startOfDayNZ = startOfDay(selectedDateNZT);
@@ -146,12 +140,7 @@ export default async function AdminShiftsPage({
     },
   });
 
-  // Filter out flexible placement shifts if feature is disabled
-  const shifts = isFlexiblePlacementEnabled
-    ? allShifts
-    : allShifts.filter(
-        (shift) => !shift.shiftType.name.includes("Anywhere I'm Needed")
-      );
+  const shifts = allShifts;
 
   // Get shift data for the calendar with location, capacity, and confirmed counts
   // Include past shifts for attendance tracking - show last 30 days + future shifts
@@ -184,12 +173,7 @@ export default async function AdminShiftsPage({
     },
   });
 
-  // Filter calendar shifts based on feature flag
-  const calendarShifts = isFlexiblePlacementEnabled
-    ? allCalendarShifts
-    : allCalendarShifts.filter(
-        (shift) => !shift.shiftType.name.includes("Anywhere I'm Needed")
-      );
+  const calendarShifts = allCalendarShifts;
 
   // Process shifts into calendar-friendly format
   const shiftSummariesMap = new Map<

@@ -373,13 +373,6 @@ export default async function ShiftDetailsPage({
     needsParentalConsent = profileStatus.needsParentalConsent || false;
   }
 
-  // Check feature flag for flexible placement
-  const userId = currentUser?.id || "anonymous";
-  const isFlexiblePlacementEnabled = await isFeatureEnabled(
-    "flexible-placement",
-    userId
-  );
-
   // Fetch shifts for the specific date and optionally location (using NZ timezone)
   // Calculate day boundaries in NZ timezone - selectedDate is already in NZT
   const startOfDayNZ = startOfDay(selectedDate);
@@ -422,12 +415,7 @@ export default async function ShiftDetailsPage({
     },
   })) as ShiftWithRelations[];
 
-  // Filter out flexible placement shifts if feature is disabled
-  const shifts = isFlexiblePlacementEnabled
-    ? allShifts
-    : allShifts.filter(
-        (shift) => !shift.shiftType.name.includes("Anywhere I'm Needed")
-      );
+  const shifts = allShifts;
 
   // Helper function to determine if a shift is AM or PM (using NZ timezone)
   const isAMShift = (shift: ShiftWithRelations) => {

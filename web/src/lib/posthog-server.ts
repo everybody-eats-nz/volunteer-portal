@@ -17,21 +17,9 @@ function getPostHogClient(): PostHog {
 }
 
 export async function isFeatureEnabled(
-  flag: string, 
+  flag: string,
   distinctId: string = "anonymous"
 ): Promise<boolean> {
-  // Always enable flexible-placement feature flag during testing
-  // Check for test environment indicators
-  const isTestEnvironment = 
-    process.env.NODE_ENV === "test" || 
-    process.env.PLAYWRIGHT_TEST === "true" ||
-    distinctId.includes("test") ||
-    distinctId.includes("flexible"); // Test users have flexible in their email
-    
-  if (isTestEnvironment && flag === "flexible-placement") {
-    return true;
-  }
-
   try {
     const client = getPostHogClient();
     const result = await client.isFeatureEnabled(flag, distinctId);
