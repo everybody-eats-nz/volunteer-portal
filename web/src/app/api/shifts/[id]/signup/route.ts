@@ -66,21 +66,6 @@ export async function POST(
   if (!shift)
     return NextResponse.json({ error: "Shift not found" }, { status: 404 });
 
-  // Check if this is a flexible placement shift and if the feature is enabled
-  const isFlexibleShift = shift.shiftType.name.includes("Anywhere I'm Needed");
-  if (isFlexibleShift) {
-    const isFlexiblePlacementEnabled = await isFeatureEnabled(
-      "flexible-placement",
-      user.id
-    );
-    if (!isFlexiblePlacementEnabled) {
-      return NextResponse.json(
-        { error: "This shift type is currently unavailable" },
-        { status: 403 }
-      );
-    }
-  }
-
   let confirmedCount = 0;
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
@@ -203,15 +188,11 @@ export async function POST(
         { status: 400 }
       );
     }
-    // Check if this is an "Anywhere I'm Needed" flexible shift
-    const isFlexibleShift = shift.shiftType.name === "Anywhere I'm Needed (PM)";
-
     const signup = await prisma.signup.create({
       data: {
         userId: user.id,
         shiftId: shift.id,
         status: "WAITLISTED",
-        isFlexiblePlacement: isFlexibleShift,
         note: note,
       },
     });
@@ -223,15 +204,11 @@ export async function POST(
 
   // Spots available → create pending signup that might be auto-approved
   try {
-    // Check if this is an "Anywhere I'm Needed" flexible shift
-    const isFlexibleShift = shift.shiftType.name === "Anywhere I'm Needed (PM)";
-
     const signup = await prisma.signup.create({
       data: {
         userId: user.id,
         shiftId: shift.id,
         status: "PENDING",
-        isFlexiblePlacement: isFlexibleShift,
         note: note,
       },
     });

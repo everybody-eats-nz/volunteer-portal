@@ -639,7 +639,7 @@ export class HistoricalDataTransformer {
         return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
       } else if (normalizedType.includes("media")) {
         return { startHour: 17, startMinute: 0, endHour: 19, endMinute: 0 }; // 5:00pm-7:00pm
-      } else if (normalizedType.includes("anywhere needed")) {
+      } else if (normalizedType.includes("flexible")) {
         return { startHour: 16, startMinute: 0, endHour: 21, endMinute: 0 }; // 4:00pm-9:00pm
       } else {
         // Default times for unknown shift types
