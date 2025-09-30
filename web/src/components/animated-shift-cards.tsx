@@ -68,6 +68,7 @@ import {
   Trash2,
   Info,
   UserX,
+  X,
 } from "lucide-react";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -161,24 +162,24 @@ function getGradeInfo(grade: string | null | undefined) {
   switch (grade) {
     case "PINK":
       return {
-        color: "bg-pink-100 dark:bg-pink-950/20 text-pink-700 dark:text-pink-300",
+        color: "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-200 border border-pink-200 dark:border-pink-700",
         icon: Award,
         label: "Shift Leader",
       };
     case "YELLOW":
       return {
-        color: "bg-yellow-100 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300",
+        color: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700",
         icon: Star,
         label: "Experienced",
       };
     case "GREEN":
       return {
-        color: "bg-green-100 dark:bg-green-950/20 text-green-700 dark:text-green-300",
+        color: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-700",
         icon: Shield,
         label: "Standard",
       };
     default:
-      return { color: "bg-blue-100 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300", icon: null, label: "New" };
+      return { color: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-700", icon: null, label: "New" };
   }
 }
 
@@ -318,8 +319,8 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
               (s) => s.status === "NO_SHOW"
             ).length;
             const isCompleted = isShiftCompleted(shift.end);
-            const staffingStatus = isCompleted 
-              ? { color: "bg-muted/50 dark:bg-muted/200", text: "Completed", icon: CheckCircle2 }
+            const staffingStatus = isCompleted
+              ? { color: "bg-slate-400 dark:bg-slate-600", text: "Completed", icon: CheckCircle2 }
               : getStaffingStatus(confirmed, shift.capacity);
 
             // Count volunteer grades
@@ -350,137 +351,64 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
               >
                 <Card
                   data-testid={`shift-card-${shift.id}`}
-                  className={`border-2 ${shiftTheme.borderColor} w-full relative overflow-hidden shadow-md dark:bg-slate-800/50`}
+                  className="w-full relative overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 hover:shadow-lg py-0"
                 >
-                  {/* Background gradient */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${shiftTheme.gradient} opacity-5`}
-                  />
-
-                  <CardContent className="relative z-10">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">{shiftTheme.emoji}</span>
-                          <h3
-                            className={`font-bold text-lg ${shiftTheme.textColor} mb-0`}
-                          >
-                            {shift.shiftType.name}
-                          </h3>
+                  <CardContent className="p-0">
+                    {/* Modern Header with colored accent */}
+                    <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${shiftTheme.fullGradient} flex items-center justify-center text-2xl shadow-sm`}>
+                            {shiftTheme.emoji}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">
+                              {shift.shiftType.name}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                              <Clock className="h-4 w-4" />
+                              <span className="font-medium">
+                                {formatInNZT(shift.start, "h:mm a")} - {formatInNZT(shift.end, "h:mm a")}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-sm text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {formatInNZT(shift.start, "h:mm a")} -{" "}
-                          {formatInNZT(shift.end, "h:mm a")}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <Badge
-                          data-testid={`shift-capacity-${shift.id}`}
-                          className={`${staffingStatus.color} text-white text-sm px-2 py-1.5 font-bold`}
-                        >
-                          {confirmed}/{shift.capacity}
-                        </Badge>
-                        {!isCompleted && (
-                          <p className="text-xs text-slate-600 mt-1">
-                            {staffingStatus.text}
-                          </p>
-                        )}
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge
+                            data-testid={`shift-capacity-${shift.id}`}
+                            className={`${staffingStatus.color} text-white text-base px-3 py-1.5 font-bold shadow-sm`}
+                          >
+                            {confirmed}/{shift.capacity}
+                          </Badge>
+                          {!isCompleted && (
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
+                              {staffingStatus.text}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Grade Summary Bar */}
-                    {shift.signups.length > 0 && (
-                      <div
-                        data-testid={`grade-summary-${shift.id}`}
-                        className="flex flex-wrap gap-1 mb-3"
-                      >
-                        {gradeCount.pink > 0 && (
-                          <div
-                            data-testid={`grade-pink-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-pink-100 dark:bg-pink-950/20 text-pink-700 dark:text-pink-300 rounded text-xs font-medium"
-                          >
-                            <Award className="h-3 w-3" />
-                            {gradeCount.pink}
-                          </div>
-                        )}
-                        {gradeCount.yellow > 0 && (
-                          <div
-                            data-testid={`grade-yellow-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300 rounded text-xs font-medium"
-                          >
-                            <Star className="h-3 w-3" />
-                            {gradeCount.yellow}
-                          </div>
-                        )}
-                        {gradeCount.green > 0 && (
-                          <div
-                            data-testid={`grade-green-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-950/20 text-green-700 dark:text-green-300 rounded text-xs font-medium"
-                          >
-                            <Shield className="h-3 w-3" />
-                            {gradeCount.green}
-                          </div>
-                        )}
-                        {gradeCount.new > 0 && (
-                          <div
-                            data-testid={`grade-new-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
-                          >
-                            <Users className="h-3 w-3" />
-                            {gradeCount.new} new
-                          </div>
-                        )}
-                        {pending > 0 && (
-                          <div
-                            data-testid={`pending-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 rounded text-xs font-medium ml-auto"
-                          >
-                            <Clock className="h-3 w-3" />
-                            {pending} pending
-                          </div>
-                        )}
-                        {waitlisted > 0 && (
-                          <div
-                            data-testid={`waitlisted-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 rounded text-xs font-medium"
-                          >
-                            <Users className="h-3 w-3" />
-                            {waitlisted} waitlisted
-                          </div>
-                        )}
-                        {noShow > 0 && (
-                          <div
-                            data-testid={`no-show-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-950/20 text-red-700 dark:text-red-300 rounded text-xs font-medium"
-                          >
-                            <UserX className="h-3 w-3" />
-                            {noShow} no show
-                          </div>
-                        )}
-                      </div>
-                    )}
 
-                    {/* Volunteer Avatars */}
+                    {/* Volunteers List */}
                     <div
                       data-testid={`volunteer-list-${shift.id}`}
-                      className="space-y-2"
+                      className="px-6 py-4"
                     >
                       {shift.signups.length === 0 ? (
                         <div
                           data-testid={`no-volunteers-${shift.id}`}
-                          className="py-6 text-center"
+                          className="py-8 text-center bg-slate-50 dark:bg-slate-800/70 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg"
                         >
-                          <Users className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                          <p className="text-sm text-slate-500">
+                          <Users className="h-10 w-10 text-slate-400 dark:text-slate-400 mx-auto mb-3" />
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                             No volunteers yet
                           </p>
                         </div>
                       ) : (
                         <div
                           data-testid={`volunteers-${shift.id}`}
-                          className="space-y-2"
+                          className="space-y-3"
                         >
                           {shift.signups.map((signup) => {
                             const gradeInfo = getGradeInfo(
@@ -490,7 +418,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             return (
                               <div
                                 key={signup.id}
-                                className="flex items-center gap-3 p-2 bg-muted/50 dark:bg-white/10 rounded-lg min-w-0"
+                                className="flex items-start gap-4 p-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-w-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
                               >
                                 <Link
                                   href={`/admin/volunteers/${signup.user.id}`}
@@ -498,7 +426,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                   data-testid={`volunteer-avatar-link-${signup.id}`}
                                 >
                                   <Avatar
-                                    className="h-9 w-9 border-2 border-white dark:border-gray-600 shadow-md hover:shadow-lg transition-shadow"
+                                    className="h-12 w-12 border-2 border-white dark:border-slate-700 shadow-md hover:scale-105 transition-transform ring-2 ring-slate-100 dark:ring-slate-800"
                                     data-testid={`volunteer-avatar-${signup.id}`}
                                   >
                                     <AvatarImage
@@ -523,11 +451,11 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                     </AvatarFallback>
                                   </Avatar>
                                 </Link>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 mb-1">
+                                <div className="flex-1 min-w-0 pt-0.5">
+                                  <div className="flex items-center flex-wrap gap-2 mb-2">
                                     <Link
                                       href={`/admin/volunteers/${signup.user.id}`}
-                                      className="text-sm font-medium text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-400"
+                                      className="text-sm font-semibold text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                                       data-testid={`volunteer-name-link-${signup.id}`}
                                     >
                                       {signup.user.name ||
@@ -536,6 +464,66 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                         }`.trim() ||
                                         "Volunteer"}
                                     </Link>
+                                    {signup.status === "CONFIRMED" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200 border-green-300 dark:border-green-700 px-1.5 py-0.5 flex items-center gap-0.5"
+                                        data-testid={`volunteer-confirmed-${signup.id}`}
+                                      >
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        {isCompleted ? "Attended" : "Confirmed"}
+                                      </Badge>
+                                    )}
+                                    {signup.status === "PENDING" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 border-orange-300 dark:border-orange-700 px-1.5 py-0.5 flex items-center gap-0.5"
+                                        data-testid={`volunteer-pending-${signup.id}`}
+                                      >
+                                        <Clock className="h-3 w-3" />
+                                        Pending
+                                      </Badge>
+                                    )}
+                                    {signup.status === "REGULAR_PENDING" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 border-orange-300 dark:border-orange-700 px-1.5 py-0.5 flex items-center gap-0.5"
+                                        data-testid={`volunteer-regular-pending-${signup.id}`}
+                                      >
+                                        <Clock className="h-3 w-3" />
+                                        Pending
+                                      </Badge>
+                                    )}
+                                    {signup.status === "WAITLISTED" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 border-purple-300 dark:border-purple-700 px-1.5 py-0.5 flex items-center gap-0.5"
+                                        data-testid={`volunteer-waitlisted-${signup.id}`}
+                                      >
+                                        <AlertCircle className="h-3 w-3" />
+                                        Waitlisted
+                                      </Badge>
+                                    )}
+                                    {signup.status === "NO_SHOW" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 border-red-300 dark:border-red-700 px-1.5 py-0.5 flex items-center gap-0.5"
+                                        data-testid={`volunteer-no-show-${signup.id}`}
+                                      >
+                                        <UserX className="h-3 w-3" />
+                                        No Show
+                                      </Badge>
+                                    )}
+                                    {signup.status === "CANCELED" && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 px-1.5 py-0.5 flex items-center gap-0.5"
+                                        data-testid={`volunteer-canceled-${signup.id}`}
+                                      >
+                                        <X className="h-3 w-3" />
+                                        Canceled
+                                      </Badge>
+                                    )}
                                     {signup.user.adminNotes.length > 0 && (
                                       <AdminNotesDialog
                                         volunteerId={signup.user.id}
@@ -568,7 +556,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                       return age !== null && age <= 18 ? (
                                         <Badge
                                           variant="outline"
-                                          className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 ml-1 px-1.5 py-0.5"
+                                          className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 px-1.5 py-0.5"
                                           data-testid={`volunteer-age-${signup.id}`}
                                         >
                                           {age}yr
@@ -577,13 +565,13 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                     })()}
                                   </div>
                                   {signup.note && (
-                                    <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted/50 dark:bg-white/10 rounded-md">
-                                      <span className="font-medium">Note: </span>
+                                    <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
+                                      <span className="font-semibold text-blue-700 dark:text-blue-300">Note: </span>
                                       {signup.note}
                                     </div>
                                   )}
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-1 flex-wrap">
+                                  <div className="flex items-center justify-between gap-3 mt-2">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
                                       <div
                                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
                                         data-testid={`volunteer-grade-${signup.id}`}
@@ -640,36 +628,36 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                       )}
                     </div>
 
-                    {/* Shortage Action Button */}
-                    {!isCompleted && (staffingStatus.text === "Critical" ||
-                      staffingStatus.text === "Understaffed") && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-orange-200 dark:border-orange-800 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
-                          data-testid={`send-shortage-email-${shift.id}`}
-                        >
-                          <Link
-                            href={`/admin/notifications?shiftId=${shift.id}&shiftType=${shift.shiftType.id}&location=${shift.location}`}
-                            className="flex items-center gap-2 justify-center"
-                          >
-                            <Mail className="h-4 w-4" />
-                            Send Shortage Email
-                          </Link>
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Admin Action Buttons */}
+                    {/* Action Buttons Footer */}
                     {!isCompleted && (
-                    <div className="mt-4 pt-4 border-t border-border flex gap-2">
+                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex flex-col gap-2">
+                        {/* Shortage Email Button */}
+                        {(staffingStatus.text === "Critical" || staffingStatus.text === "Understaffed") && (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="w-full bg-orange-50 dark:bg-orange-900/60 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-800/60"
+                            data-testid={`send-shortage-email-${shift.id}`}
+                          >
+                            <Link
+                              href={`/admin/notifications?shiftId=${shift.id}&shiftType=${shift.shiftType.id}&location=${shift.location}`}
+                              className="flex items-center gap-2 justify-center"
+                            >
+                              <Mail className="h-4 w-4" />
+                              Send Shortage Email
+                            </Link>
+                          </Button>
+                        )}
+
+                        {/* Edit & Delete Buttons */}
+                        <div className="flex gap-2">
                       <Button
                         asChild
                         variant="outline"
                         size="sm"
-                        className="flex-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 border-blue-200 dark:border-blue-800"
+                        className="flex-1 bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800/60 border-blue-300 dark:border-blue-700"
                         data-testid={`edit-shift-button-${shift.id}`}
                       >
                         <Link
@@ -715,13 +703,15 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-800"
+                          className="flex-1 bg-red-50 dark:bg-red-900/60 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/60 border-red-300 dark:border-red-700"
                           data-testid={`delete-shift-button-${shift.id}`}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete
                         </Button>
                       </DeleteShiftDialog>
+                        </div>
+                      </div>
                     </div>
                     )}
                   </CardContent>

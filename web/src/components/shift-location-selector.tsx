@@ -28,7 +28,7 @@ export function ShiftLocationSelector({
 
   return (
     <Select value={selectedLocation} onValueChange={handleLocationChange}>
-      <SelectTrigger className="w-[180px]" data-testid="location-selector">
+      <SelectTrigger className="w-[200px] h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700" data-testid="location-selector">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
