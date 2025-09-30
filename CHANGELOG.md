@@ -1,3 +1,9 @@
+## [0.48.5] - 2025-09-30
+
+### Changes
+- fix: unskip and fix 5 failing e2e tests ([#175](https://github.com/everybody-eats-nz/volunteer-portal/pull/175)) by @malinmalliyawadu
+
+
 ## [0.48.4] - 2025-09-30
 
 ### Changes
