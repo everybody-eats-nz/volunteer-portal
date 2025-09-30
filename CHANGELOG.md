@@ -1,3 +1,9 @@
+## [0.48.3] - 2025-09-30
+
+### Changes
+- fix: comprehensive dark mode improvements for admin dashboard ([#172](https://github.com/everybody-eats-nz/volunteer-portal/pull/172)) by @malinmalliyawadu
+
+
 ## [0.48.2] - 2025-09-28
 
 ### Changes
