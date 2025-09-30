@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { CustomLabelDialog } from "./custom-label-dialog";
@@ -23,6 +33,8 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
   const [labels, setLabels] = useState<LabelWithCount[]>(initialLabels);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLabel, setEditingLabel] = useState<LabelWithCount | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [labelToDelete, setLabelToDelete] = useState<LabelWithCount | null>(null);
   const { toast } = useToast();
 
   const handleCreateLabel = async (data: { name: string; color: string; icon?: string }) => {
@@ -98,10 +110,6 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
   };
 
   const handleDeleteLabel = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this label? It will be removed from all users.")) {
-      return;
-    }
-
     try {
       const response = await fetch(`/api/admin/custom-labels/${id}`, {
         method: "DELETE",
@@ -124,6 +132,19 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
         description: error instanceof Error ? error.message : "Failed to delete label",
         variant: "destructive",
       });
+    }
+  };
+
+  const openDeleteDialog = (label: LabelWithCount) => {
+    setLabelToDelete(label);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteLabel = async () => {
+    if (labelToDelete) {
+      await handleDeleteLabel(labelToDelete.id);
+      setDeleteDialogOpen(false);
+      setLabelToDelete(null);
     }
   };
 
@@ -192,7 +213,7 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteLabel(label.id)}
+                      onClick={() => openDeleteDialog(label)}
                       disabled={label._count.users > 0}
                       data-testid={`delete-label-${label.id}`}
                     >
@@ -215,11 +236,35 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         label={editingLabel}
-        onSave={editingLabel ? 
+        onSave={editingLabel ?
           (data) => handleUpdateLabel(editingLabel.id, data) :
           handleCreateLabel
         }
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Custom Label
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this label? It will be removed from all users.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteLabel}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Label
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

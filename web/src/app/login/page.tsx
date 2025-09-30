@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn, getProviders } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { signIn, getProviders, useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,24 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [providers, setProviders] = useState<Record<string, Provider>>({});
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  // Redirect to appropriate page if already logged in
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      const callbackUrl = searchParams.get("callbackUrl");
+      if (callbackUrl) {
+        // Use the callback URL if provided
+        router.push(callbackUrl);
+      } else {
+        // Redirect admins to admin dashboard, volunteers to regular dashboard
+        const redirectPath =
+          session.user?.role === "ADMIN" ? "/admin" : "/dashboard";
+        router.push(redirectPath);
+      }
+    }
+  }, [session, status, router, searchParams]);
 
   // Load OAuth providers
   useEffect(() => {
@@ -86,11 +104,17 @@ export default function LoginPage() {
     loadProviders();
   }, []);
 
-  // Check for registration success message
+  // Check for registration success message and authentication errors
   useEffect(() => {
     const message = searchParams.get("message");
     const urlEmail = searchParams.get("email");
     const verified = searchParams.get("verified");
+    const authError = searchParams.get("error");
+
+    // Check for authentication errors first
+    if (authError === "CredentialsSignin") {
+      setError("Invalid credentials. Please check your email and password and try again.");
+    }
 
     if (message === "registration-success") {
       setSuccessMessage(
@@ -127,10 +151,13 @@ export default function LoginPage() {
     setSuccessMessage(null);
     setIsLoading(true);
 
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
     const res = await signIn("credentials", {
       email,
       password,
-      redirect: false,
+      redirect: true,
+      callbackUrl,
     });
 
     setIsLoading(false);
@@ -158,9 +185,11 @@ export default function LoginPage() {
     setSuccessMessage(null);
     setOauthLoading(providerId);
 
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
     try {
       await signIn(providerId, {
-        callbackUrl: "/dashboard",
+        callbackUrl,
       });
     } catch (error) {
       console.error("OAuth sign in error:", error);
@@ -175,6 +204,10 @@ export default function LoginPage() {
     setError(null);
     setSuccessMessage(null);
     setIsLoading(true);
+
+    // Use the callbackUrl from query params, or redirect based on user type
+    const defaultCallbackUrl = userType === "admin" ? "/admin" : "/dashboard";
+    const callbackUrl = searchParams.get("callbackUrl") || defaultCallbackUrl;
 
     const credentials = {
       volunteer: {
@@ -206,6 +239,7 @@ export default function LoginPage() {
       email: loginEmail,
       password: loginPassword,
       redirect: false,
+      callbackUrl,
     });
 
     setIsLoading(false);
@@ -215,7 +249,7 @@ export default function LoginPage() {
     } else if (res?.ok) {
       // Add a small delay to ensure session is established
       await new Promise((resolve) => setTimeout(resolve, 500));
-      window.location.href = "/";
+      window.location.href = callbackUrl;
     }
   }
 
@@ -276,6 +310,11 @@ export default function LoginPage() {
         return "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100";
     }
   };
+
+  // Don't render login form if already authenticated (will redirect)
+  if (status === "authenticated") {
+    return null;
+  }
 
   return (
     <MotionPageContainer

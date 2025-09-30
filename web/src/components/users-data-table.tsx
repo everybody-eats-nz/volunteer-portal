@@ -105,7 +105,7 @@ export const columns: ColumnDef<User>[] = [
               src={user.profilePhotoUrl || ""}
               alt={displayName}
             />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold shadow-inner text-xs">
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white font-semibold shadow-inner text-xs">
               {getUserInitials(user)}
             </AvatarFallback>
           </Avatar>
@@ -135,8 +135,8 @@ export const columns: ColumnDef<User>[] = [
           variant="outline"
           className={
             user.role === "ADMIN"
-              ? "bg-gradient-to-r from-purple-50 to-violet-50 text-purple-700 border-purple-200 font-medium shadow-sm"
-              : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 font-medium shadow-sm"
+              ? "bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800 font-medium shadow-sm"
+              : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-medium shadow-sm"
           }
           data-testid={`user-role-badge-${user.id}`}
         >
@@ -185,9 +185,8 @@ export const columns: ColumnDef<User>[] = [
       const count = row.original._count?.signups || 0;
       const user = row.original;
       return (
-        <div className="text-center" data-testid={`user-shifts-count-${user.id}`}>
-          <div className="text-lg font-bold text-slate-800">{count}</div>
-          <div className="text-xs text-muted-foreground">shifts</div>
+        <div className="text-sm font-medium text-center" data-testid={`user-shifts-count-${user.id}`}>
+          {count}
         </div>
       );
     },
@@ -230,7 +229,7 @@ export const columns: ColumnDef<User>[] = [
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 hover:bg-slate-100 transition-colors"
+                className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
                 data-testid={`user-actions-${user.id}`}
               >
                 <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -249,7 +248,7 @@ export const columns: ColumnDef<User>[] = [
               </DropdownMenuItem>
               <DeleteUserDialog user={user}>
                 <DropdownMenuItem
-                  className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+                  className="flex items-center gap-2 text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20"
                   onSelect={(e) => e.preventDefault()}
                   data-testid={`delete-user-${user.id}`}
                 >
@@ -291,7 +290,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
   return (
     <div className="w-full" data-testid="users-datatable">
       
-      <div className="rounded-md border shadow-sm">
+      <div className="rounded-md border dark:border-zinc-800 shadow-sm dark:shadow-lg dark:shadow-zinc-900/20 bg-card">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -317,7 +316,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-slate-50/50 cursor-pointer"
+                  className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
                   data-testid={`user-row-${row.original.id}`}
                   onClick={() => router.push(`/admin/volunteers/${row.original.id}`)}
                 >

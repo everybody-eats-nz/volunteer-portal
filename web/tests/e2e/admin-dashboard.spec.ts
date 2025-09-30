@@ -1,72 +1,10 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  try {
-    await page.goto("/login");
-
-    // Wait for the login page to load
-    await page.waitForLoadState("load");
-
-    // Wait for and click the admin login button using the correct test ID
-    const adminLoginButton = page.getByTestId("quick-login-admin-button");
-    await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await adminLoginButton.click();
-
-    // Wait for navigation away from login page
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
-
-    // Wait for page to be ready
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during admin login:", error);
-    throw error; // Re-throw to fail the test if login fails
-  }
-}
-
-// Helper function to login as volunteer (for testing unauthorized access)
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    // Wait for and click the volunteer login button using the correct test ID
-    const volunteerLoginButton = page.getByTestId(
-      "quick-login-volunteer-button"
-    );
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 10000 });
-    await volunteerLoginButton.click();
-
-    // Wait for navigation away from login page
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
-
-    // Wait for page to be ready
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during volunteer login:", error);
-    throw error; // Re-throw to fail the test if login fails
-  }
-}
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Admin Dashboard Page", () => {
   test.describe("Admin Authentication and Access", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-
-      // Navigate to admin dashboard and wait for it to load
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      // Skip tests if login failed (we're still on login page)
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping admin dashboard tests");
-      }
     });
 
     test("should allow admin users to access admin dashboard", async ({
@@ -145,13 +83,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Dashboard Statistics and Metrics", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping dashboard stats tests");
-      }
     });
 
     test("should display all main statistics cards", async ({ page }) => {
@@ -241,13 +172,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Quick Actions Section", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping quick actions tests");
-      }
     });
 
     test("should display all quick action buttons", async ({ page }) => {
@@ -323,13 +247,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Next Shift Section", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping next shift tests");
-      }
     });
 
     test("should display next shift information or no shifts message", async ({
@@ -378,13 +295,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Needs Attention Section", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping needs attention tests");
-      }
     });
 
     test("should display shifts needing attention or positive message", async ({
@@ -434,13 +344,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Recent Signups Section", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping recent signups tests");
-      }
     });
 
     test("should display recent signups section", async ({ page }) => {
@@ -485,13 +388,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Location Filter", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping location filter tests");
-      }
     });
 
     test("should display location filter tabs", async ({ page }) => {
@@ -611,16 +507,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Responsive Design", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(
-          true,
-          "Admin login failed - skipping responsive design tests"
-        );
-      }
     });
 
     test("should be responsive on mobile viewport", async ({ page }) => {
@@ -676,13 +562,6 @@ test.describe("Admin Dashboard Page", () => {
   test.describe("Accessibility", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin");
-      await page.waitForLoadState("load");
-
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Admin login failed - skipping accessibility tests");
-      }
     });
 
     test("should have proper heading hierarchy", async ({ page }) => {

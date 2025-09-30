@@ -1,38 +1,11 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState("load");
   await page.waitForTimeout(500); // Small buffer for animations
-}
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-  
-  const adminButton = page.getByTestId("quick-login-admin-button");
-  await adminButton.click();
-  
-  // Wait for navigation away from login page
-  await page.waitForURL((url) => {
-    return url.pathname !== "/login";
-  }, { timeout: 10000 });
-}
-
-// Helper function to login as volunteer
-async function loginAsVolunteer(page: Page) {
-  await page.goto("/login");
-  await waitForPageLoad(page);
-  
-  const volunteerButton = page.getByTestId("quick-login-volunteer-button");
-  await volunteerButton.click();
-  
-  // Wait for navigation away from login page
-  await page.waitForURL((url) => {
-    return url.pathname !== "/login";
-  }, { timeout: 10000 });
 }
 
 test.describe("Regular Volunteers System", () => {
@@ -41,7 +14,9 @@ test.describe("Regular Volunteers System", () => {
       await loginAsAdmin(page);
     });
 
-    test("should allow admin to access regular volunteers management page", async ({ page }) => {
+    test("should allow admin to access regular volunteers management page", async ({
+      page,
+    }) => {
       await page.goto("/admin/regulars");
       await waitForPageLoad(page);
 
@@ -50,13 +25,18 @@ test.describe("Regular Volunteers System", () => {
       await expect(regularVolunteersPage).toBeVisible();
 
       // Verify page title (first one is the main title)
-      const pageTitle = page.getByRole("heading", { name: "Regular Volunteers" }).first();
+      const pageTitle = page
+        .getByRole("heading", { name: "Regular Volunteers" })
+        .first();
       await expect(pageTitle).toBeVisible();
     });
 
-    test("should redirect non-admin users away from admin regular volunteers page", async ({ page }) => {
+    test("should redirect non-admin users away from admin regular volunteers page", async ({
+      page,
+      context,
+    }) => {
       // Logout and login as volunteer
-      await page.goto("/api/auth/signout");
+      await context.clearCookies();
       await loginAsVolunteer(page);
 
       // Try to access admin regular volunteers page
@@ -66,12 +46,14 @@ test.describe("Regular Volunteers System", () => {
       // Should be redirected away from admin page
       const currentUrl = page.url();
       expect(currentUrl).not.toContain("/admin/regulars");
-      
+
       // Should be redirected to dashboard or home
       expect(currentUrl).toMatch(/\/(dashboard|$)/);
     });
 
-    test("should display regular volunteers list and statistics", async ({ page }) => {
+    test("should display regular volunteers list and statistics", async ({
+      page,
+    }) => {
       await page.goto("/admin/regulars");
       await waitForPageLoad(page);
 
@@ -82,16 +64,18 @@ test.describe("Regular Volunteers System", () => {
       const inactiveCard = page.getByText("Inactive");
 
       await expect(totalRegularsCard).toBeVisible();
-      await expect(activeCard).toBeVisible(); 
+      await expect(activeCard).toBeVisible();
       await expect(pausedCard).toBeVisible();
       await expect(inactiveCard).toBeVisible();
 
       // Check add regular volunteer form is present (collapsible)
       const addRegularTitle = page.getByText("Add Regular Volunteer");
       await expect(addRegularTitle).toBeVisible();
-      
+
       // Check description
-      const formDescription = page.getByText("Assign a volunteer to automatically sign up for recurring shifts");
+      const formDescription = page.getByText(
+        "Assign a volunteer to automatically sign up for recurring shifts"
+      );
       await expect(formDescription).toBeVisible();
     });
 
@@ -100,7 +84,9 @@ test.describe("Regular Volunteers System", () => {
       await waitForPageLoad(page);
 
       // Click on the collapsible trigger to expand form
-      const addRegularTrigger = page.getByRole("button", { name: /Add Regular/i });
+      const addRegularTrigger = page.getByRole("button", {
+        name: /Add Regular/i,
+      });
       await addRegularTrigger.click();
 
       // Form should expand and show fields
@@ -136,7 +122,9 @@ test.describe("Regular Volunteers System", () => {
 
       // Check action buttons
       const cancelButton = page.getByRole("button", { name: "Cancel" });
-      const createButton = page.getByRole("button", { name: "Create Regular Volunteer" });
+      const createButton = page.getByRole("button", {
+        name: "Create Regular Volunteer",
+      });
 
       await expect(cancelButton).toBeVisible();
       await expect(createButton).toBeVisible();
@@ -144,12 +132,14 @@ test.describe("Regular Volunteers System", () => {
       // Collapse form by clicking cancel
       await cancelButton.click();
       await page.waitForTimeout(300); // Wait for animation
-      
+
       // Form fields should be hidden again
       await expect(volunteerSelect).not.toBeVisible();
     });
 
-    test("should display regular volunteers table or empty state", async ({ page }) => {
+    test("should display regular volunteers table or empty state", async ({
+      page,
+    }) => {
       await page.goto("/admin/regulars");
       await waitForPageLoad(page);
 
@@ -157,17 +147,21 @@ test.describe("Regular Volunteers System", () => {
       // We don't assume specific data exists, just verify the structure
       const pageContent = page.getByTestId("regular-volunteers-page");
       await expect(pageContent).toBeVisible();
-      
+
       // Should have the form and some table/list structure
       const addRegularForm = page.getByText("Add Regular Volunteer");
       await expect(addRegularForm).toBeVisible();
-      
+
       // The exact table structure depends on data, so we just verify the page loaded correctly
-      const pageTitle = page.getByRole("heading", { name: "Regular Volunteers" }).first();
+      const pageTitle = page
+        .getByRole("heading", { name: "Regular Volunteers" })
+        .first();
       await expect(pageTitle).toBeVisible();
     });
 
-    test("should have table structure for managing regular volunteers", async ({ page }) => {
+    test("should have table structure for managing regular volunteers", async ({
+      page,
+    }) => {
       await page.goto("/admin/regulars");
       await waitForPageLoad(page);
 
@@ -186,11 +180,15 @@ test.describe("Regular Volunteers System", () => {
 
       // The table/list structure should exist (even if empty)
       // We don't test specific interactions since they depend on test data
-      const pageTitle = page.getByRole("heading", { name: "Regular Volunteers" }).first();
+      const pageTitle = page
+        .getByRole("heading", { name: "Regular Volunteers" })
+        .first();
       await expect(pageTitle).toBeVisible();
     });
 
-    test("should integrate regular volunteer info with admin user management", async ({ page }) => {
+    test("should integrate regular volunteer info with admin user management", async ({
+      page,
+    }) => {
       // This test verifies that regular volunteer information is integrated
       // with the admin user management system
       await page.goto("/admin/users");
@@ -206,13 +204,17 @@ test.describe("Regular Volunteers System", () => {
 
       const regularVolunteersPage = page.getByTestId("regular-volunteers-page");
       await expect(regularVolunteersPage).toBeVisible();
-      
+
       // Both pages should be accessible by admins
-      const pageTitle = page.getByRole("heading", { name: "Regular Volunteers" }).first();
+      const pageTitle = page
+        .getByRole("heading", { name: "Regular Volunteers" })
+        .first();
       await expect(pageTitle).toBeVisible();
     });
 
-    test.skip("should successfully add a new regular volunteer", async ({ page }) => {
+    test.skip("should successfully add a new regular volunteer", async ({
+      page,
+    }) => {
       // Skip this test as it would create actual data
       await page.goto("/admin/regulars");
       await waitForPageLoad(page);
@@ -232,7 +234,9 @@ test.describe("Regular Volunteers System", () => {
       await loginAsVolunteer(page);
     });
 
-    test("should allow volunteers to access regular volunteer settings", async ({ page }) => {
+    test("should allow volunteers to access regular volunteer settings", async ({
+      page,
+    }) => {
       await page.goto("/profile/regular-schedule");
       await waitForPageLoad(page);
 
@@ -245,25 +249,29 @@ test.describe("Regular Volunteers System", () => {
       await expect(pageTitle).toBeVisible();
     });
 
-    test("should display regular volunteer status and controls", async ({ page }) => {
+    test("should display regular volunteer status and controls", async ({
+      page,
+    }) => {
       await page.goto("/profile/regular-schedule");
       await waitForPageLoad(page);
 
       // Check if user is a regular volunteer or not
       const notRegularMessage = page.getByText("Not a Regular Volunteer Yet");
       const regularStatusCard = page.getByText("Regular Volunteer Status");
-      
+
       // Either should be visible (depending on user's regular status)
       const hasNotRegularMessage = await notRegularMessage.isVisible();
       const hasRegularStatus = await regularStatusCard.isVisible();
-      
+
       expect(hasNotRegularMessage || hasRegularStatus).toBeTruthy();
 
       if (hasNotRegularMessage) {
         // Check not regular volunteer content
-        const description = page.getByText("You haven't been assigned as a regular volunteer");
+        const description = page.getByText(
+          "You haven't been assigned as a regular volunteer"
+        );
         await expect(description).toBeVisible();
-        
+
         const benefits = page.getByText("• Auto-apply to matching shifts");
         await expect(benefits).toBeVisible();
       }
@@ -271,22 +279,24 @@ test.describe("Regular Volunteers System", () => {
       if (hasRegularStatus) {
         // Check regular volunteer status content
         await expect(regularStatusCard).toBeVisible();
-        
+
         // Should have status badge (Active, Paused, or Inactive)
-        const statusBadge = page.locator("span").filter({ 
-          hasText: /^(Active|Paused|Inactive)$/
+        const statusBadge = page.locator("span").filter({
+          hasText: /^(Active|Paused|Inactive)$/,
         });
         await expect(statusBadge.first()).toBeVisible();
       }
     });
 
-    test("should display regular volunteer configuration when enabled", async ({ page }) => {
+    test("should display regular volunteer configuration when enabled", async ({
+      page,
+    }) => {
       await page.goto("/profile/regular-schedule");
       await waitForPageLoad(page);
 
       // Check if user has regular volunteer configuration
       const currentScheduleCard = page.getByText("Current Schedule");
-      
+
       if (await currentScheduleCard.isVisible()) {
         await expect(currentScheduleCard).toBeVisible();
 
@@ -307,7 +317,9 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test("should display schedule management options for regular volunteers", async ({ page }) => {
+    test("should display schedule management options for regular volunteers", async ({
+      page,
+    }) => {
       await page.goto("/profile/regular-schedule");
       await waitForPageLoad(page);
 
@@ -321,19 +333,25 @@ test.describe("Regular Volunteers System", () => {
         // The exact implementation may vary, so we just check basic structure exists
         const pageContent = page.getByTestId("regular-schedule-page");
         await expect(pageContent).toBeVisible();
-        
+
         // Should have some interactive elements or information
-        const backButton = page.getByRole("button", { name: /Back to Profile/i });
+        const backButton = page.getByRole("button", {
+          name: /Back to Profile/i,
+        });
         await expect(backButton).toBeVisible();
       } else {
         // Shows information about becoming a regular volunteer
         await expect(notRegularMessage).toBeVisible();
-        const contactMessage = page.getByText("Contact an administrator if you'd like to become a regular volunteer");
+        const contactMessage = page.getByText(
+          "Contact an administrator if you'd like to become a regular volunteer"
+        );
         await expect(contactMessage).toBeVisible();
       }
     });
 
-    test("should display upcoming shifts information for regular volunteers", async ({ page }) => {
+    test("should display upcoming shifts information for regular volunteers", async ({
+      page,
+    }) => {
       await page.goto("/profile/regular-schedule");
       await waitForPageLoad(page);
 
@@ -346,7 +364,7 @@ test.describe("Regular Volunteers System", () => {
         // The exact implementation depends on the UpcomingRegularShifts component
         const pageContent = page.getByTestId("regular-schedule-page");
         await expect(pageContent).toBeVisible();
-        
+
         // Should show current schedule information
         const currentSchedule = page.getByText("Current Schedule");
         if (await currentSchedule.isVisible()) {
@@ -358,7 +376,9 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test.skip("should successfully enable regular volunteer status", async ({ page }) => {
+    test.skip("should successfully enable regular volunteer status", async ({
+      page,
+    }) => {
       // Skip this test as it would modify user data
       await page.goto("/profile/regular");
       await waitForPageLoad(page);
@@ -371,7 +391,9 @@ test.describe("Regular Volunteers System", () => {
       // 5. Verify configuration section appears
     });
 
-    test.skip("should successfully pause regular volunteer schedule", async ({ page }) => {
+    test.skip("should successfully pause regular volunteer schedule", async ({
+      page,
+    }) => {
       // Skip this test as it would modify user data
       await page.goto("/profile/regular");
       await waitForPageLoad(page);
@@ -390,7 +412,9 @@ test.describe("Regular Volunteers System", () => {
       await loginAsAdmin(page);
     });
 
-    test("should show auto-signups in admin shifts management", async ({ page }) => {
+    test("should show auto-signups in admin shifts management", async ({
+      page,
+    }) => {
       await page.goto("/admin/shifts");
       await waitForPageLoad(page);
 
@@ -399,34 +423,44 @@ test.describe("Regular Volunteers System", () => {
       const shiftCount = await shiftCards.count();
 
       if (shiftCount > 0) {
-        const firstCardTestId = await shiftCards.first().getAttribute("data-testid");
+        const firstCardTestId = await shiftCards
+          .first()
+          .getAttribute("data-testid");
         const shiftId = firstCardTestId?.replace("shift-card-", "");
-        
+
         if (shiftId) {
           // Look for auto-signup indicators
           const signupsList = page.getByTestId(`signups-list-${shiftId}`);
-          
+
           if (await signupsList.isVisible()) {
             // Check for regular signup badges
-            const regularSignups = page.locator("[data-testid^='signup-row-']").filter({
-              has: page.locator("[data-testid$='-regular-badge']")
-            });
-            
+            const regularSignups = page
+              .locator("[data-testid^='signup-row-']")
+              .filter({
+                has: page.locator("[data-testid$='-regular-badge']"),
+              });
+
             const regularSignupCount = await regularSignups.count();
-            
+
             if (regularSignupCount > 0) {
               // Check that regular badge is visible
               const firstRegularSignup = regularSignups.first();
-              const signupRowTestId = await firstRegularSignup.getAttribute("data-testid");
+              const signupRowTestId = await firstRegularSignup.getAttribute(
+                "data-testid"
+              );
               const signupId = signupRowTestId?.replace("signup-row-", "");
-              
+
               if (signupId) {
-                const regularBadge = page.getByTestId(`signup-${signupId}-regular-badge`);
+                const regularBadge = page.getByTestId(
+                  `signup-${signupId}-regular-badge`
+                );
                 await expect(regularBadge).toBeVisible();
                 await expect(regularBadge).toContainText("Regular");
 
                 // Check that status shows as REGULAR_PENDING
-                const statusBadge = page.getByTestId(`signup-status-${signupId}`);
+                const statusBadge = page.getByTestId(
+                  `signup-status-${signupId}`
+                );
                 await expect(statusBadge).toBeVisible();
               }
             }
@@ -435,7 +469,9 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test("should allow admin to accept auto-generated signups", async ({ page }) => {
+    test("should allow admin to accept auto-generated signups", async ({
+      page,
+    }) => {
       await page.goto("/admin/shifts");
       await waitForPageLoad(page);
 
@@ -443,31 +479,42 @@ test.describe("Regular Volunteers System", () => {
       const shiftCount = await shiftCards.count();
 
       if (shiftCount > 0) {
-        const firstCardTestId = await shiftCards.first().getAttribute("data-testid");
+        const firstCardTestId = await shiftCards
+          .first()
+          .getAttribute("data-testid");
         const shiftId = firstCardTestId?.replace("shift-card-", "");
-        
+
         if (shiftId) {
           const signupsList = page.getByTestId(`signups-list-${shiftId}`);
-          
+
           if (await signupsList.isVisible()) {
             // Look for pending regular signups
-            const regularPendingSignups = page.locator("[data-testid^='signup-row-']").filter({
-              has: page.locator("[data-testid$='-regular-badge']")
-            }).filter({
-              has: page.locator("text=REGULAR_PENDING")
-            });
-            
+            const regularPendingSignups = page
+              .locator("[data-testid^='signup-row-']")
+              .filter({
+                has: page.locator("[data-testid$='-regular-badge']"),
+              })
+              .filter({
+                has: page.locator("text=REGULAR_PENDING"),
+              });
+
             const pendingCount = await regularPendingSignups.count();
-            
+
             if (pendingCount > 0) {
               const firstPendingSignup = regularPendingSignups.first();
-              const signupRowTestId = await firstPendingSignup.getAttribute("data-testid");
+              const signupRowTestId = await firstPendingSignup.getAttribute(
+                "data-testid"
+              );
               const signupId = signupRowTestId?.replace("signup-row-", "");
-              
+
               if (signupId) {
                 // Check for accept/reject buttons
-                const acceptButton = page.getByTestId(`accept-signup-${signupId}`);
-                const rejectButton = page.getByTestId(`reject-signup-${signupId}`);
+                const acceptButton = page.getByTestId(
+                  `accept-signup-${signupId}`
+                );
+                const rejectButton = page.getByTestId(
+                  `reject-signup-${signupId}`
+                );
 
                 if (await acceptButton.isVisible()) {
                   await expect(acceptButton).toBeVisible();
@@ -485,45 +532,60 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test("should show regular volunteer indicators in shift creation", async ({ page }) => {
+    test("should show regular volunteer indicators in shift creation", async ({
+      page,
+    }) => {
       await page.goto("/admin/shifts/new");
       await waitForPageLoad(page);
 
       // Check for regular volunteers preview section
-      const regularVolunteersSection = page.getByTestId("regular-volunteers-preview-section");
-      
+      const regularVolunteersSection = page.getByTestId(
+        "regular-volunteers-preview-section"
+      );
+
       if (await regularVolunteersSection.isVisible()) {
         await expect(regularVolunteersSection).toBeVisible();
 
         // Check section title
-        const sectionTitle = page.getByTestId("regular-volunteers-preview-title");
+        const sectionTitle = page.getByTestId(
+          "regular-volunteers-preview-title"
+        );
         await expect(sectionTitle).toBeVisible();
         await expect(sectionTitle).toContainText("Regular Volunteers");
 
         // Check for matching regular volunteers list
         const matchingRegularsList = page.getByTestId("matching-regulars-list");
-        const noMatchingRegularsMessage = page.getByTestId("no-matching-regulars-message");
+        const noMatchingRegularsMessage = page.getByTestId(
+          "no-matching-regulars-message"
+        );
 
         const hasMatchingList = await matchingRegularsList.isVisible();
-        const hasNoMatchingMessage = await noMatchingRegularsMessage.isVisible();
+        const hasNoMatchingMessage =
+          await noMatchingRegularsMessage.isVisible();
 
         expect(hasMatchingList || hasNoMatchingMessage).toBeTruthy();
 
         if (hasMatchingList) {
           // Check individual regular volunteer items
-          const regularItems = page.locator("[data-testid^='matching-regular-']");
+          const regularItems = page.locator(
+            "[data-testid^='matching-regular-']"
+          );
           const itemCount = await regularItems.count();
-          
+
           if (itemCount > 0) {
             const firstItem = regularItems.first();
             await expect(firstItem).toBeVisible();
 
             const firstItemTestId = await firstItem.getAttribute("data-testid");
             const regularId = firstItemTestId?.replace("matching-regular-", "");
-            
+
             if (regularId) {
-              const volunteerName = page.getByTestId(`matching-regular-name-${regularId}`);
-              const frequency = page.getByTestId(`matching-regular-frequency-${regularId}`);
+              const volunteerName = page.getByTestId(
+                `matching-regular-name-${regularId}`
+              );
+              const frequency = page.getByTestId(
+                `matching-regular-frequency-${regularId}`
+              );
 
               await expect(volunteerName).toBeVisible();
               await expect(frequency).toBeVisible();
@@ -533,7 +595,9 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test.skip("should auto-generate signups when creating matching shifts", async ({ page }) => {
+    test.skip("should auto-generate signups when creating matching shifts", async ({
+      page,
+    }) => {
       // Skip this test as it would create actual data and signups
       await page.goto("/admin/shifts/new");
       await waitForPageLoad(page);
@@ -553,13 +617,15 @@ test.describe("Regular Volunteers System", () => {
       await loginAsVolunteer(page);
     });
 
-    test("should display regular volunteer related notifications", async ({ page }) => {
+    test("should display regular volunteer related notifications", async ({
+      page,
+    }) => {
       await page.goto("/dashboard");
       await waitForPageLoad(page);
 
       // Check for notifications section
       const notificationsSection = page.getByTestId("notifications-section");
-      
+
       if (await notificationsSection.isVisible()) {
         await expect(notificationsSection).toBeVisible();
 
@@ -570,7 +636,9 @@ test.describe("Regular Volunteers System", () => {
         if (notificationCount > 0) {
           // Check for notifications about auto-signups, schedule changes, etc.
           // This would depend on the specific notification implementation
-          console.log(`Found ${notificationCount} notifications to check for regular volunteer content`);
+          console.log(
+            `Found ${notificationCount} notifications to check for regular volunteer content`
+          );
         }
       }
     });
@@ -581,7 +649,9 @@ test.describe("Regular Volunteers System", () => {
       await loginAsAdmin(page);
     });
 
-    test("should display regular volunteers management responsively on mobile", async ({ page }) => {
+    test("should display regular volunteers management responsively on mobile", async ({
+      page,
+    }) => {
       // Set mobile viewport
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto("/admin/regulars");
@@ -592,7 +662,9 @@ test.describe("Regular Volunteers System", () => {
       await expect(regularVolunteersPage).toBeVisible();
 
       // Page title should be visible
-      const pageTitle = page.getByRole("heading", { name: "Regular Volunteers" }).first();
+      const pageTitle = page
+        .getByRole("heading", { name: "Regular Volunteers" })
+        .first();
       await expect(pageTitle).toBeVisible();
 
       // Statistics cards should be responsive
@@ -604,8 +676,11 @@ test.describe("Regular Volunteers System", () => {
       await expect(addRegularTitle).toBeVisible();
     });
 
-    test("should display volunteer regular settings responsively on mobile", async ({ page }) => {
-      await page.goto("/api/auth/signout");
+    test("should display volunteer regular settings responsively on mobile", async ({
+      page,
+      context,
+    }) => {
+      await context.clearCookies();
       await loginAsVolunteer(page);
 
       // Set mobile viewport

@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, Users } from "lucide-react";
 import { formatInNZT, isSameDayInNZT, nowInNZT } from "@/lib/timezone";
@@ -37,17 +41,19 @@ export function ShiftCalendar({
   // Create a map of dates that have shifts for quick lookup
   const shiftDates = new Set(
     shiftSummaries
-      .filter(summary => 
-        summary.locations.includes(selectedLocation) && summary.count > 0
+      .filter(
+        (summary) =>
+          summary.locations.includes(selectedLocation) && summary.count > 0
       )
-      .map(summary => summary.date)
+      .map((summary) => summary.date)
   );
 
   // Get shift data for a specific date (using NZ timezone)
   const getShiftDataForDate = (date: Date) => {
     const dateStr = formatInNZT(date, "yyyy-MM-dd");
     return shiftSummaries.find(
-      summary => summary.date === dateStr && summary.locations.includes(selectedLocation)
+      (summary) =>
+        summary.date === dateStr && summary.locations.includes(selectedLocation)
     );
   };
 
@@ -112,7 +118,10 @@ export function ShiftCalendar({
                   <div
                     className={cn(
                       "w-2 h-2 rounded-full",
-                      getStaffingColor(selectedShiftData.totalConfirmed, selectedShiftData.totalCapacity)
+                      getStaffingColor(
+                        selectedShiftData.totalConfirmed,
+                        selectedShiftData.totalCapacity
+                      )
                     )}
                   />
                 </div>
@@ -120,7 +129,11 @@ export function ShiftCalendar({
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start" data-testid="shift-calendar-popover">
+        <PopoverContent
+          className="w-auto p-0"
+          align="start"
+          data-testid="shift-calendar-popover"
+        >
           <Calendar
             mode="single"
             selected={selectedDate}
@@ -132,7 +145,8 @@ export function ShiftCalendar({
               selected: (date) => isSameDayInNZT(date, selectedDate),
             }}
             modifiersClassNames={{
-              hasShifts: "bg-blue-50 hover:bg-blue-100 text-blue-900 font-medium rounded-md",
+              hasShifts:
+                "bg-blue-50 hover:bg-blue-100 text-blue-900 font-medium rounded-md",
               selected: "bg-blue-600 text-white hover:bg-blue-700 rounded-md",
             }}
             classNames={{
@@ -143,14 +157,11 @@ export function ShiftCalendar({
               DayButton: (props) => {
                 const shiftData = getShiftDataForDate(props.day.date);
                 const dayNum = formatInNZT(props.day.date, "d");
-                
+
                 return (
                   <CalendarDayButton
                     {...props}
-                    className={cn(
-                      props.className,
-                      shiftData && "relative"
-                    )}
+                    className={cn(props.className, shiftData && "relative")}
                   >
                     <div className="flex flex-col items-center justify-center">
                       <span>{dayNum}</span>
@@ -158,7 +169,10 @@ export function ShiftCalendar({
                         <div
                           className={cn(
                             "w-1.5 h-1.5 rounded-full mt-0.5",
-                            getStaffingColor(shiftData.totalConfirmed, shiftData.totalCapacity)
+                            getStaffingColor(
+                              shiftData.totalConfirmed,
+                              shiftData.totalCapacity
+                            )
                           )}
                         />
                       )}
@@ -169,7 +183,10 @@ export function ShiftCalendar({
             }}
             className="rounded-md border"
           />
-          <div className="p-3 border-t bg-muted/50" data-testid="calendar-legend">
+          <div
+            className="p-3 border-t bg-muted/50"
+            data-testid="calendar-legend"
+          >
             <div className="text-xs text-muted-foreground space-y-1">
               <div className="font-medium mb-2">Legend:</div>
               <div className="flex items-center gap-2">

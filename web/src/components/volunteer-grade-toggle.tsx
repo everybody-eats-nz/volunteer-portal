@@ -163,7 +163,7 @@ export function VolunteerGradeToggle({
             className="flex items-center gap-2"
             data-testid="grade-change-dialog-title"
           >
-            <Award className="h-5 w-5 text-blue-600" />
+            <Award className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             Change Volunteer Grade
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
@@ -175,7 +175,7 @@ export function VolunteerGradeToggle({
 
         <div className="flex flex-col gap-4 py-4">
           <div
-            className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+            className="flex items-center p-4 bg-muted/50 dark:bg-muted/30 rounded-lg"
             data-testid="current-grade-display"
           >
             <div className="flex items-center gap-3">
@@ -199,7 +199,17 @@ export function VolunteerGradeToggle({
               onValueChange={(value: VolunteerGrade) => setSelectedGrade(value)}
             >
               <SelectTrigger data-testid="grade-select">
-                <SelectValue />
+                <SelectValue>
+                  <div className="flex items-center gap-2 text-left">
+                    <span>{getVolunteerGradeInfo(selectedGrade).icon}</span>
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">{getVolunteerGradeInfo(selectedGrade).label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {getVolunteerGradeInfo(selectedGrade).description}
+                      </span>
+                    </div>
+                  </div>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {VOLUNTEER_GRADE_OPTIONS.map((option) => (
@@ -225,7 +235,7 @@ export function VolunteerGradeToggle({
 
           {selectedGrade !== currentGrade && (
             <div
-              className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
+              className="flex items-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg"
               data-testid="new-grade-display"
             >
               <div className="flex items-center gap-3">
@@ -244,13 +254,13 @@ export function VolunteerGradeToggle({
           )}
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-border">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border dark:border-zinc-800">
           <Button
             type="button"
             variant="outline"

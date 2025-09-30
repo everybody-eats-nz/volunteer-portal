@@ -640,27 +640,6 @@ export default async function NewShiftPage() {
                     createShiftTypeAction={createShiftType}
                   />
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="order-2 sm:order-1"
-                      data-testid="cancel-shift-creation-button"
-                    >
-                      <Link href="/admin/shifts">Cancel</Link>
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="order-1 sm:order-2 bg-primary hover:bg-primary/90"
-                      data-testid="create-shift-button"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Create shift
-                    </Button>
-                  </div>
                 </form>
               </CardContent>
             </Card>
@@ -819,7 +798,7 @@ export default async function NewShiftPage() {
                       {dbTemplates.map((template) => (
                         <div
                           key={template.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 dark:hover:bg-accent/30 transition-colors"
                         >
                           <div className="space-y-1">
                             <div className="font-medium">
@@ -859,14 +838,14 @@ export default async function NewShiftPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <PlusIcon className="h-6 w-6 text-gray-400" />
+                  <div className="text-center py-12 bg-muted/50 dark:bg-muted/20 rounded-lg border border-dashed border-border">
+                    <div className="h-12 w-12 bg-muted dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <PlusIcon className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <h3 className="text-lg font-semibold mb-2">
                       No templates found
                     </h3>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-muted-foreground mb-6">
                       Templates help you quickly create consistent shifts across different days.
                     </p>
                     <CreateTemplateDialog

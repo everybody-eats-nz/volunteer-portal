@@ -41,6 +41,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { EditRegularVolunteerDialog } from "./edit-regular-volunteer-dialog";
 
 type RegularVolunteer = {
   id: string;
@@ -71,10 +72,22 @@ type RegularVolunteer = {
   };
 };
 
-export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
+type ShiftType = {
+  id: string;
+  name: string;
+};
+
+export function RegularsTable({
+  regulars,
+  shiftTypes
+}: {
+  regulars: RegularVolunteer[];
+  shiftTypes: ShiftType[];
+}) {
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [toggleId, setToggleId] = useState<string | null>(null);
+  const [editRegular, setEditRegular] = useState<RegularVolunteer | null>(null);
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
     try {
@@ -167,7 +180,7 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border">
+      <div className="bg-card dark:bg-card/50 backdrop-blur-sm rounded-lg shadow-sm border dark:border-zinc-800">
         <div className="p-6 border-b">
           <h2 className="text-lg font-semibold">Regular Volunteers</h2>
           <p className="text-sm text-muted-foreground">
@@ -263,9 +276,7 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/admin/regulars/${regular.id}/edit`)
-                            }
+                            onClick={() => setEditRegular(regular)}
                           >
                             <EditIcon className="h-4 w-4 mr-2" />
                             Edit
@@ -311,10 +322,18 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
       <AlertDialog open={!!toggleId} onOpenChange={() => setToggleId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {regulars.find((r) => r.id === toggleId)?.isActive
-                ? "Deactivate Regular Volunteer?"
-                : "Activate Regular Volunteer?"}
+            <AlertDialogTitle className="flex items-center gap-2">
+              {regulars.find((r) => r.id === toggleId)?.isActive ? (
+                <>
+                  <PauseIcon className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  Deactivate Regular Volunteer
+                </>
+              ) : (
+                <>
+                  <PlayIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  Activate Regular Volunteer
+                </>
+              )}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {regulars.find((r) => r.id === toggleId)?.isActive
@@ -331,10 +350,22 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
                   handleToggle(regular.id, regular.isActive);
                 }
               }}
+              className={regulars.find((r) => r.id === toggleId)?.isActive
+                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                : "bg-green-600 hover:bg-green-700 text-white"
+              }
             >
-              {regulars.find((r) => r.id === toggleId)?.isActive
-                ? "Deactivate"
-                : "Activate"}
+              {regulars.find((r) => r.id === toggleId)?.isActive ? (
+                <>
+                  <PauseIcon className="h-4 w-4 mr-2" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <PlayIcon className="h-4 w-4 mr-2" />
+                  Activate
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -344,14 +375,17 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Remove Regular Volunteer Status?
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <TrashIcon className="h-5 w-5" />
+              Remove Regular Volunteer Status
             </AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently remove the regular volunteer status for{" "}
-              {regulars.find((r) => r.id === deleteId)?.user.firstName}{" "}
-              {regulars.find((r) => r.id === deleteId)?.user.lastName}. Any
-              pending auto-generated signups will be canceled. This action
+              <strong>
+                {regulars.find((r) => r.id === deleteId)?.user.firstName}{" "}
+                {regulars.find((r) => r.id === deleteId)?.user.lastName}
+              </strong>
+              . Any pending auto-generated signups will be canceled. This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -361,11 +395,26 @@ export function RegularsTable({ regulars }: { regulars: RegularVolunteer[] }) {
               onClick={() => deleteId && handleDelete(deleteId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              <TrashIcon className="h-4 w-4 mr-2" />
               Remove Regular Status
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Dialog */}
+      {editRegular && (
+        <EditRegularVolunteerDialog
+          regular={editRegular}
+          shiftTypes={shiftTypes}
+          open={!!editRegular}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditRegular(null);
+            }
+          }}
+        />
+      )}
     </>
   );
 }

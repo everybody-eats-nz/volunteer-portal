@@ -118,11 +118,11 @@ export default async function AdminUsersPage({
           data-testid="user-stats-grid"
         >
           <div
-            className="border rounded-lg p-3 bg-white"
+            className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
             data-testid="total-users-stat"
           >
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               <div>
                 <div
                   className="text-lg font-semibold"
@@ -136,11 +136,11 @@ export default async function AdminUsersPage({
           </div>
 
           <div
-            className="border rounded-lg p-3 bg-white"
+            className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
             data-testid="volunteers-stat"
           >
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-emerald-600" />
+              <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               <div>
                 <div
                   className="text-lg font-semibold"
@@ -154,11 +154,11 @@ export default async function AdminUsersPage({
           </div>
 
           <div
-            className="border rounded-lg p-3 bg-white"
+            className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
             data-testid="admins-stat"
           >
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-purple-600" />
+              <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               <div>
                 <div
                   className="text-lg font-semibold"
@@ -172,11 +172,11 @@ export default async function AdminUsersPage({
           </div>
 
           <div
-            className="border rounded-lg p-3 bg-white"
+            className="border rounded-lg p-3 bg-card dark:bg-card/50 backdrop-blur-sm"
             data-testid="new-users-stat"
           >
             <div className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-orange-600" />
+              <UserPlus className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               <div>
                 <div
                   className="text-lg font-semibold"
@@ -203,13 +203,13 @@ export default async function AdminUsersPage({
       <section data-testid="users-section">
         {users.length === 0 ? (
           <div className="text-center py-16" data-testid="no-users-message">
-            <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 flex items-center justify-center shadow-inner">
-              <Users className="h-10 w-10 text-slate-400" />
+            <div className="h-20 w-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-slate-100 to-gray-100 dark:from-zinc-800 dark:to-zinc-700 flex items-center justify-center shadow-inner">
+              <Users className="h-10 w-10 text-slate-400 dark:text-zinc-400" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+            <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">
               No users found
             </h3>
-            <p className="text-slate-600 max-w-md mx-auto mb-6">
+            <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
               {searchQuery || roleFilter
                 ? "No users found matching your filters. Try adjusting your search or filter criteria."
                 : "Get started by inviting your first user to the platform."}

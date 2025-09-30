@@ -27,16 +27,14 @@ const enhancedStaggerContainer: Variants = {
 };
 
 // Enhanced stagger item with coordinated group exit animations
-const createStaggerItemVariants = (index: number): Variants => ({
+const createStaggerItemVariants = (): Variants => ({
   hidden: {
     opacity: 0,
     y: 30,
-    scale: 0.95,
   },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
       duration: 0.4,
       ease: [0.4, 0, 0.2, 1],
@@ -44,9 +42,7 @@ const createStaggerItemVariants = (index: number): Variants => ({
   },
   exit: {
     opacity: 0,
-    x: index % 2 === 0 ? -80 : 80, // Shorter distance for coordinated group exit
-    y: -10, // Slight upward movement for polish
-    scale: 0.9,
+    y: -10, // Only y-axis movement
     transition: {
       duration: 0.3, // Faster exit for group cohesion
       ease: [0.4, 0, 1, 1],
@@ -165,24 +161,24 @@ function getGradeInfo(grade: string | null | undefined) {
   switch (grade) {
     case "PINK":
       return {
-        color: "bg-pink-100 text-pink-700",
+        color: "bg-pink-100 dark:bg-pink-950/20 text-pink-700 dark:text-pink-300",
         icon: Award,
         label: "Shift Leader",
       };
     case "YELLOW":
       return {
-        color: "bg-yellow-100 text-yellow-700",
+        color: "bg-yellow-100 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300",
         icon: Star,
         label: "Experienced",
       };
     case "GREEN":
       return {
-        color: "bg-green-100 text-green-700",
+        color: "bg-green-100 dark:bg-green-950/20 text-green-700 dark:text-green-300",
         icon: Shield,
         label: "Standard",
       };
     default:
-      return { color: "bg-blue-100 text-blue-700", icon: null, label: "New" };
+      return { color: "bg-blue-100 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300", icon: null, label: "New" };
   }
 }
 
@@ -323,7 +319,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
             ).length;
             const isCompleted = isShiftCompleted(shift.end);
             const staffingStatus = isCompleted 
-              ? { color: "bg-gray-500", text: "Completed", icon: CheckCircle2 }
+              ? { color: "bg-muted/50 dark:bg-muted/200", text: "Completed", icon: CheckCircle2 }
               : getStaffingStatus(confirmed, shift.capacity);
 
             // Count volunteer grades
@@ -349,12 +345,12 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                variants={createStaggerItemVariants(index)}
+                variants={createStaggerItemVariants()}
                 className="w-full"
               >
                 <Card
                   data-testid={`shift-card-${shift.id}`}
-                  className={`border-2 ${shiftTheme.borderColor} w-full relative overflow-hidden shadow-md`}
+                  className={`border-2 ${shiftTheme.borderColor} w-full relative overflow-hidden shadow-md dark:bg-slate-800/50`}
                 >
                   {/* Background gradient */}
                   <div
@@ -403,7 +399,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {gradeCount.pink > 0 && (
                           <div
                             data-testid={`grade-pink-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-pink-100 text-pink-700 rounded text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 bg-pink-100 dark:bg-pink-950/20 text-pink-700 dark:text-pink-300 rounded text-xs font-medium"
                           >
                             <Award className="h-3 w-3" />
                             {gradeCount.pink}
@@ -412,7 +408,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {gradeCount.yellow > 0 && (
                           <div
                             data-testid={`grade-yellow-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300 rounded text-xs font-medium"
                           >
                             <Star className="h-3 w-3" />
                             {gradeCount.yellow}
@@ -421,7 +417,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {gradeCount.green > 0 && (
                           <div
                             data-testid={`grade-green-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-950/20 text-green-700 dark:text-green-300 rounded text-xs font-medium"
                           >
                             <Shield className="h-3 w-3" />
                             {gradeCount.green}
@@ -430,7 +426,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {gradeCount.new > 0 && (
                           <div
                             data-testid={`grade-new-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
                           >
                             <Users className="h-3 w-3" />
                             {gradeCount.new} new
@@ -439,7 +435,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {pending > 0 && (
                           <div
                             data-testid={`pending-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium ml-auto"
+                            className="flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 rounded text-xs font-medium ml-auto"
                           >
                             <Clock className="h-3 w-3" />
                             {pending} pending
@@ -448,7 +444,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {waitlisted > 0 && (
                           <div
                             data-testid={`waitlisted-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-950/20 text-purple-700 dark:text-purple-300 rounded text-xs font-medium"
                           >
                             <Users className="h-3 w-3" />
                             {waitlisted} waitlisted
@@ -457,7 +453,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         {noShow > 0 && (
                           <div
                             data-testid={`no-show-badge-${shift.id}`}
-                            className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-950/20 text-red-700 dark:text-red-300 rounded text-xs font-medium"
                           >
                             <UserX className="h-3 w-3" />
                             {noShow} no show
@@ -494,7 +490,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             return (
                               <div
                                 key={signup.id}
-                                className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg min-w-0"
+                                className="flex items-center gap-3 p-2 bg-muted/50 dark:bg-white/10 rounded-lg min-w-0"
                               >
                                 <Link
                                   href={`/admin/volunteers/${signup.user.id}`}
@@ -502,7 +498,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                   data-testid={`volunteer-avatar-link-${signup.id}`}
                                 >
                                   <Avatar
-                                    className="h-9 w-9 border-2 border-white shadow-md hover:shadow-lg transition-shadow"
+                                    className="h-9 w-9 border-2 border-white dark:border-gray-600 shadow-md hover:shadow-lg transition-shadow"
                                     data-testid={`volunteer-avatar-${signup.id}`}
                                   >
                                     <AvatarImage
@@ -531,7 +527,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                   <div className="flex items-center gap-1 mb-1">
                                     <Link
                                       href={`/admin/volunteers/${signup.user.id}`}
-                                      className="text-sm font-medium text-slate-900 truncate hover:text-blue-600"
+                                      className="text-sm font-medium text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-400"
                                       data-testid={`volunteer-name-link-${signup.id}`}
                                     >
                                       {signup.user.name ||
@@ -554,7 +550,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-5 px-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                            className="h-5 px-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
                                             data-testid={`admin-notes-button-${signup.id}`}
                                           >
                                             <Info className="h-3.5 w-3.5 mr-0.5" />
@@ -572,7 +568,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                       return age !== null && age <= 18 ? (
                                         <Badge
                                           variant="outline"
-                                          className="text-xs bg-orange-50 text-orange-700 border-orange-200 ml-1 px-1.5 py-0.5"
+                                          className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 ml-1 px-1.5 py-0.5"
                                           data-testid={`volunteer-age-${signup.id}`}
                                         >
                                           {age}yr
@@ -581,7 +577,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                     })()}
                                   </div>
                                   {signup.note && (
-                                    <div className="text-xs text-muted-foreground mt-1 p-2 bg-gray-50 rounded-md">
+                                    <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted/50 dark:bg-white/10 rounded-md">
                                       <span className="font-medium">Note: </span>
                                       {signup.note}
                                     </div>
@@ -647,12 +643,12 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                     {/* Shortage Action Button */}
                     {!isCompleted && (staffingStatus.text === "Critical" ||
                       staffingStatus.text === "Understaffed") && (
-                      <div className="mt-4 pt-4 border-t border-slate-100">
+                      <div className="mt-4 pt-4 border-t border-border">
                         <Button
                           asChild
                           variant="outline"
                           size="sm"
-                          className="w-full border-orange-200 text-orange-600 hover:bg-orange-50"
+                          className="w-full border-orange-200 dark:border-orange-800 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
                           data-testid={`send-shortage-email-${shift.id}`}
                         >
                           <Link
@@ -668,12 +664,12 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
 
                     {/* Admin Action Buttons */}
                     {!isCompleted && (
-                    <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
+                    <div className="mt-4 pt-4 border-t border-border flex gap-2">
                       <Button
                         asChild
                         variant="outline"
                         size="sm"
-                        className="flex-1 text-blue-600 hover:bg-blue-50 border-blue-200"
+                        className="flex-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 border-blue-200 dark:border-blue-800"
                         data-testid={`edit-shift-button-${shift.id}`}
                       >
                         <Link
@@ -719,7 +715,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 text-red-600 hover:bg-red-50 border-red-200"
+                          className="flex-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-800"
                           data-testid={`delete-shift-button-${shift.id}`}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />

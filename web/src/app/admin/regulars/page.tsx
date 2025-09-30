@@ -98,55 +98,55 @@ export default async function RegularVolunteersPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
+        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total Regulars
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <p className="text-2xl font-bold text-foreground">
                 {stats.total}
               </p>
             </div>
-            <StarIcon className="h-8 w-8 text-yellow-500" />
+            <StarIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
+        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Active
               </p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {stats.active}
               </p>
             </div>
-            <CalendarIcon className="h-8 w-8 text-green-500" />
+            <CalendarIcon className="h-8 w-8 text-green-500 dark:text-green-400" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
+        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Paused
               </p>
-              <p className="text-2xl font-bold text-yellow-600">
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                 {stats.paused}
               </p>
             </div>
-            <PauseIcon className="h-8 w-8 text-yellow-500" />
+            <PauseIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border">
+        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 Inactive
               </p>
-              <p className="text-2xl font-bold text-gray-500">
+              <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">
                 {stats.inactive}
               </p>
             </div>
@@ -161,7 +161,7 @@ export default async function RegularVolunteersPage() {
       </div>
 
       {/* Regulars Table */}
-      <RegularsTable regulars={regulars} />
+      <RegularsTable regulars={regulars} shiftTypes={shiftTypes} />
       </PageContainer>
     </AdminPageWrapper>
   );

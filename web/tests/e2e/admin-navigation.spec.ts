@@ -7,9 +7,6 @@ test.describe("Admin Navigation", () => {
       // Login as admin
       await loginAsAdmin(page);
 
-      // Navigate to admin to ensure sidebar is visible
-      await page.goto("/admin");
-
       // Verify sidebar is visible
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
 
@@ -87,9 +84,6 @@ test.describe("Admin Navigation", () => {
 
       // Login as admin
       await loginAsAdmin(page);
-
-      // Navigate to admin to ensure page loads
-      await page.goto("/admin");
 
       // Admin dashboard should be accessible on mobile
       await expect(page.getByTestId("admin-dashboard-page")).toBeVisible();

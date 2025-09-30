@@ -175,7 +175,7 @@ export function RegularVolunteerForm({
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+          <CardHeader className="cursor-pointer hover:bg-accent/50 dark:hover:bg-accent/30 transition-colors">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Add Regular Volunteer</CardTitle>

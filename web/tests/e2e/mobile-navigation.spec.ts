@@ -1,57 +1,5 @@
 import { test, expect } from "./base";
-import type { Page } from "@playwright/test";
-
-// Helper function to login as admin
-async function loginAsAdmin(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    const adminLoginButton = page.getByRole("button", {
-      name: /login as admin/i,
-    });
-    await adminLoginButton.waitFor({ state: "visible", timeout: 5000 });
-    await adminLoginButton.click();
-
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch (error) {
-      console.log("Admin login may have failed or taken too long");
-    }
-
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during admin login:", error);
-  }
-}
-
-// Helper function to login as volunteer
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    const volunteerLoginButton = page.getByRole("button", {
-      name: /login as volunteer/i,
-    });
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 5000 });
-    await volunteerLoginButton.click();
-
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch (error) {
-      console.log("Volunteer login may have failed or taken too long");
-    }
-
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during volunteer login:", error);
-  }
-}
+import { loginAsVolunteer, loginAsAdmin } from "./helpers/auth";
 
 test.describe("Mobile Navigation", () => {
   test.describe("Hamburger Menu", () => {
@@ -188,7 +136,9 @@ test.describe("Mobile Navigation", () => {
       await expect(joinLink).toHaveCount(0);
     });
 
-    test("should show admin navigation toggle for admin users", async ({ page }) => {
+    test("should show admin navigation toggle for admin users", async ({
+      page,
+    }) => {
       // Login as an admin
       await loginAsAdmin(page);
 
@@ -205,11 +155,11 @@ test.describe("Mobile Navigation", () => {
 
       // Admin dashboard content should be accessible on mobile
       await expect(page.getByTestId("admin-dashboard-page")).toBeVisible();
-      
+
       // Admin can navigate using dashboard buttons on mobile
       await page.getByTestId("dashboard-manage-users-button").click();
       await expect(page).toHaveURL("/admin/users");
-      
+
       // Admin sidebar toggle should still be visible on other admin pages
       await expect(page.getByTestId("admin-sidebar-toggle")).toBeVisible();
     });
