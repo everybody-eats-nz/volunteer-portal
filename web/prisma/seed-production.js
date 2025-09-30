@@ -123,15 +123,6 @@ async function main() {
     },
   });
 
-  const anywhereNeeded = await prisma.shiftType.upsert({
-    where: { name: "Anywhere I'm Needed (PM)" },
-    update: {},
-    create: {
-      name: "Anywhere I'm Needed (PM)",
-      description: "Flexible placement for PM shifts starting after 4:00pm",
-    },
-  });
-
   console.log("✅ Shift types created");
 
   // Create shift templates for each location

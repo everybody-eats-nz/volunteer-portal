@@ -177,10 +177,6 @@ export default async function MyShiftsPage({
           status: true,
           createdAt: true,
           updatedAt: true,
-          isFlexiblePlacement: true,
-          originalShiftId: true,
-          placedAt: true,
-          placementNotes: true,
           shift: {
             include: {
               shiftType: true,
@@ -228,10 +224,6 @@ export default async function MyShiftsPage({
           status: true,
           createdAt: true,
           updatedAt: true,
-          isFlexiblePlacement: true,
-          originalShiftId: true,
-          placedAt: true,
-          placementNotes: true,
           shift: {
             include: {
               shiftType: true,
@@ -388,16 +380,6 @@ export default async function MyShiftsPage({
               <span className="text-sm font-medium">Status</span>
               <StatusBadge status={shift.status} isPast={isPastShift} />
             </div>
-
-            {/* Flexible Placement Indicator */}
-            {shift.isFlexiblePlacement && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Placement Type</span>
-                <span className="text-sm bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md">
-                  Flexible placement
-                </span>
-              </div>
-            )}
 
             {/* Time */}
             <div className="flex items-center justify-between">

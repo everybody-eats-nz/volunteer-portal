@@ -155,10 +155,6 @@ export async function POST(request: Request) {
         where: { id: signupId },
         data: {
           shiftId: targetShiftId,
-          // Store original shift info if this is the first movement
-          ...(signup.originalShiftId ? {} : { originalShiftId: originalShiftId }),
-          // If it was already a flexible placement, update the placement time
-          ...(signup.isFlexiblePlacement ? { placedAt: new Date(), placementNotes: movementNotes || null } : {}),
           status: "CONFIRMED", // Confirm the movement
         },
         include: {
@@ -177,16 +173,13 @@ export async function POST(request: Request) {
       });
 
       // Create notification for the volunteer about their movement
-      const notificationType = signup.isFlexiblePlacement ? "FLEXIBLE_PLACEMENT" : "SHIFT_CONFIRMED";
-      const notificationTitle = signup.isFlexiblePlacement ? "You've been placed!" : "You've been moved to a different shift";
-      const notificationMessage = signup.isFlexiblePlacement 
-        ? `You've been placed in ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString()} at ${targetShift.location}`
-        : `You've been moved from ${signup.shift.shiftType.name} to ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString()} at ${targetShift.location}`;
+      const notificationTitle = "You've been moved to a different shift";
+      const notificationMessage = `You've been moved from ${signup.shift.shiftType.name} to ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString()} at ${targetShift.location}`;
 
       await tx.notification.create({
         data: {
           userId: signup.userId,
-          type: notificationType,
+          type: "SHIFT_CONFIRMED",
           title: notificationTitle,
           message: notificationMessage,
           actionUrl: "/shifts/mine",
