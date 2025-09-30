@@ -196,18 +196,13 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       // Past shift - show attendance tracking
       return (
         <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-past-actions` : `volunteer-actions-${signupId}-confirmed-past`}>
-          <div className="flex items-center text-xs text-green-600 font-medium" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-status` : `volunteer-status-${signupId}-confirmed`}>
-            <Check className="h-3 w-3 mr-1" />
-            Attended
-          </div>
-          
           {/* Mark Absent Button */}
           <Dialog open={dialogOpen === "mark_absent"} onOpenChange={(open) => setDialogOpen(open ? "mark_absent" : null)}>
             <DialogTrigger asChild>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-6 px-2 text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
                 disabled={loading === "mark_absent"}
                 title="Mark as no show"
                 data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-button` : `volunteer-mark-absent-${signupId}`}
@@ -259,11 +254,6 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
     // Current/future shift - show normal actions
     return (
       <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-actions` : `volunteer-actions-${signupId}-confirmed`}>
-        <div className="flex items-center text-xs text-green-600 font-medium" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-status` : `volunteer-status-${signupId}-confirmed`}>
-          <Check className="h-3 w-3 mr-1" />
-          Confirmed
-        </div>
-
         {/* Move Button */}
         {currentShift && !shiftCompleted && (
           <Dialog open={dialogOpen === "move"} onOpenChange={(open) => setDialogOpen(open ? "move" : null)}>
@@ -271,7 +261,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
               <Button
                 size="sm"
                 variant="outline"
-                className="h-6 px-2 text-xs bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
                 disabled={loading === "move"}
                 title="Move to different shift"
                 data-testid={testIdPrefix ? `${testIdPrefix}-move-button` : `volunteer-move-${signupId}`}
@@ -350,7 +340,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
               <Button
                 size="sm"
                 variant="outline"
-                className="h-6 px-2 text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
                 disabled={loading === "cancel"}
                 title="Cancel this shift"
                 data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
@@ -402,19 +392,15 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   if (currentStatus === "WAITLISTED") {
     const dialogContent = getDialogContent("confirm");
-    
+
     return (
       <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-waitlisted-actions` : `volunteer-actions-${signupId}-waitlisted`}>
-        <div className="flex items-center text-xs text-purple-600 font-medium" data-testid={testIdPrefix ? `${testIdPrefix}-waitlisted-status` : `volunteer-status-${signupId}-waitlisted`}>
-          <Clock className="h-3 w-3 mr-1" />
-          Waitlisted
-        </div>
         <Dialog open={dialogOpen === "confirm"} onOpenChange={(open) => setDialogOpen(open ? "confirm" : null)}>
           <DialogTrigger asChild>
             <Button
               size="sm"
               variant="outline"
-              className="h-6 px-2 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
               disabled={loading === "confirm"}
               title="Confirm this volunteer (allows over-capacity)"
               data-testid={testIdPrefix ? `${testIdPrefix}-confirm-button` : `volunteer-confirm-${signupId}`}
@@ -465,21 +451,16 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   if (currentStatus === "NO_SHOW") {
     const markPresentDialogContent = getDialogContent("mark_present");
-    
+
     return (
       <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-no-show-actions` : `volunteer-actions-${signupId}-no-show`}>
-        <div className="flex items-center text-xs text-red-600 font-medium" data-testid={testIdPrefix ? `${testIdPrefix}-no-show-status` : `volunteer-status-${signupId}-no-show`}>
-          <UserX className="h-3 w-3 mr-1" />
-          No Show
-        </div>
-        
         {/* Mark Present Button - allow reverting no-show status */}
         <Dialog open={dialogOpen === "mark_present"} onOpenChange={(open) => setDialogOpen(open ? "mark_present" : null)}>
           <DialogTrigger asChild>
             <Button
               size="sm"
               variant="outline"
-              className="h-6 px-2 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
               disabled={loading === "mark_present"}
               title="Mark as present"
               data-testid={testIdPrefix ? `${testIdPrefix}-mark-present-button` : `volunteer-mark-present-${signupId}`}
@@ -529,12 +510,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
   }
 
   if (currentStatus === "CANCELED") {
-    return (
-      <div className="flex items-center text-xs text-red-600 font-medium" data-testid={testIdPrefix ? `${testIdPrefix}-canceled-status` : `volunteer-status-${signupId}-canceled`}>
-        <X className="h-3 w-3 mr-1" />
-        Canceled
-      </div>
-    );
+    return null; // Status badge shown next to name, no actions needed
   }
 
   // For PENDING or REGULAR_PENDING status, show action buttons
@@ -545,7 +521,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       <Button
         size="sm"
         variant="outline"
-        className="h-6 px-2 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+        className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
         onClick={() => handleAction("approve")}
         disabled={loading === "approve"}
         data-testid={testIdPrefix ? `${testIdPrefix}-approve-button` : `volunteer-approve-${signupId}`}
@@ -562,7 +538,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
           <Button
             size="sm"
             variant="outline"
-            className="h-6 px-2 text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+            className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
             disabled={loading === "reject"}
             data-testid={testIdPrefix ? `${testIdPrefix}-reject-button` : `volunteer-reject-${signupId}`}
           >

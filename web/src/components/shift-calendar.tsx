@@ -146,8 +146,8 @@ export function ShiftCalendar({
             }}
             modifiersClassNames={{
               hasShifts:
-                "bg-blue-50 hover:bg-blue-100 text-blue-900 font-medium rounded-md",
-              selected: "bg-blue-600 text-white hover:bg-blue-700 rounded-md",
+                "bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/60 dark:hover:bg-blue-800/60 text-blue-900 dark:text-blue-100 font-medium rounded-md",
+              selected: "bg-blue-600 dark:bg-blue-600 text-white hover:bg-blue-700 dark:hover:bg-blue-700 rounded-md",
             }}
             classNames={{
               today: "",
@@ -181,7 +181,7 @@ export function ShiftCalendar({
                 );
               },
             }}
-            className="rounded-md border"
+            className="rounded-md"
           />
           <div
             className="p-3 border-t bg-muted/50"
