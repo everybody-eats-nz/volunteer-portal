@@ -261,56 +261,38 @@ export default async function AdminShiftsPage({
           </Alert>
         )}
 
-        {/* Navigation Controls */}
-        <div className="mb-6 bg-white dark:bg-black rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
-          <div className="p-6">
-            <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
-              {/* Left Section: Date Navigation */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/60 border border-blue-300 dark:border-blue-700 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-blue-700 dark:text-blue-200" />
-                  </div>
-                  <ShiftCalendarWrapper
-                    selectedDate={selectedDateNZT}
-                    selectedLocation={selectedLocation}
-                    shiftSummaries={processedShiftSummaries}
-                  />
-                </div>
+        {/* Modern Toolbar */}
+        <div className="mb-8 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          {/* Filters - Clean, minimal design */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <ShiftCalendarWrapper
+              selectedDate={selectedDateNZT}
+              selectedLocation={selectedLocation}
+              shiftSummaries={processedShiftSummaries}
+            />
+            <ShiftLocationSelector
+              selectedLocation={selectedLocation}
+              dateString={dateString}
+              locations={LOCATIONS}
+            />
+          </div>
 
-                <div className="hidden sm:block h-12 w-px bg-slate-300 dark:bg-slate-600" />
-
-                {/* Location Selector */}
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/60 border border-green-300 dark:border-green-700 flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-green-700 dark:text-green-200" />
-                  </div>
-                  <ShiftLocationSelector
-                    selectedLocation={selectedLocation}
-                    dateString={dateString}
-                    locations={LOCATIONS}
-                  />
-                </div>
-              </div>
-
-              {/* Right Section: Quick Actions */}
-              <div className="flex items-center gap-3">
-                <Button
-                  asChild
-                  variant={isToday ? "default" : "outline"}
-                  size="sm"
-                  className={`h-10 ${!isToday ? 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700' : ''}`}
-                  data-testid="today-button"
-                >
-                  <Link
-                    href={`/admin/shifts?date=${today}&location=${selectedLocation}`}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Today
-                  </Link>
-                </Button>
-              </div>
-            </div>
+          {/* Quick Actions */}
+          <div className="flex gap-2 w-full lg:w-auto">
+            <Button
+              asChild
+              variant={isToday ? "default" : "outline"}
+              size="sm"
+              className={`flex-1 lg:flex-none h-11 ${!isToday ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700' : ''}`}
+              data-testid="today-button"
+            >
+              <Link
+                href={`/admin/shifts?date=${today}&location=${selectedLocation}`}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Today
+              </Link>
+            </Button>
           </div>
         </div>
 

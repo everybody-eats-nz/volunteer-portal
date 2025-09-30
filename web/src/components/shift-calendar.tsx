@@ -89,7 +89,7 @@ export function ShiftCalendar({
           <Button
             variant="outline"
             className={cn(
-              "w-[280px] justify-start text-left font-normal",
+              "w-[280px] justify-start text-left font-normal h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700",
               !selectedDate && "text-muted-foreground"
             )}
             data-testid="shift-calendar-trigger"
@@ -97,13 +97,13 @@ export function ShiftCalendar({
             <CalendarIcon className="mr-2 h-4 w-4" />
             <div className="flex items-center gap-2 flex-1">
               <div>
-                <div className="text-sm font-medium">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
                   {formatInNZT(selectedDate, "MMM d, yyyy")}
                 </div>
-                <div className="text-xs text-slate-600">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
                   {formatInNZT(selectedDate, "EEEE")}
                   {isSameDayInNZT(selectedDate, nowInNZT()) && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                    <span className="ml-2 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
                       Today
                     </span>
                   )}
