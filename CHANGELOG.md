@@ -1,3 +1,9 @@
+## [0.48.4] - 2025-09-30
+
+### Changes
+- fix: remove flexible placement feature ([#174](https://github.com/everybody-eats-nz/volunteer-portal/pull/174)) by @malinmalliyawadu
+
+
 ## [0.48.3] - 2025-09-30
 
 ### Changes
