@@ -84,9 +84,9 @@ export default function AchievementsCard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-8">
-              <motion.div 
-                animate={{ rotate: 360 }} 
+            <div className="flex items-center justify-center" style={{ minHeight: "400px" }}>
+              <motion.div
+                animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 className="rounded-full h-8 w-8 border-b-2 border-primary"
               />

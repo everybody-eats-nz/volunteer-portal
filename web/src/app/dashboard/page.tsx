@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
-import { ContentGrid, BottomGrid } from "@/components/dashboard-animated";
+import { ContentGrid } from "@/components/dashboard-animated";
 import AchievementsCard from "@/components/achievements-card";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { DashboardNextShift } from "@/components/dashboard-next-shift";
@@ -59,14 +59,12 @@ export default async function DashboardPage() {
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardRecentActivity userId={userId} />
         </Suspense>
-      </ContentGrid>
 
-      <BottomGrid>
         {/* Impact & Community Stats - streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardImpactStats userId={userId} />
         </Suspense>
-      </BottomGrid>
+      </ContentGrid>
 
       {/* Quick Actions - renders immediately (no data dependencies) */}
       <DashboardQuickActions />
