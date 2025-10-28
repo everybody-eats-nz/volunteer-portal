@@ -1,3 +1,9 @@
+## [0.48.7] - 2025-10-28
+
+### Changes
+- build(deps): bump the npm_and_yarn group across 2 directories with 3 updates ([#179](https://github.com/everybody-eats-nz/volunteer-portal/pull/179)) by @dependabot[bot]
+
+
 ## [0.48.6] - 2025-09-30
 
 ### Changes
