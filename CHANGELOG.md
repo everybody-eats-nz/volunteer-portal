@@ -1,3 +1,9 @@
+## [0.48.6] - 2025-09-30
+
+### Changes
+- fix: improve contrast and design of admin shifts page ([#176](https://github.com/everybody-eats-nz/volunteer-portal/pull/176)) by @malinmalliyawadu
+
+
 ## [0.48.5] - 2025-09-30
 
 ### Changes

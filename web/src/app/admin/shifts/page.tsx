@@ -261,56 +261,38 @@ export default async function AdminShiftsPage({
           </Alert>
         )}
 
-        {/* Navigation Controls */}
-        <div className="mb-6 bg-card dark:bg-card/50 rounded-xl border shadow-sm overflow-hidden">
-          <div className="p-6">
-            <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:items-center lg:justify-between">
-              {/* Left Section: Date Navigation */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <ShiftCalendarWrapper
-                    selectedDate={selectedDateNZT}
-                    selectedLocation={selectedLocation}
-                    shiftSummaries={processedShiftSummaries}
-                  />
-                </div>
+        {/* Modern Toolbar */}
+        <div className="mb-8 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          {/* Filters - Clean, minimal design */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            <ShiftCalendarWrapper
+              selectedDate={selectedDateNZT}
+              selectedLocation={selectedLocation}
+              shiftSummaries={processedShiftSummaries}
+            />
+            <ShiftLocationSelector
+              selectedLocation={selectedLocation}
+              dateString={dateString}
+              locations={LOCATIONS}
+            />
+          </div>
 
-                <div className="hidden sm:block h-8 w-px bg-border" />
-
-                {/* Location Selector */}
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-green-50 dark:bg-green-950/20 flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <ShiftLocationSelector
-                    selectedLocation={selectedLocation}
-                    dateString={dateString}
-                    locations={LOCATIONS}
-                  />
-                </div>
-              </div>
-
-              {/* Right Section: Quick Actions */}
-              <div className="flex items-center gap-3">
-                <Button
-                  asChild
-                  variant={isToday ? "default" : "outline"}
-                  size="sm"
-                  className="h-10"
-                  data-testid="today-button"
-                >
-                  <Link
-                    href={`/admin/shifts?date=${today}&location=${selectedLocation}`}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Today
-                  </Link>
-                </Button>
-              </div>
-            </div>
+          {/* Quick Actions */}
+          <div className="flex gap-2 w-full lg:w-auto">
+            <Button
+              asChild
+              variant={isToday ? "default" : "outline"}
+              size="sm"
+              className={`flex-1 lg:flex-none h-11 ${!isToday ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700' : ''}`}
+              data-testid="today-button"
+            >
+              <Link
+                href={`/admin/shifts?date=${today}&location=${selectedLocation}`}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Today
+              </Link>
+            </Button>
           </div>
         </div>
 
