@@ -1,4 +1,3 @@
-import MillionLint from "@million/lint";
 import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 
@@ -23,7 +22,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-
 
   // Ensure Prisma client works in serverless environment
   webpack: (config, { isServer }) => {
@@ -51,7 +49,4 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 };
 
-export default MillionLint.next({
-  enabled: false,
-  rsc: true,
-})(withBotId(nextConfig));
+export default withBotId(nextConfig);
