@@ -19,7 +19,7 @@
     "@astrojs/vercel": "^8.2.8",
     "@rollup/plugin-typescript": "^12.1.4",
     "ai": "^5.0.41",
-    "astro": "^5.6.1",
+    "astro": "^5.14.4",
     "astro-mermaid": "^1.0.4",
     "fs-extra": "^11.3.1",
     "gray-matter": "^4.0.3",
@@ -28,6 +28,6 @@
     "starlight-sidebar-topics": "^0.6.0"
   },
   "devDependencies": {
-    "playwright": "^1.49.0"
+    "playwright": "^1.55.1"
   }
 }

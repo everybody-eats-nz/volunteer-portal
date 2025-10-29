@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.48.6",
+  "version": "0.48.7",
   "private": true,
   "scripts": {
     "local-setup": "cp .env.example .env && npx auth secret && npm i",
@@ -88,7 +88,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@playwright/test": "^1.54.2",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^5.0.2",
     "@types/canvas-confetti": "^1.9.0",
