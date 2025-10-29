@@ -104,17 +104,6 @@ function useMasonry(itemCount: number, columnCount: number) {
     };
   }, [itemCount, columnCount]);
 
-  // Continuously update layout for dynamic content
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (updateLayoutRef.current) {
-        updateLayoutRef.current();
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, []);
-
   return containerRef;
 }
 
