@@ -644,7 +644,7 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
 
   return (
     <MotionPageContainer className="min-h-screen" data-testid="register-page">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         <PageHeader
           title="Join Everybody Eats"
           description="Create your volunteer account and start making a difference in your community. The registration process takes about 5-10 minutes to complete."
