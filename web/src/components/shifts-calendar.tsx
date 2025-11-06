@@ -226,23 +226,27 @@ export function ShiftsCalendar({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-muted-foreground">Status:</span>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+        <span className="text-muted-foreground hidden sm:inline">Status:</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span>Available spots</span>
+          <span className="sm:inline hidden">Available spots</span>
+          <span className="sm:hidden">Available</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <span>Limited spots</span>
+          <span className="sm:inline hidden">Limited spots</span>
+          <span className="sm:hidden">Limited</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-          <span>Waitlist only</span>
+          <span className="sm:inline hidden">Waitlist only</span>
+          <span className="sm:hidden">Waitlist</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-          <span>No shifts</span>
+          <span className="sm:inline hidden">No shifts</span>
+          <span className="sm:hidden">None</span>
         </div>
       </div>
 
@@ -330,11 +334,11 @@ export function ShiftsCalendar({
                         )}`}
                       >
                         {/* Header with date and today indicator */}
-                        <div className="absolute top-0 left-0 right-0 p-3">
-                          <div className="flex items-center justify-between">
+                        <div className="absolute inset-0 sm:top-0 sm:bottom-auto sm:left-0 sm:right-0 sm:relative p-3 sm:h-auto flex items-center justify-center sm:block">
+                          <div className="flex items-center justify-between sm:justify-between w-full">
                             <span
                               className={cn(
-                                "text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center transition-colors",
+                                "text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center transition-colors sm:relative",
                                 !isCurrentMonth &&
                                   "text-gray-400 dark:text-gray-600",
                                 isPastDate &&
@@ -352,7 +356,7 @@ export function ShiftsCalendar({
                               {format(dayShifts.date, "d")}
                             </span>
                             {isToday && (
-                              <div className="text-[10px] font-semibold text-blue-600 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/60 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                              <div className="hidden sm:block text-[10px] font-semibold text-blue-600 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/60 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
                                 Today
                               </div>
                             )}
@@ -365,8 +369,8 @@ export function ShiftsCalendar({
                           isCurrentMonth &&
                           !isPastDate ? (
                             <>
-                              {/* Status indicator - absolutely centered */}
-                              <div className="absolute inset-x-3 top-12 bottom-8 flex items-center justify-center">
+                              {/* Status indicator - absolutely centered - hidden on mobile */}
+                              <div className="hidden sm:flex absolute inset-x-3 top-12 bottom-8 items-center justify-center">
                                 <div className="text-center">
                                   {status === "full" ? (
                                     <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-orange-100/80 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-semibold">
@@ -384,9 +388,9 @@ export function ShiftsCalendar({
                                 </div>
                               </div>
 
-                              {/* Friend avatars at bottom - fixed position */}
+                              {/* Friend avatars at bottom - fixed position - hidden on mobile */}
                               {dayShifts.allFriendSignups.length > 0 && (
-                                <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                                <div className="hidden sm:flex absolute bottom-2 left-0 right-0 justify-center">
                                   <AvatarList
                                     users={dayShifts.allFriendSignups.map(
                                       (signup) => signup.user
@@ -398,7 +402,7 @@ export function ShiftsCalendar({
                               )}
                             </>
                           ) : (
-                            <div className="absolute inset-x-3 top-12 bottom-3 flex items-center justify-center">
+                            <div className="hidden sm:flex absolute inset-x-3 top-12 bottom-3 items-center justify-center">
                               {!isPastDate && isCurrentMonth && (
                                 <div className="text-center">
                                   <div className="text-xs text-gray-400 dark:text-gray-500 font-medium">
