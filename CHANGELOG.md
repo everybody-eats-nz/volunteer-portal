@@ -1,3 +1,15 @@
+## [0.50.0] - 2025-11-06
+
+### Changes
+- feat: improve shifts calendar mobile responsiveness ([#184](https://github.com/everybody-eats-nz/volunteer-portal/pull/184)) by @malinmalliyawadu
+
+
+## [0.49.1] - 2025-11-06
+
+### Changes
+- Update registration link base URL to use VERCEL_URL if available, fal… ([#182](https://github.com/everybody-eats-nz/volunteer-portal/pull/182)) by @malinmalliyawadu
+
+
 ## [0.49.0] - 2025-10-29
 
 ### Changes
