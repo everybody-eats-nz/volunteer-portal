@@ -15,12 +15,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  MapPin,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShiftSummary {
@@ -196,7 +191,7 @@ export function ShiftsCalendar({
             <h2 className="text-2xl font-bold">
               {format(currentMonth, "MMMM yyyy")}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="hidden sm:block text-sm text-muted-foreground">
               Click on any date to view and sign up for shifts
             </p>
           </div>
@@ -226,23 +221,23 @@ export function ShiftsCalendar({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-muted-foreground">Status:</span>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span>Available spots</span>
+      <div className="flex items-center gap-2 sm:gap-4 text-sm sm:text-sm overflow-x-auto whitespace-nowrap py-0 px-0">
+        <span className="hidden sm:inline text-muted-foreground">Status:</span>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+          <span className="leading-none">Available</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <span>Limited spots</span>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-yellow-500"></div>
+          <span className="leading-none">Limited</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-          <span>Waitlist only</span>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-orange-500"></div>
+          <span className="leading-none">Waitlist</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-          <span>No shifts</span>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gray-300"></div>
+          <span className="leading-none">None</span>
         </div>
       </div>
 
@@ -330,8 +325,8 @@ export function ShiftsCalendar({
                         )}`}
                       >
                         {/* Header with date and today indicator */}
-                        <div className="absolute top-0 left-0 right-0 p-3">
-                          <div className="flex items-center justify-between">
+                        <div className="absolute top-0 left-0 right-0 p-3 hidden sm:block">
+                          <div className="flex items-center justify-center sm:justify-between">
                             <span
                               className={cn(
                                 "text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center transition-colors",
@@ -352,15 +347,38 @@ export function ShiftsCalendar({
                               {format(dayShifts.date, "d")}
                             </span>
                             {isToday && (
-                              <div className="text-[10px] font-semibold text-blue-600 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/60 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                              <div className="hidden sm:block text-[10px] font-semibold text-blue-600 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/60 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
                                 Today
                               </div>
                             )}
                           </div>
                         </div>
 
+                        {/* Mobile-centered day number */}
+                        <div className="absolute inset-0 flex items-center justify-center sm:hidden">
+                          <span
+                            className={cn(
+                              "text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center transition-colors",
+                              !isCurrentMonth &&
+                                "text-gray-400 dark:text-gray-600",
+                              isPastDate &&
+                                isCurrentMonth &&
+                                "text-gray-500 dark:text-gray-400",
+                              isToday &&
+                                isCurrentMonth &&
+                                "text-white bg-gradient-to-br from-blue-500 to-indigo-500 shadow-lg shadow-blue-500/25",
+                              !isToday &&
+                                isCurrentMonth &&
+                                !isPastDate &&
+                                "text-gray-700 dark:text-gray-200"
+                            )}
+                          >
+                            {format(dayShifts.date, "d")}
+                          </span>
+                        </div>
+
                         {/* Content area */}
-                        <div className="absolute inset-0 pt-12 px-3 flex flex-col">
+                        <div className="absolute inset-0 pt-12 px-3 hidden sm:flex sm:flex-col">
                           {dayShifts.shifts.length > 0 &&
                           isCurrentMonth &&
                           !isPastDate ? (
