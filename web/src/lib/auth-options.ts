@@ -28,6 +28,11 @@ declare module "next-auth/jwt" {
     firstName?: string | null;
     lastName?: string | null;
     emailVerified?: boolean;
+    impersonating?: {
+      adminId: string;
+      adminEmail: string;
+      adminName: string | null;
+    };
   }
 }
 
@@ -189,27 +194,75 @@ export const authOptions: NextAuthOptions = {
         token.emailVerified = Boolean(user.emailVerified);
       }
 
-      // Handle session updates (like profile changes)
+      // Handle session updates (like profile changes or impersonation)
       if (trigger === "update" && session) {
-        // Update token with fresh user data from database
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.sub },
-          select: {
-            name: true,
-            phone: true,
-            role: true,
-            firstName: true,
-            lastName: true,
-            emailVerified: true,
-          },
-        });
-        if (dbUser) {
-          token.name = dbUser.name;
-          token.phone = dbUser.phone || undefined;
-          token.role = dbUser.role;
-          token.firstName = dbUser.firstName || undefined;
-          token.lastName = dbUser.lastName || undefined;
-          token.emailVerified = dbUser.emailVerified || false;
+        // Handle starting impersonation
+        if (session.startImpersonation) {
+          const { targetUser, impersonationData } = session.startImpersonation;
+          // Store original admin info
+          token.impersonating = impersonationData;
+          // Replace token with target user data
+          token.sub = targetUser.id;
+          token.name = targetUser.name;
+          token.email = targetUser.email;
+          token.role = targetUser.role;
+          token.phone = targetUser.phone || undefined;
+          token.firstName = targetUser.firstName || undefined;
+          token.lastName = targetUser.lastName || undefined;
+          token.emailVerified = targetUser.emailVerified || false;
+        }
+        // Handle stopping impersonation
+        else if (session.stopImpersonation && token.impersonating) {
+          const adminId = token.impersonating.adminId;
+          // Clear impersonation
+          token.impersonating = undefined;
+          // Restore admin user data from database
+          const adminUser = await prisma.user.findUnique({
+            where: { id: adminId },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              role: true,
+              firstName: true,
+              lastName: true,
+              emailVerified: true,
+            },
+          });
+          if (adminUser) {
+            token.sub = adminUser.id;
+            token.name = adminUser.name;
+            token.email = adminUser.email;
+            token.role = adminUser.role;
+            token.phone = adminUser.phone || undefined;
+            token.firstName = adminUser.firstName || undefined;
+            token.lastName = adminUser.lastName || undefined;
+            token.emailVerified = adminUser.emailVerified || false;
+          }
+        }
+        // Update token with fresh user data from database (normal profile update)
+        else if (!session.startImpersonation && !session.stopImpersonation) {
+          const userId = token.impersonating ? token.sub : token.sub;
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+              name: true,
+              phone: true,
+              role: true,
+              firstName: true,
+              lastName: true,
+              emailVerified: true,
+            },
+          });
+          if (dbUser) {
+            token.name = dbUser.name;
+            token.phone = dbUser.phone || undefined;
+            token.role = dbUser.role;
+            token.firstName = dbUser.firstName || undefined;
+            token.lastName = dbUser.lastName || undefined;
+            token.emailVerified = dbUser.emailVerified || false;
+          }
         }
       }
 
@@ -226,6 +279,10 @@ export const authOptions: NextAuthOptions = {
         u.firstName = t.firstName;
         u.lastName = t.lastName;
         u.emailVerified = t.emailVerified;
+      }
+      // Pass impersonation data to session
+      if (t.impersonating) {
+        s.impersonating = t.impersonating;
       }
       return s;
     },
