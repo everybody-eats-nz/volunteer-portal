@@ -107,7 +107,9 @@ export async function POST(request: NextRequest) {
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
         // Create registration link
-        const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const baseUrl = process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : "http://localhost:3000";
         const registrationLink = `${baseUrl}/register/migrate?token=${invitationToken}`;
 
         // Generate webhook data
