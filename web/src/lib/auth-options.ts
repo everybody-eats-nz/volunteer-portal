@@ -115,7 +115,7 @@ export const authOptions: NextAuthOptions = {
           user.hashedPassword
         );
         if (!valid) return null;
-        
+
         // Allow all authenticated users to sign in, including unverified ones
         // Email verification will be checked at the application level
         return {
@@ -243,7 +243,7 @@ export const authOptions: NextAuthOptions = {
         }
         // Update token with fresh user data from database (normal profile update)
         else if (!session.startImpersonation && !session.stopImpersonation) {
-          const userId = token.impersonating ? token.sub : token.sub;
+          const userId = token.sub;
           const dbUser = await prisma.user.findUnique({
             where: { id: userId },
             select: {
