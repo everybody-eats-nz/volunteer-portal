@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { getEmailService } from '@/lib/email-service';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { getBaseUrl } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,9 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate migration link
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const migrationLink = `${baseUrl}/migrate?token=${token}`;
 
     // Send email

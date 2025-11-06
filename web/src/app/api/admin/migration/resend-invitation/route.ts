@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import { getEmailService } from "@/lib/email-service";
+import { getBaseUrl } from "@/lib/utils";
 
 interface InvitationWebhookData {
   email: string;
@@ -102,9 +103,7 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
     // Create registration link
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
+    const baseUrl = getBaseUrl();
     const registrationLink = `${baseUrl}/register/migrate?token=${invitationToken}`;
 
     // Generate webhook data
