@@ -1,3 +1,9 @@
+## [0.49.0] - 2025-10-29
+
+### Changes
+- feat: implement masonry layout for volunteer dashboard ([#177](https://github.com/everybody-eats-nz/volunteer-portal/pull/177)) by @malinmalliyawadu
+
+
 ## [0.48.7] - 2025-10-28
 
 ### Changes
