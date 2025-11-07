@@ -204,32 +204,22 @@ export default async function MigrationRegistrationPage({ searchParams }: PagePr
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome to Everybody Eats!</h1>
-            <p className="text-muted-foreground mt-2">
-              Complete your registration to access the new volunteer portal
-            </p>
-          </div>
+      <div className="max-w-2xl mx-auto px-2 sm:px-6 py-2 sm:py-8">
+        <div className="text-center mb-3 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Welcome to Everybody Eats!</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+            Complete your registration to access the new volunteer portal
+          </p>
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Complete Your Profile</CardTitle>
-              <CardDescription>
-                We&apos;ve migrated your information from the previous system. Please review and complete your profile setup.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Suspense fallback={<div>Loading...</div>}>
-                <MigrationRegistrationForm 
-                  user={user} 
-                  token={token} 
-                  locationOptions={locationOptions}
-                  shiftTypes={shiftTypes}
-                />
-              </Suspense>
-            </CardContent>
-          </Card>
+        <Suspense fallback={<div>Loading...</div>}>
+          <MigrationRegistrationForm
+            user={user}
+            token={token}
+            locationOptions={locationOptions}
+            shiftTypes={shiftTypes}
+          />
+        </Suspense>
       </div>
     </div>
   );

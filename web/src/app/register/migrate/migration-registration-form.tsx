@@ -783,23 +783,23 @@ export function MigrationRegistrationForm({
 
       {/* Form Content */}
       <MotionCard className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-6">
+        <CardHeader className="pb-3 sm:pb-6 px-3 sm:px-6 pt-4 sm:pt-6">
           <CardTitle
-            className="flex items-center gap-3 text-xl"
+            className="flex items-center gap-2 sm:gap-3 text-base sm:text-xl"
             data-testid="step-card-title"
           >
             {React.createElement(steps[currentStep].icon, {
-              className: "h-6 w-6",
+              className: "h-5 w-5 sm:h-6 sm:w-6",
             })}
             {steps[currentStep].title}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="min-h-[400px]">{renderCurrentStep()}</div>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8">
+            <div className="min-h-[300px] sm:min-h-[400px]">{renderCurrentStep()}</div>
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-6 border-t border-border">
+            <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
