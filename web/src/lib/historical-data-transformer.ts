@@ -838,3 +838,46 @@ export async function importHistoricalData(
 }
 
 export type { TransformationResult, TransformationOptions };
+
+/**
+ * Helper function to determine if a signup should be imported based on applicationStatus and event date
+ * Rules:
+ * - Past events: Only import "Attended" (statusId = 5)
+ * - Future events: Only import "Request" (statusId = 1) or "Confirmed" (statusId = 3)
+ * - Ignore all other statuses
+ */
+export function shouldImportSignup(
+  eventDate: Date,
+  statusId: number | string | undefined,
+  statusName: string | undefined
+): boolean {
+  const now = new Date();
+  const isPastEvent = eventDate < now;
+
+  // Convert statusId to number if it's a string
+  const numericStatusId =
+    typeof statusId === "string" ? parseInt(statusId, 10) : statusId;
+
+  // Normalize status name for string-based matching
+  const normalizedStatusName = statusName?.toLowerCase().trim();
+
+  if (isPastEvent) {
+    // Past events: Only import "Attended" (statusId = 5)
+    return (
+      numericStatusId === 5 ||
+      normalizedStatusName === "attended" ||
+      normalizedStatusName === "5"
+    );
+  } else {
+    // Future events: Only import "Request" (statusId = 1) or "Confirmed" (statusId = 3)
+    return (
+      numericStatusId === 1 ||
+      numericStatusId === 3 ||
+      normalizedStatusName === "requested" ||
+      normalizedStatusName === "request" ||
+      normalizedStatusName === "confirmed" ||
+      normalizedStatusName === "1" ||
+      normalizedStatusName === "3"
+    );
+  }
+}
