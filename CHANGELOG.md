@@ -1,3 +1,9 @@
+## [0.51.2] - 2025-11-07
+
+### Changes
+- fix: reduce excessive padding on migration registration page for mobile ([#189](https://github.com/everybody-eats-nz/volunteer-portal/pull/189)) by @malinmalliyawadu
+
+
 ## [0.51.1] - 2025-11-07
 
 ### Changes
