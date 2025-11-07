@@ -1,3 +1,9 @@
+## [0.51.0] - 2025-11-07
+
+### Changes
+- feat: add admin user impersonation ([#187](https://github.com/everybody-eats-nz/volunteer-portal/pull/187)) by @malinmalliyawadu
+
+
 ## [0.50.2] - 2025-11-06
 
 ### Changes
