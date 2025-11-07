@@ -18,7 +18,7 @@
     "@astrojs/starlight": "^0.35.2",
     "@astrojs/vercel": "^8.2.8",
     "@rollup/plugin-typescript": "^12.1.4",
-    "ai": "^5.0.41",
+    "ai": "^5.0.52",
     "astro": "^5.14.4",
     "astro-mermaid": "^1.0.4",
     "fs-extra": "^11.3.1",
