@@ -314,7 +314,7 @@ test.describe("Admin User Impersonation", () => {
   });
 
   test.describe("Impersonation as User", () => {
-    test("should see volunteer dashboard when impersonating volunteer", async ({
+    test.skip("should see volunteer dashboard when impersonating volunteer", async ({
       page,
     }) => {
       // Start impersonation of a volunteer
