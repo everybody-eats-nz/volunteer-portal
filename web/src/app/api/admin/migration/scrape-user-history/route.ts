@@ -11,10 +11,12 @@ import {
   NovaField,
   MigrationProgressEvent,
 } from "@/types/nova-migration";
-import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
+import {
+  HistoricalDataTransformer,
+  shouldImportSignup,
+} from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
-import { SignupStatus } from "@prisma/client";
 
 interface ScrapeUserRequest {
   userEmail: string;
@@ -433,6 +435,77 @@ export async function POST(request: NextRequest) {
 
             response.shiftsFound = eventDetails.length;
 
+            // Filter signups based on applicationStatus and event date
+            console.log(
+              `[SINGLE] Filtering ${signupData.length} signups based on status and event date...`
+            );
+            await sendProgress(sessionId, {
+              type: "status",
+              message: `🔍 Filtering signups based on status rules...`,
+              stage: "processing",
+            });
+
+            // Create a map of eventId to event date for quick lookup
+            const eventDateMap = new Map<number, Date>();
+            for (const event of eventDetails) {
+              const dateField = event.fields?.find(
+                (f: NovaField) => f.attribute === "date"
+              );
+              if (dateField?.value && typeof dateField.value === "string") {
+                eventDateMap.set(event.id.value, new Date(dateField.value));
+              }
+            }
+
+            // Filter signups based on event date and status
+            const filteredSignupData = signupData.filter((signup) => {
+              const eventDate = signup.eventId
+                ? eventDateMap.get(signup.eventId)
+                : undefined;
+              if (!eventDate) {
+                console.log(
+                  `[SINGLE] Skipping signup ${signup.id}: no event date found`
+                );
+                return false;
+              }
+
+              const shouldImport = shouldImportSignup(
+                eventDate,
+                signup.statusId,
+                typeof signup.statusName === "string"
+                  ? signup.statusName
+                  : undefined
+              );
+
+              if (!shouldImport) {
+                console.log(
+                  `[SINGLE] Filtering out signup ${signup.id} (event ${signup.eventId}): status ${signup.statusId}/${signup.statusName}, event date ${eventDate.toISOString()}`
+                );
+              }
+
+              return shouldImport;
+            });
+
+            console.log(
+              `[SINGLE] Filtered signups: ${signupData.length} -> ${filteredSignupData.length} (removed ${signupData.length - filteredSignupData.length})`
+            );
+            await sendProgress(sessionId, {
+              type: "status",
+              message: `✅ Filtered to ${filteredSignupData.length} valid signups (removed ${signupData.length - filteredSignupData.length} based on status)`,
+              stage: "processing",
+            });
+
+            // Update response with filtered counts
+            response.signupsFound = filteredSignupData.length;
+
+            // Also filter eventDetails to only include events with valid signups
+            const validEventIds = new Set(
+              filteredSignupData.map((s) => s.eventId).filter((id) => id)
+            );
+            const filteredEventDetails = eventDetails.filter((event) =>
+              validEventIds.has(event.id.value)
+            );
+            response.shiftsFound = filteredEventDetails.length;
+
             // Transform and import data if not dry run
             if (!options.dryRun && ourUser) {
               try {
@@ -452,16 +525,16 @@ export async function POST(request: NextRequest) {
                 let signupsImported = 0;
 
                 let processedEventCount = 0;
-                for (const eventDetail of eventDetails) {
+                for (const eventDetail of filteredEventDetails) {
                   processedEventCount++;
                   await sendProgress(sessionId, {
                     type: "status",
-                    message: `💾 Importing event ${processedEventCount}/${eventDetails.length}...`,
+                    message: `💾 Importing event ${processedEventCount}/${filteredEventDetails.length}...`,
                     stage: "processing",
                   });
                   try {
                     // Get signups for this event to determine position/shift type
-                    const eventSignups = signupData.filter(
+                    const eventSignups = filteredSignupData.filter(
                       (s) => s.eventId === eventDetail.id.value
                     );
 
@@ -526,7 +599,7 @@ export async function POST(request: NextRequest) {
 
                     // Create signup if shift exists and user signup doesn't exist
                     if (shift) {
-                      const userSignups = signupData.filter(
+                      const userSignups = filteredSignupData.filter(
                         (s) => s.eventId === eventDetail.id.value
                       );
 
@@ -541,15 +614,30 @@ export async function POST(request: NextRequest) {
                         });
 
                         if (!existingSignup) {
-                          // Manually create signup data since transformSignup doesn't exist yet
+                          // Use transformer to properly map Nova status to our SignupStatus
+                          // We need to construct a NovaShiftSignup-like object for the transformer
+                          const novaSignupLike = {
+                            id: { value: signupInfo.id },
+                            fields: [],
+                            statusId: signupInfo.statusId,
+                            statusName:
+                              typeof signupInfo.statusName === "string"
+                                ? signupInfo.statusName
+                                : undefined,
+                            status: undefined,
+                            canceled_at: undefined,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                          };
+
+                          const signupData = transformer.transformSignup(
+                            novaSignupLike as any,
+                            ourUser.id,
+                            shift.id
+                          );
+
                           await prisma.signup.create({
-                            data: {
-                              userId: ourUser.id,
-                              shiftId: shift.id,
-                              status: "CONFIRMED" as SignupStatus,
-                              createdAt: new Date(),
-                              updatedAt: new Date(),
-                            },
+                            data: signupData,
                           });
                           signupsImported++;
                         }
@@ -585,8 +673,8 @@ export async function POST(request: NextRequest) {
             if (options.dryRun) {
               response.details = {
                 userData: targetNovaUser,
-                shifts: eventDetails,
-                signups: signupData,
+                shifts: filteredEventDetails,
+                signups: filteredSignupData,
               };
             }
           }

@@ -16,7 +16,10 @@ import {
   MigrationProgressEvent,
   SignupDataWithPosition,
 } from "@/types/nova-migration";
-import { HistoricalDataTransformer } from "@/lib/historical-data-transformer";
+import {
+  HistoricalDataTransformer,
+  shouldImportSignup,
+} from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { randomBytes } from "crypto";
@@ -401,6 +404,23 @@ export async function POST(request: NextRequest) {
                         typeof eventResponse.resource === "object" &&
                         Object.keys(eventResponse.resource).length > 0
                       ) {
+                        // Extract event date from the event resource
+                        const eventResource =
+                          eventResponse.resource as NovaEventResource;
+                        const dateField = eventResource.fields?.find(
+                          (f: NovaField) => f.attribute === "date"
+                        );
+                        const eventDate = dateField?.value
+                          ? new Date(dateField.value as string)
+                          : null;
+
+                        if (!eventDate) {
+                          console.log(
+                            `[BULK] Skipping event ${eventId}: no date found`
+                          );
+                          continue; // Skip events without a date
+                        }
+
                         // Get signups for this event to determine position/shift type
                         const eventSignups = allSignups.filter(
                           (s: NovaUserResource) => {
@@ -411,9 +431,51 @@ export async function POST(request: NextRequest) {
                           }
                         );
 
+                        // Filter signups based on applicationStatus and event date
+                        const filteredEventSignups = eventSignups.filter(
+                          (signup: NovaUserResource) => {
+                            const statusField = signup.fields.find(
+                              (f: NovaField) => f.attribute === "applicationStatus"
+                            );
+                            const statusId = statusField?.belongsToId;
+                            const statusName =
+                              statusField?.value &&
+                              statusField.value !== null &&
+                              typeof statusField.value !== "object"
+                                ? String(statusField.value)
+                                : undefined;
+
+                            const shouldImport = shouldImportSignup(
+                              eventDate,
+                              statusId,
+                              statusName
+                            );
+
+                            if (!shouldImport) {
+                              console.log(
+                                `[BULK] Filtering out signup for event ${eventId}: status ${statusId}/${statusName}, event date ${eventDate.toISOString()}`
+                              );
+                            }
+
+                            return shouldImport;
+                          }
+                        );
+
+                        // Skip this event if no valid signups remain after filtering
+                        if (filteredEventSignups.length === 0) {
+                          console.log(
+                            `[BULK] Skipping event ${eventId}: no valid signups after filtering (had ${eventSignups.length} total)`
+                          );
+                          continue;
+                        }
+
+                        console.log(
+                          `[BULK] Event ${eventId}: ${eventSignups.length} signups -> ${filteredEventSignups.length} after filtering`
+                        );
+
                         // Extract signup data with positions
                         const signupData: SignupDataWithPosition[] =
-                          eventSignups.map((signup: NovaUserResource) => ({
+                          filteredEventSignups.map((signup: NovaUserResource) => ({
                             positionName:
                               (signup.fields.find(
                                 (f: NovaField) => f.attribute === "position"
@@ -502,16 +564,8 @@ export async function POST(request: NextRequest) {
 
                         // Create signups for this shift
                         if (shift) {
-                          const userSignups = allSignups.filter(
-                            (s: NovaUserResource) => {
-                              const eventField = s.fields.find(
-                                (f: NovaField) => f.attribute === "event"
-                              );
-                              return eventField?.belongsToId === eventId;
-                            }
-                          );
-
-                          for (const signupInfo of userSignups) {
+                          // Use the filtered signups we already have
+                          for (const signupInfo of filteredEventSignups) {
                             if (dryRun) {
                               // In dry run, just simulate signup creation
                               signupsImported++;
