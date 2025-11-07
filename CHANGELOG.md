@@ -1,3 +1,21 @@
+## [0.51.1] - 2025-11-07
+
+### Changes
+- fix: make profile photo optional for migration registration ([#188](https://github.com/everybody-eats-nz/volunteer-portal/pull/188)) by @malinmalliyawadu
+
+
+## [0.51.0] - 2025-11-07
+
+### Changes
+- feat: add admin user impersonation ([#187](https://github.com/everybody-eats-nz/volunteer-portal/pull/187)) by @malinmalliyawadu
+
+
+## [0.50.2] - 2025-11-06
+
+### Changes
+- build(deps): bump next-auth from 4.24.11 to 4.24.12 in /web in the npm_and_yarn group across 1 directory ([#181](https://github.com/everybody-eats-nz/volunteer-portal/pull/181)) by @dependabot[bot]
+
+
 ## [0.50.1] - 2025-11-06
 
 ### Changes

@@ -53,9 +53,9 @@ const registerSchema = z
     notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
     volunteerAgreementAccepted: z.boolean(),
     healthSafetyPolicyAccepted: z.boolean(),
-    
-    // Profile image (required for all registrations)
-    profilePhotoUrl: z.string().min(1, "Profile photo is required"),
+
+    // Profile image (required for new registrations, optional for migrations)
+    profilePhotoUrl: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -150,8 +150,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Profile photo is now required for all registrations (handled by schema validation)
-
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
@@ -212,9 +210,9 @@ export async function POST(req: Request) {
       // Parental consent fields
       requiresParentalConsent,
       parentalConsentReceived: false, // Always false initially
-      
-      // Profile image (required for registration, nullable in DB for existing users)
-      profilePhotoUrl: validatedData.profilePhotoUrl,
+
+      // Profile image (optional, nullable in DB)
+      profilePhotoUrl: validatedData.profilePhotoUrl || null,
     };
 
     // For migration, update existing user; otherwise create new user

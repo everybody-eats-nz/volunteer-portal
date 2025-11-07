@@ -8,5 +8,10 @@ declare module "next-auth" {
       firstName?: string;
       lastName?: string;
     } & DefaultSession["user"];
+    impersonating?: {
+      adminId: string;
+      adminEmail: string;
+      adminName: string | null;
+    };
   }
 }

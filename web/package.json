@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.50.1",
+  "version": "0.51.1",
   "private": true,
   "scripts": {
     "local-setup": "cp .env.example .env && npx auth secret && npm i",
@@ -65,7 +65,7 @@
     "lucide-react": "^0.539.0",
     "motion": "^12.23.12",
     "next": "15.5.3",
-    "next-auth": "^4.24.11",
+    "next-auth": "^4.24.12",
     "next-themes": "^0.4.6",
     "node-fetch": "^3.3.2",
     "posthog-js": "^1.260.2",
