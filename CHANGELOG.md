@@ -1,3 +1,9 @@
+## [0.51.1] - 2025-11-07
+
+### Changes
+- fix: make profile photo optional for migration registration ([#188](https://github.com/everybody-eats-nz/volunteer-portal/pull/188)) by @malinmalliyawadu
+
+
 ## [0.51.0] - 2025-11-07
 
 ### Changes
