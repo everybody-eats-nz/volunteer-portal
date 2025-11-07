@@ -523,13 +523,16 @@ export async function POST(request: NextRequest) {
                           }
                           noteParts.push(`Nova ID: ${eventId}`);
 
-                          const { notes: _, ...shiftDataWithoutNotes } =
-                            shiftData;
                           shift = {
                             id: `dry-run-shift-${eventId}`,
                             shiftTypeId: shiftType.id,
+                            start: shiftData.start,
+                            end: shiftData.end,
+                            location: shiftData.location,
+                            capacity: shiftData.capacity,
                             notes: noteParts.join(" • "),
-                            ...shiftDataWithoutNotes,
+                            createdAt: shiftData.createdAt,
+                            updatedAt: shiftData.updatedAt,
                           };
                           shiftsImported++;
                         } else {
@@ -541,9 +544,6 @@ export async function POST(request: NextRequest) {
 
                           shift = existingShift;
                           if (!existingShift) {
-                            const { shiftTypeName, ...shiftCreateData } =
-                              shiftData;
-
                             // Generate clean notes - include meaningful info only
                             const noteParts = [];
                             if (shiftData.notes && shiftData.notes.trim()) {
@@ -553,9 +553,14 @@ export async function POST(request: NextRequest) {
 
                             shift = await prisma.shift.create({
                               data: {
-                                ...shiftCreateData,
                                 shiftTypeId: shiftType.id,
+                                start: shiftData.start,
+                                end: shiftData.end,
+                                location: shiftData.location,
+                                capacity: shiftData.capacity,
                                 notes: noteParts.join(" • "),
+                                createdAt: shiftData.createdAt,
+                                updatedAt: shiftData.updatedAt,
                               },
                             });
                             shiftsImported++;

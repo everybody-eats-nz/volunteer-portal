@@ -8,6 +8,7 @@ import {
   NovaUser,
   NovaUserResource,
   NovaEventResource,
+  NovaShiftSignupResource,
   NovaField,
   MigrationProgressEvent,
 } from "@/types/nova-migration";
@@ -578,8 +579,6 @@ export async function POST(request: NextRequest) {
 
                     let shift = existingShift;
                     if (!existingShift) {
-                      const { shiftTypeName, ...shiftCreateData } = shiftData;
-
                       // Generate clean notes - include meaningful info only
                       const noteParts = [];
                       if (shiftData.notes && shiftData.notes.trim()) {
@@ -589,9 +588,14 @@ export async function POST(request: NextRequest) {
 
                       shift = await prisma.shift.create({
                         data: {
-                          ...shiftCreateData,
                           shiftTypeId: shiftType.id,
+                          start: shiftData.start,
+                          end: shiftData.end,
+                          location: shiftData.location,
+                          capacity: shiftData.capacity,
                           notes: noteParts.join(" • "),
+                          createdAt: shiftData.createdAt,
+                          updatedAt: shiftData.updatedAt,
                         },
                       });
                       shiftsImported++;
@@ -615,8 +619,8 @@ export async function POST(request: NextRequest) {
 
                         if (!existingSignup) {
                           // Use transformer to properly map Nova status to our SignupStatus
-                          // We need to construct a NovaShiftSignup-like object for the transformer
-                          const novaSignupLike = {
+                          // We need to construct a NovaShiftSignup object for the transformer
+                          const novaSignupLike: NovaShiftSignupResource = {
                             id: { value: signupInfo.id },
                             fields: [],
                             statusId: signupInfo.statusId,
@@ -631,7 +635,7 @@ export async function POST(request: NextRequest) {
                           };
 
                           const signupData = transformer.transformSignup(
-                            novaSignupLike as any,
+                            novaSignupLike,
                             ourUser.id,
                             shift.id
                           );
