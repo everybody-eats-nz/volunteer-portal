@@ -1,3 +1,9 @@
+## [0.52.0] - 2025-11-07
+
+### Changes
+- feat: add applicationStatus filtering for Nova migration ([#190](https://github.com/everybody-eats-nz/volunteer-portal/pull/190)) by @malinmalliyawadu
+
+
 ## [0.51.2] - 2025-11-07
 
 ### Changes
