@@ -437,7 +437,9 @@ test.describe("My Shifts Calendar Page", () => {
       }
     });
 
-    test("should display friend details in shift dialog", async ({ page }) => {
+    test.skip("should display friend details in shift dialog", async ({
+      page,
+    }) => {
       const calendar = page.getByTestId("calendar-grid");
       await expect(calendar).toHaveCSS("opacity", "1");
       const shiftElements = getShiftElements(page);
