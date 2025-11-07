@@ -11,6 +11,7 @@ import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { BotProtectionClient } from "@/components/bot-protection-client";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 
 const libreFranklin = Libre_Franklin({
   variable: "--font-libre-franklin",
@@ -59,6 +60,7 @@ export default async function RootLayout({
         className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
       >
         <Providers>
+          <ImpersonationBanner />
           <SiteHeaderClientWrapper
             session={session}
             userProfile={userProfile}

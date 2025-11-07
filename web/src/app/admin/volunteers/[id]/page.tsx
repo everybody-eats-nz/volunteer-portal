@@ -35,6 +35,7 @@ import { AdminNotesManager } from "@/components/admin-notes-manager";
 import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager";
 import { type VolunteerGrade } from "@prisma/client";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
+import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -408,6 +409,19 @@ export default async function AdminVolunteerPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Impersonate User</label>
+                  <div>
+                    <ImpersonateUserButton
+                      userId={volunteer.id}
+                      userName={volunteer.name || volunteer.email}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    View the application as this user and perform actions on their behalf
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">User Role</label>
                   <div className="flex items-center gap-3">
