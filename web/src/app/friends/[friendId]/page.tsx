@@ -92,6 +92,7 @@ export default async function FriendProfilePage({
     friendCompletedShifts,
     friendTotalShifts,
     friendThisMonthShifts,
+    friendLast3MonthsShifts,
   ] = await Promise.all([
     // Shifts where both users were signed up (completed or confirmed)
     prisma.shift.findMany({
@@ -190,6 +191,24 @@ export default async function FriendProfilePage({
         },
       },
     }),
+
+    // Friend's shifts in last 3 months (for rolling average)
+    prisma.signup.count({
+      where: {
+        userId: friendId,
+        status: "CONFIRMED",
+        shift: {
+          start: {
+            gte: new Date(
+              new Date().getFullYear(),
+              new Date().getMonth() - 3,
+              new Date().getDate()
+            ),
+            lt: new Date(),
+          },
+        },
+      },
+    }),
   ]);
 
   // Calculate friendship stats
@@ -198,6 +217,10 @@ export default async function FriendProfilePage({
     friendship.createdAt
   );
   const friendshipMonths = Math.max(1, Math.floor(daysSinceFriendship / 30));
+
+  // Calculate rolling average - use actual months if less than 3 months
+  const monthsForAverage = Math.min(3, friendshipMonths);
+  const avgPerMonth = Math.round(friendLast3MonthsShifts / monthsForAverage);
 
   // Calculate friend's total hours
   const friendTotalHours = friendCompletedShifts.reduce((total, signup) => {
@@ -346,10 +369,10 @@ export default async function FriendProfilePage({
                   </div>
                   <div className="p-4 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/10">
                     <p className="text-3xl font-bold text-accent mb-1">
-                      {Math.round(friendTotalShifts / friendshipMonths)}
+                      {avgPerMonth}
                     </p>
                     <p className="text-sm text-muted-foreground font-medium">
-                      Avg/Month
+                      Avg/Month (Last {monthsForAverage} {monthsForAverage === 1 ? 'Month' : 'Months'})
                     </p>
                   </div>
                 </div>
