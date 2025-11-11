@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { checkForBot } from "@/lib/bot-protection";
+import { getBaseUrl } from "@/lib/utils";
 
 const resendVerificationSchema = z.object({
   email: z.string().email("Invalid email address").optional(),
@@ -130,7 +131,7 @@ export async function POST(req: Request) {
 
     // Send verification email
     const emailService = getEmailService();
-    const verificationLink = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/verify-email?token=${token}`;
+    const verificationLink = `${getBaseUrl()}/verify-email?token=${token}`;
     
     await emailService.sendEmailVerification({
       to: userEmail,

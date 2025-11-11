@@ -1,6 +1,8 @@
 // Email service utility
 // This is a placeholder implementation that can be extended with a real email service
 
+import { getBaseUrl } from "./utils";
+
 interface InvitationEmailData {
   email: string;
   firstName?: string;
@@ -30,9 +32,7 @@ export async function sendInvitationEmail(
     Email: ${data.email}
     Temporary Password: ${data.tempPassword}
     
-    Please log in at: ${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/login
+    Please log in at: ${getBaseUrl()}/login
     
     For security, please change your password after your first login.
     
