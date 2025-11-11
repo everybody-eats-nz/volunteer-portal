@@ -1,5 +1,5 @@
 // Email service utility
-// This is a placeholder implementation that can be extended with a real email service
+import { getEmailService } from "./email-service";
 
 interface InvitationEmailData {
   email: string;
@@ -12,46 +12,15 @@ interface InvitationEmailData {
 export async function sendInvitationEmail(
   data: InvitationEmailData
 ): Promise<void> {
-  // TODO: Implement with a real email service like SendGrid, AWS SES, or Nodemailer
+  const emailService = getEmailService();
 
-  const name =
-    data.firstName && data.lastName
-      ? `${data.firstName} ${data.lastName}`
-      : data.firstName || data.lastName || data.email;
-
-  const emailContent = `
-    Subject: Welcome to Everybody Eats Volunteer Portal!
-    
-    Hi ${name},
-    
-    You've been invited to join the Everybody Eats volunteer portal as a ${data.role.toLowerCase()}.
-    
-    Your login credentials:
-    Email: ${data.email}
-    Temporary Password: ${data.tempPassword}
-    
-    Please log in at: ${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/login
-    
-    For security, please change your password after your first login.
-    
-    Welcome to the team!
-    
-    Best regards,
-    The Everybody Eats Team
-  `;
-
-  // For development: log the email content
-  console.log("📧 Email would be sent:");
-  console.log(emailContent);
-
-  // In production, replace this with actual email sending:
-  // await emailProvider.send({
-  //   to: data.email,
-  //   subject: "Welcome to Everybody Eats Volunteer Portal!",
-  //   html: emailTemplate,
-  // });
+  await emailService.sendUserInvitation({
+    to: data.email,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    role: data.role,
+    tempPassword: data.tempPassword,
+  });
 }
 
 // Email templates for different scenarios
