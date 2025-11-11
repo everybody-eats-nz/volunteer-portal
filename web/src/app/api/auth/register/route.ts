@@ -7,7 +7,7 @@ import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { validatePassword } from "@/lib/utils/password-validation";
 import { checkForBot } from "@/lib/bot-protection";
-import { calculateAge } from "@/lib/utils";
+import { calculateAge, getBaseUrl } from "@/lib/utils";
 
 /**
  * Validation schema for user registration
@@ -272,7 +272,7 @@ export async function POST(req: Request) {
       try {
         const verificationToken = await createVerificationToken(user.id);
         const emailService = getEmailService();
-        const verificationLink = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+        const verificationLink = `${getBaseUrl()}/verify-email?token=${verificationToken}`;
         
         await emailService.sendEmailVerification({
           to: user.email,

@@ -1,3 +1,9 @@
+## [0.52.2] - 2025-11-11
+
+### Changes
+- refactor: replace hardcoded localhost:3000 with getBaseUrl() in email links ([#193](https://github.com/everybody-eats-nz/volunteer-portal/pull/193)) by @malinmalliyawadu
+
+
 ## [0.52.1] - 2025-11-11
 
 ### Changes
