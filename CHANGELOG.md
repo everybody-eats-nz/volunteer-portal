@@ -1,3 +1,9 @@
+## [0.52.1] - 2025-11-11
+
+### Changes
+- fix: integrate admin user invitation emails with Campaign Monitor ([#192](https://github.com/everybody-eats-nz/volunteer-portal/pull/192)) by @malinmalliyawadu
+
+
 ## [0.52.0] - 2025-11-07
 
 ### Changes
