@@ -125,6 +125,21 @@ interface SendParentalConsentApprovalParams {
   volunteerName: string;
 }
 
+interface UserInvitationEmailData {
+  firstName: string;
+  role: string;
+  tempPassword: string;
+  loginLink: string;
+}
+
+interface SendUserInvitationParams {
+  to: string;
+  firstName?: string;
+  lastName?: string;
+  role: "VOLUNTEER" | "ADMIN";
+  tempPassword: string;
+}
+
 interface CampaignMonitorAPI {
   transactional: {
     sendSmartEmail: (
@@ -143,6 +158,7 @@ class EmailService {
   private volunteerCancellationSmartEmailID: string;
   private emailVerificationSmartEmailID: string;
   private parentalConsentApprovalSmartEmailID: string;
+  private userInvitationSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -282,6 +298,24 @@ class EmailService {
       }
     } else {
       this.parentalConsentApprovalSmartEmailID = parentalConsentApprovalEmailId;
+    }
+
+    // Smart email ID for user invitation notifications
+    const userInvitationEmailId =
+      process.env.CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID;
+    if (!userInvitationEmailId) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID is not configured - user invitation emails will not be sent"
+        );
+        this.userInvitationSmartEmailID = "dummy-user-invitation-id";
+      } else {
+        throw new Error(
+          "CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID is not configured"
+        );
+      }
+    } else {
+      this.userInvitationSmartEmailID = userInvitationEmailId;
     }
   }
 
@@ -667,7 +701,7 @@ class EmailService {
 
   async sendEmailVerification(params: SendEmailVerificationParams): Promise<void> {
     const isDevelopment = process.env.NODE_ENV === 'development';
-    
+
     // In development, skip email sending if configuration is missing
     if (isDevelopment && this.emailVerificationSmartEmailID === 'dummy-email-verification-id') {
       console.log(`[EMAIL SERVICE] Would send email verification to ${params.to} (skipped in dev - no config)`);
@@ -701,6 +735,71 @@ class EmailService {
       });
     });
   }
+
+  async sendUserInvitation(params: SendUserInvitationParams): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+
+    // In development, skip email sending if configuration is missing
+    if (
+      isDevelopment &&
+      this.userInvitationSmartEmailID === "dummy-user-invitation-id"
+    ) {
+      console.log(
+        `[EMAIL SERVICE] Would send user invitation email to ${params.to} (skipped in dev - no config)`
+      );
+      console.log(`[EMAIL SERVICE] Email data:`, {
+        firstName: params.firstName || "User",
+        role: params.role.toLowerCase(),
+        tempPassword: params.tempPassword,
+        loginLink: `${
+          process.env.NEXTAUTH_URL || "http://localhost:3000"
+        }/login`,
+      });
+      return Promise.resolve();
+    }
+
+    // Extract first name
+    const firstName =
+      params.firstName ||
+      (params.lastName ? params.lastName : params.to.split("@")[0]);
+
+    const loginLink = `${
+      process.env.NEXTAUTH_URL || "http://localhost:3000"
+    }/login`;
+
+    const details = {
+      smartEmailID: this.userInvitationSmartEmailID,
+      to: params.firstName && params.lastName
+        ? `${params.firstName} ${params.lastName} <${params.to}>`
+        : `${firstName} <${params.to}>`,
+      data: {
+        firstName: firstName,
+        role: params.role.toLowerCase(),
+        tempPassword: params.tempPassword,
+        loginLink: loginLink,
+      } as UserInvitationEmailData,
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
+        if (err) {
+          if (isDevelopment) {
+            console.warn(
+              "[EMAIL SERVICE] Error sending user invitation email (development):",
+              err.message
+            );
+            resolve(); // Don't fail in development
+          } else {
+            console.error("Error sending user invitation email:", err);
+            reject(err);
+          }
+        } else {
+          console.log("User invitation email sent successfully to:", params.to);
+          resolve();
+        }
+      });
+    });
+  }
 }
 
 // Export singleton instance
@@ -727,4 +826,6 @@ export type {
   EmailVerificationData,
   SendParentalConsentApprovalParams,
   ParentalConsentApprovalEmailData,
+  SendUserInvitationParams,
+  UserInvitationEmailData,
 };
