@@ -1,5 +1,6 @@
 import createsend from "createsend-node";
 import { generateCalendarUrls, generateGoogleMapsLink } from "./calendar-utils";
+import { getBaseUrl } from "./utils";
 
 interface EmailData {
   firstName: string;
@@ -438,16 +439,12 @@ class EmailService {
         shiftType: params.shiftName,
         shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
         restarauntLocation: params.location,
-        linkToEvent: `${
-          process.env.NEXTAUTH_URL || "http://localhost:3000"
-        }/shifts/${params.shiftId}`,
+        linkToEvent: `${getBaseUrl()}/shifts/${params.shiftId}`,
       });
       return Promise.resolve();
     }
 
-    const signupLink = `${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/shifts/${params.shiftId}`;
+    const signupLink = `${getBaseUrl()}/shifts/${params.shiftId}`;
 
     // Extract first name from volunteer name
     const firstName =
@@ -518,9 +515,7 @@ class EmailService {
       return Promise.resolve();
     }
 
-    const shiftLink = `${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/shifts/${params.shiftId}`;
+    const shiftLink = `${getBaseUrl()}/shifts/${params.shiftId}`;
 
     // Extract first name from volunteer name
     const firstName =
@@ -607,9 +602,7 @@ class EmailService {
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
     
-    const browseShiftsLink = `${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/shifts`;
+    const browseShiftsLink = `${getBaseUrl()}/shifts`;
 
     const details = {
       smartEmailID: this.volunteerCancellationSmartEmailID,
@@ -668,9 +661,7 @@ class EmailService {
     // Extract first name from volunteer name
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
-    const dashboardLink = `${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/dashboard`;
+    const dashboardLink = `${getBaseUrl()}/dashboard`;
 
     const details = {
       smartEmailID: this.parentalConsentApprovalSmartEmailID,
