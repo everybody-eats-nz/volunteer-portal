@@ -5,7 +5,7 @@ import { Users, Calendar, Heart, Clock } from "lucide-react";
 import { Friend } from "@/lib/friends-data";
 import { RemoveFriendButton } from "./remove-friend-button";
 import { ViewFriendProfileButton } from "./view-friend-profile-button";
-import { differenceInDays, format } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { motion } from "motion/react";
 import { staggerContainer } from "@/lib/motion";
 import { MotionFriendCard } from "./motion-friends";
@@ -92,7 +92,7 @@ export function FriendsList({ friends, searchTerm }: FriendsListProps) {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <Badge variant="secondary">Searching for "{searchTerm}"</Badge>
+            <Badge variant="secondary">Searching for &quot;{searchTerm}&quot;</Badge>
           </motion.div>
         )}
       </div>
