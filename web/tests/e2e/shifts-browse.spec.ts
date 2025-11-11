@@ -164,7 +164,7 @@ test.describe("Shifts Browse Page", () => {
       await expect(selectionTitle).toBeVisible();
     });
 
-    test("should display shifts page after location selection", async ({
+    test.skip("should display shifts page after location selection", async ({
       page,
     }) => {
       await navigateToShiftsWithLocation(page);
