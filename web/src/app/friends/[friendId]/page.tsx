@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { format, differenceInDays, differenceInHours } from "date-fns";
+import { format, differenceInDays, differenceInHours, subMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -199,11 +199,7 @@ export default async function FriendProfilePage({
         status: "CONFIRMED",
         shift: {
           start: {
-            gte: new Date(
-              new Date().getFullYear(),
-              new Date().getMonth() - 3,
-              new Date().getDate()
-            ),
+            gte: subMonths(new Date(), 3),
             lt: new Date(),
           },
         },
