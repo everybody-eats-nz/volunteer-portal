@@ -7,12 +7,14 @@ interface ViewFriendProfileButtonProps {
   friend: Friend;
 }
 
-export function ViewFriendProfileButton({ friend }: ViewFriendProfileButtonProps) {
+export function ViewFriendProfileButton({
+  friend,
+}: ViewFriendProfileButtonProps) {
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      className="flex-1"
+    <Button
+      variant="outline"
+      size="sm"
+      className="flex-1 w-full"
       asChild
       data-testid="view-friend-profile-button"
     >

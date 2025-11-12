@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createHash } from "crypto";
+import { getBaseUrl } from "./utils";
 
 /**
  * Get secure CORS headers based on environment
@@ -26,7 +27,7 @@ export function getSecureCORSHeaders(request: NextRequest): Record<string, strin
  */
 function getAllowedOrigins(): string[] {
   const baseOrigins = [
-    process.env.NEXTAUTH_URL || "http://localhost:3000",
+    getBaseUrl(),
   ];
 
   // In development, allow localhost variations

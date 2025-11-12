@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth-options";
-import { PageContainer } from "@/components/page-container";
+import { MotionPageContainer } from "@/components/motion-page-container";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { getFriendsData } from "@/lib/friends-data";
@@ -27,7 +27,7 @@ export default async function FriendsPage() {
   }
 
   return (
-    <PageContainer>
+    <MotionPageContainer>
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
         <PageHeader
           title="My Friends"
@@ -95,6 +95,6 @@ export default async function FriendsPage() {
           <FriendsManagerServer initialData={friendsData} />
         </Suspense>
       </ErrorBoundary>
-    </PageContainer>
+    </MotionPageContainer>
   );
 }
