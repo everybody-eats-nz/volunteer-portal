@@ -175,19 +175,28 @@ export class HistoricalDataTransformer {
         if (this.options.skipExistingShifts) {
           // For events, we need to extract data from the fields structure
           const eventData = this.transformEvent(novaEvent);
-          const existingShift = await prisma.shift.findFirst({
-            where: {
-              start: eventData.start,
-              end: eventData.end,
-              shiftType: {
-                name: eventData.shiftTypeName,
-              },
-            },
+
+          // Get the shift type ID for matching
+          const shiftTypeForMatch = await prisma.shiftType.findUnique({
+            where: { name: eventData.shiftTypeName },
           });
 
-          if (existingShift) {
-            this.result.stats.shiftsSkipped++;
-            continue;
+          if (shiftTypeForMatch) {
+            const existingShift = await prisma.shift.findFirst({
+              where: {
+                start: eventData.start,
+                end: eventData.end,
+                shiftTypeId: shiftTypeForMatch.id,
+              },
+            });
+
+            if (existingShift) {
+              console.log(
+                `Skipping existing shift: ${eventData.shiftTypeName} on ${eventData.start.toISOString()}`
+              );
+              this.result.stats.shiftsSkipped++;
+              continue;
+            }
           }
         }
 
