@@ -1,3 +1,9 @@
+## [0.53.1] - 2025-11-12
+
+### Changes
+- Fix friend profile Avg/Month to use 3-month rolling average ([#194](https://github.com/everybody-eats-nz/volunteer-portal/pull/194)) by @malinmalliyawadu
+
+
 ## [0.53.0] - 2025-11-12
 
 ### Changes
