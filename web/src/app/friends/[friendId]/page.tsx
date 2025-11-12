@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { format, differenceInDays, differenceInHours } from "date-fns";
+import { format, differenceInDays, differenceInHours, subMonths } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -99,6 +99,7 @@ export default async function FriendProfilePage({
     friendCompletedShifts,
     friendTotalShifts,
     friendThisMonthShifts,
+    friendLast3MonthsShifts,
   ] = await Promise.all([
     // Shifts where both users were signed up (completed or confirmed)
     prisma.shift.findMany({
@@ -197,6 +198,20 @@ export default async function FriendProfilePage({
         },
       },
     }),
+
+    // Friend's shifts in last 3 months (for rolling average)
+    prisma.signup.count({
+      where: {
+        userId: friendId,
+        status: "CONFIRMED",
+        shift: {
+          start: {
+            gte: subMonths(new Date(), 3),
+            lt: new Date(),
+          },
+        },
+      },
+    }),
   ]);
 
   // Calculate friendship stats
@@ -205,6 +220,10 @@ export default async function FriendProfilePage({
     friendship.createdAt
   );
   const friendshipMonths = Math.max(1, Math.floor(daysSinceFriendship / 30));
+
+  // Calculate rolling average - use actual months if less than 3 months
+  const monthsForAverage = Math.min(3, friendshipMonths);
+  const avgPerMonth = Math.round(friendLast3MonthsShifts / monthsForAverage);
 
   // Calculate friend's total hours
   const friendTotalHours = friendCompletedShifts.reduce((total, signup) => {
@@ -370,10 +389,10 @@ export default async function FriendProfilePage({
                   </div>
                   <div className="group p-5 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-background rounded-xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:shadow-md">
                     <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2 group-hover:scale-110 transition-transform">
-                      {Math.round(friendTotalShifts / friendshipMonths)}
+                      {avgPerMonth}
                     </p>
                     <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                      Avg/Month
+                      Avg/Month (Last {monthsForAverage} {monthsForAverage === 1 ? 'Month' : 'Months'})
                     </p>
                   </div>
                 </div>
