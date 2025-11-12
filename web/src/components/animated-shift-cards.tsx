@@ -277,9 +277,9 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
 
   useEffect(() => {
     const updateColumnCount = () => {
-      if (window.innerWidth >= 1280) setColumnCount(3); // xl
-      else if (window.innerWidth >= 768) setColumnCount(2); // md
-      else setColumnCount(1);
+      if (window.innerWidth >= 1280) setColumnCount(3); // xl: 3 columns for large desktop
+      else if (window.innerWidth >= 1024) setColumnCount(2); // lg: 2 columns for desktop with sidebar
+      else setColumnCount(1); // md and below: 1 column for tablet/mobile with sidebar
     };
 
     updateColumnCount();
@@ -355,7 +355,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                 >
                   <CardContent className="p-0">
                     {/* Modern Header with colored accent */}
-                    <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 flex-1">
                           <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${shiftTheme.fullGradient} flex items-center justify-center text-2xl shadow-sm`}>
@@ -393,7 +393,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                     {/* Volunteers List */}
                     <div
                       data-testid={`volunteer-list-${shift.id}`}
-                      className="px-6 py-4"
+                      className="px-4 py-3"
                     >
                       {shift.signups.length === 0 ? (
                         <div
@@ -418,7 +418,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             return (
                               <div
                                 key={signup.id}
-                                className="flex items-start gap-4 p-4 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-w-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
+                                className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-w-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
                               >
                                 <Link
                                   href={`/admin/volunteers/${signup.user.id}`}
@@ -630,7 +630,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
 
                     {/* Action Buttons Footer */}
                     {!isCompleted && (
-                    <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
+                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
                       <div className="flex flex-col gap-2">
                         {/* Shortage Email Button */}
                         {(staffingStatus.text === "Critical" || staffingStatus.text === "Understaffed") && (

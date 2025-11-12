@@ -1,3 +1,21 @@
+## [0.54.4] - 2025-11-12
+
+### Changes
+- feat: improve manage shifts page layout for tablet screens ([#201](https://github.com/everybody-eats-nz/volunteer-portal/pull/201)) by @malinmalliyawadu
+
+
+## [0.54.3] - 2025-11-12
+
+### Changes
+- Improve weekly schedule creation with date range picker ([#198](https://github.com/everybody-eats-nz/volunteer-portal/pull/198)) by @malinmalliyawadu
+
+
+## [0.54.2] - 2025-11-12
+
+### Changes
+- fix: use TZDate for server-agnostic timezone handling in migrations ([#199](https://github.com/everybody-eats-nz/volunteer-portal/pull/199)) by @malinmalliyawadu
+
+
 ## [0.54.1] - 2025-11-12
 
 ### Changes

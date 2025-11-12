@@ -119,40 +119,33 @@ test.describe("Shift Creation Form Validation", () => {
       // Should prevent submission without dates
       await expect(page).toHaveURL(/\/admin\/shifts\/new/);
 
-      // Date inputs should still be visible
-      await expect(page.getByTestId("bulk-start-date-input")).toBeVisible();
-      await expect(page.getByTestId("bulk-end-date-input")).toBeVisible();
+      // Date range input should still be visible
+      await expect(page.getByTestId("bulk-date-range-input")).toBeVisible();
     });
 
     test("should validate date range with calendar picker", async ({
       page,
     }) => {
-      // Open start date picker
-      await page.getByTestId("bulk-start-date-input").click();
+      // Open combined date range picker
+      await page.getByTestId("bulk-date-range-input").click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
-      // Select a date (use first available date)
-      const firstDate = page.locator('[role="gridcell"] button').first();
-      await firstDate.click();
+      // Select start date (first available date)
+      const dateButtons = page.locator('[role="gridcell"] button');
+      await dateButtons.first().click();
 
-      // Open end date picker
-      await page.getByTestId("bulk-end-date-input").click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+      // Select end date (a few days later in the same month)
+      await dateButtons.nth(5).click();
 
-      // Select another date
-      const secondDate = page.locator('[role="gridcell"] button').first();
-      await secondDate.click();
+      // Close the picker by clicking outside or pressing Escape
+      await page.keyboard.press("Escape");
 
-      // Both inputs should now have values
-      const startValue = await page
-        .getByTestId("bulk-start-date-input")
-        .textContent();
-      const endValue = await page
-        .getByTestId("bulk-end-date-input")
+      // The input should now show a date range instead of placeholder
+      const rangeValue = await page
+        .getByTestId("bulk-date-range-input")
         .textContent();
 
-      expect(startValue).not.toContain("Pick start date");
-      expect(endValue).not.toContain("Pick end date");
+      expect(rangeValue).not.toContain("Pick a date range");
     });
 
     test("should require at least one day selection", async ({ page }) => {
