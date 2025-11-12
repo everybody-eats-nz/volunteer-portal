@@ -346,7 +346,7 @@ const REALISTIC_VOLUNTEERS = [
     volunteerAgreementAccepted: true,
     healthSafetyPolicyAccepted: true,
   },
-  // Underage volunteers (under 18) requiring parental consent
+  // Underage volunteers (under 16) requiring parental consent
   {
     email: "emma.parker@student.ac.nz",
     firstName: "Emma",

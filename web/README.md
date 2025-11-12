@@ -183,7 +183,7 @@ The application uses Campaign Monitor for sending various transactional emails:
 **Parental Consent Approval (`CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID`)**
 
 - Variables: `{firstName}`, `{linkToDashboard}`
-- Sent to volunteers under 18 when their parental consent is approved by an admin
+- Sent to volunteers under 16 when their parental consent is approved by an admin
 
 ## 🤝 Contributing
 
