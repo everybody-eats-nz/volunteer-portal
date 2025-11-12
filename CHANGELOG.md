@@ -1,3 +1,9 @@
+## [0.53.0] - 2025-11-12
+
+### Changes
+- feat: Improve UI/UX for Friends List and Profile Pages ([#195](https://github.com/everybody-eats-nz/volunteer-portal/pull/195)) by @malinmalliyawadu
+
+
 ## [0.52.2] - 2025-11-11
 
 ### Changes
