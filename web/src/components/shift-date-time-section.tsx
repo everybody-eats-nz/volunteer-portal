@@ -2,6 +2,7 @@
 
 import React from "react";
 import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -116,77 +117,62 @@ export function DateTimeSection({ templateStartTime, templateEndTime }: DateTime
 }
 
 export function BulkDateRangeSection() {
-  const [startDate, setStartDate] = React.useState<Date>();
-  const [endDate, setEndDate] = React.useState<Date>();
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Start Date *</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal h-11",
-                !startDate && "text-muted-foreground"
-              )}
-              data-testid="bulk-start-date-input"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {startDate ? format(startDate, "PPP") : <span>Pick start date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={startDate}
-              onSelect={setStartDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-        {/* Hidden input for form submission */}
-        <input
-          type="hidden"
-          name="startDate"
-          value={startDate ? format(startDate, "yyyy-MM-dd") : ""}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">End Date *</Label>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal h-11",
-                !endDate && "text-muted-foreground"
-              )}
-              data-testid="bulk-end-date-input"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {endDate ? format(endDate, "PPP") : <span>Pick end date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={endDate}
-              onSelect={setEndDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-        {/* Hidden input for form submission */}
-        <input
-          type="hidden"
-          name="endDate"
-          value={endDate ? format(endDate, "yyyy-MM-dd") : ""}
-          required
-        />
-      </div>
+    <div className="space-y-2">
+      <Label className="text-sm font-medium flex items-center gap-2">
+        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+        Date Range *
+      </Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal h-11",
+              !dateRange?.from && "text-muted-foreground"
+            )}
+            data-testid="bulk-date-range-input"
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {dateRange?.from ? (
+              dateRange.to ? (
+                <>
+                  {format(dateRange.from, "LLL dd, y")} -{" "}
+                  {format(dateRange.to, "LLL dd, y")}
+                </>
+              ) : (
+                format(dateRange.from, "LLL dd, y")
+              )
+            ) : (
+              <span>Pick a date range</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="range"
+            selected={dateRange}
+            onSelect={setDateRange}
+            initialFocus
+            numberOfMonths={2}
+          />
+        </PopoverContent>
+      </Popover>
+      {/* Hidden inputs for form submission */}
+      <input
+        type="hidden"
+        name="startDate"
+        value={dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : ""}
+        required
+      />
+      <input
+        type="hidden"
+        name="endDate"
+        value={dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : ""}
+        required
+      />
     </div>
   );
 }
