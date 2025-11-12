@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { tz } from "@date-fns/tz";
+import { tz, TZDate } from "@date-fns/tz";
 
 const NZ_TIMEZONE = "Pacific/Auckland";
 // Singleton timezone instance for performance optimization
@@ -134,11 +134,18 @@ export function getDSTTransitionInfo(date: Date | string) {
 /**
  * Create a date with specific time in NZ timezone
  * This is used for migration to ensure times are set correctly in NZ time
+ * regardless of the server's timezone.
+ *
  * @param dateString - Date string (e.g., "2024-11-09")
  * @param hour - Hour in NZ timezone (0-23)
  * @param minute - Minute (0-59)
  * @param second - Second (0-59)
  * @returns Date object representing the specified time in NZ timezone
+ *
+ * @example
+ * // Create Nov 9, 2024 at 5:30 PM NZDT
+ * const date = createNZDate("2024-11-09", 17, 30, 0);
+ * // Returns Date with UTC timestamp that equals 5:30 PM in NZ timezone
  */
 export function createNZDate(
   dateString: string,
@@ -146,13 +153,16 @@ export function createNZDate(
   minute: number = 0,
   second: number = 0
 ): Date {
-  // Parse the date string in NZ timezone
+  // Parse the date string
   const [year, month, day] = dateString.split('-').map(Number);
 
-  // Create a date in NZ timezone with the specified time
+  // Use TZDate constructor to create date directly in NZ timezone
+  // This ensures the time components are interpreted as NZ local time
+  // regardless of the server's timezone (e.g., UTC on Vercel)
   // Note: month is 0-indexed in JavaScript Date
-  const nzDate = nzTimezone(new Date(year, month - 1, day, hour, minute, second));
+  const nzDate = new TZDate(year, month - 1, day, hour, minute, second, 0, NZ_TIMEZONE);
 
   // Return as regular Date object (which internally stores as UTC)
+  // This UTC timestamp will correctly represent the NZ local time
   return new Date(nzDate.getTime());
 }
