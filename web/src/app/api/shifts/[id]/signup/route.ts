@@ -48,7 +48,7 @@ export async function POST(
       {
         error: "Parental consent required",
         message:
-          "Since you are under 18, we need parental consent before you can sign up for shifts. Please ensure your parent/guardian has submitted the signed consent form to our team.",
+          "Since you are under 16, we need parental consent before you can sign up for shifts. Please ensure your parent/guardian has submitted the signed consent form to our team.",
       },
       { status: 403 }
     );

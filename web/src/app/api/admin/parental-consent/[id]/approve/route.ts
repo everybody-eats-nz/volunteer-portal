@@ -15,7 +15,7 @@ interface RouteParams {
 
 /**
  * POST /api/admin/parental-consent/[id]/approve
- * Approves parental consent for a volunteer under 18
+ * Approves parental consent for a volunteer under 16
  */
 export async function POST(req: Request, { params }: RouteParams) {
   try {
