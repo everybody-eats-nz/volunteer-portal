@@ -179,9 +179,9 @@ test.describe("Admin Shift Creation Form", () => {
 
       // Check bulk-specific elements - now using combined date range picker
       await expect(page.getByTestId("bulk-date-range-input")).toBeVisible();
-      await expect(page.getByText("Date Range")).toBeVisible();
-      await expect(page.getByText("Days of Week")).toBeVisible();
-      await expect(page.getByText("Shift Templates")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Date Range" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Days of Week" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Shift Templates" })).toBeVisible();
     });
 
     test("should have day selection checkboxes", async ({ page }) => {
