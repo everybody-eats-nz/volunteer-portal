@@ -431,7 +431,7 @@ export function PersonalInfoStep({
         (() => {
           const actualAge = calculateAge(dateOfBirth);
 
-          if (actualAge < 18) {
+          if (actualAge < 16) {
             return (
               <div
                 className="space-y-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4"
@@ -444,7 +444,7 @@ export function PersonalInfoStep({
                       Parental Consent Required
                     </h4>
                     <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                      Since you are under 18, we require a signed parental
+                      Since you are under 16, we require a signed parental
                       consent form before you can volunteer.
                     </p>
                   </div>

@@ -346,7 +346,7 @@ const REALISTIC_VOLUNTEERS = [
     volunteerAgreementAccepted: true,
     healthSafetyPolicyAccepted: true,
   },
-  // Underage volunteers (under 18) requiring parental consent
+  // Underage volunteers (under 16) requiring parental consent
   {
     email: "emma.parker@student.ac.nz",
     firstName: "Emma",
@@ -2317,7 +2317,7 @@ async function main() {
   
   const customLabelsData = [
     {
-      name: "Under 18",
+      name: "Under 16",
       color: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
       icon: "🔞",
     },

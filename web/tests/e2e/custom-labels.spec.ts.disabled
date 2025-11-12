@@ -289,15 +289,15 @@ test.describe("Custom Labels System", () => {
   });
 
   test.describe("Auto-Labeling System", () => {
-    test("should auto-assign 'Under 18' label for minors during registration", async ({ page }) => {
-      // This test would require creating a new user registration with DOB < 18
+    test("should auto-assign 'Under 16' label for minors during registration", async ({ page }) => {
+      // This test would require creating a new user registration with DOB < 16
       // Navigate to registration page
       await page.goto("/register");
       await page.waitForLoadState("domcontentloaded");
 
       // Fill out registration form with underage DOB
       const today = new Date();
-      const underageDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+      const underageDate = new Date(today.getFullYear() - 14, today.getMonth(), today.getDate());
       const dateString = underageDate.toISOString().split('T')[0];
 
       // Fill form fields (this would need to be adapted to your actual form structure)
@@ -338,24 +338,24 @@ test.describe("Custom Labels System", () => {
           // Wait for registration to complete
           await page.waitForTimeout(3000);
 
-          // Now login as admin to check if the "Under 18" label was assigned
+          // Now login as admin to check if the "Under 16" label was assigned
           await page.goto("/login");
           await loginAsAdmin(page);
-          
+
           // Navigate to users list and search for the new user
           await page.goto("/admin/volunteers");
           await page.waitForLoadState("domcontentloaded");
-          
+
           // Look for the newly created user by email
           const userRow = page.getByText(uniqueEmail);
           if (await userRow.count() > 0) {
             // Click on the user to view profile
             await userRow.click();
             await page.waitForLoadState("domcontentloaded");
-            
-            // Check if "Under 18" label is assigned
-            const under18Label = page.getByText("Under 18");
-            await expect(under18Label).toBeVisible();
+
+            // Check if "Under 16" label is assigned
+            const under16Label = page.getByText("Under 16");
+            await expect(under16Label).toBeVisible();
           }
         }
       }

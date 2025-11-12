@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Admin page for managing parental consent approvals
- * Shows all volunteers under 18 who require parental consent
+ * Shows all volunteers under 16 who require parental consent
  */
 export default async function AdminParentalConsentPage() {
   const session = await getServerSession(authOptions);
@@ -23,37 +23,37 @@ export default async function AdminParentalConsentPage() {
     redirect("/dashboard");
   }
 
-  // Calculate age cutoff (18 years ago from today)
-  const eighteenYearsAgo = new Date();
-  eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+  // Calculate age cutoff (16 years ago from today)
+  const sixteenYearsAgo = new Date();
+  sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
 
-  // Get statistics for volunteers under 18
-  const [totalUnder18, pendingApproval, approved] = await Promise.all([
-    // Total volunteers under 18
+  // Get statistics for volunteers under 16
+  const [totalUnder16, pendingApproval, approved] = await Promise.all([
+    // Total volunteers under 16
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
         dateOfBirth: {
-          gt: eighteenYearsAgo, // Born after 18 years ago (under 18)
+          gt: sixteenYearsAgo, // Born after 16 years ago (under 16)
         },
       },
     }),
-    // Pending approval (under 18 and consent not received)
+    // Pending approval (under 16 and consent not received)
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
         dateOfBirth: {
-          gt: eighteenYearsAgo,
+          gt: sixteenYearsAgo,
         },
         parentalConsentReceived: false,
       },
     }),
-    // Approved (under 18 and consent received)
+    // Approved (under 16 and consent received)
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
         dateOfBirth: {
-          gt: eighteenYearsAgo,
+          gt: sixteenYearsAgo,
         },
         parentalConsentReceived: true,
       },
@@ -64,7 +64,7 @@ export default async function AdminParentalConsentPage() {
     <PageContainer>
       <AdminPageWrapper
         title="Parental Consent Management"
-        description="Manage parental consent approvals for volunteers under 18"
+        description="Manage parental consent approvals for volunteers under 16"
       >
         <div className="space-y-6">
           {/* Summary Cards */}
@@ -96,12 +96,12 @@ export default async function AdminParentalConsentPage() {
             <div className="rounded-lg border bg-card text-card-foreground p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <h3 className="tracking-tight text-sm font-medium">
-                  Total Under 18
+                  Total Under 16
                 </h3>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-2xl font-bold">
-                {totalUnder18}
+                {totalUnder16}
               </div>
             </div>
           </div>
@@ -116,7 +116,7 @@ export default async function AdminParentalConsentPage() {
                 </h4>
                 <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Volunteers under 18 see a notice during registration to download the consent form</li>
+                    <li>Volunteers under 16 see a notice during registration to download the consent form</li>
                     <li>They must print, complete, and email the signed form to volunteers@everybodyeats.nz</li>
                     <li>When you receive the signed form, approve their consent below</li>
                     <li>Once approved, they can access all volunteer features</li>

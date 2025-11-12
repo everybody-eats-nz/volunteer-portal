@@ -2,44 +2,44 @@ import { prisma } from "@/lib/prisma";
 import { calculateAge } from "@/lib/utils";
 
 /**
- * Checks if a user is under 18 years old based on their date of birth
+ * Checks if a user is under 16 years old based on their date of birth
  */
-export function isUserUnder18(dateOfBirth: Date | null): boolean {
+export function isUserUnder16(dateOfBirth: Date | null): boolean {
   if (!dateOfBirth) return false;
 
   const age = calculateAge(dateOfBirth);
-  return age < 18;
+  return age < 16;
 }
 
 /**
- * Automatically assigns the "Under 18" label to users who are minors
+ * Automatically assigns the "Under 16" label to users who are minors
  */
-export async function autoLabelUnder18User(userId: string, dateOfBirth: Date | null) {
+export async function autoLabelUnder16User(userId: string, dateOfBirth: Date | null) {
   try {
-    if (!isUserUnder18(dateOfBirth)) {
-      // User is 18 or older, remove "Under 18" label if they have it
-      const under18Label = await prisma.customLabel.findUnique({
-        where: { name: "Under 18" },
+    if (!isUserUnder16(dateOfBirth)) {
+      // User is 16 or older, remove "Under 16" label if they have it
+      const under16Label = await prisma.customLabel.findUnique({
+        where: { name: "Under 16" },
       });
 
-      if (under18Label) {
+      if (under16Label) {
         await prisma.userCustomLabel.deleteMany({
           where: {
             userId,
-            labelId: under18Label.id,
+            labelId: under16Label.id,
           },
         });
       }
       return;
     }
 
-    // User is under 18, ensure they have the label
-    const under18Label = await prisma.customLabel.findUnique({
-      where: { name: "Under 18" },
+    // User is under 16, ensure they have the label
+    const under16Label = await prisma.customLabel.findUnique({
+      where: { name: "Under 16" },
     });
 
-    if (!under18Label) {
-      console.warn("Under 18 label not found. Make sure to run the seed script.");
+    if (!under16Label) {
+      console.warn("Under 16 label not found. Make sure to run the seed script.");
       return;
     }
 
@@ -48,7 +48,7 @@ export async function autoLabelUnder18User(userId: string, dateOfBirth: Date | n
       where: {
         userId_labelId: {
           userId,
-          labelId: under18Label.id,
+          labelId: under16Label.id,
         },
       },
     });
@@ -58,12 +58,12 @@ export async function autoLabelUnder18User(userId: string, dateOfBirth: Date | n
       await prisma.userCustomLabel.create({
         data: {
           userId,
-          labelId: under18Label.id,
+          labelId: under16Label.id,
         },
       });
     }
   } catch (error) {
-    console.error("Error auto-labeling under 18 user:", error);
+    console.error("Error auto-labeling under 16 user:", error);
     // Don't throw - we don't want auto-labeling failures to break user registration
   }
 }
