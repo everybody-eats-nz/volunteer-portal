@@ -1,3 +1,9 @@
+## [0.54.1] - 2025-11-12
+
+### Changes
+- fix: correct timezone handling for Nova event migration ([#197](https://github.com/everybody-eats-nz/volunteer-portal/pull/197)) by @malinmalliyawadu
+
+
 ## [0.54.0] - 2025-11-12
 
 ### Changes
