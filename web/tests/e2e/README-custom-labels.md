@@ -10,7 +10,7 @@ This directory contains comprehensive end-to-end tests for the Custom Labels sys
 - ✅ User label assignment on volunteer profiles
 - ✅ Labels display on shifts management page
 - ✅ Volunteer access restrictions and security
-- ✅ Auto-labeling system (Under 18, New Volunteer)
+- ✅ Auto-labeling system (Under 16, New Volunteer)
 - ✅ Form validation and error handling
 
 **Total: 39 tests (13 test cases × 3 browsers)**
@@ -110,10 +110,10 @@ npx playwright test custom-labels.spec.ts --headed --project=chromium
 - [x] UI visibility controls
 
 ### Auto-Labeling System ✅
-- [x] "Under 18" label for minors during registration
+- [x] "Under 16" label for minors during registration
 - [x] "New Volunteer" label for fresh registrations
 - [x] Label updates when profile changes
-- [x] Age-based label removal when users turn 18
+- [x] Age-based label removal when users turn 16
 
 ### UI/UX Testing ✅
 - [x] Form validation and error states
@@ -140,7 +140,7 @@ npx playwright test custom-labels.spec.ts --headed --project=chromium
 4. **Database**: Clean database state recommended for consistent results
 
 ### Seed Labels Expected
-- Under 18 (orange with 🔞)
+- Under 16 (orange with 🔞)
 - New Volunteer (blue with ✨)
 - Team Leader (purple with 👑)
 - High Priority (red with 🚨)
