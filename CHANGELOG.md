@@ -1,3 +1,9 @@
+## [0.54.0] - 2025-11-12
+
+### Changes
+- feat: update minor age threshold from 18 to 16 ([#196](https://github.com/everybody-eats-nz/volunteer-portal/pull/196)) by @malinmalliyawadu
+
+
 ## [0.53.1] - 2025-11-12
 
 ### Changes
