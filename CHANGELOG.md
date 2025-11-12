@@ -1,3 +1,9 @@
+## [0.54.4] - 2025-11-12
+
+### Changes
+- feat: improve manage shifts page layout for tablet screens ([#201](https://github.com/everybody-eats-nz/volunteer-portal/pull/201)) by @malinmalliyawadu
+
+
 ## [0.54.3] - 2025-11-12
 
 ### Changes
