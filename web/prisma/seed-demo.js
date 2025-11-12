@@ -1512,7 +1512,7 @@ async function main() {
           message: `${
             otherUsers[0].firstName || otherUsers[0].name || "Someone"
           } sent you a friend request`,
-          actionUrl: "/friends",
+          actionUrl: "/friends?tab=requests",
           relatedId: "fake-friend-request-id",
           isRead: false,
           createdAt: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
