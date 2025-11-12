@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
-import { autoLabelUnder18User, autoLabelNewVolunteer } from "@/lib/auto-label-utils";
+import { autoLabelUnder16User, autoLabelNewVolunteer } from "@/lib/auto-label-utils";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
 import { validatePassword } from "@/lib/utils/password-validation";
@@ -261,9 +261,9 @@ export async function POST(req: Request) {
         await autoLabelNewVolunteer(user.id);
       }
       
-      // Auto-label users under 18 if they have a date of birth
+      // Auto-label users under 16 if they have a date of birth
       if (validatedData.dateOfBirth) {
-        await autoLabelUnder18User(user.id, new Date(validatedData.dateOfBirth));
+        await autoLabelUnder16User(user.id, new Date(validatedData.dateOfBirth));
       }
     }
 

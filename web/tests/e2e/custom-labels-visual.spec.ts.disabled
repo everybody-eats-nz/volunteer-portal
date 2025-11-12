@@ -12,8 +12,8 @@ test.describe("Custom Labels - Visual and Integration Tests", () => {
 
     // Check if seed data labels are present and styled correctly
     const seedLabels = [
-      "Under 18",
-      "New Volunteer", 
+      "Under 16",
+      "New Volunteer",
       "Team Leader",
       "High Priority",
       "Needs Support",

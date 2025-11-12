@@ -2317,7 +2317,7 @@ async function main() {
   
   const customLabelsData = [
     {
-      name: "Under 18",
+      name: "Under 16",
       color: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
       icon: "🔞",
     },

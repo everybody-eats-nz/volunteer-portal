@@ -29,7 +29,7 @@ test.describe("Custom Labels - Quick Verification Tests", () => {
       await page.waitForLoadState("domcontentloaded");
 
       // Look for some expected seed labels
-      const expectedLabels = ["Under 18", "New Volunteer", "Team Leader"];
+      const expectedLabels = ["Under 16", "New Volunteer", "Team Leader"];
       
       for (const labelName of expectedLabels) {
         const labelBadge = page.getByTestId("custom-label-badge").filter({ hasText: labelName });

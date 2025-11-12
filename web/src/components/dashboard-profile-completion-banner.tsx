@@ -79,7 +79,7 @@ export function DashboardProfileCompletionBanner() {
             </h3>
             <div className="mt-1 text-sm text-orange-700 dark:text-orange-300">
               <p className="mb-2">
-                Since you&apos;re under 18, we need parental consent before you
+                Since you&apos;re under 16, we need parental consent before you
                 can participate in shifts.
               </p>
               <div className="text-xs mb-3 space-y-1">
