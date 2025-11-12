@@ -299,10 +299,10 @@ export function ParentalConsentTable() {
           <div className="text-center py-8">
             <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground">
-              No volunteers under 18 found
+              No volunteers under 16 found
             </h3>
             <p className="text-sm text-muted-foreground">
-              All current volunteers are 18 or older
+              All current volunteers are 16 or older
             </p>
           </div>
         )}

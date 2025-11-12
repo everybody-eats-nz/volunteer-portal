@@ -131,7 +131,7 @@ async function createAndLoginAsUnderageUser(page: Page) {
 
 test.describe("Parental Consent System", () => {
   test.describe("Registration Flow for Minors", () => {
-    test.skip("should show parental consent notice during registration for users under 18", async ({
+    test.skip("should show parental consent notice during registration for users under 16", async ({
       page,
     }) => {
       await page.goto("/register");

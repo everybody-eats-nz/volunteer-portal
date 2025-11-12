@@ -82,9 +82,9 @@ test.describe("Custom Labels System - Focused Tests", () => {
       const userId = await findUserByEmail(page, testUserEmail);
       
       if (userId) {
-        // Check if "Under 18" label was auto-assigned
-        const hasUnder18Label = await verifyUserHasLabel(page, userId, "Under 18");
-        expect(hasUnder18Label).toBe(true);
+        // Check if "Under 16" label was auto-assigned
+        const hasUnder16Label = await verifyUserHasLabel(page, userId, "Under 16");
+        expect(hasUnder16Label).toBe(true);
 
         // Check if "New Volunteer" label was auto-assigned
         const hasNewVolunteerLabel = await verifyUserHasLabel(page, userId, "New Volunteer");
@@ -112,9 +112,9 @@ test.describe("Custom Labels System - Focused Tests", () => {
       const userId = await findUserByEmail(page, adultUserEmail);
       
       if (userId) {
-        // Check that "Under 18" label was NOT assigned
-        const hasUnder18Label = await verifyUserHasLabel(page, userId, "Under 18");
-        expect(hasUnder18Label).toBe(false);
+        // Check that "Under 16" label was NOT assigned
+        const hasUnder16Label = await verifyUserHasLabel(page, userId, "Under 16");
+        expect(hasUnder16Label).toBe(false);
 
         // Check if "New Volunteer" label was auto-assigned
         const hasNewVolunteerLabel = await verifyUserHasLabel(page, userId, "New Volunteer");
