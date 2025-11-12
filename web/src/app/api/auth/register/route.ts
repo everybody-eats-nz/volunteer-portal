@@ -158,7 +158,7 @@ export async function POST(req: Request) {
     if (validatedData.dateOfBirth) {
       const birthDate = new Date(validatedData.dateOfBirth);
       const age = calculateAge(birthDate);
-      requiresParentalConsent = age < 18;
+      requiresParentalConsent = age < 16;
     }
 
     // Prepare data for database insertion

@@ -553,7 +553,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                     )}
                                     {(() => {
                                       const age = signup.user.dateOfBirth ? calculateAge(signup.user.dateOfBirth) : null;
-                                      return age !== null && age <= 16 ? (
+                                      return age !== null && age < 16 ? (
                                         <Badge
                                           variant="outline"
                                           className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 px-1.5 py-0.5"
