@@ -108,25 +108,51 @@ export function toUTC(tzDate: Date): Date {
 export function getDSTTransitionInfo(date: Date | string) {
   const nzDate = toNZT(date);
   const year = nzDate.getFullYear();
-  
+
   // NZ DST typically runs from last Sunday in September to first Sunday in April
   // These are approximate - actual dates vary by year
   const dstStart = new Date(year, 8, 24); // Late September approximation
   const dstEnd = new Date(year, 3, 7);    // Early April approximation
-  
+
   const dateTime = nzDate.getTime();
   const dstStartTime = dstStart.getTime();
   const dstEndTime = dstEnd.getTime();
-  
+
   // Check if within 24 hours of a DST transition
-  const nearTransition = 
+  const nearTransition =
     Math.abs(dateTime - dstStartTime) < 24 * 60 * 60 * 1000 ||
     Math.abs(dateTime - dstEndTime) < 24 * 60 * 60 * 1000;
-    
+
   return {
     nearTransition,
     isDST: dateTime >= dstStartTime || dateTime < dstEndTime,
-    message: nearTransition ? 
+    message: nearTransition ?
       "Date is near DST transition - times may be affected" : null
   };
+}
+
+/**
+ * Create a date with specific time in NZ timezone
+ * This is used for migration to ensure times are set correctly in NZ time
+ * @param dateString - Date string (e.g., "2024-11-09")
+ * @param hour - Hour in NZ timezone (0-23)
+ * @param minute - Minute (0-59)
+ * @param second - Second (0-59)
+ * @returns Date object representing the specified time in NZ timezone
+ */
+export function createNZDate(
+  dateString: string,
+  hour: number,
+  minute: number = 0,
+  second: number = 0
+): Date {
+  // Parse the date string in NZ timezone
+  const [year, month, day] = dateString.split('-').map(Number);
+
+  // Create a date in NZ timezone with the specified time
+  // Note: month is 0-indexed in JavaScript Date
+  const nzDate = nzTimezone(new Date(year, month - 1, day, hour, minute, second));
+
+  // Return as regular Date object (which internally stores as UTC)
+  return new Date(nzDate.getTime());
 }

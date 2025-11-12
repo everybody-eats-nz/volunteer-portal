@@ -512,7 +512,7 @@ export async function POST(request: NextRequest) {
                           }
                         }
 
-                        // Check if shift already exists (or simulate in dry run)
+                        // Check if shift already exists based on date, time, and shift type
                         let shift;
                         if (dryRun) {
                           // In dry run, simulate shift creation
@@ -536,9 +536,12 @@ export async function POST(request: NextRequest) {
                           };
                           shiftsImported++;
                         } else {
+                          // Match on date, time, and shift type - not Nova ID
                           const existingShift = await prisma.shift.findFirst({
                             where: {
-                              notes: { contains: `Nova ID: ${eventId}` },
+                              start: shiftData.start,
+                              end: shiftData.end,
+                              shiftTypeId: shiftType.id,
                             },
                           });
 
@@ -564,6 +567,10 @@ export async function POST(request: NextRequest) {
                               },
                             });
                             shiftsImported++;
+                          } else {
+                            console.log(
+                              `[BULK] Found existing shift for ${shiftData.shiftTypeName} on ${shiftData.start.toISOString()}, using existing shift ID: ${existingShift.id}`
+                            );
                           }
                         }
 
