@@ -240,6 +240,30 @@ export default async function NewShiftPage() {
       redirect("/admin/shifts/new?error=date_range");
     }
 
+    // Fetch templates from database
+    const dbTemplates = await prisma.shiftTemplate.findMany({
+      where: {
+        isActive: true,
+        name: { in: selectedTemplates }
+      },
+    });
+
+    // Convert database templates to lookup object
+    const templatesWithShiftTypes = Object.fromEntries(
+      dbTemplates.map((template) => [
+        template.name,
+        {
+          name: template.name,
+          startTime: template.startTime,
+          endTime: template.endTime,
+          capacity: template.capacity,
+          notes: template.notes || "",
+          shiftTypeId: template.shiftTypeId,
+          location: template.location || undefined,
+        },
+      ])
+    );
+
     const shifts = [];
     const current = new Date(start);
 
@@ -688,6 +712,7 @@ export default async function NewShiftPage() {
                             type="checkbox"
                             name={`day_${day}`}
                             id={`day_${day}`}
+                            defaultChecked={true}
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                             data-testid={`day-${day.toLowerCase()}-checkbox`}
                           />
