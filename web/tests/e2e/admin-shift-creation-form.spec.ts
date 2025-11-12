@@ -176,10 +176,9 @@ test.describe("Admin Shift Creation Form", () => {
 
       // Switch to bulk creation tab
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
-      
-      // Check bulk-specific elements
-      await expect(page.getByTestId("bulk-start-date-input")).toBeVisible();
-      await expect(page.getByTestId("bulk-end-date-input")).toBeVisible();
+
+      // Check bulk-specific elements - now using combined date range picker
+      await expect(page.getByTestId("bulk-date-range-input")).toBeVisible();
       await expect(page.getByText("Date Range")).toBeVisible();
       await expect(page.getByText("Days of Week")).toBeVisible();
       await expect(page.getByText("Shift Templates")).toBeVisible();
@@ -191,7 +190,7 @@ test.describe("Admin Shift Creation Form", () => {
 
       // Switch to bulk creation
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
-      
+
       // Check day checkboxes exist (using test IDs since labels are abbreviated)
       await expect(page.getByTestId("day-monday-checkbox")).toBeVisible();
       await expect(page.getByTestId("day-tuesday-checkbox")).toBeVisible();
@@ -202,22 +201,37 @@ test.describe("Admin Shift Creation Form", () => {
       await expect(page.getByTestId("day-sunday-checkbox")).toBeVisible();
     });
 
-    test("should open calendar pickers for bulk date range", async ({ page }) => {
+    test("should have all days checked by default", async ({ page }) => {
       await page.goto("/admin/shifts/new");
       await page.waitForLoadState("load");
 
       // Switch to bulk creation
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
-      
-      // Click start date picker
-      await page.getByTestId("bulk-start-date-input").click();
+
+      // Verify all day checkboxes are checked by default
+      await expect(page.getByTestId("day-monday-checkbox")).toBeChecked();
+      await expect(page.getByTestId("day-tuesday-checkbox")).toBeChecked();
+      await expect(page.getByTestId("day-wednesday-checkbox")).toBeChecked();
+      await expect(page.getByTestId("day-thursday-checkbox")).toBeChecked();
+      await expect(page.getByTestId("day-friday-checkbox")).toBeChecked();
+      await expect(page.getByTestId("day-saturday-checkbox")).toBeChecked();
+      await expect(page.getByTestId("day-sunday-checkbox")).toBeChecked();
+    });
+
+    test("should open calendar picker for bulk date range", async ({ page }) => {
+      await page.goto("/admin/shifts/new");
+      await page.waitForLoadState("load");
+
+      // Switch to bulk creation
+      await page.getByRole("tab", { name: "Weekly Schedule" }).click();
+
+      // Click combined date range picker
+      await page.getByTestId("bulk-date-range-input").click();
       await expect(page.getByRole("dialog")).toBeVisible();
-      
-      // Close and try end date
-      await page.keyboard.press("Escape");
-      await page.waitForTimeout(100);
-      await page.getByTestId("bulk-end-date-input").click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+
+      // Check for calendar grid with date buttons (range picker shows 2 months)
+      const dateButtons = page.locator('[role="gridcell"] button');
+      await expect(dateButtons.first()).toBeVisible();
     });
   });
 
