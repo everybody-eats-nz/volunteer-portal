@@ -15,10 +15,12 @@ import { motion } from "motion/react";
 
 interface FriendsManagerServerProps {
   initialData: FriendsData;
+  initialTab?: "friends" | "requests";
 }
 
 export function FriendsManagerServer({
   initialData,
+  initialTab = "friends",
 }: FriendsManagerServerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSendRequest, setShowSendRequest] = useState(false);
@@ -71,7 +73,7 @@ export function FriendsManagerServer({
         </div>
       </div>
 
-      <Tabs defaultValue="friends" className="space-y-8">
+      <Tabs defaultValue={initialTab} className="space-y-8">
         <TabsList
           data-testid="friends-tabs"
           aria-label="Friends and requests navigation"

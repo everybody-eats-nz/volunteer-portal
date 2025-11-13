@@ -215,7 +215,7 @@ export async function createFriendRequestNotification(
     type: "FRIEND_REQUEST_RECEIVED",
     title: "New friend request",
     message: `${senderName} sent you a friend request`,
-    actionUrl: "/friends",
+    actionUrl: "/friends?tab=requests",
     relatedId: friendRequestId,
   });
 }
