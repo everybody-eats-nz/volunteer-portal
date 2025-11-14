@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/ci.yml)
 [![E2E Tests](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/test.yml/badge.svg)](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/test.yml)
-[![CodeQL](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/codeql.yml/badge.svg)](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/everybody-eats-nz/volunteer-portal/actions/workflows/github-code-scanning/codeql)
 
 A comprehensive volunteer management system for [Everybody Eats](https://www.everybodyeats.nz), an innovative charitable restaurant that transforms rescued food into quality 3-course meals on a pay-what-you-can basis.
 
