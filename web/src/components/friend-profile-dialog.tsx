@@ -7,11 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Trophy, 
+import { formatInNZT } from "@/lib/timezone";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Trophy,
   CalendarDays
 } from "lucide-react";
 
@@ -203,8 +204,8 @@ export function FriendProfileDialog({
                               <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <div className="flex items-center">
                                   <Clock className="h-3 w-3 mr-1" />
-                                  {format(new Date(shift.start), "MMM d, h:mm a")} - 
-                                  {format(new Date(shift.end), "h:mm a")}
+                                  {formatInNZT(new Date(shift.start), "MMM d, h:mm a")} -
+                                  {formatInNZT(new Date(shift.end), "h:mm a")}
                                 </div>
                                 {shift.location && (
                                   <div className="flex items-center">
