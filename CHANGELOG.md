@@ -1,3 +1,9 @@
+## [0.54.6] - 2025-11-14
+
+### Changes
+- fix: correct shift creation timezone handling for Vercel deployment ([#205](https://github.com/everybody-eats-nz/volunteer-portal/pull/205)) by @malinmalliyawadu
+
+
 ## [0.54.5] - 2025-11-13
 
 ### Changes
