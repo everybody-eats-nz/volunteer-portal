@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { isShiftCompleted } from "@/lib/shift-utils";
 import {
   Dialog,
@@ -59,7 +59,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
     if (!currentShift) return;
 
     try {
-      const shiftDate = format(currentShift.start, "yyyy-MM-dd");
+      const shiftDate = formatInNZT(currentShift.start, "yyyy-MM-dd");
       const response = await fetch(`/api/admin/shifts/available?date=${shiftDate}&location=${currentShift.location}`);
       if (response.ok) {
         const data = await response.json();
@@ -292,7 +292,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     <SelectContent>
                       {availableShifts.map(shift => (
                         <SelectItem key={shift.id} value={shift.id}>
-                          {shift.shiftType.name} • {format(new Date(shift.start), "h:mm a")} - {format(new Date(shift.end), "h:mm a")} • {shift.capacity - shift.confirmedCount} spots available
+                          {shift.shiftType.name} • {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {shift.capacity - shift.confirmedCount} spots available
                         </SelectItem>
                       ))}
                     </SelectContent>

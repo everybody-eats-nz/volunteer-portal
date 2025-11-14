@@ -262,6 +262,7 @@ export async function processAutoApproval(
         year: "numeric",
         month: "long",
         day: "numeric",
+        timeZone: "Pacific/Auckland",
       }).format(shift.start);
 
       // Send in-app notification
