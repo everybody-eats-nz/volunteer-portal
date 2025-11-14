@@ -10,6 +10,7 @@ import {
   endOfWeek,
   isSameMonth,
 } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -368,7 +369,7 @@ export default async function MyShiftsPage({
                   {shift.shift.shiftType.name}
                 </div>
                 <div className="text-sm font-normal text-muted-foreground">
-                  {format(shift.shift.start, "EEEE, MMMM d, yyyy")}
+                  {formatInNZT(shift.shift.start, "EEEE, MMMM d, yyyy")}
                 </div>
               </div>
             </ResponsiveDialogTitle>
@@ -386,8 +387,8 @@ export default async function MyShiftsPage({
               <span className="text-sm font-medium">Time</span>
               <div className="text-sm text-right">
                 <div>
-                  {format(shift.shift.start, "h:mm a")} -{" "}
-                  {format(shift.shift.end, "h:mm a")}
+                  {formatInNZT(shift.shift.start, "h:mm a")} -{" "}
+                  {formatInNZT(shift.shift.end, "h:mm a")}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {differenceInHours(shift.shift.end, shift.shift.start)} hours
@@ -884,7 +885,7 @@ export default async function MyShiftsPage({
                                 <div className="text-center space-y-1">
                                   <div className="text-xl">{theme.emoji}</div>
                                   <div className="font-bold text-sm">
-                                    {format(shift.shift.start, "HH:mm")}
+                                    {formatInNZT(shift.shift.start, "HH:mm")}
                                   </div>
                                   <div className="text-xs opacity-90 font-medium line-clamp-2">
                                     {shift.shift.shiftType.name}
@@ -1035,10 +1036,10 @@ export default async function MyShiftsPage({
                                     </div>
                                     <div className="text-sm opacity-90 flex items-center gap-2 mt-1">
                                       <Timer className="h-4 w-4" />
-                                      {format(
+                                      {formatInNZT(
                                         shift.shift.start,
                                         "h:mm a"
-                                      )} - {format(shift.shift.end, "h:mm a")}
+                                      )} - {formatInNZT(shift.shift.end, "h:mm a")}
                                     </div>
                                     {shift.shift.location && (
                                       <div className="text-sm opacity-75 mt-1">
