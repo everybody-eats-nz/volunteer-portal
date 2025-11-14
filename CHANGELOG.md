@@ -1,3 +1,9 @@
+## [0.54.7] - 2025-11-14
+
+### Changes
+- Fix loginLink to use getBaseUrl() instead of NEXTAUTH_URL ([#207](https://github.com/everybody-eats-nz/volunteer-portal/pull/207)) by @malinmalliyawadu
+
+
 ## [0.54.6] - 2025-11-14
 
 ### Changes

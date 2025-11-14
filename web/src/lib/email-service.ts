@@ -269,13 +269,18 @@ class EmailService {
     }
 
     // Smart email ID for email verification
-    const emailVerificationEmailId = process.env.CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID;
+    const emailVerificationEmailId =
+      process.env.CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID;
     if (!emailVerificationEmailId) {
       if (isDevelopment) {
-        console.warn("[EMAIL SERVICE] CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID is not configured - email verification emails will not be sent");
-        this.emailVerificationSmartEmailID = 'dummy-email-verification-id';
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID is not configured - email verification emails will not be sent"
+        );
+        this.emailVerificationSmartEmailID = "dummy-email-verification-id";
       } else {
-        throw new Error("CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID is not configured");
+        throw new Error(
+          "CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID is not configured"
+        );
       }
     } else {
       this.emailVerificationSmartEmailID = emailVerificationEmailId;
@@ -601,7 +606,7 @@ class EmailService {
     // Extract first name from volunteer name
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
-    
+
     const browseShiftsLink = `${getBaseUrl()}/shifts`;
 
     const details = {
@@ -699,13 +704,23 @@ class EmailService {
     });
   }
 
-  async sendEmailVerification(params: SendEmailVerificationParams): Promise<void> {
-    const isDevelopment = process.env.NODE_ENV === 'development';
+  async sendEmailVerification(
+    params: SendEmailVerificationParams
+  ): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
 
     // In development, skip email sending if configuration is missing
-    if (isDevelopment && this.emailVerificationSmartEmailID === 'dummy-email-verification-id') {
-      console.log(`[EMAIL SERVICE] Would send email verification to ${params.to} (skipped in dev - no config)`);
-      console.log(`[EMAIL SERVICE] Verification link:`, params.verificationLink);
+    if (
+      isDevelopment &&
+      this.emailVerificationSmartEmailID === "dummy-email-verification-id"
+    ) {
+      console.log(
+        `[EMAIL SERVICE] Would send email verification to ${params.to} (skipped in dev - no config)`
+      );
+      console.log(
+        `[EMAIL SERVICE] Verification link:`,
+        params.verificationLink
+      );
       return Promise.resolve();
     }
 
@@ -722,7 +737,10 @@ class EmailService {
       this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
         if (err) {
           if (isDevelopment) {
-            console.warn("[EMAIL SERVICE] Error sending email verification (development):", err.message);
+            console.warn(
+              "[EMAIL SERVICE] Error sending email verification (development):",
+              err.message
+            );
             resolve(); // Don't fail in development
           } else {
             console.error("Error sending email verification:", err);
@@ -751,9 +769,7 @@ class EmailService {
         firstName: params.firstName || "User",
         role: params.role.toLowerCase(),
         tempPassword: params.tempPassword,
-        loginLink: `${
-          process.env.NEXTAUTH_URL || "http://localhost:3000"
-        }/login`,
+        loginLink: `${getBaseUrl()}/login`,
       });
       return Promise.resolve();
     }
@@ -763,15 +779,14 @@ class EmailService {
       params.firstName ||
       (params.lastName ? params.lastName : params.to.split("@")[0]);
 
-    const loginLink = `${
-      process.env.NEXTAUTH_URL || "http://localhost:3000"
-    }/login`;
+    const loginLink = `${getBaseUrl()}/login`;
 
     const details = {
       smartEmailID: this.userInvitationSmartEmailID,
-      to: params.firstName && params.lastName
-        ? `${params.firstName} ${params.lastName} <${params.to}>`
-        : `${firstName} <${params.to}>`,
+      to:
+        params.firstName && params.lastName
+          ? `${params.firstName} ${params.lastName} <${params.to}>`
+          : `${firstName} <${params.to}>`,
       data: {
         firstName: firstName,
         role: params.role.toLowerCase(),
