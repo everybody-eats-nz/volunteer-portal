@@ -18,7 +18,7 @@ import { PageContainer } from "@/components/page-container";
 import { BulkDateRangeSection } from "@/components/shift-date-time-section";
 import { ShiftCreationClientForm } from "@/components/shift-creation-client-form";
 import { CollapsibleTemplateSelection } from "@/components/collapsible-template-selection";
-import { formatInNZT, createNZDate } from "@/lib/timezone";
+import { formatInNZT, createNZDate, parseISOInNZT } from "@/lib/timezone";
 import { DeleteTemplateForm } from "@/components/delete-template-form";
 import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
@@ -236,8 +236,9 @@ export default async function NewShiftPage() {
       selectedTemplates,
     } = parsed.data;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates in NZ timezone to ensure correct day-of-week calculations
+    const start = parseISOInNZT(startDate);
+    const end = parseISOInNZT(endDate);
 
     if (end < start) {
       redirect("/admin/shifts/new?error=date_range");
@@ -268,10 +269,11 @@ export default async function NewShiftPage() {
     );
 
     const shifts = [];
-    const current = new Date(start);
+    const current = new Date(start.getTime());
 
     while (current <= end) {
-      const dayName = current.toLocaleDateString("en-US", { weekday: "long" });
+      // Get day name in NZ timezone
+      const dayName = formatInNZT(current, "EEEE");
 
       if (selectedDays.includes(dayName)) {
         for (const templateName of selectedTemplates) {
