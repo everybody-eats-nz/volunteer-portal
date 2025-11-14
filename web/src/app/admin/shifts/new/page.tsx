@@ -18,7 +18,7 @@ import { PageContainer } from "@/components/page-container";
 import { BulkDateRangeSection } from "@/components/shift-date-time-section";
 import { ShiftCreationClientForm } from "@/components/shift-creation-client-form";
 import { CollapsibleTemplateSelection } from "@/components/collapsible-template-selection";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, createNZDate } from "@/lib/timezone";
 import { DeleteTemplateForm } from "@/components/delete-template-form";
 import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
@@ -67,8 +67,11 @@ export default async function NewShiftPage() {
     const { shiftTypeId, date, startTime, endTime, location, capacity, notes } =
       parsed.data;
 
-    const start = new Date(`${date}T${startTime}:00`);
-    const end = new Date(`${date}T${endTime}:00`);
+    // Parse time components and create dates in NZ timezone
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const start = createNZDate(date, startHour, startMinute);
+    const end = createNZDate(date, endHour, endMinute);
 
     if (!(start instanceof Date) || isNaN(start.getTime()))
       redirect("/admin/shifts/new?error=startdate");
@@ -274,12 +277,12 @@ export default async function NewShiftPage() {
         for (const templateName of selectedTemplates) {
           const template = templatesWithShiftTypes[templateName];
           if (template) {
-            const shiftStart = new Date(
-              `${formatInNZT(current, "yyyy-MM-dd")}T${template.startTime}:00`
-            );
-            const shiftEnd = new Date(
-              `${formatInNZT(current, "yyyy-MM-dd")}T${template.endTime}:00`
-            );
+            // Parse time components and create dates in NZ timezone
+            const dateStr = formatInNZT(current, "yyyy-MM-dd");
+            const [startHour, startMinute] = template.startTime.split(':').map(Number);
+            const [endHour, endMinute] = template.endTime.split(':').map(Number);
+            const shiftStart = createNZDate(dateStr, startHour, startMinute);
+            const shiftEnd = createNZDate(dateStr, endHour, endMinute);
 
             // Only create future shifts
             if (shiftStart > new Date()) {
