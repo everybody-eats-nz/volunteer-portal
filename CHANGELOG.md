@@ -1,3 +1,9 @@
+## [0.54.8] - 2025-11-14
+
+### Changes
+- feat: add emailAddress to user invitation email data ([#208](https://github.com/everybody-eats-nz/volunteer-portal/pull/208)) by @malinmalliyawadu
+
+
 ## [0.54.7] - 2025-11-14
 
 ### Changes
