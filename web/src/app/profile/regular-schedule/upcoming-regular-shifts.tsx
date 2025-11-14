@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 
 type PreviewShift = {
   id: string;
@@ -127,13 +127,13 @@ export function UpcomingRegularShifts() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {format(new Date(shift.start), "EEE, MMM d, yyyy")}
+                        {formatInNZT(new Date(shift.start), "EEE, MMM d, yyyy")}
                       </div>
 
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {format(new Date(shift.start), "h:mm a")} -{" "}
-                        {format(new Date(shift.end), "h:mm a")}
+                        {formatInNZT(new Date(shift.start), "h:mm a")} -{" "}
+                        {formatInNZT(new Date(shift.end), "h:mm a")}
                       </div>
 
                       <div className="flex items-center gap-1">

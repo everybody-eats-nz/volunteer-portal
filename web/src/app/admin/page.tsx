@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
@@ -397,7 +398,7 @@ export default async function AdminDashboardPage({
                 <div className="space-y-2">
                   <h4 className="font-medium">{nextShift.shiftType.name}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {format(nextShift.start, "PPp")}
+                    {formatInNZT(nextShift.start, "PPp")}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     📍 {nextShift.location}
@@ -578,7 +579,7 @@ export default async function AdminDashboardPage({
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {signup.shift.shiftType.name} -{" "}
-                        {format(signup.shift.start, "MMM d, yyyy")}
+                        {formatInNZT(signup.shift.start, "MMM d, yyyy")}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

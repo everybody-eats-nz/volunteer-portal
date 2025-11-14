@@ -29,7 +29,7 @@ import {
   VolunteersDataTable,
   type Volunteer,
 } from "@/components/volunteers-data-table";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { Send, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -226,7 +226,7 @@ export function NotificationsContent({
     if (filterAvailability && selectedShift) {
       const shift = shifts.find((s) => s.id === selectedShift);
       if (shift) {
-        const shiftDay = format(new Date(shift.start), "EEEE");
+        const shiftDay = formatInNZT(new Date(shift.start), "EEEE");
         filtered = filtered.filter(
           (v) =>
             Array.isArray(v.availableDays) && v.availableDays.includes(shiftDay)
@@ -424,7 +424,7 @@ export function NotificationsContent({
                       <div className="flex items-center justify-between w-full">
                         <span>
                           {shift.shiftType.name} -{" "}
-                          {format(new Date(shift.start), "MMM d, h:mm a")}
+                          {formatInNZT(new Date(shift.start), "MMM d, h:mm a")}
                         </span>
                         <div className="flex items-center gap-2 ml-4">
                           <Badge
@@ -465,11 +465,11 @@ export function NotificationsContent({
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p>
                           Date:{" "}
-                          {format(new Date(shift.start), "EEEE, MMMM d, yyyy")}
+                          {formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy")}
                         </p>
                         <p>
-                          Time: {format(new Date(shift.start), "h:mm a")} -{" "}
-                          {format(new Date(shift.end), "h:mm a")}
+                          Time: {formatInNZT(new Date(shift.start), "h:mm a")} -{" "}
+                          {formatInNZT(new Date(shift.end), "h:mm a")}
                         </p>
                         <p>Location: {shift.location}</p>
                         <p>
@@ -656,7 +656,7 @@ export function NotificationsContent({
             {selectedShift && (
               <p className="text-xs text-muted-foreground">
                 For shift on{" "}
-                {format(
+                {formatInNZT(
                   new Date(
                     shifts.find((s) => s.id === selectedShift)?.start || ""
                   ),

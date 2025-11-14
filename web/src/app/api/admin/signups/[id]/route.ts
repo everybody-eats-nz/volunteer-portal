@@ -8,7 +8,7 @@ import {
   createShiftCanceledNotification,
 } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { LOCATION_ADDRESSES } from "@/lib/locations";
 
 export async function PATCH(
@@ -162,8 +162,8 @@ export async function PATCH(
       // Send confirmation email to volunteer
       try {
         const emailService = getEmailService();
-        const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(
+        const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+        const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
           signup.shift.end,
           "h:mm a"
         )}`;
@@ -245,8 +245,8 @@ export async function PATCH(
       // Send cancellation email to volunteer
       try {
         const emailService = getEmailService();
-        const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(
+        const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+        const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
           signup.shift.end,
           "h:mm a"
         )}`;
@@ -312,8 +312,8 @@ export async function PATCH(
       // Send confirmation email to volunteer
       try {
         const emailService = getEmailService();
-        const shiftDate = format(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(signup.shift.start, "h:mm a")} - ${format(
+        const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+        const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
           signup.shift.end,
           "h:mm a"
         )}`;

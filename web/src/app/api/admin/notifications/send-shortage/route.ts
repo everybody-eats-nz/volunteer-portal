@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { getEmailService } from "@/lib/email-service";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -69,8 +69,8 @@ export async function POST(request: Request) {
     // Calculate shortage info
     const currentVolunteers = shift._count.signups;
     const neededVolunteers = shift.capacity - currentVolunteers;
-    const shiftDate = format(new Date(shift.start), "EEEE, MMMM d, yyyy");
-    const shiftTime = `${format(new Date(shift.start), "h:mm a")} - ${format(new Date(shift.end), "h:mm a")}`;
+    const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
+    const shiftTime = `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(new Date(shift.end), "h:mm a")}`;
 
     // Send emails via Campaign Monitor
     const emailService = getEmailService();
