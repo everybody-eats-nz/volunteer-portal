@@ -1,3 +1,15 @@
+## [0.54.6] - 2025-11-14
+
+### Changes
+- fix: correct shift creation timezone handling for Vercel deployment ([#205](https://github.com/everybody-eats-nz/volunteer-portal/pull/205)) by @malinmalliyawadu
+
+
+## [0.54.5] - 2025-11-13
+
+### Changes
+- fix: friend request notifications now route to requests tab ([#202](https://github.com/everybody-eats-nz/volunteer-portal/pull/202)) by @malinmalliyawadu
+
+
 ## [0.54.4] - 2025-11-12
 
 ### Changes

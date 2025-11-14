@@ -27,6 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { PageContainer } from "@/components/page-container";
 import { LOCATIONS } from "@/lib/locations";
+import { createNZDate, formatInNZT } from "@/lib/timezone";
 
 type ShiftType = {
   id: string;
@@ -110,8 +111,11 @@ export default async function EditShiftPage({
     const { shiftTypeId, date, startTime, endTime, location, capacity, notes } =
       parsed.data;
 
-    const start = new Date(`${date}T${startTime}:00`);
-    const end = new Date(`${date}T${endTime}:00`);
+    // Parse time components and create dates in NZ timezone
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const start = createNZDate(date, startHour, startMinute);
+    const end = createNZDate(date, endHour, endMinute);
 
     if (!(start instanceof Date) || isNaN(start.getTime()))
       redirect(`/admin/shifts/${id}/edit?error=startdate`);
@@ -162,15 +166,12 @@ export default async function EditShiftPage({
     redirect("/admin/shifts?deleted=1");
   }
 
-  // Format existing shift data for form defaults
-  const formatDate = (date: Date) => format(date, "yyyy-MM-dd");
-  const formatTime = (date: Date) => format(date, "HH:mm");
-
+  // Format existing shift data for form defaults (in NZ timezone)
   const defaultValues = {
     shiftTypeId: shift.shiftTypeId,
-    date: formatDate(shift.start),
-    startTime: formatTime(shift.start),
-    endTime: formatTime(shift.end),
+    date: formatInNZT(shift.start, "yyyy-MM-dd"),
+    startTime: formatInNZT(shift.start, "HH:mm"),
+    endTime: formatInNZT(shift.end, "HH:mm"),
     location: shift.location || "",
     capacity: shift.capacity.toString(),
     notes: shift.notes || "",

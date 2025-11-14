@@ -12,7 +12,11 @@ import { BarChart3 } from "lucide-react";
 import ErrorBoundary from "@/components/error-boundary";
 import { FriendsErrorFallback } from "@/components/friends-error-fallback";
 
-export default async function FriendsPage() {
+export default async function FriendsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -25,6 +29,10 @@ export default async function FriendsPage() {
   if (!friendsData) {
     redirect("/login");
   }
+
+  // Get the tab from searchParams
+  const { tab } = await searchParams;
+  const initialTab = tab === "requests" ? "requests" : "friends";
 
   return (
     <MotionPageContainer>
@@ -92,7 +100,7 @@ export default async function FriendsPage() {
             </div>
           }
         >
-          <FriendsManagerServer initialData={friendsData} />
+          <FriendsManagerServer initialData={friendsData} initialTab={initialTab} />
         </Suspense>
       </ErrorBoundary>
     </MotionPageContainer>
