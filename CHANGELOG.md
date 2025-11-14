@@ -1,3 +1,9 @@
+## [0.54.9] - 2025-11-14
+
+### Changes
+- Fix: Display shift times in NZT timezone ([#210](https://github.com/everybody-eats-nz/volunteer-portal/pull/210)) by @malinmalliyawadu
+
+
 ## [0.54.8] - 2025-11-14
 
 ### Changes
