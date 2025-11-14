@@ -18,7 +18,7 @@ import { PageContainer } from "@/components/page-container";
 import { BulkDateRangeSection } from "@/components/shift-date-time-section";
 import { ShiftCreationClientForm } from "@/components/shift-creation-client-form";
 import { CollapsibleTemplateSelection } from "@/components/collapsible-template-selection";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, createNZDate, parseISOInNZT, nowInNZT, toUTC } from "@/lib/timezone";
 import { DeleteTemplateForm } from "@/components/delete-template-form";
 import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
@@ -67,8 +67,11 @@ export default async function NewShiftPage() {
     const { shiftTypeId, date, startTime, endTime, location, capacity, notes } =
       parsed.data;
 
-    const start = new Date(`${date}T${startTime}:00`);
-    const end = new Date(`${date}T${endTime}:00`);
+    // Parse time components and create dates in NZ timezone
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const start = createNZDate(date, startHour, startMinute);
+    const end = createNZDate(date, endHour, endMinute);
 
     if (!(start instanceof Date) || isNaN(start.getTime()))
       redirect("/admin/shifts/new?error=startdate");
@@ -76,7 +79,8 @@ export default async function NewShiftPage() {
       redirect("/admin/shifts/new?error=enddate");
     if (end <= start) redirect("/admin/shifts/new?error=range");
 
-    const now = new Date();
+    // Use NZ timezone for "now" to ensure consistent validation
+    const now = toUTC(nowInNZT());
     if (start <= now) redirect("/admin/shifts/new?error=past");
 
     try {
@@ -92,8 +96,8 @@ export default async function NewShiftPage() {
         },
       });
 
-      // Find matching regular volunteers
-      const dayOfWeek = start.toLocaleDateString("en-US", { weekday: "long" });
+      // Find matching regular volunteers (use NZ timezone for day calculation)
+      const dayOfWeek = formatInNZT(start, "EEEE");
       const regularVolunteers = await prisma.regularVolunteer.findMany({
         where: {
           shiftTypeId,
@@ -233,8 +237,9 @@ export default async function NewShiftPage() {
       selectedTemplates,
     } = parsed.data;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates in NZ timezone to ensure correct day-of-week calculations
+    const start = parseISOInNZT(startDate);
+    const end = parseISOInNZT(endDate);
 
     if (end < start) {
       redirect("/admin/shifts/new?error=date_range");
@@ -265,24 +270,27 @@ export default async function NewShiftPage() {
     );
 
     const shifts = [];
-    const current = new Date(start);
+    // Iterate through date range in NZ timezone
+    let current = new Date(start.getTime());
+    const now = toUTC(nowInNZT());
 
     while (current <= end) {
-      const dayName = current.toLocaleDateString("en-US", { weekday: "long" });
+      // Get day name in NZ timezone
+      const dayName = formatInNZT(current, "EEEE");
 
       if (selectedDays.includes(dayName)) {
         for (const templateName of selectedTemplates) {
           const template = templatesWithShiftTypes[templateName];
           if (template) {
-            const shiftStart = new Date(
-              `${formatInNZT(current, "yyyy-MM-dd")}T${template.startTime}:00`
-            );
-            const shiftEnd = new Date(
-              `${formatInNZT(current, "yyyy-MM-dd")}T${template.endTime}:00`
-            );
+            // Parse time components and create dates in NZ timezone
+            const dateStr = formatInNZT(current, "yyyy-MM-dd");
+            const [startHour, startMinute] = template.startTime.split(':').map(Number);
+            const [endHour, endMinute] = template.endTime.split(':').map(Number);
+            const shiftStart = createNZDate(dateStr, startHour, startMinute);
+            const shiftEnd = createNZDate(dateStr, endHour, endMinute);
 
-            // Only create future shifts
-            if (shiftStart > new Date()) {
+            // Only create future shifts (compare in NZ timezone)
+            if (shiftStart > now) {
               shifts.push({
                 shiftTypeId: template.shiftTypeId,
                 start: shiftStart,
@@ -296,7 +304,8 @@ export default async function NewShiftPage() {
         }
       }
 
-      current.setDate(current.getDate() + 1);
+      // Increment by one day
+      current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
     }
 
     if (shifts.length === 0) {
@@ -324,9 +333,8 @@ export default async function NewShiftPage() {
 
       // Process regular volunteers for each shift
       for (const shift of createdShifts) {
-        const dayOfWeek = shift.start.toLocaleDateString("en-US", {
-          weekday: "long",
-        });
+        // Use NZ timezone for day-of-week calculation
+        const dayOfWeek = formatInNZT(shift.start, "EEEE");
         const regularVolunteers = await prisma.regularVolunteer.findMany({
           where: {
             shiftTypeId: shift.shiftTypeId,
