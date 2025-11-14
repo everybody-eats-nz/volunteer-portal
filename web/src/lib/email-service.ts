@@ -127,6 +127,7 @@ interface SendParentalConsentApprovalParams {
 
 interface UserInvitationEmailData {
   firstName: string;
+  emailAddress: string;
   role: string;
   tempPassword: string;
   loginLink: string;
@@ -789,6 +790,7 @@ class EmailService {
           : `${firstName} <${params.to}>`,
       data: {
         firstName: firstName,
+        emailAddress: params.to,
         role: params.role.toLowerCase(),
         tempPassword: params.tempPassword,
         loginLink: loginLink,
