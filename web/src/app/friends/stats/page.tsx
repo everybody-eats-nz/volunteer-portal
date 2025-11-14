@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { format, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -358,7 +359,7 @@ export default async function FriendsStatsPage() {
                             {signup.shift.shiftType.name}
                           </span>
                           <span className="text-muted-foreground ml-2">
-                            {format(signup.shift.start, "MMM d, h:mm a")}
+                            {formatInNZT(signup.shift.start, "MMM d, h:mm a")}
                           </span>
                         </div>
                       ))}
@@ -430,7 +431,7 @@ export default async function FriendsStatsPage() {
                                   className="text-xs text-muted-foreground"
                                 >
                                   {signup.shift.shiftType.name} •{" "}
-                                  {format(signup.shift.start, "MMM d, h:mm a")}
+                                  {formatInNZT(signup.shift.start, "MMM d, h:mm a")}
                                 </p>
                               ))}
                               {shifts.length > 2 && (

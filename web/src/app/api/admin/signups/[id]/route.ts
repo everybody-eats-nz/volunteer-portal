@@ -132,6 +132,7 @@ export async function PATCH(
             year: "numeric",
             month: "long",
             day: "numeric",
+            timeZone: "Pacific/Auckland",
           }).format(signup.shift.start);
 
           await createShiftWaitlistedNotification(
@@ -199,6 +200,7 @@ export async function PATCH(
           year: "numeric",
           month: "long",
           day: "numeric",
+          timeZone: "Pacific/Auckland",
         }).format(signup.shift.start);
 
         await createShiftConfirmedNotification(
@@ -280,6 +282,7 @@ export async function PATCH(
           year: "numeric",
           month: "long",
           day: "numeric",
+          timeZone: "Pacific/Auckland",
         }).format(signup.shift.start);
 
         await createShiftCanceledNotification(
@@ -350,6 +353,7 @@ export async function PATCH(
           year: "numeric",
           month: "long",
           day: "numeric",
+          timeZone: "Pacific/Auckland",
         }).format(signup.shift.start);
 
         await createShiftConfirmedNotification(
