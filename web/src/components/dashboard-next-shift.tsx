@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,12 +80,12 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="w-4 h-4 text-muted-foreground dark:text-gray-400" />
-                {format(nextShift.shift.start, "EEEE, MMMM do")}
+                {formatInNZT(nextShift.shift.start, "EEEE, MMMM do")}
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 text-muted-foreground dark:text-gray-400" />
-                {format(nextShift.shift.start, "h:mm a")} -{" "}
-                {format(nextShift.shift.end, "h:mm a")}
+                {formatInNZT(nextShift.shift.start, "h:mm a")} -{" "}
+                {formatInNZT(nextShift.shift.end, "h:mm a")}
               </div>
             </div>
             {nextShift.shift.notes && (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -312,7 +312,7 @@ export function GroupBookingDialog({
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           <span>
-                            {format(shift.start, "h:mm a")} - {format(shift.end, "h:mm a")}
+                            {formatInNZT(shift.start, "h:mm a")} - {formatInNZT(shift.end, "h:mm a")}
                           </span>
                           <Badge variant="outline" className="text-xs ml-1">
                             {duration}
@@ -506,11 +506,11 @@ export function GroupBookingDialog({
                                     id={`leader-${shiftId}`}
                                     className="h-3 w-3"
                                   />
-                                  <Label 
-                                    htmlFor={`leader-${shiftId}`} 
+                                  <Label
+                                    htmlFor={`leader-${shiftId}`}
                                     className="text-xs cursor-pointer"
                                   >
-                                    {shift?.shiftType.name} ({shift && format(shift.start, "h:mm a")})
+                                    {shift?.shiftType.name} ({shift && formatInNZT(shift.start, "h:mm a")})
                                   </Label>
                                 </div>
                               );
@@ -554,11 +554,11 @@ export function GroupBookingDialog({
                                     id={`${email}-${shiftId}`}
                                     className="h-3 w-3"
                                   />
-                                  <Label 
-                                    htmlFor={`${email}-${shiftId}`} 
+                                  <Label
+                                    htmlFor={`${email}-${shiftId}`}
                                     className="text-xs cursor-pointer"
                                   >
-                                    {shift?.shiftType.name} ({shift && format(shift.start, "h:mm a")})
+                                    {shift?.shiftType.name} ({shift && formatInNZT(shift.start, "h:mm a")})
                                   </Label>
                                 </div>
                               );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -293,13 +293,13 @@ export function ShiftSignupDialog({
             <div className="space-y-2 text-sm" data-testid="shift-details-info">
               <div className="flex items-center gap-2" data-testid="shift-details-date">
                 <span className="font-medium">📅 Date:</span>
-                <span>{format(shift.start, "EEEE, dd MMMM yyyy")}</span>
+                <span>{formatInNZT(shift.start, "EEEE, dd MMMM yyyy")}</span>
               </div>
               <div className="flex items-center gap-2" data-testid="shift-details-time">
                 <span className="font-medium">🕐 Time:</span>
                 <span>
-                  {format(shift.start, "h:mm a")} -{" "}
-                  {format(shift.end, "h:mm a")}
+                  {formatInNZT(shift.start, "h:mm a")} -{" "}
+                  {formatInNZT(shift.end, "h:mm a")}
                 </span>
                 <Badge variant="outline" className="text-xs" data-testid="shift-details-duration">
                   {duration}
