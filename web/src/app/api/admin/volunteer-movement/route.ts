@@ -111,22 +111,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if this would create a double booking on the same day
-    const targetShiftDate = new Date(targetShift.start);
-    const startOfDay = new Date(targetShiftDate.getFullYear(), targetShiftDate.getMonth(), targetShiftDate.getDate());
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-    
-    const existingDailySignup = await prisma.signup.findFirst({
+    // Check if this would create a double booking on the same day (in NZ timezone)
+    // Get the calendar date of the target shift in NZ timezone
+    const targetShiftNZDate = new Intl.DateTimeFormat("en-NZ", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Pacific/Auckland",
+    }).format(targetShift.start);
+
+    // Get all confirmed signups for this user (excluding the current signup being moved)
+    const otherConfirmedSignups = await prisma.signup.findMany({
       where: {
         userId: signup.userId,
         status: "CONFIRMED",
         id: { not: signupId }, // Exclude the current signup we're moving
-        shift: {
-          start: {
-            gte: startOfDay,
-            lt: endOfDay,
-          },
-        },
       },
       include: {
         shift: {
@@ -135,6 +134,17 @@ export async function POST(request: Request) {
           },
         },
       },
+    });
+
+    // Check if any of them are on the same NZ calendar day
+    const existingDailySignup = otherConfirmedSignups.find((otherSignup) => {
+      const otherSignupNZDate = new Intl.DateTimeFormat("en-NZ", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "Pacific/Auckland",
+      }).format(otherSignup.shift.start);
+      return otherSignupNZDate === targetShiftNZDate;
     });
     
     if (existingDailySignup) {
