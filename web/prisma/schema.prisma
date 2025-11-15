@@ -394,6 +394,7 @@ enum NotificationType {
   ACHIEVEMENT_UNLOCKED    // You unlocked a new achievement
   SHIFT_CANCELLATION_MANAGER // Volunteer canceled shift - notify managers
   FLEXIBLE_PLACEMENT      // Deprecated - kept for backwards compatibility
+  UNDERAGE_USER_REGISTERED // Underage user registered - notify admins for parental consent
 }
 
 model RestaurantManager {

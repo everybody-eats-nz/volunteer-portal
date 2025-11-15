@@ -260,10 +260,40 @@ export async function POST(req: Request) {
       if (!isMigration) {
         await autoLabelNewVolunteer(user.id);
       }
-      
+
       // Auto-label users under 16 if they have a date of birth
       if (validatedData.dateOfBirth) {
         await autoLabelUnder16User(user.id, new Date(validatedData.dateOfBirth));
+      }
+
+      // Notify admins of new underage users requiring parental consent
+      if (!isMigration && requiresParentalConsent) {
+        try {
+          // Get all admin users
+          const admins = await prisma.user.findMany({
+            where: { role: "ADMIN" },
+            select: { id: true },
+          });
+
+          // Create notification for each admin
+          const notificationPromises = admins.map((admin) =>
+            prisma.notification.create({
+              data: {
+                userId: admin.id,
+                type: "UNDERAGE_USER_REGISTERED",
+                title: "New Underage Volunteer",
+                message: `${user.name || user.email} (under 16) has registered and requires parental consent approval.`,
+                actionUrl: "/admin/parental-consent",
+                relatedId: user.id,
+              },
+            })
+          );
+
+          await Promise.all(notificationPromises);
+        } catch (notificationError) {
+          console.error("Failed to send admin notifications:", notificationError);
+          // Don't fail registration if notification fails
+        }
       }
     }
 
