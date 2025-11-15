@@ -301,9 +301,9 @@ export function MigrationStatus() {
                           <div className="flex items-center space-x-1">
                             <Clock className="h-4 w-4" />
                             <span>
-                              {new Date(shift.start).toLocaleDateString()}{" "}
-                              {new Date(shift.start).toLocaleTimeString()} -{" "}
-                              {new Date(shift.end).toLocaleTimeString()}
+                              {new Date(shift.start).toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland' })}{" "}
+                              {new Date(shift.start).toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland' })} -{" "}
+                              {new Date(shift.end).toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland' })}
                             </span>
                           </div>
                           <div className="flex items-center space-x-1">
@@ -373,8 +373,8 @@ export function MigrationStatus() {
                             {signup.shift.shiftType.name}
                           </Badge>
                           <span className="text-muted-foreground">
-                            {new Date(signup.shift.start).toLocaleDateString()}{" "}
-                            {new Date(signup.shift.start).toLocaleTimeString()}
+                            {new Date(signup.shift.start).toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland' })}{" "}
+                            {new Date(signup.shift.start).toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland' })}
                           </span>
                         </div>
                       </div>
