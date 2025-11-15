@@ -153,7 +153,7 @@ export default async function ShiftsCalendarPage({
     },
   });
 
-  // Separately fetch friend signups if needed
+  // Fetch all signups and filter by privacy settings
   type FriendSignup = {
     user: {
       id: string;
@@ -165,12 +165,15 @@ export default async function ShiftsCalendarPage({
     };
   };
   let friendSignupsMap: Record<string, FriendSignup[]> = {};
-  if (userFriendIds.length > 0) {
-    const friendSignups = await prisma.signup.findMany({
+
+  // Only fetch signups if user is logged in
+  if (currentUser?.id) {
+    const allSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: shifts.map((s) => s.id) },
-        userId: { in: userFriendIds },
         status: { in: ["CONFIRMED", "PENDING"] },
+        // Exclude the current user from the list
+        userId: { not: currentUser.id },
       },
       include: {
         user: {
@@ -181,20 +184,38 @@ export default async function ShiftsCalendarPage({
             lastName: true,
             email: true,
             profilePhotoUrl: true,
+            friendVisibility: true,
           },
         },
       },
     });
 
-    // Group by shift ID
-    friendSignupsMap = friendSignups.reduce<Record<string, FriendSignup[]>>(
-      (acc, signup) => {
-        if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
-        acc[signup.shiftId].push(signup);
-        return acc;
-      },
-      {}
-    );
+    // Filter by privacy settings and group by shift ID
+    friendSignupsMap = allSignups
+      .filter((signup) => {
+        const { friendVisibility } = signup.user;
+
+        // PUBLIC: Show to everyone who is logged in
+        if (friendVisibility === "PUBLIC") {
+          return true;
+        }
+
+        // FRIENDS_ONLY: Only show to friends
+        if (friendVisibility === "FRIENDS_ONLY") {
+          return userFriendIds.includes(signup.user.id);
+        }
+
+        // PRIVATE: Don't show to anyone
+        return false;
+      })
+      .reduce<Record<string, FriendSignup[]>>(
+        (acc, signup) => {
+          if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
+          acc[signup.shiftId].push(signup);
+          return acc;
+        },
+        {}
+      );
   }
 
   // Transform to ShiftSummary format for calendar

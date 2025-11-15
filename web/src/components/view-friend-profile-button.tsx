@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
+import { Calendar, Lock } from "lucide-react";
 import { Friend } from "@/lib/friends-data";
 import Link from "next/link";
 
@@ -10,6 +10,22 @@ interface ViewFriendProfileButtonProps {
 export function ViewFriendProfileButton({
   friend,
 }: ViewFriendProfileButtonProps) {
+  // If friend has private visibility, show disabled button
+  if (friend.friendVisibility === "PRIVATE") {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex-1 w-full"
+        disabled
+        data-testid="view-friend-profile-button"
+      >
+        <Lock className="h-3 w-3 mr-1" />
+        Profile Private
+      </Button>
+    );
+  }
+
   return (
     <Button
       variant="outline"

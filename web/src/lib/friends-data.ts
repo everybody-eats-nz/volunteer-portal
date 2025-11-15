@@ -12,6 +12,7 @@ export interface Friend {
   email: string;
   profilePhotoUrl: string | null;
   friendsSince: string;
+  friendVisibility: "PUBLIC" | "FRIENDS_ONLY" | "PRIVATE";
 }
 
 export interface FriendRequest {
@@ -70,6 +71,7 @@ export const getFriendsData = cache(async (): Promise<FriendsData | null> => {
             lastName: true,
             email: true,
             profilePhotoUrl: true,
+            friendVisibility: true,
           },
         },
         friend: {
@@ -80,6 +82,7 @@ export const getFriendsData = cache(async (): Promise<FriendsData | null> => {
             lastName: true,
             email: true,
             profilePhotoUrl: true,
+            friendVisibility: true,
           },
         },
       },
@@ -140,6 +143,7 @@ export const getFriendsData = cache(async (): Promise<FriendsData | null> => {
           email: friend.email,
           profilePhotoUrl: friend.profilePhotoUrl,
           friendsSince: friendship.createdAt.toISOString(),
+          friendVisibility: friend.friendVisibility || "PUBLIC",
         });
       }
     });

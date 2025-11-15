@@ -1170,6 +1170,80 @@ async function main() {
     }
   }
 
+  // Create friend recommendations by adding shared shifts with non-friends
+  console.log("🤝 Seeding friend recommendations...");
+
+  // Get volunteers who are NOT friends with the sample volunteer
+  const nonFriends = extraVolunteers.filter(v =>
+    !existingFriends.some(f => f.id === v.id) &&
+    !pendingRequesters.some(r => r.id === v.id) &&
+    !sentRequestTargets.includes(v.email)
+  );
+
+  // Select a few volunteers to be recommended friends (shared 5+ shifts in last 3 months)
+  const recommendedFriendCandidates = [
+    nonFriends.find(v => v.email === "emma.brown@gmail.com"),
+    nonFriends.find(v => v.email === "liam.wilson@hotmail.com"),
+    nonFriends.find(v => v.email === "vol2@example.com"),
+  ].filter(Boolean);
+
+  // Get sample volunteer's recent shifts (last 3 months)
+  const threeMonthsAgo = subMonths(new Date(), 3);
+  const sampleVolunteerRecentSignups = await prisma.signup.findMany({
+    where: {
+      userId: volunteer.id,
+      status: "CONFIRMED",
+      shift: {
+        start: {
+          gte: threeMonthsAgo,
+        },
+      },
+    },
+    include: {
+      shift: true,
+    },
+    orderBy: {
+      shift: {
+        start: 'desc',
+      },
+    },
+  });
+
+  // For each recommended friend candidate, sign them up for 5-7 of the same recent shifts
+  for (const recommendedFriend of recommendedFriendCandidates) {
+    const shiftsToShare = Math.min(7, Math.max(5, sampleVolunteerRecentSignups.length));
+    let sharedCount = 0;
+
+    for (let i = 0; i < sampleVolunteerRecentSignups.length && sharedCount < shiftsToShare; i++) {
+      const signup = sampleVolunteerRecentSignups[i];
+
+      // Check if this recommended friend can sign up for this date
+      if (canUserSignUpForDate(recommendedFriend.id, signup.shift.start)) {
+        try {
+          await prisma.signup.create({
+            data: {
+              userId: recommendedFriend.id,
+              shiftId: signup.shift.id,
+              status: "CONFIRMED",
+              createdAt: addDays(signup.shift.start, -Math.floor(Math.random() * 5) - 1),
+            },
+          });
+          recordUserSignup(recommendedFriend.id, signup.shift.start);
+          sharedCount++;
+        } catch (error) {
+          // Skip if signup already exists
+          if (!error.message.includes("Unique constraint")) {
+            console.log(`Could not add recommended friend ${recommendedFriend.email} to shift: ${error.message}`);
+          }
+        }
+      }
+    }
+
+    console.log(`✅ Created ${sharedCount} shared shifts with recommended friend ${recommendedFriend.email}`);
+  }
+
+  console.log(`✅ Created ${recommendedFriendCandidates.length} friend recommendation candidates`);
+
   // Create shifts for the next 14 days, but only for operating days (Sunday-Thursday)
   for (let i = 0; i < 14; i++) {
     const date = addDays(today, i);
