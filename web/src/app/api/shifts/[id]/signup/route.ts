@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getNotificationService } from "@/lib/notification-service";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
-import { isFeatureEnabled } from "@/lib/posthog-server";
 import { checkForBot } from "@/lib/bot-protection";
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
@@ -137,25 +136,20 @@ export async function POST(
     }
   }
 
-  // Check if user already has a confirmed signup for the same day
-  const shiftDate = new Date(shift.start);
-  const startOfDay = new Date(
-    shiftDate.getFullYear(),
-    shiftDate.getMonth(),
-    shiftDate.getDate()
-  );
-  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+  // Check if user already has a confirmed signup for the same day (in NZ timezone)
+  // Get the calendar date of this shift in NZ timezone
+  const shiftNZDate = new Intl.DateTimeFormat("en-NZ", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Pacific/Auckland",
+  }).format(shift.start);
 
-  const existingDailySignup = await prisma.signup.findFirst({
+  // Get all confirmed signups for this user
+  const confirmedSignups = await prisma.signup.findMany({
     where: {
       userId: user.id,
       status: "CONFIRMED",
-      shift: {
-        start: {
-          gte: startOfDay,
-          lt: endOfDay,
-        },
-      },
     },
     include: {
       shift: {
@@ -164,6 +158,17 @@ export async function POST(
         },
       },
     },
+  });
+
+  // Check if any of them are on the same NZ calendar day
+  const existingDailySignup = confirmedSignups.find((signup) => {
+    const signupNZDate = new Intl.DateTimeFormat("en-NZ", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Pacific/Auckland",
+    }).format(signup.shift.start);
+    return signupNZDate === shiftNZDate;
   });
 
   if (existingDailySignup) {

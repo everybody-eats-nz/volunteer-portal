@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client";
 const updatePrivacySchema = z.object({
   friendVisibility: z.enum(["PUBLIC", "FRIENDS_ONLY", "PRIVATE"]).optional(),
   allowFriendRequests: z.boolean().optional(),
+  allowFriendSuggestions: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -22,6 +23,7 @@ export async function GET() {
     select: {
       friendVisibility: true,
       allowFriendRequests: true,
+      allowFriendSuggestions: true,
     },
   });
 
@@ -58,6 +60,9 @@ export async function PATCH(req: Request) {
     if (validatedData.allowFriendRequests !== undefined) {
       updateData.allowFriendRequests = validatedData.allowFriendRequests;
     }
+    if (validatedData.allowFriendSuggestions !== undefined) {
+      updateData.allowFriendSuggestions = validatedData.allowFriendSuggestions;
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -65,6 +70,7 @@ export async function PATCH(req: Request) {
       select: {
         friendVisibility: true,
         allowFriendRequests: true,
+        allowFriendSuggestions: true,
       },
     });
 

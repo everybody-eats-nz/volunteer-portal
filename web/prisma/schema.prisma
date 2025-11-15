@@ -83,6 +83,7 @@ model User {
   // Privacy settings
   friendVisibility             FriendVisibility       @default(FRIENDS_ONLY)
   allowFriendRequests          Boolean                @default(true)
+  allowFriendSuggestions       Boolean                @default(true)
   
   // Notifications
   notifications                Notification[]
