@@ -267,6 +267,9 @@ export function PersonalInfoStep({
   loading,
   isRegistration = false,
   toast,
+  userRole,
+  initialEmail,
+  initialDateOfBirth,
 }: {
   formData: UserProfileFormData;
   onInputChange: (field: string, value: string | boolean) => void;
@@ -277,11 +280,19 @@ export function PersonalInfoStep({
     description?: string;
     variant?: "default" | "destructive";
   }) => void;
+  userRole?: string;
+  initialEmail?: string;
+  initialDateOfBirth?: string;
 }) {
   const dateOfBirth = formData.dateOfBirth
     ? new Date(formData.dateOfBirth)
     : undefined;
   const [dobOpen, setDobOpen] = React.useState(false);
+
+  // Check if fields are locked (can be set initially but locked afterwards for non-admins)
+  const isAdmin = userRole === "ADMIN";
+  const isEmailLocked = !isRegistration && !isAdmin && !!initialEmail;
+  const isDateOfBirthLocked = !isRegistration && !isAdmin && !!initialDateOfBirth;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -326,9 +337,14 @@ export function PersonalInfoStep({
             value={formData.email || ""}
             onChange={(e) => onInputChange("email", e.target.value)}
             placeholder="your.email@example.com"
-            disabled={loading}
-            data-testid="pronouns-select"
+            disabled={loading || isEmailLocked}
+            data-testid="email-input"
           />
+          {isEmailLocked && (
+            <p className="text-xs text-muted-foreground">
+              Email address cannot be changed. Contact an administrator if you need to update it.
+            </p>
+          )}
         </div>
       )}
 
@@ -361,7 +377,7 @@ export function PersonalInfoStep({
                   "w-full justify-start text-left font-normal h-11",
                   !dateOfBirth && "text-muted-foreground"
                 )}
-                disabled={loading}
+                disabled={loading || isDateOfBirthLocked}
                 data-testid="date-of-birth-input"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -395,6 +411,11 @@ export function PersonalInfoStep({
               />
             </PopoverContent>
           </Popover>
+          {isDateOfBirthLocked && (
+            <p className="text-xs text-muted-foreground">
+              Date of birth cannot be changed. Contact an administrator if you need to update it.
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="pronouns" className="text-sm font-medium">

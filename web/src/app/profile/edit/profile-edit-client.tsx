@@ -47,6 +47,9 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
     useState("");
   const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] =
     useState("");
+  const [userRole, setUserRole] = useState<string | undefined>(undefined);
+  const [initialEmail, setInitialEmail] = useState<string | undefined>(undefined);
+  const [initialDateOfBirth, setInitialDateOfBirth] = useState<string | undefined>(undefined);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -110,6 +113,14 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
         const response = await fetch("/api/profile");
         if (response.ok) {
           const profileData = await response.json();
+
+          // Store initial values for locked field detection
+          setUserRole(profileData.role);
+          setInitialEmail(profileData.email || undefined);
+          setInitialDateOfBirth(profileData.dateOfBirth
+            ? new Date(profileData.dateOfBirth).toISOString().split("T")[0]
+            : undefined);
+
           setFormData({
             firstName: profileData.firstName || "",
             lastName: profileData.lastName || "",
@@ -338,6 +349,9 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
             onInputChange={handleInputChange}
             loading={loading}
             isRegistration={false}
+            userRole={userRole}
+            initialEmail={initialEmail}
+            initialDateOfBirth={initialDateOfBirth}
           />
         );
       case 1: // Emergency Contact

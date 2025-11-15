@@ -113,6 +113,9 @@ export async function PUT(req: Request) {
     console.log("Received profile update:", body);
     const validatedData = updateProfileSchema.parse(body);
 
+    // Check if user is admin
+    const isAdmin = user.role === "ADMIN";
+
     // Prepare update data
     const updateData: Prisma.UserUpdateInput = {};
 
@@ -121,8 +124,18 @@ export async function PUT(req: Request) {
       updateData.firstName = validatedData.firstName || null;
     if (validatedData.lastName !== undefined)
       updateData.lastName = validatedData.lastName || null;
-    if (validatedData.email !== undefined)
+
+    // Email can only be changed by admins if already set
+    if (validatedData.email !== undefined) {
+      if (user.email && !isAdmin && validatedData.email !== user.email) {
+        return NextResponse.json(
+          { error: "Only administrators can change email addresses once set" },
+          { status: 403 }
+        );
+      }
       updateData.email = validatedData.email;
+    }
+
     if (validatedData.phone !== undefined)
       updateData.phone = validatedData.phone || null;
     if (validatedData.pronouns !== undefined)
@@ -166,8 +179,22 @@ export async function PUT(req: Request) {
       updateData.excludedShortageNotificationTypes =
         validatedData.excludedShortageNotificationTypes;
 
-    // Handle date field
+    // Handle date field - can only be changed by admins if already set
     if (validatedData.dateOfBirth !== undefined) {
+      const newDateOfBirth = validatedData.dateOfBirth
+        ? new Date(validatedData.dateOfBirth).toISOString().split("T")[0]
+        : null;
+      const currentDateOfBirth = user.dateOfBirth
+        ? new Date(user.dateOfBirth).toISOString().split("T")[0]
+        : null;
+
+      if (currentDateOfBirth && !isAdmin && newDateOfBirth !== currentDateOfBirth) {
+        return NextResponse.json(
+          { error: "Only administrators can change date of birth once set" },
+          { status: 403 }
+        );
+      }
+
       updateData.dateOfBirth = validatedData.dateOfBirth
         ? new Date(validatedData.dateOfBirth)
         : null;
