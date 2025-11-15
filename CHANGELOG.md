@@ -1,3 +1,9 @@
+## [0.56.1] - 2025-11-15
+
+### Changes
+- fix: correct timezone handling for shift signup daily validation ([#221](https://github.com/everybody-eats-nz/volunteer-portal/pull/221)) by @malinmalliyawadu
+
+
 ## [0.56.0] - 2025-11-15
 
 ### Changes
