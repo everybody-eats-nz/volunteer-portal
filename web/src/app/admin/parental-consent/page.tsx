@@ -23,38 +23,29 @@ export default async function AdminParentalConsentPage() {
     redirect("/dashboard");
   }
 
-  // Calculate age cutoff (16 years ago from today)
-  const sixteenYearsAgo = new Date();
-  sixteenYearsAgo.setFullYear(sixteenYearsAgo.getFullYear() - 16);
-
-  // Get statistics for volunteers under 16
+  // Get statistics for volunteers requiring parental consent
+  // Note: We use requiresParentalConsent flag to stay consistent with the table data
   const [totalUnder16, pendingApproval, approved] = await Promise.all([
-    // Total volunteers under 16
+    // Total volunteers requiring parental consent
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
-        dateOfBirth: {
-          gt: sixteenYearsAgo, // Born after 16 years ago (under 16)
-        },
+        requiresParentalConsent: true,
       },
     }),
-    // Pending approval (under 16 and consent not received)
+    // Pending approval (requiring consent but not yet received)
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
-        dateOfBirth: {
-          gt: sixteenYearsAgo,
-        },
+        requiresParentalConsent: true,
         parentalConsentReceived: false,
       },
     }),
-    // Approved (under 16 and consent received)
+    // Approved (requiring consent and received)
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
-        dateOfBirth: {
-          gt: sixteenYearsAgo,
-        },
+        requiresParentalConsent: true,
         parentalConsentReceived: true,
       },
     }),
