@@ -1,3 +1,9 @@
+## [0.54.10] - 2025-11-15
+
+### Changes
+- fix: resolve remaining timezone issues in date grouping and dialogs ([#215](https://github.com/everybody-eats-nz/volunteer-portal/pull/215)) by @malinmalliyawadu
+
+
 ## [0.54.9] - 2025-11-14
 
 ### Changes
