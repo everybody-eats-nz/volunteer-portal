@@ -1,3 +1,9 @@
+## [0.55.1] - 2025-11-15
+
+### Changes
+- fix: shift signup dialog not closing after successful signup ([#220](https://github.com/everybody-eats-nz/volunteer-portal/pull/220)) by @malinmalliyawadu
+
+
 ## [0.55.0] - 2025-11-15
 
 ### Changes
