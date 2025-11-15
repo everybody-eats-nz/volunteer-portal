@@ -1,3 +1,9 @@
+## [0.56.0] - 2025-11-15
+
+### Changes
+- feat: friend recommendations and privacy fixes ([#218](https://github.com/everybody-eats-nz/volunteer-portal/pull/218)) by @malinmalliyawadu
+
+
 ## [0.55.1] - 2025-11-15
 
 ### Changes
