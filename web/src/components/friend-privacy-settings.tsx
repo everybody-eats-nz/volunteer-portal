@@ -127,13 +127,13 @@ export function FriendPrivacySettings({
                 onValueChange={handleVisibilityChange}
                 className="space-y-3"
               >
-                <div className="flex items-start space-x-3 p-3 border rounded-lg">
+                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                   <RadioGroupItem
                     value="PUBLIC"
                     id="public"
                     className="mt-0.5"
                   />
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <Label
                       htmlFor="public"
                       className="flex items-center space-x-2 cursor-pointer"
@@ -141,19 +141,21 @@ export function FriendPrivacySettings({
                       <Users className="h-4 w-4" />
                       <span className="font-medium">Public</span>
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Anyone can see which shifts you&apos;ve signed up for
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Any logged-in volunteer can see your profile, shared shift
+                      history, and which shifts you&apos;ve signed up for on the
+                      browse shifts page.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-3 p-3 border rounded-lg">
+                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                   <RadioGroupItem
                     value="FRIENDS_ONLY"
                     id="friends"
                     className="mt-0.5"
                   />
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <Label
                       htmlFor="friends"
                       className="flex items-center space-x-2 cursor-pointer"
@@ -161,20 +163,21 @@ export function FriendPrivacySettings({
                       <UserCheck className="h-4 w-4" />
                       <span className="font-medium">Friends Only</span>
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Only your friends can see which shifts you&apos;ve signed
-                      up for
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Only your friends can see your profile, shared shift
+                      history, and which shifts you&apos;ve signed up for on the
+                      browse shifts page.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-3 p-3 border rounded-lg">
+                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                   <RadioGroupItem
                     value="PRIVATE"
                     id="private"
                     className="mt-0.5"
                   />
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <Label
                       htmlFor="private"
                       className="flex items-center space-x-2 cursor-pointer"
@@ -182,8 +185,10 @@ export function FriendPrivacySettings({
                       <Lock className="h-4 w-4" />
                       <span className="font-medium">Private</span>
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Nobody can see which shifts you&apos;ve signed up for
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your profile cannot be viewed, you won&apos;t appear on the
+                      browse shifts page, and your shift history will be hidden
+                      from everyone.
                     </p>
                   </div>
                 </div>
