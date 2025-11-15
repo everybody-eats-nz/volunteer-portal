@@ -311,7 +311,7 @@ export default async function MyShiftsPage({
   // Group shifts by date
   const shiftsByDate = new Map<string, typeof monthShifts>();
   for (const shift of monthShifts) {
-    const dateKey = format(shift.shift.start, "yyyy-MM-dd");
+    const dateKey = formatInNZT(shift.shift.start, "yyyy-MM-dd");
     if (!shiftsByDate.has(dateKey)) {
       shiftsByDate.set(dateKey, []);
     }
@@ -324,7 +324,7 @@ export default async function MyShiftsPage({
     : never;
   const availableShiftsByDate = new Map<string, AvailableShift[]>();
   for (const shift of availableShifts) {
-    const dateKey = format(shift.start, "yyyy-MM-dd");
+    const dateKey = formatInNZT(shift.start, "yyyy-MM-dd");
     if (!availableShiftsByDate.has(dateKey)) {
       availableShiftsByDate.set(dateKey, []);
     }

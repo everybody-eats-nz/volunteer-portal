@@ -7,7 +7,7 @@ import {
 } from "@prisma/client";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 
 interface UserWithStats {
   id: string;
@@ -276,8 +276,8 @@ export async function processAutoApproval(
       // Send email confirmation
       try {
         const emailService = getEmailService();
-        const formattedShiftDate = format(shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${format(shift.start, "h:mm a")} - ${format(
+        const formattedShiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
+        const shiftTime = `${formatInNZT(shift.start, "h:mm a")} - ${formatInNZT(
           shift.end,
           "h:mm a"
         )}`;

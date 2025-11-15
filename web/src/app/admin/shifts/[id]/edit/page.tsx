@@ -214,7 +214,7 @@ export default async function EditShiftPage({
       <DeleteShiftDialog
         shiftId={shift.id}
         shiftName={shift.shiftType.name}
-        shiftDate={format(shift.start, "EEEE, MMMM d, yyyy")}
+        shiftDate={formatInNZT(shift.start, "EEEE, MMMM d, yyyy")}
         hasSignups={hasSignups}
         signupCount={activeSignups.length}
         onDelete={deleteShift}

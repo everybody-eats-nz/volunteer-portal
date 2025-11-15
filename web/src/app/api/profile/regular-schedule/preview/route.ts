@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { addWeeks, startOfDay, endOfDay, format } from "date-fns";
+import { addWeeks, startOfDay, endOfDay } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 
 // GET /api/profile/regular-schedule/preview - Preview upcoming regular shifts
 export async function GET(req: NextRequest) {
@@ -100,10 +101,10 @@ export async function GET(req: NextRequest) {
         return weeksSinceStart % 2 === 0;
       } else if (regular.frequency === "MONTHLY") {
         // Only first occurrence of the month
-        const shiftMonth = format(new Date(shift.start), "yyyy-MM");
+        const shiftMonth = formatInNZT(new Date(shift.start), "yyyy-MM");
         const previousShifts = matchingShifts.slice(0, index);
         return !previousShifts.some(
-          (s) => format(new Date(s.start), "yyyy-MM") === shiftMonth
+          (s) => formatInNZT(new Date(s.start), "yyyy-MM") === shiftMonth
         );
       }
       return false;

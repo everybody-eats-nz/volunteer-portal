@@ -3,8 +3,8 @@ import {
   differenceInHours,
   differenceInMonths,
   differenceInYears,
-  format,
 } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 
 export interface AchievementCriteria {
   type:
@@ -273,7 +273,7 @@ export async function calculateUserProgress(
   // Calculate consecutive months (simplified - volunteers who have at least one shift per month)
   const monthlyActivity = new Map<string, boolean>();
   completedShifts.forEach((signup: (typeof completedShifts)[0]) => {
-    const monthKey = format(signup.shift.start, "yyyy-MM");
+    const monthKey = formatInNZT(signup.shift.start, "yyyy-MM");
     monthlyActivity.set(monthKey, true);
   });
 
