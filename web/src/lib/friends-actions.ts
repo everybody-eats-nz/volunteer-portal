@@ -235,6 +235,90 @@ export async function declineFriendRequest(requestId: string) {
   }
 }
 
+export async function sendFriendRequestByUserId(userId: string) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return { error: "Unauthorized" };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+
+  if (!user) {
+    return { error: "User not found" };
+  }
+
+  try {
+    // Check if trying to add themselves
+    if (userId === user.id) {
+      return { error: "Cannot send friend request to yourself" };
+    }
+
+    // Check if user allows friend requests
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, allowFriendRequests: true, name: true },
+    });
+
+    if (!targetUser) {
+      return { error: "User not found" };
+    }
+
+    if (!targetUser.allowFriendRequests) {
+      return { error: "User is not accepting friend requests" };
+    }
+
+    // Check if friendship already exists
+    const existingFriendship = await prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { userId: user.id, friendId: targetUser.id },
+          { userId: targetUser.id, friendId: user.id },
+        ],
+      },
+    });
+
+    if (existingFriendship) {
+      return { error: "Friendship already exists or is pending" };
+    }
+
+    // Check if friend request already exists
+    const existingRequest = await prisma.friendRequest.findFirst({
+      where: {
+        fromUserId: user.id,
+        toEmail: targetUser.email,
+        status: "PENDING",
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingRequest) {
+      return { error: "Friend request already sent" };
+    }
+
+    // Create friend request
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
+
+    await prisma.friendRequest.create({
+      data: {
+        fromUserId: user.id,
+        toEmail: targetUser.email,
+        message: null, // No message for suggested friends
+        expiresAt,
+      },
+    });
+
+    revalidatePath("/friends");
+    return { success: "Friend request sent successfully" };
+  } catch (error) {
+    console.error("Error sending friend request:", error);
+    return { error: "Internal server error" };
+  }
+}
+
 export async function removeFriend(friendId: string) {
   const session = await getServerSession(authOptions);
 

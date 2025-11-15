@@ -13,7 +13,6 @@ import { SendFriendRequestForm } from "./send-friend-request-form";
 import { FriendPrivacySettings } from "./friend-privacy-settings";
 import { RecommendedFriends } from "./recommended-friends";
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
 
 interface FriendsManagerServerProps {
   initialData: FriendsData;
@@ -24,20 +23,13 @@ export function FriendsManagerServer({
   initialData,
   initialTab = "friends",
 }: FriendsManagerServerProps) {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
-  const [prefillUserId, setPrefillUserId] = useState("");
 
   const { friends, pendingRequests } = initialData;
 
   const hasNewRequests = pendingRequests.length > 0;
-
-  const handleSendFriendRequest = (userId: string) => {
-    setPrefillUserId(userId);
-    setShowSendRequest(true);
-  };
 
   return (
     <div className="space-y-8">
@@ -148,19 +140,12 @@ export function FriendsManagerServer({
         </Tabs>
 
         {/* Recommended Friends Section - Show after tabs */}
-        <RecommendedFriends onSendRequest={handleSendFriendRequest} />
+        <RecommendedFriends />
       </div>
 
       <SendFriendRequestForm
         open={showSendRequest}
-        onOpenChange={(open) => {
-          setShowSendRequest(open);
-          if (!open) {
-            setPrefillUserId("");
-            router.refresh(); // Refresh to update recommended friends list
-          }
-        }}
-        prefillUserId={prefillUserId}
+        onOpenChange={setShowSendRequest}
       />
 
       <FriendPrivacySettings

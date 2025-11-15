@@ -157,7 +157,7 @@ export async function GET() {
         name: data.user.name,
         firstName: data.user.firstName,
         lastName: data.user.lastName,
-        email: data.user.email,
+        // Don't expose email address on client for privacy
         profilePhotoUrl: data.user.profilePhotoUrl,
         sharedShiftsCount: data.shifts.length,
         recentSharedShifts: data.shifts

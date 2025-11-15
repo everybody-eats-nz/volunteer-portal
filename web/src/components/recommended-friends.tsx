@@ -9,13 +9,16 @@ import { UserPlus, Sparkles, Calendar } from "lucide-react";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatInNZT } from "@/lib/timezone";
+import { sendFriendRequestByUserId } from "@/lib/friends-actions";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { MotionSpinner } from "@/components/motion-spinner";
 
 interface RecommendedFriend {
   id: string;
   name: string | null;
   firstName: string | null;
   lastName: string | null;
-  email: string;
   profilePhotoUrl: string | null;
   sharedShiftsCount: number;
   recentSharedShifts: Array<{
@@ -26,13 +29,11 @@ interface RecommendedFriend {
   }>;
 }
 
-interface RecommendedFriendsProps {
-  onSendRequest: (email: string) => void;
-}
-
-export function RecommendedFriends({ onSendRequest }: RecommendedFriendsProps) {
+export function RecommendedFriends() {
+  const router = useRouter();
   const [recommendedFriends, setRecommendedFriends] = useState<RecommendedFriend[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingRequest, setSendingRequest] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchRecommendedFriends();
@@ -49,6 +50,31 @@ export function RecommendedFriends({ onSendRequest }: RecommendedFriendsProps) {
       console.error("Error fetching recommended friends:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendRequest = async (userId: string, displayName: string) => {
+    setSendingRequest((prev) => new Set(prev).add(userId));
+
+    try {
+      const result = await sendFriendRequestByUserId(userId);
+
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(`Friend request sent to ${displayName}`);
+        // Refresh to update the recommendations list
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+      toast.error("Failed to send friend request");
+    } finally {
+      setSendingRequest((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     }
   };
 
@@ -107,11 +133,11 @@ export function RecommendedFriends({ onSendRequest }: RecommendedFriendsProps) {
             const displayName =
               friend.name ||
               `${friend.firstName || ""} ${friend.lastName || ""}`.trim() ||
-              friend.email;
+              "Volunteer";
             const initials = (
               friend.firstName?.[0] ||
               friend.name?.[0] ||
-              friend.email[0]
+              "V"
             ).toUpperCase();
 
             return (
@@ -163,11 +189,21 @@ export function RecommendedFriends({ onSendRequest }: RecommendedFriendsProps) {
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => onSendRequest(friend.email)}
+                        onClick={() => handleSendRequest(friend.id, displayName)}
+                        disabled={sendingRequest.has(friend.id)}
                         className="flex-shrink-0"
                       >
-                        <UserPlus className="h-3 w-3 mr-1" />
-                        Add Friend
+                        {sendingRequest.has(friend.id) ? (
+                          <>
+                            <MotionSpinner size="sm" className="mr-1" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="h-3 w-3 mr-1" />
+                            Add Friend
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>
