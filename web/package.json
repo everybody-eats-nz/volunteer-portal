@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.54.11",
+  "version": "0.55.0",
   "private": true,
   "scripts": {
     "local-setup": "cp .env.example .env && npx auth secret && npm i",
