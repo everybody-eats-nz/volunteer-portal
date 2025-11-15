@@ -28,14 +28,14 @@ export function FriendsManagerServer({
   const [searchTerm, setSearchTerm] = useState("");
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
-  const [prefillEmail, setPrefillEmail] = useState("");
+  const [prefillUserId, setPrefillUserId] = useState("");
 
   const { friends, pendingRequests } = initialData;
 
   const hasNewRequests = pendingRequests.length > 0;
 
-  const handleSendFriendRequest = (email: string) => {
-    setPrefillEmail(email);
+  const handleSendFriendRequest = (userId: string) => {
+    setPrefillUserId(userId);
     setShowSendRequest(true);
   };
 
@@ -83,9 +83,6 @@ export function FriendsManagerServer({
       </div>
 
       <div className="space-y-8">
-        {/* Recommended Friends Section - Show before tabs */}
-        <RecommendedFriends onSendRequest={handleSendFriendRequest} />
-
         <Tabs defaultValue={initialTab} className="space-y-8">
           <TabsList
             data-testid="friends-tabs"
@@ -149,6 +146,9 @@ export function FriendsManagerServer({
             <FriendRequestsList pendingRequests={pendingRequests} />
           </TabsContent>
         </Tabs>
+
+        {/* Recommended Friends Section - Show after tabs */}
+        <RecommendedFriends onSendRequest={handleSendFriendRequest} />
       </div>
 
       <SendFriendRequestForm
@@ -156,11 +156,11 @@ export function FriendsManagerServer({
         onOpenChange={(open) => {
           setShowSendRequest(open);
           if (!open) {
-            setPrefillEmail("");
+            setPrefillUserId("");
             router.refresh(); // Refresh to update recommended friends list
           }
         }}
-        prefillEmail={prefillEmail}
+        prefillUserId={prefillUserId}
       />
 
       <FriendPrivacySettings
