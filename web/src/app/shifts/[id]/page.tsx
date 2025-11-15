@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
@@ -241,8 +241,8 @@ export default async function ShiftDetailPage({
   const hasIncompleteProfile = missingFields.length > 0;
 
   // Format date and time
-  const shiftDate = format(new Date(shift.start), "EEEE, MMMM d, yyyy");
-  const shiftTime = `${format(new Date(shift.start), "h:mm a")} - ${format(
+  const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
+  const shiftTime = `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(
     new Date(shift.end),
     "h:mm a"
   )}`;

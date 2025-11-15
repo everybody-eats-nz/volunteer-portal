@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { EditRegularVolunteerDialog } from "./edit-regular-volunteer-dialog";
 
 type RegularVolunteer = {
@@ -256,7 +256,7 @@ export function RegularsTable({
                       {getStatusBadge(regular)}
                       {regular.pausedUntil && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          Until {format(new Date(regular.pausedUntil), "MMM d")}
+                          Until {formatInNZT(new Date(regular.pausedUntil), "MMM d")}
                         </div>
                       )}
                     </TableCell>

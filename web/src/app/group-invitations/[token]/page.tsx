@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -253,13 +254,13 @@ export default async function GroupInvitationPage({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{format(shift.start, "EEEE, MMMM d, yyyy")}</span>
+                    <span>{formatInNZT(shift.start, "EEEE, MMMM d, yyyy")}</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      {format(shift.start, "h:mm a")} - {format(shift.end, "h:mm a")}
+                      {formatInNZT(shift.start, "h:mm a")} - {formatInNZT(shift.end, "h:mm a")}
                     </span>
                     <Badge variant="outline" className="text-xs">
                       {duration}

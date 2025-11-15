@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { format, differenceInDays, differenceInHours, subMonths } from "date-fns";
+import { differenceInDays, differenceInHours, subMonths } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -439,7 +440,7 @@ export default async function FriendProfilePage({
                             {shift.shiftType.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(shift.start, "MMM d, yyyy")} •{" "}
+                            {formatInNZT(shift.start, "MMM d, yyyy")} •{" "}
                             {shift.location}
                           </p>
                         </div>
@@ -529,10 +530,10 @@ export default async function FriendProfilePage({
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-sm font-bold text-foreground">
-                            {format(signup.shift.start, "MMM d")}
+                            {formatInNZT(signup.shift.start, "MMM d")}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(signup.shift.start, "h:mm a")}
+                            {formatInNZT(signup.shift.start, "h:mm a")}
                           </p>
                         </div>
                       </div>

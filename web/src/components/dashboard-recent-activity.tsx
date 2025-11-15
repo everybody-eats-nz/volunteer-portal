@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
                     {signup.shift.shiftType.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {format(signup.shift.start, "MMM d")} •{" "}
+                    {formatInNZT(signup.shift.start, "MMM d")} •{" "}
                     {signup.shift.location}
                   </p>
                 </div>

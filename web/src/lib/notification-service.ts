@@ -57,17 +57,20 @@ export class NotificationService {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        timeZone: 'Pacific/Auckland',
       }).format(shift.start);
 
       const shiftTime = new Intl.DateTimeFormat('en-NZ', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
+        timeZone: 'Pacific/Auckland',
       }).format(shift.start);
 
       const cancellationTime = new Intl.DateTimeFormat('en-NZ', {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone: 'Pacific/Auckland',
       }).format(new Date());
 
       // Send notifications to all managers
@@ -161,12 +164,14 @@ export class NotificationService {
     const shiftDate = new Intl.DateTimeFormat('en-NZ', {
       month: 'short',
       day: 'numeric',
+      timeZone: 'Pacific/Auckland',
     }).format(shift.start);
 
     const shiftTime = new Intl.DateTimeFormat('en-NZ', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: 'Pacific/Auckland',
     }).format(shift.start);
 
     const title = "Volunteer Canceled Shift";

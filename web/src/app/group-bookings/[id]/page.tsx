@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
@@ -210,7 +211,7 @@ export default async function GroupBookingDetailPage({
                   {groupBooking.shift.shiftType.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {format(groupBooking.shift.start, "EEE, dd MMM yyyy")}
+                  {formatInNZT(groupBooking.shift.start, "EEE, dd MMM yyyy")}
                 </p>
               </div>
             </div>
@@ -219,8 +220,8 @@ export default async function GroupBookingDetailPage({
               <div>
                 <p className="text-sm font-medium">Time</p>
                 <p className="text-xs text-muted-foreground">
-                  {format(groupBooking.shift.start, "h:mm a")} –{" "}
-                  {format(groupBooking.shift.end, "h:mm a")}
+                  {formatInNZT(groupBooking.shift.start, "h:mm a")} –{" "}
+                  {formatInNZT(groupBooking.shift.end, "h:mm a")}
                 </p>
               </div>
             </div>

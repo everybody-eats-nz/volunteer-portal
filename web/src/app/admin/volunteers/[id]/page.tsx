@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
@@ -691,7 +692,7 @@ export default async function AdminVolunteerPage({
                               className="text-sm p-2 bg-muted/30 dark:bg-muted/20 rounded flex items-center justify-between"
                             >
                               <span>
-                                {format(
+                                {formatInNZT(
                                   autoSignup.signup.shift.start,
                                   "EEE dd MMM yyyy, h:mma"
                                 )}
@@ -907,12 +908,12 @@ export default async function AdminVolunteerPage({
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {format(signup.shift.start, "EEE dd MMM yyyy")}
+                                {formatInNZT(signup.shift.start, "EEE dd MMM yyyy")}
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {format(signup.shift.start, "h:mma")} –{" "}
-                                {format(signup.shift.end, "h:mma")}
+                                {formatInNZT(signup.shift.start, "h:mma")} –{" "}
+                                {formatInNZT(signup.shift.end, "h:mma")}
                               </div>
                             </div>
                           </div>

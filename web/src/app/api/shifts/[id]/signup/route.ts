@@ -171,6 +171,7 @@ export async function POST(
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Pacific/Auckland",
     }).format(existingDailySignup.shift.start);
 
     return NextResponse.json(
