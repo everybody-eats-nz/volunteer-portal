@@ -1,3 +1,9 @@
+## [0.56.2] - 2025-11-15
+
+### Changes
+- Frix/signup ([#222](https://github.com/everybody-eats-nz/volunteer-portal/pull/222)) by @malinmalliyawadu
+
+
 ## [0.56.1] - 2025-11-15
 
 ### Changes
