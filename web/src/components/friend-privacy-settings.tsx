@@ -17,6 +17,7 @@ import { MotionSpinner } from "@/components/motion-spinner";
 interface PrivacySettings {
   friendVisibility: "PUBLIC" | "FRIENDS_ONLY" | "PRIVATE";
   allowFriendRequests: boolean;
+  allowFriendSuggestions: boolean;
 }
 
 interface FriendPrivacySettingsProps {
@@ -31,6 +32,7 @@ export function FriendPrivacySettings({
   const [settings, setSettings] = useState<PrivacySettings>({
     friendVisibility: "FRIENDS_ONLY",
     allowFriendRequests: true,
+    allowFriendSuggestions: true,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -95,6 +97,14 @@ export function FriendPrivacySettings({
     setSettings((prev) => ({
       ...prev,
       allowFriendRequests: checked,
+    }));
+    setHasChanges(true);
+  };
+
+  const handleAllowSuggestionsChange = (checked: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      allowFriendSuggestions: checked,
     }));
     setHasChanges(true);
   };
@@ -196,24 +206,47 @@ export function FriendPrivacySettings({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-base font-medium">Friend Requests</Label>
-              <div className="flex items-start space-x-3 p-3 border rounded-lg">
-                <Checkbox
-                  id="allowRequests"
-                  checked={settings.allowFriendRequests}
-                  onCheckedChange={handleAllowRequestsChange}
-                  className="mt-0.5"
-                />
-                <div className="space-y-1">
-                  <Label
-                    htmlFor="allowRequests"
-                    className="cursor-pointer font-medium"
-                  >
-                    Allow friend requests
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Other volunteers can send you friend requests
-                  </p>
+              <Label className="text-base font-medium">Additional Settings</Label>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <Checkbox
+                    id="allowRequests"
+                    checked={settings.allowFriendRequests}
+                    onCheckedChange={handleAllowRequestsChange}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="allowRequests"
+                      className="cursor-pointer font-medium"
+                    >
+                      Allow friend requests
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Other volunteers can send you friend requests
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <Checkbox
+                    id="allowSuggestions"
+                    checked={settings.allowFriendSuggestions}
+                    onCheckedChange={handleAllowSuggestionsChange}
+                    className="mt-0.5"
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="allowSuggestions"
+                      className="cursor-pointer font-medium"
+                    >
+                      Appear in friend suggestions
+                    </Label>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Show up as a suggested friend for volunteers you&apos;ve
+                      recently worked with (5+ shared shifts in the last 3 months)
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

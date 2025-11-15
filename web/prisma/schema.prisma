@@ -83,6 +83,7 @@ model User {
   // Privacy settings
   friendVisibility             FriendVisibility       @default(FRIENDS_ONLY)
   allowFriendRequests          Boolean                @default(true)
+  allowFriendSuggestions       Boolean                @default(true)
   
   // Notifications
   notifications                Notification[]
@@ -394,6 +395,7 @@ enum NotificationType {
   ACHIEVEMENT_UNLOCKED    // You unlocked a new achievement
   SHIFT_CANCELLATION_MANAGER // Volunteer canceled shift - notify managers
   FLEXIBLE_PLACEMENT      // Deprecated - kept for backwards compatibility
+  UNDERAGE_USER_REGISTERED // Underage user (under 16) registered - requires parental consent
 }
 
 model RestaurantManager {

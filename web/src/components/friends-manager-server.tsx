@@ -11,7 +11,9 @@ import { FriendRequestsList } from "./friend-requests-list";
 import { FriendsSearch } from "./friends-search";
 import { SendFriendRequestForm } from "./send-friend-request-form";
 import { FriendPrivacySettings } from "./friend-privacy-settings";
+import { RecommendedFriends } from "./recommended-friends";
 import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
 
 interface FriendsManagerServerProps {
   initialData: FriendsData;
@@ -22,13 +24,20 @@ export function FriendsManagerServer({
   initialData,
   initialTab = "friends",
 }: FriendsManagerServerProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [showSendRequest, setShowSendRequest] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [prefillEmail, setPrefillEmail] = useState("");
 
   const { friends, pendingRequests } = initialData;
 
   const hasNewRequests = pendingRequests.length > 0;
+
+  const handleSendFriendRequest = (email: string) => {
+    setPrefillEmail(email);
+    setShowSendRequest(true);
+  };
 
   return (
     <div className="space-y-8">
@@ -73,73 +82,85 @@ export function FriendsManagerServer({
         </div>
       </div>
 
-      <Tabs defaultValue={initialTab} className="space-y-8">
-        <TabsList
-          data-testid="friends-tabs"
-          aria-label="Friends and requests navigation"
-          className="h-10 grid w-full sm:w-[400px] grid-cols-2 bg-muted/50 dark:bg-muted/30 p-1 rounded-lg shadow-sm"
-        >
-          <TabsTrigger
-            value="friends"
-            data-testid="friends-tab"
-            className="relative transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center justify-center"
+      <div className="space-y-8">
+        {/* Recommended Friends Section - Show before tabs */}
+        <RecommendedFriends onSendRequest={handleSendFriendRequest} />
+
+        <Tabs defaultValue={initialTab} className="space-y-8">
+          <TabsList
+            data-testid="friends-tabs"
+            aria-label="Friends and requests navigation"
+            className="h-10 grid w-full sm:w-[400px] grid-cols-2 bg-muted/50 dark:bg-muted/30 p-1 rounded-lg shadow-sm"
           >
-            <Users className="h-4 w-4 mr-2" />
-            Friends
-            {friends.length > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-2 text-xs"
-                aria-label={`${friends.length} friends`}
-              >
-                {friends.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
-            value="requests"
-            data-testid="requests-tab"
-            className="relative transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center justify-center"
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Requests
-            {hasNewRequests && (
-              <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
-              >
+            <TabsTrigger
+              value="friends"
+              data-testid="friends-tab"
+              className="relative transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center justify-center"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Friends
+              {friends.length > 0 && (
                 <Badge
-                  variant="destructive"
+                  variant="secondary"
                   className="ml-2 text-xs"
-                  aria-label={`${pendingRequests.length} pending requests`}
+                  aria-label={`${friends.length} friends`}
                 >
-                  {pendingRequests.length}
+                  {friends.length}
                 </Badge>
-              </motion.div>
-            )}
-          </TabsTrigger>
-        </TabsList>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="requests"
+              data-testid="requests-tab"
+              className="relative transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center justify-center"
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Requests
+              {hasNewRequests && (
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+                >
+                  <Badge
+                    variant="destructive"
+                    className="ml-2 text-xs"
+                    aria-label={`${pendingRequests.length} pending requests`}
+                  >
+                    {pendingRequests.length}
+                  </Badge>
+                </motion.div>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent
-          value="friends"
-          className="space-y-6"
-          data-testid="friends-tab-content"
-        >
-          <FriendsList friends={friends} searchTerm={searchTerm} />
-        </TabsContent>
+          <TabsContent
+            value="friends"
+            className="space-y-6"
+            data-testid="friends-tab-content"
+          >
+            <FriendsList friends={friends} searchTerm={searchTerm} />
+          </TabsContent>
 
-        <TabsContent
-          value="requests"
-          className="space-y-6"
-          data-testid="requests-tab-content"
-        >
-          <FriendRequestsList pendingRequests={pendingRequests} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent
+            value="requests"
+            className="space-y-6"
+            data-testid="requests-tab-content"
+          >
+            <FriendRequestsList pendingRequests={pendingRequests} />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <SendFriendRequestForm
         open={showSendRequest}
-        onOpenChange={setShowSendRequest}
+        onOpenChange={(open) => {
+          setShowSendRequest(open);
+          if (!open) {
+            setPrefillEmail("");
+            router.refresh(); // Refresh to update recommended friends list
+          }
+        }}
+        prefillEmail={prefillEmail}
       />
 
       <FriendPrivacySettings

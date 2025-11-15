@@ -18,11 +18,13 @@ import { MotionSpinner } from "@/components/motion-spinner";
 interface SendFriendRequestFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillEmail?: string;
 }
 
 export function SendFriendRequestForm({
   open,
   onOpenChange,
+  prefillEmail = "",
 }: SendFriendRequestFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -102,6 +104,7 @@ export function SendFriendRequestForm({
               name="email"
               type="email"
               placeholder="friend@example.com"
+              defaultValue={prefillEmail}
               required
               data-testid="friend-request-email-input"
             />
