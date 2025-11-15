@@ -224,12 +224,10 @@ export async function POST(
     // Achievements will be calculated when user visits dashboard/achievements page
 
     // Return signup with updated status and auto-approval flag
-    const updatedSignup = await prisma.signup.findUnique({
-      where: { id: signup.id },
-    });
-
+    // Use the signup object we already have and update its status based on auto-approval result
     return NextResponse.json({
-      ...updatedSignup,
+      ...signup,
+      status: autoApprovalResult.status,
       autoApproved: autoApprovalResult.autoApproved,
     });
   } catch {
