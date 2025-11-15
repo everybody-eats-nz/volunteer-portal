@@ -273,16 +273,17 @@ export async function processAutoApproval(
         shiftId
       );
 
-      // Send email confirmation
-      try {
-        const emailService = getEmailService();
-        const formattedShiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${formatInNZT(shift.start, "h:mm a")} - ${formatInNZT(
-          shift.end,
-          "h:mm a"
-        )}`;
+      // Send email confirmation (fire-and-forget with timeout to prevent blocking)
+      const emailService = getEmailService();
+      const formattedShiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
+      const shiftTime = `${formatInNZT(shift.start, "h:mm a")} - ${formatInNZT(
+        shift.end,
+        "h:mm a"
+      )}`;
 
-        await emailService.sendShiftConfirmationNotification({
+      // Don't await - send email asynchronously to avoid blocking the signup response
+      Promise.race([
+        emailService.sendShiftConfirmationNotification({
           to: user.email,
           volunteerName:
             user.name ||
@@ -294,19 +295,25 @@ export async function processAutoApproval(
           shiftId: shiftId,
           shiftStart: shift.start,
           shiftEnd: shift.end,
+        }),
+        // Timeout after 10 seconds
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Email send timeout")), 10000)
+        ),
+      ])
+        .then(() => {
+          console.log(
+            "Auto-approval confirmation email sent successfully to:",
+            user.email
+          );
+        })
+        .catch((emailError) => {
+          console.error(
+            "Error sending auto-approval confirmation email:",
+            emailError
+          );
+          // Don't fail the auto-approval if email fails
         });
-
-        console.log(
-          "Auto-approval confirmation email sent successfully to:",
-          user.email
-        );
-      } catch (emailError) {
-        console.error(
-          "Error sending auto-approval confirmation email:",
-          emailError
-        );
-        // Don't fail the auto-approval if email fails
-      }
     } catch (notificationError) {
       console.error(
         "Error sending auto-approval notification:",

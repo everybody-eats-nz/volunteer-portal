@@ -160,21 +160,21 @@ export async function PATCH(
         data: { status: "CONFIRMED" },
       });
 
-      // Send confirmation email to volunteer
-      try {
-        const emailService = getEmailService();
-        const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
-          signup.shift.end,
-          "h:mm a"
-        )}`;
-        const fullAddress = signup.shift.location
-          ? LOCATION_ADDRESSES[
-              signup.shift.location as keyof typeof LOCATION_ADDRESSES
-            ] || signup.shift.location
-          : "TBD";
+      // Send confirmation email to volunteer (fire-and-forget with timeout)
+      const emailService = getEmailService();
+      const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+      const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
+        signup.shift.end,
+        "h:mm a"
+      )}`;
+      const fullAddress = signup.shift.location
+        ? LOCATION_ADDRESSES[
+            signup.shift.location as keyof typeof LOCATION_ADDRESSES
+          ] || signup.shift.location
+        : "TBD";
 
-        await emailService.sendShiftConfirmationNotification({
+      Promise.race([
+        emailService.sendShiftConfirmationNotification({
           to: signup.user.email!,
           volunteerName:
             signup.user.name ||
@@ -188,10 +188,13 @@ export async function PATCH(
           shiftId: signup.shift.id,
           shiftStart: signup.shift.start,
           shiftEnd: signup.shift.end,
-        });
-      } catch (emailError) {
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Email send timeout")), 10000)
+        ),
+      ]).catch((emailError) => {
         console.error("Error sending confirmation email:", emailError);
-      }
+      });
 
       // Create in-app notification
       try {
@@ -244,21 +247,21 @@ export async function PATCH(
         data: { status: "CANCELED" },
       });
 
-      // Send cancellation email to volunteer
-      try {
-        const emailService = getEmailService();
-        const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
-          signup.shift.end,
-          "h:mm a"
-        )}`;
-        const fullAddress = signup.shift.location
-          ? LOCATION_ADDRESSES[
-              signup.shift.location as keyof typeof LOCATION_ADDRESSES
-            ] || signup.shift.location
-          : "TBD";
+      // Send cancellation email to volunteer (fire-and-forget with timeout)
+      const emailService = getEmailService();
+      const cancelShiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+      const cancelShiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
+        signup.shift.end,
+        "h:mm a"
+      )}`;
+      const cancelFullAddress = signup.shift.location
+        ? LOCATION_ADDRESSES[
+            signup.shift.location as keyof typeof LOCATION_ADDRESSES
+          ] || signup.shift.location
+        : "TBD";
 
-        await emailService.sendVolunteerCancellationNotification({
+      Promise.race([
+        emailService.sendVolunteerCancellationNotification({
           to: signup.user.email!,
           volunteerName:
             signup.user.name ||
@@ -266,14 +269,17 @@ export async function PATCH(
               signup.user.lastName || ""
             }`.trim(),
           shiftName: signup.shift.shiftType.name,
-          shiftDate: shiftDate,
-          shiftTime: shiftTime,
-          location: fullAddress,
-        });
-      } catch (emailError) {
+          shiftDate: cancelShiftDate,
+          shiftTime: cancelShiftTime,
+          location: cancelFullAddress,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Email send timeout")), 10000)
+        ),
+      ]).catch((emailError) => {
         console.error("Error sending cancellation email:", emailError);
         // Don't fail the API call if email fails
-      }
+      });
 
       // Create in-app notification
       try {
@@ -312,21 +318,21 @@ export async function PATCH(
         data: { status: "CONFIRMED" },
       });
 
-      // Send confirmation email to volunteer
-      try {
-        const emailService = getEmailService();
-        const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
-        const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
-          signup.shift.end,
-          "h:mm a"
-        )}`;
-        const fullAddress = signup.shift.location
-          ? LOCATION_ADDRESSES[
-              signup.shift.location as keyof typeof LOCATION_ADDRESSES
-            ] || signup.shift.location
-          : "TBD";
+      // Send confirmation email to volunteer (fire-and-forget with timeout)
+      const confirmEmailService = getEmailService();
+      const confirmShiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+      const confirmShiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
+        signup.shift.end,
+        "h:mm a"
+      )}`;
+      const confirmFullAddress = signup.shift.location
+        ? LOCATION_ADDRESSES[
+            signup.shift.location as keyof typeof LOCATION_ADDRESSES
+          ] || signup.shift.location
+        : "TBD";
 
-        await emailService.sendShiftConfirmationNotification({
+      Promise.race([
+        confirmEmailService.sendShiftConfirmationNotification({
           to: signup.user.email!,
           volunteerName:
             signup.user.name ||
@@ -334,17 +340,20 @@ export async function PATCH(
               signup.user.lastName || ""
             }`.trim(),
           shiftName: signup.shift.shiftType.name,
-          shiftDate: shiftDate,
-          shiftTime: shiftTime,
-          location: fullAddress,
+          shiftDate: confirmShiftDate,
+          shiftTime: confirmShiftTime,
+          location: confirmFullAddress,
           shiftId: signup.shift.id,
           shiftStart: signup.shift.start,
           shiftEnd: signup.shift.end,
-        });
-      } catch (emailError) {
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Email send timeout")), 10000)
+        ),
+      ]).catch((emailError) => {
         console.error("Error sending confirmation email:", emailError);
         // Don't fail the API call if email fails
-      }
+      });
 
       // Create in-app notification
       try {
