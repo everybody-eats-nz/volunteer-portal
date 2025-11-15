@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,12 +34,14 @@ interface AdminSidebarProps {
     lastName?: string | null;
   } | null;
   displayName: string;
+  pendingParentalConsentCount: number;
 }
 
 export function AdminSidebar({
   session,
   userProfile,
   displayName,
+  pendingParentalConsentCount,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const showDemoIndicator = showEnvironmentLabel();
@@ -114,6 +117,15 @@ export function AdminSidebar({
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
+                      {item.href === "/admin/parental-consent" &&
+                        pendingParentalConsentCount > 0 && (
+                          <SidebarMenuBadge
+                            className="bg-orange-500 text-white"
+                            data-testid="parental-consent-badge"
+                          >
+                            {pendingParentalConsentCount}
+                          </SidebarMenuBadge>
+                        )}
                     </SidebarMenuItem>
                   );
                 })}

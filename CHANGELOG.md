@@ -1,3 +1,21 @@
+## [0.55.0] - 2025-11-15
+
+### Changes
+- feat: add underage user notifications and sidebar badge count ([#216](https://github.com/everybody-eats-nz/volunteer-portal/pull/216)) by @malinmalliyawadu
+
+
+## [0.54.11] - 2025-11-15
+
+### Changes
+- fix: restrict date of birth and email editing to admin-only once set ([#217](https://github.com/everybody-eats-nz/volunteer-portal/pull/217)) by @malinmalliyawadu
+
+
+## [0.54.10] - 2025-11-15
+
+### Changes
+- fix: resolve remaining timezone issues in date grouping and dialogs ([#215](https://github.com/everybody-eats-nz/volunteer-portal/pull/215)) by @malinmalliyawadu
+
+
 ## [0.54.9] - 2025-11-14
 
 ### Changes

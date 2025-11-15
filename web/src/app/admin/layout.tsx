@@ -56,6 +56,16 @@ export default async function AdminLayout({
     displayName = session.user.email.split("@")[0];
   }
 
+  // Get pending parental consent count (volunteers requiring consent but not yet received)
+  // Uses requiresParentalConsent flag for consistency with the table data
+  const pendingParentalConsentCount = await prisma.user.count({
+    where: {
+      role: "VOLUNTEER",
+      requiresParentalConsent: true,
+      parentalConsentReceived: false,
+    },
+  });
+
   return (
     <AdminHeaderProvider>
       <SidebarProvider defaultOpen={true}>
@@ -63,6 +73,7 @@ export default async function AdminLayout({
           session={session}
           userProfile={userProfile}
           displayName={displayName}
+          pendingParentalConsentCount={pendingParentalConsentCount}
         />
         <SidebarInset>
           <AdminLayoutHeader />
