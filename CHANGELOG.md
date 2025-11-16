@@ -1,3 +1,9 @@
+## [0.57.0] - 2025-11-16
+
+### Changes
+- feat: add two-step migration flow to prevent timeouts ([#225](https://github.com/everybody-eats-nz/volunteer-portal/pull/225)) by @malinmalliyawadu
+
+
 ## [0.56.3] - 2025-11-16
 
 ### Changes
