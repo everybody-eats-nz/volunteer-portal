@@ -30,9 +30,13 @@ import {
   Download,
   RefreshCw,
   Users,
+  ChevronLeft,
+  ChevronRight,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MigrationProgressEvent } from "@/types/nova-migration";
+import { Input } from "@/components/ui/input";
 
 interface MigratedUser {
   id: string;
@@ -90,6 +94,15 @@ export function HistoricalDataSelector({
     useState<MigrationProgressData | null>(null);
   const [currentStep, setCurrentStep] = useState<string>("");
   const [migrationLogs, setMigrationLogs] = useState<string[]>([]);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
   const { toast } = useToast();
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -101,17 +114,33 @@ export function HistoricalDataSelector({
     }
   }, [migrationLogs]);
 
-  // Load migrated users
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load migrated users when page, pageSize, or search changes
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [page, pageSize, debouncedSearch]);
 
   const loadUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/migration/users");
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        ...(debouncedSearch && { search: debouncedSearch }),
+      });
+      const response = await fetch(`/api/admin/migration/users?${params}`);
       const data = await response.json();
       setUsers(data.users || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalUsers(data.total || 0);
     } catch (error) {
       console.error("Failed to load users:", error);
       toast({
@@ -324,6 +353,17 @@ export function HistoricalDataSelector({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by email or name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
           {/* Summary Stats */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-muted/50 rounded-lg p-4">
@@ -331,7 +371,7 @@ export function HistoricalDataSelector({
                 <span className="text-sm font-medium">Total Users</span>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{totalUsers}</div>
             </div>
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center justify-between">
@@ -466,6 +506,55 @@ export function HistoricalDataSelector({
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {(page - 1) * pageSize + 1} to{" "}
+                {Math.min(page * pageSize, totalUsers)} of {totalUsers} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">
+                    Page {page} of {totalPages}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages || isLoading}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="ml-2 text-sm border rounded px-2 py-1"
+                  disabled={isLoading}
+                >
+                  <option value="25">25 / page</option>
+                  <option value="50">50 / page</option>
+                  <option value="100">100 / page</option>
+                  <option value="200">200 / page</option>
+                </select>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
