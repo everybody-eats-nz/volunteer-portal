@@ -125,6 +125,16 @@ export function SiteHeader({
               </Link>
             </Button>
 
+            <Button
+              asChild
+              variant="ghost"
+              className={getLinkClassName("/resources")}
+            >
+              <Link href="/resources" data-testid="nav-resources">
+                Resources
+              </Link>
+            </Button>
+
             {session?.user && !isAdmin ? (
               <>
                 <Button
@@ -267,6 +277,18 @@ export function SiteHeader({
                     Browse Shifts
                   </Link>
 
+                  <Link
+                    href="/resources"
+                    className={cn(
+                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      isActive("/resources") &&
+                        "bg-white/15 text-white font-medium"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Resources
+                  </Link>
+
                   {!isAdmin && (
                     <>
                       <Link
@@ -348,6 +370,18 @@ export function SiteHeader({
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Browse Shifts
+                  </Link>
+
+                  <Link
+                    href="/resources"
+                    className={cn(
+                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      isActive("/resources") &&
+                        "bg-white/15 text-white font-medium"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Resources
                   </Link>
 
                   <div className="border-t border-white/20 pt-4 mt-4 space-y-3">

@@ -118,6 +118,18 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
+    label: "Resources",
+    items: [
+      {
+        title: "Resource Hub",
+        href: "/admin/resources",
+        icon: FileText,
+        description: "Manage volunteer resources",
+        commandKey: "resources",
+      },
+    ],
+  },
+  {
     label: "User Migration",
     items: [
       {
@@ -161,6 +173,14 @@ export const publicNavItems: AdminNavItem[] = [
     opensInNewTab: true,
     commandKey: "public-shifts",
   },
+  {
+    title: "Resource Hub",
+    href: "/resources",
+    icon: FileText,
+    description: "Opens in new tab",
+    opensInNewTab: true,
+    commandKey: "public-resources",
+  },
 ];
 
 // Helper function to get icon color for command palette
@@ -182,12 +202,15 @@ export const getIconColor = (categoryLabel: string, itemTitle: string): string =
     "Shortage Notifications": "text-amber-600",
     "Auto-Accept Rules": "text-gray-600",
     
+    // Resources
+    "Resource Hub": "text-blue-500",
+
     // User Migration
     "Bulk Migration": "text-blue-600",
     "Migration Status": "text-green-600",
     "User Invitations": "text-purple-600",
     "Migrated Users": "text-slate-600",
-    
+
     // Public
     "View Public Shifts": "text-emerald-600",
   };
