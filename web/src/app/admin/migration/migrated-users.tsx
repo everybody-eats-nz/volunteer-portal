@@ -310,7 +310,7 @@ export function MigratedUsers() {
                         <TableCell>
                           {user.invitationSent ? (
                             <div className="text-sm">
-                              <div>Sent: {new Date(user.invitationSentAt!).toLocaleDateString()}</div>
+                              <div>Sent: {new Date(user.invitationSentAt!).toLocaleDateString('en-NZ')}</div>
                               {user.invitationCount > 1 && (
                                 <div className="text-muted-foreground">
                                   Resent {user.invitationCount - 1} time(s)

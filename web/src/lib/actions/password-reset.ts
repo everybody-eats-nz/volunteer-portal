@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
 import { campaignMonitorService } from "@/lib/services/campaign-monitor";
 import { validatePassword } from "@/lib/utils/password-validation";
+import { getBaseUrl } from "@/lib/utils";
 
 interface ForgotPasswordResult {
   success: boolean;
@@ -61,7 +62,7 @@ export async function forgotPasswordAction(
       });
 
       // Send password reset email via Campaign Monitor
-      const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
+      const resetUrl = `${getBaseUrl()}/reset-password?token=${resetToken}`;
       
       try {
         await campaignMonitorService.sendPasswordResetEmail({

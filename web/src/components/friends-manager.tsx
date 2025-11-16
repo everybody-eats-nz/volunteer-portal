@@ -218,7 +218,7 @@ export function FriendsManager() {
                             {friend.name || `${friend.firstName || ""} ${friend.lastName || ""}`.trim() || friend.email}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            Friends since {new Date(friend.friendsSince).toLocaleDateString()}
+                            Friends since {new Date(friend.friendsSince).toLocaleDateString('en-NZ')}
                           </p>
                         </div>
                       </div>
@@ -281,12 +281,12 @@ export function FriendsManager() {
                         </Avatar>
                         <div>
                           <h3 className="font-medium">
-                            {request.fromUser.name || 
-                             `${request.fromUser.firstName || ""} ${request.fromUser.lastName || ""}`.trim() || 
+                            {request.fromUser.name ||
+                             `${request.fromUser.firstName || ""} ${request.fromUser.lastName || ""}`.trim() ||
                              request.fromUser.email}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            Sent {new Date(request.createdAt).toLocaleDateString()}
+                            Sent {new Date(request.createdAt).toLocaleDateString('en-NZ')}
                           </p>
                           {request.message && (
                             <p className="text-sm mt-1 italic">

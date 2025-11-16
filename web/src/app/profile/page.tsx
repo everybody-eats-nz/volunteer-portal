@@ -231,7 +231,7 @@ export default async function ProfilePage() {
                         Date of Birth
                       </span>
                       <span className="font-medium">
-                        {new Date(userProfile.dateOfBirth).toLocaleDateString()}
+                        {new Date(userProfile.dateOfBirth).toLocaleDateString('en-NZ')}
                       </span>
                     </div>
                   )}
