@@ -310,6 +310,7 @@ export interface BulkMigrationOptions {
   includeHistoricalData?: boolean;
   batchSize?: number;
   dryRun?: boolean;
+  startPage?: number;
 }
 
 /**

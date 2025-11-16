@@ -45,6 +45,7 @@ interface MigrationOptions {
   skipExistingUsers: boolean;
   includeHistoricalData: boolean;
   batchSize: number;
+  startPage: number;
 }
 
 interface BulkMigrationResult {
@@ -82,6 +83,7 @@ export function NovaBulkMigration() {
     skipExistingUsers: true,
     includeHistoricalData: false, // Default to false for two-step flow
     batchSize: 50,
+    startPage: 1,
   });
 
   const [migrationMode, setMigrationMode] = useState<"bulk" | "single">("bulk");
@@ -733,6 +735,26 @@ export function NovaBulkMigration() {
                   }
                   className="w-24"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="startPage">Start Page</Label>
+                <Input
+                  id="startPage"
+                  type="number"
+                  min="1"
+                  value={options.startPage}
+                  onChange={(e) =>
+                    setOptions((prev) => ({
+                      ...prev,
+                      startPage: parseInt(e.target.value) || 1,
+                    }))
+                  }
+                  className="w-24"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Resume from a specific page (useful for large migrations)
+                </p>
               </div>
             </div>
           </div>

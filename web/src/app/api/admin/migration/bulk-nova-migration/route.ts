@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       includeHistoricalData = true,
       batchSize = 50,
       dryRun = false,
+      startPage = 1,
     } = options;
 
     const response: BulkMigrationResponse = {
@@ -137,16 +138,16 @@ export async function POST(request: NextRequest) {
 
       // Step 1: Scrape users from Nova (limited for dev)
       console.log(
-        `[BULK] Step 1: Scraping users from Nova (limited to ${batchSize} for dev)...`
+        `[BULK] Step 1: Scraping users from Nova (limited to ${batchSize} for dev)${startPage > 1 ? ` starting from page ${startPage}` : ""}...`
       );
       await sendProgress(sessionId, {
         type: "status",
-        message: `👥 Fetching user list from Nova (batch size: ${batchSize})...`,
+        message: `👥 Fetching user list from Nova (batch size: ${batchSize}${startPage > 1 ? `, starting from page ${startPage}` : ""})...`,
         stage: "fetching",
       });
 
       // For actual migration, respect batch size limit
-      const allNovaUsers = await scraper.scrapeUsers(batchSize);
+      const allNovaUsers = await scraper.scrapeUsers(batchSize, startPage);
       response.totalUsers = allNovaUsers.length;
       console.log(`[BULK] Found ${allNovaUsers.length} users to process`);
 
