@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { randomBytes } from "crypto";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,35 +123,36 @@ export function HistoricalDataSelector({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const loadUsers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-        ...(debouncedSearch && { search: debouncedSearch }),
-      });
-      const response = await fetch(`/api/admin/migration/users?${params}`);
-      const data = await response.json();
-      setUsers(data.users || []);
-      setTotalPages(data.totalPages || 1);
-      setTotalUsers(data.total || 0);
-    } catch (error) {
-      console.error("Failed to load users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load migrated users",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [page, pageSize, debouncedSearch, toast]);
-
   // Load migrated users when page, pageSize, or search changes
   useEffect(() => {
+    const loadUsers = async () => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+          ...(debouncedSearch && { search: debouncedSearch }),
+        });
+        const response = await fetch(`/api/admin/migration/users?${params}`);
+        const data = await response.json();
+        setUsers(data.users || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalUsers(data.total || 0);
+      } catch (error) {
+        console.error("Failed to load users:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load migrated users",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadUsers();
-  }, [loadUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, debouncedSearch]);
 
   const toggleUserSelection = (email: string) => {
     setSelectedUserEmails((prev) =>
