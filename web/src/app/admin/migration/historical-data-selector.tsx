@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { randomBytes } from "crypto";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,6 +105,12 @@ export function HistoricalDataSelector({
 
   const { toast } = useToast();
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  const toastRef = useRef(toast);
+
+  // Keep toast ref updated
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   // Auto-scroll to bottom when new logs are added
   useEffect(() => {
@@ -123,36 +129,35 @@ export function HistoricalDataSelector({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+        ...(debouncedSearch && { search: debouncedSearch }),
+      });
+      const response = await fetch(`/api/admin/migration/users?${params}`);
+      const data = await response.json();
+      setUsers(data.users || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalUsers(data.total || 0);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+      toastRef.current({
+        title: "Error",
+        description: "Failed to load migrated users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, pageSize, debouncedSearch]);
+
   // Load migrated users when page, pageSize, or search changes
   useEffect(() => {
-    const loadUsers = async () => {
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          pageSize: pageSize.toString(),
-          ...(debouncedSearch && { search: debouncedSearch }),
-        });
-        const response = await fetch(`/api/admin/migration/users?${params}`);
-        const data = await response.json();
-        setUsers(data.users || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalUsers(data.total || 0);
-      } catch (error) {
-        console.error("Failed to load users:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load migrated users",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, debouncedSearch]);
+  }, [loadUsers]);
 
   const toggleUserSelection = (email: string) => {
     setSelectedUserEmails((prev) =>
