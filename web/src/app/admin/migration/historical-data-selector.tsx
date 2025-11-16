@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { randomBytes } from "crypto";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,12 +123,7 @@ export function HistoricalDataSelector({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Load migrated users when page, pageSize, or search changes
-  useEffect(() => {
-    loadUsers();
-  }, [page, pageSize, debouncedSearch]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -151,7 +146,12 @@ export function HistoricalDataSelector({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize, debouncedSearch, toast]);
+
+  // Load migrated users when page, pageSize, or search changes
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const toggleUserSelection = (email: string) => {
     setSelectedUserEmails((prev) =>

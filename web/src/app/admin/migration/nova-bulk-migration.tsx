@@ -655,7 +655,7 @@ export function NovaBulkMigration() {
           </div>
           <CardDescription>
             Configure how the migration should be performed. For best
-            performance, keep "Include historical shifts" unchecked and import
+            performance, keep &quot;Include historical shifts&quot; unchecked and import
             historical data selectively in Step 2.
           </CardDescription>
         </CardHeader>
