@@ -126,7 +126,7 @@ export function FriendProfileDialog({
             <div>
               <h2 className="text-lg font-semibold">{displayName}</h2>
               <p className="text-sm text-gray-600">
-                Friends since {new Date(friend.friendsSince).toLocaleDateString()}
+                Friends since {new Date(friend.friendsSince).toLocaleDateString('en-NZ')}
               </p>
             </div>
           </ResponsiveDialogTitle>

@@ -220,9 +220,9 @@ export function UserInvitations() {
   const formatDateTime = (dateString?: string): string => {
     if (!dateString) return "Never";
     return (
-      new Date(dateString).toLocaleDateString() +
+      new Date(dateString).toLocaleDateString('en-NZ') +
       " at " +
-      new Date(dateString).toLocaleTimeString()
+      new Date(dateString).toLocaleTimeString('en-NZ')
     );
   };
 
