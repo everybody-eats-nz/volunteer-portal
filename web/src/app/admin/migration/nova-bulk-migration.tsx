@@ -173,7 +173,7 @@ export function NovaBulkMigration() {
     setMigrationLogs([]);
 
     // Add initial log entry
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = new Date().toLocaleTimeString('en-NZ');
     setMigrationLogs([
       `[${timestamp}] 🚀 Starting ${migrationMode} migration...`,
     ]);
@@ -202,7 +202,7 @@ export function NovaBulkMigration() {
       eventSource.onopen = () => {
         console.log("SSE connection opened");
         reconnectAttempts = 0;
-        const timestamp = new Date().toLocaleTimeString();
+        const timestamp = new Date().toLocaleTimeString('en-NZ');
         setMigrationLogs((prev) => [
           ...prev,
           `[${timestamp}] 📡 Connected to progress stream`,
@@ -215,7 +215,7 @@ export function NovaBulkMigration() {
           console.log("SSE received:", data);
 
           // Add log entry with timestamp
-          const timestamp = new Date().toLocaleTimeString();
+          const timestamp = new Date().toLocaleTimeString('en-NZ');
 
           // Filter out ping/connected messages from logs
           if (data.type !== "connected" && data.message) {
@@ -237,7 +237,7 @@ export function NovaBulkMigration() {
           }
         } catch (error) {
           console.error("SSE parse error:", error);
-          const timestamp = new Date().toLocaleTimeString();
+          const timestamp = new Date().toLocaleTimeString('en-NZ');
           setMigrationLogs((prev) => [
             ...prev,
             `[${timestamp}] ⚠️ Error parsing progress data`,
@@ -247,7 +247,7 @@ export function NovaBulkMigration() {
 
       eventSource.onerror = (error) => {
         console.error("SSE error:", error);
-        const timestamp = new Date().toLocaleTimeString();
+        const timestamp = new Date().toLocaleTimeString('en-NZ');
 
         if (eventSource?.readyState === EventSource.CLOSED) {
           // Connection was closed
@@ -309,7 +309,7 @@ export function NovaBulkMigration() {
         console.log("Single user migration response:", singleUserData);
 
         // Log the API response
-        const timestamp = new Date().toLocaleTimeString();
+        const timestamp = new Date().toLocaleTimeString('en-NZ');
         setMigrationLogs((prev) => [
           ...prev,
           `[${timestamp}] 📡 API Response: ${
@@ -407,7 +407,7 @@ export function NovaBulkMigration() {
         setResult(data);
 
         // Log the bulk migration results
-        const timestamp = new Date().toLocaleTimeString();
+        const timestamp = new Date().toLocaleTimeString('en-NZ');
         setMigrationLogs((prev) => [
           ...prev,
           `[${timestamp}] 🎯 Bulk Migration Results:`,
@@ -447,7 +447,7 @@ export function NovaBulkMigration() {
         }
       }
     } catch (error) {
-      const timestamp = new Date().toLocaleTimeString();
+      const timestamp = new Date().toLocaleTimeString('en-NZ');
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       setMigrationLogs((prev) => [

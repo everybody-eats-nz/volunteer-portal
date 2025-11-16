@@ -1,3 +1,9 @@
+## [0.56.3] - 2025-11-16
+
+### Changes
+- fix: use NZ date format and getBaseUrl for password reset emails ([#223](https://github.com/everybody-eats-nz/volunteer-portal/pull/223)) by @malinmalliyawadu
+
+
 ## [0.56.2] - 2025-11-15
 
 ### Changes

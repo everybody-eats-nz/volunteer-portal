@@ -184,7 +184,7 @@ export async function POST(request: Request) {
 
       // Create notification for the volunteer about their movement
       const notificationTitle = "You've been moved to a different shift";
-      const notificationMessage = `You've been moved from ${signup.shift.shiftType.name} to ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString()} at ${targetShift.location}`;
+      const notificationMessage = `You've been moved from ${signup.shift.shiftType.name} to ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString('en-NZ')} at ${targetShift.location}`;
 
       await tx.notification.create({
         data: {
