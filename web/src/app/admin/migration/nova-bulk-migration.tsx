@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Database,
   Users,
@@ -27,9 +28,11 @@ import {
   Settings,
   Eye,
   EyeOff,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MigrationProgressEvent } from "@/types/nova-migration";
+import { HistoricalDataSelector } from "./historical-data-selector";
 
 interface NovaConfig {
   baseUrl: string;
@@ -67,6 +70,7 @@ type MigrationProgressData = MigrationProgressEvent & {
 };
 
 export function NovaBulkMigration() {
+  const [activeTab, setActiveTab] = useState<string>("step1");
   const [novaConfig, setNovaConfig] = useState<NovaConfig>({
     baseUrl: "https://app.everybodyeats.nz",
     email: "",
@@ -76,7 +80,7 @@ export function NovaBulkMigration() {
   const [options, setOptions] = useState<MigrationOptions>({
     dryRun: true,
     skipExistingUsers: true,
-    includeHistoricalData: true,
+    includeHistoricalData: false, // Default to false for two-step flow
     batchSize: 50,
   });
 
@@ -469,9 +473,34 @@ export function NovaBulkMigration() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Nova Configuration */}
-      <Card>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsTrigger value="step1" className="gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
+            1
+          </span>
+          Create User Profiles
+        </TabsTrigger>
+        <TabsTrigger value="step2" className="gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
+            2
+          </span>
+          Import Historical Data
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="step1" className="space-y-6">
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Step 1:</strong> First, create user profiles from Nova. This
+            step is fast and creates user accounts without their historical shift
+            data. You can then selectively import historical data in Step 2.
+          </AlertDescription>
+        </Alert>
+
+        {/* Nova Configuration */}
+        <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Database className="h-5 w-5" />
@@ -625,7 +654,9 @@ export function NovaBulkMigration() {
             <CardTitle>Migration Options</CardTitle>
           </div>
           <CardDescription>
-            Configure how the migration should be performed.
+            Configure how the migration should be performed. For best
+            performance, keep &quot;Include historical shifts&quot; unchecked and import
+            historical data selectively in Step 2.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -658,20 +689,32 @@ export function NovaBulkMigration() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeHistory"
-                  checked={options.includeHistoricalData}
-                  onCheckedChange={(checked) =>
-                    setOptions((prev) => ({
-                      ...prev,
-                      includeHistoricalData: !!checked,
-                    }))
-                  }
-                />
-                <Label htmlFor="includeHistory">
-                  Include historical shifts
-                </Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeHistory"
+                    checked={options.includeHistoricalData}
+                    onCheckedChange={(checked) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        includeHistoricalData: !!checked,
+                      }))
+                    }
+                  />
+                  <Label htmlFor="includeHistory">
+                    Include historical shifts
+                  </Label>
+                </div>
+                {options.includeHistoricalData && (
+                  <Alert variant="destructive" className="text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Warning: Including historical data for all users may cause
+                      timeouts with large datasets. Consider using Step 2 for
+                      selective import instead.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -982,6 +1025,53 @@ export function NovaBulkMigration() {
           </CardContent>
         </Card>
       )}
-    </div>
+
+      {/* Next Step Prompt */}
+      {result && result.success && result.usersCreated > 0 && (
+        <Alert>
+          <ChevronRight className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              <strong>Ready for Step 2?</strong> {result.usersCreated} user
+              profile(s) created. You can now import their historical data.
+            </span>
+            <Button
+              onClick={() => setActiveTab("step2")}
+              size="sm"
+              className="gap-2"
+            >
+              Go to Step 2
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+    </TabsContent>
+
+    <TabsContent value="step2" className="space-y-6">
+      <Alert>
+        <Database className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Step 2:</strong> Select which users to import historical
+          shift and signup data for. This allows you to control which users get
+          their complete history migrated, avoiding timeouts with large datasets.
+        </AlertDescription>
+      </Alert>
+
+      {!connectionTested && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Please test your Nova connection in Step 1 first before importing
+            historical data.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {connectionTested && (
+        <HistoricalDataSelector novaConfig={novaConfig} />
+      )}
+    </TabsContent>
+  </Tabs>
   );
 }
