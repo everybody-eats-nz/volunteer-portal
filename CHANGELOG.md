@@ -1,3 +1,9 @@
+## [0.58.0] - 2025-11-16
+
+### Changes
+- feat: add start page option for nova migration step 1 ([#226](https://github.com/everybody-eats-nz/volunteer-portal/pull/226)) by @malinmalliyawadu
+
+
 ## [0.57.0] - 2025-11-16
 
 ### Changes
