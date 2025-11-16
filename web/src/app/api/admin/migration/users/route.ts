@@ -30,13 +30,18 @@ export async function GET() {
         migrationInvitationCount: true,
         migrationLastSentAt: true,
         migrationTokenExpiresAt: true,
+        _count: {
+          select: {
+            signups: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    // Transform users to include invitation status
+    // Transform users to include invitation status and signup count
     const usersWithInvitationStatus = users.map((user) => ({
       id: user.id,
       email: user.email,
@@ -49,6 +54,8 @@ export async function GET() {
       tokenExpiresAt: user.migrationTokenExpiresAt?.toISOString(),
       registrationCompleted: user.profileCompleted, // Check actual profile completion status
       registrationCompletedAt: null,
+      signupCount: user._count.signups,
+      hasHistoricalData: user._count.signups > 0,
     }));
 
     return NextResponse.json({
