@@ -249,10 +249,10 @@ export function MigrationStatus() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          {new Date(user.createdAt).toLocaleDateString()}
+                          {new Date(user.createdAt).toLocaleDateString('en-NZ')}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(user.createdAt).toLocaleTimeString()}
+                          {new Date(user.createdAt).toLocaleTimeString('en-NZ')}
                         </p>
                       </div>
                     </div>
@@ -293,7 +293,7 @@ export function MigrationStatus() {
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(shift.createdAt).toLocaleDateString()}
+                          {new Date(shift.createdAt).toLocaleDateString('en-NZ')}
                         </p>
                       </div>
                       <div className="space-y-1">
@@ -380,10 +380,10 @@ export function MigrationStatus() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          {new Date(signup.createdAt).toLocaleDateString()}
+                          {new Date(signup.createdAt).toLocaleDateString('en-NZ')}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(signup.createdAt).toLocaleTimeString()}
+                          {new Date(signup.createdAt).toLocaleTimeString('en-NZ')}
                         </p>
                       </div>
                     </div>
@@ -427,10 +427,10 @@ export function MigrationStatus() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          {new Date(shiftType.createdAt).toLocaleDateString()}
+                          {new Date(shiftType.createdAt).toLocaleDateString('en-NZ')}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(shiftType.createdAt).toLocaleTimeString()}
+                          {new Date(shiftType.createdAt).toLocaleTimeString('en-NZ')}
                         </p>
                       </div>
                     </div>

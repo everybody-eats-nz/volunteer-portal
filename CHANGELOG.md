@@ -1,3 +1,21 @@
+## [0.58.0] - 2025-11-16
+
+### Changes
+- feat: add start page option for nova migration step 1 ([#226](https://github.com/everybody-eats-nz/volunteer-portal/pull/226)) by @malinmalliyawadu
+
+
+## [0.57.0] - 2025-11-16
+
+### Changes
+- feat: add two-step migration flow to prevent timeouts ([#225](https://github.com/everybody-eats-nz/volunteer-portal/pull/225)) by @malinmalliyawadu
+
+
+## [0.56.3] - 2025-11-16
+
+### Changes
+- fix: use NZ date format and getBaseUrl for password reset emails ([#223](https://github.com/everybody-eats-nz/volunteer-portal/pull/223)) by @malinmalliyawadu
+
+
 ## [0.56.2] - 2025-11-15
 
 ### Changes
