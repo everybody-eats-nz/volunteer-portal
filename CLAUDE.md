@@ -289,6 +289,7 @@ For comprehensive guidelines specific to different areas of the codebase, see th
 ### Setup & Configuration
 - **[OAuth Setup](web/docs/oauth-setup.md)** - OAuth provider configuration and setup
 - **[Profile Images](web/docs/profile-images.md)** - Profile image upload and management
+- **[Resource Hub](web/docs/resource-hub.md)** - Document management system with Supabase Storage
 - **[Versioning](web/docs/versioning.md)** - Semantic versioning and release process
 
 ### Administrative

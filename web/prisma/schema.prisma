@@ -107,6 +107,9 @@ model User {
   
   // Custom labels (admin-only)
   customLabels                 UserCustomLabel[]
+
+  // Resource hub uploads
+  uploadedResources            Resource[]         @relation("ResourceUploader")
 }
 
 model ShiftType {
@@ -592,5 +595,53 @@ model UserCustomLabel {
   @@unique([userId, labelId])
   @@index([userId])
   @@index([labelId])
+}
+
+// Resource hub for document management
+model Resource {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  type        ResourceType
+  category    ResourceCategory
+  tags        String[]         @default([]) // Flexible tags for organization
+
+  // File/URL fields
+  fileUrl     String?          // Supabase storage URL for uploaded files
+  fileName    String?          // Original file name
+  fileSize    Int?             // File size in bytes
+  url         String?          // External URL for links/videos
+
+  // Metadata
+  isPublished Boolean          @default(true)
+  uploadedBy  String           // Admin who uploaded
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  uploader    User             @relation("ResourceUploader", fields: [uploadedBy], references: [id])
+
+  @@index([type, isPublished])
+  @@index([category, isPublished])
+  @@index([uploadedBy])
+  @@index([createdAt])
+}
+
+enum ResourceType {
+  PDF
+  IMAGE
+  DOCUMENT      // Word, Excel, etc.
+  LINK          // External website
+  VIDEO         // YouTube, Vimeo, etc.
+}
+
+enum ResourceCategory {
+  TRAINING      // Training materials
+  POLICIES      // Policies and procedures
+  FORMS         // Downloadable forms
+  GUIDES        // How-to guides
+  RECIPES       // Recipes and food preparation
+  SAFETY        // Health and safety
+  GENERAL       // General resources
 }
 
