@@ -1,3 +1,9 @@
+## [0.59.0] - 2025-11-17
+
+### Changes
+- Add Resource Hub with Supabase Storage Integration ([#224](https://github.com/everybody-eats-nz/volunteer-portal/pull/224)) by @malinmalliyawadu
+
+
 ## [0.58.0] - 2025-11-16
 
 ### Changes
