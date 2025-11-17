@@ -47,6 +47,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/volunteer_portal_test
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: test-secret-for-ci-only
+          NEXT_PUBLIC_SUPABASE_URL: https://dummy-project.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci-build
+          SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-ci-build
           TZ: Pacific/Auckland
 
   # Shared check that both web and docs PRs can use
