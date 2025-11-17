@@ -302,12 +302,13 @@ export class LaravelNovaScraper {
   /**
    * Scrape users from Nova
    */
-  async scrapeUsers(limit?: number): Promise<NovaUser[]> {
+  async scrapeUsers(limit?: number, startPage?: number): Promise<NovaUser[]> {
+    const startingPage = startPage && startPage > 0 ? startPage : 1;
     console.log(
-      `Scraping users from Laravel Nova${limit ? ` (limit: ${limit})` : ""}...`
+      `Scraping users from Laravel Nova${limit ? ` (limit: ${limit})` : ""}${startPage ? ` starting from page ${startingPage}` : ""}...`
     );
     const users: NovaUser[] = [];
-    let page = 1;
+    let page = startingPage;
     let hasMorePages = true;
 
     while (hasMorePages && (!limit || users.length < limit)) {
