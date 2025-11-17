@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 
@@ -50,10 +50,36 @@ export function ResourcesSearch({ availableTags }: ResourcesSearchProps) {
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+    const newTags = selectedTags.includes(tag)
+      ? selectedTags.filter((t) => t !== tag)
+      : [...selectedTags, tag];
+    setSelectedTags(newTags);
+
+    // Auto-apply when tag is toggled
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (category && category !== "all") params.set("category", category);
+    if (type && type !== "all") params.set("type", type);
+    if (newTags.length > 0) params.set("tags", newTags.join(","));
+    router.push(`/resources?${params.toString()}`);
   };
+
+  // Auto-apply filters when category or type changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (category && category !== "all") params.set("category", category);
+    if (type && type !== "all") params.set("type", type);
+    if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
+
+    // Only navigate if there's an actual filter change (not on initial mount)
+    const currentParams = searchParams.toString();
+    const newParams = params.toString();
+    if (currentParams !== newParams && (category !== "all" || type !== "all")) {
+      router.push(`/resources?${params.toString()}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, type]);
 
   const hasFilters = search || (category && category !== "all") || (type && type !== "all") || selectedTags.length > 0;
 

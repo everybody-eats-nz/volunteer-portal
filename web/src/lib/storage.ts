@@ -1,6 +1,6 @@
 import { supabase, getSupabaseAdmin } from "./supabase";
 
-export const STORAGE_BUCKET = "resources";
+export const STORAGE_BUCKET = "resource-hub";
 
 // Allowed file types
 export const ALLOWED_FILE_TYPES = {
@@ -20,7 +20,7 @@ export const ALLOWED_FILE_TYPES = {
 export const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 /**
- * Upload a file to Supabase storage
+ * Upload a file to Supabase storage (uses service role for admin uploads)
  */
 export async function uploadFile(
   file: File,
@@ -37,8 +37,11 @@ export async function uploadFile(
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
   const filePath = `${folder}/${timestamp}-${randomString}-${sanitizedFileName}`;
 
+  // Use admin client for uploads (bypasses RLS policies)
+  const admin = getSupabaseAdmin();
+
   // Upload to Supabase
-  const { data, error } = await supabase.storage
+  const { data, error } = await admin.storage
     .from(STORAGE_BUCKET)
     .upload(filePath, file, {
       cacheControl: "3600",
@@ -50,7 +53,7 @@ export async function uploadFile(
     throw new Error(`Failed to upload file: ${error.message}`);
   }
 
-  // Get public URL
+  // Get public URL (can use regular client for this)
   const {
     data: { publicUrl },
   } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(data.path);
@@ -110,7 +113,9 @@ export function formatFileSize(bytes: number): string {
 export function extractFilePathFromUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
-    const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.*)/);
+    const pathMatch = urlObj.pathname.match(
+      /\/storage\/v1\/object\/public\/[^/]+\/(.*)/
+    );
     return pathMatch ? pathMatch[1] : null;
   } catch {
     return null;

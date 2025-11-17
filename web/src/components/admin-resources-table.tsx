@@ -5,6 +5,7 @@ import { Resource, ResourceType, ResourceCategory } from "@prisma/client";
 import {
   MoreHorizontal,
   Eye,
+  Pencil,
   Trash2,
   Download,
   ExternalLink,
@@ -39,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatFileSize } from "@/lib/storage";
+import { EditResourceDialog } from "@/components/edit-resource-dialog";
 
 interface ResourceWithUploader extends Resource {
   uploader: {
@@ -75,6 +77,7 @@ const CATEGORY_LABELS: Record<ResourceCategory, string> = {
 export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editResource, setEditResource] = useState<ResourceWithUploader | null>(null);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -218,6 +221,10 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
                           Download
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem onClick={() => setEditResource(resource)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() =>
                           togglePublished(resource.id, resource.isPublished)
@@ -264,6 +271,14 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editResource && (
+        <EditResourceDialog
+          resource={editResource}
+          open={editResource !== null}
+          onOpenChange={(open) => !open && setEditResource(null)}
+        />
+      )}
     </>
   );
 }
