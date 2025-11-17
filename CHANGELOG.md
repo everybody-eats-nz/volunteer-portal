@@ -1,3 +1,9 @@
+## [0.59.1] - 2025-11-17
+
+### Changes
+- fix: increase timeout for Nova migration API routes ([#227](https://github.com/everybody-eats-nz/volunteer-portal/pull/227)) by @malinmalliyawadu
+
+
 ## [0.59.0] - 2025-11-17
 
 ### Changes
