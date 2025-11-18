@@ -275,7 +275,7 @@ export default async function AdminDashboardPage({
           <Card
             data-testid="total-signups-card"
             className={
-              pendingSignups > 0 ? "border-orange-200 bg-orange-50" : ""
+              pendingSignups > 0 ? "border-orange-200 bg-orange-50 dark:border-orange-800/50 dark:bg-orange-950/30" : ""
             }
           >
             <CardHeader className="pb-2">
@@ -283,7 +283,7 @@ export default async function AdminDashboardPage({
                 Total Signups
                 {pendingSignups > 0 && (
                   <Badge
-                    className="bg-orange-100 text-orange-800 border-orange-200"
+                    className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-800/50"
                     data-testid="pending-signups-badge"
                   >
                     {pendingSignups} pending
