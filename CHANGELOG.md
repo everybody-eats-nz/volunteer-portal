@@ -1,3 +1,9 @@
+## [0.62.3] - 2025-11-18
+
+### Changes
+- Fix: Resolve all 226 ESLint warnings ([#235](https://github.com/everybody-eats-nz/volunteer-portal/pull/235)) by @malinmalliyawadu
+
+
 ## [0.62.2] - 2025-11-18
 
 ### Changes
