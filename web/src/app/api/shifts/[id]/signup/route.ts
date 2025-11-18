@@ -179,7 +179,7 @@ export async function POST(
       timeZone: "Pacific/Auckland",
     }).format(existingDailySignup.shift.start);
 
-    const location = existingDailySignup.shift.shiftType.location;
+    const location = existingDailySignup.shift.location;
 
     return NextResponse.json(
       {
