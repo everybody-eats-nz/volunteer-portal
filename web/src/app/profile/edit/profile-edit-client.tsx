@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -37,7 +43,10 @@ interface ProfileEditClientProps {
  * Multi-section profile editing page
  * Uses shared form components to maintain consistency with registration
  */
-export default function ProfileEditClient({ locationOptions, shiftTypes }: ProfileEditClientProps) {
+export default function ProfileEditClient({
+  locationOptions,
+  shiftTypes,
+}: ProfileEditClientProps) {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [currentSection, setCurrentSection] = useState(0);
@@ -48,11 +57,16 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
   const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] =
     useState("");
   const [userRole, setUserRole] = useState<string | undefined>(undefined);
-  const [initialEmail, setInitialEmail] = useState<string | undefined>(undefined);
-  const [initialDateOfBirth, setInitialDateOfBirth] = useState<string | undefined>(undefined);
+  const [initialEmail, setInitialEmail] = useState<string | undefined>(
+    undefined
+  );
+  const [initialDateOfBirth, setInitialDateOfBirth] = useState<
+    string | undefined
+  >(undefined);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const hasLoadedData = useRef(false);
 
   // Load policy content
   useEffect(() => {
@@ -106,8 +120,13 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
     healthSafetyPolicyAccepted: false,
   });
 
-  // Load data from API on mount
+  // Load data from API on mount (only once)
   useEffect(() => {
+    // Prevent re-loading if data has already been loaded
+    if (hasLoadedData.current) {
+      return;
+    }
+
     const loadProfileData = async () => {
       try {
         const response = await fetch("/api/profile");
@@ -117,9 +136,11 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
           // Store initial values for locked field detection
           setUserRole(profileData.role);
           setInitialEmail(profileData.email || undefined);
-          setInitialDateOfBirth(profileData.dateOfBirth
-            ? new Date(profileData.dateOfBirth).toISOString().split("T")[0]
-            : undefined);
+          setInitialDateOfBirth(
+            profileData.dateOfBirth
+              ? new Date(profileData.dateOfBirth).toISOString().split("T")[0]
+              : undefined
+          );
 
           setFormData({
             firstName: profileData.firstName || "",
@@ -157,6 +178,9 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
             healthSafetyPolicyAccepted:
               profileData.healthSafetyPolicyAccepted || false,
           });
+
+          // Mark as loaded to prevent re-loading
+          hasLoadedData.current = true;
         }
       } catch (error) {
         console.error("Failed to load profile data:", error);
@@ -172,51 +196,55 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
     };
 
     loadProfileData();
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run on mount
 
-  const sections = useMemo(() => [
-    {
-      id: "personal",
-      title: "Personal Information",
-      description: "Basic personal details and contact information",
-      icon: User,
-      color: "bg-blue-500",
-    },
-    {
-      id: "emergency",
-      title: "Emergency Contact",
-      description: "Emergency contact information for safety",
-      icon: Phone,
-      color: "bg-red-500",
-    },
-    {
-      id: "medical",
-      title: "Medical & References",
-      description: "Medical conditions and reference willingness",
-      icon: Shield,
-      color: "bg-green-500",
-    },
-    {
-      id: "availability",
-      title: "Availability & Location",
-      description: "When and where you can volunteer",
-      icon: MapPin,
-      color: "bg-purple-500",
-    },
-    {
-      id: "communication",
-      title: "Communication & Agreements",
-      description: "Notification preferences and policy agreements",
-      icon: Bell,
-      color: "bg-orange-500",
-    },
-  ], []);
+  const sections = useMemo(
+    () => [
+      {
+        id: "personal",
+        title: "Personal Information",
+        description: "Basic personal details and contact information",
+        icon: User,
+        color: "bg-blue-500",
+      },
+      {
+        id: "emergency",
+        title: "Emergency Contact",
+        description: "Emergency contact information for safety",
+        icon: Phone,
+        color: "bg-red-500",
+      },
+      {
+        id: "medical",
+        title: "Medical & References",
+        description: "Medical conditions and reference willingness",
+        icon: Shield,
+        color: "bg-green-500",
+      },
+      {
+        id: "availability",
+        title: "Availability & Location",
+        description: "When and where you can volunteer",
+        icon: MapPin,
+        color: "bg-purple-500",
+      },
+      {
+        id: "communication",
+        title: "Communication & Agreements",
+        description: "Notification preferences and policy agreements",
+        icon: Bell,
+        color: "bg-orange-500",
+      },
+    ],
+    []
+  );
 
   // Handle deep linking to specific sections
   useEffect(() => {
-    const step = searchParams.get('step');
+    const step = searchParams.get("step");
     if (step) {
-      const sectionIndex = sections.findIndex(section => section.id === step);
+      const sectionIndex = sections.findIndex((section) => section.id === step);
       if (sectionIndex !== -1) {
         setCurrentSection(sectionIndex);
       }
@@ -234,10 +262,13 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
         // Process form data to handle special placeholder values
         // Remove fields that aren't part of profile updates
         const { ...profileData } = formData;
-        
+
         // Process the data for sending
-        const processedData: Record<string, string | boolean | string[] | Date | null> = {};
-        
+        const processedData: Record<
+          string,
+          string | boolean | string[] | Date | null
+        > = {};
+
         // Handle each field appropriately
         Object.entries(profileData).forEach(([key, value]) => {
           // Special handling for specific fields
@@ -247,7 +278,10 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
             }
           } else if (key === "howDidYouHearAboutUs") {
             if (value !== "not_specified" && value !== "") {
-              if (value === "other" && formData.customHowDidYouHearAboutUs?.trim()) {
+              if (
+                value === "other" &&
+                formData.customHowDidYouHearAboutUs?.trim()
+              ) {
                 processedData[key] = formData.customHowDidYouHearAboutUs;
               } else if (value !== "other") {
                 processedData[key] = value;
@@ -265,7 +299,7 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
         });
 
         console.log("Sending profile data:", processedData);
-        
+
         const response = await fetch("/api/profile", {
           method: "PUT",
           headers: {
@@ -278,7 +312,10 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
           const error = await response.json();
           console.error("Profile update failed:", error);
           if (error.details) {
-            console.error("Validation details:", JSON.stringify(error.details, null, 2));
+            console.error(
+              "Validation details:",
+              JSON.stringify(error.details, null, 2)
+            );
           }
           throw new Error(error.error || "Failed to update profile");
         }
@@ -456,10 +493,17 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
             {/* Progress Indicator */}
             <div className="bg-card dark:bg-card rounded-xl shadow-sm border border-border p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold" data-testid="profile-setup-progress-heading">
+                <h2
+                  className="text-lg font-semibold"
+                  data-testid="profile-setup-progress-heading"
+                >
                   Profile Setup Progress
                 </h2>
-                <Badge variant="outline" className="text-xs" data-testid="step-indicator">
+                <Badge
+                  variant="outline"
+                  className="text-xs"
+                  data-testid="step-indicator"
+                >
                   Step {currentSection + 1} of {sections.length}
                 </Badge>
               </div>
@@ -532,7 +576,10 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
             <Card className="shadow-lg border-0 bg-card/80 dark:bg-card/90 backdrop-blur-sm">
               <CardHeader className="pb-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-3 text-xl" data-testid="current-section-title">
+                  <CardTitle
+                    className="flex items-center gap-3 text-xl"
+                    data-testid="current-section-title"
+                  >
                     {React.createElement(sections[currentSection].icon, {
                       className: "h-6 w-6",
                     })}
