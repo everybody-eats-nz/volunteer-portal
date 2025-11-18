@@ -21,7 +21,7 @@ async function loginAsVolunteer(page: Page) {
 
     // Use a shorter wait time to avoid timeouts
     await page.waitForTimeout(500);
-  } catch {
+  } catch (error) {
     console.log("Error during login:", error);
   }
 }
@@ -230,7 +230,7 @@ test.describe("Profile Edit Page", () => {
       await expect(contactPhoneField).toBeVisible();
     });
 
-    test.skip("should allow editing emergency contact information", async ({ page: _page }) => {
+    test.skip("should allow editing emergency contact information", async ({ page }) => {
       // Navigate to emergency contact section
       const emergencyTab = page.getByTestId("emergency-tab-button");
       await emergencyTab.click();

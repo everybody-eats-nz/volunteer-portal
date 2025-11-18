@@ -372,7 +372,7 @@ test.describe("Parental Consent System", () => {
       ).toBeVisible();
     });
 
-    test.skip("should update user status after approval", async ({ page: _page }) => {
+    test.skip("should update user status after approval", async ({ page }) => {
       await loginAsAdmin(page);
       await waitForPageLoad(page);
 

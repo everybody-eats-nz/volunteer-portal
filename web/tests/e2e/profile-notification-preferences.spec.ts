@@ -48,7 +48,7 @@ test.describe("User Notification Preferences", () => {
     ).toBeVisible();
   });
 
-  test.skip("should edit notification preferences", async ({ page: _page }) => {
+  test.skip("should edit notification preferences", async ({ page }) => {
     await login(page, volunteerEmail, "Test123456");
     await page.goto("/profile");
 

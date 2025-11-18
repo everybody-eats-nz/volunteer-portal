@@ -39,7 +39,7 @@ test.describe("Public Resource Hub", () => {
       // - Verify all published resources shown
     });
 
-    test.skip("should not display unpublished resources", async ({ page: _page }) => {
+    test.skip("should not display unpublished resources", async ({ page }) => {
       // TODO: Implement test
       // - Admin uploads draft resource
       // - Navigate to /resources
@@ -53,7 +53,7 @@ test.describe("Public Resource Hub", () => {
       // - Verify card shows: type badge, title, description, category, tags, file size, date
     });
 
-    test.skip("should show type badge with color coding", async ({ page: _page }) => {
+    test.skip("should show type badge with color coding", async ({ page }) => {
       // TODO: Implement test
       // - Verify different colors for PDF, IMAGE, DOCUMENT, LINK, VIDEO
     });
@@ -78,11 +78,11 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should show formatted creation date", async ({ page: _page }) => {
+    test.skip("should show formatted creation date", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should use responsive grid layout", async ({ page: _page }) => {
+    test.skip("should use responsive grid layout", async ({ page }) => {
       // TODO: Implement test
       // - Verify grid adjusts to different screen sizes
     });
@@ -107,7 +107,7 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should open link in new tab when clicked", async ({ page: _page }) => {
+    test.skip("should open link in new tab when clicked", async ({ page }) => {
       // TODO: Implement test
     });
 
@@ -134,15 +134,15 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should be case-insensitive in search", async ({ page: _page }) => {
+    test.skip("should be case-insensitive in search", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should support partial word matching", async ({ page: _page }) => {
+    test.skip("should support partial word matching", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should allow searching with Enter key", async ({ page: _page }) => {
+    test.skip("should allow searching with Enter key", async ({ page }) => {
       // TODO: Implement test
     });
 
@@ -152,11 +152,11 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should update URL with search parameter", async ({ page: _page }) => {
+    test.skip("should update URL with search parameter", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should persist search from URL parameter", async ({ page: _page }) => {
+    test.skip("should persist search from URL parameter", async ({ page }) => {
       // TODO: Implement test
       // - Navigate to /resources?search=kitchen
       // - Verify search field populated and results filtered
@@ -226,29 +226,29 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should reset to all categories", async ({ page: _page }) => {
+    test.skip("should reset to all categories", async ({ page }) => {
       // TODO: Implement test
     });
   });
 
   test.describe("Type Filter", () => {
-    test.skip("should filter resources by PDF type", async ({ page: _page }) => {
+    test.skip("should filter resources by PDF type", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should filter resources by IMAGE type", async ({ page: _page }) => {
+    test.skip("should filter resources by IMAGE type", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should filter resources by DOCUMENT type", async ({ page: _page }) => {
+    test.skip("should filter resources by DOCUMENT type", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should filter resources by LINK type", async ({ page: _page }) => {
+    test.skip("should filter resources by LINK type", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should filter resources by VIDEO type", async ({ page: _page }) => {
+    test.skip("should filter resources by VIDEO type", async ({ page }) => {
       // TODO: Implement test
     });
 
@@ -258,30 +258,30 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should update URL with type parameter", async ({ page: _page }) => {
+    test.skip("should update URL with type parameter", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should persist type from URL parameter", async ({ page: _page }) => {
+    test.skip("should persist type from URL parameter", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should reset to all types", async ({ page: _page }) => {
+    test.skip("should reset to all types", async ({ page }) => {
       // TODO: Implement test
     });
   });
 
   test.describe("Tag Filter", () => {
-    test.skip("should display all available tags", async ({ page: _page }) => {
+    test.skip("should display all available tags", async ({ page }) => {
       // TODO: Implement test
       // - Verify tags collected from all published resources
     });
 
-    test.skip("should filter by single tag when clicked", async ({ page: _page }) => {
+    test.skip("should filter by single tag when clicked", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should toggle tag selection on/off", async ({ page: _page }) => {
+    test.skip("should toggle tag selection on/off", async ({ page }) => {
       // TODO: Implement test
     });
 
@@ -293,24 +293,24 @@ test.describe("Public Resource Hub", () => {
       // - Verify resources matching ANY selected tag shown
     });
 
-    test.skip("should highlight selected tags", async ({ page: _page }) => {
+    test.skip("should highlight selected tags", async ({ page }) => {
       // TODO: Implement test
       // - Verify selected tags have different style
     });
 
-    test.skip("should auto-apply tag filter immediately", async ({ page: _page }) => {
+    test.skip("should auto-apply tag filter immediately", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should update URL with tags parameter", async ({ page: _page }) => {
+    test.skip("should update URL with tags parameter", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should persist tags from URL parameter", async ({ page: _page }) => {
+    test.skip("should persist tags from URL parameter", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should sort tags alphabetically", async ({ page: _page }) => {
+    test.skip("should sort tags alphabetically", async ({ page }) => {
       // TODO: Implement test
     });
   });
@@ -340,7 +340,7 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should apply all filters together", async ({ page: _page }) => {
+    test.skip("should apply all filters together", async ({ page }) => {
       // TODO: Implement test
       // - Apply search, category, type, and tags
       // - Verify only resources matching ALL criteria shown
@@ -352,7 +352,7 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should persist all filters from URL", async ({ page: _page }) => {
+    test.skip("should persist all filters from URL", async ({ page }) => {
       // TODO: Implement test
     });
   });
@@ -431,21 +431,21 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should show single column grid on mobile", async ({ page: _page }) => {
+    test.skip("should show single column grid on mobile", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should show multi-column grid on tablet", async ({ page: _page }) => {
+    test.skip("should show multi-column grid on tablet", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should show full grid on desktop", async ({ page: _page }) => {
+    test.skip("should show full grid on desktop", async ({ page }) => {
       // TODO: Implement test
     });
   });
 
   test.describe("Performance", () => {
-    test.skip("should load quickly with many resources", async ({ page: _page }) => {
+    test.skip("should load quickly with many resources", async ({ page }) => {
       // TODO: Implement test
       // - Create 100+ resources
       // - Measure page load time
@@ -458,21 +458,21 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should handle large files efficiently", async ({ page: _page }) => {
+    test.skip("should handle large files efficiently", async ({ page }) => {
       // TODO: Implement test
     });
   });
 
   test.describe("Accessibility", () => {
-    test.skip("should have proper heading hierarchy", async ({ page: _page }) => {
+    test.skip("should have proper heading hierarchy", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should have accessible form labels", async ({ page: _page }) => {
+    test.skip("should have accessible form labels", async ({ page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should have keyboard navigation support", async ({ page: _page }) => {
+    test.skip("should have keyboard navigation support", async ({ page }) => {
       // TODO: Implement test
     });
 
@@ -482,7 +482,7 @@ test.describe("Public Resource Hub", () => {
       // TODO: Implement test
     });
 
-    test.skip("should have sufficient color contrast", async ({ page: _page }) => {
+    test.skip("should have sufficient color contrast", async ({ page }) => {
       // TODO: Implement test
     });
   });

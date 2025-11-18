@@ -29,7 +29,7 @@ async function loginAsVolunteer(page: Page) {
     }
 
     await page.waitForLoadState("load");
-  } catch {
+  } catch (error) {
     console.log("Error during login:", error);
   }
 }

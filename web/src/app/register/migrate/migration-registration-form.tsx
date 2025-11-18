@@ -679,7 +679,6 @@ export function MigrationRegistrationForm({
             formData={formData}
             onInputChange={handleInputChange}
             loading={loading}
-            user={user}
             token={token}
           />
         );

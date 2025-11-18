@@ -174,7 +174,7 @@ test.describe("Email Verification System", () => {
   });
 
   test.describe("Resend Verification Functionality", () => {
-    test.skip("should validate email input", async ({ page: _page }) => {
+    test.skip("should validate email input", async ({ page }) => {
       await page.goto("/verify-email?token=invalid-token");
       await waitForPageLoad(page);
       await page.waitForTimeout(2000); // Wait for error state
@@ -217,7 +217,7 @@ test.describe("Email Verification System", () => {
       await expect(dialog).not.toBeVisible();
     });
 
-    test.skip("should handle successful resend", async ({ page: _page }) => {
+    test.skip("should handle successful resend", async ({ page }) => {
       const testEmail = generateTestEmail();
       
       await page.goto("/verify-email?token=invalid-token");
