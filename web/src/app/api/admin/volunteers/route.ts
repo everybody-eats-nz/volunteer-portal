@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         name: true,
         firstName: true,
         lastName: true,
+        volunteerGrade: true,
         availableLocations: true,
         availableDays: true,
         receiveShortageNotifications: true,

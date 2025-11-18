@@ -58,6 +58,7 @@ interface VolunteersDataTableProps {
   selectedVolunteers: Set<string>;
   onVolunteerToggle: (volunteerId: string) => void;
   onSelectAll: () => void;
+  onBatchToggle?: (volunteerIds: string[], shouldSelect: boolean) => void;
 }
 
 export const columns: ColumnDef<Volunteer>[] = [
@@ -201,6 +202,7 @@ export function VolunteersDataTable({
   selectedVolunteers,
   onVolunteerToggle,
   onSelectAll,
+  onBatchToggle,
 }: VolunteersDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -226,26 +228,44 @@ export function VolunteersDataTable({
       const newSelection =
         typeof updater === "function" ? updater(syncedRowSelection) : updater;
 
-      // Handle select all/none
-      const allSelected =
-        Object.keys(newSelection).length === volunteers.length &&
-        Object.values(newSelection).every(Boolean);
-      const noneSelected = Object.values(newSelection).every((v) => !v);
+      // Collect all changes by checking both old and new selection
+      const changes: { volunteerId: string; shouldBeSelected: boolean }[] = [];
 
-      if (allSelected || noneSelected) {
-        onSelectAll();
-      } else {
-        // Handle individual selections
-        Object.entries(newSelection).forEach(([index, isSelected]) => {
-          const volunteer = volunteers[parseInt(index)];
-          if (
-            volunteer &&
-            isSelected !== selectedVolunteers.has(volunteer.id)
-          ) {
-            onVolunteerToggle(volunteer.id);
-          }
-        });
+      // Get all unique indices from both old and new selection
+      const allIndices = new Set([
+        ...Object.keys(syncedRowSelection),
+        ...Object.keys(newSelection),
+      ]);
+
+      allIndices.forEach((indexStr) => {
+        const index = parseInt(indexStr);
+        const volunteer = volunteers[index];
+        if (!volunteer) return;
+
+        const wasSelected = syncedRowSelection[index] === true;
+        const isSelected = newSelection[index] === true;
+
+        if (wasSelected !== isSelected) {
+          changes.push({ volunteerId: volunteer.id, shouldBeSelected: isSelected });
+        }
+      });
+
+      // If multiple changes in the same direction, use batch update if available
+      if (changes.length > 1 && onBatchToggle) {
+        const allSelecting = changes.every((c) => c.shouldBeSelected);
+        const allDeselecting = changes.every((c) => !c.shouldBeSelected);
+
+        if (allSelecting || allDeselecting) {
+          const volunteerIds = changes.map((c) => c.volunteerId);
+          onBatchToggle(volunteerIds, allSelecting);
+          return;
+        }
       }
+
+      // Handle individual selections (single row toggle)
+      changes.forEach(({ volunteerId }) => {
+        onVolunteerToggle(volunteerId);
+      });
 
       // setRowSelection(newSelection); // Not needed as we sync with external state
     },
