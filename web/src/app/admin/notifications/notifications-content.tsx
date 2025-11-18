@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { LOCATIONS, type Location } from "@/lib/locations";
 import { useSearchParams } from "next/navigation";
 import {
@@ -147,6 +147,7 @@ export function NotificationsContent({
   useEffect(() => {
     applyFilters();
   }, [
+    applyFilters,
     volunteers,
     filterLocation,
     filterShiftType,
@@ -191,7 +192,7 @@ export function NotificationsContent({
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...volunteers];
 
     // Filter by notification preferences
@@ -242,7 +243,7 @@ export function NotificationsContent({
     }
 
     setFilteredVolunteers(filtered);
-  };
+  }, [volunteers, filterNotificationsEnabled, filterLocation, filterShiftType, filterAvailability, selectedShift, shifts, filterMinShifts]);
 
   const handleSelectAll = () => {
     if (selectedVolunteers.size === filteredVolunteers.length) {

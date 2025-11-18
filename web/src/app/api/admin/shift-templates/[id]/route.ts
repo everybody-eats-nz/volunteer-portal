@@ -140,7 +140,7 @@ export async function DELETE(
     }
 
     // Soft delete by setting isActive to false
-    const deletedTemplate = await prisma.shiftTemplate.update({
+    await prisma.shiftTemplate.update({
       where: { id },
       data: { isActive: false },
     });

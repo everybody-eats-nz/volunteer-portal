@@ -23,13 +23,13 @@ async function loginAsVolunteer(page: Page) {
       await page.waitForURL((url) => !url.pathname.includes("/login"), {
         timeout: 10000,
       });
-    } catch (error) {
+    } catch {
       // Login might have failed, but don't throw - let the test handle it
       console.log("Login may have failed or taken too long");
     }
 
     await page.waitForLoadState("load");
-  } catch (error) {
+  } catch {
     console.log("Error during login:", error);
   }
 }

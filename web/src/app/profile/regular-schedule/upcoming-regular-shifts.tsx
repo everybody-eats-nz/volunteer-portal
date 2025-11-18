@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,7 @@ export function UpcomingRegularShifts() {
   const [loading, setLoading] = useState(true);
   const [previewWeeks, setPreviewWeeks] = useState(4);
 
-  const fetchPreview = async () => {
+  const fetchPreview = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -41,11 +41,11 @@ export function UpcomingRegularShifts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [previewWeeks]);
 
   useEffect(() => {
     fetchPreview();
-  }, [previewWeeks]);
+  }, [fetchPreview]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

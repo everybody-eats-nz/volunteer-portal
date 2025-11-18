@@ -15,13 +15,13 @@ async function loginAsVolunteer(page: Page) {
       await page.waitForURL((url) => !url.pathname.includes("/login"), {
         timeout: 15000,
       });
-    } catch (error) {
+    } catch {
       console.log("Login may have failed or taken too long");
     }
 
     // Use a shorter wait time to avoid timeouts
     await page.waitForTimeout(500);
-  } catch (error) {
+  } catch {
     console.log("Error during login:", error);
   }
 }
@@ -230,7 +230,7 @@ test.describe("Profile Edit Page", () => {
       await expect(contactPhoneField).toBeVisible();
     });
 
-    test.skip("should allow editing emergency contact information", async ({ page }) => {
+    test.skip("should allow editing emergency contact information", async ({ page: _page }) => {
       // Navigate to emergency contact section
       const emergencyTab = page.getByTestId("emergency-tab-button");
       await emergencyTab.click();

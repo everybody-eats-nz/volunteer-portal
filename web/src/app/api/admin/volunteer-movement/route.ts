@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { signupId, targetShiftId, movementNotes } = parsed.data;
+    const { signupId, targetShiftId } = parsed.data;
 
     // Verify the signup exists
     const signup = await prisma.signup.findUnique({
@@ -158,8 +158,6 @@ export async function POST(request: Request) {
 
     // Use transaction to handle the movement
     const result = await prisma.$transaction(async (tx) => {
-      const originalShiftId = signup.shiftId;
-      
       // Update the signup to point to the new shift
       const updatedSignup = await tx.signup.update({
         where: { id: signupId },

@@ -132,7 +132,6 @@ function AccountStepWithOAuth({
   formData,
   onInputChange,
   loading,
-  user,
   token,
 }: {
   formData: MigrationFormData;
@@ -141,7 +140,6 @@ function AccountStepWithOAuth({
     value: string | boolean | string[] | number
   ) => void;
   loading: boolean;
-  user: User;
   token: string;
 }) {
   const [providers, setProviders] = useState<Record<string, Provider>>({});
@@ -310,7 +308,6 @@ export function MigrationRegistrationForm({
   user,
   token,
   locationOptions,
-  shiftTypes,
 }: MigrationRegistrationFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -440,13 +437,6 @@ export function MigrationRegistrationForm({
     value: string | boolean | string[] | number
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleImageChange = (base64Image: string | null) => {
-    setFormData((prev) => ({
-      ...prev,
-      profilePhotoUrl: base64Image || undefined,
-    }));
   };
 
   const handleDayToggle = (day: string) => {

@@ -412,7 +412,7 @@ test.describe("Admin Dashboard Page", () => {
 
     test("should filter data when selecting a location", async ({ page }) => {
       // Get initial stats
-      const initialTotalShifts = await page
+      await page
         .locator('[class*="text-2xl"][class*="font-bold"]')
         .nth(1)
         .textContent();

@@ -172,7 +172,7 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
     };
 
     loadProfileData();
-  }, []); // No dependencies - only run on mount
+  }, [toast]);
 
   const sections = useMemo(() => [
     {
@@ -300,7 +300,7 @@ export default function ProfileEditClient({ locationOptions, shiftTypes }: Profi
         setLoading(false);
       }
     },
-    [toast, router]
+    [formData, toast, router]
   );
 
   const handleInputChange = useCallback(

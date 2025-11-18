@@ -73,7 +73,7 @@ test.describe("Auto-Approval Signup Flow", () => {
       await signupButton.click();
 
       // Check for loading state (may be brief)
-      const loadingState = page.getByTestId("approval-process-loading");
+      const _loadingState = page.getByTestId("approval-process-loading");
       // Loading state might not be visible long enough to test reliably
 
       // At minimum, dialog should be present

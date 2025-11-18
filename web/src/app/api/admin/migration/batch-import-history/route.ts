@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { createNovaScraper } from "@/lib/laravel-nova-scraper";
 import {
   NovaAuthConfig,
-  NovaUser,
   NovaUserResource,
   NovaEventResource,
   NovaShiftSignupResource,
@@ -62,22 +61,6 @@ async function sendProgress(
   } catch (error) {
     console.log("Failed to send progress update:", error);
   }
-}
-
-// Helper function to extract user data from NovaUser union type
-function extractUserData(novaUser: NovaUser): { email?: string; id: number } {
-  // Check if it's a NovaUserResource (has fields property)
-  if ("fields" in novaUser && Array.isArray(novaUser.fields)) {
-    const userResource = novaUser as NovaUserResource;
-    const emailField = userResource.fields.find((f) => f.attribute === "email");
-    const userEmail =
-      typeof emailField?.value === "string" ? emailField.value : undefined;
-    return { email: userEmail, id: userResource.id.value };
-  }
-
-  // Otherwise it's a legacy user
-  const legacyUser = novaUser as { email: string; id: number };
-  return { email: legacyUser.email, id: legacyUser.id };
 }
 
 export async function POST(request: NextRequest) {

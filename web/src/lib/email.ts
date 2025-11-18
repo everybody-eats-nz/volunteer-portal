@@ -1,8 +1,6 @@
 // Email service utility
 import { getEmailService } from "./email-service";
 
-import { getBaseUrl } from "./utils";
-
 interface InvitationEmailData {
   email: string;
   firstName?: string;

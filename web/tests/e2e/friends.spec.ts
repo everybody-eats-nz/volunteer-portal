@@ -117,7 +117,7 @@ test.describe("Friends System", () => {
     await expect(page.locator("text=Allow friend requests")).toBeVisible();
   });
 
-  test.skip("should change privacy settings", async ({ page }) => {
+  test.skip("should change privacy settings", async ({ page: _page }) => {
     // Navigate to friends page
     await page.goto("/friends");
 

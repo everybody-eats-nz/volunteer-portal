@@ -307,37 +307,14 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
         variants={enhancedStaggerContainer}
       >
         <AnimatePresence mode="popLayout">
-          {shifts.map((shift, index) => {
+          {shifts.map((shift) => {
             const confirmed = shift.signups.filter(
               (s) => s.status === "CONFIRMED"
-            ).length;
-            const pending = shift.signups.filter(
-              (s) => s.status === "PENDING" || s.status === "REGULAR_PENDING"
-            ).length;
-            const waitlisted = shift.signups.filter(
-              (s) => s.status === "WAITLISTED"
-            ).length;
-            const noShow = shift.signups.filter(
-              (s) => s.status === "NO_SHOW"
             ).length;
             const isCompleted = isShiftCompleted(shift.end);
             const staffingStatus = isCompleted
               ? { color: "bg-slate-400 dark:bg-slate-600", text: "Completed", icon: CheckCircle2 }
               : getStaffingStatus(confirmed, shift.capacity);
-
-            // Count volunteer grades
-            const gradeCount = {
-              pink: shift.signups.filter(
-                (s) => s.user.volunteerGrade === "PINK"
-              ).length,
-              yellow: shift.signups.filter(
-                (s) => s.user.volunteerGrade === "YELLOW"
-              ).length,
-              green: shift.signups.filter(
-                (s) => s.user.volunteerGrade === "GREEN"
-              ).length,
-              new: shift.signups.filter((s) => !s.user.volunteerGrade).length,
-            };
 
             const shiftTheme = getShiftTheme(shift.shiftType.name);
 

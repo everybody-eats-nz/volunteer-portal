@@ -1,5 +1,5 @@
-import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { test } from "./base";
+import { loginAsAdmin } from "./helpers/auth";
 
 test.describe("Admin Resource Management", () => {
   test.beforeEach(async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe("Admin Resource Management", () => {
   });
 
   test.describe("Resource Upload - PDF", () => {
-    test.skip("should successfully upload a PDF resource", async ({ page }) => {
+    test.skip("should successfully upload a PDF resource", async ({ page: _page }) => {
       // TODO: Implement test
       // - Click "Upload Resource" button
       // - Select PDF type
@@ -39,13 +39,13 @@ test.describe("Admin Resource Management", () => {
       // - Submit and verify success
     });
 
-    test.skip("should validate PDF file type on upload", async ({ page }) => {
+    test.skip("should validate PDF file type on upload", async ({ page: _page }) => {
       // TODO: Implement test
       // - Try to upload non-PDF file when PDF type selected
       // - Verify error message
     });
 
-    test.skip("should validate file size limit (50MB)", async ({ page }) => {
+    test.skip("should validate file size limit (50MB)", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
@@ -136,11 +136,11 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should trim whitespace from tags", async ({ page }) => {
+    test.skip("should trim whitespace from tags", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should filter out empty tags", async ({ page }) => {
+    test.skip("should filter out empty tags", async ({ page: _page }) => {
       // TODO: Implement test
     });
   });
@@ -158,11 +158,11 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should display uploader information", async ({ page }) => {
+    test.skip("should display uploader information", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should show creation date", async ({ page }) => {
+    test.skip("should show creation date", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
@@ -209,7 +209,7 @@ test.describe("Admin Resource Management", () => {
       // - Verify all fields populated with current values
     });
 
-    test.skip("should allow updating resource title", async ({ page }) => {
+    test.skip("should allow updating resource title", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
@@ -219,15 +219,15 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should allow changing resource category", async ({ page }) => {
+    test.skip("should allow changing resource category", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should allow updating tags", async ({ page }) => {
+    test.skip("should allow updating tags", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should allow changing resource type", async ({ page }) => {
+    test.skip("should allow changing resource type", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
@@ -272,7 +272,7 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should update status badge after toggle", async ({ page }) => {
+    test.skip("should update status badge after toggle", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
@@ -290,7 +290,7 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should allow cancelling delete operation", async ({ page }) => {
+    test.skip("should allow cancelling delete operation", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
@@ -311,7 +311,7 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should disable buttons during deletion", async ({ page }) => {
+    test.skip("should disable buttons during deletion", async ({ page: _page }) => {
       // TODO: Implement test
     });
   });
@@ -331,31 +331,31 @@ test.describe("Admin Resource Management", () => {
   });
 
   test.describe("Form Validation", () => {
-    test.skip("should require title field", async ({ page }) => {
+    test.skip("should require title field", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should require category field", async ({ page }) => {
+    test.skip("should require category field", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should require type field", async ({ page }) => {
+    test.skip("should require type field", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should require file for file-based types", async ({ page }) => {
+    test.skip("should require file for file-based types", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should require URL for link/video types", async ({ page }) => {
+    test.skip("should require URL for link/video types", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should allow optional description", async ({ page }) => {
+    test.skip("should allow optional description", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should allow optional tags", async ({ page }) => {
+    test.skip("should allow optional tags", async ({ page: _page }) => {
       // TODO: Implement test
     });
   });
@@ -379,25 +379,25 @@ test.describe("Admin Resource Management", () => {
       // TODO: Implement test
     });
 
-    test.skip("should handle network errors gracefully", async ({ page }) => {
+    test.skip("should handle network errors gracefully", async ({ page: _page }) => {
       // TODO: Implement test
     });
   });
 
   test.describe("Loading States", () => {
-    test.skip("should show loading state during upload", async ({ page }) => {
+    test.skip("should show loading state during upload", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should show loading state during update", async ({ page }) => {
+    test.skip("should show loading state during update", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should show loading state during delete", async ({ page }) => {
+    test.skip("should show loading state during delete", async ({ page: _page }) => {
       // TODO: Implement test
     });
 
-    test.skip("should disable form during submission", async ({ page }) => {
+    test.skip("should disable form during submission", async ({ page: _page }) => {
       // TODO: Implement test
     });
   });

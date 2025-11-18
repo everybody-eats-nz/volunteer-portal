@@ -151,8 +151,8 @@ export async function GET() {
 
     // Filter users with at least SHARED_SHIFTS_THRESHOLD shared shifts
     const recommendedFriends = Array.from(userShiftCounts.entries())
-      .filter(([_, data]) => data.shifts.length >= SHARED_SHIFTS_THRESHOLD)
-      .map(([userId, data]) => ({
+      .filter(([, data]) => data.shifts.length >= SHARED_SHIFTS_THRESHOLD)
+      .map(([, data]) => ({
         id: data.user.id,
         name: data.user.name,
         firstName: data.user.firstName,

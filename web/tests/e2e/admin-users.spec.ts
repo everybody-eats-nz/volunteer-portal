@@ -306,7 +306,7 @@ test.describe("Admin Users Management", () => {
       await expect(inviteDialog).not.toBeVisible();
     });
 
-    test.skip("should successfully invite a new user", async ({ page }) => {
+    test.skip("should successfully invite a new user", async ({ page: _page }) => {
       // Skip this test as it would actually send an invitation email
       // In a real scenario, this would test the actual invitation functionality
       await page.goto("/admin/users");
