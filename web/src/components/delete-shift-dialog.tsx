@@ -55,9 +55,15 @@ export function DeleteShiftDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className="sm:max-w-md" data-testid="delete-shift-dialog">
+      <ResponsiveDialogContent
+        className="sm:max-w-md"
+        data-testid="delete-shift-dialog"
+      >
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-center gap-2 text-red-600" data-testid="delete-shift-dialog-title">
+          <ResponsiveDialogTitle
+            className="flex items-center gap-2 text-red-600 dark:text-red-400"
+            data-testid="delete-shift-dialog-title"
+          >
             <Trash2Icon className="h-5 w-5" />
             Delete Shift
           </ResponsiveDialogTitle>
@@ -69,12 +75,14 @@ export function DeleteShiftDialog({
 
         <div className="space-y-4">
           {/* Shift Details */}
-          <div className="rounded-lg border p-4 bg-slate-50">
+          <div className="rounded-lg border p-4 bg-slate-50 dark:bg-slate-900/50">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarIcon className="h-4 w-4 text-slate-600" />
+              <CalendarIcon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               <span className="font-medium">{shiftName}</span>
             </div>
-            <p className="text-sm text-slate-600">{shiftDate}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              {shiftDate}
+            </p>
           </div>
 
           {/* Warning about signups */}
@@ -116,12 +124,11 @@ export function DeleteShiftDialog({
           </Alert>
         </div>
 
-        <ResponsiveDialogFooter className="flex-col sm:flex-row gap-2">
+        <ResponsiveDialogFooter className="flex gap-2 sm:gap-3">
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
             disabled={isDeleting}
-            className="order-2 sm:order-1"
             data-testid="delete-shift-cancel-button"
           >
             Cancel
@@ -130,7 +137,6 @@ export function DeleteShiftDialog({
             variant="destructive"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="order-1 sm:order-2"
             data-testid="delete-shift-confirm-button"
           >
             {isDeleting ? (
