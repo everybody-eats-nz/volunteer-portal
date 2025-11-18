@@ -262,6 +262,18 @@ export function NotificationsContent({
     setSelectedVolunteers(newSelection);
   };
 
+  const handleBatchToggle = (volunteerIds: string[], shouldSelect: boolean) => {
+    const newSelection = new Set(selectedVolunteers);
+    volunteerIds.forEach((id) => {
+      if (shouldSelect) {
+        newSelection.add(id);
+      } else {
+        newSelection.delete(id);
+      }
+    });
+    setSelectedVolunteers(newSelection);
+  };
+
   const handleLoadGroup = async () => {
     if (!selectedGroup) return;
 
@@ -643,6 +655,7 @@ export function NotificationsContent({
               selectedVolunteers={selectedVolunteers}
               onVolunteerToggle={handleVolunteerToggle}
               onSelectAll={handleSelectAll}
+              onBatchToggle={handleBatchToggle}
             />
           </CardContent>
         </Card>
