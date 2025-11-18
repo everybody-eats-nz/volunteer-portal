@@ -1,3 +1,9 @@
+## [0.60.1] - 2025-11-18
+
+### Changes
+- fix: improve admin notifications and shift warnings ([#230](https://github.com/everybody-eats-nz/volunteer-portal/pull/230)) by @malinmalliyawadu
+
+
 ## [0.60.0] - 2025-11-18
 
 ### Changes

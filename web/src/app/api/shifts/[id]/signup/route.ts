@@ -179,9 +179,11 @@ export async function POST(
       timeZone: "Pacific/Auckland",
     }).format(existingDailySignup.shift.start);
 
+    const location = existingDailySignup.shift.location;
+
     return NextResponse.json(
       {
-        error: `You already have a confirmed shift on this day: ${existingDailySignup.shift.shiftType.name} at ${existingShiftTime}. You can only sign up for one shift per day.`,
+        error: `You already have a confirmed shift on this day: ${existingDailySignup.shift.shiftType.name} at ${location}, ${existingShiftTime}. You can only sign up for one shift per day.`,
       },
       { status: 400 }
     );
