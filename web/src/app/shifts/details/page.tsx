@@ -27,6 +27,11 @@ import { getShiftTheme } from "@/lib/shift-themes";
 import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-completion-banner";
 import { Suspense } from "react";
 import { checkProfileCompletion } from "@/lib/profile-completion";
+import {
+  LOCATION_ADDRESSES,
+  Location,
+  getLocationMapsUrl,
+} from "@/lib/locations";
 
 function getDurationInHours(start: Date, end: Date): string {
   const durationMs = end.getTime() - start.getTime();
@@ -459,14 +464,35 @@ export default async function ShiftDetailsPage({
       </div>
 
       <PageHeader
-        title={`Shifts for ${formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}${
-          selectedLocation ? ` - ${selectedLocation}` : ""
-        }`}
-        description={`${
-          selectedLocation
-            ? `Available shifts in ${selectedLocation}`
-            : "All available shifts"
-        } for this date. Click on any shift to view details and sign up.`}
+        title={`${formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}`}
+        description={
+          selectedLocation ? (
+            <div className="">
+              <div
+                className="flex items-center gap-2"
+                data-testid="restaurant-location-badge"
+              >
+                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+                <span className="font-semibold text-base text-primary">
+                  {selectedLocation}
+                </span>
+              </div>
+              {LOCATION_ADDRESSES[selectedLocation as unknown as Location] && (
+                <div className="flex items-start gap-2 text-sm text-muted-foreground pl-6">
+                  <a
+                    href={getLocationMapsUrl(selectedLocation as Location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="restaurant-address"
+                    className="text-left hover:text-primary hover:underline"
+                  >
+                    {LOCATION_ADDRESSES[selectedLocation as Location]}
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : undefined
+        }
         className="mb-8"
         data-testid="shifts-details-page-header"
       />
