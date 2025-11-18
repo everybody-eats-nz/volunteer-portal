@@ -13,7 +13,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Phone,
   Mail,
   User,
   Heart,
@@ -37,6 +36,7 @@ import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager
 import { type VolunteerGrade } from "@prisma/client";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
+import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -507,40 +507,12 @@ export default async function AdminVolunteerPage({
             />
 
             {/* Contact Information */}
-            <Card data-testid="contact-information-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-primary dark:text-primary" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Phone</label>
-                      <p className="text-sm text-muted-foreground">
-                        {volunteer.phone || "Not provided"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">
-                        Date of Birth
-                      </label>
-                      <p className="text-sm text-muted-foreground">
-                        {volunteer.dateOfBirth
-                          ? format(volunteer.dateOfBirth, "dd MMM yyyy")
-                          : "Not provided"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminContactInfoSection
+              volunteerId={volunteer.id}
+              email={volunteer.email}
+              phone={volunteer.phone}
+              dateOfBirth={volunteer.dateOfBirth}
+            />
 
             {/* Emergency Contact */}
             <Card data-testid="emergency-contact-card">
