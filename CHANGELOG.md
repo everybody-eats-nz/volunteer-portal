@@ -1,3 +1,9 @@
+## [0.60.0] - 2025-11-18
+
+### Changes
+- Add Google Maps links to shift location addresses ([#229](https://github.com/everybody-eats-nz/volunteer-portal/pull/229)) by @malinmalliyawadu
+
+
 ## [0.59.2] - 2025-11-17
 
 ### Changes
