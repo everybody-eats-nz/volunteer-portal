@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { LOCATIONS, type Location } from "@/lib/locations";
 import { useSearchParams } from "next/navigation";
 import {
@@ -136,26 +136,6 @@ export function NotificationsContent({
   const [groupName, setGroupName] = useState<string>("");
   const [groupDescription, setGroupDescription] = useState<string>("");
 
-  // Load shifts with shortage
-  useEffect(() => {
-    fetchShifts();
-    fetchVolunteers();
-    fetchNotificationGroups();
-  }, []);
-
-  // Apply filters when they change
-  useEffect(() => {
-    applyFilters();
-  }, [
-    volunteers,
-    filterLocation,
-    filterShiftType,
-    filterAvailability,
-    filterMinShifts,
-    filterNotificationsEnabled,
-    selectedShift,
-  ]);
-
   const fetchShifts = async () => {
     try {
       const response = await fetch("/api/admin/shifts/shortages");
@@ -191,7 +171,7 @@ export function NotificationsContent({
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...volunteers];
 
     // Filter by notification preferences
@@ -242,7 +222,28 @@ export function NotificationsContent({
     }
 
     setFilteredVolunteers(filtered);
-  };
+  }, [volunteers, filterNotificationsEnabled, filterLocation, filterShiftType, filterAvailability, selectedShift, shifts, filterMinShifts]);
+
+  // Load shifts with shortage
+  useEffect(() => {
+    fetchShifts();
+    fetchVolunteers();
+    fetchNotificationGroups();
+  }, []);
+
+  // Apply filters when they change
+  useEffect(() => {
+    applyFilters();
+  }, [
+    applyFilters,
+    volunteers,
+    filterLocation,
+    filterShiftType,
+    filterAvailability,
+    filterMinShifts,
+    filterNotificationsEnabled,
+    selectedShift,
+  ]);
 
   const handleSelectAll = () => {
     if (selectedVolunteers.size === filteredVolunteers.length) {

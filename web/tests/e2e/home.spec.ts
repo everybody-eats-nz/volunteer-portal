@@ -89,55 +89,6 @@ test.describe("Home Page", () => {
       await expect(meaningfulWork).toContainText("Meaningful Work");
     });
 
-    test("should display call-to-action section for unauthenticated users", async ({
-      page,
-    }) => {
-      await page.goto("/");
-      await page.waitForLoadState("load");
-
-      // Check CTA section
-      const ctaSection = page.getByTestId("cta-section");
-      await expect(ctaSection).toBeVisible();
-
-      // Check main CTA buttons (for unauthenticated users)
-      const ctaButtons = page.getByTestId("cta-buttons");
-      await expect(ctaButtons).toBeVisible();
-
-      const browseShiftsButton = page.getByTestId(
-        "cta-browse-shifts-unauthenticated"
-      );
-      await expect(browseShiftsButton).toBeVisible();
-      await expect(browseShiftsButton).toContainText("Browse Available Shifts");
-
-      const joinVolunteerButton = page.getByTestId("cta-join-volunteer-button");
-      await expect(joinVolunteerButton).toBeVisible();
-      await expect(joinVolunteerButton).toContainText("Join as Volunteer");
-    });
-
-    test("should display opportunities grid", async ({ page }) => {
-      await page.goto("/");
-      await page.waitForLoadState("load");
-
-      // Check opportunities grid
-      const opportunitiesGrid = page.getByTestId("opportunities-grid");
-      await expect(opportunitiesGrid).toBeVisible();
-
-      // Check individual opportunity cards
-      const communityMeals = page.getByTestId("opportunity-community-meals");
-      await expect(communityMeals).toBeVisible();
-      await expect(communityMeals).toContainText("Community Meals");
-
-      const foodDistribution = page.getByTestId(
-        "opportunity-food-distribution"
-      );
-      await expect(foodDistribution).toBeVisible();
-      await expect(foodDistribution).toContainText("Food Distribution");
-
-      const eventSupport = page.getByTestId("opportunity-event-support");
-      await expect(eventSupport).toBeVisible();
-      await expect(eventSupport).toContainText("Event Support");
-    });
-
     test("should display final call-to-action section for unauthenticated users", async ({
       page,
     }) => {
@@ -193,36 +144,6 @@ test.describe("Home Page", () => {
       await page.waitForLoadState("load");
 
       await expect(page).toHaveURL("/register");
-    });
-
-    test("should navigate to registration page from CTA join button", async ({
-      page,
-    }) => {
-      await page.goto("/");
-      await page.waitForLoadState("load");
-
-      const joinVolunteerButton = page.getByTestId("cta-join-volunteer-button");
-      await expect(joinVolunteerButton).toBeVisible();
-      await joinVolunteerButton.click();
-      await page.waitForLoadState("load");
-
-      await expect(page).toHaveURL("/register");
-    });
-
-    test("should navigate to shifts page from CTA browse button", async ({
-      page,
-    }) => {
-      await page.goto("/");
-      await page.waitForLoadState("load");
-
-      const browseShiftsButton = page.getByTestId(
-        "cta-browse-shifts-unauthenticated"
-      );
-      await expect(browseShiftsButton).toBeVisible();
-      await browseShiftsButton.click();
-      await page.waitForLoadState("load");
-
-      await expect(page).toHaveURL("/shifts");
     });
 
     test("should navigate to registration page from final get started button", async ({

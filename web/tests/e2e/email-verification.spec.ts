@@ -14,7 +14,7 @@ function generateTestEmail(): string {
 }
 
 // Helper function to complete registration flow
-async function completeRegistration(page: Page, email: string) {
+async function _completeRegistration(page: Page, email: string) {
   await page.goto("/register");
   await waitForPageLoad(page);
 
@@ -48,10 +48,10 @@ async function completeRegistration(page: Page, email: string) {
 }
 
 // Helper function to mock email verification token creation
-async function getVerificationToken(page: Page, email: string): Promise<string> {
+async function _getVerificationToken(page: Page, email: string): Promise<string> {
   // Since we can't easily intercept actual email sending in e2e tests,
   // we'll directly call the API to get a token or create a user and token manually
-  const response = await page.request.post("/api/auth/resend-verification", {
+  const _response = await page.request.post("/api/auth/resend-verification", {
     data: { email }
   });
   

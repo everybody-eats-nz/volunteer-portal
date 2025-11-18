@@ -1,6 +1,5 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
-import { createTestUser, deleteTestUsers } from "./helpers/test-helpers";
 import { loginAsAdmin } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
@@ -373,9 +372,7 @@ test.describe("Admin Notes on Shifts Page", () => {
 });
 
 test.describe("Admin Notes Permissions", () => {
-  test("should not allow volunteers to access admin notes", async ({
-    page,
-  }) => {
+  test("should not allow volunteers to access admin notes", async () => {
     // This test would require setting up a volunteer user and testing access
     // For now, we can test that the admin notes sections are not visible to non-admins
     // This would require a separate test setup or login as volunteer functionality

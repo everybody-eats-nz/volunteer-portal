@@ -1,5 +1,5 @@
-import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { test } from "./base";
+import { loginAsAdmin } from "./helpers/auth";
 
 test.describe("Admin Resource Management", () => {
   test.beforeEach(async ({ page }) => {

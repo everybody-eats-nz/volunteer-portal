@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
@@ -70,7 +70,7 @@ interface MigratedDataResponse {
   error?: string;
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication and admin role
     const session = await getServerSession(authOptions);

@@ -483,8 +483,8 @@ test.describe("Login Page", () => {
       await volunteerButton.click();
 
       // All buttons should be disabled during login
-      const adminButton = page.getByTestId("quick-login-admin-button");
-      const submitButton = page.getByTestId("login-submit-button");
+      const _adminButton = page.getByTestId("quick-login-admin-button");
+      const _submitButton = page.getByTestId("login-submit-button");
 
       // Check if any loading states are active
       await page.waitForTimeout(500);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import {
@@ -57,11 +57,7 @@ export function ParentalConsentTable() {
   const [approvalNotes, setApprovalNotes] = useState("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/parental-consent");
       if (response.ok) {
@@ -79,7 +75,11 @@ export function ParentalConsentTable() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleApprove = (user: User) => {
     setApproveDialog({ isOpen: true, user });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch initial unread count
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await fetch("/api/notifications/unread");
       if (response.ok) {
@@ -29,7 +29,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     } catch (error) {
       console.error("Error fetching unread count:", error);
     }
-  };
+  }, []);
 
   // Set up Server-Sent Events for real-time updates
   useNotificationStream({
@@ -48,7 +48,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
     if (userId) {
       fetchUnreadCount();
     }
-  }, [userId]);
+  }, [userId, fetchUnreadCount]);
 
   // Handle when notifications are read
   const handleNotificationsRead = () => {

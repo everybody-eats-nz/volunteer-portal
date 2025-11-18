@@ -138,28 +138,40 @@ export function AdminSidebar({
           <SidebarGroupLabel>Public</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {publicNavItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    data-testid="view-public-shifts-button"
-                  >
-                    <Link
-                      href={item.href}
-                      target={item.opensInNewTab ? "_blank" : undefined}
-                      rel={
-                        item.opensInNewTab ? "noopener noreferrer" : undefined
-                      }
+              {publicNavItems.map((item) => {
+                // Map test IDs for public nav items
+                const publicTestIdMap: Record<string, string> = {
+                  "/shifts": "view-public-shifts-button",
+                  "/resources": "view-public-resources-button",
+                };
+
+                const testId =
+                  publicTestIdMap[item.href] ||
+                  `sidebar-${item.href.replace("/", "") || "public"}`;
+
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      data-testid={testId}
                     >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                      {item.opensInNewTab && (
-                        <ExternalLink className="w-3 h-3 ml-auto opacity-60" />
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      <Link
+                        href={item.href}
+                        target={item.opensInNewTab ? "_blank" : undefined}
+                        rel={
+                          item.opensInNewTab ? "noopener noreferrer" : undefined
+                        }
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                        {item.opensInNewTab && (
+                          <ExternalLink className="w-3 h-3 ml-auto opacity-60" />
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

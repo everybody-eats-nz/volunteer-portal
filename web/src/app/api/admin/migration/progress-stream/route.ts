@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const pingInterval = setInterval(async () => {
       try {
         await writer.write(encoder.encode(":ping\n\n"));
-      } catch (error) {
+      } catch {
         clearInterval(pingInterval);
         removeMigrationSession(sessionId);
       }

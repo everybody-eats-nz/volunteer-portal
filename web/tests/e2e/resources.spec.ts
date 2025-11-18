@@ -1,5 +1,4 @@
-import { test, expect } from "./base";
-import { loginAsVolunteer } from "./helpers/auth";
+import { test } from "./base";
 
 test.describe("Public Resource Hub", () => {
   test.describe("Page Access", () => {
