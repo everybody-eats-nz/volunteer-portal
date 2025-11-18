@@ -1,3 +1,15 @@
+## [0.62.0] - 2025-11-18
+
+### Changes
+- feat: add manual volunteer assignment for admins ([#232](https://github.com/everybody-eats-nz/volunteer-portal/pull/232)) by @malinmalliyawadu
+
+
+## [0.61.0] - 2025-11-18
+
+### Changes
+- feat: Add admin ability to edit volunteer email and date of birth ([#231](https://github.com/everybody-eats-nz/volunteer-portal/pull/231)) by @malinmalliyawadu
+
+
 ## [0.60.1] - 2025-11-18
 
 ### Changes

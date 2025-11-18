@@ -69,6 +69,7 @@ import {
   Info,
   UserX,
   X,
+  UserPlus,
 } from "lucide-react";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -77,6 +78,7 @@ import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
 import { calculateAge } from "@/lib/utils";
+import { AssignVolunteerDialog } from "@/components/assign-volunteer-dialog";
 
 
 // Layout update context for triggering masonry recalculation
@@ -650,6 +652,29 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             </Link>
                           </Button>
                         )}
+
+                        {/* Assign Volunteer Button */}
+                        <AssignVolunteerDialog
+                          shift={{
+                            id: shift.id,
+                            start: shift.start,
+                            end: shift.end,
+                            location: shift.location,
+                            capacity: shift.capacity,
+                            shiftType: shift.shiftType,
+                          }}
+                          confirmedCount={confirmed}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full bg-green-50 dark:bg-green-900/60 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800/60 border-green-300 dark:border-green-700"
+                            data-testid={`assign-volunteer-button-${shift.id}`}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Assign Volunteer
+                          </Button>
+                        </AssignVolunteerDialog>
 
                         {/* Edit & Delete Buttons */}
                         <div className="flex gap-2">
