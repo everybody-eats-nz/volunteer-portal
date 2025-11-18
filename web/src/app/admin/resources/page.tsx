@@ -114,7 +114,7 @@ export default async function AdminResourcesPage({
             <div className="text-sm font-medium text-muted-foreground">
               Published
             </div>
-            <div className="mt-2 text-3xl font-bold text-green-600">
+            <div className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
               {stats.published}
             </div>
           </div>
@@ -122,7 +122,7 @@ export default async function AdminResourcesPage({
             <div className="text-sm font-medium text-muted-foreground">
               Drafts
             </div>
-            <div className="mt-2 text-3xl font-bold text-yellow-600">
+            <div className="mt-2 text-3xl font-bold text-yellow-600 dark:text-yellow-400">
               {stats.draft}
             </div>
           </div>
