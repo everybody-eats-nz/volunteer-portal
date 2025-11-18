@@ -15,6 +15,7 @@ import {
 import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-completion-banner";
 import { Suspense } from "react";
 import { getAuthInfo } from "@/lib/auth-utils";
+import { LocationAddress } from "@/components/location-address";
 
 interface ShiftSummary {
   id: string;
@@ -284,15 +285,9 @@ export default async function ShiftsCalendarPage({
                             <div>
                               <span className="font-medium">{loc}</span>
                               {LOCATION_ADDRESSES[loc as Location] && (
-                                <a
-                                  href={getLocationMapsUrl(loc as Location)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-muted-foreground/80 hover:text-primary hover:underline mt-1 max-w-xs text-left inline-block"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {LOCATION_ADDRESSES[loc as Location]}
-                                </a>
+                                <LocationAddress
+                                  address={LOCATION_ADDRESSES[loc as Location]}
+                                />
                               )}
                             </div>
                           </div>
@@ -332,15 +327,9 @@ export default async function ShiftsCalendarPage({
                       <div>
                         <span className="font-medium">{loc}</span>
                         {LOCATION_ADDRESSES[loc as Location] && (
-                          <a
-                            href={getLocationMapsUrl(loc as Location)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-muted-foreground/80 hover:text-primary hover:underline mt-1 max-w-xs text-left inline-block"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {LOCATION_ADDRESSES[loc as Location]}
-                          </a>
+                          <LocationAddress
+                            address={LOCATION_ADDRESSES[loc as Location]}
+                          />
                         )}
                       </div>
                     </div>

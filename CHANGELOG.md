@@ -1,3 +1,9 @@
+## [0.62.2] - 2025-11-18
+
+### Changes
+- fix: resolve event handler error on browse shifts page ([#234](https://github.com/everybody-eats-nz/volunteer-portal/pull/234)) by @malinmalliyawadu
+
+
 ## [0.62.1] - 2025-11-18
 
 ### Changes
