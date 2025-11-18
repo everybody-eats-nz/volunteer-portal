@@ -1,3 +1,9 @@
+## [0.62.1] - 2025-11-18
+
+### Changes
+- fix: improve dark mode styling for admin dashboard cards and resource badges ([#233](https://github.com/everybody-eats-nz/volunteer-portal/pull/233)) by @malinmalliyawadu
+
+
 ## [0.62.0] - 2025-11-18
 
 ### Changes
