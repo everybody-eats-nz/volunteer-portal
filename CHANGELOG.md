@@ -1,3 +1,9 @@
+## [0.62.0] - 2025-11-18
+
+### Changes
+- feat: add manual volunteer assignment for admins ([#232](https://github.com/everybody-eats-nz/volunteer-portal/pull/232)) by @malinmalliyawadu
+
+
 ## [0.61.0] - 2025-11-18
 
 ### Changes
