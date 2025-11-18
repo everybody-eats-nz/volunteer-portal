@@ -51,3 +51,14 @@ export function getSlugByLocation(location: Location): string {
 
 // Default location
 export const DEFAULT_LOCATION: Location = "Wellington";
+
+// Helper function to generate Google Maps URL for an address
+export function getGoogleMapsUrl(address: string): string {
+  const encodedAddress = encodeURIComponent(address);
+  return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+}
+
+// Helper function to get Google Maps URL for a location
+export function getLocationMapsUrl(location: Location): string {
+  return getGoogleMapsUrl(LOCATION_ADDRESSES[location]);
+}

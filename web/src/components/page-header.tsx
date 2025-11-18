@@ -5,7 +5,7 @@ import { motion, Variants } from "motion/react";
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  description?: string | ReactNode;
   children?: ReactNode;
   /** Actions that appear inline with the title on larger screens */
   actions?: ReactNode;

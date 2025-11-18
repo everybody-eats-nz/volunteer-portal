@@ -10,6 +10,7 @@ import {
   LocationOption,
   LOCATION_ADDRESSES,
   Location,
+  getLocationMapsUrl,
 } from "@/lib/locations";
 import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-completion-banner";
 import { Suspense } from "react";
@@ -208,14 +209,11 @@ export default async function ShiftsCalendarPage({
         // PRIVATE: Don't show to anyone
         return false;
       })
-      .reduce<Record<string, FriendSignup[]>>(
-        (acc, signup) => {
-          if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
-          acc[signup.shiftId].push(signup);
-          return acc;
-        },
-        {}
-      );
+      .reduce<Record<string, FriendSignup[]>>((acc, signup) => {
+        if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
+        acc[signup.shiftId].push(signup);
+        return acc;
+      }, {});
   }
 
   // Transform to ShiftSummary format for calendar
@@ -286,9 +284,15 @@ export default async function ShiftsCalendarPage({
                             <div>
                               <span className="font-medium">{loc}</span>
                               {LOCATION_ADDRESSES[loc as Location] && (
-                                <div className="text-xs text-muted-foreground/80 mt-1 max-w-xs text-left">
+                                <a
+                                  href={getLocationMapsUrl(loc as Location)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-muted-foreground/80 hover:text-primary hover:underline mt-1 max-w-xs text-left inline-block"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   {LOCATION_ADDRESSES[loc as Location]}
-                                </div>
+                                </a>
                               )}
                             </div>
                           </div>
@@ -328,9 +332,15 @@ export default async function ShiftsCalendarPage({
                       <div>
                         <span className="font-medium">{loc}</span>
                         {LOCATION_ADDRESSES[loc as Location] && (
-                          <div className="text-xs text-muted-foreground/80 mt-1 max-w-xs text-left">
+                          <a
+                            href={getLocationMapsUrl(loc as Location)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-muted-foreground/80 hover:text-primary hover:underline mt-1 max-w-xs text-left inline-block"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {LOCATION_ADDRESSES[loc as Location]}
-                          </div>
+                          </a>
                         )}
                       </div>
                     </div>
@@ -390,29 +400,29 @@ export default async function ShiftsCalendarPage({
                 ? userPreferredLocations.join(", ")
                 : "Shifts")
             }
-            description={`Find and sign up for upcoming volunteer opportunities${
-              selectedLocation
-                ? ` in ${selectedLocation}`
-                : showAll
-                ? " at all locations"
-                : isUsingProfileFilter
-                ? ` in your preferred location`
-                : ""
-            }. Click on any date to see details and sign up.`}
+            description={
+              (selectedLocation &&
+                LOCATION_ADDRESSES[selectedLocation as Location] && (
+                  <div
+                    className="flex items-start gap-2 text-sm text-muted-foreground"
+                    data-testid="restaurant-address-banner"
+                  >
+                    <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <a
+                      href={getLocationMapsUrl(selectedLocation as Location)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="restaurant-address"
+                      className="text-left hover:text-primary hover:underline"
+                    >
+                      {LOCATION_ADDRESSES[selectedLocation as Location]}
+                    </a>
+                  </div>
+                )) ||
+              undefined
+            }
             data-testid="shifts-page-header"
           />
-          {selectedLocation &&
-            LOCATION_ADDRESSES[selectedLocation as Location] && (
-              <div
-                className="mt-4 flex items-start gap-2 text-sm text-muted-foreground"
-                data-testid="restaurant-address-banner"
-              >
-                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <span data-testid="restaurant-address" className="text-left">
-                  {LOCATION_ADDRESSES[selectedLocation as Location]}
-                </span>
-              </div>
-            )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
