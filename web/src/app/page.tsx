@@ -194,91 +194,8 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="section-content py-10" data-testid="cta-section">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <PageHeader
-            title="Welcome to Everybody Eats Volunteer Portal"
-            description="Join our community of volunteers and help make a difference by signing up for volunteer shifts."
-          />
-
-          <div
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-            data-testid="cta-buttons"
-          >
-            {session?.user ? (
-              <>
-                <Button
-                  asChild
-                  size="lg"
-                  className="btn-primary"
-                  data-testid="cta-browse-shifts-authenticated"
-                >
-                  <Link href="/shifts">Browse Available Shifts</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  data-testid="cta-dashboard-button"
-                >
-                  <Link href="/dashboard">View My Dashboard</Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  asChild
-                  size="lg"
-                  className="btn-primary"
-                  data-testid="cta-browse-shifts-unauthenticated"
-                >
-                  <Link href="/shifts">Browse Available Shifts</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  data-testid="cta-join-volunteer-button"
-                >
-                  <Link href="/register">Join as Volunteer</Link>
-                </Button>
-              </>
-            )}
-          </div>
-
-          <div
-            className="grid md:grid-cols-3 gap-8 mt-16"
-            data-testid="opportunities-grid"
-          >
-            <div className="card p-6" data-testid="opportunity-community-meals">
-              <h3 className="text-xl font-semibold mb-4">🍽️ Community Meals</h3>
-              <p className="text-muted-foreground">
-                Help prepare and serve meals for our community members in need.
-              </p>
-            </div>
-
-            <div
-              className="card p-6"
-              data-testid="opportunity-food-distribution"
-            >
-              <h3 className="text-xl font-semibold mb-4">
-                📦 Food Distribution
-              </h3>
-              <p className="text-muted-foreground">
-                Assist with organizing and distributing food packages to
-                families.
-              </p>
-            </div>
-
-            <div className="card p-6" data-testid="opportunity-event-support">
-              <h3 className="text-xl font-semibold mb-4">🤝 Event Support</h3>
-              <p className="text-muted-foreground">
-                Join our team for special events and community outreach
-                programs.
-              </p>
-            </div>
-          </div>
-
+      <section className="section-content py-4" data-testid="cta-section">
+        <div className="max-w-2xl mx-auto text-center space-y-8">
           <div
             className="mt-16 p-8 bg-primary-light rounded-xl"
             data-testid="final-cta-section"
@@ -291,7 +208,9 @@ export default async function Home() {
             </h2>
             <p className="text-muted-foreground mb-6">
               Every volunteer hour contributes to stronger, more connected
-              communities. Join us in our mission to ensure everybody eats.
+              communities.
+              <br />
+              Join us in our mission to ensure everybody eats.
             </p>
             {!session?.user && (
               <div
