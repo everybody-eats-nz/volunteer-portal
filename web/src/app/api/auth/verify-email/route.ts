@@ -2,10 +2,42 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyEmailToken } from "@/lib/email-verification";
 import { checkForBot } from "@/lib/bot-protection";
+import { getEmailService } from "@/lib/email-service";
+import { prisma } from "@/lib/prisma";
 
 const verifyEmailSchema = z.object({
   token: z.string().min(1, "Verification token is required"),
 });
+
+/**
+ * Helper function to send profile completion email after successful verification
+ */
+async function sendProfileCompletionEmail(userId: string): Promise<void> {
+  try {
+    // Get user's email and firstName
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        firstName: true,
+      },
+    });
+
+    if (!user || !user.email || !user.firstName) {
+      console.error("Unable to send profile completion email - user data not found");
+      return;
+    }
+
+    const emailService = getEmailService();
+    await emailService.sendProfileCompletion({
+      to: user.email,
+      firstName: user.firstName,
+    });
+  } catch (emailError) {
+    console.error("Failed to send profile completion email:", emailError);
+    // Don't throw - we don't want to fail verification if email sending fails
+  }
+}
 
 /**
  * POST /api/auth/verify-email
@@ -40,6 +72,11 @@ export async function POST(req: Request) {
         { error: result.message },
         { status: 400 }
       );
+    }
+
+    // Send profile completion email after successful verification
+    if (result.userId) {
+      await sendProfileCompletionEmail(result.userId);
     }
 
     return NextResponse.json(
@@ -87,6 +124,11 @@ export async function GET(req: Request) {
         { error: result.message },
         { status: 400 }
       );
+    }
+
+    // Send profile completion email after successful verification
+    if (result.userId) {
+      await sendProfileCompletionEmail(result.userId);
     }
 
     return NextResponse.json(

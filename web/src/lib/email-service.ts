@@ -159,6 +159,16 @@ interface SendUserInvitationParams {
   tempPassword: string;
 }
 
+interface ProfileCompletionEmailData {
+  firstName: string;
+  linkToDashboard: string;
+}
+
+interface SendProfileCompletionParams {
+  to: string;
+  firstName: string;
+}
+
 interface CampaignMonitorAPI {
   transactional: {
     sendSmartEmail: (
@@ -179,6 +189,7 @@ class EmailService {
   private emailVerificationSmartEmailID: string;
   private parentalConsentApprovalSmartEmailID: string;
   private userInvitationSmartEmailID: string;
+  private profileCompletionSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -360,6 +371,24 @@ class EmailService {
       }
     } else {
       this.userInvitationSmartEmailID = userInvitationEmailId;
+    }
+
+    // Smart email ID for profile completion notifications
+    const profileCompletionEmailId =
+      process.env.CAMPAIGN_MONITOR_PROFILE_COMPLETION_EMAIL_ID;
+    if (!profileCompletionEmailId) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_PROFILE_COMPLETION_EMAIL_ID is not configured - profile completion emails will not be sent"
+        );
+        this.profileCompletionSmartEmailID = "dummy-profile-completion-id";
+      } else {
+        throw new Error(
+          "CAMPAIGN_MONITOR_PROFILE_COMPLETION_EMAIL_ID is not configured"
+        );
+      }
+    } else {
+      this.profileCompletionSmartEmailID = profileCompletionEmailId;
     }
   }
 
@@ -915,6 +944,61 @@ class EmailService {
       });
     });
   }
+
+  async sendProfileCompletion(
+    params: SendProfileCompletionParams
+  ): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+
+    // In development, skip email sending if configuration is missing
+    if (
+      isDevelopment &&
+      this.profileCompletionSmartEmailID === "dummy-profile-completion-id"
+    ) {
+      console.log(
+        `[EMAIL SERVICE] Would send profile completion email to ${params.to} (skipped in dev - no config)`
+      );
+      console.log(`[EMAIL SERVICE] Email data:`, {
+        firstName: params.firstName,
+        linkToDashboard: `${getBaseUrl()}/dashboard`,
+      });
+      return Promise.resolve();
+    }
+
+    const dashboardLink = `${getBaseUrl()}/dashboard`;
+
+    const details = {
+      smartEmailID: this.profileCompletionSmartEmailID,
+      to: `${params.firstName} <${params.to}>`,
+      data: {
+        firstName: params.firstName,
+        linkToDashboard: dashboardLink,
+      } as ProfileCompletionEmailData,
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
+        if (err) {
+          if (isDevelopment) {
+            console.warn(
+              "[EMAIL SERVICE] Error sending profile completion email (development):",
+              err.message
+            );
+            resolve(); // Don't fail in development
+          } else {
+            console.error("Error sending profile completion email:", err);
+            reject(err);
+          }
+        } else {
+          console.log(
+            "Profile completion email sent successfully to:",
+            params.to
+          );
+          resolve();
+        }
+      });
+    });
+  }
 }
 
 // Export singleton instance
@@ -945,4 +1029,6 @@ export type {
   ParentalConsentApprovalEmailData,
   SendUserInvitationParams,
   UserInvitationEmailData,
+  SendProfileCompletionParams,
+  ProfileCompletionEmailData,
 };

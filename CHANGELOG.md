@@ -1,3 +1,15 @@
+## [0.66.0] - 2025-11-20
+
+### Changes
+- feat: Send profile completion email after email verification ([#250](https://github.com/everybody-eats-nz/volunteer-portal/pull/250)) by @malinmalliyawadu
+
+
+## [0.65.0] - 2025-11-20
+
+### Changes
+- feat: make profile photos optional during registration ([#249](https://github.com/everybody-eats-nz/volunteer-portal/pull/249)) by @malinmalliyawadu
+
+
 ## [0.64.0] - 2025-11-20
 
 ### Changes
