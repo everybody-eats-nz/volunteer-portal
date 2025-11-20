@@ -428,31 +428,6 @@ test.describe("Shifts Browse Page", () => {
       const selectionTitle = page.getByTestId("location-selection-title");
       await expect(selectionTitle).toBeVisible();
     });
-
-    test.skip("should show user preference notification when applicable", async ({
-      page,
-    }) => {
-      // This test is skipped because the profile filter notification has been removed
-      await loginAsVolunteer(page);
-      await navigateToShiftsWithLocation(page);
-
-      // Look for preference notification
-      const preferenceNotification = page.getByTestId(
-        "profile-filter-notification"
-      );
-
-      // This may or may not be visible depending on user's profile
-      if (await preferenceNotification.isVisible()) {
-        await expect(preferenceNotification).toBeVisible();
-
-        // Should have link to update preferences
-        const updateLink = page.getByRole("link", {
-          name: /update your preferences/i,
-        });
-        await expect(updateLink).toBeVisible();
-        await expect(updateLink).toHaveAttribute("href", "/profile/edit");
-      }
-    });
   });
 
   test.describe("Empty States", () => {
