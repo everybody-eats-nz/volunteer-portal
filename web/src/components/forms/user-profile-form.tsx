@@ -517,7 +517,7 @@ export function PersonalInfoStep({
 
       <div className="space-y-2">
         <Label htmlFor="profilePhoto" className="text-sm font-medium">
-          Profile Photo {isRegistration ? "*" : ""}
+          Profile Photo
         </Label>
         <ProfileImageUpload
           currentImage={formData.profilePhotoUrl}
@@ -533,13 +533,8 @@ export function PersonalInfoStep({
                 )}`.toUpperCase()
               : "?"
           }
-          required={isRegistration}
+          required={false}
         />
-        {isRegistration && (
-          <p className="text-xs text-muted-foreground">
-            A profile photo is required for all volunteer accounts
-          </p>
-        )}
       </div>
     </div>
   );
