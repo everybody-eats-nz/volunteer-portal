@@ -94,13 +94,14 @@ export default async function ShiftsCalendarPage({
   const rawLocation = Array.isArray(params.location)
     ? params.location[0]
     : params.location;
-  const selectedLocation: LocationOption | undefined = LOCATIONS.includes(
+  let selectedLocation: LocationOption | undefined = LOCATIONS.includes(
     (rawLocation as LocationOption) ?? ("" as LocationOption)
   )
     ? (rawLocation as LocationOption)
     : undefined;
 
   const showAll = params.showAll === "true";
+  const chooseLocation = params.chooseLocation === "true";
 
   // Determine filter locations
   let filterLocations: string[] = [];
@@ -113,13 +114,16 @@ export default async function ShiftsCalendarPage({
   } else if (showAll) {
     filterLocations = [];
     hasExplicitLocationChoice = true;
-  } else if (userPreferredLocations.length > 0) {
+  } else if (userPreferredLocations.length > 0 && !chooseLocation) {
     // Only auto-filter by profile preferences if there's only one preferred location
+    // and user hasn't explicitly requested to choose a location
     // Otherwise, force explicit selection to avoid confusion
     if (userPreferredLocations.length === 1) {
       filterLocations = userPreferredLocations.filter((loc: string) =>
         LOCATIONS.includes(loc as LocationOption)
       );
+      // Set selectedLocation for address display
+      selectedLocation = filterLocations[0] as LocationOption;
       isUsingProfileFilter = true;
       hasExplicitLocationChoice = true;
     }
@@ -417,7 +421,7 @@ export default async function ShiftsCalendarPage({
         <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
           {/* Back to locations button */}
           <Link
-            href="/shifts"
+            href="/shifts?chooseLocation=true"
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/30 rounded-lg transition-colors"
             data-testid="back-to-locations-button"
           >
@@ -430,35 +434,6 @@ export default async function ShiftsCalendarPage({
       <Suspense fallback={null}>
         <ShiftsProfileCompletionBanner />
       </Suspense>
-
-      {/* Profile filter notification */}
-      {isUsingProfileFilter && (
-        <div
-          className="mb-8 p-4 bg-primary/5 rounded-lg border border-primary/30"
-          data-testid="profile-filter-notification"
-        >
-          <p className="text-sm font-medium flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Showing shifts in your preferred location:{" "}
-            {userPreferredLocations.join(", ")}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {isLoggedIn ? (
-              <>
-                <Link
-                  href="/profile/edit"
-                  className="underline hover:text-primary"
-                >
-                  Update your preferences
-                </Link>{" "}
-                or select a specific location above.
-              </>
-            ) : (
-              "Select a specific location above to browse other areas."
-            )}
-          </p>
-        </div>
-      )}
 
       {/* Calendar View */}
       <ShiftsCalendar
