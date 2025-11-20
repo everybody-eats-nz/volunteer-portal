@@ -69,7 +69,8 @@ export function MigratedUsers() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchUsers();
