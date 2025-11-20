@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { PageHeader } from "@/components/page-header";
 import {
   HomePageWrapper,
   HeroContent,

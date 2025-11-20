@@ -201,7 +201,6 @@ export function VolunteersDataTable({
   volunteers,
   selectedVolunteers,
   onVolunteerToggle,
-  onSelectAll,
   onBatchToggle,
 }: VolunteersDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);

@@ -42,6 +42,20 @@ export function useNotificationStream({
     lastHeartbeat: null as Date | null,
   });
 
+  // Store callbacks in refs to avoid dependency issues
+  const onUnreadCountChangeRef = useRef(onUnreadCountChange);
+  const onNewNotificationRef = useRef(onNewNotification);
+  const onSystemUpdateRef = useRef(onSystemUpdate);
+  const onConnectionStatusChangeRef = useRef(onConnectionStatusChange);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onUnreadCountChangeRef.current = onUnreadCountChange;
+    onNewNotificationRef.current = onNewNotification;
+    onSystemUpdateRef.current = onSystemUpdate;
+    onConnectionStatusChangeRef.current = onConnectionStatusChange;
+  }, [onUnreadCountChange, onNewNotification, onSystemUpdate, onConnectionStatusChange]);
+
   const maxReconnectAttempts = 5;
   const baseReconnectDelay = 2000; // 2 seconds (increased from 1s)
 
@@ -55,8 +69,8 @@ export function useNotificationStream({
       reconnectTimeoutRef.current = null;
     }
     setIsConnected(false);
-    onConnectionStatusChange?.(false);
-  }, [onConnectionStatusChange]);
+    onConnectionStatusChangeRef.current?.(false);
+  }, []);
 
   const connect = useCallback(() => {
     if (!enabled) return;
@@ -77,7 +91,7 @@ export function useNotificationStream({
           connectedAt: new Date(),
           reconnectAttempts: 0,
         }));
-        onConnectionStatusChange?.(true);
+        onConnectionStatusChangeRef.current?.(true);
       };
 
       eventSource.onmessage = (event) => {
@@ -101,18 +115,18 @@ export function useNotificationStream({
               break;
             case "unread_count_changed":
               console.log(`[SSE] Unread count changed: ${data.data?.count}`);
-              onUnreadCountChange?.(data.data?.count || 0);
+              onUnreadCountChangeRef.current?.(data.data?.count || 0);
               break;
             case "notification":
               console.log("[SSE] New notification received");
               if (data.data?.notification) {
-                onNewNotification?.(data.data.notification);
+                onNewNotificationRef.current?.(data.data.notification);
               }
               break;
             case "system_update":
               console.log(`[SSE] System update: ${data.data?.message}`);
               if (data.data?.message) {
-                onSystemUpdate?.(data.data.message);
+                onSystemUpdateRef.current?.(data.data.message);
               }
               break;
             default:
@@ -126,7 +140,7 @@ export function useNotificationStream({
       eventSource.onerror = (error) => {
         console.error("[SSE] Connection error:", error);
         setIsConnected(false);
-        onConnectionStatusChange?.(false);
+        onConnectionStatusChangeRef.current?.(false);
 
         // Only attempt to reconnect if we haven't exceeded max attempts
         if (reconnectAttemptsRef.current < maxReconnectAttempts && enabled) {
@@ -155,9 +169,9 @@ export function useNotificationStream({
     } catch (error) {
       console.error("[SSE] Failed to create connection:", error);
       setIsConnected(false);
-      onConnectionStatusChange?.(false);
+      onConnectionStatusChangeRef.current?.(false);
     }
-  }, [enabled, endpoint, onUnreadCountChange, onNewNotification, onSystemUpdate, onConnectionStatusChange, cleanup]);
+  }, [enabled, endpoint, cleanup]);
 
   // Initialize connection
   useEffect(() => {
@@ -168,12 +182,14 @@ export function useNotificationStream({
     }
 
     return cleanup;
-  }, [enabled, connect, cleanup]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, endpoint]); // Only depend on enabled and endpoint, not connect/cleanup to avoid render loops
 
   // Cleanup on unmount
   useEffect(() => {
     return cleanup;
-  }, [cleanup]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     reconnect: connect,

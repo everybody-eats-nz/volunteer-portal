@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
-import { useEffect, useRef, useState, ReactElement, Children } from "react";
+import { useEffect, useRef, useState, Children } from "react";
 
 interface DashboardAnimatedProps {
   children: React.ReactNode;

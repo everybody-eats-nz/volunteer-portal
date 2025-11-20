@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
             })}\n\n`
           )
         );
-      } catch (error) {
+      } catch {
         clearInterval(pingInterval);
         notificationSSEManager.removeConnection(userId, writer);
       }

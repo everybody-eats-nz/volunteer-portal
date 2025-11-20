@@ -16,7 +16,7 @@ async function waitForDashboardContent(page: Page) {
       )
       .first()
       .waitFor({ state: "visible", timeout: 8000 });
-  } catch (error) {
+  } catch {
     // If stats don't load, at least wait for Quick Actions which always renders
     await page
       .getByText("Quick Actions")
@@ -46,7 +46,7 @@ async function loginAsVolunteer(page: Page) {
       await page.waitForURL((url) => !url.pathname.includes("/login"), {
         timeout: 10000,
       });
-    } catch (error) {
+    } catch {
       // Login might have failed, but don't throw - let the test handle it
       console.log("Login may have failed or taken too long");
     }

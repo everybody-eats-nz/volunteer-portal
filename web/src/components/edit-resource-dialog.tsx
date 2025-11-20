@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, Loader2, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Resource, ResourceType, ResourceCategory } from "@prisma/client";
+import { Resource } from "@prisma/client";
 
 import {
   Dialog,

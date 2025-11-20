@@ -23,6 +23,7 @@ class SSEBroadcaster {
   /**
    * @deprecated Use notificationSSEManager.removeConnection instead
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   removeClient(_userId: string, _controller: ReadableStreamDefaultController) {
     console.warn(
       "[SSE] Using deprecated removeClient method. Please use notificationSSEManager directly."

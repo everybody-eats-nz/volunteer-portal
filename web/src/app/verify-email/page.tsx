@@ -76,7 +76,7 @@ export default function VerifyEmailPage() {
     };
 
     verifyEmail();
-  }, [token, router]);
+  }, [token, emailParam, fromLogin, router]);
 
   const showDialog = (title: string, description: string) => {
     setDialogContent({ title, description });

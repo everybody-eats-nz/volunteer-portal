@@ -205,6 +205,7 @@ export class HistoricalDataTransformer {
           const shiftTypeId = shiftTypeMap.get(shiftData.shiftTypeName);
 
           // Remove non-Prisma properties before database operation
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { shiftTypeName, ...prismaShiftData } = shiftData;
 
           const createdShift = await prisma.shift.create({
@@ -515,7 +516,7 @@ export class HistoricalDataTransformer {
             `[USER] Using approved_at date for ${email}: ${createdAtDate.toISOString()}`
           );
         }
-      } catch (error) {
+      } catch {
         console.warn(
           `[USER] Error parsing approved_at date for ${email}: ${approvedAt}, using current time`
         );

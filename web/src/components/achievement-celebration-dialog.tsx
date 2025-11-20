@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
 import {
@@ -44,12 +44,9 @@ export function AchievementCelebrationDialog({
   isOpen,
   onClose,
 }: AchievementCelebrationDialogProps) {
-  const [showConfetti, setShowConfetti] = useState(false);
-
   // Trigger confetti when dialog opens
   useEffect(() => {
     if (isOpen && achievements.length > 0) {
-      setShowConfetti(true);
 
       // Create a celebratory confetti effect similar to auto-approval
       const colors = ["#FFD700", "#FFA500", "#FF6347", "#98FB98", "#87CEEB"];
