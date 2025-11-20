@@ -104,6 +104,24 @@ interface SendVolunteerCancellationParams {
   location: string;
 }
 
+interface VolunteerNotNeededEmailData {
+  firstName: string;
+  shiftType: string;
+  shiftDate: string;
+  shiftTime: string;
+  location: string;
+  browseShiftsLink: string;
+}
+
+interface SendVolunteerNotNeededParams {
+  to: string;
+  volunteerName: string;
+  shiftName: string;
+  shiftDate: string;
+  shiftTime: string;
+  location: string;
+}
+
 interface EmailVerificationData {
   firstName: string;
   verificationLink: string;
@@ -157,6 +175,7 @@ class EmailService {
   private shiftShortageSmartEmailID: string;
   private shiftConfirmationSmartEmailID: string;
   private volunteerCancellationSmartEmailID: string;
+  private volunteerNotNeededSmartEmailID: string;
   private emailVerificationSmartEmailID: string;
   private parentalConsentApprovalSmartEmailID: string;
   private userInvitationSmartEmailID: string;
@@ -267,6 +286,25 @@ class EmailService {
       }
     } else {
       this.volunteerCancellationSmartEmailID = volunteerCancellationEmailId;
+    }
+
+    // Smart email ID for volunteer not needed notifications
+    const volunteerNotNeededEmailId =
+      process.env.CAMPAIGN_MONITOR_VOLUNTEER_NOT_NEEDED_EMAIL_ID;
+    if (!volunteerNotNeededEmailId) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_VOLUNTEER_NOT_NEEDED_EMAIL_ID is not configured - volunteer not needed emails will not be sent"
+        );
+        this.volunteerNotNeededSmartEmailID =
+          "dummy-volunteer-not-needed-id";
+      } else {
+        throw new Error(
+          "CAMPAIGN_MONITOR_VOLUNTEER_NOT_NEEDED_EMAIL_ID is not configured"
+        );
+      }
+    } else {
+      this.volunteerNotNeededSmartEmailID = volunteerNotNeededEmailId;
     }
 
     // Smart email ID for email verification
@@ -647,6 +685,66 @@ class EmailService {
     });
   }
 
+  async sendVolunteerNotNeededNotification(
+    params: SendVolunteerNotNeededParams
+  ): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+
+    // In development, skip email sending if configuration is missing
+    if (
+      isDevelopment &&
+      this.volunteerNotNeededSmartEmailID ===
+        "dummy-volunteer-not-needed-id"
+    ) {
+      console.log(
+        `[EMAIL SERVICE] Would send volunteer not needed email to ${params.to} (skipped in dev - no config)`
+      );
+      return Promise.resolve();
+    }
+
+    // Extract first name from volunteer name
+    const firstName =
+      params.volunteerName.split(" ")[0] || params.volunteerName;
+
+    const browseShiftsLink = `${getBaseUrl()}/shifts`;
+
+    const details = {
+      smartEmailID: this.volunteerNotNeededSmartEmailID,
+      to: `${params.volunteerName} <${params.to}>`,
+      data: {
+        firstName: firstName,
+        shiftType: params.shiftName,
+        shiftDate: params.shiftDate,
+        shiftTime: params.shiftTime,
+        location: params.location,
+        browseShiftsLink: browseShiftsLink,
+      } as VolunteerNotNeededEmailData,
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
+        if (err) {
+          if (isDevelopment) {
+            console.warn(
+              "[EMAIL SERVICE] Error sending volunteer not needed email (development):",
+              err.message
+            );
+            resolve(); // Don't fail in development
+          } else {
+            console.error("Error sending volunteer not needed email:", err);
+            reject(err);
+          }
+        } else {
+          console.log(
+            "Volunteer not needed email sent successfully to:",
+            params.to
+          );
+          resolve();
+        }
+      });
+    });
+  }
+
   async sendParentalConsentApprovalNotification(
     params: SendParentalConsentApprovalParams
   ): Promise<void> {
@@ -839,6 +937,8 @@ export type {
   ShiftConfirmationEmailData,
   SendVolunteerCancellationParams,
   VolunteerCancellationEmailData,
+  SendVolunteerNotNeededParams,
+  VolunteerNotNeededEmailData,
   SendEmailVerificationParams,
   EmailVerificationData,
   SendParentalConsentApprovalParams,
