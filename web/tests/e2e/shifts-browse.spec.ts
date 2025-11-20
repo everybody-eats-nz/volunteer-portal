@@ -423,15 +423,16 @@ test.describe("Shifts Browse Page", () => {
       await backButton.click();
       await page.waitForLoadState("load");
 
-      // Should return to location selection screen
-      await expect(page).toHaveURL("/shifts");
+      // Should return to location selection screen (with chooseLocation parameter)
+      await expect(page).toHaveURL("/shifts?chooseLocation=true");
       const selectionTitle = page.getByTestId("location-selection-title");
       await expect(selectionTitle).toBeVisible();
     });
 
-    test("should show user preference notification when applicable", async ({
+    test.skip("should show user preference notification when applicable", async ({
       page,
     }) => {
+      // This test is skipped because the profile filter notification has been removed
       await loginAsVolunteer(page);
       await navigateToShiftsWithLocation(page);
 
@@ -729,8 +730,8 @@ test.describe("Shifts Browse Page", () => {
       await backButton.click();
       await page.waitForLoadState("load");
 
-      // Should return to location selection
-      await expect(page).toHaveURL("/shifts");
+      // Should return to location selection (with chooseLocation parameter)
+      await expect(page).toHaveURL("/shifts?chooseLocation=true");
       await expect(selectionTitle).toBeVisible();
     });
   });
