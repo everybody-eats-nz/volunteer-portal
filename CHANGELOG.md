@@ -1,3 +1,9 @@
+## [0.66.1] - 2025-11-20
+
+### Changes
+- Fix shifts page issues with single preferred location ([#251](https://github.com/everybody-eats-nz/volunteer-portal/pull/251)) by @malinmalliyawadu
+
+
 ## [0.66.0] - 2025-11-20
 
 ### Changes
