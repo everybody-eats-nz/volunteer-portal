@@ -98,18 +98,25 @@ export function SiteHeader({
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-2">
+            {isAdmin ? (
+              <Button
+                asChild
+                variant="ghost"
+                className={getLinkClassName("/admin")}
+              >
+                <Link href="/admin" data-testid="nav-admin-dashboard">
+                  Admin
+                </Link>
+              </Button>
+            ) : null}
+
             {session?.user ? (
               <Button
                 asChild
                 variant="ghost"
-                className={getLinkClassName(isAdmin ? "/admin" : "/dashboard")}
+                className={getLinkClassName("/dashboard")}
               >
-                <Link
-                  href={isAdmin ? "/admin" : "/dashboard"}
-                  data-testid={
-                    isAdmin ? "nav-admin-dashboard" : "nav-volunteer-dashboard"
-                  }
-                >
+                <Link href="/dashboard" data-testid="nav-volunteer-dashboard">
                   Dashboard
                 </Link>
               </Button>
@@ -135,7 +142,7 @@ export function SiteHeader({
               </Link>
             </Button>
 
-            {session?.user && !isAdmin ? (
+            {session?.user ? (
               <>
                 <Button
                   asChild
@@ -153,47 +160,6 @@ export function SiteHeader({
                 >
                   <Link href="/friends" data-testid="nav-friends">
                     Friends
-                  </Link>
-                </Button>
-              </>
-            ) : null}
-
-            {isAdmin ? (
-              <>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className={getLinkClassName("/admin/shifts")}
-                >
-                  <Link
-                    href="/admin/shifts"
-                    data-testid="nav-admin-manage-shifts"
-                  >
-                    Manage Shifts
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className={getLinkClassName("/admin/users")}
-                >
-                  <Link
-                    href="/admin/users"
-                    data-testid="nav-admin-manage-users"
-                  >
-                    Manage Users
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  className={getLinkClassName("/admin/migration")}
-                >
-                  <Link
-                    href="/admin/migration"
-                    data-testid="nav-admin-migration"
-                  >
-                    Migration
                   </Link>
                 </Button>
               </>
@@ -253,11 +219,25 @@ export function SiteHeader({
             <nav className="px-4 py-6 space-y-4">
               {session?.user ? (
                 <div className="space-y-3">
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      className={cn(
+                        "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                        isActive("/admin") &&
+                          "bg-white/15 text-white font-medium"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
+
                   <Link
-                    href={isAdmin ? "/admin" : "/dashboard"}
+                    href="/dashboard"
                     className={cn(
                       "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
-                      isActive(isAdmin ? "/admin" : "/dashboard") &&
+                      isActive("/dashboard") &&
                         "bg-white/15 text-white font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -289,59 +269,28 @@ export function SiteHeader({
                     Resources
                   </Link>
 
-                  {!isAdmin && (
-                    <>
-                      <Link
-                        href="/shifts/mine"
-                        className={cn(
-                          "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
-                          isActive("/shifts/mine") &&
-                            "bg-white/15 text-white font-medium"
-                        )}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        My Shifts
-                      </Link>
-                      <Link
-                        href="/friends"
-                        className={cn(
-                          "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
-                          isActive("/friends") &&
-                            "bg-white/15 text-white font-medium"
-                        )}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Friends
-                      </Link>
-                    </>
-                  )}
-
-                  {isAdmin && (
-                    <>
-                      <Link
-                        href="/admin/shifts"
-                        className={cn(
-                          "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
-                          isActive("/admin/shifts") &&
-                            "bg-white/15 text-white font-medium"
-                        )}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Manage Shifts
-                      </Link>
-                      <Link
-                        href="/admin/users"
-                        className={cn(
-                          "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
-                          isActive("/admin/users") &&
-                            "bg-white/15 text-white font-medium"
-                        )}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Manage Users
-                      </Link>
-                    </>
-                  )}
+                  <Link
+                    href="/shifts/mine"
+                    className={cn(
+                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      isActive("/shifts/mine") &&
+                        "bg-white/15 text-white font-medium"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    My Shifts
+                  </Link>
+                  <Link
+                    href="/friends"
+                    className={cn(
+                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      isActive("/friends") &&
+                        "bg-white/15 text-white font-medium"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Friends
+                  </Link>
 
                   <div className="border-t border-white/20 pt-4 mt-4">
                     <Link
