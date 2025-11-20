@@ -1,3 +1,9 @@
+## [0.63.0] - 2025-11-20
+
+### Changes
+- feat: add manual achievement generation from admin user profile ([#246](https://github.com/everybody-eats-nz/volunteer-portal/pull/246)) by @malinmalliyawadu
+
+
 ## [0.62.3] - 2025-11-18
 
 ### Changes
