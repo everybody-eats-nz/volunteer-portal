@@ -303,7 +303,7 @@ export async function POST(req: Request) {
         const verificationToken = await createVerificationToken(user.id);
         const emailService = getEmailService();
         const verificationLink = `${getBaseUrl()}/verify-email?token=${verificationToken}`;
-        
+
         await emailService.sendEmailVerification({
           to: user.email,
           firstName: validatedData.firstName,
