@@ -30,6 +30,7 @@ export async function POST(
     select: {
       id: true,
       email: true,
+      emailVerified: true,
       requiresParentalConsent: true,
       parentalConsentReceived: true,
       firstName: true,
@@ -40,6 +41,18 @@ export async function POST(
   });
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Check email verification
+  if (!user.emailVerified) {
+    return NextResponse.json(
+      {
+        error: "Email verification required",
+        message:
+          "Please verify your email address before signing up for shifts. Check your inbox for a verification email.",
+      },
+      { status: 403 }
+    );
+  }
 
   // Check parental consent for minors
   if (user.requiresParentalConsent && !user.parentalConsentReceived) {

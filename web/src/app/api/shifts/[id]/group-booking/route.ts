@@ -21,10 +21,27 @@ export async function POST(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: {
+        id: true,
+        email: true,
+        emailVerified: true,
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
+    }
+
+    // Check email verification
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        {
+          error: "Email verification required",
+          message:
+            "Please verify your email address before creating group bookings. Check your inbox for a verification email.",
+        },
+        { status: 403 }
+      );
     }
 
     // Extract shift ID from URL
