@@ -35,7 +35,7 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { action } = body; // "approve", "reject", "cancel", "confirm", "mark_present", or "mark_absent"
+    const { action, sendEmail } = body; // "approve", "reject", "cancel", "confirm", "mark_present", or "mark_absent"
 
     if (
       ![
@@ -234,9 +234,71 @@ export async function PATCH(
         data: { status: "CANCELED" },
       });
 
+      // Optionally send email notification to volunteer
+      if (sendEmail) {
+        const emailService = getEmailService();
+        const rejectShiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+        const rejectShiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
+          signup.shift.end,
+          "h:mm a"
+        )}`;
+        const rejectFullAddress = signup.shift.location
+          ? LOCATION_ADDRESSES[
+              signup.shift.location as keyof typeof LOCATION_ADDRESSES
+            ] || signup.shift.location
+          : "TBD";
+
+        Promise.race([
+          emailService.sendVolunteerNotNeededNotification({
+            to: signup.user.email!,
+            volunteerName:
+              signup.user.name ||
+              `${signup.user.firstName || ""} ${
+                signup.user.lastName || ""
+              }`.trim(),
+            shiftName: signup.shift.shiftType.name,
+            shiftDate: rejectShiftDate,
+            shiftTime: rejectShiftTime,
+            location: rejectFullAddress,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Email send timeout")), 10000)
+          ),
+        ]).catch((emailError) => {
+          console.error("Error sending not needed email:", emailError);
+          // Don't fail the API call if email fails
+        });
+
+        // Create in-app notification
+        try {
+          const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: "Pacific/Auckland",
+          }).format(signup.shift.start);
+
+          await createShiftCanceledNotification(
+            signup.user.id,
+            signup.shift.shiftType.name,
+            shiftDate,
+            signup.shift.id
+          );
+        } catch (notificationError) {
+          console.error(
+            "Error creating rejection notification:",
+            notificationError
+          );
+          // Don't fail the API call if notification fails
+        }
+      }
+
       return NextResponse.json({
         ...updatedSignup,
-        message: "Signup rejected",
+        message: sendEmail
+          ? "Signup rejected and volunteer notified"
+          : "Signup rejected",
       });
     }
 

@@ -1,3 +1,9 @@
+## [0.64.0] - 2025-11-20
+
+### Changes
+- feat: Add optional email notification when rejecting volunteer signups ([#247](https://github.com/everybody-eats-nz/volunteer-portal/pull/247)) by @malinmalliyawadu
+
+
 ## [0.63.1] - 2025-11-20
 
 ### Changes
