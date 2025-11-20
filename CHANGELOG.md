@@ -1,3 +1,9 @@
+## [0.63.1] - 2025-11-20
+
+### Changes
+- fix: enforce email verification before shift signups ([#248](https://github.com/everybody-eats-nz/volunteer-portal/pull/248)) by @malinmalliyawadu
+
+
 ## [0.63.0] - 2025-11-20
 
 ### Changes
