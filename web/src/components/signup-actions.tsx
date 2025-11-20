@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -21,6 +23,8 @@ interface SignupActionsProps {
 
 export function SignupActions({ signupId, status, onStatusChange }: SignupActionsProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [sendEmailOnReject, setSendEmailOnReject] = useState(true); // Default to checked
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; title: string; message: string }>({
     open: false,
     title: "",
@@ -38,27 +42,40 @@ export function SignupActions({ signupId, status, onStatusChange }: SignupAction
 
   const handleSignupAction = async (action: "approve" | "reject") => {
     if (isProcessing) return;
-    
+
     setIsProcessing(true);
     try {
       console.log(`Processing ${action} for signup ID: ${signupId}`);
-      
+
+      const requestBody: { action: string; sendEmail?: boolean } = { action };
+
+      // Include sendEmail parameter for reject action
+      if (action === "reject" && sendEmailOnReject) {
+        requestBody.sendEmail = true;
+      }
+
       const response = await fetch(`/api/admin/signups/${signupId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
         const result = await response.json();
         console.log(`Successfully ${action}ed signup:`, result);
-        
+
         // Update UI optimistically
         const newStatus = result.status as "CONFIRMED" | "WAITLISTED" | "CANCELED";
         onStatusChange?.(newStatus);
-        
+
         // Show success toast
         toast.success(result.message || `Signup ${action}ed successfully`);
+
+        // Reset and close dialog for reject action
+        if (action === "reject") {
+          setShowRejectDialog(false);
+          setSendEmailOnReject(true); // Reset to default (checked)
+        }
       } else {
         const error = await response.json();
         console.error(`Failed to ${action} signup:`, error);
@@ -107,13 +124,51 @@ export function SignupActions({ signupId, status, onStatusChange }: SignupAction
         <Button
           size="sm"
           variant="outline"
-          onClick={() => handleSignupAction("reject")}
+          onClick={() => setShowRejectDialog(true)}
           disabled={isProcessing}
           className="h-8 px-3 border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
         >
           {isProcessing ? "..." : "✕ Reject"}
         </Button>
       </div>
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject Volunteer Signup</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to reject this volunteer&apos;s signup? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="send-email-reject"
+                checked={sendEmailOnReject}
+                onCheckedChange={(checked) => setSendEmailOnReject(checked === true)}
+              />
+              <label
+                htmlFor="send-email-reject"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Send notification email to volunteer
+              </label>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowRejectDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleSignupAction("reject")}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Reject Signup
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Error Dialog */}
       <AlertDialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog(prev => ({ ...prev, open }))}>

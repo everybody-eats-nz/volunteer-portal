@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatInNZT } from "@/lib/timezone";
 import { isShiftCompleted } from "@/lib/shift-utils";
 import {
@@ -53,6 +54,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
   }[]>([]);
   const [selectedTargetShift, setSelectedTargetShift] = useState<string>("");
   const [movementNotes, setMovementNotes] = useState("");
+  const [sendEmailOnReject, setSendEmailOnReject] = useState(true); // Default to checked
   const router = useRouter();
 
   const fetchAvailableShifts = useCallback(async () => {
@@ -115,12 +117,19 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
   const handleAction = async (action: "approve" | "reject" | "cancel" | "confirm" | "mark_present" | "mark_absent") => {
     setLoading(action);
     setDialogOpen(null);
-    
+
     try {
+      const requestBody: { action: string; sendEmail?: boolean } = { action };
+
+      // Include sendEmail parameter for reject action
+      if (action === "reject" && sendEmailOnReject) {
+        requestBody.sendEmail = true;
+      }
+
       const response = await fetch(`/api/admin/signups/${signupId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -130,6 +139,11 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
       router.refresh();
       if (onUpdate) onUpdate();
+
+      // Reset sendEmailOnReject after successful rejection
+      if (action === "reject") {
+        setSendEmailOnReject(true); // Reset to default (checked)
+      }
     } catch (error) {
       console.error(`Error ${action}ing signup:`, error);
       alert(`Failed to ${action} signup. Please try again.`);
@@ -157,7 +171,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       case "reject":
         return {
           title: "Reject Volunteer Signup",
-          description: "Are you sure you want to reject this volunteer's signup? This action cannot be undone.",
+          description: "Are you sure you want to reject this volunteer's signup? This action cannot be undone. You can optionally send them a notification email.",
           actionText: "Reject Signup",
           variant: "destructive" as const,
         };
@@ -559,6 +573,22 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
               {rejectDialogContent.description}
             </DialogDescription>
           </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="send-email-on-reject"
+                checked={sendEmailOnReject}
+                onCheckedChange={(checked) => setSendEmailOnReject(checked === true)}
+                data-testid={testIdPrefix ? `${testIdPrefix}-reject-send-email-checkbox` : `volunteer-reject-send-email-checkbox-${signupId}`}
+              />
+              <label
+                htmlFor="send-email-on-reject"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Send notification email to volunteer
+              </label>
+            </div>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
