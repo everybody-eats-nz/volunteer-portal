@@ -37,6 +37,7 @@ import { type VolunteerGrade } from "@prisma/client";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
+import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -484,6 +485,19 @@ export default async function AdminVolunteerPage({
                     </p>
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Achievements</label>
+                  <div>
+                    <GenerateAchievementsButton
+                      userId={volunteer.id}
+                      userName={volunteer.name || volunteer.email}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Manually trigger achievement calculation for this user based on their current progress
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

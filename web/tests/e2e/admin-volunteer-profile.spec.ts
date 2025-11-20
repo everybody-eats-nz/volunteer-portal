@@ -653,6 +653,75 @@ test.describe("Admin Volunteer Profile View", () => {
     });
   });
 
+  test.describe("Achievement Generation", () => {
+    test.beforeEach(async ({ page }) => {
+      await loginAsAdmin(page);
+    });
+
+    test("should display achievement generation button in admin actions", async ({
+      page,
+    }) => {
+      const volunteerId = await getVolunteerIdFromUsersList(page);
+
+      if (volunteerId) {
+        await page.goto(`/admin/volunteers/${volunteerId}`);
+        await waitForPageLoad(page);
+
+        const adminActionsCard = page.getByTestId("admin-actions-card");
+        await expect(adminActionsCard).toBeVisible();
+
+        // Check achievement generation section
+        const achievementsLabel = adminActionsCard.getByText("Achievements");
+        await expect(achievementsLabel).toBeVisible();
+
+        // Check generate achievements button
+        const generateButton = page.getByTestId("generate-achievements-button");
+        await expect(generateButton).toBeVisible();
+        await expect(generateButton).toContainText("Generate Achievements");
+
+        // Check description text
+        const description = adminActionsCard.getByText(
+          "Manually trigger achievement calculation for this user based on their current progress"
+        );
+        await expect(description).toBeVisible();
+      } else {
+        test.skip(true, "No volunteer profiles found for testing");
+      }
+    });
+
+    test("should trigger achievement generation when button is clicked", async ({
+      page,
+    }) => {
+      const volunteerId = await getVolunteerIdFromUsersList(page);
+
+      if (volunteerId) {
+        await page.goto(`/admin/volunteers/${volunteerId}`);
+        await waitForPageLoad(page);
+
+        const generateButton = page.getByTestId("generate-achievements-button");
+        await expect(generateButton).toBeVisible();
+
+        // Click the button
+        await generateButton.click();
+
+        // Button should show loading state
+        await expect(generateButton).toContainText("Generating...");
+        await expect(generateButton).toBeDisabled();
+
+        // Wait for the operation to complete (toast should appear)
+        // The toast will show either "new achievements unlocked" or "No new achievements"
+        const toastMessage = page.locator('[data-sonner-toast]').first();
+        await expect(toastMessage).toBeVisible({ timeout: 10000 });
+
+        // Button should return to normal state
+        await expect(generateButton).toContainText("Generate Achievements");
+        await expect(generateButton).toBeEnabled();
+      } else {
+        test.skip(true, "No volunteer profiles found for testing");
+      }
+    });
+  });
+
   test.describe("Error Handling", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
