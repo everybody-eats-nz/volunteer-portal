@@ -1,3 +1,9 @@
+## [0.66.4] - 2025-11-20
+
+### Changes
+- Simplify admin navigation on non-admin pages ([#254](https://github.com/everybody-eats-nz/volunteer-portal/pull/254)) by @malinmalliyawadu
+
+
 ## [0.66.3] - 2025-11-20
 
 ### Changes
