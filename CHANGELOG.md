@@ -1,3 +1,9 @@
+## [0.67.1] - 2025-11-21
+
+### Changes
+- Fix prod url ([#256](https://github.com/everybody-eats-nz/volunteer-portal/pull/256)) by @malinmalliyawadu
+
+
 ## [0.67.0] - 2025-11-21
 
 ### Changes
