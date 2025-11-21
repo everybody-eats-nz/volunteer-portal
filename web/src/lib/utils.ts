@@ -32,7 +32,7 @@ export function getBaseUrl(): string {
   }
 
   if (process.env.VERCEL_ENV === "production") {
-    return "https://volunteer.everybodyeats.nz";
+    return "https://volunteers.everybodyeats.nz";
   }
 
   // For other Vercel deployments or local development
