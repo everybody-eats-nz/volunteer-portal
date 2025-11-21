@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLocationPreference } from "@/hooks/use-location-preference";
 import {
   Select,
   SelectContent,
@@ -8,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LocationOption } from "@/lib/locations";
 
 interface ShiftLocationSelectorProps {
   selectedLocation: string;
@@ -21,6 +23,9 @@ export function ShiftLocationSelector({
   locations,
 }: ShiftLocationSelectorProps) {
   const router = useRouter();
+
+  // Auto-restore location preference on mount
+  useLocationPreference(selectedLocation as LocationOption);
 
   const handleLocationChange = (value: string) => {
     router.push(`/admin/shifts?date=${dateString}&location=${value}`);

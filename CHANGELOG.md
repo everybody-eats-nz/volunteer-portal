@@ -1,3 +1,9 @@
+## [0.67.0] - 2025-11-21
+
+### Changes
+- feat: add localStorage persistence for admin location filters ([#255](https://github.com/everybody-eats-nz/volunteer-portal/pull/255)) by @malinmalliyawadu
+
+
 ## [0.66.4] - 2025-11-20
 
 ### Changes
