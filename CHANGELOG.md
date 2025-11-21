@@ -1,3 +1,9 @@
+## [0.67.3] - 2025-11-21
+
+### Changes
+- Fix: Resource hub file upload validation error ([#262](https://github.com/everybody-eats-nz/volunteer-portal/pull/262)) by @malinmalliyawadu
+
+
 ## [0.67.2] - 2025-11-21
 
 ### Changes
