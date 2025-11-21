@@ -30,7 +30,7 @@ export default defineConfig({
   adapter: vercel(),
   vite: {
     define: {
-      'import.meta.env.VOLUNTEER_PORTAL_URL': JSON.stringify(APP_URL),
+      "import.meta.env.VOLUNTEER_PORTAL_URL": JSON.stringify(APP_URL),
     },
   },
   integrations: [
@@ -321,17 +321,14 @@ export default defineConfig({
                   {
                     label: "🎨 UI Components System",
                     slug: "developers/ui-components-system",
-                    badge: "WIP",
                   },
                   {
                     label: "🧪 Testing Framework",
                     slug: "developers/testing-framework",
-                    badge: "WIP",
                   },
                   {
                     label: "🕐 Timezone Handling",
                     slug: "developers/timezone-handling",
-                    badge: "WIP",
                   },
                 ],
               },
