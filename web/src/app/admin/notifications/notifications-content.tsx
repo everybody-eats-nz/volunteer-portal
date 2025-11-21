@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { LOCATIONS, type Location } from "@/lib/locations";
 import { useSearchParams } from "next/navigation";
+import { useLocationPreferenceState } from "@/hooks/use-location-preference";
 import {
   Card,
   CardContent,
@@ -69,6 +70,7 @@ export function NotificationsContent({
   shiftTypes,
 }: NotificationsContentProps) {
   const searchParams = useSearchParams();
+  const { getLocationPreference, setLocationPreference } = useLocationPreferenceState();
   const [selectedShift, setSelectedShift] = useState<string>("");
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -83,8 +85,11 @@ export function NotificationsContent({
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  // Filter states
-  const [filterLocation, setFilterLocation] = useState<string>("all");
+  // Filter states - initialize from localStorage if available
+  const [filterLocation, setFilterLocation] = useState<string>(() => {
+    const savedLocation = getLocationPreference();
+    return savedLocation || "all";
+  });
   const [filterShiftType, setFilterShiftType] = useState<string>("all");
   const [filterAvailability, setFilterAvailability] = useState<boolean>(false);
   const [filterMinShifts, setFilterMinShifts] = useState<number>(0);
@@ -107,6 +112,13 @@ export function NotificationsContent({
       setFilterLocation(locationParam);
     }
   }, [searchParams, shiftTypes]);
+
+  // Save location preference to localStorage when it changes
+  useEffect(() => {
+    if (filterLocation !== "all") {
+      setLocationPreference(filterLocation);
+    }
+  }, [filterLocation, setLocationPreference]);
 
   // Auto-select specific shift once shifts are loaded
   useEffect(() => {

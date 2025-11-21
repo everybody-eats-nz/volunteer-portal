@@ -9,8 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Star as StarIcon, User as UserIcon } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 
 export default async function AdminDashboardPage({
@@ -205,35 +205,11 @@ export default async function AdminDashboardPage({
       <div data-testid="admin-dashboard-page" className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           {/* Compact location filter using tabs */}
-          <div className="flex flex-col gap-2">
-            <span
-              className="text-sm font-medium text-muted-foreground"
-              data-testid="location-filter-label"
-            >
-              Filter by location:
-            </span>
-            <Tabs value={selectedLocation || "all"} className="w-fit">
-              <TabsList>
-                <TabsTrigger value="all" asChild>
-                  <Link href="/admin" data-testid="location-filter-all">
-                    All
-                  </Link>
-                </TabsTrigger>
-                {LOCATIONS.map((loc) => (
-                  <TabsTrigger key={loc} value={loc} asChild>
-                    <Link
-                      href={{ pathname: "/admin", query: { location: loc } }}
-                      data-testid={`location-filter-${loc
-                        .toLowerCase()
-                        .replace(" ", "-")}`}
-                    >
-                      {loc}
-                    </Link>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
+          <LocationFilterTabs
+            locations={LOCATIONS}
+            selectedLocation={selectedLocation}
+            basePath="/admin"
+          />
         </div>
 
         {/* Quick Stats Grid */}
