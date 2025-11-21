@@ -10,7 +10,6 @@ The Volunteer Portal uses **[Campaign Monitor](https://www.campaignmonitor.com/)
 The email system consists of several key components:
 
 - **EmailService** (`web/src/lib/email-service.ts`) - Main service for sending emails via Campaign Monitor
-- **CampaignMonitorService** (`web/src/lib/services/campaign-monitor.ts`) - Dedicated service for password reset emails
 - **Email Templates** - Pre-configured [smart email templates](https://help.campaignmonitor.com/smart-email-templates) in Campaign Monitor
 - **Notification Service** (`web/src/lib/notification-service.ts`) - Handles email notifications for shift-related events
 
@@ -36,7 +35,7 @@ CAMPAIGN_MONITOR_SHIFT_CONFIRMATION_EMAIL_ID="confirmation-template-id"
 CAMPAIGN_MONITOR_VOLUNTEER_CANCELLATION_EMAIL_ID="volunteer-cancellation-template-id"
 CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID="email-verification-template-id"
 CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID="parental-consent-template-id"
-CAMPAIGN_MONITOR_PASSWORD_RESET_TEMPLATE_ID="password-reset-template-id"
+CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID="user-invitation-template-id"
 
 # Base URL for links in emails
 NEXTAUTH_URL="https://your-domain.com"
@@ -140,15 +139,16 @@ Sent when parental consent is approved for underage volunteers.
 - `firstName` - Volunteer's first name
 - `linkToDashboard` - Link to volunteer dashboard
 
-### 8. Password Reset (`CAMPAIGN_MONITOR_PASSWORD_RESET_TEMPLATE_ID`)
+### 8. User Invitation (`CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID`)
 
-Sent when users request to reset their password.
+Sent when administrators invite new users to join the volunteer portal.
 
 **Data Fields:**
 
 - `firstName` - User's first name
-- `resetUrl` - Password reset link
-- `expiryHours` - Hours until link expires (default: 24)
+- `email` - User's email address
+- `invitationUrl` - Link to complete registration
+- `organizationName` - Name of the organization (Everybody Eats)
 
 ## Usage Examples
 
@@ -172,16 +172,19 @@ await emailService.sendShiftConfirmationNotification({
 });
 ```
 
-### Sending a Password Reset Email
+### Sending a User Invitation Email
 
 ```typescript
-import { campaignMonitorService } from "@/lib/services/campaign-monitor";
+import { getEmailService } from "@/lib/email-service";
 
-await campaignMonitorService.sendPasswordResetEmail({
-  to: user.email,
-  firstName: user.firstName,
-  resetUrl: `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`,
-  expiryHours: 24,
+const emailService = getEmailService();
+
+await emailService.sendUserInvitation({
+  to: newUser.email,
+  firstName: newUser.firstName,
+  email: newUser.email,
+  invitationUrl: `${process.env.NEXTAUTH_URL}/register?token=${invitationToken}`,
+  organizationName: "Everybody Eats",
 });
 ```
 
@@ -240,7 +243,6 @@ Email sending is integrated into various API routes:
 - `/api/admin/notifications/send-shortage` - Sends shortage notifications
 - `/api/auth/resend-verification` - Resends email verification
 - `/api/admin/users/invite` - Sends user invitations
-- Password reset flows in form actions
 
 ### Notification Service
 
