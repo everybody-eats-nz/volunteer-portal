@@ -1,51 +1,47 @@
----
-title: UI Components System
-description: Complete guide to our UI component ecosystem with Tailwind CSS, shadcn/ui, motion.dev, and inspiration resources
----
+# UI Components System Guide
 
-Our UI component system is built on a modern, flexible foundation that emphasizes accessibility, performance, and developer experience. This guide covers our core libraries, development patterns, and recommended resources for building exceptional user interfaces.
+This guide covers the complete UI component ecosystem for the Volunteer Portal, including our core libraries, animation system, and recommended resources for inspiration and components.
 
-## Core Technologies
+## Tech Stack Overview
 
-### Tailwind CSS v4
+Our UI is built on a modern, flexible foundation:
 
-**[Tailwind CSS](https://tailwindcss.com/)** is our utility-first CSS framework for all styling.
+- **Tailwind CSS v4** - Utility-first CSS framework for styling
+- **shadcn/ui** - High-quality, accessible React components
+- **motion.dev** - Animation library (successor to Framer Motion)
+- **TypeScript** - Type-safe component development
+- **Next.js 15** - React framework with App Router
+
+### Philosophy
+
+We follow a **copy-paste component model** where components are directly added to your codebase rather than installed as dependencies. This gives you:
+
+- Full control and ownership of component code
+- Easy customization without fighting package abstractions
+- No version lock-in or dependency hell
+- Type-safe, inspectable implementations
+
+## Core Libraries
+
+### 1. Tailwind CSS v4
+
+Tailwind is our primary styling solution. We use it for all visual design through utility classes.
 
 **Key Principles:**
 - Use utility classes directly in JSX/TSX
 - Leverage the `cn()` helper for conditional classes
 - Follow mobile-first responsive design
-- Use CSS variables for theming
+- Use CSS variables for theming (defined in `src/app/globals.css`)
 
-**Color System:**
-
-Our colors are semantic and theme-aware through CSS variables:
-
-| Token | Purpose | Usage |
-|-------|---------|-------|
-| `background` / `foreground` | Base page colors | Page backgrounds, main text |
-| `card` / `card-foreground` | Card backgrounds | Content containers |
-| `primary` / `primary-foreground` | Primary actions | Buttons, links, highlights |
-| `muted` / `muted-foreground` | Subdued content | Secondary text, disabled states |
-| `destructive` | Error/delete actions | Delete buttons, error states |
-| `border` / `input` / `ring` | UI elements | Borders, form inputs, focus rings |
-
-**Example Usage:**
-
+**Examples:**
 ```tsx
 // Basic styling
 <div className="flex items-center gap-4 p-6 rounded-lg bg-card">
-  <span className="text-foreground">Content</span>
-</div>
 
 // Responsive design
 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {/* Content */}
-</div>
 
 // Conditional classes with cn()
-import { cn } from "@/lib/utils"
-
 <div className={cn(
   "px-4 py-2 rounded-md",
   isActive && "bg-primary text-primary-foreground",
@@ -53,38 +49,40 @@ import { cn } from "@/lib/utils"
 )}>
 ```
 
-### shadcn/ui
+**Color System:**
+Tailwind v4 uses CSS variables for theming. Our colors are semantic:
+- `background` / `foreground` - Base page colors
+- `card` / `card-foreground` - Card backgrounds
+- `primary` / `primary-foreground` - Primary actions
+- `muted` / `muted-foreground` - Subdued content
+- `destructive` - Error/delete actions
+- `border` / `input` / `ring` - UI element colors
 
-**[shadcn/ui](https://ui.shadcn.com/)** provides our base component library. Unlike traditional component libraries, shadcn/ui components are copied into your codebase, giving you full control.
+### 2. shadcn/ui
 
-**Philosophy:**
-- Components are yours - copy, modify, extend
-- Built on Radix UI primitives for accessibility
-- Styled with Tailwind CSS
-- TypeScript-first
+shadcn/ui is our component foundation. It provides accessible, customizable components that serve as building blocks.
 
 **Installation Pattern:**
-
 ```bash
-cd web
 npx shadcn@latest add button
 npx shadcn@latest add card
 npx shadcn@latest add dialog
 ```
 
-**Available Components:**
+**Available Components:** (see `src/components/ui/`)
+- Layout: `card`, `separator`, `sheet`, `sidebar`, `tabs`
+- Forms: `form`, `input`, `select`, `checkbox`, `radio-group`, `textarea`, `combobox`
+- Feedback: `alert`, `alert-dialog`, `dialog`, `drawer`, `tooltip`
+- Data: `table`, `badge`, `avatar`, `progress`, `skeleton`
+- Navigation: `dropdown-menu`, `command`, `scroll-area`
+- Interactive: `button`, `calendar`, `chart`, `switch`, `collapsible`
 
-Located in `web/src/components/ui/`:
+**Best Practices:**
+- Always check if shadcn/ui has a component before building custom
+- Extend shadcn components rather than replacing them
+- Use component composition for complex UI patterns
 
-- **Layout**: `card`, `separator`, `sheet`, `sidebar`, `tabs`
-- **Forms**: `form`, `input`, `select`, `checkbox`, `radio-group`, `textarea`, `combobox`
-- **Feedback**: `alert`, `alert-dialog`, `dialog`, `drawer`, `tooltip`
-- **Data**: `table`, `badge`, `avatar`, `progress`, `skeleton`
-- **Navigation**: `dropdown-menu`, `command`, `scroll-area`
-- **Interactive**: `button`, `calendar`, `chart`, `switch`, `collapsible`
-
-**Component Composition Example:**
-
+**Example:**
 ```tsx
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -96,35 +94,25 @@ export function VolunteerCard({ volunteer }) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{volunteer.name}</CardTitle>
-          <Badge variant={volunteer.status === "ACTIVE" ? "default" : "secondary"}>
-            {volunteer.status}
-          </Badge>
+          <Badge>{volunteer.status}</Badge>
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">{volunteer.email}</p>
-        <div className="flex gap-2 mt-4">
-          <Button size="sm">View Profile</Button>
-          <Button size="sm" variant="outline">Edit</Button>
-        </div>
+        <Button className="mt-4" size="sm">View Profile</Button>
       </CardContent>
     </Card>
   )
 }
 ```
 
-### motion.dev
+### 3. motion.dev
 
-**[motion.dev](https://motion.dev/)** (evolution of Framer Motion) powers all animations in the project.
+motion.dev (evolution of Framer Motion) powers all animations in the project.
 
-:::caution[Important]
-We migrated from CSS animations to motion.dev. **Never use CSS animation classes**. All animations must use motion.dev.
-:::
+**IMPORTANT:** We migrated from CSS animations to motion.dev. Never use CSS animation classes.
 
-**Animation Utilities:**
-
-All animation variants are centralized in `web/src/lib/motion.ts`:
-
+**Animation Utilities:** (see `src/lib/motion.ts`)
 ```tsx
 import { motion } from "motion/react"
 import {
@@ -140,8 +128,6 @@ import {
   initial="hidden"
   animate="visible"
 >
-  Content fades in
-</motion.div>
 
 // Stagger children
 <motion.div variants={staggerContainer} initial="hidden" animate="visible">
@@ -154,36 +140,27 @@ import {
 ```
 
 **Pre-built Motion Components:**
-
 - `MotionButton` - Button with hover/tap animations
 - `MotionCard` - Card with hover lift effect
 - `MotionDialog` - Dialog with entrance/exit animations
-- `StatsGrid`, `ContentSection`, `ContentGrid` - Dashboard wrappers
-- `AuthPageContainer`, `AuthCard`, `FormStepTransition` - Auth page wrappers
+- Dashboard wrappers: `StatsGrid`, `ContentSection`, `ContentGrid`
+- Auth wrappers: `AuthPageContainer`, `AuthCard`, `FormStepTransition`
 
-**Testing Note:**
+**Testing Note:** Animations are automatically disabled during e2e tests via `.e2e-testing` class.
 
-Animations are automatically disabled during e2e tests via the `.e2e-testing` class.
+## Component Inspiration Resources
 
-## Inspiration Resources
+When building new features, these resources provide excellent patterns and inspiration. They all use similar tech stacks and follow the copy-paste philosophy.
 
-When building new features, these resources provide excellent patterns and inspiration. They all share our tech stack philosophy and follow the copy-paste component model.
+### 1. Magic UI (https://magicui.design/)
 
-### Magic UI
+**Best for:** Animated landing page components, marketing sections, eye-catching effects
 
-**[Magic UI](https://magicui.design/)** - 150+ animated components for landing pages and marketing sections
-
-**Best for:**
-- Animated landing page components
-- Marketing sections and hero blocks
-- Eye-catching visual effects
-- Polished micro-interactions
-
-**Key Features:**
-- Built with React, TypeScript, Tailwind, and Motion
+**What it offers:**
+- 150+ animated components built with React, TypeScript, Tailwind, and Motion
 - Designed as a direct companion to shadcn/ui
-- Free open-source + Pro templates
 - Emphasis on motion and visual polish
+- Free open-source + Pro templates
 
 **Categories:**
 - Text animations (typing effects, gradient text, reveal animations)
@@ -199,47 +176,40 @@ When building new features, these resources provide excellent patterns and inspi
 - Creating engaging onboarding flows
 - Enhancing user engagement with motion
 
-**Integration Example:**
-
+**Integration:**
 ```tsx
-// Add an animated background from Magic UI
+// Example: Add an animated background from Magic UI
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern"
 
 export function HeroSection() {
   return (
-    <div className="relative min-h-screen">
+    <div className="relative">
       <AnimatedGridPattern className="absolute inset-0 opacity-20" />
-      <div className="relative z-10 flex items-center justify-center h-screen">
-        <h1 className="text-6xl font-bold">Welcome to Everybody Eats</h1>
+      <div className="relative z-10">
+        <h1>Welcome to Everybody Eats</h1>
       </div>
     </div>
   )
 }
 ```
 
-### Animata
+### 2. Animata (https://animata.design/)
 
-**[Animata](https://animata.design/)** - 80+ hand-crafted interaction animations
+**Best for:** Hand-crafted interaction animations, micro-interactions, UI polish
 
-**Best for:**
-- Micro-interactions and UI polish
-- Unique card designs
-- Creative text effects
-- Custom loading states
-
-**Key Features:**
-- Hand-crafted animations curated from around the internet
-- Built with Tailwind CSS
+**What it offers:**
+- 80+ animated components built with Tailwind CSS
+- Focus on interaction animations and effects
+- Curated from around the internet
 - Free and open-source (1000+ GitHub stars)
-- Focus on interaction quality
 
 **Categories:**
-- **Text Effects**: Wave reveal, mirror text, typing, gradient text, gibberish
-- **Cards**: Shiny cards, skewed cards, GitHub-styled cards
-- **Containers**: Animated borders, border trails
-- **Backgrounds**: Animated beams, interactive grids
-- **Widgets**: Complex trackers, delivery status, cycling animations
-- **UI Elements**: Skeleton loaders, interactive components
+- **Text Effects:** Wave reveal, mirror text, typing, gradient text, gibberish
+- **Cards:** Shiny cards, skewed cards, GitHub-styled cards
+- **Containers:** Animated borders, border trails
+- **Backgrounds:** Animated beams, interactive grids
+- **Widgets:** Complex trackers, delivery status, cycling animations
+- **UI Elements:** Skeleton loaders, interactive components
 
 **When to use:**
 - Adding delight to user interactions
@@ -247,10 +217,9 @@ export function HeroSection() {
 - Building engaging loading states
 - Implementing creative text effects for headings
 
-**Integration Example:**
-
+**Integration:**
 ```tsx
-// Add a shiny card effect from Animata
+// Example: Add a shiny card effect from Animata
 import { Card } from "@/components/ui/card"
 import { motion } from "motion/react"
 
@@ -260,32 +229,25 @@ export function AchievementCard({ achievement }) {
       className="relative overflow-hidden rounded-lg"
       whileHover={{ scale: 1.05 }}
     >
-      {/* Shimmer effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent
-                      -translate-x-full animate-shimmer" />
-      <Card className="relative">
-        <h3 className="text-xl font-semibold">{achievement.title}</h3>
-        <p className="text-muted-foreground">{achievement.description}</p>
+                      animate-shimmer" />
+      <Card>
+        <h3>{achievement.title}</h3>
+        <p>{achievement.description}</p>
       </Card>
     </motion.div>
   )
 }
 ```
 
-### React Bits
+### 3. React Bits (https://reactbits.dev/)
 
-**[React Bits](https://reactbits.dev/)** - High-quality interactive component patterns
+**Best for:** Complete interactive components, form patterns, complex UI behaviors
 
-**Best for:**
-- Complete interactive components
-- Complex UI behaviors
-- Form patterns and interactions
-- Memorable user experiences
-
-**Key Features:**
+**What it offers:**
 - High-quality, animated, interactive React components
 - Fully customizable implementations
-- Focus on creating memorable interfaces
+- Focus on memorable user interfaces
 - Open-source collection
 
 **When to use:**
@@ -299,14 +261,14 @@ export function AchievementCard({ achievement }) {
 - Use as reference for interaction design
 - Adapt animations to motion.dev syntax
 
-## Development Workflow
+## Component Development Workflow
 
 ### Step 1: Check Existing Components
 
 Before building anything new:
 
 1. **Check shadcn/ui** - Does it have the component? Use it.
-2. **Check `web/src/components/ui/`** - Is it already installed? Use it.
+2. **Check `src/components/ui/`** - Is it already installed? Use it.
 3. **Check project components** - Has someone built something similar?
 
 ### Step 2: Design & Inspiration
@@ -314,9 +276,9 @@ Before building anything new:
 If building something custom:
 
 1. **Search inspiration sites** for similar patterns:
-   - [Magic UI](https://magicui.design/) for animated, polished effects
-   - [Animata](https://animata.design/) for interaction animations
-   - [React Bits](https://reactbits.dev/) for complex behaviors
+   - Magic UI for animated, polished effects
+   - Animata for interaction animations
+   - React Bits for complex behaviors
 
 2. **Sketch the component structure:**
    - What shadcn/ui primitives can you compose?
@@ -325,7 +287,7 @@ If building something custom:
 
 ### Step 3: Implementation
 
-Follow this standard pattern:
+Follow this pattern:
 
 ```tsx
 "use client" // Only if using hooks/interactivity
@@ -378,9 +340,9 @@ cd web
 npx playwright test my-component.spec.ts --project=chromium
 ```
 
-## Common Patterns
+## Common Patterns & Solutions
 
-### Animated List with Stagger
+### Pattern 1: Animated List with Stagger
 
 ```tsx
 import { motion } from "motion/react"
@@ -404,9 +366,9 @@ export function VolunteerList({ volunteers }) {
 }
 ```
 
-### Responsive Dialog/Sheet
+### Pattern 2: Responsive Dialog/Sheet
 
-Use the `ResponsiveDialog` component (desktop dialog, mobile sheet):
+Use `ResponsiveDialog` component (desktop dialog, mobile sheet):
 
 ```tsx
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog"
@@ -425,7 +387,7 @@ export function EditVolunteerDialog({ volunteer, open, onOpenChange }) {
 }
 ```
 
-### Loading States with Skeleton
+### Pattern 3: Loading States with Skeleton
 
 ```tsx
 import { Skeleton } from "@/components/ui/skeleton"
@@ -451,7 +413,7 @@ export function DashboardStats({ isLoading, stats }) {
 }
 ```
 
-### Form with Validation
+### Pattern 4: Form with Validation
 
 ```tsx
 "use client"
@@ -459,14 +421,7 @@ export function DashboardStats({ isLoading, stats }) {
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage
-} from "@/components/ui/form"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
@@ -491,20 +446,7 @@ export function VolunteerForm({ onSubmit }) {
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="john@example.com" {...field} />
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -517,7 +459,7 @@ export function VolunteerForm({ onSubmit }) {
 }
 ```
 
-### Card with Hover Effect
+### Pattern 5: Card with Hover Effect
 
 ```tsx
 import { MotionCard } from "@/components/ui/motion-card"
@@ -545,14 +487,14 @@ export function ShiftCard({ shift }) {
 }
 ```
 
-## Customization
+## Customization Guidelines
 
 ### Extending shadcn/ui Components
 
 When you need custom variants or behavior, extend the base component:
 
 ```tsx
-// web/src/components/ui/gradient-button.tsx
+// src/components/ui/gradient-button.tsx
 import { Button, ButtonProps } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -572,7 +514,7 @@ export function GradientButton({ className, ...props }: ButtonProps) {
 
 ### Creating Custom Animations
 
-Add new animation variants to `web/src/lib/motion.ts`:
+Add new animation variants to `src/lib/motion.ts`:
 
 ```tsx
 export const customVariants = {
@@ -593,7 +535,7 @@ export const customVariants = {
 }
 ```
 
-### Adapting External Components
+### Adapting Components from Inspiration Sites
 
 When copying from Magic UI, Animata, or React Bits:
 
@@ -604,7 +546,7 @@ When copying from Magic UI, Animata, or React Bits:
 5. **Follow our patterns** - Use `cn()`, add data-testid, follow file structure
 6. **Test thoroughly** - Ensure it works across screen sizes
 
-**Example Adaptation:**
+Example adaptation:
 
 ```tsx
 // From Magic UI (Framer Motion)
@@ -627,53 +569,46 @@ export function AdaptedComponent({ className, ...props }: AdaptedComponentProps)
 }
 ```
 
-## Accessibility
+## Accessibility Checklist
 
 Every component must be accessible:
 
-- ✅ Semantic HTML elements (`button`, `nav`, `main`, etc.)
-- ✅ Keyboard navigation support
-- ✅ ARIA labels for icon-only buttons
-- ✅ Form labels with `htmlFor` matching input `id`
-- ✅ Focus indicators (never `outline-none` without custom focus styles)
-- ✅ Color contrast meets WCAG AA standards
-- ✅ Screen reader announcements for dynamic content
-- ✅ Motion respects `prefers-reduced-motion`
+- [ ] Semantic HTML elements (`button`, `nav`, `main`, etc.)
+- [ ] Keyboard navigation support
+- [ ] ARIA labels for icon-only buttons
+- [ ] Form labels with `htmlFor` matching input `id`
+- [ ] Focus indicators (never `outline-none` without custom focus styles)
+- [ ] Color contrast meets WCAG AA standards
+- [ ] Screen reader announcements for dynamic content
+- [ ] Motion respects `prefers-reduced-motion`
 
-:::tip[Good News]
-shadcn/ui components handle most accessibility concerns out of the box. Always verify when customizing.
-:::
+shadcn/ui components handle most accessibility concerns, but verify when customizing.
 
-## Performance
-
-### Best Practices
+## Performance Best Practices
 
 1. **Lazy load heavy components:**
-
-```tsx
-const HeavyChart = dynamic(() => import("./heavy-chart"), {
-  loading: () => <Skeleton className="h-64" />,
-  ssr: false
-})
-```
+   ```tsx
+   const HeavyChart = dynamic(() => import("./heavy-chart"), {
+     loading: () => <Skeleton className="h-64" />,
+     ssr: false
+   })
+   ```
 
 2. **Memoize expensive renders:**
-
-```tsx
-const VolunteerGrid = React.memo(({ volunteers }) => {
-  return <Grid>{volunteers.map(...)}</Grid>
-})
-```
+   ```tsx
+   const VolunteerGrid = React.memo(({ volunteers }) => {
+     return <Grid>{volunteers.map(...)}</Grid>
+   })
+   ```
 
 3. **Use Server Components by default:**
-
-```tsx
-// No "use client" needed for static display
-export async function VolunteerList() {
-  const volunteers = await getVolunteers()
-  return <div>{volunteers.map(...)}</div>
-}
-```
+   ```tsx
+   // No "use client" needed for static display
+   export async function VolunteerList() {
+     const volunteers = await getVolunteers()
+     return <div>{volunteers.map(...)}</div>
+   }
+   ```
 
 4. **Optimize animations:**
    - Animate `transform` and `opacity` (GPU-accelerated)
@@ -682,21 +617,21 @@ export async function VolunteerList() {
 
 ## Quick Reference
 
-### Resource Decision Matrix
+### When to use each resource:
 
 | Need | Use | Resource |
 |------|-----|----------|
 | Basic UI component | shadcn/ui | `npx shadcn@latest add [component]` |
-| Custom animation | motion.dev | `web/src/lib/motion.ts` variants |
+| Custom animation | motion.dev | `src/lib/motion.ts` variants |
 | Landing page flair | Magic UI | https://magicui.design |
 | Micro-interactions | Animata | https://animata.design |
 | Complex patterns | React Bits | https://reactbits.dev |
 | Form validation | Zod + react-hook-form | shadcn/ui form docs |
 
-### File Structure
+### File structure:
 
 ```
-web/src/components/
+src/components/
 ├── ui/                    # shadcn/ui components (base)
 ├── dashboard/             # Dashboard-specific
 ├── forms/                 # Complex forms
@@ -704,7 +639,7 @@ web/src/components/
 └── shared/                # Shared utilities
 ```
 
-### Key Imports
+### Key imports:
 
 ```tsx
 // Styling
@@ -729,10 +664,9 @@ import * as z from "zod"
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [shadcn/ui Documentation](https://ui.shadcn.com/)
 - [motion.dev Documentation](https://motion.dev/)
-- [Radix UI Primitives](https://www.radix-ui.com/)
-- [Magic UI](https://magicui.design/)
-- [Animata](https://animata.design/)
-- [React Bits](https://reactbits.dev/)
+- [Next.js App Router Guide](./app-router-guide.md)
+- [Component Development Guide](./component-development.md)
+- [Testing Guide](./testing-guide.md)
 
 ---
 

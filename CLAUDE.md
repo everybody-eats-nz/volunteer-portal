@@ -282,6 +282,7 @@ For comprehensive guidelines specific to different areas of the codebase, see th
 ### Development Guides
 - **[App Router Guide](web/docs/app-router-guide.md)** - Next.js App Router patterns, API routes, Server Components, authentication
 - **[Component Development](web/docs/component-development.md)** - React component guidelines, shadcn/ui usage, styling with Tailwind
+- **[UI Components System](web/docs/ui-components-system.md)** - Complete UI system guide with Tailwind, shadcn/ui, motion.dev, and inspiration resources (Magic UI, Animata, React Bits)
 - **[Libraries & Utilities](web/docs/libraries-utilities.md)** - Shared utilities, services, auth patterns, validation schemas
 - **[Database & Schema](web/docs/database-schema.md)** - Prisma best practices, migrations, query optimization
 - **[Testing Guide](web/docs/testing-guide.md)** - Playwright e2e testing patterns, test utilities, data-testid conventions
