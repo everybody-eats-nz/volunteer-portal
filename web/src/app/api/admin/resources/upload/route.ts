@@ -51,6 +51,12 @@ export async function POST(request: Request) {
     // Upload to Supabase
     const { url, path } = await uploadFile(file, "resources");
 
+    console.log("Upload successful:", {
+      fileName: file.name,
+      fileSize: file.size,
+      filePath: path,
+    });
+
     return NextResponse.json({
       fileUrl: url,
       fileName: file.name,

@@ -49,11 +49,6 @@ export async function uploadFile(
     .replace(/^[_-]+|[_-]+$/g, "")
     .toLowerCase();
 
-  // Build filename with sanitized name and original extension
-  const sanitizedFileName = fileExtension
-    ? `${sanitizedBaseName}.${fileExtension}`
-    : sanitizedBaseName;
-
   // Ensure we have a valid filename after sanitization
   if (!sanitizedBaseName) {
     throw new Error(
@@ -61,7 +56,26 @@ export async function uploadFile(
     );
   }
 
-  const filePath = `${folder}/${timestamp}-${randomString}-${sanitizedFileName}`;
+  // Truncate filename if too long (max 100 chars for the base name to be safe)
+  const maxBaseNameLength = 100;
+  const truncatedBaseName =
+    sanitizedBaseName.length > maxBaseNameLength
+      ? sanitizedBaseName.substring(0, maxBaseNameLength)
+      : sanitizedBaseName;
+
+  const finalFileName = fileExtension
+    ? `${truncatedBaseName}.${fileExtension}`
+    : truncatedBaseName;
+
+  const filePath = `${folder}/${timestamp}-${randomString}-${finalFileName}`;
+
+  console.log("Uploading file:", {
+    originalName: file.name,
+    sanitizedName: finalFileName,
+    fullPath: filePath,
+    fileSize: file.size,
+    fileType: file.type,
+  });
 
   // Use admin client for uploads (bypasses RLS policies)
   const admin = getSupabaseAdmin();
@@ -75,7 +89,14 @@ export async function uploadFile(
     });
 
   if (error) {
-    console.error("Supabase upload error:", error);
+    console.error("Supabase upload error details:", {
+      message: error.message,
+      statusCode: error.statusCode,
+      error: error,
+      filePath: filePath,
+      fileName: file.name,
+      fileSize: file.size,
+    });
     throw new Error(`Failed to upload file: ${error.message}`);
   }
 
