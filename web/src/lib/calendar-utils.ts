@@ -22,6 +22,12 @@ export interface CalendarUrls {
   ics: string;
 }
 
+export interface CalendarData {
+  google: string;
+  outlook: string;
+  icsContent: string;
+}
+
 /**
  * Generate calendar URLs for Google Calendar, Outlook, and ICS file download
  * Times are formatted in NZ timezone (Pacific/Auckland)
@@ -69,6 +75,69 @@ DESCRIPTION:${decodeURIComponent(description)}
 LOCATION:${decodeURIComponent(location)}
 END:VEVENT
 END:VCALENDAR`.replace(/\n/g, "%0A"),
+  };
+}
+
+/**
+ * Generate raw ICS file content (not a data URL) for email attachments
+ * Times are formatted in NZ timezone (Pacific/Auckland)
+ */
+export function generateICSContent(shift: ShiftCalendarData): string {
+  const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
+  const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
+  const title = `Volunteer Shift: ${shift.shiftType.name}`;
+  const description = `${shift.shiftType.description || ""}\nLocation: ${shift.location || "TBD"}`;
+  const location = shift.location || "";
+
+  return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Volunteer Portal//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-TIMEZONE:Pacific/Auckland
+BEGIN:VTIMEZONE
+TZID:Pacific/Auckland
+BEGIN:STANDARD
+DTSTART:20240407T030000
+TZOFFSETFROM:+1300
+TZOFFSETTO:+1200
+RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:20240929T020000
+TZOFFSETFROM:+1200
+TZOFFSETTO:+1300
+RRULE:FREQ=YEARLY;BYMONTH=9;BYDAY=-1SU
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:${shift.id}@volunteerportal.com
+DTSTART;TZID=Pacific/Auckland:${startDate}
+DTEND;TZID=Pacific/Auckland:${endDate}
+SUMMARY:${title}
+DESCRIPTION:${description}
+LOCATION:${location}
+END:VEVENT
+END:VCALENDAR`;
+}
+
+/**
+ * Generate calendar data with ICS content for email attachments
+ * Times are formatted in NZ timezone (Pacific/Auckland)
+ */
+export function generateCalendarData(shift: ShiftCalendarData): CalendarData {
+  const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
+  const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
+  const title = encodeURIComponent(`Volunteer Shift: ${shift.shiftType.name}`);
+  const description = encodeURIComponent(
+    `${shift.shiftType.description || ""}\nLocation: ${shift.location || "TBD"}`
+  );
+  const location = encodeURIComponent(shift.location || "");
+
+  return {
+    google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${description}&location=${location}&ctz=Pacific/Auckland`,
+    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${startDate}&enddt=${endDate}&body=${description}&location=${location}`,
+    icsContent: generateICSContent(shift),
   };
 }
 
