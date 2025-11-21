@@ -34,7 +34,33 @@ export async function uploadFile(
   // Generate unique file path
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 8);
-  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+
+  // Extract file extension and base name
+  const fileExtension = getFileExtension(file.name);
+  const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+
+  // Sanitize base name more strictly for Supabase compatibility
+  // - Replace all non-alphanumeric characters (except hyphens/underscores) with underscores
+  // - Remove multiple consecutive underscores/hyphens
+  // - Remove leading/trailing underscores/hyphens
+  const sanitizedBaseName = baseName
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .replace(/[_-]+/g, "_")
+    .replace(/^[_-]+|[_-]+$/g, "")
+    .toLowerCase();
+
+  // Build filename with sanitized name and original extension
+  const sanitizedFileName = fileExtension
+    ? `${sanitizedBaseName}.${fileExtension}`
+    : sanitizedBaseName;
+
+  // Ensure we have a valid filename after sanitization
+  if (!sanitizedBaseName) {
+    throw new Error(
+      "Invalid filename: could not generate a valid name from the file. Please rename your file with alphanumeric characters."
+    );
+  }
+
   const filePath = `${folder}/${timestamp}-${randomString}-${sanitizedFileName}`;
 
   // Use admin client for uploads (bypasses RLS policies)
