@@ -3,8 +3,6 @@ title: Permissions & Access Control
 description: Technical reference for permissions, access control, and route protection
 ---
 
-# Permissions & Access Control
-
 This page provides technical details about permission levels and access controls in the volunteer portal system.
 
 ## Permission Levels

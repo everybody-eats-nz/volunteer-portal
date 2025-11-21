@@ -12,6 +12,7 @@ Working on the Volunteer Portal requires access to various third-party services 
 - Repository and version control access
 - Hosting platform access (Vercel)
 - Database access (Supabase)
+- DNS management (Cloudflare)
 - Email service access (Campaign Monitor)
 - Analytics platform (PostHog)
 - CMS and website management (Webflow)
@@ -32,6 +33,7 @@ graph TB
     %% Development & Hosting
     GitHub[📦 GitHub Repository]
     Vercel[☁️ Vercel Hosting]
+    Cloudflare[🌐 Cloudflare DNS]
 
     %% Data & Analytics
     Supabase[(🗄️ Supabase Database)]
@@ -51,6 +53,7 @@ graph TB
     Portal --> CampaignMonitor
 
     GitHub --> Vercel
+    Cloudflare --> Vercel
     Vercel --> Portal
 
     Webflow --> Stripe
@@ -66,12 +69,13 @@ graph TB
     classDef external fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
 
     class Portal primary
-    class GitHub,Vercel,Supabase secondary
+    class GitHub,Vercel,Supabase,Cloudflare secondary
     class Webflow,Stripe,Zapier,CampaignMonitor,PostHog external
 ```
 
 **Key Integration Points:**
 
+- **Cloudflare → Vercel → Portal**: DNS management routes traffic to Vercel hosting platform
 - **Webflow → Stripe → Zapier → Campaign Monitor**: Payment processing on main website triggers automated email workflows
 - **Webflow → Portal**: Main website links to volunteer portal application
 - **Both → PostHog**: User behavior and feature flag analytics from both CMS and Portal
@@ -105,6 +109,7 @@ Essential Systems:
 - [ ] GitHub repository (volunteer-portal) - https://github.com/everybody-eats-nz/volunteer-portal
 - [ ] Vercel hosting platform (production and demo environments) - https://vercel.com/everybody-eats
 - [ ] Supabase database access - https://app.supabase.com/
+- [ ] Cloudflare DNS management - https://dash.cloudflare.com/
 - [ ] Campaign Monitor email service - https://app.campaignmonitor.com/
 - [ ] PostHog analytics platform - https://app.posthog.com/
 
@@ -180,6 +185,39 @@ Best regards,
 - **Read-only**: View data and run SELECT queries
 - **Developer**: Full database access except production writes
 - **Admin**: Full access including production database
+
+### Cloudflare DNS Management
+
+**What you'll need access to:**
+
+- Cloudflare account for `everybodyeats.nz` domain
+- DNS record management
+- Security settings and SSL/TLS configuration
+- Analytics and performance monitoring
+- Page rules and firewall settings
+
+**Setup Steps:**
+
+1. Create a Cloudflare account at [cloudflare.com](https://cloudflare.com) if needed
+2. Request invitation to the Everybody Eats organization
+3. Accept the team invitation email
+4. Log in to [dash.cloudflare.com](https://dash.cloudflare.com)
+5. Access the `everybodyeats.nz` domain
+
+**Access Levels:**
+
+- **Read-only**: View DNS records and analytics
+- **DNS Manager**: Edit DNS records, view settings
+- **Admin**: Full access including security settings and billing
+
+**Important Notes:**
+
+- DNS changes affect production immediately - always verify before saving
+- Current DNS records:
+  - `volunteers.everybodyeats.nz` → Vercel production
+- Demo/preview environments use Vercel's automatic URLs (e.g., `demo.everybody-eats.vercel.app`)
+- DNS is configured in "DNS-only" mode (no proxy) to allow Vercel's CDN
+- Changes to DNS records may take up to 48 hours to propagate globally
 
 ### Campaign Monitor Email Service
 
@@ -304,16 +342,17 @@ Best regards,
 
 ## Access Requirements by Role
 
-| Service              | Developer     | Tester       | DevOps Engineer |
-| -------------------- | ------------- | ------------ | --------------- |
-| **GitHub**           | ✅ Read/Write | 👁️ Read-only | 🔑 Admin        |
-| **Vercel**           | 🛠️ Developer  | 👁️ Viewer    | 🔑 Admin        |
-| **Supabase**         | 🛠️ Developer  | 👁️ Read-only | 🔑 Admin        |
-| **Campaign Monitor** | ✅ User       | 👁️ Viewer    | 🔑 Admin        |
-| **PostHog**          | 🛠️ Developer  | 👁️ Viewer    | 🔑 Admin        |
-| **Webflow CMS**      | ✏️ Editor     | 👁️ Viewer    | 🔑 Admin        |
-| **Stripe**           | 🛠️ Developer  | 👁️ Viewer    | 🔑 Admin        |
-| **Zapier**           | 👁️ Viewer     | 👁️ Viewer    | 🔑 Admin        |
+| Service              | Developer      | Tester       | DevOps Engineer |
+| -------------------- | -------------- | ------------ | --------------- |
+| **GitHub**           | ✅ Read/Write  | 👁️ Read-only | 🔑 Admin        |
+| **Vercel**           | 🛠️ Developer   | 👁️ Viewer    | 🔑 Admin        |
+| **Supabase**         | 🛠️ Developer   | 👁️ Read-only | 🔑 Admin        |
+| **Cloudflare**       | 👁️ Read-only   | ❌ Not needed | 🔑 Admin        |
+| **Campaign Monitor** | ✅ User        | 👁️ Viewer    | 🔑 Admin        |
+| **PostHog**          | 🛠️ Developer   | 👁️ Viewer    | 🔑 Admin        |
+| **Webflow CMS**      | ✏️ Editor      | 👁️ Viewer    | 🔑 Admin        |
+| **Stripe**           | 🛠️ Developer   | 👁️ Viewer    | 🔑 Admin        |
+| **Zapier**           | 👁️ Viewer      | 👁️ Viewer    | 🔑 Admin        |
 
 ## Related Documentation
 

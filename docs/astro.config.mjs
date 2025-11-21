@@ -5,13 +5,34 @@ import starlightSidebarTopics from "starlight-sidebar-topics";
 import mermaid from "astro-mermaid";
 import vercel from "@astrojs/vercel";
 
-// Get the app URL from environment variable, default to localhost for development
-const APP_URL = process.env.VOLUNTEER_PORTAL_URL || "http://localhost:3000";
+// Get the base URL for the volunteer portal application
+// This matches the logic in web/src/lib/utils.ts getBaseUrl()
+function getBaseUrl() {
+  // Check if we're in the demo environment
+  if (process.env.VERCEL_ENV === "preview") {
+    return "https://demo.everybody-eats.vercel.app";
+  }
+
+  if (process.env.VERCEL_ENV === "production") {
+    return "https://volunteers.everybodyeats.nz";
+  }
+
+  // For other Vercel deployments or local development
+  const vercelUrl = process.env.VERCEL_URL;
+  return vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000";
+}
+
+const APP_URL = getBaseUrl();
 
 // https://astro.build/config
 export default defineConfig({
   output: "server",
   adapter: vercel(),
+  vite: {
+    define: {
+      'import.meta.env.VOLUNTEER_PORTAL_URL': JSON.stringify(APP_URL),
+    },
+  },
   integrations: [
     mermaid(),
     starlight({
@@ -271,16 +292,6 @@ export default defineConfig({
                     label: "🔑 Admin Permissions",
                     slug: "reference/permissions",
                   },
-                  {
-                    label: "🔒 Password Reset System",
-                    slug: "developers/password-reset-system",
-                    badge: "WIP",
-                  },
-                  {
-                    label: "🛡️ Security Implementation",
-                    slug: "developers/security-implementation",
-                    badge: "WIP",
-                  },
                 ],
               },
               {
@@ -293,17 +304,14 @@ export default defineConfig({
                   {
                     label: "📊 Analytics Integration",
                     slug: "developers/analytics-integration",
-                    badge: "WIP",
                   },
                   {
                     label: "🔄 Data Migration",
                     slug: "developers/data-migration",
-                    badge: "WIP",
                   },
                   {
                     label: "🌍 Environment Configuration",
                     slug: "developers/environment-configuration",
-                    badge: "WIP",
                   },
                 ],
               },
