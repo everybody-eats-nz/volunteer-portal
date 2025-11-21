@@ -45,6 +45,25 @@ The Everybody Eats Volunteer Portal is deployed using a modern cloud infrastruct
   - Database monitoring and metrics
   - SQL editor for maintenance
 
+### Cloudflare - DNS Management
+
+**[Cloudflare](https://cloudflare.com/)** manages DNS for the `everybodyeats.nz` domain
+
+- **Domain**: `everybodyeats.nz`
+- **DNS Records**:
+  - `volunteers.everybodyeats.nz` → Vercel production deployment
+- **Why Cloudflare**: Fast global DNS resolution, excellent security features, and reliable uptime
+- **Features Used**:
+  - Global DNS with low latency
+  - DNSSEC for enhanced security
+  - DDoS protection
+  - DNS analytics and monitoring
+  - Free SSL/TLS certificate support
+  - Automatic failover capabilities
+- **Configuration**: DNS-only mode (orange cloud disabled) to allow Vercel's CDN and SSL management
+
+**Note**: Demo/preview environments use Vercel's automatic URLs (e.g., `demo.everybody-eats.vercel.app`) and do not require custom DNS records.
+
 ## Third-Party Services
 
 ### Campaign Monitor - Email Services
@@ -55,7 +74,8 @@ The Everybody Eats Volunteer Portal is deployed using a modern cloud infrastruct
 - **Email Types**:
   - Transactional emails (shift confirmations, reminders)
   - Group booking invitations
-  - Password reset emails
+  - User invitation emails
+  - Email verification
 - **Integration**: API integration for automated emails
 - **Templates**: Custom HTML templates matching brand design
 - **Analytics**: Open rates, click tracking, and engagement metrics
@@ -99,6 +119,10 @@ graph TD
     I[PostHog] --> F
     I --> J
     I --> C
+
+    K[Cloudflare DNS] --> F
+    K --> J
+    K -.-> C
 ```
 
 ### Environment Variables
@@ -129,7 +153,7 @@ POSTHOG_HOST=https://app.posthog.com
 
 ```env
 DATABASE_URL=postgresql://[connection-string]  # Supabase demo
-NEXTAUTH_URL=https://demo.volunteers.everybodyeats.nz
+NEXTAUTH_URL=https://demo.everybody-eats.vercel.app
 NEXTAUTH_SECRET=[generated-secret]
 
 # OAuth Providers (Demo)
