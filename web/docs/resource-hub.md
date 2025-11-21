@@ -25,7 +25,7 @@ The Resource Hub allows administrators to upload and manage documents (PDFs, ima
 **Storage**: Supabase Storage (bucket: `resource-hub`)
 **Database**: PostgreSQL via Prisma ORM
 **Authentication**: NextAuth.js (admin-only for uploads)
-**File Upload**: FormData with validation
+**File Upload**: Direct client-side uploads to Supabase (bypasses Vercel 4.5MB limit)
 **UI Components**: shadcn/ui with Tailwind CSS
 
 ## Supabase Setup
@@ -309,21 +309,7 @@ Update an existing resource.
 #### DELETE `/api/admin/resources/[id]`
 Delete a resource and its associated file from storage.
 
-#### POST `/api/admin/resources/upload`
-Upload a file to Supabase Storage.
-
-**Request**: FormData with:
-- `file` (File) - The file to upload
-- `resourceType` (ResourceType) - Type of resource (validates file type)
-
-**Response**:
-```json
-{
-  "fileUrl": "https://...",
-  "fileName": "document.pdf",
-  "fileSize": 2048000
-}
-```
+**Note**: File uploads are handled client-side directly to Supabase Storage to bypass Vercel's 4.5MB serverless function payload limit. This enables the full 50MB file size support.
 
 ## File Validation
 
@@ -351,9 +337,10 @@ export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 ### Validation Flow
 
 1. **Client-side**: Input `accept` attribute restricts file picker
-2. **Upload endpoint**: Validates file type matches resource type
-3. **Storage utility**: Checks file size < 50MB
-4. **Supabase**: Final validation on upload
+2. **Client upload function**: Validates file type matches resource type and size < 50MB
+3. **Supabase Storage**: Final validation on upload with RLS policies
+
+Files are uploaded directly from the browser to Supabase Storage using the `uploadFileFromClient()` function in `/src/lib/client-storage.ts`. This approach bypasses Vercel's serverless function payload limit (4.5MB) and enables the full 50MB file size support.
 
 ## Component Architecture
 
@@ -394,9 +381,14 @@ export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 ### Utility Libraries
 
 **`/src/lib/storage.ts`**
-- File upload/delete functions
+- Server-side file utilities (for admin operations)
 - File validation utilities
-- Supabase client configuration
+- Supabase configuration and constants
+
+**`/src/lib/client-storage.ts`**
+- Client-side file upload to Supabase Storage
+- Direct browser-to-Supabase uploads (bypasses API route)
+- Supports up to 50MB files (no Vercel limit)
 - File size formatting
 
 **`/src/lib/supabase.ts`**

@@ -91,7 +91,6 @@ export async function uploadFile(
   if (error) {
     console.error("Supabase upload error details:", {
       message: error.message,
-      statusCode: error.statusCode,
       error: error,
       filePath: filePath,
       fileName: file.name,

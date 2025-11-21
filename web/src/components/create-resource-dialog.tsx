@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { MAX_FILE_SIZE, formatFileSize } from "@/lib/storage";
+import { uploadFileFromClient } from "@/lib/client-storage";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -88,24 +89,14 @@ export function CreateResourceDialog({ children }: CreateResourceDialogProps) {
       let fileName: string | undefined;
       let fileSize: number | undefined;
 
-      // Upload file if not link/video
+      // Upload file directly to Supabase if not link/video
       if (!isLinkOrVideo && selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("resourceType", resourceType);
-
-        const uploadResponse = await fetch("/api/admin/resources/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          const error = await uploadResponse.json();
-          throw new Error(error.error || "Failed to upload file");
-        }
-
-        const uploadData = await uploadResponse.json();
-        fileUrl = uploadData.fileUrl;
+        const uploadData = await uploadFileFromClient(
+          selectedFile,
+          resourceType as "PDF" | "IMAGE" | "DOCUMENT",
+          "resources"
+        );
+        fileUrl = uploadData.url;
         fileName = uploadData.fileName;
         fileSize = uploadData.fileSize;
       }
