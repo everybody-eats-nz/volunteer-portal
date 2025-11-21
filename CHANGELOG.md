@@ -1,3 +1,9 @@
+## [0.67.2] - 2025-11-21
+
+### Changes
+- fix: attach ICS calendar files to shift confirmation emails ([#261](https://github.com/everybody-eats-nz/volunteer-portal/pull/261)) by @malinmalliyawadu
+
+
 ## [0.67.1] - 2025-11-21
 
 ### Changes
