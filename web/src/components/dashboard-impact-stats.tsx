@@ -75,7 +75,7 @@ export async function DashboardImpactStats({
 
   // Create a map of actual meals served by date-location key
   const actualMealsMap = new Map<string, number>();
-  mealsServedRecords.forEach((record) => {
+  mealsServedRecords.forEach((record: { date: Date; location: string; mealsServed: number }) => {
     const dateKey = `${record.date.toISOString()}-${record.location}`;
     actualMealsMap.set(dateKey, record.mealsServed);
   });
@@ -103,7 +103,7 @@ export async function DashboardImpactStats({
   });
 
   const defaultsMap = new Map(
-    locationDefaults.map((loc) => [loc.name, loc.defaultMealsServed])
+    locationDefaults.map((loc: { name: string; defaultMealsServed: number }) => [loc.name, loc.defaultMealsServed])
   );
 
   // Calculate total meals (actual + estimated)
@@ -115,15 +115,19 @@ export async function DashboardImpactStats({
     const dateKey = `${toUTC(date).toISOString()}-${location}`;
 
     if (actualMealsMap.has(dateKey)) {
-      totalMealsServed += actualMealsMap.get(dateKey)!;
-      daysWithActualData++;
+      const meals = actualMealsMap.get(dateKey);
+      if (typeof meals === 'number') {
+        totalMealsServed += meals;
+        daysWithActualData++;
+      }
     } else if (defaultsMap.has(location)) {
-      totalMealsServed += defaultsMap.get(location)!;
-      daysWithEstimatedData++;
+      const meals = defaultsMap.get(location);
+      if (typeof meals === 'number') {
+        totalMealsServed += meals;
+        daysWithEstimatedData++;
+      }
     }
   });
-
-  const totalDays = uniqueDays.size;
   const hasAnyData = daysWithActualData > 0 || daysWithEstimatedData > 0;
 
   // Fall back to old estimation only if no location data exists
