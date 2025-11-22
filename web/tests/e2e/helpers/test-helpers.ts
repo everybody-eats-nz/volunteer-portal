@@ -1,6 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
-import { hash } from "bcryptjs";
+import bcryptjs from "bcryptjs";
 import { InputJsonValue } from "@prisma/client/runtime/client";
 
 /**
@@ -21,7 +21,7 @@ export async function createTestUser(
     where: { email },
   });
 
-  const hashedPassword = await hash("Test123456", 12);
+  const hashedPassword = await bcryptjs.hash("Test123456", 12);
   await prisma.user.create({
     data: {
       email,
