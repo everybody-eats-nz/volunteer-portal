@@ -84,10 +84,11 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, string | number> = {};
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
-    if (defaultMealsServed !== undefined) updateData.defaultMealsServed = parseInt(defaultMealsServed);
+    if (defaultMealsServed !== undefined)
+      updateData.defaultMealsServed = parseInt(defaultMealsServed);
 
     const location = await prisma.location.update({
       where: { id },
