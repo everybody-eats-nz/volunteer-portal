@@ -31,6 +31,7 @@ import { LOCATIONS } from "@/lib/locations";
 export default async function NewShiftPage() {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
+  const sortedLocations = LOCATIONS;
   if (!session?.user) redirect("/login?callbackUrl=/admin/shifts/new");
   if (role !== "ADMIN") redirect("/shifts");
 
@@ -689,7 +690,7 @@ export default async function NewShiftPage() {
                   <ShiftCreationClientForm
                     shiftTypes={shiftTypes}
                     initialTemplates={templatesWithShiftTypes}
-                    locations={[...LOCATIONS]}
+                    locations={sortedLocations}
                     createShiftTypeAction={createShiftType}
                   />
                 </form>
@@ -771,7 +772,7 @@ export default async function NewShiftPage() {
                       return (
                         <CollapsibleTemplateSelection
                           templatesByLocation={templatesByLocation}
-                          sortedLocations={LOCATIONS}
+                          sortedLocations={sortedLocations}
                           shiftTypes={shiftTypes}
                         />
                       );
@@ -824,7 +825,7 @@ export default async function NewShiftPage() {
                       </h3>
                       <CreateTemplateDialog
                         shiftTypes={shiftTypes}
-                        locations={[...LOCATIONS]}
+                        locations={sortedLocations}
                         createAction={createTemplate}
                       />
                     </div>
@@ -858,7 +859,7 @@ export default async function NewShiftPage() {
                                 notes: template.notes,
                               }}
                               shiftTypes={shiftTypes}
-                              locations={[...LOCATIONS]}
+                              locations={sortedLocations}
                               editAction={editTemplate}
                             />
                             <DeleteTemplateForm
@@ -885,7 +886,7 @@ export default async function NewShiftPage() {
                     </p>
                     <CreateTemplateDialog
                       shiftTypes={shiftTypes}
-                      locations={[...LOCATIONS]}
+                      locations={sortedLocations}
                       createAction={createTemplate}
                       triggerText="Create First Template"
                       triggerVariant="default"

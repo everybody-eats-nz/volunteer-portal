@@ -1,14 +1,36 @@
 "use client";
 
 import React from "react";
-import { LOCATIONS } from "@/lib/locations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
 
 export interface ShiftTemplate {
@@ -30,12 +52,23 @@ interface ShiftTemplateManagerProps {
   initialTemplates: Record<string, ShiftTemplate>;
   shiftTypes: ShiftType[];
   onTemplateClick?: (template: ShiftTemplate) => void;
+  locations: string[];
 }
 
-export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateClick }: ShiftTemplateManagerProps) {
+export function ShiftTemplateManager({
+  initialTemplates,
+  shiftTypes,
+  onTemplateClick,
+  locations,
+}: ShiftTemplateManagerProps) {
   const [templates, setTemplates] = React.useState(initialTemplates);
-  const [editingTemplate, setEditingTemplate] = React.useState<{ id: string; template: ShiftTemplate & { id: string } } | null>(null);
-  const [deletingTemplate, setDeletingTemplate] = React.useState<string | null>(null);
+  const [editingTemplate, setEditingTemplate] = React.useState<{
+    id: string;
+    template: ShiftTemplate & { id: string };
+  } | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = React.useState<string | null>(
+    null
+  );
   const [newTemplate, setNewTemplate] = React.useState<ShiftTemplate>({
     name: "",
     startTime: "",
@@ -52,82 +85,89 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
   // Refresh templates from the server
   const refreshTemplates = async () => {
     try {
-      const response = await fetch('/api/admin/shift-templates');
-      if (!response.ok) throw new Error('Failed to fetch templates');
-      
+      const response = await fetch("/api/admin/shift-templates");
+      if (!response.ok) throw new Error("Failed to fetch templates");
+
       const dbTemplates = await response.json();
       const templatesObject = Object.fromEntries(
-        dbTemplates.map((template: {
-          id: string;
-          name: string;
-          startTime: string;
-          endTime: string;
-          capacity: number;
-          notes: string | null;
-          shiftTypeId: string;
-          location: string;
-        }) => [
-          template.name,
-          {
-            name: template.name,
-            startTime: template.startTime,
-            endTime: template.endTime,
-            capacity: template.capacity,
-            notes: template.notes || "",
-            shiftTypeId: template.shiftTypeId,
-            location: template.location,
-            id: template.id, // Include the database ID
-          }
-        ])
+        dbTemplates.map(
+          (template: {
+            id: string;
+            name: string;
+            startTime: string;
+            endTime: string;
+            capacity: number;
+            notes: string | null;
+            shiftTypeId: string;
+            location: string;
+          }) => [
+            template.name,
+            {
+              name: template.name,
+              startTime: template.startTime,
+              endTime: template.endTime,
+              capacity: template.capacity,
+              notes: template.notes || "",
+              shiftTypeId: template.shiftTypeId,
+              location: template.location,
+              id: template.id, // Include the database ID
+            },
+          ]
+        )
       );
       setTemplates(templatesObject);
     } catch (error) {
-      console.error('Failed to refresh templates:', error);
-      setError('Failed to load templates');
+      console.error("Failed to refresh templates:", error);
+      setError("Failed to load templates");
     }
   };
 
   const handleEditTemplate = (key: string) => {
     const template = templates[key];
-    if (template && 'id' in template) {
-      setEditingTemplate({ 
-        id: template.id as string, 
-        template: { ...template, id: template.id as string }
+    if (template && "id" in template) {
+      setEditingTemplate({
+        id: template.id as string,
+        template: { ...template, id: template.id as string },
       });
     }
   };
 
   const handleSaveEdit = async () => {
     if (!editingTemplate) return;
-    
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/shift-templates/${editingTemplate.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: editingTemplate.template.name,
-          startTime: editingTemplate.template.startTime,
-          endTime: editingTemplate.template.endTime,
-          capacity: editingTemplate.template.capacity,
-          notes: editingTemplate.template.notes,
-          shiftTypeId: editingTemplate.template.shiftTypeId,
-          location: editingTemplate.template.location,
-        }),
-      });
+      const response = await fetch(
+        `/api/admin/shift-templates/${editingTemplate.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: editingTemplate.template.name,
+            startTime: editingTemplate.template.startTime,
+            endTime: editingTemplate.template.endTime,
+            capacity: editingTemplate.template.capacity,
+            notes: editingTemplate.template.notes,
+            shiftTypeId: editingTemplate.template.shiftTypeId,
+            location: editingTemplate.template.location,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update template');
+        throw new Error(error.error || "Failed to update template");
       }
 
       await refreshTemplates();
       setEditingTemplate(null);
     } catch (error) {
-      console.error('Failed to update template:', error);
-      setError(error instanceof Error ? error.message : 'Failed to update template');
+      console.error("Failed to update template:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to update template"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -135,47 +175,57 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
 
   const handleDeleteTemplate = async (key: string) => {
     const template = templates[key];
-    if (!template || !('id' in template)) return;
+    if (!template || !("id" in template)) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/shift-templates/${template.id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/admin/shift-templates/${template.id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to delete template');
+        throw new Error(error.error || "Failed to delete template");
       }
 
       await refreshTemplates();
       setDeletingTemplate(null);
     } catch (error) {
-      console.error('Failed to delete template:', error);
-      setError(error instanceof Error ? error.message : 'Failed to delete template');
+      console.error("Failed to delete template:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to delete template"
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddNew = async () => {
-    if (!newTemplate.name.trim() || !newTemplate.location || !newTemplate.location.trim()) return;
-    
+    if (
+      !newTemplate.name.trim() ||
+      !newTemplate.location ||
+      !newTemplate.location.trim()
+    )
+      return;
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/admin/shift-templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/admin/shift-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newTemplate),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create template');
+        throw new Error(error.error || "Failed to create template");
       }
 
       await refreshTemplates();
@@ -190,8 +240,10 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
       });
       setIsAddingNew(false);
     } catch (error) {
-      console.error('Failed to create template:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create template');
+      console.error("Failed to create template:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to create template"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -209,7 +261,11 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
         </h3>
         <Dialog open={isAddingNew} onOpenChange={setIsAddingNew}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" data-testid="add-template-button">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="add-template-button"
+            >
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Template
             </Button>
@@ -232,7 +288,12 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                 <Input
                   id="template-name"
                   value={newTemplate.name}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTemplate((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
                   placeholder="e.g., Morning Setup"
                   data-testid="template-name-input"
                 />
@@ -240,12 +301,17 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="template-location">Location *</Label>
-                  <Select value={newTemplate.location} onValueChange={(value) => setNewTemplate(prev => ({ ...prev, location: value }))}>
+                  <Select
+                    value={newTemplate.location}
+                    onValueChange={(value) =>
+                      setNewTemplate((prev) => ({ ...prev, location: value }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LOCATIONS.map((location) => (
+                      {locations.map((location) => (
                         <SelectItem key={location} value={location}>
                           {location}
                         </SelectItem>
@@ -261,7 +327,12 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                     type="time"
                     id="template-start-time"
                     value={newTemplate.startTime}
-                    onChange={(e) => setNewTemplate(prev => ({ ...prev, startTime: e.target.value }))}
+                    onChange={(e) =>
+                      setNewTemplate((prev) => ({
+                        ...prev,
+                        startTime: e.target.value,
+                      }))
+                    }
                     data-testid="template-start-time-input"
                   />
                 </div>
@@ -271,7 +342,12 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                     type="time"
                     id="template-end-time"
                     value={newTemplate.endTime}
-                    onChange={(e) => setNewTemplate(prev => ({ ...prev, endTime: e.target.value }))}
+                    onChange={(e) =>
+                      setNewTemplate((prev) => ({
+                        ...prev,
+                        endTime: e.target.value,
+                      }))
+                    }
                     data-testid="template-end-time-input"
                   />
                 </div>
@@ -283,7 +359,12 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                   id="template-capacity"
                   min="1"
                   value={newTemplate.capacity}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, capacity: parseInt(e.target.value) || 1 }))}
+                  onChange={(e) =>
+                    setNewTemplate((prev) => ({
+                      ...prev,
+                      capacity: parseInt(e.target.value) || 1,
+                    }))
+                  }
                   placeholder="Number of volunteers"
                   data-testid="template-capacity-input"
                 />
@@ -292,9 +373,14 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                 <Label htmlFor="template-shift-type">Shift Type *</Label>
                 <Select
                   value={newTemplate.shiftTypeId}
-                  onValueChange={(value) => setNewTemplate(prev => ({ ...prev, shiftTypeId: value }))}
+                  onValueChange={(value) =>
+                    setNewTemplate((prev) => ({ ...prev, shiftTypeId: value }))
+                  }
                 >
-                  <SelectTrigger id="template-shift-type" data-testid="template-shift-type-select">
+                  <SelectTrigger
+                    id="template-shift-type"
+                    data-testid="template-shift-type-select"
+                  >
                     <SelectValue placeholder="Choose shift type..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -311,7 +397,12 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                 <Textarea
                   id="template-notes"
                   value={newTemplate.notes}
-                  onChange={(e) => setNewTemplate(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setNewTemplate((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
                   placeholder="Description of the shift..."
                   rows={3}
                   data-testid="template-notes-textarea"
@@ -322,13 +413,20 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
               <Button variant="outline" onClick={() => setIsAddingNew(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleAddNew}
-                disabled={isLoading || !newTemplate.name.trim() || !newTemplate.location || !newTemplate.startTime || !newTemplate.endTime || !newTemplate.shiftTypeId}
+                disabled={
+                  isLoading ||
+                  !newTemplate.name.trim() ||
+                  !newTemplate.location ||
+                  !newTemplate.startTime ||
+                  !newTemplate.endTime ||
+                  !newTemplate.shiftTypeId
+                }
                 data-testid="save-template-button"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                {isLoading ? 'Adding...' : 'Add Template'}
+                {isLoading ? "Adding..." : "Add Template"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -344,12 +442,15 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
               size="lg"
               className="h-auto p-4 text-left justify-start cursor-pointer hover:bg-primary/10 transition-colors pr-16 min-h-[3rem] relative"
               onClick={() => handleTemplateClick(template)}
-              data-testid={`template-${name.toLowerCase().replace(/\s+/g, "-")}`}
+              data-testid={`template-${name
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`}
             >
               <div className="flex flex-col items-start">
                 <div className="font-medium">{name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {template.startTime}-{template.endTime} • {template.capacity} volunteers
+                  {template.startTime}-{template.endTime} • {template.capacity}{" "}
+                  volunteers
                 </div>
               </div>
             </Button>
@@ -363,7 +464,9 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                   e.stopPropagation();
                   handleEditTemplate(name);
                 }}
-                data-testid={`edit-template-${name.toLowerCase().replace(/\s+/g, "-")}`}
+                data-testid={`edit-template-${name
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}`}
               >
                 <EditIcon className="h-3 w-3" />
               </Button>
@@ -376,7 +479,9 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                   e.stopPropagation();
                   setDeletingTemplate(name);
                 }}
-                data-testid={`delete-template-${name.toLowerCase().replace(/\s+/g, "-")}`}
+                data-testid={`delete-template-${name
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}`}
               >
                 <TrashIcon className="h-3 w-3" />
               </Button>
@@ -386,17 +491,19 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Click a template to fill the form with its values. Hover to edit or delete templates.
+        Click a template to fill the form with its values. Hover to edit or
+        delete templates.
       </p>
 
       {/* Edit Template Dialog */}
-      <Dialog open={!!editingTemplate} onOpenChange={() => setEditingTemplate(null)}>
+      <Dialog
+        open={!!editingTemplate}
+        onOpenChange={() => setEditingTemplate(null)}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Edit Template</DialogTitle>
-            <DialogDescription>
-              Modify the template settings.
-            </DialogDescription>
+            <DialogDescription>Modify the template settings.</DialogDescription>
           </DialogHeader>
           {error && (
             <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
@@ -410,9 +517,19 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                 <Input
                   id="edit-template-name"
                   value={editingTemplate.template.name}
-                  onChange={(e) => setEditingTemplate(prev => 
-                    prev ? { ...prev, template: { ...prev.template, name: e.target.value } } : null
-                  )}
+                  onChange={(e) =>
+                    setEditingTemplate((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            template: {
+                              ...prev.template,
+                              name: e.target.value,
+                            },
+                          }
+                        : null
+                    )
+                  }
                   placeholder="e.g., Morning Setup"
                   data-testid="edit-template-name-input"
                 />
@@ -420,17 +537,24 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-template-location">Location *</Label>
-                  <Select 
-                    value={editingTemplate.template.location || ""} 
-                    onValueChange={(value) => setEditingTemplate(prev => 
-                      prev ? { ...prev, template: { ...prev.template, location: value } } : null
-                    )}
+                  <Select
+                    value={editingTemplate.template.location || ""}
+                    onValueChange={(value) =>
+                      setEditingTemplate((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              template: { ...prev.template, location: value },
+                            }
+                          : null
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LOCATIONS.map((location) => (
+                      {locations.map((location) => (
                         <SelectItem key={location} value={location}>
                           {location}
                         </SelectItem>
@@ -446,9 +570,19 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                     type="time"
                     id="edit-template-start-time"
                     value={editingTemplate.template.startTime}
-                    onChange={(e) => setEditingTemplate(prev => 
-                      prev ? { ...prev, template: { ...prev.template, startTime: e.target.value } } : null
-                    )}
+                    onChange={(e) =>
+                      setEditingTemplate((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              template: {
+                                ...prev.template,
+                                startTime: e.target.value,
+                              },
+                            }
+                          : null
+                      )
+                    }
                     data-testid="edit-template-start-time-input"
                   />
                 </div>
@@ -458,9 +592,19 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                     type="time"
                     id="edit-template-end-time"
                     value={editingTemplate.template.endTime}
-                    onChange={(e) => setEditingTemplate(prev => 
-                      prev ? { ...prev, template: { ...prev.template, endTime: e.target.value } } : null
-                    )}
+                    onChange={(e) =>
+                      setEditingTemplate((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              template: {
+                                ...prev.template,
+                                endTime: e.target.value,
+                              },
+                            }
+                          : null
+                      )
+                    }
                     data-testid="edit-template-end-time-input"
                   />
                 </div>
@@ -472,9 +616,19 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                   id="edit-template-capacity"
                   min="1"
                   value={editingTemplate.template.capacity}
-                  onChange={(e) => setEditingTemplate(prev => 
-                    prev ? { ...prev, template: { ...prev.template, capacity: parseInt(e.target.value) || 1 } } : null
-                  )}
+                  onChange={(e) =>
+                    setEditingTemplate((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            template: {
+                              ...prev.template,
+                              capacity: parseInt(e.target.value) || 1,
+                            },
+                          }
+                        : null
+                    )
+                  }
                   placeholder="Number of volunteers"
                   data-testid="edit-template-capacity-input"
                 />
@@ -483,11 +637,21 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                 <Label htmlFor="edit-template-shift-type">Shift Type *</Label>
                 <Select
                   value={editingTemplate.template.shiftTypeId}
-                  onValueChange={(value) => setEditingTemplate(prev => 
-                    prev ? { ...prev, template: { ...prev.template, shiftTypeId: value } } : null
-                  )}
+                  onValueChange={(value) =>
+                    setEditingTemplate((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            template: { ...prev.template, shiftTypeId: value },
+                          }
+                        : null
+                    )
+                  }
                 >
-                  <SelectTrigger id="edit-template-shift-type" data-testid="edit-template-shift-type-select">
+                  <SelectTrigger
+                    id="edit-template-shift-type"
+                    data-testid="edit-template-shift-type-select"
+                  >
                     <SelectValue placeholder="Choose shift type..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -504,9 +668,19 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
                 <Textarea
                   id="edit-template-notes"
                   value={editingTemplate.template.notes}
-                  onChange={(e) => setEditingTemplate(prev => 
-                    prev ? { ...prev, template: { ...prev.template, notes: e.target.value } } : null
-                  )}
+                  onChange={(e) =>
+                    setEditingTemplate((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            template: {
+                              ...prev.template,
+                              notes: e.target.value,
+                            },
+                          }
+                        : null
+                    )
+                  }
                   placeholder="Description of the shift..."
                   rows={3}
                   data-testid="edit-template-notes-textarea"
@@ -518,30 +692,43 @@ export function ShiftTemplateManager({ initialTemplates, shiftTypes, onTemplateC
             <Button variant="outline" onClick={() => setEditingTemplate(null)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleSaveEdit}
-              disabled={isLoading || !editingTemplate?.template.name.trim() || !editingTemplate?.template.location || !editingTemplate?.template.startTime || !editingTemplate?.template.endTime || !editingTemplate?.template.shiftTypeId}
+              disabled={
+                isLoading ||
+                !editingTemplate?.template.name.trim() ||
+                !editingTemplate?.template.location ||
+                !editingTemplate?.template.startTime ||
+                !editingTemplate?.template.endTime ||
+                !editingTemplate?.template.shiftTypeId
+              }
               data-testid="save-edit-template-button"
             >
-              {isLoading ? 'Saving...' : 'Save Changes'}
+              {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingTemplate} onOpenChange={() => setDeletingTemplate(null)}>
+      <AlertDialog
+        open={!!deletingTemplate}
+        onOpenChange={() => setDeletingTemplate(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Template</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the template &quot;{deletingTemplate}&quot;? This action cannot be undone.
+              Are you sure you want to delete the template &quot;
+              {deletingTemplate}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingTemplate && handleDeleteTemplate(deletingTemplate)}
+              onClick={() =>
+                deletingTemplate && handleDeleteTemplate(deletingTemplate)
+              }
               className="bg-red-600 hover:bg-red-700"
             >
               Delete Template

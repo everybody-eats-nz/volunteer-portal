@@ -28,7 +28,9 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
       setFetching(true);
       try {
         const response = await fetch(
-          `/api/admin/meals-served?date=${date}&location=${encodeURIComponent(location)}`
+          `/api/admin/meals-served?date=${date}&location=${encodeURIComponent(
+            location
+          )}`
         );
         if (response.ok) {
           const data = await response.json();
@@ -106,7 +108,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Utensils className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          Daily Meals Served
+          Meals Served
           {hasExistingRecord && (
             <span className="text-sm font-normal text-muted-foreground ml-2">
               (Recorded)
