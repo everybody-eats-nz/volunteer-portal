@@ -110,7 +110,7 @@ export function NotificationsContent({
     if (locationParam && locations.includes(locationParam)) {
       setFilterLocation(locationParam);
     }
-  }, [searchParams, shiftTypes]);
+  }, [searchParams, shiftTypes, locations]);
 
   // Save location preference to localStorage when it changes
   useEffect(() => {
