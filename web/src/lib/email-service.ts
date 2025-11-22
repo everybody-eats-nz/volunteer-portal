@@ -1,5 +1,5 @@
 import createsend from "createsend-node";
-import { generateCalendarUrls, generateGoogleMapsLink } from "./calendar-utils";
+import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getBaseUrl } from "./utils";
 
 interface EmailData {
@@ -167,6 +167,12 @@ interface ProfileCompletionEmailData {
 interface SendProfileCompletionParams {
   to: string;
   firstName: string;
+}
+
+interface EmailAttachment {
+  Content: string; // Base64 encoded content
+  Name: string; // Filename
+  Type: string; // MIME type
 }
 
 interface CampaignMonitorAPI {
@@ -597,8 +603,11 @@ class EmailService {
     // Generate calendar and maps links
     const locationMapLink = generateGoogleMapsLink(params.location);
 
-    // Generate all calendar links if we have the start/end dates
-    let calendarUrls = { google: "", outlook: "", ics: "" };
+    // Generate calendar data and ICS attachment if we have the start/end dates
+    let calendarData = { google: "", outlook: "", icsContent: "" };
+    let icsDownloadLink = "";
+    const attachments: EmailAttachment[] = [];
+
     if (params.shiftStart && params.shiftEnd) {
       const shiftData = {
         id: params.shiftId,
@@ -610,7 +619,18 @@ class EmailService {
           description: null,
         },
       };
-      calendarUrls = generateCalendarUrls(shiftData);
+      calendarData = generateCalendarData(shiftData);
+
+      // Generate public ICS download link
+      icsDownloadLink = `${getBaseUrl()}/api/shifts/${params.shiftId}/calendar`;
+
+      // Create ICS file attachment
+      const icsContent = Buffer.from(calendarData.icsContent).toString('base64');
+      attachments.push({
+        Content: icsContent,
+        Name: "shift-calendar.ics",
+        Type: "text/calendar",
+      });
     }
 
     const details = {
@@ -623,11 +643,12 @@ class EmailService {
         shiftTime: params.shiftTime,
         location: params.location,
         linkToShift: shiftLink,
-        addToGoogleCalendarLink: calendarUrls.google,
-        addToOutlookCalendarLink: calendarUrls.outlook,
-        addToCalendarIcsLink: calendarUrls.ics,
+        addToGoogleCalendarLink: calendarData.google,
+        addToOutlookCalendarLink: calendarData.outlook,
+        addToCalendarIcsLink: icsDownloadLink,
         locationMapLink: locationMapLink,
       } as ShiftConfirmationEmailData,
+      Attachments: attachments,
     };
 
     return new Promise<void>((resolve, reject) => {

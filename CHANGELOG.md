@@ -1,3 +1,21 @@
+## [0.67.4] - 2025-11-21
+
+### Changes
+- Fix: Enable large file uploads with client-side Supabase upload ([#263](https://github.com/everybody-eats-nz/volunteer-portal/pull/263)) by @malinmalliyawadu
+
+
+## [0.67.3] - 2025-11-21
+
+### Changes
+- Fix: Resource hub file upload validation error ([#262](https://github.com/everybody-eats-nz/volunteer-portal/pull/262)) by @malinmalliyawadu
+
+
+## [0.67.2] - 2025-11-21
+
+### Changes
+- fix: attach ICS calendar files to shift confirmation emails ([#261](https://github.com/everybody-eats-nz/volunteer-portal/pull/261)) by @malinmalliyawadu
+
+
 ## [0.67.1] - 2025-11-21
 
 ### Changes
