@@ -14,6 +14,7 @@ import {
   FileText,
   Tags,
   MapPin,
+  Trophy,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -75,6 +76,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: Tags,
         description: "Manage volunteer labels",
         commandKey: "custom-labels",
+      },
+      {
+        title: "Achievements",
+        href: "/admin/achievements",
+        icon: Trophy,
+        description: "Manage volunteer achievements",
+        commandKey: "achievements",
       },
     ],
   },
