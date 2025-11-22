@@ -21,6 +21,11 @@ import {
 import { type Achievement } from "@/generated/client";
 import { Card, CardContent } from "@/components/ui/card";
 
+interface ShiftType {
+  id: string;
+  name: string;
+}
+
 interface AchievementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,6 +55,7 @@ const CRITERIA_TYPES = [
   { value: "consecutive_months", label: "Consecutive Months" },
   { value: "years_volunteering", label: "Years Volunteering" },
   { value: "community_impact", label: "Community Impact (Meals)" },
+  { value: "specific_shift_type", label: "Specific Shift Type" },
 ];
 
 const ICON_OPTIONS = [
@@ -89,8 +95,26 @@ export function AchievementDialog({
   const [icon, setIcon] = useState("🌟");
   const [criteriaType, setCriteriaType] = useState("shifts_completed");
   const [criteriaValue, setCriteriaValue] = useState("1");
+  const [shiftTypeId, setShiftTypeId] = useState("");
   const [points, setPoints] = useState("10");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
+
+  // Fetch shift types when component mounts
+  useEffect(() => {
+    async function fetchShiftTypes() {
+      try {
+        const response = await fetch("/api/admin/shift-types");
+        if (response.ok) {
+          const data = await response.json();
+          setShiftTypes(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch shift types:", error);
+      }
+    }
+    fetchShiftTypes();
+  }, []);
 
   useEffect(() => {
     if (achievement) {
@@ -105,6 +129,7 @@ export function AchievementDialog({
         const parsedCriteria = JSON.parse(achievement.criteria);
         setCriteriaType(parsedCriteria.type || "shifts_completed");
         setCriteriaValue(parsedCriteria.value?.toString() || "1");
+        setShiftTypeId(parsedCriteria.shiftType || "");
       } catch (e) {
         console.error("Failed to parse criteria:", e);
       }
@@ -115,6 +140,7 @@ export function AchievementDialog({
       setIcon("🌟");
       setCriteriaType("shifts_completed");
       setCriteriaValue("1");
+      setShiftTypeId("");
       setPoints("10");
     }
   }, [achievement, open]);
@@ -126,10 +152,24 @@ export function AchievementDialog({
       return;
     }
 
-    const criteriaObj = {
+    // Validate shift type is selected for specific_shift_type criteria
+    if (criteriaType === "specific_shift_type" && !shiftTypeId) {
+      return;
+    }
+
+    const criteriaObj: {
+      type: string;
+      value: number;
+      shiftType?: string;
+    } = {
       type: criteriaType,
       value: parseInt(criteriaValue, 10),
     };
+
+    // Add shiftType if it's a specific shift type criteria
+    if (criteriaType === "specific_shift_type" && shiftTypeId) {
+      criteriaObj.shiftType = shiftTypeId;
+    }
 
     setIsSubmitting(true);
     try {
@@ -149,6 +189,7 @@ export function AchievementDialog({
 
   const getCriteriaDescription = () => {
     const value = parseInt(criteriaValue, 10) || 0;
+    const selectedShiftType = shiftTypes.find((st) => st.id === shiftTypeId);
     switch (criteriaType) {
       case "shifts_completed":
         return `Complete ${value} volunteer shift${value !== 1 ? "s" : ""}`;
@@ -160,6 +201,10 @@ export function AchievementDialog({
         return `Volunteer for ${value} year${value !== 1 ? "s" : ""}`;
       case "community_impact":
         return `Help prepare an estimated ${value} meal${value !== 1 ? "s" : ""}`;
+      case "specific_shift_type":
+        return selectedShiftType
+          ? `Complete ${value} "${selectedShiftType.name}" shift${value !== 1 ? "s" : ""}`
+          : `Complete ${value} shift${value !== 1 ? "s" : ""} of a specific type`;
       default:
         return "";
     }
@@ -290,6 +335,27 @@ export function AchievementDialog({
               />
             </div>
           </div>
+
+          {criteriaType === "specific_shift_type" && (
+            <div className="space-y-2">
+              <Label htmlFor="shift-type">Shift Type *</Label>
+              <Select value={shiftTypeId} onValueChange={setShiftTypeId}>
+                <SelectTrigger
+                  id="shift-type"
+                  data-testid="shift-type-select"
+                >
+                  <SelectValue placeholder="Select shift type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shiftTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="achievement-points">Points *</Label>
