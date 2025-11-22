@@ -13,7 +13,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { ShiftLocationSelector } from "@/components/shift-location-selector";
 import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
 import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
-import { LOCATIONS, LocationOption, DEFAULT_LOCATION } from "@/lib/locations";
+import { LocationOption, DEFAULT_LOCATION } from "@/lib/locations";
 import { MealsServedInput } from "@/components/meals-served-input";
 
 interface AdminShiftsPageProps {
@@ -30,6 +30,14 @@ export default async function AdminShiftsPage({
   }
 
   const params = await searchParams;
+
+  // Fetch active locations from database
+  const dbLocations = await prisma.location.findMany({
+    where: { isActive: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+  const LOCATIONS = dbLocations.map((loc) => loc.name);
 
   // Parse search parameters (handle dates consistently in NZ timezone)
   const today = formatInNZT(new Date(), "yyyy-MM-dd");

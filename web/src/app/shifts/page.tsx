@@ -6,7 +6,6 @@ import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { ShiftsCalendar } from "@/components/shifts-calendar";
 import {
-  LOCATIONS,
   LocationOption,
   LOCATION_ADDRESSES,
   Location,
@@ -84,6 +83,14 @@ export default async function ShiftsCalendarPage({
         );
     }
   }
+
+  // Fetch active locations from database
+  const dbLocations = await prisma.location.findMany({
+    where: { isActive: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+  const LOCATIONS = dbLocations.map((loc) => loc.name) as readonly string[];
 
   // Parse user's preferred locations
   const userPreferredLocations = safeParseAvailability(
