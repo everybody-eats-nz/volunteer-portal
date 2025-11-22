@@ -356,10 +356,14 @@ export default async function MyShiftsPage({
 
     // Fetch meals served for this shift's date and location
     let mealsServedData = null;
+    let defaultMealsServed = null;
+    let isEstimated = false;
+
     if (isPastShift && shift.shift.location) {
       const shiftDate = startOfDay(shift.shift.start);
       const shiftDateUTC = toUTC(shiftDate);
 
+      // First try to get actual meals served
       mealsServedData = await prisma.mealsServed.findUnique({
         where: {
           date_location: {
@@ -368,6 +372,16 @@ export default async function MyShiftsPage({
           },
         },
       });
+
+      // If no actual data, get the location's default
+      if (!mealsServedData) {
+        const locationData = await prisma.location.findUnique({
+          where: { name: shift.shift.location },
+          select: { defaultMealsServed: true },
+        });
+        defaultMealsServed = locationData?.defaultMealsServed;
+        isEstimated = true;
+      }
     }
 
     return (
@@ -422,12 +436,19 @@ export default async function MyShiftsPage({
             </div>
 
             {/* Meals Served (for past shifts) */}
-            {isPastShift && mealsServedData && (
+            {isPastShift && (mealsServedData || defaultMealsServed) && (
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Meals Served</span>
-                <span className="text-sm font-semibold text-primary">
-                  {mealsServedData.mealsServed} people
-                </span>
+                <div className="text-sm text-right">
+                  <div className={isEstimated ? "text-muted-foreground" : "font-semibold text-primary"}>
+                    {isEstimated ? "~" : ""}{mealsServedData?.mealsServed || defaultMealsServed} people
+                  </div>
+                  {isEstimated && (
+                    <div className="text-xs text-muted-foreground">
+                      estimated
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

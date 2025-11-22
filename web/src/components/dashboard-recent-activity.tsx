@@ -29,12 +29,13 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
 
   // Fetch meals served data for these shifts
   const mealsServedPromises = recentShifts.map(async (signup) => {
-    if (!signup.shift.location) return null;
+    if (!signup.shift.location) return { actual: null, default: null };
 
     const shiftDate = startOfDay(signup.shift.start);
     const shiftDateUTC = toUTC(shiftDate);
 
-    return prisma.mealsServed.findUnique({
+    // Get actual meals served
+    const actualMeals = await prisma.mealsServed.findUnique({
       where: {
         date_location: {
           date: shiftDateUTC,
@@ -42,6 +43,18 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
         },
       },
     });
+
+    // If no actual data, get the location's default
+    let defaultMeals = null;
+    if (!actualMeals) {
+      const locationData = await prisma.location.findUnique({
+        where: { name: signup.shift.location },
+        select: { defaultMealsServed: true },
+      });
+      defaultMeals = locationData?.defaultMealsServed;
+    }
+
+    return { actual: actualMeals, default: defaultMeals };
   });
 
   const mealsServedData = await Promise.all(mealsServedPromises);
@@ -49,7 +62,8 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
   // Combine shifts with their meals served data
   const shiftsWithMeals = recentShifts.map((shift, index) => ({
     ...shift,
-    mealsServed: mealsServedData[index],
+    mealsServed: mealsServedData[index].actual,
+    defaultMealsServed: mealsServedData[index].default,
   }));
 
   return (
@@ -80,12 +94,12 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
                       {formatInNZT(signup.shift.start, "MMM d")} •{" "}
                       {signup.shift.location}
                     </span>
-                    {signup.mealsServed && (
+                    {(signup.mealsServed || signup.defaultMealsServed) && (
                       <>
                         <span>•</span>
-                        <span className="flex items-center gap-1 text-primary font-medium">
+                        <span className={`flex items-center gap-1 font-medium ${signup.mealsServed ? "text-primary" : "text-muted-foreground"}`}>
                           <Utensils className="w-3 h-3" />
-                          {signup.mealsServed.mealsServed}
+                          {signup.mealsServed ? "" : "~"}{signup.mealsServed?.mealsServed || signup.defaultMealsServed}
                         </span>
                       </>
                     )}
