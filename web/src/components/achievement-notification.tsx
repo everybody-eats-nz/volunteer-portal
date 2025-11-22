@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -14,17 +14,26 @@ export default function AchievementNotification({
   onDismiss,
 }: AchievementNotificationProps) {
   const [visible, setVisible] = useState(true);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (achievements.length > 0) {
-      setVisible(true);
+      // Clear any existing timer
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
       // Auto-dismiss after 8 seconds
-      const timer = setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         setVisible(false);
         setTimeout(onDismiss, 300); // Wait for animation to complete
       }, 8000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+      };
     }
   }, [achievements, onDismiss]);
 

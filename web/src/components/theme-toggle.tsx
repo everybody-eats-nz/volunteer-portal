@@ -37,7 +37,7 @@ export function ThemeToggle() {
 
   return (
     <ThemedDropdownMenu>
-      <ThemedDropdownMenuTrigger>
+      <ThemedDropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="sm"

@@ -25,6 +25,51 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "PENDING":
+      return (
+        <Badge
+          variant="outline"
+          className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 gap-1.5"
+        >
+          <Timer className="h-3 w-3" />
+          Pending Approval
+        </Badge>
+      );
+    case "CONFIRMED":
+      return (
+        <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 gap-1.5">
+          <CheckCircle className="h-3 w-3" />
+          Confirmed
+        </Badge>
+      );
+    case "WAITLISTED":
+      return (
+        <Badge variant="secondary" className="gap-1.5">
+          <Users className="h-3 w-3" />
+          Waitlisted
+        </Badge>
+      );
+    case "CANCELED":
+      return (
+        <Badge variant="destructive" className="gap-1.5">
+          <XCircle className="h-3 w-3" />
+          Canceled
+        </Badge>
+      );
+    case "PARTIAL":
+      return (
+        <Badge variant="outline" className="gap-1.5">
+          <AlertCircle className="h-3 w-3" />
+          Partially Approved
+        </Badge>
+      );
+    default:
+      return null;
+  }
+}
+
 export default async function GroupBookingDetailPage({
   params,
 }: {
@@ -138,51 +183,6 @@ export default async function GroupBookingDetailPage({
   const incompleteMembers = membersWithStatus.filter(
     (m) => m.registrationStatus === "incomplete"
   );
-
-  function StatusBadge({ status }: { status: string }) {
-    switch (status) {
-      case "PENDING":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 gap-1.5"
-          >
-            <Timer className="h-3 w-3" />
-            Pending Approval
-          </Badge>
-        );
-      case "CONFIRMED":
-        return (
-          <Badge className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800 gap-1.5">
-            <CheckCircle className="h-3 w-3" />
-            Confirmed
-          </Badge>
-        );
-      case "WAITLISTED":
-        return (
-          <Badge variant="secondary" className="gap-1.5">
-            <Users className="h-3 w-3" />
-            Waitlisted
-          </Badge>
-        );
-      case "CANCELED":
-        return (
-          <Badge variant="destructive" className="gap-1.5">
-            <XCircle className="h-3 w-3" />
-            Canceled
-          </Badge>
-        );
-      case "PARTIAL":
-        return (
-          <Badge variant="outline" className="gap-1.5">
-            <AlertCircle className="h-3 w-3" />
-            Partially Approved
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  }
 
   return (
     <PageContainer testid="group-booking-detail-page">

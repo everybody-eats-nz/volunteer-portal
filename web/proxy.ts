@@ -61,7 +61,7 @@ function getRequiredAuthLevel(pathname: string): "public" | "user" | "admin" {
   return "admin"; // Default to admin-only access for security
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Get the token from NextAuth
