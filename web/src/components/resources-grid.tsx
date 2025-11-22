@@ -1,6 +1,6 @@
 "use client";
 
-import { ResourceType, ResourceCategory } from "@prisma/client";
+import { ResourceType, ResourceCategory } from "@/generated/client";
 import {
   FileText,
   Image as ImageIcon,

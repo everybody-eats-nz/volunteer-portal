@@ -10,7 +10,16 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { ArrowUpDown, Mail, Calendar, Shield, Users, ChevronRight, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  Mail,
+  Calendar,
+  Shield,
+  Users,
+  ChevronRight,
+  Trash2,
+  MoreHorizontal,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -32,7 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type VolunteerGrade } from "@prisma/client";
+import { type VolunteerGrade } from "@/generated/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
 
 export interface User {
@@ -101,17 +110,22 @@ export const columns: ColumnDef<User>[] = [
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 shadow-sm">
-            <AvatarImage
-              src={user.profilePhotoUrl || ""}
-              alt={displayName}
-            />
+            <AvatarImage src={user.profilePhotoUrl || ""} alt={displayName} />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white font-semibold shadow-inner text-xs">
               {getUserInitials(user)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium text-sm" data-testid={`user-name-${user.id}`}>{displayName}</div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1" data-testid={`user-email-${user.id}`}>
+            <div
+              className="font-medium text-sm"
+              data-testid={`user-name-${user.id}`}
+            >
+              {displayName}
+            </div>
+            <div
+              className="text-xs text-muted-foreground flex items-center gap-1"
+              data-testid={`user-email-${user.id}`}
+            >
               <Mail className="h-3 w-3" />
               {user.email}
             </div>
@@ -185,7 +199,10 @@ export const columns: ColumnDef<User>[] = [
       const count = row.original._count?.signups || 0;
       const user = row.original;
       return (
-        <div className="text-sm font-medium text-center" data-testid={`user-shifts-count-${user.id}`}>
+        <div
+          className="text-sm font-medium text-center"
+          data-testid={`user-shifts-count-${user.id}`}
+        >
           {count}
         </div>
       );
@@ -267,7 +284,7 @@ export const columns: ColumnDef<User>[] = [
 export function UsersDataTable({ users }: UsersDataTableProps) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "createdAt", desc: true }
+    { id: "createdAt", desc: true },
   ]);
 
   const table = useReactTable({
@@ -289,7 +306,6 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
 
   return (
     <div className="w-full" data-testid="users-datatable">
-      
       <div className="rounded-md border dark:border-zinc-800 shadow-sm dark:shadow-lg dark:shadow-zinc-900/20 bg-card">
         <Table>
           <TableHeader>
@@ -318,7 +334,9 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
                   data-state={row.getIsSelected() && "selected"}
                   className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
                   data-testid={`user-row-${row.original.id}`}
-                  onClick={() => router.push(`/admin/volunteers/${row.original.id}`)}
+                  onClick={() =>
+                    router.push(`/admin/volunteers/${row.original.id}`)
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-4 py-3">
@@ -344,7 +362,7 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
           </TableBody>
         </Table>
       </div>
-      
+
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
           Showing {table.getRowModel().rows.length} of{" "}

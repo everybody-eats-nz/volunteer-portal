@@ -19,7 +19,7 @@ import {
   NovaStatusMapping,
 } from "@/types/nova-migration";
 import { hash } from "bcryptjs";
-import { SignupStatus } from "@prisma/client";
+import { SignupStatus } from "@/generated/client";
 import { profilePhotoDownloader } from "./profile-photo-downloader";
 import { randomBytes } from "crypto";
 import { createNZDate } from "./timezone";
@@ -192,7 +192,9 @@ export class HistoricalDataTransformer {
 
             if (existingShift) {
               console.log(
-                `Skipping existing shift: ${eventData.shiftTypeName} on ${eventData.start.toISOString()}`
+                `Skipping existing shift: ${
+                  eventData.shiftTypeName
+                } on ${eventData.start.toISOString()}`
               );
               this.result.stats.shiftsSkipped++;
               continue;
@@ -662,7 +664,7 @@ export class HistoricalDataTransformer {
     let dateString: string | null = null;
     if (eventDate) {
       // Extract just the date part (YYYY-MM-DD) from the date string
-      dateString = eventDate.split('T')[0];
+      dateString = eventDate.split("T")[0];
     } else if (eventName.includes("Sunday")) {
       // Try to parse date from event name
       const match = eventName.match(/(\d+)(?:st|nd|rd|th)\s+(\w+)/);
@@ -671,23 +673,38 @@ export class HistoricalDataTransformer {
         const year = new Date().getFullYear();
         const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
         // Format as YYYY-MM-DD
-        dateString = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        dateString = `${year}-${String(monthIndex + 1).padStart(
+          2,
+          "0"
+        )}-${String(day).padStart(2, "0")}`;
       }
     }
 
     // If no date could be parsed, fallback to today
     if (!dateString) {
       const today = new Date();
-      dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      dateString = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     }
 
     // Apply hardcoded times based on shift type - create dates in NZ timezone
     const times = getShiftTimes(shiftTypeName);
-    const startDate = createNZDate(dateString, times.startHour, times.startMinute, 0);
+    const startDate = createNZDate(
+      dateString,
+      times.startHour,
+      times.startMinute,
+      0
+    );
     const endDate = createNZDate(dateString, times.endHour, times.endMinute, 0);
 
     console.log(
-      `[SHIFT_TIMES] ${shiftTypeName} on ${dateString}: ${startDate.toISOString()} - ${endDate.toISOString()} (NZ time: ${startDate.toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' })} - ${endDate.toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland' })})`
+      `[SHIFT_TIMES] ${shiftTypeName} on ${dateString}: ${startDate.toISOString()} - ${endDate.toISOString()} (NZ time: ${startDate.toLocaleString(
+        "en-NZ",
+        { timeZone: "Pacific/Auckland" }
+      )} - ${endDate.toLocaleString("en-NZ", {
+        timeZone: "Pacific/Auckland",
+      })})`
     );
 
     // Generate clean notes - only include meaningful event name

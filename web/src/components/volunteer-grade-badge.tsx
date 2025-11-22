@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { type VolunteerGrade } from "@prisma/client";
+import { type VolunteerGrade } from "@/generated/client";
 import { getVolunteerGradeInfo } from "@/lib/volunteer-grades";
 
 interface VolunteerGradeBadgeProps {

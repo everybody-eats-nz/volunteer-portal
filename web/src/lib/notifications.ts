@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { NotificationType } from "@prisma/client";
-import { sendNotificationToUser, updateUnreadCount } from "./notification-helpers";
+import { NotificationType } from "@/generated/client";
+import {
+  sendNotificationToUser,
+  updateUnreadCount,
+} from "./notification-helpers";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -114,7 +117,10 @@ export async function getNotifications(
 /**
  * Mark notification as read
  */
-export async function markNotificationAsRead(notificationId: string, userId: string) {
+export async function markNotificationAsRead(
+  notificationId: string,
+  userId: string
+) {
   try {
     const notification = await prisma.notification.update({
       where: {
@@ -165,7 +171,10 @@ export async function markAllNotificationsAsRead(userId: string) {
 /**
  * Delete a notification
  */
-export async function deleteNotification(notificationId: string, userId: string) {
+export async function deleteNotification(
+  notificationId: string,
+  userId: string
+) {
   try {
     const notification = await prisma.notification.delete({
       where: {

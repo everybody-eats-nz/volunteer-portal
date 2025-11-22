@@ -21,7 +21,7 @@ import {
 import { Award, ChevronDown, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { type VolunteerGrade } from "@prisma/client";
+import { type VolunteerGrade } from "@/generated/client";
 import {
   VOLUNTEER_GRADE_OPTIONS,
   getVolunteerGradeInfo,
@@ -203,7 +203,9 @@ export function VolunteerGradeToggle({
                   <div className="flex items-center gap-2 text-left">
                     <span>{getVolunteerGradeInfo(selectedGrade).icon}</span>
                     <div className="flex flex-col text-left">
-                      <span className="font-medium">{getVolunteerGradeInfo(selectedGrade).label}</span>
+                      <span className="font-medium">
+                        {getVolunteerGradeInfo(selectedGrade).label}
+                      </span>
                       <span className="text-xs text-muted-foreground">
                         {getVolunteerGradeInfo(selectedGrade).description}
                       </span>

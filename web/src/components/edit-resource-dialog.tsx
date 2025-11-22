@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload, Loader2, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Resource } from "@prisma/client";
+import { Resource } from "@/generated/client";
 
 import {
   Dialog,
@@ -134,7 +134,10 @@ export function EditResourceDialog({
 
       // Update resource
       const tags = values.tags
-        ? values.tags.split(",").map((t) => t.trim()).filter(Boolean)
+        ? values.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [];
 
       const response = await fetch(`/api/admin/resources/${resource.id}`, {
@@ -217,7 +220,9 @@ export function EditResourceDialog({
                         Document (Word, Excel, etc.)
                       </SelectItem>
                       <SelectItem value="LINK">External Link</SelectItem>
-                      <SelectItem value="VIDEO">Video (YouTube, etc.)</SelectItem>
+                      <SelectItem value="VIDEO">
+                        Video (YouTube, etc.)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -259,7 +264,8 @@ export function EditResourceDialog({
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Leave empty to keep current file. Max: {MAX_FILE_SIZE / 1024 / 1024}MB
+                  Leave empty to keep current file. Max:{" "}
+                  {MAX_FILE_SIZE / 1024 / 1024}MB
                 </p>
               </div>
             )}

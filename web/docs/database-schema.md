@@ -30,27 +30,27 @@ Follow consistent patterns for all models:
 model Volunteer {
   // Primary key
   id        String   @id @default(cuid())
-  
+
   // Required fields
   email     String   @unique
   name      String
-  
+
   // Optional fields with defaults
   status    VolunteerStatus @default(ACTIVE)
   role      UserRole        @default(VOLUNTEER)
-  
+
   // Timestamps (ALWAYS include)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // JSON fields for flexible data
   emergencyContact Json?
   skills           String[]
-  
+
   // Relations
   shifts    ShiftAssignment[]
   achievements UserAchievement[]
-  
+
   // Indexes for performance
   @@index([email])
   @@index([status])
@@ -86,11 +86,11 @@ model ShiftAssignment {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relations
   volunteer   User  @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
   shift       Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  
+
   // Prevent duplicate assignments
   @@unique([volunteerId, shiftId])
   @@map("shift_assignments")
@@ -121,10 +121,10 @@ model Achievement {
   isActive    Boolean           @default(true)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
-  
+
   // Relations
   userAchievements UserAchievement[]
-  
+
   @@map("achievements")
 }
 
@@ -134,11 +134,11 @@ model UserAchievement {
   achievementId String
   unlockedAt    DateTime    @default(now())
   progress      Json?       // Track progress towards achievement
-  
+
   // Relations
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-  
+
   // Prevent duplicate achievements
   @@unique([userId, achievementId])
   @@map("user_achievements")
@@ -147,7 +147,7 @@ model UserAchievement {
 enum AchievementType {
   MILESTONE    // Based on shift count
   DEDICATION   // Based on consecutive months
-  IMPACT       // Based on hours volunteered  
+  IMPACT       // Based on hours volunteered
   SPECIALIZATION // Based on specific shift types
 }
 ```
@@ -166,7 +166,7 @@ model AuditLog {
   newValues Json?    // New values
   changedBy String   // User who made the change
   timestamp DateTime @default(now())
-  
+
   @@index([entityId, entityType])
   @@index([changedBy])
   @@index([timestamp])
@@ -198,16 +198,16 @@ For complex schema changes, include data migration:
 
 ```typescript
 // migration-script.ts
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@/generated/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function migrateVolunteerData() {
   // Example: Move data from old structure to new
   const volunteers = await prisma.volunteer.findMany({
-    where: { emergencyContactName: { not: null } }
-  })
-  
+    where: { emergencyContactName: { not: null } },
+  });
+
   for (const volunteer of volunteers) {
     await prisma.volunteer.update({
       where: { id: volunteer.id },
@@ -215,16 +215,16 @@ async function migrateVolunteerData() {
         emergencyContact: {
           name: volunteer.emergencyContactName,
           phone: volunteer.emergencyContactPhone,
-          relationship: volunteer.emergencyContactRelationship || 'Unknown'
-        }
-      }
-    })
+          relationship: volunteer.emergencyContactRelationship || "Unknown",
+        },
+      },
+    });
   }
 }
 
 migrateVolunteerData()
   .catch(console.error)
-  .finally(() => prisma.$disconnect())
+  .finally(() => prisma.$disconnect());
 ```
 
 ## Database Operations
@@ -236,7 +236,7 @@ Include necessary relations to avoid N+1 problems:
 ```typescript
 // ✅ GOOD - Include relations in one query
 const volunteers = await prisma.user.findMany({
-  where: { role: 'VOLUNTEER' },
+  where: { role: "VOLUNTEER" },
   include: {
     shifts: {
       include: {
@@ -245,24 +245,24 @@ const volunteers = await prisma.user.findMany({
             id: true,
             title: true,
             date: true,
-          }
-        }
-      }
+          },
+        },
+      },
     },
     achievements: {
       include: {
-        achievement: true
-      }
-    }
-  }
-})
+        achievement: true,
+      },
+    },
+  },
+});
 
 // ❌ BAD - N+1 query problem
-const volunteers = await prisma.user.findMany({ where: { role: 'VOLUNTEER' } })
+const volunteers = await prisma.user.findMany({ where: { role: "VOLUNTEER" } });
 for (const volunteer of volunteers) {
   volunteer.shifts = await prisma.shiftAssignment.findMany({
-    where: { volunteerId: volunteer.id }
-  })
+    where: { volunteerId: volunteer.id },
+  });
 }
 ```
 
@@ -277,17 +277,17 @@ async function assignVolunteerToShift(volunteerId: string, shiftId: string) {
     // Check shift capacity
     const shift = await tx.shift.findUnique({
       where: { id: shiftId },
-      include: { _count: { select: { assignments: true } } }
-    })
-    
+      include: { _count: { select: { assignments: true } } },
+    });
+
     if (!shift) {
-      throw new Error("Shift not found")
+      throw new Error("Shift not found");
     }
-    
+
     if (shift._count.assignments >= shift.maxVolunteers) {
-      throw new Error("Shift is at capacity")
+      throw new Error("Shift is at capacity");
     }
-    
+
     // Check for conflicts
     const conflict = await tx.shiftAssignment.findFirst({
       where: {
@@ -296,33 +296,33 @@ async function assignVolunteerToShift(volunteerId: string, shiftId: string) {
           date: shift.date,
           OR: [
             { startTime: { lte: shift.endTime } },
-            { endTime: { gte: shift.startTime } }
-          ]
-        }
-      }
-    })
-    
+            { endTime: { gte: shift.startTime } },
+          ],
+        },
+      },
+    });
+
     if (conflict) {
-      throw new Error("Volunteer has a conflicting shift")
+      throw new Error("Volunteer has a conflicting shift");
     }
-    
+
     // Create assignment
     const assignment = await tx.shiftAssignment.create({
       data: {
         volunteerId,
         shiftId,
-        status: 'CONFIRMED'
-      }
-    })
-    
+        status: "CONFIRMED",
+      },
+    });
+
     // Update volunteer stats
     await tx.user.update({
       where: { id: volunteerId },
-      data: { totalShifts: { increment: 1 } }
-    })
-    
-    return assignment
-  })
+      data: { totalShifts: { increment: 1 } },
+    });
+
+    return assignment;
+  });
 }
 ```
 
@@ -336,19 +336,20 @@ async function createVolunteer(data: VolunteerInput) {
     return await prisma.user.create({
       data: {
         ...data,
-        role: 'VOLUNTEER',
-        status: 'PENDING'
-      }
-    })
+        role: "VOLUNTEER",
+        status: "PENDING",
+      },
+    });
   } catch (error) {
-    if (error.code === 'P2002') { // Unique constraint violation
-      if (error.meta?.target?.includes('email')) {
-        throw new Error("A volunteer with this email already exists")
+    if (error.code === "P2002") {
+      // Unique constraint violation
+      if (error.meta?.target?.includes("email")) {
+        throw new Error("A volunteer with this email already exists");
       }
     }
-    
-    console.error('Database error:', error)
-    throw new Error("Failed to create volunteer")
+
+    console.error("Database error:", error);
+    throw new Error("Failed to create volunteer");
   }
 }
 ```
@@ -359,118 +360,118 @@ async function createVolunteer(data: VolunteerInput) {
 
 ```typescript
 // prisma/seed.ts
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { PrismaClient } from "@/generated/client";
+import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...')
-  
+  console.log("🌱 Starting database seed...");
+
   // Clear existing data in development
-  if (process.env.NODE_ENV !== 'production') {
-    await prisma.shiftAssignment.deleteMany()
-    await prisma.userAchievement.deleteMany()
-    await prisma.shift.deleteMany()
-    await prisma.achievement.deleteMany()
-    await prisma.user.deleteMany()
+  if (process.env.NODE_ENV !== "production") {
+    await prisma.shiftAssignment.deleteMany();
+    await prisma.userAchievement.deleteMany();
+    await prisma.shift.deleteMany();
+    await prisma.achievement.deleteMany();
+    await prisma.user.deleteMany();
   }
-  
+
   // Create admin user
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@everybodyeats.org',
-      name: 'Admin User',
-      password: await bcrypt.hash('admin123', 12),
-      role: 'ADMIN',
-      status: 'ACTIVE',
+      email: "admin@everybodyeats.org",
+      name: "Admin User",
+      password: await bcrypt.hash("admin123", 12),
+      role: "ADMIN",
+      status: "ACTIVE",
       emergencyContact: {
-        name: 'Emergency Contact',
-        phone: '+1234567890',
-        relationship: 'Spouse'
-      }
-    }
-  })
-  
+        name: "Emergency Contact",
+        phone: "+1234567890",
+        relationship: "Spouse",
+      },
+    },
+  });
+
   // Create shift types
   const shiftTypes = await Promise.all([
     prisma.shiftType.create({
       data: {
-        name: 'Kitchen Prep',
-        description: 'Food preparation and cooking',
+        name: "Kitchen Prep",
+        description: "Food preparation and cooking",
         duration: 240, // 4 hours in minutes
         maxVolunteers: 6,
-        requiredSkills: ['cooking', 'food-safety']
-      }
+        requiredSkills: ["cooking", "food-safety"],
+      },
     }),
     prisma.shiftType.create({
       data: {
-        name: 'Service',
-        description: 'Serving meals to guests',
+        name: "Service",
+        description: "Serving meals to guests",
         duration: 180, // 3 hours
         maxVolunteers: 8,
-        requiredSkills: ['customer-service']
-      }
+        requiredSkills: ["customer-service"],
+      },
     }),
     prisma.shiftType.create({
       data: {
-        name: 'Cleanup',
-        description: 'Cleaning and dishwashing',
+        name: "Cleanup",
+        description: "Cleaning and dishwashing",
         duration: 120, // 2 hours
         maxVolunteers: 4,
-        requiredSkills: []
-      }
-    })
-  ])
-  
+        requiredSkills: [],
+      },
+    }),
+  ]);
+
   // Create achievements
   const achievements = await Promise.all([
     prisma.achievement.create({
       data: {
-        title: 'First Shift',
-        description: 'Complete your first volunteer shift',
-        icon: '🌟',
-        type: 'MILESTONE',
+        title: "First Shift",
+        description: "Complete your first volunteer shift",
+        icon: "🌟",
+        type: "MILESTONE",
         criteria: { shiftCount: 1 },
-        points: 10
-      }
+        points: 10,
+      },
     }),
     prisma.achievement.create({
       data: {
-        title: 'Dedicated Volunteer',
-        description: 'Volunteer for 3 consecutive months',
-        icon: '🏆',
-        type: 'DEDICATION',
+        title: "Dedicated Volunteer",
+        description: "Volunteer for 3 consecutive months",
+        icon: "🏆",
+        type: "DEDICATION",
         criteria: { consecutiveMonths: 3 },
-        points: 50
-      }
+        points: 50,
+      },
     }),
     prisma.achievement.create({
       data: {
-        title: 'Time Hero',
-        description: 'Volunteer for 100+ hours',
-        icon: '⏰',
-        type: 'IMPACT',
+        title: "Time Hero",
+        description: "Volunteer for 100+ hours",
+        icon: "⏰",
+        type: "IMPACT",
         criteria: { totalHours: 100 },
-        points: 100
-      }
-    })
-  ])
-  
-  console.log('✅ Database seeded successfully!')
-  console.log(`Created admin user: ${adminUser.email}`)
-  console.log(`Created ${shiftTypes.length} shift types`)
-  console.log(`Created ${achievements.length} achievements`)
+        points: 100,
+      },
+    }),
+  ]);
+
+  console.log("✅ Database seeded successfully!");
+  console.log(`Created admin user: ${adminUser.email}`);
+  console.log(`Created ${shiftTypes.length} shift types`);
+  console.log(`Created ${achievements.length} achievements`);
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e)
-    process.exit(1)
+    console.error("❌ Seed failed:", e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });
 ```
 
 ### 2. Running Seeds
@@ -493,12 +494,12 @@ npx tsx prisma/seed-achievements.ts
 ```prisma
 model User {
   // ... fields
-  
+
   // Single column indexes
   @@index([email])
   @@index([status])
   @@index([role])
-  
+
   // Composite indexes for common queries
   @@index([status, role])
   @@index([createdAt, status])
@@ -506,11 +507,11 @@ model User {
 
 model Shift {
   // ... fields
-  
+
   // Date range queries
   @@index([date, startTime])
   @@index([date, shiftTypeId])
-  
+
   // Full-text search
   @@index([title, description])
 }
@@ -522,11 +523,11 @@ model Shift {
 // Pagination with cursor
 async function getVolunteers(cursor?: string, limit = 20) {
   return await prisma.user.findMany({
-    where: { role: 'VOLUNTEER' },
+    where: { role: "VOLUNTEER" },
     take: limit,
     skip: cursor ? 1 : 0,
     cursor: cursor ? { id: cursor } : undefined,
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
     select: {
       id: true,
       name: true,
@@ -534,28 +535,28 @@ async function getVolunteers(cursor?: string, limit = 20) {
       status: true,
       totalHours: true,
       _count: {
-        select: { shifts: true }
-      }
-    }
-  })
+        select: { shifts: true },
+      },
+    },
+  });
 }
 
 // Aggregations for dashboard
 async function getVolunteerStats() {
   const [totalVolunteers, activeVolunteers, totalHours] = await Promise.all([
-    prisma.user.count({ where: { role: 'VOLUNTEER' } }),
-    prisma.user.count({ where: { role: 'VOLUNTEER', status: 'ACTIVE' } }),
+    prisma.user.count({ where: { role: "VOLUNTEER" } }),
+    prisma.user.count({ where: { role: "VOLUNTEER", status: "ACTIVE" } }),
     prisma.shiftAssignment.aggregate({
       _sum: { hoursWorked: true },
-      where: { status: 'COMPLETED' }
-    })
-  ])
-  
+      where: { status: "COMPLETED" },
+    }),
+  ]);
+
   return {
     totalVolunteers,
     activeVolunteers,
-    totalHours: totalHours._sum.hoursWorked || 0
-  }
+    totalHours: totalHours._sum.hoursWorked || 0,
+  };
 }
 ```
 
@@ -585,7 +586,7 @@ npx prisma validate
 
 ```typescript
 // test/db-helpers.ts
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@/generated/client";
 
 const prisma = new PrismaClient({
   datasources: {
@@ -593,30 +594,30 @@ const prisma = new PrismaClient({
       url: process.env.TEST_DATABASE_URL,
     },
   },
-})
+});
 
 export async function cleanDatabase() {
   // Clean in dependency order
-  await prisma.shiftAssignment.deleteMany()
-  await prisma.userAchievement.deleteMany()
-  await prisma.shift.deleteMany()
-  await prisma.achievement.deleteMany()
-  await prisma.user.deleteMany()
+  await prisma.shiftAssignment.deleteMany();
+  await prisma.userAchievement.deleteMany();
+  await prisma.shift.deleteMany();
+  await prisma.achievement.deleteMany();
+  await prisma.user.deleteMany();
 }
 
 export async function createTestUser(overrides = {}) {
   return await prisma.user.create({
     data: {
-      email: 'test@example.com',
-      name: 'Test User',
-      role: 'VOLUNTEER',
-      status: 'ACTIVE',
-      ...overrides
-    }
-  })
+      email: "test@example.com",
+      name: "Test User",
+      role: "VOLUNTEER",
+      status: "ACTIVE",
+      ...overrides,
+    },
+  });
 }
 
-export { prisma as testDb }
+export { prisma as testDb };
 ```
 
 ## Important Reminders

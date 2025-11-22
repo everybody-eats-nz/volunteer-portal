@@ -23,7 +23,7 @@ import {
 import { Plus, X, Tags, AlertTriangle, Loader2 } from "lucide-react";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { useToast } from "@/hooks/use-toast";
-import { type CustomLabel } from "@prisma/client";
+import { type CustomLabel } from "@/generated/client";
 
 type UserCustomLabel = {
   label: CustomLabel;
@@ -82,19 +82,20 @@ export function UserCustomLabelsManager({
       }
 
       const newLabel = await response.json();
-      setLabels(prev => [...prev, { label: newLabel }]);
-      
+      setLabels((prev) => [...prev, { label: newLabel }]);
+
       toast({
         title: "Success",
         description: "Label added to user",
       });
-      
+
       setDialogOpen(false);
       onChange?.();
     } catch (error) {
       toast({
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to add label",
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to add label",
         variant: "destructive",
       });
     } finally {
@@ -125,7 +126,9 @@ export function UserCustomLabelsManager({
         throw new Error(error.error || "Failed to remove label");
       }
 
-      setLabels(prev => prev.filter(ul => ul.label.id !== labelToRemove.id));
+      setLabels((prev) =>
+        prev.filter((ul) => ul.label.id !== labelToRemove.id)
+      );
 
       toast({
         title: "Success",
@@ -138,7 +141,8 @@ export function UserCustomLabelsManager({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to remove label",
+        description:
+          error instanceof Error ? error.message : "Failed to remove label",
         variant: "destructive",
       });
     } finally {
@@ -147,7 +151,7 @@ export function UserCustomLabelsManager({
   };
 
   const availableToAdd = availableLabels.filter(
-    label => !labels.some(ul => ul.label.id === label.id)
+    (label) => !labels.some((ul) => ul.label.id === label.id)
   );
 
   return (
@@ -160,9 +164,9 @@ export function UserCustomLabelsManager({
           </CardTitle>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={fetchAvailableLabels}
                 data-testid="add-label-button"
               >
@@ -206,8 +210,8 @@ export function UserCustomLabelsManager({
         ) : (
           <div className="flex flex-wrap gap-2">
             {labels.map((userLabel) => (
-              <div 
-                key={userLabel.label.id} 
+              <div
+                key={userLabel.label.id}
                 className="relative group"
                 data-testid={`user-label-${userLabel.label.id}`}
               >
@@ -234,7 +238,8 @@ export function UserCustomLabelsManager({
               Remove Label
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove this label from the user? This action cannot be undone.
+              Are you sure you want to remove this label from the user? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

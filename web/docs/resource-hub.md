@@ -140,6 +140,7 @@ npm run prisma:migrate -- dev --name add_resource_hub
 ## Admin Interface
 
 ### Location
+
 - **Admin Page**: `/admin/resources`
 - **Components**:
   - `AdminResourcesTable` - Resource management table
@@ -194,6 +195,7 @@ npm run prisma:migrate -- dev --name add_resource_hub
 ## Public Interface
 
 ### Location
+
 - **Public Page**: `/resources`
 - **Components**:
   - `ResourcesSearch` - Search and filter interface
@@ -204,6 +206,7 @@ npm run prisma:migrate -- dev --name add_resource_hub
 **Search Bar**: Full-text search across title and description
 
 **Category Filter**:
+
 - All Categories
 - Training
 - Policies
@@ -214,6 +217,7 @@ npm run prisma:migrate -- dev --name add_resource_hub
 - General
 
 **Type Filter**:
+
 - All Types
 - PDF
 - Image
@@ -230,6 +234,7 @@ npm run prisma:migrate -- dev --name add_resource_hub
 ### Resource Cards
 
 Each card displays:
+
 - Resource type badge (color-coded)
 - Title and description
 - Category
@@ -243,15 +248,18 @@ Each card displays:
 ### Public Endpoints
 
 #### GET `/api/resources`
+
 Returns all published resources with optional filtering.
 
 **Query Parameters**:
+
 - `search` (string) - Search title/description
 - `category` (ResourceCategory) - Filter by category
 - `type` (ResourceType) - Filter by type
 - `tags` (string) - Comma-separated tag list
 
 **Response**:
+
 ```json
 {
   "resources": [
@@ -274,19 +282,23 @@ Returns all published resources with optional filtering.
 ```
 
 #### GET `/api/resources/[id]`
+
 Returns a single resource by ID (published only for non-admins).
 
 ### Admin Endpoints (Authentication Required)
 
 #### GET `/api/admin/resources`
+
 Returns all resources (including drafts) with uploader information.
 
 **Response**: Includes `uploader` relation with full user details.
 
 #### POST `/api/admin/resources`
+
 Create a new resource.
 
 **Request Body**:
+
 ```json
 {
   "title": "Kitchen Safety Guide",
@@ -302,21 +314,26 @@ Create a new resource.
 ```
 
 #### PUT `/api/admin/resources/[id]`
+
 Update an existing resource.
 
 **Request Body**: Same as POST, all fields optional except what's being updated.
 
 #### DELETE `/api/admin/resources/[id]`
+
 Delete a resource and its associated file from storage.
 
 #### POST `/api/admin/resources/upload`
+
 Upload a file to Supabase Storage.
 
 **Request**: FormData with:
+
 - `file` (File) - The file to upload
 - `resourceType` (ResourceType) - Type of resource (validates file type)
 
 **Response**:
+
 ```json
 {
   "fileUrl": "https://...",
@@ -360,18 +377,21 @@ export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 ### Admin Components
 
 **`/src/components/admin-resources-table.tsx`**
+
 - Table display with actions
 - Delete confirmation dialog
 - Publish/unpublish toggle
 - Download/open actions
 
 **`/src/components/create-resource-dialog.tsx`**
+
 - Form with react-hook-form + zod validation
 - Dynamic UI based on resource type
 - File upload with preview
 - Tag input (comma-separated)
 
 **`/src/components/edit-resource-dialog.tsx`**
+
 - Pre-populated form with current values
 - Optional file replacement
 - Shows current file info
@@ -380,12 +400,14 @@ export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 ### Public Components
 
 **`/src/components/resources-search.tsx`**
+
 - Search input with Enter key support
 - Category/type dropdown filters (auto-apply)
 - Tag badges with toggle selection
 - Clear filters button
 
 **`/src/components/resources-grid.tsx`**
+
 - Responsive grid layout
 - Resource cards with metadata
 - Download/open links
@@ -394,12 +416,14 @@ export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 ### Utility Libraries
 
 **`/src/lib/storage.ts`**
+
 - File upload/delete functions
 - File validation utilities
 - Supabase client configuration
 - File size formatting
 
 **`/src/lib/supabase.ts`**
+
 - Supabase client initialization
 - Service role client (admin operations)
 - Environment variable configuration
@@ -424,6 +448,7 @@ All API routes return standardized error responses:
 ```
 
 HTTP Status Codes:
+
 - `400` - Validation errors, invalid input
 - `401` - Unauthorized (not logged in)
 - `403` - Forbidden (not admin)
@@ -433,6 +458,7 @@ HTTP Status Codes:
 ### User Feedback
 
 Uses `sonner` toast notifications:
+
 - Success: "Resource uploaded successfully"
 - Error: Specific error message from API
 - Loading states on buttons during operations
@@ -482,7 +508,7 @@ Potential features to add:
 ```json
 {
   "@supabase/supabase-js": "^2.x",
-  "@prisma/client": "^6.x",
+  "@/generated/client": "^6.x",
   "react-hook-form": "^7.x",
   "@hookform/resolvers": "^3.x",
   "zod": "^3.x",
@@ -523,6 +549,7 @@ Potential features to add:
 ### Manual Testing Checklist
 
 **Admin Functionality**:
+
 - [ ] Upload PDF resource
 - [ ] Upload image resource
 - [ ] Upload document resource
@@ -535,6 +562,7 @@ Potential features to add:
 - [ ] Verify file deleted from Supabase Storage
 
 **Public Functionality**:
+
 - [ ] View published resources
 - [ ] Search resources by title
 - [ ] Filter by category
