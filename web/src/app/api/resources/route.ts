@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/resources - List all published resources (public)

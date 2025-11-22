@@ -16,7 +16,7 @@ import {
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { CustomLabelDialog } from "./custom-label-dialog";
-import { type CustomLabel } from "@prisma/client";
+import { type CustomLabel } from "@/generated/client";
 import { useToast } from "@/hooks/use-toast";
 
 type LabelWithCount = CustomLabel & {
@@ -29,15 +29,23 @@ interface CustomLabelsContentProps {
   initialLabels: LabelWithCount[];
 }
 
-export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps) {
+export function CustomLabelsContent({
+  initialLabels,
+}: CustomLabelsContentProps) {
   const [labels, setLabels] = useState<LabelWithCount[]>(initialLabels);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLabel, setEditingLabel] = useState<LabelWithCount | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [labelToDelete, setLabelToDelete] = useState<LabelWithCount | null>(null);
+  const [labelToDelete, setLabelToDelete] = useState<LabelWithCount | null>(
+    null
+  );
   const { toast } = useToast();
 
-  const handleCreateLabel = async (data: { name: string; color: string; icon?: string }) => {
+  const handleCreateLabel = async (data: {
+    name: string;
+    color: string;
+    icon?: string;
+  }) => {
     try {
       const response = await fetch("/api/admin/custom-labels", {
         method: "POST",
@@ -53,27 +61,34 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
       }
 
       const newLabel = await response.json();
-      setLabels(prev => [{
-        ...newLabel,
-        _count: { users: 0 }
-      }, ...prev]);
-      
+      setLabels((prev) => [
+        {
+          ...newLabel,
+          _count: { users: 0 },
+        },
+        ...prev,
+      ]);
+
       toast({
         title: "Success",
         description: "Custom label created successfully",
       });
-      
+
       setDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create label",
+        description:
+          error instanceof Error ? error.message : "Failed to create label",
         variant: "destructive",
       });
     }
   };
 
-  const handleUpdateLabel = async (id: string, data: { name: string; color: string; icon?: string }) => {
+  const handleUpdateLabel = async (
+    id: string,
+    data: { name: string; color: string; icon?: string }
+  ) => {
     try {
       const response = await fetch(`/api/admin/custom-labels/${id}`, {
         method: "PUT",
@@ -89,21 +104,24 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
       }
 
       const updatedLabel = await response.json();
-      setLabels(prev => prev.map(label => 
-        label.id === id ? { ...updatedLabel, _count: label._count } : label
-      ));
-      
+      setLabels((prev) =>
+        prev.map((label) =>
+          label.id === id ? { ...updatedLabel, _count: label._count } : label
+        )
+      );
+
       toast({
         title: "Success",
         description: "Custom label updated successfully",
       });
-      
+
       setDialogOpen(false);
       setEditingLabel(null);
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update label",
+        description:
+          error instanceof Error ? error.message : "Failed to update label",
         variant: "destructive",
       });
     }
@@ -120,8 +138,8 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
         throw new Error(error.error || "Failed to delete label");
       }
 
-      setLabels(prev => prev.filter(label => label.id !== id));
-      
+      setLabels((prev) => prev.filter((label) => label.id !== id));
+
       toast({
         title: "Success",
         description: "Custom label deleted successfully",
@@ -129,7 +147,8 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete label",
+        description:
+          error instanceof Error ? error.message : "Failed to delete label",
         variant: "destructive",
       });
     }
@@ -180,7 +199,9 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
               <div className="h-12 w-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Plus className="h-6 w-6 text-slate-400" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No labels yet</h3>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                No labels yet
+              </h3>
               <p className="text-slate-600 mb-6">
                 Create your first custom label to help categorize volunteers.
               </p>
@@ -198,7 +219,8 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
                   <div className="flex items-center gap-3">
                     <CustomLabelBadge label={label} />
                     <div className="text-sm text-slate-600">
-                      {label._count.users} volunteer{label._count.users !== 1 ? 's' : ''}
+                      {label._count.users} volunteer
+                      {label._count.users !== 1 ? "s" : ""}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -236,9 +258,10 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         label={editingLabel}
-        onSave={editingLabel ?
-          (data) => handleUpdateLabel(editingLabel.id, data) :
-          handleCreateLabel
+        onSave={
+          editingLabel
+            ? (data) => handleUpdateLabel(editingLabel.id, data)
+            : handleCreateLabel
         }
       />
 
@@ -250,7 +273,8 @@ export function CustomLabelsContent({ initialLabels }: CustomLabelsContentProps)
               Delete Custom Label
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this label? It will be removed from all users.
+              Are you sure you want to delete this label? It will be removed
+              from all users.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

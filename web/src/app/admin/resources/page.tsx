@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { Upload } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
@@ -33,9 +33,7 @@ export default async function AdminResourcesPage({
   const categoryFilter = Array.isArray(params.category)
     ? params.category[0]
     : params.category;
-  const typeFilter = Array.isArray(params.type)
-    ? params.type[0]
-    : params.type;
+  const typeFilter = Array.isArray(params.type) ? params.type[0] : params.type;
   const publishedFilter = Array.isArray(params.published)
     ? params.published[0]
     : params.published;

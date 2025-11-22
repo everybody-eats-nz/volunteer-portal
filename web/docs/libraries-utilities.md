@@ -38,18 +38,18 @@ Always use the Prisma singleton to prevent connection issues:
 
 ```typescript
 // lib/db.ts
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@/generated/client";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
+  prisma: PrismaClient | undefined;
+};
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 // Usage in other files:
-import { prisma } from "@/lib/db"
+import { prisma } from "@/lib/db";
 
 // Never do this:
 // const prisma = new PrismaClient() // ❌ Creates multiple connections
@@ -61,11 +61,11 @@ NextAuth configuration with proper typing:
 
 ```typescript
 // lib/auth.ts
-import { NextAuthOptions } from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/lib/db"
+import { NextAuthOptions } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/db";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -78,46 +78,49 @@ export const authOptions: NextAuthOptions = {
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         // Validate credentials
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
-        
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        })
-        
+          where: { email: credentials.email },
+        });
+
         // Verify password (use bcrypt in production)
-        if (!user || !await verifyPassword(credentials.password, user.password)) {
-          return null
+        if (
+          !user ||
+          !(await verifyPassword(credentials.password, user.password))
+        ) {
+          return null;
         }
-        
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-        }
-      }
-    })
+        };
+      },
+    }),
   ],
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!
-        session.user.role = token.role as "ADMIN" | "VOLUNTEER"
+        session.user.id = token.sub!;
+        session.user.role = token.role as "ADMIN" | "VOLUNTEER";
       }
-      return session
+      return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
+        token.role = user.role;
       }
-      return token
-    }
+      return token;
+    },
   },
   pages: {
     signIn: "/login",
@@ -127,28 +130,28 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-}
+};
 
 // Helper functions
 export async function getCurrentUser() {
-  const session = await getServerSession(authOptions)
-  return session?.user
+  const session = await getServerSession(authOptions);
+  return session?.user;
 }
 
 export async function requireAuth() {
-  const user = await getCurrentUser()
+  const user = await getCurrentUser();
   if (!user) {
-    redirect("/login")
+    redirect("/login");
   }
-  return user
+  return user;
 }
 
 export async function requireAdmin() {
-  const user = await requireAuth()
+  const user = await requireAuth();
   if (user.role !== "ADMIN") {
-    throw new Error("Unauthorized")
+    throw new Error("Unauthorized");
   }
-  return user
+  return user;
 }
 ```
 
@@ -158,35 +161,38 @@ Essential utilities including the cn() function:
 
 ```typescript
 // lib/utils.ts
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 // cn() - Merge Tailwind classes safely
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 // Format dates consistently
-export function formatDate(date: Date | string, format: string = "PPP"): string {
-  return format(parseISO(date.toString()), format)
+export function formatDate(
+  date: Date | string,
+  format: string = "PPP"
+): string {
+  return format(parseISO(date.toString()), format);
 }
 
 // Generate initials for avatars
 export function getInitials(name: string): string {
   return name
     .split(" ")
-    .map(word => word[0])
+    .map((word) => word[0])
     .join("")
     .toUpperCase()
-    .slice(0, 2)
+    .slice(0, 2);
 }
 
 // Safe JSON parsing
 export function safeJsonParse<T>(json: string, fallback: T): T {
   try {
-    return JSON.parse(json) as T
+    return JSON.parse(json) as T;
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
@@ -195,17 +201,17 @@ export function debounce<T extends (...args: any[]) => void>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout
-  
+  let timeout: NodeJS.Timeout;
+
   return function executedFunction(...args: Parameters<T>) {
     const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
-  }
+      clearTimeout(timeout);
+      func(...args);
+    };
+
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 ```
 
@@ -215,7 +221,7 @@ Use Zod for all data validation:
 
 ```typescript
 // lib/validations/volunteer.ts
-import * as z from "zod"
+import * as z from "zod";
 
 export const volunteerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -229,26 +235,28 @@ export const volunteerSchema = z.object({
   availability: z.array(z.enum(["MORNING", "AFTERNOON", "EVENING", "WEEKEND"])),
   skills: z.array(z.string()).optional(),
   dietaryRestrictions: z.string().optional(),
-})
+});
 
-export type VolunteerInput = z.infer<typeof volunteerSchema>
+export type VolunteerInput = z.infer<typeof volunteerSchema>;
 
 // API validation helper
 export function validateVolunteer(data: unknown): VolunteerInput {
-  return volunteerSchema.parse(data)
+  return volunteerSchema.parse(data);
 }
 
 // Safe validation with error handling
-export function safeValidateVolunteer(data: unknown): 
-  { success: true; data: VolunteerInput } | 
-  { success: false; errors: z.ZodError } {
-  const result = volunteerSchema.safeParse(data)
-  
+export function safeValidateVolunteer(
+  data: unknown
+):
+  | { success: true; data: VolunteerInput }
+  | { success: false; errors: z.ZodError } {
+  const result = volunteerSchema.safeParse(data);
+
   if (result.success) {
-    return { success: true, data: result.data }
+    return { success: true, data: result.data };
   }
-  
-  return { success: false, errors: result.error }
+
+  return { success: false, errors: result.error };
 }
 ```
 
@@ -258,72 +266,69 @@ Create reusable hooks for common patterns:
 
 ```typescript
 // lib/hooks/use-shifts.ts
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Shift } from "@prisma/client"
+import { useState, useEffect } from "react";
+import { Shift } from "@/generated/client";
 
 export function useShifts(volunteerId?: string) {
-  const [shifts, setShifts] = useState<Shift[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     async function fetchShifts() {
       try {
-        setLoading(true)
-        const url = volunteerId 
+        setLoading(true);
+        const url = volunteerId
           ? `/api/shifts?volunteerId=${volunteerId}`
-          : "/api/shifts"
-        
-        const response = await fetch(url)
-        if (!response.ok) throw new Error("Failed to fetch shifts")
-        
-        const data = await response.json()
-        setShifts(data.shifts)
+          : "/api/shifts";
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch shifts");
+
+        const data = await response.json();
+        setShifts(data.shifts);
       } catch (err) {
-        setError(err as Error)
+        setError(err as Error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    fetchShifts()
-  }, [volunteerId])
+    fetchShifts();
+  }, [volunteerId]);
 
   const refetch = () => {
-    setError(null)
-    fetchShifts()
-  }
+    setError(null);
+    fetchShifts();
+  };
 
-  return { shifts, loading, error, refetch }
+  return { shifts, loading, error, refetch };
 }
 
 // Optimistic update hook
 export function useOptimisticUpdate<T>() {
-  const [optimisticData, setOptimisticData] = useState<T | null>(null)
-  const [isUpdating, setIsUpdating] = useState(false)
+  const [optimisticData, setOptimisticData] = useState<T | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const update = async (
-    optimisticValue: T,
-    updateFn: () => Promise<T>
-  ) => {
-    setOptimisticData(optimisticValue)
-    setIsUpdating(true)
+  const update = async (optimisticValue: T, updateFn: () => Promise<T>) => {
+    setOptimisticData(optimisticValue);
+    setIsUpdating(true);
 
     try {
-      const result = await updateFn()
-      setOptimisticData(result)
-      return result
+      const result = await updateFn();
+      setOptimisticData(result);
+      return result;
     } catch (error) {
-      setOptimisticData(null)
-      throw error
+      setOptimisticData(null);
+      throw error;
     } finally {
-      setIsUpdating(false)
+      setIsUpdating(false);
     }
-  }
+  };
 
-  return { optimisticData, isUpdating, update }
+  return { optimisticData, isUpdating, update };
 }
 ```
 
@@ -333,61 +338,61 @@ Business logic separated from UI:
 
 ```typescript
 // lib/services/volunteer-service.ts
-import { prisma } from "@/lib/db"
-import { volunteerSchema } from "@/lib/validations/volunteer"
-import { sendEmail } from "@/lib/email/service"
-import { welcomeEmailTemplate } from "@/lib/email/templates"
+import { prisma } from "@/lib/db";
+import { volunteerSchema } from "@/lib/validations/volunteer";
+import { sendEmail } from "@/lib/email/service";
+import { welcomeEmailTemplate } from "@/lib/email/templates";
 
 export class VolunteerService {
   static async create(data: unknown) {
     // Validate input
-    const validated = volunteerSchema.parse(data)
-    
+    const validated = volunteerSchema.parse(data);
+
     // Check for duplicates
     const existing = await prisma.user.findUnique({
-      where: { email: validated.email }
-    })
-    
+      where: { email: validated.email },
+    });
+
     if (existing) {
-      throw new Error("A volunteer with this email already exists")
+      throw new Error("A volunteer with this email already exists");
     }
-    
+
     // Create volunteer
     const volunteer = await prisma.user.create({
       data: {
         ...validated,
         role: "VOLUNTEER",
         status: "PENDING",
-      }
-    })
-    
+      },
+    });
+
     // Send welcome email
     await sendEmail({
       to: volunteer.email,
       subject: "Welcome to Everybody Eats!",
-      html: welcomeEmailTemplate(volunteer)
-    })
-    
-    return volunteer
+      html: welcomeEmailTemplate(volunteer),
+    });
+
+    return volunteer;
   }
-  
+
   static async updateHours(volunteerId: string, hours: number) {
     return await prisma.$transaction(async (tx) => {
       // Update volunteer hours
       const volunteer = await tx.user.update({
         where: { id: volunteerId },
-        data: { 
-          totalHours: { increment: hours }
-        }
-      })
-      
+        data: {
+          totalHours: { increment: hours },
+        },
+      });
+
       // Check for achievement unlocks
-      await this.checkAchievements(tx, volunteer)
-      
-      return volunteer
-    })
+      await this.checkAchievements(tx, volunteer);
+
+      return volunteer;
+    });
   }
-  
+
   private static async checkAchievements(tx: any, volunteer: any) {
     // Achievement logic here
   }
@@ -406,66 +411,64 @@ export class AppError extends Error {
     public code: string,
     public statusCode: number = 500
   ) {
-    super(message)
-    this.name = "AppError"
+    super(message);
+    this.name = "AppError";
   }
 }
 
 export class ValidationError extends AppError {
   constructor(message: string, public details?: any) {
-    super(message, "VALIDATION_ERROR", 400)
+    super(message, "VALIDATION_ERROR", 400);
   }
 }
 
 export class AuthenticationError extends AppError {
   constructor(message: string = "Authentication required") {
-    super(message, "AUTHENTICATION_ERROR", 401)
+    super(message, "AUTHENTICATION_ERROR", 401);
   }
 }
 
 export class AuthorizationError extends AppError {
   constructor(message: string = "Insufficient permissions") {
-    super(message, "AUTHORIZATION_ERROR", 403)
+    super(message, "AUTHORIZATION_ERROR", 403);
   }
 }
 
 export class NotFoundError extends AppError {
   constructor(resource: string) {
-    super(`${resource} not found`, "NOT_FOUND", 404)
+    super(`${resource} not found`, "NOT_FOUND", 404);
   }
 }
 
 // Error handler wrapper for API routes
-export function withErrorHandler(
-  handler: (req: Request) => Promise<Response>
-) {
+export function withErrorHandler(handler: (req: Request) => Promise<Response>) {
   return async (req: Request) => {
     try {
-      return await handler(req)
+      return await handler(req);
     } catch (error) {
-      console.error("API Error:", error)
-      
+      console.error("API Error:", error);
+
       if (error instanceof AppError) {
         return NextResponse.json(
-          { 
+          {
             success: false,
             error: error.message,
-            code: error.code 
+            code: error.code,
           },
           { status: error.statusCode }
-        )
+        );
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           success: false,
           error: "Internal server error",
-          code: "INTERNAL_ERROR"
+          code: "INTERNAL_ERROR",
         },
         { status: 500 }
-      )
+      );
     }
-  }
+  };
 }
 ```
 
@@ -475,7 +478,7 @@ Email sending with templates:
 
 ```typescript
 // lib/email/service.ts
-import nodemailer from "nodemailer"
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -485,7 +488,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-})
+});
 
 export async function sendEmail({
   to,
@@ -493,10 +496,10 @@ export async function sendEmail({
   html,
   text,
 }: {
-  to: string | string[]
-  subject: string
-  html: string
-  text?: string
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
 }) {
   const mailOptions = {
     from: process.env.EMAIL_FROM || "noreply@example.com",
@@ -504,15 +507,15 @@ export async function sendEmail({
     subject,
     html,
     text: text || htmlToText(html),
-  }
-  
+  };
+
   try {
-    const info = await transporter.sendMail(mailOptions)
-    console.log("Email sent:", info.messageId)
-    return { success: true, messageId: info.messageId }
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent:", info.messageId);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("Email error:", error)
-    throw new Error("Failed to send email")
+    console.error("Email error:", error);
+    throw new Error("Failed to send email");
   }
 }
 
@@ -553,7 +556,7 @@ export function welcomeEmailTemplate(user: { name: string; email: string }) {
         </div>
       </body>
     </html>
-  `
+  `;
 }
 ```
 
@@ -563,18 +566,16 @@ Test helpers and factories:
 
 ```typescript
 // lib/test-utils.ts
-import { render } from "@testing-library/react"
-import { SessionProvider } from "next-auth/react"
+import { render } from "@testing-library/react";
+import { SessionProvider } from "next-auth/react";
 
 export function renderWithSession(
   component: React.ReactElement,
   session?: any
 ) {
   return render(
-    <SessionProvider session={session}>
-      {component}
-    </SessionProvider>
-  )
+    <SessionProvider session={session}>{component}</SessionProvider>
+  );
 }
 
 // Mock data factories
@@ -588,8 +589,8 @@ export function createMockVolunteer(overrides = {}) {
     status: "ACTIVE",
     totalHours: 0,
     completedShifts: 0,
-    ...overrides
-  }
+    ...overrides,
+  };
 }
 ```
 

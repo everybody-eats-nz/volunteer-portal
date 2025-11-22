@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationItem } from "@/components/notification-item";
 import { Loader2, CheckCheck, Bell } from "lucide-react";
-import { Notification } from "@prisma/client";
+import { Notification } from "@/generated/client";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 
@@ -14,7 +14,10 @@ interface NotificationListProps {
   onClose?: () => void;
 }
 
-export function NotificationList({ onNotificationsRead, onClose }: NotificationListProps) {
+export function NotificationList({
+  onNotificationsRead,
+  onClose,
+}: NotificationListProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAllRead, setMarkingAllRead] = useState(false);
@@ -39,7 +42,7 @@ export function NotificationList({ onNotificationsRead, onClose }: NotificationL
 
   const handleMarkAllRead = async () => {
     if (markingAllRead) return;
-    
+
     setMarkingAllRead(true);
     try {
       const response = await fetch("/api/notifications", {
@@ -52,8 +55,8 @@ export function NotificationList({ onNotificationsRead, onClose }: NotificationL
 
       if (response.ok) {
         // Update local state
-        setNotifications(prev => 
-          prev.map(notification => ({ ...notification, isRead: true }))
+        setNotifications((prev) =>
+          prev.map((notification) => ({ ...notification, isRead: true }))
         );
         onNotificationsRead?.();
       }
@@ -65,8 +68,8 @@ export function NotificationList({ onNotificationsRead, onClose }: NotificationL
   };
 
   const handleNotificationRead = (notificationId: string) => {
-    setNotifications(prev =>
-      prev.map(notification =>
+    setNotifications((prev) =>
+      prev.map((notification) =>
         notification.id === notificationId
           ? { ...notification, isRead: true }
           : notification
@@ -76,17 +79,23 @@ export function NotificationList({ onNotificationsRead, onClose }: NotificationL
   };
 
   const handleNotificationDelete = (notificationId: string) => {
-    setNotifications(prev =>
-      prev.filter(notification => notification.id !== notificationId)
+    setNotifications((prev) =>
+      prev.filter((notification) => notification.id !== notificationId)
     );
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   if (loading) {
     return (
-      <div className="p-4 flex items-center justify-center text-muted-foreground" data-testid="notification-loading">
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
+      <div
+        className="p-4 flex items-center justify-center text-muted-foreground"
+        data-testid="notification-loading"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
           <Loader2 className="h-6 w-6" />
         </motion.div>
         <span className="ml-2">Loading notifications...</span>
@@ -100,7 +109,10 @@ export function NotificationList({ onNotificationsRead, onClose }: NotificationL
       <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-muted-foreground" />
-          <h3 className="font-semibold text-foreground" data-testid="notifications-title">
+          <h3
+            className="font-semibold text-foreground"
+            data-testid="notifications-title"
+          >
             Notifications
           </h3>
           {unreadCount > 0 && (
@@ -130,15 +142,20 @@ export function NotificationList({ onNotificationsRead, onClose }: NotificationL
 
       {/* Notification List */}
       {notifications.length === 0 ? (
-        <div className="p-8 text-center text-muted-foreground" data-testid="no-notifications">
+        <div
+          className="p-8 text-center text-muted-foreground"
+          data-testid="no-notifications"
+        >
           <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>No notifications yet</p>
-          <p className="text-sm">You&apos;ll see friend requests and shift updates here</p>
+          <p className="text-sm">
+            You&apos;ll see friend requests and shift updates here
+          </p>
         </div>
       ) : (
         <div className="max-h-80 overflow-y-auto">
-          <motion.div 
-            className="divide-y" 
+          <motion.div
+            className="divide-y"
             data-testid="notification-list"
             variants={staggerContainer}
             initial="hidden"

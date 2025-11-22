@@ -33,7 +33,7 @@ import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
 import { UserRoleToggle } from "@/components/user-role-toggle";
 import { AdminNotesManager } from "@/components/admin-notes-manager";
 import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager";
-import { type VolunteerGrade } from "@prisma/client";
+import { type VolunteerGrade } from "@/generated/client";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
@@ -412,7 +412,9 @@ export default async function AdminVolunteerPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Impersonate User</label>
+                  <label className="text-sm font-medium">
+                    Impersonate User
+                  </label>
                   <div>
                     <ImpersonateUserButton
                       userId={volunteer.id}
@@ -420,7 +422,8 @@ export default async function AdminVolunteerPage({
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    View the application as this user and perform actions on their behalf
+                    View the application as this user and perform actions on
+                    their behalf
                   </p>
                 </div>
 
@@ -495,7 +498,8 @@ export default async function AdminVolunteerPage({
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Manually trigger achievement calculation for this user based on their current progress
+                    Manually trigger achievement calculation for this user based
+                    on their current progress
                   </p>
                 </div>
               </CardContent>
@@ -894,12 +898,17 @@ export default async function AdminVolunteerPage({
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {formatInNZT(signup.shift.start, "EEE dd MMM yyyy")}
+                                {formatInNZT(
+                                  signup.shift.start,
+                                  "EEE dd MMM yyyy"
+                                )}
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {formatInNZT(signup.shift.start, "h:mma")} –{" "}
-                                {formatInNZT(signup.shift.end, "h:mma")}
+                                {formatInNZT(
+                                  signup.shift.start,
+                                  "h:mma"
+                                )} – {formatInNZT(signup.shift.end, "h:mma")}
                               </div>
                             </div>
                           </div>

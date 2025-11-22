@@ -19,7 +19,7 @@ import {
   NotificationPreference,
   NotificationType,
   VolunteerGrade,
-} from "@prisma/client";
+} from "@/generated/client";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,

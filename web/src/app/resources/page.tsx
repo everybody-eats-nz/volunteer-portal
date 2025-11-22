@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { ResourcesGrid } from "@/components/resources-grid";
 import { ResourcesSearch } from "@/components/resources-search";
@@ -21,9 +21,7 @@ export default async function ResourcesPage({
   const categoryFilter = Array.isArray(params.category)
     ? params.category[0]
     : params.category;
-  const typeFilter = Array.isArray(params.type)
-    ? params.type[0]
-    : params.type;
+  const typeFilter = Array.isArray(params.type) ? params.type[0] : params.type;
   const tagsFilter = Array.isArray(params.tags)
     ? params.tags
     : params.tags?.split(",");
@@ -103,8 +101,8 @@ export default async function ResourcesPage({
             <h1 className="text-3xl font-bold tracking-tight">Resource Hub</h1>
           </div>
           <p className="text-lg text-muted-foreground">
-            Access training materials, policies, forms, guides, and other helpful
-            resources for volunteers.
+            Access training materials, policies, forms, guides, and other
+            helpful resources for volunteers.
           </p>
         </div>
 

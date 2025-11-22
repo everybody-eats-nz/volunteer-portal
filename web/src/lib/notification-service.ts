@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { getEmailService } from "@/lib/email-service";
-import type { User, Shift, Signup, ShiftType, RestaurantManager } from "@prisma/client";
+import type {
+  User,
+  Shift,
+  Signup,
+  ShiftType,
+  RestaurantManager,
+} from "@/generated/client";
 
 interface ShiftWithDetails extends Shift {
   shiftType: ShiftType;
@@ -24,53 +30,68 @@ export class NotificationService {
     volunteer,
     canceledSignup,
   }: NotificationContext): Promise<void> {
-    console.log(`[NOTIFICATION] Starting notification process for shift cancellation`);
+    console.log(
+      `[NOTIFICATION] Starting notification process for shift cancellation`
+    );
     console.log(`[NOTIFICATION] Shift location: ${shift.location}`);
     console.log(`[NOTIFICATION] Volunteer: ${volunteer.email}`);
     console.log(`[NOTIFICATION] Canceled signup ID: ${canceledSignup.id}`);
 
     // Skip if shift has no location
     if (!shift.location) {
-      console.log("[NOTIFICATION] Shift has no location, skipping manager notifications");
+      console.log(
+        "[NOTIFICATION] Shift has no location, skipping manager notifications"
+      );
       return;
     }
 
     try {
       // Find restaurant managers for this location
       const managers = await this.getManagersForLocation(shift.location);
-      console.log(`[NOTIFICATION] Found ${managers.length} managers for location: ${shift.location}`);
-      console.log(`[NOTIFICATION] Managers:`, managers.map(m => ({ email: m.user.email, notifications: m.receiveNotifications })));
+      console.log(
+        `[NOTIFICATION] Found ${managers.length} managers for location: ${shift.location}`
+      );
+      console.log(
+        `[NOTIFICATION] Managers:`,
+        managers.map((m) => ({
+          email: m.user.email,
+          notifications: m.receiveNotifications,
+        }))
+      );
 
       if (managers.length === 0) {
-        console.log(`[NOTIFICATION] No restaurant managers assigned to location: ${shift.location}`);
+        console.log(
+          `[NOTIFICATION] No restaurant managers assigned to location: ${shift.location}`
+        );
         return;
       }
 
       // Calculate remaining volunteers count
       const remainingVolunteers = shift.signups.filter(
-        (signup) => signup.status === "CONFIRMED" && signup.id !== canceledSignup.id
+        (signup) =>
+          signup.status === "CONFIRMED" && signup.id !== canceledSignup.id
       ).length;
 
       // Format shift date and time
-      const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Pacific/Auckland',
+      const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "Pacific/Auckland",
       }).format(shift.start);
 
-      const shiftTime = new Intl.DateTimeFormat('en-NZ', {
-        hour: 'numeric',
-        minute: '2-digit',
+      const shiftTime = new Intl.DateTimeFormat("en-NZ", {
+        hour: "numeric",
+        minute: "2-digit",
         hour12: true,
-        timeZone: 'Pacific/Auckland',
+        timeZone: "Pacific/Auckland",
       }).format(shift.start);
 
-      const cancellationTime = new Intl.DateTimeFormat('en-NZ', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone: 'Pacific/Auckland',
+      const cancellationTime = new Intl.DateTimeFormat("en-NZ", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Pacific/Auckland",
       }).format(new Date());
 
       // Send notifications to all managers
@@ -78,13 +99,17 @@ export class NotificationService {
         try {
           // Try to send email notification, but don't let it block in-app notifications
           try {
-            console.log(`[NOTIFICATION] Attempting to send email to manager: ${manager.user.email}`);
+            console.log(
+              `[NOTIFICATION] Attempting to send email to manager: ${manager.user.email}`
+            );
             await this.emailService.sendShiftCancellationNotification({
               to: manager.user.email,
-              managerName: manager.user.firstName || manager.user.name || "Manager",
-              volunteerName: volunteer.firstName && volunteer.lastName 
-                ? `${volunteer.firstName} ${volunteer.lastName}`
-                : volunteer.name || "Volunteer",
+              managerName:
+                manager.user.firstName || manager.user.name || "Manager",
+              volunteerName:
+                volunteer.firstName && volunteer.lastName
+                  ? `${volunteer.firstName} ${volunteer.lastName}`
+                  : volunteer.name || "Volunteer",
               volunteerEmail: volunteer.email,
               shiftName: shift.shiftType.name,
               shiftDate,
@@ -94,18 +119,27 @@ export class NotificationService {
               remainingVolunteers,
               shiftCapacity: shift.capacity,
             });
-            console.log(`[NOTIFICATION] Email sent successfully to manager: ${manager.user.email}`);
+            console.log(
+              `[NOTIFICATION] Email sent successfully to manager: ${manager.user.email}`
+            );
           } catch (emailError) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn(`[NOTIFICATION] Email sending failed in development (this is OK): ${emailError}`);
+            if (process.env.NODE_ENV === "development") {
+              console.warn(
+                `[NOTIFICATION] Email sending failed in development (this is OK): ${emailError}`
+              );
             } else {
-              console.error(`[NOTIFICATION] Failed to send email to manager ${manager.user.email}:`, emailError);
+              console.error(
+                `[NOTIFICATION] Failed to send email to manager ${manager.user.email}:`,
+                emailError
+              );
             }
             // Continue with in-app notification even if email fails
           }
 
           // Create in-app notification
-          console.log(`[NOTIFICATION] Creating in-app notification for manager: ${manager.user.email}`);
+          console.log(
+            `[NOTIFICATION] Creating in-app notification for manager: ${manager.user.email}`
+          );
           await this.createInAppNotification({
             userId: manager.userId,
             shift,
@@ -113,9 +147,14 @@ export class NotificationService {
             remainingVolunteers,
           });
 
-          console.log(`[NOTIFICATION] Successfully created in-app notification for manager: ${manager.user.email}`);
+          console.log(
+            `[NOTIFICATION] Successfully created in-app notification for manager: ${manager.user.email}`
+          );
         } catch (error) {
-          console.error(`[NOTIFICATION] Failed to notify manager ${manager.user.email}:`, error);
+          console.error(
+            `[NOTIFICATION] Failed to notify manager ${manager.user.email}:`,
+            error
+          );
           // Continue with other managers even if one fails
         }
       });
@@ -130,7 +169,9 @@ export class NotificationService {
   /**
    * Get restaurant managers assigned to a specific location
    */
-  private async getManagersForLocation(location: string): Promise<(RestaurantManager & { user: User })[]> {
+  private async getManagersForLocation(
+    location: string
+  ): Promise<(RestaurantManager & { user: User })[]> {
     return await prisma.restaurantManager.findMany({
       where: {
         locations: { has: location }, // PostgreSQL array contains operator
@@ -157,29 +198,32 @@ export class NotificationService {
     volunteer: User;
     remainingVolunteers: number;
   }): Promise<void> {
-    const volunteerName = volunteer.firstName && volunteer.lastName 
-      ? `${volunteer.firstName} ${volunteer.lastName}`
-      : volunteer.name || "A volunteer";
+    const volunteerName =
+      volunteer.firstName && volunteer.lastName
+        ? `${volunteer.firstName} ${volunteer.lastName}`
+        : volunteer.name || "A volunteer";
 
-    const shiftDate = new Intl.DateTimeFormat('en-NZ', {
-      month: 'short',
-      day: 'numeric',
-      timeZone: 'Pacific/Auckland',
+    const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+      month: "short",
+      day: "numeric",
+      timeZone: "Pacific/Auckland",
     }).format(shift.start);
 
-    const shiftTime = new Intl.DateTimeFormat('en-NZ', {
-      hour: 'numeric',
-      minute: '2-digit',
+    const shiftTime = new Intl.DateTimeFormat("en-NZ", {
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
-      timeZone: 'Pacific/Auckland',
+      timeZone: "Pacific/Auckland",
     }).format(shift.start);
 
     const title = "Volunteer Canceled Shift";
     const message = `${volunteerName} canceled their ${shift.shiftType.name} shift on ${shiftDate} at ${shiftTime} (${shift.location}). ${remainingVolunteers}/${shift.capacity} volunteers remaining.`;
 
-    console.log(`[NOTIFICATION] Creating notification for user ${userId}: ${title}`);
+    console.log(
+      `[NOTIFICATION] Creating notification for user ${userId}: ${title}`
+    );
     console.log(`[NOTIFICATION] Message: ${message}`);
-    
+
     const notification = await prisma.notification.create({
       data: {
         userId,
@@ -190,8 +234,10 @@ export class NotificationService {
         relatedId: shift.id,
       },
     });
-    
-    console.log(`[NOTIFICATION] Created notification with ID: ${notification.id}`);
+
+    console.log(
+      `[NOTIFICATION] Created notification with ID: ${notification.id}`
+    );
   }
 
   /**
@@ -205,13 +251,13 @@ export class NotificationService {
       select: {
         location: true,
       },
-      distinct: ['location'],
+      distinct: ["location"],
       orderBy: {
-        location: 'asc',
+        location: "asc",
       },
     });
 
-    return shifts.map(shift => shift.location!).filter(Boolean);
+    return shifts.map((shift) => shift.location!).filter(Boolean);
   }
 }
 

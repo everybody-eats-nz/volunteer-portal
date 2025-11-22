@@ -1,6 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { hash } from "bcryptjs";
 
 /**
@@ -18,7 +18,7 @@ export async function createTestUser(
 ): Promise<void> {
   // Delete existing user first to avoid conflicts
   await prisma.user.deleteMany({
-    where: { email }
+    where: { email },
   });
 
   const hashedPassword = await hash("Test123456", 12);
@@ -47,11 +47,11 @@ export async function deleteTestUsers(emails: string[]): Promise<void> {
         in: emails,
       },
     },
-    select: { id: true }
+    select: { id: true },
   });
-  
-  const userIds = users.map(user => user.id);
-  
+
+  const userIds = users.map((user) => user.id);
+
   if (userIds.length > 0) {
     // Delete any remaining signups for these users
     await prisma.signup.deleteMany({
@@ -61,7 +61,7 @@ export async function deleteTestUsers(emails: string[]): Promise<void> {
         },
       },
     });
-    
+
     // Delete any notifications for these users
     await prisma.notification.deleteMany({
       where: {
@@ -70,7 +70,7 @@ export async function deleteTestUsers(emails: string[]): Promise<void> {
         },
       },
     });
-    
+
     // Finally delete the users
     await prisma.user.deleteMany({
       where: {
@@ -85,7 +85,11 @@ export async function deleteTestUsers(emails: string[]): Promise<void> {
 /**
  * Login with email and password
  */
-export async function login(page: Page, email: string, password: string): Promise<void> {
+export async function login(
+  page: Page,
+  email: string,
+  password: string
+): Promise<void> {
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Password").fill(password);
@@ -116,7 +120,7 @@ export async function createShift(data: {
   let shiftType = await prisma.shiftType.findFirst({
     where: { name: "Kitchen" },
   });
-  
+
   if (!shiftType) {
     try {
       shiftType = await prisma.shiftType.create({
