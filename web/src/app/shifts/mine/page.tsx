@@ -9,8 +9,9 @@ import {
   startOfWeek,
   endOfWeek,
   isSameMonth,
+  startOfDay,
 } from "date-fns";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, toUTC } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -343,7 +344,7 @@ export default async function MyShiftsPage({
     }
   }
 
-  function ShiftDetailsDialog({
+  async function ShiftDetailsDialog({
     shift,
     children,
   }: {
@@ -352,6 +353,22 @@ export default async function MyShiftsPage({
   }) {
     const theme = getShiftTheme(shift.shift.shiftType.name);
     const isPastShift = shift.shift.end < now;
+
+    // Fetch meals served for this shift's date and location
+    let mealsServedData = null;
+    if (isPastShift && shift.shift.location) {
+      const shiftDate = startOfDay(shift.shift.start);
+      const shiftDateUTC = toUTC(shiftDate);
+
+      mealsServedData = await prisma.mealsServed.findUnique({
+        where: {
+          date_location: {
+            date: shiftDateUTC,
+            location: shift.shift.location,
+          },
+        },
+      });
+    }
 
     return (
       <ResponsiveDialog>
@@ -403,6 +420,16 @@ export default async function MyShiftsPage({
                 {shift.shift.location || "To be confirmed"}
               </span>
             </div>
+
+            {/* Meals Served (for past shifts) */}
+            {isPastShift && mealsServedData && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Meals Served</span>
+                <span className="text-sm font-semibold text-primary">
+                  {mealsServedData.mealsServed} people
+                </span>
+              </div>
+            )}
 
             {/* Description */}
             {shift.shift.shiftType.description && (
