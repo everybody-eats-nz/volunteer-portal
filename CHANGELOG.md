@@ -1,3 +1,9 @@
+## [0.67.6] - 2025-11-22
+
+### Changes
+- feat: integrate PostHog for user tracking in RootLayout ([#272](https://github.com/everybody-eats-nz/volunteer-portal/pull/272)) by @malinmalliyawadu
+
+
 ## [0.67.5] - 2025-11-22
 
 ### Changes
