@@ -1,3 +1,9 @@
+## [0.67.5] - 2025-11-22
+
+### Changes
+- Posthog ([#271](https://github.com/everybody-eats-nz/volunteer-portal/pull/271)) by @malinmalliyawadu
+
+
 ## [0.67.4] - 2025-11-21
 
 ### Changes
