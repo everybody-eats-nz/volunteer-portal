@@ -73,20 +73,62 @@ export async function DashboardImpactStats({
     },
   });
 
-  // Calculate total meals from actual records, with fallback to estimate
-  const totalMealsServed = mealsServedRecords.reduce(
-    (sum, record) => sum + record.mealsServed,
-    0
+  // Create a map of actual meals served by date-location key
+  const actualMealsMap = new Map<string, number>();
+  mealsServedRecords.forEach((record) => {
+    const dateKey = `${record.date.toISOString()}-${record.location}`;
+    actualMealsMap.set(dateKey, record.mealsServed);
+  });
+
+  // For days without actual data, get default values from locations
+  const locationsToFetch = Array.from(
+    new Set(
+      Array.from(uniqueDays.values())
+        .filter(({ date, location }) => {
+          const dateKey = `${toUTC(date).toISOString()}-${location}`;
+          return !actualMealsMap.has(dateKey);
+        })
+        .map(({ location }) => location)
+    )
   );
 
-  // Count days with actual data vs estimated
-  const daysWithActualData = mealsServedRecords.length;
-  const totalDays = uniqueDays.size;
+  const locationDefaults = await prisma.location.findMany({
+    where: {
+      name: { in: locationsToFetch },
+    },
+    select: {
+      name: true,
+      defaultMealsServed: true,
+    },
+  });
 
-  // If we have some actual data, use it; otherwise fall back to estimation
-  const estimatedMeals = totalHours * 15; // Old calculation as fallback
-  const mealsToDisplay =
-    daysWithActualData > 0 ? totalMealsServed : estimatedMeals;
+  const defaultsMap = new Map(
+    locationDefaults.map((loc) => [loc.name, loc.defaultMealsServed])
+  );
+
+  // Calculate total meals (actual + estimated)
+  let totalMealsServed = 0;
+  let daysWithActualData = 0;
+  let daysWithEstimatedData = 0;
+
+  Array.from(uniqueDays.values()).forEach(({ date, location }) => {
+    const dateKey = `${toUTC(date).toISOString()}-${location}`;
+
+    if (actualMealsMap.has(dateKey)) {
+      totalMealsServed += actualMealsMap.get(dateKey)!;
+      daysWithActualData++;
+    } else if (defaultsMap.has(location)) {
+      totalMealsServed += defaultsMap.get(location)!;
+      daysWithEstimatedData++;
+    }
+  });
+
+  const totalDays = uniqueDays.size;
+  const hasAnyData = daysWithActualData > 0 || daysWithEstimatedData > 0;
+
+  // Fall back to old estimation only if no location data exists
+  const estimatedMeals = totalHours * 15;
+  const mealsToDisplay = hasAnyData ? totalMealsServed : estimatedMeals;
 
   return (
     <MotionContentCard className="h-fit" delay={0.6}>
@@ -105,17 +147,26 @@ export async function DashboardImpactStats({
                 {mealsToDisplay}
               </div>
               <p className="text-sm text-muted-foreground">
-                {daysWithActualData > 0
+                {hasAnyData
                   ? "Meals helped prepare"
                   : "Estimated meals helped prepare"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {daysWithActualData > 0 ? (
+                {hasAnyData ? (
                   <>
-                    Based on {daysWithActualData} day
-                    {daysWithActualData !== 1 ? "s" : ""} of actual data
-                    {totalDays > daysWithActualData &&
-                      ` (${totalDays - daysWithActualData} days estimated)`}
+                    {daysWithActualData > 0 && (
+                      <>
+                        {daysWithActualData} day{daysWithActualData !== 1 ? "s" : ""} actual
+                      </>
+                    )}
+                    {daysWithActualData > 0 && daysWithEstimatedData > 0 && (
+                      <>, </>
+                    )}
+                    {daysWithEstimatedData > 0 && (
+                      <>
+                        {daysWithEstimatedData} day{daysWithEstimatedData !== 1 ? "s" : ""} estimated
+                      </>
+                    )}
                   </>
                 ) : (
                   "Based on ~15 meals per volunteer hour"
