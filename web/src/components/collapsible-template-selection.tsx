@@ -36,45 +36,55 @@ export function CollapsibleTemplateSelection({
   shiftTypes,
 }: CollapsibleTemplateSelectionProps) {
   // State to track selected templates per location
-  const [selectedTemplates, setSelectedTemplates] = useState<Record<string, Set<string>>>(() => {
+  const [selectedTemplates, setSelectedTemplates] = useState<
+    Record<string, Set<string>>
+  >(() => {
     const initial: Record<string, Set<string>> = {};
-    sortedLocations.forEach(location => {
+    sortedLocations.forEach((location) => {
       initial[location] = new Set<string>();
     });
     return initial;
   });
 
   // Handle individual template selection
-  const handleTemplateSelect = useCallback((location: string, templateName: string, isSelected: boolean) => {
-    setSelectedTemplates(prev => {
-      const newState = { ...prev };
-      const locationSet = new Set(newState[location]);
-      if (isSelected) {
-        locationSet.add(templateName);
-      } else {
-        locationSet.delete(templateName);
-      }
-      newState[location] = locationSet;
-      return newState;
-    });
-  }, []);
+  const handleTemplateSelect = useCallback(
+    (location: string, templateName: string, isSelected: boolean) => {
+      setSelectedTemplates((prev) => {
+        const newState = { ...prev };
+        const locationSet = new Set(newState[location]);
+        if (isSelected) {
+          locationSet.add(templateName);
+        } else {
+          locationSet.delete(templateName);
+        }
+        newState[location] = locationSet;
+        return newState;
+      });
+    },
+    []
+  );
 
   // Handle "Select All" for a location
-  const handleSelectAll = useCallback((location: string, isSelected: boolean) => {
-    setSelectedTemplates(prev => {
-      const newState = { ...prev };
-      if (isSelected) {
-        const allTemplateNames = templatesByLocation[location].map(([name]) => name);
-        newState[location] = new Set(allTemplateNames);
-      } else {
-        newState[location] = new Set();
-      }
-      return newState;
-    });
-  }, [templatesByLocation]);
+  const handleSelectAll = useCallback(
+    (location: string, isSelected: boolean) => {
+      setSelectedTemplates((prev) => {
+        const newState = { ...prev };
+        if (isSelected) {
+          const allTemplateNames = templatesByLocation[location].map(
+            ([name]) => name
+          );
+          newState[location] = new Set(allTemplateNames);
+        } else {
+          newState[location] = new Set();
+        }
+        return newState;
+      });
+    },
+    [templatesByLocation]
+  );
   return (
     <div className="space-y-4">
-      {sortedLocations.map((location, index) => (
+      {sortedLocations?.map((location, index) => (
         <Collapsible key={location} defaultOpen={index === 0}>
           <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <div className="flex items-center gap-3">
@@ -82,7 +92,7 @@ export function CollapsibleTemplateSelection({
                 📍 {location}
               </span>
               <span className="text-sm text-muted-foreground">
-                ({templatesByLocation[location].length} templates)
+                ({templatesByLocation[location]?.length ?? 0} templates)
               </span>
             </div>
             <ChevronDownIcon className="h-4 w-4 text-gray-500 transition-transform duration-200 group-data-[state=closed]:rotate-180" />
@@ -94,21 +104,28 @@ export function CollapsibleTemplateSelection({
                 type="checkbox"
                 id={`select-all-${location.toLowerCase().replace(/\s+/g, "-")}`}
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                checked={selectedTemplates[location]?.size === templatesByLocation[location].length}
+                checked={
+                  selectedTemplates[location]?.size ===
+                  (templatesByLocation[location]?.length ?? 0)
+                }
                 onChange={(e) => {
                   handleSelectAll(location, e.target.checked);
                 }}
               />
-              <Label 
-                htmlFor={`select-all-${location.toLowerCase().replace(/\s+/g, "-")}`}
+              <Label
+                htmlFor={`select-all-${location
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}`}
                 className="text-sm font-medium text-blue-700 dark:text-blue-300"
               >
                 Select all {location} templates
               </Label>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {templatesByLocation[location].map(([name, template]) => {
-                const shiftTypeName = shiftTypes.find(st => st.id === template.shiftTypeId)?.name || 'Unknown';
+              {templatesByLocation[location]?.map(([name, template]) => {
+                const shiftTypeName =
+                  shiftTypes.find((st) => st.id === template.shiftTypeId)
+                    ?.name || "Unknown";
                 return (
                   <div
                     key={name}
@@ -135,7 +152,8 @@ export function CollapsibleTemplateSelection({
                         {name.replace(`${location} `, "")}
                       </Label>
                       <p className="text-sm text-muted-foreground">
-                        {template.startTime} - {template.endTime} • {template.capacity} volunteers
+                        {template.startTime} - {template.endTime} •{" "}
+                        {template.capacity} volunteers
                       </p>
                       <p className="text-xs text-primary/70 mt-1">
                         {shiftTypeName}

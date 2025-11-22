@@ -9,16 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  PlusIcon,
-  CalendarDaysIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { PlusIcon, CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { BulkDateRangeSection } from "@/components/shift-date-time-section";
 import { ShiftCreationClientForm } from "@/components/shift-creation-client-form";
 import { CollapsibleTemplateSelection } from "@/components/collapsible-template-selection";
-import { formatInNZT, createNZDate, parseISOInNZT, nowInNZT, toUTC } from "@/lib/timezone";
+import {
+  formatInNZT,
+  createNZDate,
+  parseISOInNZT,
+  nowInNZT,
+  toUTC,
+} from "@/lib/timezone";
 import { DeleteTemplateForm } from "@/components/delete-template-form";
 import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
@@ -26,10 +28,10 @@ import { LOCATIONS } from "@/lib/locations";
 
 // Templates are now stored in the database and fetched dynamically
 
-
 export default async function NewShiftPage() {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
+  const sortedLocations = LOCATIONS;
   if (!session?.user) redirect("/login?callbackUrl=/admin/shifts/new");
   if (role !== "ADMIN") redirect("/shifts");
 
@@ -68,8 +70,8 @@ export default async function NewShiftPage() {
       parsed.data;
 
     // Parse time components and create dates in NZ timezone
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
     const start = createNZDate(date, startHour, startMinute);
     const end = createNZDate(date, endHour, endMinute);
 
@@ -230,12 +232,7 @@ export default async function NewShiftPage() {
       redirect("/admin/shifts/new?error=bulk_validation");
     }
 
-    const {
-      startDate,
-      endDate,
-      selectedDays,
-      selectedTemplates,
-    } = parsed.data;
+    const { startDate, endDate, selectedDays, selectedTemplates } = parsed.data;
 
     // Parse dates in NZ timezone to ensure correct day-of-week calculations
     const start = parseISOInNZT(startDate);
@@ -249,7 +246,7 @@ export default async function NewShiftPage() {
     const dbTemplates = await prisma.shiftTemplate.findMany({
       where: {
         isActive: true,
-        name: { in: selectedTemplates }
+        name: { in: selectedTemplates },
       },
     });
 
@@ -284,8 +281,12 @@ export default async function NewShiftPage() {
           if (template) {
             // Parse time components and create dates in NZ timezone
             const dateStr = formatInNZT(current, "yyyy-MM-dd");
-            const [startHour, startMinute] = template.startTime.split(':').map(Number);
-            const [endHour, endMinute] = template.endTime.split(':').map(Number);
+            const [startHour, startMinute] = template.startTime
+              .split(":")
+              .map(Number);
+            const [endHour, endMinute] = template.endTime
+              .split(":")
+              .map(Number);
             const shiftStart = createNZDate(dateStr, startHour, startMinute);
             const shiftEnd = createNZDate(dateStr, endHour, endMinute);
 
@@ -326,7 +327,7 @@ export default async function NewShiftPage() {
             lte: shifts[shifts.length - 1].start,
           },
           shiftTypeId: {
-            in: shifts.map(s => s.shiftTypeId),
+            in: shifts.map((s) => s.shiftTypeId),
           },
         },
       });
@@ -432,13 +433,19 @@ export default async function NewShiftPage() {
     "use server";
 
     const schema = z.object({
-      name: z.string().min(1, "Template name is required").max(100, "Name too long"),
+      name: z
+        .string()
+        .min(1, "Template name is required")
+        .max(100, "Name too long"),
       shiftTypeId: z.string().cuid(),
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
       location: z.string().min(1, "Location is required"),
       capacity: z.coerce.number().int().min(1).max(1000),
-      notes: z.string().optional().transform((v) => (v && v.length > 0 ? v : null)),
+      notes: z
+        .string()
+        .optional()
+        .transform((v) => (v && v.length > 0 ? v : null)),
     });
 
     const parsed = schema.safeParse({
@@ -455,7 +462,8 @@ export default async function NewShiftPage() {
       redirect("/admin/shifts/new?error=template_validation");
     }
 
-    const { name, shiftTypeId, startTime, endTime, location, capacity, notes } = parsed.data;
+    const { name, shiftTypeId, startTime, endTime, location, capacity, notes } =
+      parsed.data;
 
     try {
       await prisma.shiftTemplate.create({
@@ -482,13 +490,19 @@ export default async function NewShiftPage() {
 
     const schema = z.object({
       templateId: z.string().cuid(),
-      name: z.string().min(1, "Template name is required").max(100, "Name too long"),
+      name: z
+        .string()
+        .min(1, "Template name is required")
+        .max(100, "Name too long"),
       shiftTypeId: z.string().cuid(),
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
       location: z.string().min(1, "Location is required"),
       capacity: z.coerce.number().int().min(1).max(1000),
-      notes: z.string().optional().transform((v) => (v && v.length > 0 ? v : null)),
+      notes: z
+        .string()
+        .optional()
+        .transform((v) => (v && v.length > 0 ? v : null)),
     });
 
     const parsed = schema.safeParse({
@@ -506,7 +520,16 @@ export default async function NewShiftPage() {
       redirect("/admin/shifts/new?error=template_validation");
     }
 
-    const { templateId, name, shiftTypeId, startTime, endTime, location, capacity, notes } = parsed.data;
+    const {
+      templateId,
+      name,
+      shiftTypeId,
+      startTime,
+      endTime,
+      location,
+      capacity,
+      notes,
+    } = parsed.data;
 
     try {
       await prisma.shiftTemplate.update({
@@ -623,7 +646,6 @@ export default async function NewShiftPage() {
     ])
   );
 
-
   return (
     <AdminPageWrapper
       title="Create shifts"
@@ -668,10 +690,9 @@ export default async function NewShiftPage() {
                   <ShiftCreationClientForm
                     shiftTypes={shiftTypes}
                     initialTemplates={templatesWithShiftTypes}
-                    locations={[...LOCATIONS]}
+                    locations={sortedLocations}
                     createShiftTypeAction={createShiftType}
                   />
-
                 </form>
               </CardContent>
             </Card>
@@ -748,24 +769,6 @@ export default async function NewShiftPage() {
                         return acc;
                       }, {} as Record<string, [string, (typeof templatesWithShiftTypes)[string]][]>);
 
-                      // Sort locations with specific order: Wellington, Glen Innes, Onehunga, then others
-                      const locationOrder = [
-                        "Wellington",
-                        "Glen Innes",
-                        "Onehunga",
-                      ];
-                      const sortedLocations = Object.keys(
-                        templatesByLocation
-                      ).sort((a, b) => {
-                        const indexA = locationOrder.indexOf(a);
-                        const indexB = locationOrder.indexOf(b);
-                        if (indexA !== -1 && indexB !== -1)
-                          return indexA - indexB;
-                        if (indexA !== -1) return -1;
-                        if (indexB !== -1) return 1;
-                        return a.localeCompare(b);
-                      });
-
                       return (
                         <CollapsibleTemplateSelection
                           templatesByLocation={templatesByLocation}
@@ -775,8 +778,6 @@ export default async function NewShiftPage() {
                       );
                     })()}
                   </div>
-
-
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
@@ -811,7 +812,8 @@ export default async function NewShiftPage() {
                   Manage Shift Templates
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Create, edit, and organize shift templates for efficient scheduling.
+                  Create, edit, and organize shift templates for efficient
+                  scheduling.
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -823,7 +825,7 @@ export default async function NewShiftPage() {
                       </h3>
                       <CreateTemplateDialog
                         shiftTypes={shiftTypes}
-                        locations={[...LOCATIONS]}
+                        locations={sortedLocations}
                         createAction={createTemplate}
                       />
                     </div>
@@ -834,14 +836,14 @@ export default async function NewShiftPage() {
                           className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 dark:hover:bg-accent/30 transition-colors"
                         >
                           <div className="space-y-1">
-                            <div className="font-medium">
-                              {template.name}
+                            <div className="font-medium">{template.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {template.shiftType.name} •{" "}
+                              {template.location || "General"}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {template.shiftType.name} • {template.location || "General"}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {template.startTime} - {template.endTime} • {template.capacity} volunteers
+                              {template.startTime} - {template.endTime} •{" "}
+                              {template.capacity} volunteers
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -857,7 +859,7 @@ export default async function NewShiftPage() {
                                 notes: template.notes,
                               }}
                               shiftTypes={shiftTypes}
-                              locations={[...LOCATIONS]}
+                              locations={sortedLocations}
                               editAction={editTemplate}
                             />
                             <DeleteTemplateForm
@@ -879,11 +881,12 @@ export default async function NewShiftPage() {
                       No templates found
                     </h3>
                     <p className="text-muted-foreground mb-6">
-                      Templates help you quickly create consistent shifts across different days.
+                      Templates help you quickly create consistent shifts across
+                      different days.
                     </p>
                     <CreateTemplateDialog
                       shiftTypes={shiftTypes}
-                      locations={[...LOCATIONS]}
+                      locations={sortedLocations}
                       createAction={createTemplate}
                       triggerText="Create First Template"
                       triggerVariant="default"

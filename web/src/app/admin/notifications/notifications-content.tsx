@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { LOCATIONS, type Location } from "@/lib/locations";
 import { useSearchParams } from "next/navigation";
 import { useLocationPreferenceState } from "@/hooks/use-location-preference";
 import {
@@ -64,13 +63,16 @@ interface ShiftType {
 
 interface NotificationsContentProps {
   shiftTypes: ShiftType[];
+  locations: readonly string[];
 }
 
 export function NotificationsContent({
   shiftTypes,
+  locations,
 }: NotificationsContentProps) {
   const searchParams = useSearchParams();
-  const { getLocationPreference, setLocationPreference } = useLocationPreferenceState();
+  const { getLocationPreference, setLocationPreference } =
+    useLocationPreferenceState();
   const [selectedShift, setSelectedShift] = useState<string>("");
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -105,13 +107,10 @@ export function NotificationsContent({
       setFilterShiftType(shiftTypeParam);
     }
 
-    if (
-      locationParam &&
-      LOCATIONS.includes(locationParam as Location)
-    ) {
+    if (locationParam && locations.includes(locationParam)) {
       setFilterLocation(locationParam);
     }
-  }, [searchParams, shiftTypes]);
+  }, [searchParams, shiftTypes, locations]);
 
   // Save location preference to localStorage when it changes
   useEffect(() => {
@@ -234,7 +233,16 @@ export function NotificationsContent({
     }
 
     setFilteredVolunteers(filtered);
-  }, [volunteers, filterNotificationsEnabled, filterLocation, filterShiftType, filterAvailability, selectedShift, shifts, filterMinShifts]);
+  }, [
+    volunteers,
+    filterNotificationsEnabled,
+    filterLocation,
+    filterShiftType,
+    filterAvailability,
+    selectedShift,
+    shifts,
+    filterMinShifts,
+  ]);
 
   // Load shifts with shortage
   useEffect(() => {
@@ -490,7 +498,10 @@ export function NotificationsContent({
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p>
                           Date:{" "}
-                          {formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy")}
+                          {formatInNZT(
+                            new Date(shift.start),
+                            "EEEE, MMMM d, yyyy"
+                          )}
                         </p>
                         <p>
                           Time: {formatInNZT(new Date(shift.start), "h:mm a")} -{" "}
@@ -531,7 +542,7 @@ export function NotificationsContent({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Locations</SelectItem>
-                    {LOCATIONS.map((location) => (
+                    {locations.map((location) => (
                       <SelectItem key={location} value={location}>
                         {location}
                       </SelectItem>

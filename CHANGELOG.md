@@ -1,3 +1,15 @@
+## [0.68.0] - 2025-11-22
+
+### Changes
+- Add daily meals served tracking system ([#274](https://github.com/everybody-eats-nz/volunteer-portal/pull/274)) by @malinmalliyawadu
+
+
+## [0.67.7] - 2025-11-22
+
+### Changes
+- Fix: Friend shared shifts based on day, AM/PM, and location ([#273](https://github.com/everybody-eats-nz/volunteer-portal/pull/273)) by @malinmalliyawadu
+
+
 ## [0.67.6] - 2025-11-22
 
 ### Changes
