@@ -86,6 +86,7 @@ interface RuleFormDialogProps {
     stopOnMatch: boolean;
   };
   onSuccess: () => void;
+  locations: readonly string[];
 }
 
 export function RuleFormDialog({
@@ -93,6 +94,7 @@ export function RuleFormDialog({
   onOpenChange,
   rule,
   onSuccess,
+  locations,
 }: RuleFormDialogProps) {
   const [shiftTypes, setShiftTypes] = useState<{ id: string; name: string }[]>(
     []
@@ -389,7 +391,7 @@ export function RuleFormDialog({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="ALL">All locations</SelectItem>
-                        {LOCATIONS.map((location) => (
+                        {locations.map((location) => (
                           <SelectItem key={location} value={location}>
                             {location}
                           </SelectItem>
