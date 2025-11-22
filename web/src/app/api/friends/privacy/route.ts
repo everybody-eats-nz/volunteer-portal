@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 
 const updatePrivacySchema = z.object({
   friendVisibility: z.enum(["PUBLIC", "FRIENDS_ONLY", "PRIVATE"]).optional(),

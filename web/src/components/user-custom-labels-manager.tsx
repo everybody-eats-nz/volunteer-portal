@@ -23,7 +23,7 @@ import {
 import { Plus, X, Tags, AlertTriangle, Loader2 } from "lucide-react";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { useToast } from "@/hooks/use-toast";
-import { type CustomLabel } from "@prisma/client";
+import { type CustomLabel } from "@/generated/client";
 
 type UserCustomLabel = {
   label: CustomLabel;

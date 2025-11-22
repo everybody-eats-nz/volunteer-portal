@@ -35,7 +35,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
-import { type VolunteerGrade } from "@prisma/client";
+import { type VolunteerGrade } from "@/generated/client";
 
 export interface Volunteer {
   id: string;

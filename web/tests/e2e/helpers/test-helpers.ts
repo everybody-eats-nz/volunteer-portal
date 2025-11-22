@@ -1,5 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 import { hash } from "bcryptjs";
 
 /**
@@ -193,7 +194,7 @@ export async function deleteTestShifts(shiftIds: string[]): Promise<void> {
 export async function createNotificationGroup(data: {
   name: string;
   description?: string;
-  filters: any;
+  filters: Prisma.InputJsonValue;
   createdBy: string;
 }): Promise<{ id: string }> {
   const group = await prisma.notificationGroup.create({

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";

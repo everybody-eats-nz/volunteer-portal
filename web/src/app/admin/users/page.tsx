@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { Users, UserPlus, Shield } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";

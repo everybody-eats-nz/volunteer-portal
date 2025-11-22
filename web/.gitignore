@@ -44,5 +44,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma generate
 /src/generated

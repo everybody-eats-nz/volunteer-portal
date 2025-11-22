@@ -4,7 +4,7 @@ import {
   type AutoAcceptRule,
   type Shift,
   type ShiftType,
-} from "@prisma/client";
+} from "@/generated/client";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";

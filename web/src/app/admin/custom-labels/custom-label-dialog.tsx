@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
-import { type CustomLabel } from "@prisma/client";
+import { type CustomLabel } from "@/generated/client";
 
 interface CustomLabelDialogProps {
   open: boolean;
