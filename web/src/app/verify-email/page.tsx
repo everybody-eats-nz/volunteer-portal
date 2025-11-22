@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useEffect as useLayoutEffect } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -60,8 +61,7 @@ export default function VerifyEmailPage() {
 
   // Handle initial state setup
   const hasInitialized = useRef(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!hasInitialized.current) {
       hasInitialized.current = true;
       // If coming from login page without a token, show resend interface
@@ -81,6 +81,7 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     // Only verify if we have a token and haven't shown an error
     if (token && !(!token && fromLogin) && !(! token && !fromLogin)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       verifyEmail();
     }
   }, [token, fromLogin, verifyEmail]);

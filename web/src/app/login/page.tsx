@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useEffect as useLayoutEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { signIn, getProviders, useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -143,8 +144,7 @@ export default function LoginPage() {
 
   // Apply initial messages using layout effect
   const hasAppliedInitialMessages = useRef(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (!hasAppliedInitialMessages.current && (initialMessages.errorMsg || initialMessages.successMsg || initialMessages.emailValue || initialMessages.clearPassword)) {
       hasAppliedInitialMessages.current = true;
       if (initialMessages.errorMsg && !error) {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect as useLayoutEffect } from "react";
+import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,8 +40,7 @@ export default function ForgotPasswordPage() {
 
   // Clear email on successful submission
   const prevSuccessRef = useRef<boolean>(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (state?.success && !prevSuccessRef.current) {
       prevSuccessRef.current = true;
       setEmail("");
