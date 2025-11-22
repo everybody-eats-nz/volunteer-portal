@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay } from "date-fns";
-import { formatInNZT, toUTC, parseISOInNZT, getDSTTransitionInfo } from "@/lib/timezone";
+import {
+  formatInNZT,
+  toUTC,
+  parseISOInNZT,
+  getDSTTransitionInfo,
+} from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
@@ -13,7 +18,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { ShiftLocationSelector } from "@/components/shift-location-selector";
 import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
 import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
-import { LocationOption, DEFAULT_LOCATION } from "@/lib/locations";
+import { LocationOption, DEFAULT_LOCATION, LOCATIONS } from "@/lib/locations";
 import { MealsServedInput } from "@/components/meals-served-input";
 
 interface AdminShiftsPageProps {
@@ -31,38 +36,34 @@ export default async function AdminShiftsPage({
 
   const params = await searchParams;
 
-  // Fetch active locations from database
-  const dbLocations = await prisma.location.findMany({
-    where: { isActive: true },
-    select: { name: true },
-    orderBy: { name: "asc" },
-  });
-  const LOCATIONS = dbLocations.map((loc) => loc.name);
-
   // Parse search parameters (handle dates consistently in NZ timezone)
   const today = formatInNZT(new Date(), "yyyy-MM-dd");
   const dateString = (params.date as string) || today;
-  const selectedLocation = (params.location as LocationOption) || DEFAULT_LOCATION;
-  
+  const selectedLocation =
+    (params.location as LocationOption) || DEFAULT_LOCATION;
+
   // Parse the date string directly in NZ timezone to avoid local time confusion
   const selectedDateNZT = parseISOInNZT(dateString);
   const isToday = dateString === today;
-  
+
   // Check for DST transition issues
   const dstInfo = getDSTTransitionInfo(selectedDateNZT);
-  if (dstInfo.nearTransition && process.env.NODE_ENV === 'development') {
-    console.warn(`Admin Schedule: ${dstInfo.message}`, { date: dateString, dstInfo });
+  if (dstInfo.nearTransition && process.env.NODE_ENV === "development") {
+    console.warn(`Admin Schedule: ${dstInfo.message}`, {
+      date: dateString,
+      dstInfo,
+    });
   }
 
   // Fetch shifts for the selected date and location (using NZ timezone)
   // Calculate day boundaries in NZ timezone - selectedDateNZT is already in NZT
   const startOfDayNZ = startOfDay(selectedDateNZT);
   const endOfDayNZ = endOfDay(selectedDateNZT);
-  
+
   // Convert TZDate objects to explicit UTC for reliable Prisma queries
   const startOfDayUTC = toUTC(startOfDayNZ);
   const endOfDayUTC = toUTC(endOfDayNZ);
-  
+
   const allShifts = await prisma.shift.findMany({
     where: {
       location: selectedLocation,
@@ -76,7 +77,13 @@ export default async function AdminShiftsPage({
       signups: {
         where: {
           status: {
-            in: ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING", "NO_SHOW"],
+            in: [
+              "CONFIRMED",
+              "PENDING",
+              "WAITLISTED",
+              "REGULAR_PENDING",
+              "NO_SHOW",
+            ],
           },
         },
         include: {
@@ -127,7 +134,13 @@ export default async function AdminShiftsPage({
           signups: {
             where: {
               status: {
-                in: ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING", "NO_SHOW"],
+                in: [
+                  "CONFIRMED",
+                  "PENDING",
+                  "WAITLISTED",
+                  "REGULAR_PENDING",
+                  "NO_SHOW",
+                ],
               },
             },
           },
@@ -154,7 +167,7 @@ export default async function AdminShiftsPage({
   // Include past shifts for attendance tracking - show last 30 days + future shifts
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
+
   const allCalendarShifts = await prisma.shift.findMany({
     where: {
       start: {
@@ -291,7 +304,11 @@ export default async function AdminShiftsPage({
               asChild
               variant={isToday ? "default" : "outline"}
               size="sm"
-              className={`flex-1 lg:flex-none h-11 ${!isToday ? 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700' : ''}`}
+              className={`flex-1 lg:flex-none h-11 ${
+                !isToday
+                  ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  : ""
+              }`}
               data-testid="today-button"
             >
               <Link
@@ -315,13 +332,11 @@ export default async function AdminShiftsPage({
             <div className="h-12 w-12 bg-muted dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-4">
               <Plus className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">
-              No shifts scheduled
-            </h3>
+            <h3 className="text-lg font-semibold mb-2">No shifts scheduled</h3>
             <p className="text-muted-foreground mb-6">
               Get started by creating your first shift for{" "}
-              {formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")} in {selectedLocation}
-              .
+              {formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")} in{" "}
+              {selectedLocation}.
             </p>
             <Button asChild size="sm" className="btn-primary">
               <Link href="/admin/shifts/new">
