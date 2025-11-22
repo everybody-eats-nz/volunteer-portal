@@ -1,14 +1,19 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcrypt");
+import bcrypt from "bcrypt";
 
-const prisma = new PrismaClient();
+import { PrismaClient } from "../src/generated/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Running production seed...");
 
   // Get admin credentials from environment variables or use defaults
   const adminEmail = process.env.ADMIN_EMAIL || "admin@everybodyeats.nz";
-  let adminPassword = process.env.ADMIN_PASSWORD;
+  const adminPassword = process.env.ADMIN_PASSWORD;
   const adminFirstName = process.env.ADMIN_FIRST_NAME || "Admin";
   const adminLastName = process.env.ADMIN_LAST_NAME || "User";
 

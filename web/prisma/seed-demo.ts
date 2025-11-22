@@ -1,32 +1,50 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcrypt");
-const { addDays, set, subYears, subMonths, subDays, format } = require("date-fns");
-const { tz } = require("@date-fns/tz");
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
+import bcrypt from "bcrypt";
+import {
+  addDays,
+  set,
+  subYears,
+  subMonths,
+  subDays,
+  format,
+  DateValues,
+} from "date-fns";
+import { tz } from "@date-fns/tz";
+import https from "https";
+
+import { PrismaClient } from "../src/generated/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import {
+  AchievementCategory,
+  CriteriaLogic,
+  NotificationPreference,
+  NotificationType,
+  VolunteerGrade,
+} from "@/generated/client";
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 // NZ timezone helper for seed script
 const NZ_TIMEZONE = "Pacific/Auckland";
 const nzTimezone = tz(NZ_TIMEZONE);
 
 // Helper functions for timezone-aware seeding
-function toNZT(date) {
+function toNZT(date: Date) {
   return nzTimezone(date);
 }
 
-function formatInNZT(date, formatStr) {
+function formatInNZT(date: Date, formatStr: string) {
   const nzTime = nzTimezone(date);
   return format(nzTime, formatStr, { in: nzTimezone });
 }
 
-function setInNZT(date, options) {
+function setInNZT(date: Date, options: DateValues) {
   const nzDate = nzTimezone(date);
   const setDate = set(nzDate, options);
   return toNZT(setDate);
 }
-
-const prisma = new PrismaClient();
 
 // Generate random profile images and names using randomuser.me for all users
 async function generateRandomProfileImagesForAllUsers() {
@@ -51,7 +69,9 @@ async function generateRandomProfileImagesForAllUsers() {
 
     try {
       // Get full user data from randomuser.me API
-      const response = await fetch(`https://randomuser.me/api/?gender=${gender}&inc=name,picture&nat=us,au,ca,gb,nz`);
+      const response = await fetch(
+        `https://randomuser.me/api/?gender=${gender}&inc=name,picture&nat=us,au,ca,gb,nz`
+      );
       const data = await response.json();
 
       if (data.results && data.results.length > 0) {
@@ -70,16 +90,18 @@ async function generateRandomProfileImagesForAllUsers() {
       }
 
       // Add delay to be respectful to API
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
-      console.log(`⚠️ Failed to get data for ${email}: ${error.message}`);
+      console.log(
+        `⚠️ Failed to get data for ${email}: ${(error as Error).message}`
+      );
     }
   }
 
   return userUpdates;
 }
 
-function downloadImageAsBase64(url) {
+function downloadImageAsBase64(url: string) {
   return new Promise((resolve, reject) => {
     https
       .get(url, (response) => {
@@ -88,8 +110,8 @@ function downloadImageAsBase64(url) {
           return;
         }
 
-        const chunks = [];
-        response.on("data", (chunk) => chunks.push(chunk));
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
         response.on("end", () => {
           try {
             const buffer = Buffer.concat(chunks);
@@ -108,16 +130,20 @@ function downloadImageAsBase64(url) {
 async function downloadAndConvertProfileImages() {
   // Skip profile image downloads in CI environments to speed up workflow runs
   // Exception: Allow downloads in any Vercel environment for rich demo experience
-  const isCI = process.env.CI || process.env.NODE_ENV === 'test';
+  const isCI = process.env.CI || process.env.NODE_ENV === "test";
   const isVercel = process.env.VERCEL_ENV; // Any Vercel environment (production, preview, development)
-  
+
   if (isCI && !isVercel) {
-    console.log("🏃 Skipping profile image downloads in CI/test environment for faster execution");
+    console.log(
+      "🏃 Skipping profile image downloads in CI/test environment for faster execution"
+    );
     return;
   }
-  
+
   if (isVercel) {
-    console.log(`🌐 Vercel environment detected (${process.env.VERCEL_ENV}) - downloading profile images for demo`);
+    console.log(
+      `🌐 Vercel environment detected (${process.env.VERCEL_ENV}) - downloading profile images for demo`
+    );
   }
 
   console.log(
@@ -130,7 +156,9 @@ async function downloadAndConvertProfileImages() {
 
   for (const update of userUpdates) {
     try {
-      console.log(`📸 Processing ${update.email} (${update.firstName} ${update.lastName}) with random data...`);
+      console.log(
+        `📸 Processing ${update.email} (${update.firstName} ${update.lastName}) with random data...`
+      );
 
       // Download image directly as base64 (no file storage needed)
       const base64Data = await downloadImageAsBase64(update.photoUrl);
@@ -142,16 +170,20 @@ async function downloadAndConvertProfileImages() {
             firstName: update.firstName,
             lastName: update.lastName,
             name: `${update.firstName} ${update.lastName}`,
-            profilePhotoUrl: base64Data
+            profilePhotoUrl: base64Data,
           },
         });
-        console.log(`✅ Updated profile for ${update.email} (${update.firstName} ${update.lastName})`);
+        console.log(
+          `✅ Updated profile for ${update.email} (${update.firstName} ${update.lastName})`
+        );
       }
 
       // Add a small delay to be respectful to the API
       await new Promise((resolve) => setTimeout(resolve, 300));
     } catch (error) {
-      console.log(`⚠️ Failed to process ${update.email}: ${error.message}`);
+      console.log(
+        `⚠️ Failed to process ${update.email}: ${(error as Error).message}`
+      );
     }
   }
 
@@ -374,7 +406,7 @@ const REALISTIC_VOLUNTEERS = [
   {
     email: "jackson.smith@outlook.com",
     firstName: "Jackson",
-    lastName: "Smith", 
+    lastName: "Smith",
     phone: "+64 22 555 6666",
     dateOfBirth: subYears(new Date(), 17), // 17 years old
     pronouns: "he/him",
@@ -459,7 +491,7 @@ async function main() {
 
   // Helper function to check if user can sign up for a shift on a given date
   // For today's shifts, allow multiple signups since we need to fill all shifts
-  function canUserSignUpForDate(userId, shiftDate) {
+  function canUserSignUpForDate(userId: string, shiftDate: Date) {
     const dateKey = formatInNZT(shiftDate, "yyyy-MM-dd"); // NZ timezone date string
     const today = new Date();
     const todayStr = formatInNZT(today, "yyyy-MM-dd");
@@ -477,7 +509,7 @@ async function main() {
   }
 
   // Helper function to record a user signup for a date
-  function recordUserSignup(userId, shiftDate) {
+  function recordUserSignup(userId: string, shiftDate: Date) {
     const dateKey = formatInNZT(shiftDate, "yyyy-MM-dd");
 
     if (!userDailySignups.has(userId)) {
@@ -564,7 +596,8 @@ async function main() {
         name: `${volunteerData.firstName} ${volunteerData.lastName}`,
         hashedPassword: volunteerHash,
         role: "VOLUNTEER",
-        volunteerGrade: volunteerGrade,
+        volunteerGrade: volunteerGrade as VolunteerGrade,
+        notificationPreference: "NONE",
       },
     });
     extraVolunteers.push(u);
@@ -575,7 +608,6 @@ async function main() {
   for (let i = 1; i <= 70; i++) {
     const email = `vol${i}@example.com`;
     // Placeholder names - these will be replaced by randomuser.me API data
-    const placeholderNames = ["User", "Volunteer", "Person", "Individual"];
     const lastNames = [
       "Smith",
       "Wilson",
@@ -668,7 +700,7 @@ async function main() {
     // Pattern: GREEN (newer), YELLOW (experienced), PINK (leaders), repeat
     // This creates: GREEN, YELLOW, PINK, GREEN, YELLOW, PINK, etc.
     const additionalGrades = ["GREEN", "YELLOW", "PINK"];
-    const volunteerGrade = additionalGrades[(i - 1) % 3];
+    const volunteerGrade = additionalGrades[(i - 1) % 3] as VolunteerGrade;
 
     const u = await prisma.user.upsert({
       where: { email },
@@ -709,7 +741,9 @@ async function main() {
           ["Wellington", "Glen Innes", "Onehunga"].slice(0, (i % 3) + 1)
         ),
         emailNewsletterSubscription: i % 2 === 0,
-        notificationPreference: ["EMAIL", "SMS", "BOTH", "NONE"][i % 4],
+        notificationPreference: ["EMAIL", "SMS", "BOTH", "NONE"][
+          i % 4
+        ] as NotificationPreference,
         // Empty array means all types
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: [], // Empty array means all types
@@ -737,6 +771,7 @@ async function main() {
 
   // Create bidirectional friendships
   for (const friend of existingFriends) {
+    if (!friend) continue;
     try {
       // Create friendship from sample volunteer to friend
       await prisma.friendship.create({
@@ -761,7 +796,7 @@ async function main() {
       });
     } catch (error) {
       // Skip if friendship already exists
-      if (!error.message.includes("Unique constraint")) {
+      if (!(error as Error).message.includes("Unique constraint")) {
         throw error;
       }
     }
@@ -775,6 +810,7 @@ async function main() {
   ].filter(Boolean);
 
   for (const requester of pendingRequesters) {
+    if (!requester) continue;
     try {
       await prisma.friendRequest.create({
         data: {
@@ -792,7 +828,7 @@ async function main() {
       });
     } catch (error) {
       // Skip if request already exists
-      if (!error.message.includes("Unique constraint")) {
+      if (!(error as Error).message.includes("Unique constraint")) {
         throw error;
       }
     }
@@ -816,7 +852,7 @@ async function main() {
       });
     } catch (error) {
       // Skip if request already exists
-      if (!error.message.includes("Unique constraint")) {
+      if (!(error as Error).message.includes("Unique constraint")) {
         throw error;
       }
     }
@@ -865,7 +901,7 @@ async function main() {
         });
       } catch (error) {
         // Skip if friendship already exists
-        if (!error.message.includes("Unique constraint")) {
+        if (!(error as Error).message.includes("Unique constraint")) {
           throw error;
         }
       }
@@ -1146,7 +1182,8 @@ async function main() {
           start,
           end,
           location,
-          capacity: config.capacities[location],
+          capacity:
+            config.capacities[location as keyof typeof config.capacities],
           notes:
             period.weeksAgo === 1 && shiftInWeek === 0
               ? "Great teamwork this shift!"
@@ -1173,7 +1210,7 @@ async function main() {
 
       // Also add some other volunteers to these shifts for realism
       const volunteersToAdd = Math.min(
-        config.capacities[location] - 1, // Leave space for sample volunteer
+        config.capacities[location as keyof typeof config.capacities] - 1, // Leave space for sample volunteer
         Math.floor(Math.random() * 3) + 1 // 1-3 other volunteers
       );
 
@@ -1208,17 +1245,18 @@ async function main() {
   console.log("🤝 Seeding friend recommendations...");
 
   // Get volunteers who are NOT friends with the sample volunteer
-  const nonFriends = extraVolunteers.filter(v =>
-    !existingFriends.some(f => f.id === v.id) &&
-    !pendingRequesters.some(r => r.id === v.id) &&
-    !sentRequestTargets.includes(v.email)
+  const nonFriends = extraVolunteers.filter(
+    (v) =>
+      !existingFriends.some((f) => f && f.id === v.id) &&
+      !pendingRequesters.some((r) => r && r.id === v.id) &&
+      !sentRequestTargets.includes(v.email)
   );
 
   // Select a few volunteers to be recommended friends (shared 5+ shifts in last 3 months)
   const recommendedFriendCandidates = [
-    nonFriends.find(v => v.email === "emma.brown@gmail.com"),
-    nonFriends.find(v => v.email === "liam.wilson@hotmail.com"),
-    nonFriends.find(v => v.email === "vol2@example.com"),
+    nonFriends.find((v) => v.email === "emma.brown@gmail.com"),
+    nonFriends.find((v) => v.email === "liam.wilson@hotmail.com"),
+    nonFriends.find((v) => v.email === "vol2@example.com"),
   ].filter(Boolean);
 
   // Get sample volunteer's recent shifts (last 3 months)
@@ -1238,17 +1276,25 @@ async function main() {
     },
     orderBy: {
       shift: {
-        start: 'desc',
+        start: "desc",
       },
     },
   });
 
   // For each recommended friend candidate, sign them up for 5-7 of the same recent shifts
   for (const recommendedFriend of recommendedFriendCandidates) {
-    const shiftsToShare = Math.min(7, Math.max(5, sampleVolunteerRecentSignups.length));
+    if (!recommendedFriend) continue;
+    const shiftsToShare = Math.min(
+      7,
+      Math.max(5, sampleVolunteerRecentSignups.length)
+    );
     let sharedCount = 0;
 
-    for (let i = 0; i < sampleVolunteerRecentSignups.length && sharedCount < shiftsToShare; i++) {
+    for (
+      let i = 0;
+      i < sampleVolunteerRecentSignups.length && sharedCount < shiftsToShare;
+      i++
+    ) {
       const signup = sampleVolunteerRecentSignups[i];
 
       // Check if this recommended friend can sign up for this date
@@ -1259,37 +1305,60 @@ async function main() {
               userId: recommendedFriend.id,
               shiftId: signup.shift.id,
               status: "CONFIRMED",
-              createdAt: addDays(signup.shift.start, -Math.floor(Math.random() * 5) - 1),
+              createdAt: addDays(
+                signup.shift.start,
+                -Math.floor(Math.random() * 5) - 1
+              ),
             },
           });
           recordUserSignup(recommendedFriend.id, signup.shift.start);
           sharedCount++;
         } catch (error) {
           // Skip if signup already exists
-          if (!error.message.includes("Unique constraint")) {
-            console.log(`Could not add recommended friend ${recommendedFriend.email} to shift: ${error.message}`);
+          if (!(error as Error).message.includes("Unique constraint")) {
+            console.log(
+              `Could not add recommended friend ${
+                recommendedFriend.email
+              } to shift: ${(error as Error).message}`
+            );
           }
         }
       }
     }
 
-    console.log(`✅ Created ${sharedCount} shared shifts with recommended friend ${recommendedFriend.email}`);
+    console.log(
+      `✅ Created ${sharedCount} shared shifts with recommended friend ${recommendedFriend.email}`
+    );
   }
 
-  console.log(`✅ Created ${recommendedFriendCandidates.length} friend recommendation candidates`);
+  console.log(
+    `✅ Created ${recommendedFriendCandidates.length} friend recommendation candidates`
+  );
 
   // Create shifts for the next 14 days, but only for operating days (Sunday-Thursday)
   for (let i = 0; i < 14; i++) {
     const date = addDays(today, i);
     const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    
+
     // Only create shifts for Sunday (0) through Thursday (4)
     if (dayOfWeek === 5 || dayOfWeek === 6) {
       // Skip Friday (5) and Saturday (6) - restaurant is closed
       continue;
     }
 
-    console.log(`📅 Creating shifts for ${date.toDateString()} (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]})`);
+    console.log(
+      `📅 Creating shifts for ${date.toDateString()} (${
+        [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ][dayOfWeek]
+      })`
+    );
 
     // Create shifts for each location and shift type
     for (
@@ -1352,11 +1421,15 @@ async function main() {
             start,
             end,
             location,
-            capacity: config.capacities[location],
+            capacity:
+              config.capacities[location as keyof typeof config.capacities],
             notes:
               i === 0 && configIndex === 0
                 ? "Bring closed-toe shoes and apron"
                 : null,
+          },
+          include: {
+            shiftType: true,
           },
         });
         createdShifts.push(shift);
@@ -1396,7 +1469,7 @@ async function main() {
     for (let i = 0; i < 14; i++) {
       const date = addDays(today, i);
       const dayOfWeek = date.getDay();
-      
+
       // Only include Sunday (0) through Thursday (4)
       if (dayOfWeek >= 0 && dayOfWeek <= 4) {
         operatingDays.push(formatInNZT(date, "yyyy-MM-dd"));
@@ -1416,7 +1489,6 @@ async function main() {
   for (let i = 0; i < createdShifts.length; i++) {
     const s = createdShifts[i];
     const shiftDate = new Date(s.start);
-    const today = new Date();
 
     // Use date-only comparison by comparing YYYY-MM-DD strings in NZ timezone
     const shiftDateStr = formatInNZT(shiftDate, "yyyy-MM-dd");
@@ -1443,7 +1515,7 @@ async function main() {
         const spotsToLeaveThisShift = Math.min(secondDaySpotsLeft, s.capacity);
         spotsToFill = s.capacity - spotsToLeaveThisShift;
         secondDaySpotsLeft -= spotsToLeaveThisShift;
-        
+
         console.log(
           `📅 Nearly booking SECOND OPERATING DAY's shift: ${
             s.shiftType?.name || "Unknown"
@@ -1457,7 +1529,9 @@ async function main() {
         console.log(
           `📅 FULLY booking remaining SECOND OPERATING DAY shift: ${
             s.shiftType?.name || "Unknown"
-          } at ${s.location} (${s.capacity}/${s.capacity} spots - no more spots to leave)`
+          } at ${s.location} (${s.capacity}/${
+            s.capacity
+          } spots - no more spots to leave)`
         );
       }
       shouldFillShift = true;
@@ -1519,6 +1593,7 @@ async function main() {
         const friend =
           sampleVolunteerFriends[f % sampleVolunteerFriends.length];
 
+        if (!friend) continue;
         // Check if friend can sign up for this date
         if (canUserSignUpForDate(friend.id, s.start)) {
           try {
@@ -1537,9 +1612,11 @@ async function main() {
             );
           } catch (error) {
             // Skip if signup already exists
-            if (!error.message.includes("Unique constraint")) {
+            if (!(error as Error).message.includes("Unique constraint")) {
               console.log(
-                `Could not add friend ${friend.email} to shift: ${error.message}`
+                `Could not add friend ${friend?.email} to shift: ${
+                  (error as Error).message
+                }`
               );
             }
           }
@@ -1568,9 +1645,11 @@ async function main() {
           );
         } catch (error) {
           // Skip if signup already exists
-          if (!error.message.includes("Unique constraint")) {
+          if (!(error as Error).message.includes("Unique constraint")) {
             console.log(
-              `Could not add sample volunteer to shift: ${error.message}`
+              `Could not add sample volunteer to shift: ${
+                (error as Error).message
+              }`
             );
           }
         }
@@ -1595,9 +1674,6 @@ async function main() {
     const sampleUser = allUsers.find(
       (u) => u.email === "volunteer@example.com"
     );
-    const adminUser = allUsers.find(
-      (u) => u.email === "admin@everybodyeats.nz"
-    );
     const otherUsers = allUsers.filter(
       (u) =>
         u.email !== "volunteer@example.com" &&
@@ -1615,7 +1691,7 @@ async function main() {
         // Recent friend request
         {
           userId: sampleUser.id,
-          type: "FRIEND_REQUEST_RECEIVED",
+          type: NotificationType.FRIEND_REQUEST_RECEIVED,
           title: "New friend request",
           message: `${
             otherUsers[0].firstName || otherUsers[0].name || "Someone"
@@ -1628,7 +1704,7 @@ async function main() {
         // Shift confirmed notification
         {
           userId: sampleUser.id,
-          type: "SHIFT_CONFIRMED",
+          type: NotificationType.SHIFT_CONFIRMED,
           title: "Shift confirmed",
           message:
             "Your Kitchen Prep shift on Saturday, August 24, 2025 has been confirmed",
@@ -1640,7 +1716,7 @@ async function main() {
         // Friend request accepted (older, read)
         {
           userId: sampleUser.id,
-          type: "FRIEND_REQUEST_ACCEPTED",
+          type: NotificationType.FRIEND_REQUEST_ACCEPTED,
           title: "Friend request accepted",
           message: `${
             otherUsers[1].firstName || otherUsers[1].name || "Someone"
@@ -1653,7 +1729,7 @@ async function main() {
         // Waitlisted notification (older, read)
         {
           userId: sampleUser.id,
-          type: "SHIFT_WAITLISTED",
+          type: NotificationType.SHIFT_WAITLISTED,
           title: "Added to waitlist",
           message:
             "You've been added to the waitlist for Food Service on Sunday, August 18, 2025",
@@ -1665,7 +1741,7 @@ async function main() {
         // Achievement unlocked (mix of read/unread)
         {
           userId: sampleUser.id,
-          type: "ACHIEVEMENT_UNLOCKED",
+          type: NotificationType.ACHIEVEMENT_UNLOCKED,
           title: "Achievement unlocked!",
           message: 'Congratulations! You earned the "First Steps" achievement',
           actionUrl: "/dashboard",
@@ -1687,7 +1763,7 @@ async function main() {
         const additionalNotifications = [
           {
             userId: otherUsers[0].id,
-            type: "FRIEND_REQUEST_RECEIVED",
+            type: "FRIEND_REQUEST_RECEIVED" as NotificationType,
             title: "New friend request",
             message: `${
               sampleUser.firstName || sampleUser.name || "Someone"
@@ -1699,7 +1775,7 @@ async function main() {
           },
           {
             userId: otherUsers[1].id,
-            type: "SHIFT_CONFIRMED",
+            type: "SHIFT_CONFIRMED" as NotificationType,
             title: "Shift confirmed",
             message:
               "Your Dishwashing shift on Friday, August 23, 2025 has been confirmed",
@@ -1726,7 +1802,10 @@ async function main() {
       console.log("⚠️ Could not find required users for notification seeding");
     }
   } catch (error) {
-    console.error("Warning: Could not seed notifications:", error.message);
+    console.error(
+      "Warning: Could not seed notifications:",
+      (error as Error).message
+    );
   }
 
   // Seed achievements
@@ -1738,7 +1817,7 @@ async function main() {
       {
         name: "First Steps",
         description: "Complete your first volunteer shift",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🌟",
         criteria: JSON.stringify({ type: "shifts_completed", value: 1 }),
         points: 10,
@@ -1746,7 +1825,7 @@ async function main() {
       {
         name: "Getting Started",
         description: "Complete 5 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "⭐",
         criteria: JSON.stringify({ type: "shifts_completed", value: 5 }),
         points: 25,
@@ -1754,7 +1833,7 @@ async function main() {
       {
         name: "Making a Difference",
         description: "Complete 10 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🎯",
         criteria: JSON.stringify({ type: "shifts_completed", value: 10 }),
         points: 50,
@@ -1762,7 +1841,7 @@ async function main() {
       {
         name: "Veteran Volunteer",
         description: "Complete 25 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🏆",
         criteria: JSON.stringify({ type: "shifts_completed", value: 25 }),
         points: 100,
@@ -1770,7 +1849,7 @@ async function main() {
       {
         name: "Community Champion",
         description: "Complete 50 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "👑",
         criteria: JSON.stringify({ type: "shifts_completed", value: 50 }),
         points: 200,
@@ -1779,7 +1858,7 @@ async function main() {
       {
         name: "Time Keeper",
         description: "Volunteer for 10 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "⏰",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 10 }),
         points: 30,
@@ -1787,7 +1866,7 @@ async function main() {
       {
         name: "Dedicated Helper",
         description: "Volunteer for 25 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "💪",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 25 }),
         points: 75,
@@ -1795,7 +1874,7 @@ async function main() {
       {
         name: "Marathon Volunteer",
         description: "Volunteer for 50 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "🏃",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 50 }),
         points: 150,
@@ -1803,7 +1882,7 @@ async function main() {
       {
         name: "Century Club",
         description: "Volunteer for 100 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "💯",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 100 }),
         points: 300,
@@ -1812,7 +1891,7 @@ async function main() {
       {
         name: "Consistent Helper",
         description: "Volunteer for 3 consecutive months",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "📅",
         criteria: JSON.stringify({ type: "consecutive_months", value: 3 }),
         points: 50,
@@ -1820,7 +1899,7 @@ async function main() {
       {
         name: "Reliable Volunteer",
         description: "Volunteer for 6 consecutive months",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "🗓️",
         criteria: JSON.stringify({ type: "consecutive_months", value: 6 }),
         points: 100,
@@ -1828,7 +1907,7 @@ async function main() {
       {
         name: "Year-Round Helper",
         description: "Volunteer for 12 consecutive months",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "🎊",
         criteria: JSON.stringify({ type: "consecutive_months", value: 12 }),
         points: 200,
@@ -1837,7 +1916,7 @@ async function main() {
       {
         name: "One Year Strong",
         description: "Volunteer for one full year",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🎂",
         criteria: JSON.stringify({ type: "years_volunteering", value: 1 }),
         points: 150,
@@ -1845,7 +1924,7 @@ async function main() {
       {
         name: "Two Year Veteran",
         description: "Volunteer for two full years",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🎉",
         criteria: JSON.stringify({ type: "years_volunteering", value: 2 }),
         points: 300,
@@ -1854,7 +1933,7 @@ async function main() {
       {
         name: "Meal Master",
         description: "Help prepare an estimated 100 meals",
-        category: "IMPACT",
+        category: AchievementCategory.IMPACT,
         icon: "🍽️",
         criteria: JSON.stringify({ type: "community_impact", value: 100 }),
         points: 75,
@@ -1862,7 +1941,7 @@ async function main() {
       {
         name: "Food Hero",
         description: "Help prepare an estimated 500 meals",
-        category: "IMPACT",
+        category: AchievementCategory.IMPACT,
         icon: "🦸",
         criteria: JSON.stringify({ type: "community_impact", value: 500 }),
         points: 200,
@@ -1870,7 +1949,7 @@ async function main() {
       {
         name: "Hunger Fighter",
         description: "Help prepare an estimated 1000 meals",
-        category: "IMPACT",
+        category: AchievementCategory.IMPACT,
         icon: "⚔️",
         criteria: JSON.stringify({ type: "community_impact", value: 1000 }),
         points: 400,
@@ -1912,7 +1991,10 @@ async function main() {
     });
     console.log(`📊 Sample volunteer has completed ${completedShifts} shifts`);
   } catch (error) {
-    console.error("Warning: Could not seed achievements:", error.message);
+    console.error(
+      "Warning: Could not seed achievements:",
+      (error as Error).message
+    );
   }
 
   // Seed auto-accept rules
@@ -1936,13 +2018,13 @@ async function main() {
           priority: 10,
           global: true, // Apply to all shift types
           shiftTypeId: null,
-          minVolunteerGrade: "YELLOW",
+          minVolunteerGrade: VolunteerGrade.YELLOW,
           minCompletedShifts: 5,
           minAttendanceRate: 85.0,
           minAccountAgeDays: 30,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -1956,13 +2038,13 @@ async function main() {
           priority: 20, // Higher priority than experienced volunteers
           global: true,
           shiftTypeId: null,
-          minVolunteerGrade: "PINK",
+          minVolunteerGrade: VolunteerGrade.PINK,
           minCompletedShifts: null,
           minAttendanceRate: null,
           minAccountAgeDays: null,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -1976,13 +2058,13 @@ async function main() {
           priority: 5, // Lower priority than grade-based rules
           global: false,
           shiftTypeId: kitchenPrep.id,
-          minVolunteerGrade: "GREEN", // Even green volunteers
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 2,
           minAttendanceRate: 75.0,
           minAccountAgeDays: 14,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: false, // Allow other rules to also match
           createdBy: adminUser.id,
         },
@@ -1996,13 +2078,13 @@ async function main() {
           priority: 15,
           global: true,
           shiftTypeId: null,
-          minVolunteerGrade: "GREEN", // Any grade
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 3,
           minAttendanceRate: 80.0,
           minAccountAgeDays: 21,
           maxDaysInAdvance: 3, // Only for shifts starting within 3 days
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2016,13 +2098,13 @@ async function main() {
           priority: 8,
           global: false,
           shiftTypeId: dishwasher.id,
-          minVolunteerGrade: "GREEN",
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 1,
           minAttendanceRate: null,
           minAccountAgeDays: 7,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: true, // Must have done dishwashing before
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2036,13 +2118,13 @@ async function main() {
           priority: 12,
           global: true,
           shiftTypeId: null,
-          minVolunteerGrade: "GREEN",
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 15, // Either 15+ shifts
           minAttendanceRate: 95.0, // OR 95%+ attendance
           minAccountAgeDays: 60,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "OR", // Either condition can be true
+          criteriaLogic: CriteriaLogic.OR, // Either condition can be true
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2072,7 +2154,9 @@ async function main() {
           YELLOW: { emoji: "🟡", name: "Experienced" },
           PINK: { emoji: "🩷", name: "Shift Leader" },
         };
-        const info = gradeInfo[stat.volunteerGrade] || {
+        const info = gradeInfo[
+          stat.volunteerGrade as keyof typeof gradeInfo
+        ] || {
           emoji: "❓",
           name: "Unknown",
         };
@@ -2101,18 +2185,20 @@ async function main() {
       let promotions = 0;
       for (const user of userShiftCounts) {
         const shiftCount = user.signups.length;
-        let recommendedGrade = "GREEN"; // Default
+        let recommendedGrade: VolunteerGrade = VolunteerGrade.GREEN; // Default
 
         if (shiftCount >= 25) {
-          recommendedGrade = "PINK"; // Shift leader after 25 shifts
+          recommendedGrade = VolunteerGrade.PINK; // Shift leader after 25 shifts
         } else if (shiftCount >= 10) {
-          recommendedGrade = "YELLOW"; // Experienced after 10 shifts
+          recommendedGrade = VolunteerGrade.YELLOW; // Experienced after 10 shifts
         }
 
         // Only promote if they're below what their shift count suggests
         const gradePriority = { GREEN: 0, YELLOW: 1, PINK: 2 };
-        const currentPriority = gradePriority[user.volunteerGrade];
-        const recommendedPriority = gradePriority[recommendedGrade];
+        const currentPriority =
+          gradePriority[user.volunteerGrade as keyof typeof gradePriority];
+        const recommendedPriority =
+          gradePriority[recommendedGrade as keyof typeof gradePriority];
 
         if (currentPriority < recommendedPriority) {
           await prisma.user.update({
@@ -2139,7 +2225,10 @@ async function main() {
       console.log("✅ Auto-accept rules seeding completed");
     }
   } catch (error) {
-    console.error("Warning: Could not seed auto-accept rules:", error.message);
+    console.error(
+      "Warning: Could not seed auto-accept rules:",
+      (error as Error).message
+    );
   }
 
   // Download and convert profile images after all users are created
@@ -2351,7 +2440,7 @@ async function main() {
 
   // Seed admin notes for demonstration
   console.log("🗒️  Seeding admin notes...");
-  
+
   const adminUser = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
@@ -2360,7 +2449,15 @@ async function main() {
   const volunteersForNotes = await prisma.user.findMany({
     where: {
       role: "VOLUNTEER",
-      email: { in: ["volunteer@example.com", "sarah.chen@gmail.com", "james.williams@hotmail.com", "priya.patel@yahoo.com", "mike.johnson@outlook.com"] }
+      email: {
+        in: [
+          "volunteer@example.com",
+          "sarah.chen@gmail.com",
+          "james.williams@hotmail.com",
+          "priya.patel@yahoo.com",
+          "mike.johnson@outlook.com",
+        ],
+      },
     },
     take: 5,
   });
@@ -2368,37 +2465,44 @@ async function main() {
   const adminNotesSeedData = [
     {
       volunteerId: volunteersForNotes[0]?.id, // Main volunteer
-      content: "Excellent volunteer with great attitude. Always shows up early and helps with setup. Has kitchen experience and is very reliable.",
+      content:
+        "Excellent volunteer with great attitude. Always shows up early and helps with setup. Has kitchen experience and is very reliable.",
       createdAt: subDays(new Date(), 15),
     },
     {
       volunteerId: volunteersForNotes[0]?.id, // Second note for same volunteer
-      content: "Update: Now comfortable with leading food prep tasks. Consider for shift leader role in future.",
+      content:
+        "Update: Now comfortable with leading food prep tasks. Consider for shift leader role in future.",
       createdAt: subDays(new Date(), 3),
     },
     {
       volunteerId: volunteersForNotes[1]?.id, // Sarah Chen
-      content: "New volunteer, very enthusiastic but needs guidance on food safety procedures. Paired well with experienced volunteers.",
+      content:
+        "New volunteer, very enthusiastic but needs guidance on food safety procedures. Paired well with experienced volunteers.",
       createdAt: subDays(new Date(), 20),
     },
     {
       volunteerId: volunteersForNotes[2]?.id, // James Williams
-      content: "Strong leadership skills. Great at organizing other volunteers and managing kitchen workflow. Excellent communication.",
+      content:
+        "Strong leadership skills. Great at organizing other volunteers and managing kitchen workflow. Excellent communication.",
       createdAt: subDays(new Date(), 8),
     },
     {
       volunteerId: volunteersForNotes[3]?.id, // Priya Patel
-      content: "Has dietary restrictions knowledge and is great with special dietary requests from clients. Very patient and kind.",
+      content:
+        "Has dietary restrictions knowledge and is great with special dietary requests from clients. Very patient and kind.",
       createdAt: subDays(new Date(), 12),
     },
     {
       volunteerId: volunteersForNotes[4]?.id, // Mike Johnson
-      content: "Missed last two shifts without notice. Follow up needed on commitment level.",
+      content:
+        "Missed last two shifts without notice. Follow up needed on commitment level.",
       createdAt: subDays(new Date(), 5),
     },
     {
       volunteerId: volunteersForNotes[4]?.id, // Mike Johnson - follow up note
-      content: "Spoke with Mike about attendance. Had family emergency but didn't know how to notify us. Added to communications training list.",
+      content:
+        "Spoke with Mike about attendance. Had family emergency but didn't know how to notify us. Added to communications training list.",
       createdAt: subDays(new Date(), 1),
     },
   ];
@@ -2422,21 +2526,23 @@ async function main() {
 
   // Seed custom labels
   console.log("🏷️  Seeding custom labels...");
-  
+
   const customLabelsData = [
     {
       name: "Under 16",
-      color: "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
+      color:
+        "bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100",
       icon: "🔞",
     },
     {
-      name: "New Volunteer", 
+      name: "New Volunteer",
       color: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
       icon: "✨",
     },
     {
       name: "Team Leader",
-      color: "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100", 
+      color:
+        "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
       icon: "👑",
     },
     {
@@ -2451,7 +2557,8 @@ async function main() {
     },
     {
       name: "VIP",
-      color: "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100",
+      color:
+        "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100",
       icon: "💎",
     },
     {

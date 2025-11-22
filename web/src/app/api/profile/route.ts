@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
@@ -89,7 +89,9 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   // Check for bot traffic first
-  const botResponse = await checkForBot("Profile update blocked due to automated activity detection.");
+  const botResponse = await checkForBot(
+    "Profile update blocked due to automated activity detection."
+  );
   if (botResponse) {
     return botResponse;
   }
@@ -188,7 +190,11 @@ export async function PUT(req: Request) {
         ? new Date(user.dateOfBirth).toISOString().split("T")[0]
         : null;
 
-      if (currentDateOfBirth && !isAdmin && newDateOfBirth !== currentDateOfBirth) {
+      if (
+        currentDateOfBirth &&
+        !isAdmin &&
+        newDateOfBirth !== currentDateOfBirth
+      ) {
         return NextResponse.json(
           { error: "Only administrators can change date of birth once set" },
           { status: 403 }
@@ -259,7 +265,9 @@ export async function PUT(req: Request) {
 
     // Auto-label users under 16 if date of birth was updated
     if (validatedData.dateOfBirth !== undefined) {
-      const dateOfBirth = validatedData.dateOfBirth ? new Date(validatedData.dateOfBirth) : null;
+      const dateOfBirth = validatedData.dateOfBirth
+        ? new Date(validatedData.dateOfBirth)
+        : null;
       await autoLabelUnder16User(user.id, dateOfBirth);
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Resource, ResourceType, ResourceCategory } from "@prisma/client";
+import { Resource, ResourceType, ResourceCategory } from "@/generated/client";
 import {
   MoreHorizontal,
   Eye,
@@ -58,10 +58,13 @@ interface AdminResourcesTableProps {
 
 const TYPE_COLORS: Record<ResourceType, string> = {
   PDF: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/50",
-  IMAGE: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/50",
-  DOCUMENT: "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/50",
+  IMAGE:
+    "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/50",
+  DOCUMENT:
+    "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/50",
   LINK: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800/50",
-  VIDEO: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/50",
+  VIDEO:
+    "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800/50",
 };
 
 const CATEGORY_LABELS: Record<ResourceCategory, string> = {
@@ -77,7 +80,9 @@ const CATEGORY_LABELS: Record<ResourceCategory, string> = {
 export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [editResource, setEditResource] = useState<ResourceWithUploader | null>(null);
+  const [editResource, setEditResource] = useState<ResourceWithUploader | null>(
+    null
+  );
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -159,7 +164,10 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
                   {resource.title}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={TYPE_COLORS[resource.type]}>
+                  <Badge
+                    variant="outline"
+                    className={TYPE_COLORS[resource.type]}
+                  >
                     {resource.type}
                   </Badge>
                 </TableCell>
@@ -183,11 +191,17 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
                 </TableCell>
                 <TableCell>
                   {resource.isPublished ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/50">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/50"
+                    >
                       Published
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/50">
+                    <Badge
+                      variant="outline"
+                      className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800/50"
+                    >
                       Draft
                     </Badge>
                   )}
@@ -215,13 +229,17 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
-                          onClick={() => window.open(resource.fileUrl!, "_blank")}
+                          onClick={() =>
+                            window.open(resource.fileUrl!, "_blank")
+                          }
                         >
                           <Download className="mr-2 h-4 w-4" />
                           Download
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem onClick={() => setEditResource(resource)}>
+                      <DropdownMenuItem
+                        onClick={() => setEditResource(resource)}
+                      >
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
@@ -250,7 +268,10 @@ export function AdminResourcesTable({ resources }: AdminResourcesTableProps) {
         </Table>
       </div>
 
-      <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={() => setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>

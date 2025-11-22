@@ -10,6 +10,13 @@ on:
     branches: [main]
     paths: ["web/**", ".github/workflows/test.yml"]
 
+env:
+  DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+  DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+  NEXTAUTH_SECRET: test-secret-for-ci
+  NEXTAUTH_URL: http://localhost:3000
+  TZ: Pacific/Auckland
+
 jobs:
   test:
     name: Playwright Tests
@@ -93,10 +100,6 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - name: Setup test database
-        env:
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          TZ: Pacific/Auckland
         run: |
           cd web
           cp .env.example .env
@@ -106,12 +109,6 @@ jobs:
           npx prisma db seed
 
       - name: Run Playwright tests
-        env:
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
-          NEXTAUTH_SECRET: test-secret-for-ci
-          NEXTAUTH_URL: http://localhost:3000
-          TZ: Pacific/Auckland
         run: |
           cd web
           npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --project=chromium --reporter=blob

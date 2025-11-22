@@ -4,7 +4,7 @@ import {
   type AutoAcceptRule,
   type Shift,
   type ShiftType,
-} from "@prisma/client";
+} from "@/generated/client";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
@@ -105,7 +105,8 @@ function evaluateRule(
   // Check volunteer grade
   if (rule.minVolunteerGrade) {
     const userGradePriority = GRADE_PRIORITY[user.volunteerGrade];
-    const minGradePriority = GRADE_PRIORITY[rule.minVolunteerGrade];
+    const minGradePriority =
+      GRADE_PRIORITY[rule.minVolunteerGrade as VolunteerGrade];
     criteria.push(userGradePriority >= minGradePriority);
   }
 

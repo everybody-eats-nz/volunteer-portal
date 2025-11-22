@@ -5,7 +5,7 @@
  * replacing all `any` types with proper TypeScript interfaces.
  */
 
-import { SignupStatus } from "@prisma/client";
+import { SignupStatus } from "@/generated/client";
 
 // ==============================================================================
 // NOVA API CORE TYPES

@@ -3,9 +3,11 @@ description:
 globs: **/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/test/**/*.ts
 alwaysApply: false
 ---
+
 # Testing with Vitest
 
 ## Vitest Configuration
+
 - Use Vitest for all JavaScript/TypeScript testing
 - Configure proper test environment (jsdom for React components)
 - Set up path aliases matching the main project
@@ -13,29 +15,30 @@ alwaysApply: false
 
 ```tsx
 // vitest.config.ts
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
     globals: true,
     css: true,
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@/components': path.resolve(__dirname, './src/components'),
-      '@/lib': path.resolve(__dirname, './src/lib'),
+      "@": path.resolve(__dirname, "./src"),
+      "@/components": path.resolve(__dirname, "./src/components"),
+      "@/lib": path.resolve(__dirname, "./src/lib"),
     },
   },
-})
+});
 ```
 
 ## Test File Structure
+
 - Place tests adjacent to source files with `.test.ts` or `.test.tsx` suffix
 - Group related tests in `describe` blocks
 - Use descriptive test names that explain the behavior being tested
@@ -43,36 +46,39 @@ export default defineConfig({
 
 ```tsx
 // volunteer-service.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { registerVolunteer } from './volunteer-service'
-import { createMockVolunteer } from '@/test/factories'
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { registerVolunteer } from "./volunteer-service";
+import { createMockVolunteer } from "@/test/factories";
 
-describe('VolunteerService', () => {
-  describe('registerVolunteer', () => {
-    it('should create volunteer with valid data', async () => {
+describe("VolunteerService", () => {
+  describe("registerVolunteer", () => {
+    it("should create volunteer with valid data", async () => {
       // Arrange
-      const volunteerData = createMockVolunteer()
-      
+      const volunteerData = createMockVolunteer();
+
       // Act
-      const result = await registerVolunteer(volunteerData)
-      
-      // Assert
-      expect(result.success).toBe(true)
-      expect(result.data.email).toBe(volunteerData.email)
-    })
+      const result = await registerVolunteer(volunteerData);
 
-    it('should throw validation error for invalid email', async () => {
+      // Assert
+      expect(result.success).toBe(true);
+      expect(result.data.email).toBe(volunteerData.email);
+    });
+
+    it("should throw validation error for invalid email", async () => {
       // Arrange
-      const invalidData = createMockVolunteer({ email: 'invalid-email' })
-      
+      const invalidData = createMockVolunteer({ email: "invalid-email" });
+
       // Act & Assert
-      await expect(registerVolunteer(invalidData)).rejects.toThrow('Invalid email')
-    })
-  })
-})
+      await expect(registerVolunteer(invalidData)).rejects.toThrow(
+        "Invalid email"
+      );
+    });
+  });
+});
 ```
 
 ## React Component Testing
+
 - Use React Testing Library for component tests
 - Test user interactions, not implementation details
 - Use accessible queries (getByRole, getByLabelText)
@@ -80,57 +86,58 @@ describe('VolunteerService', () => {
 
 ```tsx
 // volunteer-card.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import { VolunteerCard } from './volunteer-card'
-import { createMockVolunteer } from '@/test/factories'
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { VolunteerCard } from "./volunteer-card";
+import { createMockVolunteer } from "@/test/factories";
 
-describe('VolunteerCard', () => {
-  it('displays volunteer information correctly', () => {
+describe("VolunteerCard", () => {
+  it("displays volunteer information correctly", () => {
     // Arrange
     const volunteer = createMockVolunteer({
-      name: 'John Doe',
-      email: 'john@example.com',
-      status: 'ACTIVE'
-    })
+      name: "John Doe",
+      email: "john@example.com",
+      status: "ACTIVE",
+    });
 
     // Act
-    render(<VolunteerCard volunteer={volunteer} />)
+    render(<VolunteerCard volunteer={volunteer} />);
 
     // Assert
-    expect(screen.getByText('John Doe')).toBeInTheDocument()
-    expect(screen.getByText('john@example.com')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('ACTIVE')
-  })
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("john@example.com")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("ACTIVE");
+  });
 
-  it('calls onSelect when card is clicked', () => {
+  it("calls onSelect when card is clicked", () => {
     // Arrange
-    const volunteer = createMockVolunteer()
-    const onSelect = vi.fn()
+    const volunteer = createMockVolunteer();
+    const onSelect = vi.fn();
 
     // Act
-    render(<VolunteerCard volunteer={volunteer} onSelect={onSelect} />)
-    fireEvent.click(screen.getByRole('button'))
+    render(<VolunteerCard volunteer={volunteer} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole("button"));
 
     // Assert
-    expect(onSelect).toHaveBeenCalledWith(volunteer)
-  })
+    expect(onSelect).toHaveBeenCalledWith(volunteer);
+  });
 
-  it('shows admin actions when showActions is true', () => {
+  it("shows admin actions when showActions is true", () => {
     // Arrange
-    const volunteer = createMockVolunteer()
+    const volunteer = createMockVolunteer();
 
     // Act
-    render(<VolunteerCard volunteer={volunteer} showActions={true} />)
+    render(<VolunteerCard volunteer={volunteer} showActions={true} />);
 
     // Assert
-    expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument()
-  })
-})
+    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+  });
+});
 ```
 
 ## API Route Testing
+
 - Test all API routes with proper HTTP methods
 - Test authentication and authorization
 - Test error handling and edge cases
@@ -138,74 +145,73 @@ describe('VolunteerCard', () => {
 
 ```tsx
 // api/volunteers.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { createTestServer } from '@/test/server'
-import { createMockVolunteer, createMockSession } from '@/test/factories'
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createTestServer } from "@/test/server";
+import { createMockVolunteer, createMockSession } from "@/test/factories";
 
-describe('/api/volunteers', () => {
-  let server: TestServer
+describe("/api/volunteers", () => {
+  let server: TestServer;
 
   beforeEach(async () => {
-    server = await createTestServer()
-  })
+    server = await createTestServer();
+  });
 
   afterEach(async () => {
-    await server.cleanup()
-  })
+    await server.cleanup();
+  });
 
-  describe('POST /api/volunteers', () => {
-    it('creates volunteer with valid data', async () => {
+  describe("POST /api/volunteers", () => {
+    it("creates volunteer with valid data", async () => {
       // Arrange
-      const volunteerData = createMockVolunteer()
-      const session = createMockSession({ role: 'admin' })
+      const volunteerData = createMockVolunteer();
+      const session = createMockSession({ role: "admin" });
 
       // Act
       const response = await server
-        .post('/api/volunteers')
-        .set('Authorization', `Bearer ${session.token}`)
-        .send(volunteerData)
+        .post("/api/volunteers")
+        .set("Authorization", `Bearer ${session.token}`)
+        .send(volunteerData);
 
       // Assert
-      expect(response.status).toBe(201)
-      expect(response.body.success).toBe(true)
-      expect(response.body.data.email).toBe(volunteerData.email)
-    })
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.email).toBe(volunteerData.email);
+    });
 
-    it('returns 401 when unauthorized', async () => {
+    it("returns 401 when unauthorized", async () => {
       // Arrange
-      const volunteerData = createMockVolunteer()
+      const volunteerData = createMockVolunteer();
+
+      // Act
+      const response = await server.post("/api/volunteers").send(volunteerData);
+
+      // Assert
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+    });
+
+    it("returns validation error for invalid data", async () => {
+      // Arrange
+      const invalidData = { name: "", email: "invalid" };
+      const session = createMockSession({ role: "admin" });
 
       // Act
       const response = await server
-        .post('/api/volunteers')
-        .send(volunteerData)
+        .post("/api/volunteers")
+        .set("Authorization", `Bearer ${session.token}`)
+        .send(invalidData);
 
       // Assert
-      expect(response.status).toBe(401)
-      expect(response.body.success).toBe(false)
-    })
-
-    it('returns validation error for invalid data', async () => {
-      // Arrange
-      const invalidData = { name: '', email: 'invalid' }
-      const session = createMockSession({ role: 'admin' })
-
-      // Act
-      const response = await server
-        .post('/api/volunteers')
-        .set('Authorization', `Bearer ${session.token}`)
-        .send(invalidData)
-
-      // Assert
-      expect(response.status).toBe(400)
-      expect(response.body.success).toBe(false)
-      expect(response.body.details).toBeDefined()
-    })
-  })
-})
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.details).toBeDefined();
+    });
+  });
+});
 ```
 
 ## Mocking Strategies
+
 - Use Vitest's built-in mocking capabilities
 - Mock external dependencies and APIs
 - Create factory functions for test data
@@ -213,20 +219,22 @@ describe('/api/volunteers', () => {
 
 ```tsx
 // test/factories.ts
-import { faker } from '@faker-js/faker'
-import type { Volunteer, Shift } from '@/types'
+import { faker } from "@faker-js/faker";
+import type { Volunteer, Shift } from "@/types";
 
-export function createMockVolunteer(overrides: Partial<Volunteer> = {}): Volunteer {
+export function createMockVolunteer(
+  overrides: Partial<Volunteer> = {}
+): Volunteer {
   return {
     id: faker.string.uuid(),
     name: faker.person.fullName(),
     email: faker.internet.email(),
     phone: faker.phone.number(),
-    status: 'ACTIVE',
+    status: "ACTIVE",
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
-  }
+  };
 }
 
 export function createMockShift(overrides: Partial<Shift> = {}): Shift {
@@ -238,17 +246,18 @@ export function createMockShift(overrides: Partial<Shift> = {}): Shift {
     capacity: faker.number.int({ min: 1, max: 10 }),
     volunteersAssigned: 0,
     ...overrides,
-  }
+  };
 }
 
 // Mocking external services
-vi.mock('@/lib/email-service', () => ({
+vi.mock("@/lib/email-service", () => ({
   sendWelcomeEmail: vi.fn().mockResolvedValue({ success: true }),
   sendShiftReminder: vi.fn().mockResolvedValue({ success: true }),
-}))
+}));
 ```
 
 ## Database Testing
+
 - Use test database or in-memory database
 - Clean up data between tests
 - Test database operations and constraints
@@ -256,8 +265,8 @@ vi.mock('@/lib/email-service', () => ({
 
 ```tsx
 // test/db-setup.ts
-import { PrismaClient } from '@prisma/client'
-import { beforeEach, afterEach } from 'vitest'
+import { PrismaClient } from "@/generated/client";
+import { beforeEach, afterEach } from "vitest";
 
 const prisma = new PrismaClient({
   datasources: {
@@ -265,22 +274,23 @@ const prisma = new PrismaClient({
       url: process.env.TEST_DATABASE_URL,
     },
   },
-})
+});
 
 beforeEach(async () => {
   // Clean up database before each test
-  await prisma.volunteer.deleteMany()
-  await prisma.shift.deleteMany()
-})
+  await prisma.volunteer.deleteMany();
+  await prisma.shift.deleteMany();
+});
 
 afterEach(async () => {
   // Additional cleanup if needed
-})
+});
 
-export { prisma }
+export { prisma };
 ```
 
 ## Test Coverage
+
 - Aim for 80%+ code coverage
 - Focus on critical business logic
 - Test error paths and edge cases
@@ -300,6 +310,7 @@ export { prisma }
 ```
 
 ## Testing Best Practices
+
 - Write tests before or during development (TDD/BDD)
 - Keep tests simple and focused on one behavior
 - Use descriptive test names that explain the scenario
@@ -309,6 +320,7 @@ export { prisma }
 - Make tests independent and deterministic
 
 ## Performance Testing
+
 - Test API response times for critical endpoints
 - Test component render performance
 - Use Vitest benchmarks for performance-critical functions
@@ -316,25 +328,29 @@ export { prisma }
 
 ```tsx
 // performance.test.ts
-import { bench, describe } from 'vitest'
-import { calculateVolunteerHours } from './volunteer-utils'
-import { createMockVolunteer } from '@/test/factories'
+import { bench, describe } from "vitest";
+import { calculateVolunteerHours } from "./volunteer-utils";
+import { createMockVolunteer } from "@/test/factories";
 
-describe('Performance Tests', () => {
-  bench('calculateVolunteerHours with 1000 volunteers', () => {
-    const volunteers = Array.from({ length: 1000 }, () => createMockVolunteer())
-    calculateVolunteerHours(volunteers)
-  })
-})
+describe("Performance Tests", () => {
+  bench("calculateVolunteerHours with 1000 volunteers", () => {
+    const volunteers = Array.from({ length: 1000 }, () =>
+      createMockVolunteer()
+    );
+    calculateVolunteerHours(volunteers);
+  });
+});
 ```
 
 ## CI/CD Integration
+
 - Run tests on every pull request
 - Fail builds on test failures
 - Generate and publish coverage reports
 - Use parallel test execution for faster feedback
 
 ## Test Documentation
+
 - Document test setup and configuration
 - Explain complex test scenarios
 - Maintain test data factories and utilities
