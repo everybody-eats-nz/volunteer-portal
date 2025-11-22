@@ -52,7 +52,7 @@ interface ShiftTemplateManagerProps {
   initialTemplates: Record<string, ShiftTemplate>;
   shiftTypes: ShiftType[];
   onTemplateClick?: (template: ShiftTemplate) => void;
-  locations: string[];
+  locations: readonly string[];
 }
 
 export function ShiftTemplateManager({
