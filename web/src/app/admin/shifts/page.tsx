@@ -14,6 +14,7 @@ import { ShiftLocationSelector } from "@/components/shift-location-selector";
 import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
 import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
 import { LOCATIONS, LocationOption, DEFAULT_LOCATION } from "@/lib/locations";
+import { MealsServedInput } from "@/components/meals-served-input";
 
 interface AdminShiftsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -294,6 +295,11 @@ export default async function AdminShiftsPage({
             </Button>
           </div>
         </div>
+
+        {/* Meals Served Input - Only show if shifts exist for this day */}
+        {shifts.length > 0 && (
+          <MealsServedInput date={dateString} location={selectedLocation} />
+        )}
 
         {/* Shifts Display */}
         {shifts.length === 0 ? (

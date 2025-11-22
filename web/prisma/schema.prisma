@@ -645,3 +645,32 @@ enum ResourceCategory {
   GENERAL       // General resources
 }
 
+// Restaurant location configuration
+model Location {
+  id                 String   @id @default(cuid())
+  name               String   @unique // "Wellington", "Glen Innes", "Onehunga"
+  address            String
+  defaultMealsServed Int      @default(60) // Default number of meals to pre-fill when recording attendance
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Meals served tracking (per day, per location)
+model MealsServed {
+  id          String   @id @default(cuid())
+  date        DateTime // Date for this record (stored as start of day in UTC)
+  location    String   // Location name (Wellington, Glen Innes, Onehunga)
+  mealsServed Int      // Actual number of meals served that day
+  notes       String?  // Optional notes about the day
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?  // Admin who recorded this
+
+  @@unique([date, location]) // One record per day per location
+  @@index([location, date])
+  @@index([date])
+}
+
