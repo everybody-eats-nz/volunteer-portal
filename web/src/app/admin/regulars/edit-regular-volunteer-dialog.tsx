@@ -21,7 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { LOCATIONS } from "@/lib/locations";
 import { UserIcon, EditIcon } from "lucide-react";
 
 type RegularVolunteer = {
@@ -76,11 +75,13 @@ export function EditRegularVolunteerDialog({
   shiftTypes,
   open,
   onOpenChange,
+  locations,
 }: {
   regular: RegularVolunteer;
   shiftTypes: ShiftType[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  locations: readonly string[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -228,7 +229,7 @@ export function EditRegularVolunteerDialog({
                     <SelectValue placeholder="Select location..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {LOCATIONS.map((loc) => (
+                    {locations.map((loc) => (
                       <SelectItem key={loc} value={loc}>
                         {loc}
                       </SelectItem>
@@ -265,7 +266,10 @@ export function EditRegularVolunteerDialog({
                 <Select
                   value={formData.isActive ? "active" : "inactive"}
                   onValueChange={(value) => {
-                    setFormData((prev) => ({ ...prev, isActive: value === "active" }));
+                    setFormData((prev) => ({
+                      ...prev,
+                      isActive: value === "active",
+                    }));
                   }}
                 >
                   <SelectTrigger className="w-full">
@@ -274,13 +278,17 @@ export function EditRegularVolunteerDialog({
                   <SelectContent>
                     <SelectItem value="active">
                       <div className="flex items-center gap-2">
-                        <Badge variant="success" className="text-xs">Active</Badge>
+                        <Badge variant="success" className="text-xs">
+                          Active
+                        </Badge>
                         <span>Active</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="inactive">
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          Inactive
+                        </Badge>
                         <span>Inactive</span>
                       </div>
                     </SelectItem>

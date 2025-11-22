@@ -75,10 +75,12 @@ export async function DashboardImpactStats({
 
   // Create a map of actual meals served by date-location key
   const actualMealsMap = new Map<string, number>();
-  mealsServedRecords.forEach((record: { date: Date; location: string; mealsServed: number }) => {
-    const dateKey = `${record.date.toISOString()}-${record.location}`;
-    actualMealsMap.set(dateKey, record.mealsServed);
-  });
+  mealsServedRecords.forEach(
+    (record: { date: Date; location: string; mealsServed: number }) => {
+      const dateKey = `${record.date.toISOString()}-${record.location}`;
+      actualMealsMap.set(dateKey, record.mealsServed);
+    }
+  );
 
   // For days without actual data, get default values from locations
   const locationsToFetch = Array.from(
@@ -103,7 +105,12 @@ export async function DashboardImpactStats({
   });
 
   const defaultsMap = new Map(
-    locationDefaults.map((loc: { name: string; defaultMealsServed: number }) => [loc.name, loc.defaultMealsServed])
+    locationDefaults.map(
+      (loc: { name: string; defaultMealsServed: number }) => [
+        loc.name,
+        loc.defaultMealsServed,
+      ]
+    )
   );
 
   // Calculate total meals (actual + estimated)
@@ -116,13 +123,13 @@ export async function DashboardImpactStats({
 
     if (actualMealsMap.has(dateKey)) {
       const meals = actualMealsMap.get(dateKey);
-      if (typeof meals === 'number') {
+      if (typeof meals === "number") {
         totalMealsServed += meals;
         daysWithActualData++;
       }
     } else if (defaultsMap.has(location)) {
       const meals = defaultsMap.get(location);
-      if (typeof meals === 'number') {
+      if (typeof meals === "number") {
         totalMealsServed += meals;
         daysWithEstimatedData++;
       }
@@ -158,8 +165,7 @@ export async function DashboardImpactStats({
               <p className="text-xs text-muted-foreground mt-1">
                 {hasAnyData
                   ? "Based on the shifts you completed"
-                  : "Based on ~15 meals per volunteer hour"
-                }
+                  : "Based on ~15 meals per volunteer hour"}
               </p>
             </div>
 

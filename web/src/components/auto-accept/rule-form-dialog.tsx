@@ -35,7 +35,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { VOLUNTEER_GRADE_OPTIONS } from "@/lib/volunteer-grades";
-import { LOCATIONS } from "@/lib/locations";
 
 const ruleFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -46,10 +45,18 @@ const ruleFormSchema = z.object({
   shiftTypeId: z.string().optional(),
   location: z.string().optional(),
   minVolunteerGrade: z.enum(["GREEN", "YELLOW", "PINK", "NONE"]).optional(),
-  minCompletedShifts: z.union([z.number().int().min(0), z.literal("")]).optional(),
-  minAttendanceRate: z.union([z.number().min(0).max(100), z.literal("")]).optional(),
-  minAccountAgeDays: z.union([z.number().int().min(0), z.literal("")]).optional(),
-  maxDaysInAdvance: z.union([z.number().int().min(0), z.literal("")]).optional(),
+  minCompletedShifts: z
+    .union([z.number().int().min(0), z.literal("")])
+    .optional(),
+  minAttendanceRate: z
+    .union([z.number().min(0).max(100), z.literal("")])
+    .optional(),
+  minAccountAgeDays: z
+    .union([z.number().int().min(0), z.literal("")])
+    .optional(),
+  maxDaysInAdvance: z
+    .union([z.number().int().min(0), z.literal("")])
+    .optional(),
   requireShiftTypeExperience: z.boolean(),
   criteriaLogic: z.enum(["AND", "OR"]),
   stopOnMatch: z.boolean(),
@@ -87,7 +94,9 @@ export function RuleFormDialog({
   rule,
   onSuccess,
 }: RuleFormDialogProps) {
-  const [shiftTypes, setShiftTypes] = useState<{ id: string; name: string }[]>([]);
+  const [shiftTypes, setShiftTypes] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -124,7 +133,9 @@ export function RuleFormDialog({
           global: rule.global,
           shiftTypeId: rule.shiftTypeId || "",
           location: rule.location || "ALL",
-          minVolunteerGrade: rule.minVolunteerGrade ? (rule.minVolunteerGrade as "GREEN" | "YELLOW" | "PINK") : "NONE",
+          minVolunteerGrade: rule.minVolunteerGrade
+            ? (rule.minVolunteerGrade as "GREEN" | "YELLOW" | "PINK")
+            : "NONE",
           minCompletedShifts: rule.minCompletedShifts ?? "",
           minAttendanceRate: rule.minAttendanceRate ?? "",
           minAccountAgeDays: rule.minAccountAgeDays ?? "",
@@ -175,16 +186,38 @@ export function RuleFormDialog({
         ...values,
         description: values.description || null,
         shiftTypeId: values.global ? null : values.shiftTypeId || null,
-        location: values.location === "ALL" || !values.location ? null : values.location,
-        minVolunteerGrade: values.minVolunteerGrade === "NONE" ? null : values.minVolunteerGrade || null,
-        minCompletedShifts: values.minCompletedShifts === "" ? null : 
-          typeof values.minCompletedShifts === "number" ? values.minCompletedShifts : null,
-        minAttendanceRate: values.minAttendanceRate === "" ? null : 
-          typeof values.minAttendanceRate === "number" ? values.minAttendanceRate : null,
-        minAccountAgeDays: values.minAccountAgeDays === "" ? null : 
-          typeof values.minAccountAgeDays === "number" ? values.minAccountAgeDays : null,
-        maxDaysInAdvance: values.maxDaysInAdvance === "" ? null : 
-          typeof values.maxDaysInAdvance === "number" ? values.maxDaysInAdvance : null,
+        location:
+          values.location === "ALL" || !values.location
+            ? null
+            : values.location,
+        minVolunteerGrade:
+          values.minVolunteerGrade === "NONE"
+            ? null
+            : values.minVolunteerGrade || null,
+        minCompletedShifts:
+          values.minCompletedShifts === ""
+            ? null
+            : typeof values.minCompletedShifts === "number"
+            ? values.minCompletedShifts
+            : null,
+        minAttendanceRate:
+          values.minAttendanceRate === ""
+            ? null
+            : typeof values.minAttendanceRate === "number"
+            ? values.minAttendanceRate
+            : null,
+        minAccountAgeDays:
+          values.minAccountAgeDays === ""
+            ? null
+            : typeof values.minAccountAgeDays === "number"
+            ? values.minAccountAgeDays
+            : null,
+        maxDaysInAdvance:
+          values.maxDaysInAdvance === ""
+            ? null
+            : typeof values.maxDaysInAdvance === "number"
+            ? values.maxDaysInAdvance
+            : null,
       };
 
       const url = rule
@@ -205,14 +238,17 @@ export function RuleFormDialog({
 
       toast({
         title: "Success",
-        description: rule ? "Rule updated successfully" : "Rule created successfully",
+        description: rule
+          ? "Rule updated successfully"
+          : "Rule created successfully",
       });
 
       onSuccess();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save rule",
+        description:
+          error instanceof Error ? error.message : "Failed to save rule",
         variant: "destructive",
       });
     } finally {
@@ -242,7 +278,10 @@ export function RuleFormDialog({
                   <FormItem>
                     <FormLabel>Rule Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Auto-approve Pink volunteers" {...field} />
+                      <Input
+                        placeholder="e.g., Auto-approve Pink volunteers"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -258,7 +297,9 @@ export function RuleFormDialog({
                     <FormControl>
                       <Input type="number" min="0" {...field} />
                     </FormControl>
-                    <FormDescription>Higher priority rules are evaluated first</FormDescription>
+                    <FormDescription>
+                      Higher priority rules are evaluated first
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -311,7 +352,10 @@ export function RuleFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Shift Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a shift type" />
@@ -352,7 +396,9 @@ export function RuleFormDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription>Leave empty to apply to all locations</FormDescription>
+                    <FormDescription>
+                      Leave empty to apply to all locations
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -361,7 +407,7 @@ export function RuleFormDialog({
 
             <div className="space-y-4 border rounded-lg p-4">
               <h3 className="font-medium">Approval Criteria</h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -369,7 +415,10 @@ export function RuleFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Minimum Volunteer Grade</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select minimum grade" />
@@ -396,7 +445,12 @@ export function RuleFormDialog({
                     <FormItem>
                       <FormLabel>Minimum Completed Shifts</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" placeholder="e.g., 5" {...field} />
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 5"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -410,7 +464,13 @@ export function RuleFormDialog({
                     <FormItem>
                       <FormLabel>Minimum Attendance Rate (%)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" max="100" placeholder="e.g., 80" {...field} />
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="e.g., 80"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -424,7 +484,12 @@ export function RuleFormDialog({
                     <FormItem>
                       <FormLabel>Minimum Account Age (days)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" placeholder="e.g., 30" {...field} />
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 30"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -438,9 +503,16 @@ export function RuleFormDialog({
                     <FormItem>
                       <FormLabel>Max Days in Advance</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" placeholder="e.g., 14" {...field} />
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 14"
+                          {...field}
+                        />
                       </FormControl>
-                      <FormDescription>Only auto-approve if shift is within X days</FormDescription>
+                      <FormDescription>
+                        Only auto-approve if shift is within X days
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
