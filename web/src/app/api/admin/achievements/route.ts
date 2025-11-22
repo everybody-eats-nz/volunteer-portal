@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
-import { AchievementCategory } from "@prisma/client";
+import { AchievementCategory } from "@/generated/client";
 
 // Validation schema for achievement
 const achievementSchema = z.object({
@@ -122,7 +122,9 @@ export async function POST(request: Request) {
       if (!validTypes.includes(criteriaObj.type)) {
         return NextResponse.json(
           {
-            error: `Invalid criteria type. Must be one of: ${validTypes.join(", ")}`,
+            error: `Invalid criteria type. Must be one of: ${validTypes.join(
+              ", "
+            )}`,
           },
           { status: 400 }
         );
