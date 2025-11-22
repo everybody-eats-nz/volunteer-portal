@@ -12,7 +12,6 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
-
   projects: [
     {
       name: "chromium",
@@ -29,7 +28,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
+    command:
+      "NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

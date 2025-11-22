@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { type CustomLabel } from "@/generated/client";
+import { type CustomLabel } from "@prisma/client";
 
 interface CustomLabelBadgeProps {
   label: CustomLabel;

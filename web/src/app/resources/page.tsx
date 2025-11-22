@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { Prisma } from "@/generated/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ResourcesGrid } from "@/components/resources-grid";
 import { ResourcesSearch } from "@/components/resources-search";

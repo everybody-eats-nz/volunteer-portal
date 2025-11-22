@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Resource, ResourceType, ResourceCategory } from "@/generated/client";
+import { Resource, ResourceType, ResourceCategory } from "@prisma/client";
 import {
   MoreHorizontal,
   Eye,

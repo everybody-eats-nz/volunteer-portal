@@ -19,7 +19,7 @@ import {
   NovaStatusMapping,
 } from "@/types/nova-migration";
 import { hash } from "bcryptjs";
-import { SignupStatus } from "@/generated/client";
+import { SignupStatus } from "@prisma/client";
 import { profilePhotoDownloader } from "./profile-photo-downloader";
 import { randomBytes } from "crypto";
 import { createNZDate } from "./timezone";

@@ -6,7 +6,7 @@ import type {
   Signup,
   ShiftType,
   RestaurantManager,
-} from "@/generated/client";
+} from "@prisma/client";
 
 interface ShiftWithDetails extends Shift {
   shiftType: ShiftType;

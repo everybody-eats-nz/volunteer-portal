@@ -33,7 +33,7 @@ import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
 import { UserRoleToggle } from "@/components/user-role-toggle";
 import { AdminNotesManager } from "@/components/admin-notes-manager";
 import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager";
-import { type VolunteerGrade } from "@/generated/client";
+import { type VolunteerGrade } from "@prisma/client";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";

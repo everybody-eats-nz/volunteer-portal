@@ -1,4 +1,4 @@
-import { type VolunteerGrade } from "@/generated/client";
+import { type VolunteerGrade } from "@prisma/client";
 
 export interface VolunteerGradeInfo {
   label: string;

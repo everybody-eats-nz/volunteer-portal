@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { NotificationType } from "@/generated/client";
+import { NotificationType } from "@prisma/client";
 import {
   sendNotificationToUser,
   updateUnreadCount,

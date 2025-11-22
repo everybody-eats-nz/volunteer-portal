@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationItem } from "@/components/notification-item";
 import { Loader2, CheckCheck, Bell } from "lucide-react";
-import { Notification } from "@/generated/client";
+import { Notification } from "@prisma/client";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 

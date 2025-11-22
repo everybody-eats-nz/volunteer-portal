@@ -41,7 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type VolunteerGrade } from "@/generated/client";
+import { type VolunteerGrade } from "@prisma/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
 
 export interface User {

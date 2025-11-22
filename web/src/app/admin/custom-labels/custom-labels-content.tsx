@@ -16,7 +16,7 @@ import {
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { CustomLabelDialog } from "./custom-label-dialog";
-import { type CustomLabel } from "@/generated/client";
+import { type CustomLabel } from "@prisma/client";
 import { useToast } from "@/hooks/use-toast";
 
 type LabelWithCount = CustomLabel & {
