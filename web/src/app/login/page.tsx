@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useEffect as useLayoutEffect } from "react";
 import { signIn, getProviders, useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -104,46 +104,63 @@ export default function LoginPage() {
     loadProviders();
   }, []);
 
-  // Check for registration success message and authentication errors
-  useEffect(() => {
+  // Derive initial messages from URL parameters
+  const initialMessages = useMemo(() => {
     const message = searchParams.get("message");
     const urlEmail = searchParams.get("email");
     const verified = searchParams.get("verified");
     const authError = searchParams.get("error");
 
+    let errorMsg: string | null = null;
+    let successMsg: string | null = null;
+    let emailValue: string | null = null;
+    let clearPassword = false;
+
     // Check for authentication errors first
     if (authError === "CredentialsSignin") {
-      setError("Invalid credentials. Please check your email and password and try again.");
+      errorMsg = "Invalid credentials. Please check your email and password and try again.";
     }
 
     if (message === "registration-success") {
-      setSuccessMessage(
-        "Registration successful! You can now sign in with your new account."
-      );
-      setEmail(""); // Clear demo email for new users
-      setPassword(""); // Clear demo password for new users
+      successMsg = "Registration successful! You can now sign in with your new account.";
+      clearPassword = true;
     } else if (message === "verify-email") {
-      setSuccessMessage(
-        "Registration successful! Please check your email and click the verification link to complete your registration."
-      );
+      successMsg = "Registration successful! Please check your email and click the verification link to complete your registration.";
       if (urlEmail) {
-        setEmail(urlEmail); // Pre-fill with registered email
+        emailValue = urlEmail; // Pre-fill with registered email
       }
-      setPassword(""); // Clear demo password for new users
+      clearPassword = true;
     } else if (verified === "true") {
-      setSuccessMessage(
-        "Email verified successfully! You can now sign in to your account."
-      );
+      successMsg = "Email verified successfully! You can now sign in to your account.";
     } else if (message === "password-reset-success") {
-      setSuccessMessage(
-        "Password reset successful! You can now sign in with your new password."
-      );
+      successMsg = "Password reset successful! You can now sign in with your new password.";
     } else if (message === "migration-complete") {
-      setSuccessMessage(
-        "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile."
-      );
+      successMsg = "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile.";
     }
+
+    return { errorMsg, successMsg, emailValue, clearPassword };
   }, [searchParams]);
+
+  // Apply initial messages using layout effect
+  const hasAppliedInitialMessages = useRef(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (!hasAppliedInitialMessages.current && (initialMessages.errorMsg || initialMessages.successMsg || initialMessages.emailValue || initialMessages.clearPassword)) {
+      hasAppliedInitialMessages.current = true;
+      if (initialMessages.errorMsg && !error) {
+        setError(initialMessages.errorMsg);
+      }
+      if (initialMessages.successMsg && !successMessage) {
+        setSuccessMessage(initialMessages.successMsg);
+      }
+      if (initialMessages.emailValue && !email) {
+        setEmail(initialMessages.emailValue);
+      }
+      if (initialMessages.clearPassword && password) {
+        setPassword("");
+      }
+    }
+  });
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

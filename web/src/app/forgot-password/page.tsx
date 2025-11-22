@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect as useLayoutEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { Input } from "@/components/ui/input";
@@ -29,27 +29,25 @@ const formFieldVariants = {
 };
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
   const searchParams = useSearchParams();
+  const urlEmail = searchParams.get("email") || "";
+  const [email, setEmail] = useState(urlEmail);
   const [state, formAction, isPending] = useActionState(
     forgotPasswordAction,
     null
   );
 
-  // Pre-fill email if provided in URL
-  useEffect(() => {
-    const urlEmail = searchParams.get("email");
-    if (urlEmail) {
-      setEmail(urlEmail);
-    }
-  }, [searchParams]);
-
   // Clear email on successful submission
-  useEffect(() => {
-    if (state?.success) {
+  const prevSuccessRef = useRef<boolean>(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (state?.success && !prevSuccessRef.current) {
+      prevSuccessRef.current = true;
       setEmail("");
+    } else if (!state?.success && prevSuccessRef.current) {
+      prevSuccessRef.current = false;
     }
-  }, [state]);
+  });
 
   return (
     <MotionPageContainer
