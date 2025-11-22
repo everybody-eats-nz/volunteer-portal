@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours } from "date-fns";
+import { differenceInHours, startOfDay } from "date-fns";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MotionContentCard } from "@/components/motion-content-card";
 import { CheckCircle } from "lucide-react";
+import { toUTC } from "@/lib/timezone";
 
 interface DashboardImpactStatsProps {
   userId: string;
@@ -46,6 +47,100 @@ export async function DashboardImpactStats({
     ([, a], [, b]) => (b as number) - (a as number)
   )[0]?.[0];
 
+  // Calculate total meals served for shifts this volunteer worked
+  // Group shifts by date and location to get unique days
+  const uniqueDays = new Map<string, { date: Date; location: string }>();
+  completedShifts.forEach((signup) => {
+    const shiftDate = signup.shift.start;
+    const location = signup.shift.location || "Unknown";
+    const dateKey = `${startOfDay(shiftDate).toISOString()}-${location}`;
+
+    if (!uniqueDays.has(dateKey)) {
+      uniqueDays.set(dateKey, {
+        date: startOfDay(shiftDate),
+        location,
+      });
+    }
+  });
+
+  // Fetch meals served records for those days
+  const mealsServedRecords = await prisma.mealsServed.findMany({
+    where: {
+      OR: Array.from(uniqueDays.values()).map(({ date, location }) => ({
+        date: toUTC(date),
+        location,
+      })),
+    },
+  });
+
+  // Create a map of actual meals served by date-location key
+  const actualMealsMap = new Map<string, number>();
+  mealsServedRecords.forEach(
+    (record: { date: Date; location: string; mealsServed: number }) => {
+      const dateKey = `${record.date.toISOString()}-${record.location}`;
+      actualMealsMap.set(dateKey, record.mealsServed);
+    }
+  );
+
+  // For days without actual data, get default values from locations
+  const locationsToFetch = Array.from(
+    new Set(
+      Array.from(uniqueDays.values())
+        .filter(({ date, location }) => {
+          const dateKey = `${toUTC(date).toISOString()}-${location}`;
+          return !actualMealsMap.has(dateKey);
+        })
+        .map(({ location }) => location)
+    )
+  );
+
+  const locationDefaults = await prisma.location.findMany({
+    where: {
+      name: { in: locationsToFetch },
+    },
+    select: {
+      name: true,
+      defaultMealsServed: true,
+    },
+  });
+
+  const defaultsMap = new Map(
+    locationDefaults.map(
+      (loc: { name: string; defaultMealsServed: number }) => [
+        loc.name,
+        loc.defaultMealsServed,
+      ]
+    )
+  );
+
+  // Calculate total meals (actual + estimated)
+  let totalMealsServed = 0;
+  let daysWithActualData = 0;
+  let daysWithEstimatedData = 0;
+
+  Array.from(uniqueDays.values()).forEach(({ date, location }) => {
+    const dateKey = `${toUTC(date).toISOString()}-${location}`;
+
+    if (actualMealsMap.has(dateKey)) {
+      const meals = actualMealsMap.get(dateKey);
+      if (typeof meals === "number") {
+        totalMealsServed += meals;
+        daysWithActualData++;
+      }
+    } else if (defaultsMap.has(location)) {
+      const meals = defaultsMap.get(location);
+      if (typeof meals === "number") {
+        totalMealsServed += meals;
+        daysWithEstimatedData++;
+      }
+    }
+  });
+  const hasAnyData = daysWithActualData > 0 || daysWithEstimatedData > 0;
+
+  // Fall back to old estimation only if no location data exists
+  const estimatedMeals = totalHours * 15;
+  const mealsToDisplay = hasAnyData ? totalMealsServed : estimatedMeals;
+
   return (
     <MotionContentCard className="h-fit" delay={0.6}>
       <CardHeader>
@@ -60,13 +155,17 @@ export async function DashboardImpactStats({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">
-                {totalHours * 15}
+                {mealsToDisplay}
               </div>
               <p className="text-sm text-muted-foreground">
-                Estimated meals helped prepare
+                {hasAnyData
+                  ? "Meals helped prepare"
+                  : "Estimated meals helped prepare"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Based on ~15 meals per volunteer hour
+                {hasAnyData
+                  ? "Based on the shifts you completed"
+                  : "Based on ~15 meals per volunteer hour"}
               </p>
             </div>
 

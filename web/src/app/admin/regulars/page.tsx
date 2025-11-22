@@ -9,6 +9,7 @@ import Link from "next/link";
 import { StarIcon, PauseIcon, CalendarIcon } from "lucide-react";
 import { RegularsTable } from "./regulars-table";
 import { RegularVolunteerForm } from "./regular-volunteer-form";
+import { LOCATIONS } from "@/lib/locations";
 
 export default async function RegularVolunteersPage() {
   const session = await getServerSession(authOptions);
@@ -85,8 +86,8 @@ export default async function RegularVolunteersPage() {
   };
 
   return (
-    <AdminPageWrapper 
-      title="Regular Volunteers" 
+    <AdminPageWrapper
+      title="Regular Volunteers"
       description="Manage volunteers with recurring shift assignments"
       actions={
         <Button asChild variant="outline" size="sm">
@@ -95,73 +96,80 @@ export default async function RegularVolunteersPage() {
       }
     >
       <PageContainer testid="regular-volunteers-page">
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Total Regulars
-              </p>
-              <p className="text-2xl font-bold text-foreground">
-                {stats.total}
-              </p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Regulars
+                </p>
+                <p className="text-2xl font-bold text-foreground">
+                  {stats.total}
+                </p>
+              </div>
+              <StarIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
             </div>
-            <StarIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
+          </div>
+
+          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Active
+                </p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {stats.active}
+                </p>
+              </div>
+              <CalendarIcon className="h-8 w-8 text-green-500 dark:text-green-400" />
+            </div>
+          </div>
+
+          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Paused
+                </p>
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {stats.paused}
+                </p>
+              </div>
+              <PauseIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
+            </div>
+          </div>
+
+          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Inactive
+                </p>
+                <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">
+                  {stats.inactive}
+                </p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
+            </div>
           </div>
         </div>
 
-        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Active
-              </p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {stats.active}
-              </p>
-            </div>
-            <CalendarIcon className="h-8 w-8 text-green-500 dark:text-green-400" />
-          </div>
+        {/* Add Regular Form */}
+        <div className="mb-8">
+          <RegularVolunteerForm
+            volunteers={volunteers}
+            shiftTypes={shiftTypes}
+            locations={LOCATIONS}
+          />
         </div>
 
-        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Paused
-              </p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {stats.paused}
-              </p>
-            </div>
-            <PauseIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
-          </div>
-        </div>
-
-        <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Inactive
-              </p>
-              <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">
-                {stats.inactive}
-              </p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
-          </div>
-        </div>
-      </div>
-
-      {/* Add Regular Form */}
-      <div className="mb-8">
-        <RegularVolunteerForm volunteers={volunteers} shiftTypes={shiftTypes} />
-      </div>
-
-      {/* Regulars Table */}
-      <RegularsTable regulars={regulars} shiftTypes={shiftTypes} />
+        {/* Regulars Table */}
+        <RegularsTable
+          regulars={regulars}
+          shiftTypes={shiftTypes}
+          locations={LOCATIONS}
+        />
       </PageContainer>
     </AdminPageWrapper>
   );

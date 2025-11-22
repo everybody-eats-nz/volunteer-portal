@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import { ShiftTemplateManager, type ShiftTemplate } from "./shift-template-manager";
+import {
+  ShiftTemplateManager,
+  type ShiftTemplate,
+} from "./shift-template-manager";
 
 // Re-export ShiftTemplate for other components
 export type { ShiftTemplate };
@@ -23,14 +26,20 @@ interface ShiftFormManagerProps {
   onShiftTypeChange?: (shiftTypeId: string) => void;
 }
 
-export function ShiftFormManager({ initialTemplates, locations, shiftTypes, onShiftTypeChange }: ShiftFormManagerProps) {
-  const [selectedTemplate, setSelectedTemplate] = React.useState<ShiftTemplate | null>(null);
+export function ShiftFormManager({
+  initialTemplates,
+  locations,
+  shiftTypes,
+  onShiftTypeChange,
+}: ShiftFormManagerProps) {
+  const [selectedTemplate, setSelectedTemplate] =
+    React.useState<ShiftTemplate | null>(null);
   const [capacity, setCapacity] = React.useState("");
 
   const handleTemplateClick = (template: ShiftTemplate) => {
     setSelectedTemplate(template);
     setCapacity(template.capacity.toString());
-    
+
     // Notify parent component to update shift type selection
     if (onShiftTypeChange) {
       onShiftTypeChange(template.shiftTypeId);
@@ -49,10 +58,11 @@ export function ShiftFormManager({ initialTemplates, locations, shiftTypes, onSh
   return (
     <>
       {/* Template Manager */}
-      <ShiftTemplateManager 
+      <ShiftTemplateManager
         initialTemplates={initialTemplates}
         shiftTypes={shiftTypes}
         onTemplateClick={handleTemplateClick}
+        locations={locations}
       />
 
       {/* Date & Time Section with template integration */}
@@ -67,7 +77,7 @@ export function ShiftFormManager({ initialTemplates, locations, shiftTypes, onSh
             </span>
           )}
         </div>
-        <DateTimeSection 
+        <DateTimeSection
           templateStartTime={selectedTemplate?.startTime}
           templateEndTime={selectedTemplate?.endTime}
         />
@@ -102,7 +112,7 @@ export function ShiftFormManager({ initialTemplates, locations, shiftTypes, onSh
               data-testid="shift-location-select"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label
               htmlFor="capacity"

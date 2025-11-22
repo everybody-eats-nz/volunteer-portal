@@ -9,8 +9,9 @@ import {
   startOfWeek,
   endOfWeek,
   isSameMonth,
+  startOfDay,
 } from "date-fns";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, toUTC } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -343,7 +344,7 @@ export default async function MyShiftsPage({
     }
   }
 
-  function ShiftDetailsDialog({
+  async function ShiftDetailsDialog({
     shift,
     children,
   }: {
@@ -352,6 +353,36 @@ export default async function MyShiftsPage({
   }) {
     const theme = getShiftTheme(shift.shift.shiftType.name);
     const isPastShift = shift.shift.end < now;
+
+    // Fetch meals served for this shift's date and location
+    let mealsServedData = null;
+    let defaultMealsServed = null;
+    let isEstimated = false;
+
+    if (isPastShift && shift.shift.location) {
+      const shiftDate = startOfDay(shift.shift.start);
+      const shiftDateUTC = toUTC(shiftDate);
+
+      // First try to get actual meals served
+      mealsServedData = await prisma.mealsServed.findUnique({
+        where: {
+          date_location: {
+            date: shiftDateUTC,
+            location: shift.shift.location,
+          },
+        },
+      });
+
+      // If no actual data, get the location's default
+      if (!mealsServedData) {
+        const locationData = await prisma.location.findUnique({
+          where: { name: shift.shift.location },
+          select: { defaultMealsServed: true },
+        });
+        defaultMealsServed = locationData?.defaultMealsServed;
+        isEstimated = true;
+      }
+    }
 
     return (
       <ResponsiveDialog>
@@ -403,6 +434,23 @@ export default async function MyShiftsPage({
                 {shift.shift.location || "To be confirmed"}
               </span>
             </div>
+
+            {/* Meals Served (for past shifts) */}
+            {isPastShift && (mealsServedData || defaultMealsServed) && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Meals Served</span>
+                <div className="text-sm text-right">
+                  <div className={isEstimated ? "text-muted-foreground" : "font-semibold text-primary"}>
+                    {isEstimated ? "~" : ""}{mealsServedData?.mealsServed || defaultMealsServed} people
+                  </div>
+                  {isEstimated && (
+                    <div className="text-xs text-muted-foreground">
+                      estimated
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Description */}
             {shift.shift.shiftType.description && (

@@ -79,10 +79,12 @@ type ShiftType = {
 
 export function RegularsTable({
   regulars,
-  shiftTypes
+  shiftTypes,
+  locations,
 }: {
   regulars: RegularVolunteer[];
   shiftTypes: ShiftType[];
+  locations: readonly string[];
 }) {
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -256,7 +258,8 @@ export function RegularsTable({
                       {getStatusBadge(regular)}
                       {regular.pausedUntil && (
                         <div className="text-xs text-muted-foreground mt-1">
-                          Until {formatInNZT(new Date(regular.pausedUntil), "MMM d")}
+                          Until{" "}
+                          {formatInNZT(new Date(regular.pausedUntil), "MMM d")}
                         </div>
                       )}
                     </TableCell>
@@ -350,9 +353,10 @@ export function RegularsTable({
                   handleToggle(regular.id, regular.isActive);
                 }
               }}
-              className={regulars.find((r) => r.id === toggleId)?.isActive
-                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                : "bg-green-600 hover:bg-green-700 text-white"
+              className={
+                regulars.find((r) => r.id === toggleId)?.isActive
+                  ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                  : "bg-green-600 hover:bg-green-700 text-white"
               }
             >
               {regulars.find((r) => r.id === toggleId)?.isActive ? (
@@ -413,6 +417,7 @@ export function RegularsTable({
               setEditRegular(null);
             }
           }}
+          locations={locations}
         />
       )}
     </>

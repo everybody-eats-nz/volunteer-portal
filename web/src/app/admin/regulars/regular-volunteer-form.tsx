@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { PlusIcon, ChevronDownIcon } from "lucide-react";
-import { LOCATIONS } from "@/lib/locations";
 
 type Volunteer = {
   id: string;
@@ -59,9 +58,11 @@ const DAYS = [
 export function RegularVolunteerForm({
   volunteers,
   shiftTypes,
+  locations,
 }: {
   volunteers: Volunteer[];
   shiftTypes: ShiftType[];
+  locations: readonly string[];
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -253,7 +254,7 @@ export function RegularVolunteerForm({
                       <SelectValue placeholder="Select location..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {LOCATIONS.map((loc) => (
+                      {locations.map((loc) => (
                         <SelectItem key={loc} value={loc}>
                           {loc}
                         </SelectItem>

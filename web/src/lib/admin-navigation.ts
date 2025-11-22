@@ -13,6 +13,7 @@ import {
   Settings,
   FileText,
   Tags,
+  MapPin,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -100,6 +101,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: Calendar,
         description: "View and edit existing shifts",
         commandKey: "shifts",
+      },
+      {
+        title: "Restaurant Locations",
+        href: "/admin/locations",
+        icon: MapPin,
+        description: "Configure location settings",
+        commandKey: "locations",
       },
       {
         title: "Shortage Notifications",
@@ -199,6 +207,7 @@ export const getIconColor = (categoryLabel: string, itemTitle: string): string =
     // Shift Management
     "Create Shift": "text-green-600",
     "Manage Shifts": "text-green-600",
+    "Restaurant Locations": "text-blue-600",
     "Shortage Notifications": "text-amber-600",
     "Auto-Accept Rules": "text-gray-600",
     

@@ -6,11 +6,11 @@ import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { ShiftsCalendar } from "@/components/shifts-calendar";
 import {
-  LOCATIONS,
   LocationOption,
   LOCATION_ADDRESSES,
   Location,
   getLocationMapsUrl,
+  LOCATIONS,
 } from "@/lib/locations";
 import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-completion-banner";
 import { Suspense } from "react";
@@ -85,6 +85,7 @@ export default async function ShiftsCalendarPage({
     }
   }
 
+  // Fetch a
   // Parse user's preferred locations
   const userPreferredLocations = safeParseAvailability(
     currentUser?.availableLocations
