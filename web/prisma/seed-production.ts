@@ -13,7 +13,7 @@ async function main() {
 
   // Get admin credentials from environment variables or use defaults
   const adminEmail = process.env.ADMIN_EMAIL || "admin@everybodyeats.nz";
-  let adminPassword = process.env.ADMIN_PASSWORD;
+  const adminPassword = process.env.ADMIN_PASSWORD;
   const adminFirstName = process.env.ADMIN_FIRST_NAME || "Admin";
   const adminLastName = process.env.ADMIN_LAST_NAME || "User";
 

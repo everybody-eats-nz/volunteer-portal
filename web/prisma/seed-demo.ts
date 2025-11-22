@@ -1,10 +1,25 @@
 import bcrypt from "bcrypt";
-import { addDays, set, subYears, subMonths, subDays, format } from "date-fns";
+import {
+  addDays,
+  set,
+  subYears,
+  subMonths,
+  subDays,
+  format,
+  DateValues,
+} from "date-fns";
 import { tz } from "@date-fns/tz";
 import https from "https";
 
 import { PrismaClient } from "../src/generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import {
+  AchievementCategory,
+  CriteriaLogic,
+  NotificationPreference,
+  NotificationType,
+  VolunteerGrade,
+} from "@prisma/client";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -25,7 +40,7 @@ function formatInNZT(date: Date, formatStr: string) {
   return format(nzTime, formatStr, { in: nzTimezone });
 }
 
-function setInNZT(date: Date, options: any) {
+function setInNZT(date: Date, options: DateValues) {
   const nzDate = nzTimezone(date);
   const setDate = set(nzDate, options);
   return toNZT(setDate);
@@ -89,7 +104,7 @@ async function generateRandomProfileImagesForAllUsers() {
 function downloadImageAsBase64(url: string) {
   return new Promise((resolve, reject) => {
     https
-      .get(url, (response: any) => {
+      .get(url, (response) => {
         if (response.statusCode !== 200) {
           reject(new Error(`Failed to download image: ${response.statusCode}`));
           return;
@@ -571,7 +586,7 @@ async function main() {
 
   for (let i = 0; i < REALISTIC_VOLUNTEERS.length; i++) {
     const volunteerData = REALISTIC_VOLUNTEERS[i];
-    const volunteerGrade = (gradeDistribution[i] || "GREEN") as any; // Default to GREEN if not specified
+    const volunteerGrade = gradeDistribution[i] || "GREEN"; // Default to GREEN if not specified
 
     const u = await prisma.user.upsert({
       where: { email: volunteerData.email },
@@ -580,9 +595,10 @@ async function main() {
         ...volunteerData,
         name: `${volunteerData.firstName} ${volunteerData.lastName}`,
         hashedPassword: volunteerHash,
-        role: "VOLUNTEER" as any,
-        volunteerGrade: volunteerGrade,
-      } as any,
+        role: "VOLUNTEER",
+        volunteerGrade: volunteerGrade as VolunteerGrade,
+        notificationPreference: "NONE",
+      },
     });
     extraVolunteers.push(u);
   }
@@ -684,7 +700,7 @@ async function main() {
     // Pattern: GREEN (newer), YELLOW (experienced), PINK (leaders), repeat
     // This creates: GREEN, YELLOW, PINK, GREEN, YELLOW, PINK, etc.
     const additionalGrades = ["GREEN", "YELLOW", "PINK"];
-    const volunteerGrade = additionalGrades[(i - 1) % 3] as any;
+    const volunteerGrade = additionalGrades[(i - 1) % 3] as VolunteerGrade;
 
     const u = await prisma.user.upsert({
       where: { email },
@@ -725,7 +741,9 @@ async function main() {
           ["Wellington", "Glen Innes", "Onehunga"].slice(0, (i % 3) + 1)
         ),
         emailNewsletterSubscription: i % 2 === 0,
-        notificationPreference: ["EMAIL", "SMS", "BOTH", "NONE"][i % 4] as any,
+        notificationPreference: ["EMAIL", "SMS", "BOTH", "NONE"][
+          i % 4
+        ] as NotificationPreference,
         // Empty array means all types
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: [], // Empty array means all types
@@ -1654,10 +1672,10 @@ async function main() {
     });
 
     const sampleUser = allUsers.find(
-      (u: any) => u.email === "volunteer@example.com"
+      (u) => u.email === "volunteer@example.com"
     );
     const otherUsers = allUsers.filter(
-      (u: any) =>
+      (u) =>
         u.email !== "volunteer@example.com" &&
         u.email !== "admin@everybodyeats.nz"
     );
@@ -1673,7 +1691,7 @@ async function main() {
         // Recent friend request
         {
           userId: sampleUser.id,
-          type: "FRIEND_REQUEST_RECEIVED" as any,
+          type: NotificationType.FRIEND_REQUEST_RECEIVED,
           title: "New friend request",
           message: `${
             otherUsers[0].firstName || otherUsers[0].name || "Someone"
@@ -1686,7 +1704,7 @@ async function main() {
         // Shift confirmed notification
         {
           userId: sampleUser.id,
-          type: "SHIFT_CONFIRMED" as any,
+          type: NotificationType.SHIFT_CONFIRMED,
           title: "Shift confirmed",
           message:
             "Your Kitchen Prep shift on Saturday, August 24, 2025 has been confirmed",
@@ -1698,7 +1716,7 @@ async function main() {
         // Friend request accepted (older, read)
         {
           userId: sampleUser.id,
-          type: "FRIEND_REQUEST_ACCEPTED" as any,
+          type: NotificationType.FRIEND_REQUEST_ACCEPTED,
           title: "Friend request accepted",
           message: `${
             otherUsers[1].firstName || otherUsers[1].name || "Someone"
@@ -1711,7 +1729,7 @@ async function main() {
         // Waitlisted notification (older, read)
         {
           userId: sampleUser.id,
-          type: "SHIFT_WAITLISTED" as any,
+          type: NotificationType.SHIFT_WAITLISTED,
           title: "Added to waitlist",
           message:
             "You've been added to the waitlist for Food Service on Sunday, August 18, 2025",
@@ -1723,7 +1741,7 @@ async function main() {
         // Achievement unlocked (mix of read/unread)
         {
           userId: sampleUser.id,
-          type: "ACHIEVEMENT_UNLOCKED" as any,
+          type: NotificationType.ACHIEVEMENT_UNLOCKED,
           title: "Achievement unlocked!",
           message: 'Congratulations! You earned the "First Steps" achievement',
           actionUrl: "/dashboard",
@@ -1745,7 +1763,7 @@ async function main() {
         const additionalNotifications = [
           {
             userId: otherUsers[0].id,
-            type: "FRIEND_REQUEST_RECEIVED" as any,
+            type: "FRIEND_REQUEST_RECEIVED" as NotificationType,
             title: "New friend request",
             message: `${
               sampleUser.firstName || sampleUser.name || "Someone"
@@ -1757,7 +1775,7 @@ async function main() {
           },
           {
             userId: otherUsers[1].id,
-            type: "SHIFT_CONFIRMED" as any,
+            type: "SHIFT_CONFIRMED" as NotificationType,
             title: "Shift confirmed",
             message:
               "Your Dishwashing shift on Friday, August 23, 2025 has been confirmed",
@@ -1799,7 +1817,7 @@ async function main() {
       {
         name: "First Steps",
         description: "Complete your first volunteer shift",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🌟",
         criteria: JSON.stringify({ type: "shifts_completed", value: 1 }),
         points: 10,
@@ -1807,7 +1825,7 @@ async function main() {
       {
         name: "Getting Started",
         description: "Complete 5 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "⭐",
         criteria: JSON.stringify({ type: "shifts_completed", value: 5 }),
         points: 25,
@@ -1815,7 +1833,7 @@ async function main() {
       {
         name: "Making a Difference",
         description: "Complete 10 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🎯",
         criteria: JSON.stringify({ type: "shifts_completed", value: 10 }),
         points: 50,
@@ -1823,7 +1841,7 @@ async function main() {
       {
         name: "Veteran Volunteer",
         description: "Complete 25 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🏆",
         criteria: JSON.stringify({ type: "shifts_completed", value: 25 }),
         points: 100,
@@ -1831,7 +1849,7 @@ async function main() {
       {
         name: "Community Champion",
         description: "Complete 50 volunteer shifts",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "👑",
         criteria: JSON.stringify({ type: "shifts_completed", value: 50 }),
         points: 200,
@@ -1840,7 +1858,7 @@ async function main() {
       {
         name: "Time Keeper",
         description: "Volunteer for 10 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "⏰",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 10 }),
         points: 30,
@@ -1848,7 +1866,7 @@ async function main() {
       {
         name: "Dedicated Helper",
         description: "Volunteer for 25 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "💪",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 25 }),
         points: 75,
@@ -1856,7 +1874,7 @@ async function main() {
       {
         name: "Marathon Volunteer",
         description: "Volunteer for 50 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "🏃",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 50 }),
         points: 150,
@@ -1864,7 +1882,7 @@ async function main() {
       {
         name: "Century Club",
         description: "Volunteer for 100 hours",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "💯",
         criteria: JSON.stringify({ type: "hours_volunteered", value: 100 }),
         points: 300,
@@ -1873,7 +1891,7 @@ async function main() {
       {
         name: "Consistent Helper",
         description: "Volunteer for 3 consecutive months",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "📅",
         criteria: JSON.stringify({ type: "consecutive_months", value: 3 }),
         points: 50,
@@ -1881,7 +1899,7 @@ async function main() {
       {
         name: "Reliable Volunteer",
         description: "Volunteer for 6 consecutive months",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "🗓️",
         criteria: JSON.stringify({ type: "consecutive_months", value: 6 }),
         points: 100,
@@ -1889,7 +1907,7 @@ async function main() {
       {
         name: "Year-Round Helper",
         description: "Volunteer for 12 consecutive months",
-        category: "DEDICATION",
+        category: AchievementCategory.DEDICATION,
         icon: "🎊",
         criteria: JSON.stringify({ type: "consecutive_months", value: 12 }),
         points: 200,
@@ -1898,7 +1916,7 @@ async function main() {
       {
         name: "One Year Strong",
         description: "Volunteer for one full year",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🎂",
         criteria: JSON.stringify({ type: "years_volunteering", value: 1 }),
         points: 150,
@@ -1906,7 +1924,7 @@ async function main() {
       {
         name: "Two Year Veteran",
         description: "Volunteer for two full years",
-        category: "MILESTONE",
+        category: AchievementCategory.MILESTONE,
         icon: "🎉",
         criteria: JSON.stringify({ type: "years_volunteering", value: 2 }),
         points: 300,
@@ -1915,7 +1933,7 @@ async function main() {
       {
         name: "Meal Master",
         description: "Help prepare an estimated 100 meals",
-        category: "IMPACT",
+        category: AchievementCategory.IMPACT,
         icon: "🍽️",
         criteria: JSON.stringify({ type: "community_impact", value: 100 }),
         points: 75,
@@ -1923,7 +1941,7 @@ async function main() {
       {
         name: "Food Hero",
         description: "Help prepare an estimated 500 meals",
-        category: "IMPACT",
+        category: AchievementCategory.IMPACT,
         icon: "🦸",
         criteria: JSON.stringify({ type: "community_impact", value: 500 }),
         points: 200,
@@ -1931,7 +1949,7 @@ async function main() {
       {
         name: "Hunger Fighter",
         description: "Help prepare an estimated 1000 meals",
-        category: "IMPACT",
+        category: AchievementCategory.IMPACT,
         icon: "⚔️",
         criteria: JSON.stringify({ type: "community_impact", value: 1000 }),
         points: 400,
@@ -1944,7 +1962,7 @@ async function main() {
         where: { name: achievementDef.name },
         update: {
           description: achievementDef.description,
-          category: achievementDef.category as any,
+          category: achievementDef.category,
           icon: achievementDef.icon,
           criteria: achievementDef.criteria,
           points: achievementDef.points,
@@ -1953,7 +1971,7 @@ async function main() {
         create: {
           name: achievementDef.name,
           description: achievementDef.description,
-          category: achievementDef.category as any,
+          category: achievementDef.category,
           icon: achievementDef.icon,
           criteria: achievementDef.criteria,
           points: achievementDef.points,
@@ -2000,13 +2018,13 @@ async function main() {
           priority: 10,
           global: true, // Apply to all shift types
           shiftTypeId: null,
-          minVolunteerGrade: "YELLOW",
+          minVolunteerGrade: VolunteerGrade.YELLOW,
           minCompletedShifts: 5,
           minAttendanceRate: 85.0,
           minAccountAgeDays: 30,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2020,13 +2038,13 @@ async function main() {
           priority: 20, // Higher priority than experienced volunteers
           global: true,
           shiftTypeId: null,
-          minVolunteerGrade: "PINK",
+          minVolunteerGrade: VolunteerGrade.PINK,
           minCompletedShifts: null,
           minAttendanceRate: null,
           minAccountAgeDays: null,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2040,13 +2058,13 @@ async function main() {
           priority: 5, // Lower priority than grade-based rules
           global: false,
           shiftTypeId: kitchenPrep.id,
-          minVolunteerGrade: "GREEN", // Even green volunteers
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 2,
           minAttendanceRate: 75.0,
           minAccountAgeDays: 14,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: false, // Allow other rules to also match
           createdBy: adminUser.id,
         },
@@ -2060,13 +2078,13 @@ async function main() {
           priority: 15,
           global: true,
           shiftTypeId: null,
-          minVolunteerGrade: "GREEN", // Any grade
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 3,
           minAttendanceRate: 80.0,
           minAccountAgeDays: 21,
           maxDaysInAdvance: 3, // Only for shifts starting within 3 days
           requireShiftTypeExperience: false,
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2080,13 +2098,13 @@ async function main() {
           priority: 8,
           global: false,
           shiftTypeId: dishwasher.id,
-          minVolunteerGrade: "GREEN",
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 1,
           minAttendanceRate: null,
           minAccountAgeDays: 7,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: true, // Must have done dishwashing before
-          criteriaLogic: "AND",
+          criteriaLogic: CriteriaLogic.AND,
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2100,13 +2118,13 @@ async function main() {
           priority: 12,
           global: true,
           shiftTypeId: null,
-          minVolunteerGrade: "GREEN",
+          minVolunteerGrade: VolunteerGrade.GREEN,
           minCompletedShifts: 15, // Either 15+ shifts
           minAttendanceRate: 95.0, // OR 95%+ attendance
           minAccountAgeDays: 60,
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
-          criteriaLogic: "OR", // Either condition can be true
+          criteriaLogic: CriteriaLogic.OR, // Either condition can be true
           stopOnMatch: true,
           createdBy: adminUser.id,
         },
@@ -2115,7 +2133,7 @@ async function main() {
       // Create auto-accept rules
       for (const ruleData of autoAcceptRules) {
         await prisma.autoAcceptRule.create({
-          data: ruleData as any,
+          data: ruleData,
         });
       }
 
@@ -2167,12 +2185,12 @@ async function main() {
       let promotions = 0;
       for (const user of userShiftCounts) {
         const shiftCount = user.signups.length;
-        let recommendedGrade = "GREEN"; // Default
+        let recommendedGrade: VolunteerGrade = VolunteerGrade.GREEN; // Default
 
         if (shiftCount >= 25) {
-          recommendedGrade = "PINK"; // Shift leader after 25 shifts
+          recommendedGrade = VolunteerGrade.PINK; // Shift leader after 25 shifts
         } else if (shiftCount >= 10) {
-          recommendedGrade = "YELLOW"; // Experienced after 10 shifts
+          recommendedGrade = VolunteerGrade.YELLOW; // Experienced after 10 shifts
         }
 
         // Only promote if they're below what their shift count suggests
@@ -2185,7 +2203,7 @@ async function main() {
         if (currentPriority < recommendedPriority) {
           await prisma.user.update({
             where: { id: user.id },
-            data: { volunteerGrade: recommendedGrade as any },
+            data: { volunteerGrade: recommendedGrade },
           });
           console.log(
             `   📈 Promoted ${user.email} from ${user.volunteerGrade} → ${recommendedGrade} (${shiftCount} completed shifts)`

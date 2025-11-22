@@ -1,7 +1,7 @@
 // Auto-selecting seed script based on environment
 // This script determines whether to run production or development seeding
 
-const { execSync } = require("child_process");
+import { execSync } from "child_process";
 
 const isProduction =
   process.env.VERCEL_ENV === "production" ||
