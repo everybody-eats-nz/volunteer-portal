@@ -12,7 +12,6 @@ import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { BotProtectionClient } from "@/components/bot-protection-client";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
-import { usePostHog } from "posthog-js/react";
 
 const libreFranklin = Libre_Franklin({
   variable: "--font-libre-franklin",
@@ -35,7 +34,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getServerSession(authOptions);
-  const postHog = usePostHog();
 
   // Fetch user profile data including profile photo
   let userProfile = null;
@@ -49,11 +47,6 @@ export default async function RootLayout({
         firstName: true,
         lastName: true,
       },
-    });
-
-    postHog.identify(userProfile?.id, {
-      email: session.user.email,
-      name: userProfile?.name,
     });
   }
 
