@@ -224,7 +224,20 @@ export function AchievementDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Icon *</Label>
+            <Label htmlFor="achievement-icon">Icon *</Label>
+            <Input
+              id="achievement-icon"
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              placeholder="Enter or paste any emoji (e.g., 🎉)"
+              required
+              maxLength={10}
+              className="text-2xl h-12"
+              data-testid="achievement-icon-input"
+            />
+            <p className="text-xs text-slate-500">
+              Quick select or paste any emoji above
+            </p>
             <div className="grid grid-cols-11 gap-1">
               {ICON_OPTIONS.map((emoji) => (
                 <button
@@ -232,7 +245,7 @@ export function AchievementDialog({
                   type="button"
                   onClick={() => setIcon(emoji)}
                   className={`
-                    p-2 text-2xl hover:bg-slate-100 rounded
+                    p-2 text-2xl hover:bg-slate-100 rounded transition-colors
                     ${icon === emoji ? "bg-slate-200 ring-2 ring-slate-400" : ""}
                   `}
                   data-testid={`icon-option-${emoji}`}
