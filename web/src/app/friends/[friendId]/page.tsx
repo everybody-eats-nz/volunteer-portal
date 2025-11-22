@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { differenceInDays, differenceInHours, subMonths } from "date-fns";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, toNZT } from "@/lib/timezone";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -93,54 +93,74 @@ export default async function FriendProfilePage({
     notFound();
   }
 
+  // Helper function to determine if a shift is AM or PM (in NZ timezone)
+  const isAMShift = (shiftStart: Date) => {
+    const nzTime = toNZT(shiftStart);
+    const hour = nzTime.getHours();
+    return hour < 16; // Before 4pm (16:00) is considered "AM"
+  };
+
+  // Helper to get shift date in NZ timezone (YYYY-MM-DD format)
+  const getShiftDate = (shiftStart: Date) => {
+    return formatInNZT(shiftStart, "yyyy-MM-dd");
+  };
+
   // Get comprehensive friendship stats
   const [
-    sharedShifts,
+    userShifts,
+    friendShifts,
     friendUpcomingShifts,
     friendCompletedShifts,
     friendTotalShifts,
     friendThisMonthShifts,
     friendLast3MonthsShifts,
   ] = await Promise.all([
-    // Shifts where both users were signed up (completed or confirmed)
-    prisma.shift.findMany({
+    // Get all user's shifts (confirmed or pending)
+    prisma.signup.findMany({
       where: {
-        signups: {
-          some: {
-            userId: user.id,
-            status: { in: ["CONFIRMED", "PENDING"] },
-          },
-        },
-        AND: {
-          signups: {
-            some: {
-              userId: friendId,
-              status: { in: ["CONFIRMED", "PENDING"] },
-            },
-          },
-        },
+        userId: user.id,
+        status: { in: ["CONFIRMED", "PENDING"] },
       },
       include: {
-        shiftType: true,
-        signups: {
-          where: {
-            userId: { in: [user.id, friendId] },
-            status: { in: ["CONFIRMED", "PENDING"] },
-          },
+        shift: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+            shiftType: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
-      orderBy: { start: "desc" },
-      take: 10,
+      orderBy: { shift: { start: "desc" } },
+    }),
+
+    // Get all friend's shifts (confirmed or pending)
+    prisma.signup.findMany({
+      where: {
+        userId: friendId,
+        status: { in: ["CONFIRMED", "PENDING"] },
+      },
+      include: {
+        shift: {
+          include: {
+            shiftType: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { shift: { start: "desc" } },
     }),
 
     // Friend's upcoming shifts (if visibility allows)
@@ -214,6 +234,80 @@ export default async function FriendProfilePage({
       },
     }),
   ]);
+
+  // Match shared shifts based on day, AM/PM, and location
+  interface SharedShiftMatch {
+    id: string; // Use the shift ID for uniqueness
+    start: Date;
+    location: string | null;
+    shiftType: {
+      id: string;
+      name: string;
+    };
+    signups: Array<{
+      id: string;
+      user: {
+        id: string;
+        name: string | null;
+        firstName: string | null;
+        lastName: string | null;
+      };
+    }>;
+  }
+
+  const sharedShiftsMap = new Map<string, SharedShiftMatch>();
+
+  // For each user shift, find matching friend shifts
+  userShifts.forEach((userSignup) => {
+    const userShift = userSignup.shift;
+    const userDate = getShiftDate(userShift.start);
+    const userIsAM = isAMShift(userShift.start);
+    const userLocation = userShift.location || "";
+
+    // Find friend shifts that match
+    friendShifts.forEach((friendSignup) => {
+      const friendShift = friendSignup.shift;
+      const friendDate = getShiftDate(friendShift.start);
+      const friendIsAM = isAMShift(friendShift.start);
+      const friendLocation = friendShift.location || "";
+
+      // Check if they match: same day, same AM/PM, same location
+      if (
+        userDate === friendDate &&
+        userIsAM === friendIsAM &&
+        userLocation === friendLocation
+      ) {
+        // Create a unique key for this day/time/location combination
+        const key = `${userDate}-${userIsAM ? "AM" : "PM"}-${userLocation}`;
+
+        // If we haven't added this combination yet, add it
+        if (!sharedShiftsMap.has(key)) {
+          // Use the user's shift as the base, but include both signups
+          sharedShiftsMap.set(key, {
+            id: userShift.id,
+            start: userShift.start,
+            location: userShift.location,
+            shiftType: userShift.shiftType,
+            signups: [
+              {
+                id: userSignup.id,
+                user: userSignup.user,
+              },
+              {
+                id: friendSignup.id,
+                user: friendSignup.user,
+              },
+            ],
+          });
+        }
+      }
+    });
+  });
+
+  // Convert map to array and sort by date (most recent first)
+  const sharedShifts = Array.from(sharedShiftsMap.values()).sort(
+    (a, b) => b.start.getTime() - a.start.getTime()
+  );
 
   // Calculate friendship stats
   const daysSinceFriendship = differenceInDays(
