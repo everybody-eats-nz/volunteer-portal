@@ -1,7 +1,7 @@
-import { Page, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/client";
-import { hash } from "bcryptjs";
+import { Page, expect } from "@playwright/test";
+import { Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 /**
  * Create a test user with optional notification preferences
@@ -16,12 +16,14 @@ export async function createTestUser(
     excludedShortageNotificationTypes?: string[];
   }
 ): Promise<void> {
+  const { prisma } = await import("@/lib/prisma");
+
   // Delete existing user first to avoid conflicts
   await prisma.user.deleteMany({
     where: { email },
   });
 
-  const hashedPassword = await hash("Test123456", 12);
+  const hashedPassword = await bcrypt.hash("Test123456", 12);
   await prisma.user.create({
     data: {
       email,
