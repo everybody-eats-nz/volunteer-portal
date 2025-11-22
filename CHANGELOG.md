@@ -1,3 +1,9 @@
+## [0.68.1] - 2025-11-22
+
+### Changes
+- Prisma 7 ([#275](https://github.com/everybody-eats-nz/volunteer-portal/pull/275)) by @malinmalliyawadu
+
+
 ## [0.68.0] - 2025-11-22
 
 ### Changes
