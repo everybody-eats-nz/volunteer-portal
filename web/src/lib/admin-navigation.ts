@@ -63,13 +63,6 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "regulars",
       },
       {
-        title: "Restaurant Managers",
-        href: "/admin/restaurant-managers",
-        icon: ChefHat,
-        description: "Manage restaurant staff",
-        commandKey: "restaurant-managers",
-      },
-      {
         title: "Parental Consent",
         href: "/admin/parental-consent",
         icon: FileText,
@@ -103,13 +96,6 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "shifts",
       },
       {
-        title: "Restaurant Locations",
-        href: "/admin/locations",
-        icon: MapPin,
-        description: "Configure location settings",
-        commandKey: "locations",
-      },
-      {
         title: "Shortage Notifications",
         href: "/admin/notifications",
         icon: Bell,
@@ -122,6 +108,25 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: Settings,
         description: "Configure automatic approvals",
         commandKey: "auto-accept",
+      },
+    ],
+  },
+  {
+    label: "Restaraunt Management",
+    items: [
+      {
+        title: "Restaurant Locations",
+        href: "/admin/locations",
+        icon: MapPin,
+        description: "Configure location settings",
+        commandKey: "locations",
+      },
+      {
+        title: "Restaurant Managers",
+        href: "/admin/restaurant-managers",
+        icon: ChefHat,
+        description: "Manage restaurant staff",
+        commandKey: "restaurant-managers",
       },
     ],
   },
@@ -192,25 +197,28 @@ export const publicNavItems: AdminNavItem[] = [
 ];
 
 // Helper function to get icon color for command palette
-export const getIconColor = (categoryLabel: string, itemTitle: string): string => {
+export const getIconColor = (
+  categoryLabel: string,
+  itemTitle: string
+): string => {
   const colorMap: Record<string, string> = {
     // Overview
-    "Dashboard": "text-blue-600",
-    
+    Dashboard: "text-blue-600",
+
     // Volunteer Management
     "All Users": "text-purple-600",
     "Regular Volunteers": "text-yellow-600",
     "Restaurant Managers": "text-orange-600",
     "Parental Consent": "text-blue-600",
     "Custom Labels": "text-indigo-600",
-    
+
     // Shift Management
     "Create Shift": "text-green-600",
     "Manage Shifts": "text-green-600",
     "Restaurant Locations": "text-blue-600",
     "Shortage Notifications": "text-amber-600",
     "Auto-Accept Rules": "text-gray-600",
-    
+
     // Resources
     "Resource Hub": "text-blue-500",
 
@@ -223,6 +231,6 @@ export const getIconColor = (categoryLabel: string, itemTitle: string): string =
     // Public
     "View Public Shifts": "text-emerald-600",
   };
-  
+
   return colorMap[itemTitle] || "text-gray-600";
 };

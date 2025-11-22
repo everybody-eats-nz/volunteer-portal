@@ -1,7 +1,12 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcrypt");
+import bcrypt from "bcrypt";
 
-const prisma = new PrismaClient();
+import { PrismaClient } from "../src/generated/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Running production seed...");
