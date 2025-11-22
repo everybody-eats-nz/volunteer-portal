@@ -1,3 +1,9 @@
+## [0.69.0] - 2025-11-22
+
+### Changes
+- Add achievement management system for admin dashboard ([#276](https://github.com/everybody-eats-nz/volunteer-portal/pull/276)) by @malinmalliyawadu
+
+
 ## [0.68.1] - 2025-11-22
 
 ### Changes

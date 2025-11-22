@@ -354,7 +354,20 @@ export async function checkAndUnlockAchievements(userId: string) {
           shouldUnlock = progress.community_impact >= criteria.value;
           break;
         case "specific_shift_type":
-          // Skip for now, not implemented
+          // Check if user has completed enough shifts of the specific type
+          if (criteria.shiftType) {
+            const specificShiftCount = await prisma.signup.count({
+              where: {
+                userId,
+                status: "CONFIRMED",
+                shift: {
+                  end: { lt: new Date() },
+                  shiftTypeId: criteria.shiftType,
+                },
+              },
+            });
+            shouldUnlock = specificShiftCount >= criteria.value;
+          }
           break;
       }
 
