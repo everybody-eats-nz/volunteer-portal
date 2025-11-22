@@ -156,25 +156,10 @@ export async function DashboardImpactStats({
                   : "Estimated meals helped prepare"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {hasAnyData ? (
-                  <>
-                    {daysWithActualData > 0 && (
-                      <>
-                        {daysWithActualData} day{daysWithActualData !== 1 ? "s" : ""} actual
-                      </>
-                    )}
-                    {daysWithActualData > 0 && daysWithEstimatedData > 0 && (
-                      <>, </>
-                    )}
-                    {daysWithEstimatedData > 0 && (
-                      <>
-                        {daysWithEstimatedData} day{daysWithEstimatedData !== 1 ? "s" : ""} estimated
-                      </>
-                    )}
-                  </>
-                ) : (
-                  "Based on ~15 meals per volunteer hour"
-                )}
+                {hasAnyData
+                  ? "Based on the shifts you completed"
+                  : "Based on ~15 meals per volunteer hour"
+                }
               </p>
             </div>
 
