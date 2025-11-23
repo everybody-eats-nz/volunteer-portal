@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 interface Achievement {
   id: string;
@@ -44,7 +44,7 @@ export function useAchievementTracker() {
   /**
    * Check for achievements unlocked since last dashboard visit
    */
-  const checkAchievements = async (): Promise<AchievementsData | null> => {
+  const checkAchievements = useCallback(async (): Promise<AchievementsData | null> => {
     try {
       setIsLoading(true);
 
@@ -96,23 +96,23 @@ export function useAchievementTracker() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // Empty deps - function is stable
 
   /**
    * Close the celebration dialog
    */
-  const closeCelebration = () => {
+  const closeCelebration = useCallback(() => {
     setShowCelebration(false);
     setNewAchievements([]);
-  };
+  }, []);
 
   /**
    * Reset the tracker (useful for testing or manual reset)
    */
-  const resetTracker = () => {
+  const resetTracker = useCallback(() => {
     setNewAchievements([]);
     setShowCelebration(false);
-  };
+  }, []);
 
   return {
     // State

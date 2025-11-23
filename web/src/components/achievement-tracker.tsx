@@ -24,7 +24,7 @@ export function AchievementTracker({ userId }: AchievementTrackerProps) {
   // Check for achievements when component mounts
   useEffect(() => {
     checkAchievements();
-  }, [checkAchievements, userId]);
+  }, [checkAchievements]);
 
   // Only render the celebration dialog - this component is invisible otherwise
   return (

@@ -1,3 +1,9 @@
+## [0.69.2] - 2025-11-23
+
+### Changes
+- perf: optimize achievement tracker with useCallback and component caching ([#278](https://github.com/everybody-eats-nz/volunteer-portal/pull/278)) by @malinmalliyawadu
+
+
 ## [0.69.1] - 2025-11-23
 
 ### Changes
