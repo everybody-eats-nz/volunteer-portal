@@ -1,3 +1,9 @@
+## [0.70.1] - 2025-11-23
+
+### Changes
+- feat: add 4MB file size limit validation with user-friendly warnings ([#280](https://github.com/everybody-eats-nz/volunteer-portal/pull/280)) by @malinmalliyawadu
+
+
 ## [0.70.0] - 2025-11-23
 
 ### Changes
