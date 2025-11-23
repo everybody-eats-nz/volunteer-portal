@@ -45,9 +45,16 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
   // Fetch initial unread count on mount
   useEffect(() => {
+    let isMounted = true;
     if (userId) {
-      fetchUnreadCount();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchUnreadCount().then(() => {
+        if (!isMounted) return;
+      });
     }
+    return () => {
+      isMounted = false;
+    };
   }, [userId, fetchUnreadCount]);
 
   // Handle when notifications are read

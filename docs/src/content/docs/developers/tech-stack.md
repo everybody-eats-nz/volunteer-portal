@@ -9,10 +9,10 @@ The Everybody Eats Volunteer Portal is built with modern web technologies, prior
 
 ### Core Framework
 
-**[Next.js 15.4](https://nextjs.org/)** with App Router
+**[Next.js 16.0.3](https://nextjs.org/)** with App Router
 
 - **Why**: Server-side rendering, excellent developer experience, and powerful routing
-- **Features Used**: App Router, Server Components, API routes, middleware
+- **Features Used**: App Router, Server Components, API routes, proxy middleware
 - **File Structure**: `/src/app/` for pages and API routes
 - **Documentation**: [Next.js Docs](https://nextjs.org/docs)
 
@@ -100,7 +100,7 @@ graph TD
 
 ```mermaid
 graph LR
-    A[Client Request] --> B[Middleware]
+    A[Client Request] --> B[Proxy Middleware]
     B --> C[API Route Handler]
     C --> D[Session Validation]
     D --> E[Business Logic]

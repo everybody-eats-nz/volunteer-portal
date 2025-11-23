@@ -37,9 +37,9 @@ This page provides technical details about permission levels and access controls
 
 ## Route Protection System
 
-### Middleware-Based Security
+### Proxy Middleware-Based Security
 
-The system uses Next.js middleware with a **secure-by-default** approach:
+The system uses Next.js proxy middleware with a **secure-by-default** approach:
 
 1. **Default to Admin Access**: All routes require admin permissions unless explicitly allowlisted
 2. **Edge Protection**: Authentication checks happen before page rendering
@@ -57,7 +57,7 @@ The system uses Next.js middleware with a **secure-by-default** approach:
 
 ### Automatic Protection
 
-API routes are automatically protected by middleware based on their path patterns.
+API routes are automatically protected by proxy middleware based on their path patterns.
 
 ### Manual Checks
 
