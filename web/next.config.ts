@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 
   turbopack: {},
+
+  reactCompiler: true,
 };
 
 export default withBotId(nextConfig);
