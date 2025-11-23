@@ -1,3 +1,9 @@
+## [0.69.1] - 2025-11-23
+
+### Changes
+- chore: upgrade to Next.js 16.0.3 and React 19.2.0 ([#277](https://github.com/everybody-eats-nz/volunteer-portal/pull/277)) by @malinmalliyawadu
+
+
 ## [0.69.0] - 2025-11-22
 
 ### Changes

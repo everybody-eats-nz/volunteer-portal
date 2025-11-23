@@ -14,7 +14,7 @@ A modern Next.js application for managing volunteers at Everybody Eats, an innov
 
 ## 🛠️ Tech Stack
 
-- ⚛️ **Framework**: Next.js 15.4.6 (App Router)
+- ⚛️ **Framework**: Next.js 16.0.3 (App Router)
 - 📝 **Language**: TypeScript
 - 🎨 **Styling**: Tailwind CSS v4
 - 🧩 **UI Components**: Radix UI + Custom shadcn/ui components

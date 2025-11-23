@@ -102,7 +102,7 @@ The application uses centralized middleware for route protection with a secure-b
 - **Public and user routes must be explicitly allowlisted**
 - **Route protection happens at the edge before page rendering**
 
-See `middleware.ts` for route configuration and `src/lib/auth-utils.ts` for component-level helpers.
+See `proxy.ts` for route configuration and `src/lib/auth-utils.ts` for component-level helpers.
 
 ### Loading & Error States
 

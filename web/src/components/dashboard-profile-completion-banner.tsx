@@ -24,7 +24,6 @@ export function DashboardProfileCompletionBanner() {
 
   useEffect(() => {
     if (!session?.user?.id) {
-      setLoading(false);
       return;
     }
 
@@ -39,6 +38,11 @@ export function DashboardProfileCompletionBanner() {
         setLoading(false);
       });
   }, [session]);
+
+  // Handle loading state during render
+  if (!session?.user?.id && loading) {
+    setLoading(false);
+  }
 
   if (loading || !session?.user?.id || !user) {
     return null;

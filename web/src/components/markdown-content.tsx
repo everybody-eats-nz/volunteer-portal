@@ -22,7 +22,10 @@ export function PolicyContent({
   // Reset scroll state when component mounts or when dialog opens
   useEffect(() => {
     if (showAgreeButton) {
-      setHasScrolledToBottom(false);
+      // Use a microtask to defer the state update
+      Promise.resolve().then(() => {
+        setHasScrolledToBottom(false);
+      });
       // Reset scroll position to top
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;

@@ -14,7 +14,7 @@ The application uses a two-layer security approach:
 
 ### Middleware-Based Route Protection
 
-All routes are protected by Next.js middleware (`middleware.ts`) with a **secure-by-default** approach:
+All routes are protected by Next.js proxy middleware (`proxy.ts`) with a **secure-by-default** approach:
 
 - **Default**: All routes require admin access
 - **Explicit allowlisting**: Public and user routes must be specifically declared
@@ -56,7 +56,7 @@ All other routes default to admin-only access including:
 
 ### Middleware Configuration
 
-The middleware ([`middleware.ts`](https://github.com/everybody-eats-nz/volunteer-portal/blob/main/web/middleware.ts)) automatically:
+The proxy middleware ([`proxy.ts`](https://github.com/everybody-eats-nz/volunteer-portal/blob/main/web/proxy.ts)) automatically:
 - Checks authentication status using NextAuth tokens
 - Validates user roles for protected routes
 - Redirects unauthorized users to appropriate pages
@@ -65,7 +65,7 @@ The middleware ([`middleware.ts`](https://github.com/everybody-eats-nz/volunteer
 ### Adding New Routes
 
 **For Public Routes:**
-Add to the `public` array in [`middleware.ts`](https://github.com/everybody-eats-nz/volunteer-portal/blob/main/web/middleware.ts):
+Add to the `public` array in [`proxy.ts`](https://github.com/everybody-eats-nz/volunteer-portal/blob/main/web/proxy.ts):
 
 ```typescript
 public: [
@@ -74,9 +74,9 @@ public: [
 ```
 
 **For User Routes:**
-Add to the `user` array in [`middleware.ts`](https://github.com/everybody-eats-nz/volunteer-portal/blob/main/web/middleware.ts):
+Add to the `user` array in [`proxy.ts`](https://github.com/everybody-eats-nz/volunteer-portal/blob/main/web/proxy.ts):
 
-```typescript  
+```typescript
 user: [
   "/new-user-route",
 ]

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -30,53 +31,60 @@ export default function VerifyEmailPage() {
   const emailParam = searchParams.get("email");
   const fromLogin = searchParams.get("from") === "login";
 
-  useEffect(() => {
-    // If coming from login page without a token, show resend interface
-    if (!token && fromLogin) {
-      setState("error");
-      setMessage("Email verification required");
-      if (emailParam) {
-        setResendEmail(emailParam);
-      }
-      return;
-    }
-    
-    if (!token) {
-      setState("error");
-      setMessage("No verification token provided");
-      return;
-    }
+  const verifyEmail = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/auth/verify-email?token=${token}`);
+      const data = await response.json();
 
-    const verifyEmail = async () => {
-      try {
-        const response = await fetch(`/api/auth/verify-email?token=${token}`);
-        const data = await response.json();
-
-        if (response.ok) {
-          setState("success");
-          setMessage(data.message);
-          // Redirect to login after 3 seconds
-          setTimeout(() => {
-            router.push("/login?verified=true");
-          }, 3000);
+      if (response.ok) {
+        setState("success");
+        setMessage(data.message);
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          router.push("/login?verified=true");
+        }, 3000);
+      } else {
+        if (data.error?.includes("already verified")) {
+          setState("already_verified");
+        } else if (data.error?.includes("expired")) {
+          setState("expired");
         } else {
-          if (data.error?.includes("already verified")) {
-            setState("already_verified");
-          } else if (data.error?.includes("expired")) {
-            setState("expired");
-          } else {
-            setState("error");
-          }
-          setMessage(data.error);
+          setState("error");
         }
-      } catch {
-        setState("error");
-        setMessage("Failed to verify email. Please try again.");
+        setMessage(data.error);
       }
-    };
+    } catch {
+      setState("error");
+      setMessage("Failed to verify email. Please try again.");
+    }
+  }, [token, router]);
 
-    verifyEmail();
-  }, [token, emailParam, fromLogin, router]);
+  // Handle initial state setup
+  const hasInitialized = useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      // If coming from login page without a token, show resend interface
+      if (!token && fromLogin) {
+        setState("error");
+        setMessage("Email verification required");
+        if (emailParam) {
+          setResendEmail(emailParam);
+        }
+      } else if (!token) {
+        setState("error");
+        setMessage("No verification token provided");
+      }
+    }
+  });
+
+  useEffect(() => {
+    // Only verify if we have a token and haven't shown an error
+    if (token && !(!token && fromLogin) && !(! token && !fromLogin)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      verifyEmail();
+    }
+  }, [token, fromLogin, verifyEmail]);
 
   const showDialog = (title: string, description: string) => {
     setDialogContent({ title, description });
