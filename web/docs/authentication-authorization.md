@@ -11,7 +11,7 @@ The application uses a two-layer security approach:
 
 ### Middleware-Based Route Protection
 
-All routes are protected by Next.js middleware (`middleware.ts`) with a **secure-by-default** approach:
+All routes are protected by Next.js middleware (`proxy.ts`) with a **secure-by-default** approach:
 
 - **Default**: All routes require admin access
 - **Explicit allowlisting**: Public and user routes must be specifically declared
@@ -62,11 +62,11 @@ The middleware automatically:
 - Preserves the intended destination for post-login redirects
 
 ```typescript
-// middleware.ts
-export async function middleware(request: NextRequest) {
+// proxy.ts
+export async function proxy(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   const requiredLevel = getRequiredAuthLevel(pathname)
-  
+
   // Route protection logic...
 }
 ```
@@ -75,15 +75,15 @@ export async function middleware(request: NextRequest) {
 
 **For Public Routes:**
 ```typescript
-// Add to middleware.ts public array
+// Add to proxy.ts public array
 public: [
   "/new-public-route",
 ]
 ```
 
 **For User Routes:**
-```typescript  
-// Add to middleware.ts user array
+```typescript
+// Add to proxy.ts user array
 user: [
   "/new-user-route",
 ]
@@ -221,7 +221,7 @@ test("shows admin content for admin users", async () => {
 ### Common Issues
 
 **Route not accessible:**
-- Check if route is properly categorized in middleware.ts
+- Check if route is properly categorized in proxy.ts
 - Verify user has correct role for route category
 
 **Infinite redirects:**

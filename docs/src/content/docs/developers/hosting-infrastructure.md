@@ -21,7 +21,7 @@ The Everybody Eats Volunteer Portal is deployed using a modern cloud infrastruct
 - **Features Used**:
   - Automatic deployments from GitHub branches
   - Preview deployments for pull requests
-  - Edge middleware for performance
+  - Edge proxy middleware for performance
   - Environment variable management
   - Analytics and Web Vitals monitoring
   - Automatic SSL certificates
@@ -274,7 +274,7 @@ npm run prisma:studio
 
 **Rate Limiting**
 
-- Vercel Edge Middleware for rate limiting
+- Vercel Edge Proxy Middleware for rate limiting
 - DDoS protection at edge locations
 - API route protection
 
