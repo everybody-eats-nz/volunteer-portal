@@ -9,7 +9,7 @@ The Everybody Eats Volunteer Portal is built with modern web technologies, prior
 
 ### Core Framework
 
-**[Next.js 15.4](https://nextjs.org/)** with App Router
+**[Next.js 16.0.3](https://nextjs.org/)** with App Router
 
 - **Why**: Server-side rendering, excellent developer experience, and powerful routing
 - **Features Used**: App Router, Server Components, API routes, proxy middleware

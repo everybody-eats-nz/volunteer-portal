@@ -51,7 +51,7 @@ npm run lint      # Run ESLint
 
 ### Tech Stack
 
-- **Next.js 15.4** with App Router - React framework
+- **Next.js 16.0.3** with App Router - React framework
 - **TypeScript** with strict configuration
 - **Prisma ORM** with PostgreSQL
 - **NextAuth.js** for authentication (OAuth + credentials)

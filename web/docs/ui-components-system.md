@@ -10,7 +10,7 @@ Our UI is built on a modern, flexible foundation:
 - **shadcn/ui** - High-quality, accessible React components
 - **motion.dev** - Animation library (successor to Framer Motion)
 - **TypeScript** - Type-safe component development
-- **Next.js 15** - React framework with App Router
+- **Next.js 16** - React framework with App Router
 
 ### Philosophy
 
