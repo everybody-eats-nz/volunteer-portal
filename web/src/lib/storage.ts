@@ -16,8 +16,8 @@ export const ALLOWED_FILE_TYPES = {
   ],
 };
 
-// Max file size: 50MB
-export const MAX_FILE_SIZE = 50 * 1024 * 1024;
+// Max file size: 4MB (Vercel serverless function payload limit)
+export const MAX_FILE_SIZE = 4 * 1024 * 1024;
 
 /**
  * Upload a file to Supabase storage (uses service role for admin uploads)

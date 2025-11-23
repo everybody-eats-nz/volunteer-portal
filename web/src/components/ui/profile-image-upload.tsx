@@ -160,11 +160,11 @@ export function ProfileImageUpload({
         return;
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      // Validate file size (max 4MB)
+      if (file.size > 4 * 1024 * 1024) {
         toast?.({
           title: "File too large",
-          description: "Image size must be less than 5MB",
+          description: "Image must be less than 4MB. Please compress your image before uploading.",
           variant: "destructive",
         });
         return;
@@ -397,7 +397,7 @@ export function ProfileImageUpload({
           />
 
           <p className="text-xs text-muted-foreground">
-            JPG, PNG up to 5MB. Square crop recommended.
+            JPG, PNG up to 4MB. Square crop recommended.
           </p>
         </div>
       </div>
