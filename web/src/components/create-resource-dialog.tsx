@@ -156,7 +156,9 @@ export function CreateResourceDialog({ children }: CreateResourceDialogProps) {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`);
+        toast.error(
+          `File must be less than ${MAX_FILE_SIZE / 1024 / 1024}MB. Please compress or reduce your file size before uploading.`
+        );
         return;
       }
       setSelectedFile(file);
