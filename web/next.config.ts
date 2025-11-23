@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 
   turbopack: {},
+
+  cacheComponents: true,
 };
 
 export default withBotId(nextConfig);
