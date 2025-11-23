@@ -1,3 +1,9 @@
+## [0.70.0] - 2025-11-23
+
+### Changes
+- feat: Add PostHog user identification and login event tracking ([#279](https://github.com/everybody-eats-nz/volunteer-portal/pull/279)) by @malinmalliyawadu
+
+
 ## [0.69.2] - 2025-11-23
 
 ### Changes
