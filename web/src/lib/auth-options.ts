@@ -71,21 +71,6 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-      // Request highest quality profile picture (800x800)
-      profileUrl:
-        "https://graph.facebook.com/me?fields=id,name,email,picture.width(800).height(800)",
-      profile(profile: FacebookProfile) {
-        return {
-          id: profile.id,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture?.data?.url,
-        };
-      },
-    }),
     // Credentials Provider
     Credentials({
       name: "Credentials",
