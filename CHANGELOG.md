@@ -1,3 +1,15 @@
+## [0.70.3] - 2025-11-25
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 16 updates ([#293](https://github.com/everybody-eats-nz/volunteer-portal/pull/293)) by @dependabot[bot]
+
+
+## [0.70.2] - 2025-11-25
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 5 updates ([#288](https://github.com/everybody-eats-nz/volunteer-portal/pull/288)) by @dependabot[bot]
+
+
 ## [0.70.1] - 2025-11-23
 
 ### Changes
