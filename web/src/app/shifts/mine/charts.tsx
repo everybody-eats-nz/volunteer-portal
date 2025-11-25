@@ -22,6 +22,7 @@ interface ShiftTypeData {
   count: number;
   emoji: string;
   fill: string;
+  [key: string]: string | number;
 }
 
 interface ActivityChartProps {
