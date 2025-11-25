@@ -1,3 +1,9 @@
+## [0.70.4] - 2025-11-25
+
+### Changes
+- chore(deps-dev): bump @types/bcrypt from 5.0.2 to 6.0.0 in /web ([#297](https://github.com/everybody-eats-nz/volunteer-portal/pull/297)) by @dependabot[bot]
+
+
 ## [0.70.3] - 2025-11-25
 
 ### Changes
