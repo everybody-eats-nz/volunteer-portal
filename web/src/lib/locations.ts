@@ -28,7 +28,7 @@ export const DEFAULT_LOCATION: Location = "Wellington";
 // Helper function to generate Google Maps URL for an address
 export function getGoogleMapsUrl(address: string): string {
   const encodedAddress = encodeURIComponent(address);
-  return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  return `https://www.google.com/maps/search/?api=1&query=Everybody+Eats+${encodedAddress}`;
 }
 
 // Helper function to get Google Maps URL for a location
