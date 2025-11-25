@@ -84,7 +84,7 @@
     "remark-gfm": "^4.0.1",
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.3.1",
+    "tailwind-merge": "^3.4.0",
     "tw-animate-css": "^1.3.7",
     "vaul": "^1.1.2",
     "zod": "^4.1.13"
