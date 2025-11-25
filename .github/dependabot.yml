@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Pacific/Auckland"
+    open-pull-requests-limit: 5
+    groups:
+      # Group all non-major development dependency updates together
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group patch updates for production dependencies
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+    # Auto-label PRs for easy identification
+    labels:
+      - "dependencies"
+    # Commit message prefix for consistency
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    # Pull request settings
+    pull-request-branch-name:
+      separator: "-"
+    # Allow both direct and indirect updates
+    versioning-strategy: auto
