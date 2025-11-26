@@ -94,13 +94,24 @@ function ShiftCard({
   const theme = getShiftTheme(shift.shiftType.name);
   const duration = getDurationInHours(shift.start, shift.end);
 
-  // Calculate signup counts
+  // Calculate signup counts - only count non-canceled signups
   let confirmedCount = 0;
   let pendingCount = 0;
 
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
     if (signup.status === "PENDING") pendingCount += 1;
+  }
+
+  // Debug: log if counts seem wrong
+  if (confirmedCount + pendingCount > shift.capacity) {
+    console.log(`[Shift ${shift.id}] Over capacity:`, {
+      capacity: shift.capacity,
+      confirmed: confirmedCount,
+      pending: pendingCount,
+      total: confirmedCount + pendingCount,
+      signupStatuses: shift.signups.map(s => ({ userId: s.userId, status: s.status }))
+    });
   }
 
   const remaining = Math.max(0, shift.capacity - confirmedCount - pendingCount);
