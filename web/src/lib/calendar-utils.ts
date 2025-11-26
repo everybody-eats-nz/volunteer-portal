@@ -48,7 +48,7 @@ function getFullAddress(
 /**
  * Build calendar description with shift details link
  * @param shift - Shift data
- * @param format - 'ics' for ICS files (uses \\n and escapes special chars), 'url' for URL-encoded formats (uses \n)
+ * @param format - 'ics' for ICS files (escapes commas and semicolons), 'url' for URL-encoded formats
  */
 function buildCalendarDescription(
   shift: ShiftCalendarData,
@@ -56,11 +56,10 @@ function buildCalendarDescription(
 ): string {
   const shiftDetailsLink = `${getBaseUrl()}/shifts/${shift.id}`;
   const fullAddress = getFullAddress(shift.location, false); // Don't escape yet
-  const separator = format === "ics" ? "\\n" : "\n";
   const shiftDescription = shift.shiftType.description || "";
-  const description = `${shiftDescription}${separator}Location: ${fullAddress}${separator}${separator}View shift details: ${shiftDetailsLink}`;
+  const description = `${shiftDescription}\nLocation: ${fullAddress}\n\nView shift details: ${shiftDetailsLink}`;
 
-  // Escape special characters for ICS format (commas, semicolons, backslashes)
+  // Escape special characters for ICS format (commas, semicolons)
   return format === "ics" ? escapeICSText(description) : description;
 }
 
