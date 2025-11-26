@@ -200,12 +200,21 @@ function ShiftCard({
                 <Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <div className="text-sm">
                   <div className="font-medium text-gray-900 dark:text-white">
-                    {confirmedCount + pendingCount}/{shift.capacity}
+                    {Math.min(confirmedCount + pendingCount, shift.capacity)}/{shift.capacity}
+                    {confirmedCount + pendingCount > shift.capacity && (
+                      <span className="text-orange-600 dark:text-orange-400 ml-1">
+                        +{confirmedCount + pendingCount - shift.capacity}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {remaining > 0 ? (
                       <span className="text-green-600 dark:text-green-400 font-medium">
                         {remaining} spots left
+                      </span>
+                    ) : confirmedCount + pendingCount > shift.capacity ? (
+                      <span className="text-orange-600 dark:text-orange-400 font-medium">
+                        Over capacity
                       </span>
                     ) : (
                       <span className="text-orange-600 dark:text-orange-400 font-medium">
