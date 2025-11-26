@@ -1,3 +1,9 @@
+## [0.71.0] - 2025-11-26
+
+### Changes
+- feat: add shift details link and full address to calendar invites ([#300](https://github.com/everybody-eats-nz/volunteer-portal/pull/300)) by @malinmalliyawadu
+
+
 ## [0.70.3] - 2025-11-25
 
 ### Changes
