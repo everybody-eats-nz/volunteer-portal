@@ -48,7 +48,7 @@ function getFullAddress(
 /**
  * Build calendar description with shift details link
  * @param shift - Shift data
- * @param format - 'ics' for ICS files (uses \\n and escapes commas/semicolons), 'url' for URL-encoded formats (uses actual newlines)
+ * @param format - 'ics' for ICS files (escapes commas/semicolons), 'url' for URL-encoded formats (uses newlines)
  */
 function buildCalendarDescription(
   shift: ShiftCalendarData,
@@ -59,8 +59,9 @@ function buildCalendarDescription(
   const shiftDescription = shift.shiftType.description || "";
 
   if (format === "ics") {
-    // For ICS: use literal \n (backslash-n), then escape commas and semicolons
-    const description = `${shiftDescription}\\nLocation: ${fullAddress}\\n\\nView shift details: ${shiftDetailsLink}`;
+    // For ICS: use separators that display consistently across all calendar apps
+    const parts = [shiftDescription, `Location: ${fullAddress}`, `View shift details: ${shiftDetailsLink}`];
+    const description = parts.filter(p => p).join(" | ");
     return escapeICSText(description);
   } else {
     // For URL formats: use actual newlines
