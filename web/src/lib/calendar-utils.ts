@@ -18,13 +18,15 @@ interface ShiftCalendarData {
 }
 
 /**
- * Escape special characters for ICS format (commas and semicolons only)
- * Note: We don't escape backslashes here because \n sequences are intentional
+ * Escape special characters for ICS format: backslashes, commas, and semicolons (RFC 5545)
+ * Newlines should appear as literal '\n' (already produced elsewhere); escape backslashes EXCEPT those in '\n'.
  */
 function escapeICSText(text: string): string {
+  // Escape backslash first, then comma and semicolon
   return text
-    .replace(/,/g, "\\,") // Escape commas
-    .replace(/;/g, "\\;"); // Escape semicolons
+    .replace(/\\/g, "\\\\")      // Escape backslashes
+    .replace(/,/g, "\\,")        // Escape commas
+    .replace(/;/g, "\\;");       // Escape semicolons
 }
 
 /**
