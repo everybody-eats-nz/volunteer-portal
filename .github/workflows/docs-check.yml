@@ -34,7 +34,7 @@ jobs:
       - name: Build documentation
         run: npm run build
         env:
-          VOLUNTEER_PORTAL_URL: https://volunteer-portal-nine.vercel.app
+          VOLUNTEER_PORTAL_URL: https://volunteers.everybodyeats.nz
 
       - name: Verify build output
         run: |
