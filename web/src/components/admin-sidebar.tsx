@@ -16,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuBadge,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -44,6 +45,7 @@ export function AdminSidebar({
   pendingParentalConsentCount,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
   const showDemoIndicator = showEnvironmentLabel();
   const demoLabel = getEnvironmentLabel();
 
@@ -52,6 +54,12 @@ export function AdminSidebar({
       return pathname === href;
     }
     return pathname.startsWith(href);
+  };
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
@@ -112,7 +120,7 @@ export function AdminSidebar({
                         isActive={isActive(item.href, true)}
                         data-testid={testId}
                       >
-                        <Link href={item.href}>
+                        <Link href={item.href} onClick={handleLinkClick}>
                           <item.icon className="w-4 h-4" />
                           <span>{item.title}</span>
                         </Link>
@@ -157,6 +165,7 @@ export function AdminSidebar({
                     >
                       <Link
                         href={item.href}
+                        onClick={handleLinkClick}
                         target={item.opensInNewTab ? "_blank" : undefined}
                         rel={
                           item.opensInNewTab ? "noopener noreferrer" : undefined
