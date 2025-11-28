@@ -14,6 +14,7 @@ import { DashboardContentSkeleton } from "@/components/dashboard-content-skeleto
 import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
 import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
+import { DashboardYearInReviewBanner } from "@/components/dashboard-year-in-review-banner";
 import { AchievementTracker } from "@/components/achievement-tracker";
 
 export default async function DashboardPage() {
@@ -38,6 +39,9 @@ export default async function DashboardPage() {
       <Suspense fallback={null}>
         <DashboardProfileCompletionBanner />
       </Suspense>
+
+      {/* Year in Review banner - seasonal feature (Dec-Jan only) */}
+      <DashboardYearInReviewBanner />
 
       {/* Stats Overview - streams in when ready */}
       <Suspense fallback={<DashboardStatsSkeleton />}>

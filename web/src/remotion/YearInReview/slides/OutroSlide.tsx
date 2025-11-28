@@ -1,5 +1,5 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate, Img, staticFile } from "remotion";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 export const OutroSlide: React.FC<YearStats> = ({ userName, year }) => {
   const frame = useCurrentFrame();
@@ -108,12 +108,14 @@ export const OutroSlide: React.FC<YearStats> = ({ userName, year }) => {
         {/* Thank you message */}
         <h1
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 80,
             fontWeight: "bold",
             color: BRAND_COLORS.text,
             textAlign: "center",
             lineHeight: 1.2,
             margin: 0,
+            letterSpacing: "-0.02em",
           }}
         >
           Thank You, {userName}!
@@ -122,6 +124,7 @@ export const OutroSlide: React.FC<YearStats> = ({ userName, year }) => {
         {/* Subtitle */}
         <p
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 44,
             color: BRAND_COLORS.textMuted,
             textAlign: "center",
@@ -145,6 +148,7 @@ export const OutroSlide: React.FC<YearStats> = ({ userName, year }) => {
         >
           <p
             style={{
+              fontFamily: BRAND_FONTS.accent,
               fontSize: 40,
               fontWeight: "bold",
               color: "#ffffff",
@@ -166,21 +170,21 @@ export const OutroSlide: React.FC<YearStats> = ({ userName, year }) => {
           flexDirection: "column",
           alignItems: "center",
           gap: 20,
-          opacity: fadeIn * 0.7,
+          opacity: fadeIn * 0.8,
           zIndex: 1,
         }}
       >
-        <div
+        <Img
+          src={staticFile("logo.svg")}
+          alt="Everybody Eats"
           style={{
-            fontSize: 42,
-            fontWeight: "bold",
-            color: BRAND_COLORS.primary,
+            width: 180,
+            height: "auto",
           }}
-        >
-          Everybody Eats
-        </div>
+        />
         <div
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 28,
             color: BRAND_COLORS.textMuted,
           }}

@@ -1,5 +1,18 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import {
+  AbsoluteFill,
+  useCurrentFrame,
+  useVideoConfig,
+  spring,
+  interpolate,
+  Img,
+  staticFile,
+} from "remotion";
+import {
+  BRAND_COLORS,
+  BRAND_FONTS,
+  SPRING_CONFIG,
+  type YearStats,
+} from "../types";
 
 export const IntroSlide: React.FC<YearStats> = ({ userName, year }) => {
   const frame = useCurrentFrame();
@@ -59,9 +72,10 @@ export const IntroSlide: React.FC<YearStats> = ({ userName, year }) => {
         {/* Year Badge */}
         <div
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 180,
             fontWeight: "bold",
-            color: BRAND_COLORS.primary,
+            color: BRAND_COLORS.accent,
             letterSpacing: "-0.02em",
             lineHeight: 1,
             transform: `scale(${yearScale})`,
@@ -73,12 +87,14 @@ export const IntroSlide: React.FC<YearStats> = ({ userName, year }) => {
         {/* Title */}
         <h1
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 72,
             fontWeight: "bold",
             color: BRAND_COLORS.text,
             textAlign: "center",
             lineHeight: 1.2,
             margin: 0,
+            letterSpacing: "-0.02em",
           }}
         >
           Year in Review
@@ -87,6 +103,7 @@ export const IntroSlide: React.FC<YearStats> = ({ userName, year }) => {
         {/* Subtitle with user name */}
         <p
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 48,
             color: BRAND_COLORS.textMuted,
             textAlign: "center",
@@ -109,6 +126,7 @@ export const IntroSlide: React.FC<YearStats> = ({ userName, year }) => {
         >
           <p
             style={{
+              fontFamily: BRAND_FONTS.sans,
               fontSize: 32,
               color: BRAND_COLORS.text,
               margin: 0,
@@ -120,25 +138,23 @@ export const IntroSlide: React.FC<YearStats> = ({ userName, year }) => {
         </div>
       </div>
 
-      {/* Everybody Eats logo/text in corner */}
+      {/* Everybody Eats logo in corner */}
       <div
         style={{
           position: "absolute",
           bottom: 80,
           left: 80,
-          opacity: fadeIn * 0.6,
+          opacity: fadeIn * 0.7,
         }}
       >
-        <p
+        <Img
+          src={staticFile("logo.svg")}
+          alt="Everybody Eats"
           style={{
-            fontSize: 28,
-            color: BRAND_COLORS.textMuted,
-            margin: 0,
-            fontWeight: 600,
+            width: 150,
+            height: "auto",
           }}
-        >
-          Everybody Eats
-        </p>
+        />
       </div>
     </AbsoluteFill>
   );

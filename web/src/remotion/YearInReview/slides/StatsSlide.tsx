@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 interface StatCardProps {
   icon: string;
@@ -45,9 +45,10 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, delay, fps, fra
       <div style={{ flex: 1 }}>
         <div
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 96,
             fontWeight: "bold",
-            color: BRAND_COLORS.primary,
+            color: BRAND_COLORS.accent,
             lineHeight: 1,
             marginBottom: 12,
           }}
@@ -56,6 +57,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, delay, fps, fra
         </div>
         <div
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 36,
             color: BRAND_COLORS.textMuted,
             lineHeight: 1,
@@ -93,12 +95,14 @@ export const StatsSlide: React.FC<YearStats> = ({ totalShifts, totalHours, meals
       {/* Title */}
       <h2
         style={{
+          fontFamily: BRAND_FONTS.accent,
           fontSize: 64,
           fontWeight: "bold",
           color: BRAND_COLORS.text,
           marginBottom: 80,
           textAlign: "center",
           opacity: titleOpacity,
+          letterSpacing: "-0.02em",
         }}
       >
         Your Impact

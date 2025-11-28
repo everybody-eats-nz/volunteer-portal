@@ -29,17 +29,26 @@ export const SLIDE_START_FRAMES = {
   outro: SLIDE_TIMING.intro + SLIDE_TIMING.stats + SLIDE_TIMING.impact + SLIDE_TIMING.achievements + SLIDE_TIMING.streak + SLIDE_TIMING.friends + SLIDE_TIMING.highlights,
 } as const;
 
-// Brand colors (Everybody Eats theme)
+// Brand colors (Everybody Eats official theme)
 export const BRAND_COLORS = {
-  background: "#1a1a1a",
-  backgroundLight: "#2a2a2a",
-  primary: "#10b981", // green-500
-  primaryLight: "#34d399", // green-400
-  accent: "#f59e0b", // amber-500
-  text: "#ffffff",
-  textMuted: "rgba(255, 255, 255, 0.7)",
-  cardBg: "rgba(255, 255, 255, 0.1)",
-  cardBorder: "rgba(255, 255, 255, 0.2)",
+  background: "#0e3a23", // Brand green - dark
+  backgroundLight: "#1d5337", // Lighter green
+  primary: "#256628", // Brand green - lighter
+  primaryDark: "#0e3a23", // Brand green - darker
+  accent: "#f8fb69", // Brand yellow/accent
+  accentLight: "#fcfd94", // Lighter accent
+  text: "#fffdf7", // Warm off-white
+  textMuted: "rgba(255, 253, 247, 0.7)", // Muted warm off-white
+  cardBg: "rgba(255, 253, 247, 0.1)", // Translucent warm white
+  cardBorder: "rgba(255, 253, 247, 0.2)", // Translucent warm white
+} as const;
+
+// Brand fonts (Everybody Eats official typography)
+export const BRAND_FONTS = {
+  // Libre Franklin - sans-serif for body text
+  sans: '"Libre Franklin", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  // Fraunces - serif with soft/wonk axes for headings/accents
+  accent: '"Fraunces", Georgia, serif',
 } as const;
 
 // Animation config (matches motion.dev patterns from the app)

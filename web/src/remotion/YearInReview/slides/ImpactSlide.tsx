@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 export const ImpactSlide: React.FC<YearStats> = ({
   foodWasteKg,
@@ -48,11 +48,13 @@ export const ImpactSlide: React.FC<YearStats> = ({
       {/* Title */}
       <h2
         style={{
+          fontFamily: BRAND_FONTS.accent,
           fontSize: 64,
           fontWeight: "bold",
           color: BRAND_COLORS.text,
           marginBottom: 80,
           opacity: titleOpacity,
+          letterSpacing: "-0.02em",
         }}
       >
         Community Impact
@@ -75,15 +77,16 @@ export const ImpactSlide: React.FC<YearStats> = ({
           <div style={{ fontSize: 72, marginBottom: 20 }}>🌱</div>
           <div
             style={{
+              fontFamily: BRAND_FONTS.accent,
               fontSize: 96,
               fontWeight: "bold",
-              color: BRAND_COLORS.primary,
+              color: BRAND_COLORS.accent,
               marginBottom: 12,
             }}
           >
             {foodWasteKg.toLocaleString()} kg
           </div>
-          <div style={{ fontSize: 36, color: BRAND_COLORS.textMuted }}>
+          <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 36, color: BRAND_COLORS.textMuted }}>
             Food Waste Prevented
           </div>
         </div>
@@ -106,18 +109,19 @@ export const ImpactSlide: React.FC<YearStats> = ({
             <div style={{ fontSize: 64, marginBottom: 20 }}>📍</div>
             <div
               style={{
+                fontFamily: BRAND_FONTS.accent,
                 fontSize: 72,
                 fontWeight: "bold",
-                color: BRAND_COLORS.primary,
+                color: BRAND_COLORS.accent,
                 marginBottom: 12,
               }}
             >
               {locationsVisited.length}
             </div>
-            <div style={{ fontSize: 32, color: BRAND_COLORS.textMuted }}>
+            <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.textMuted }}>
               Locations
             </div>
-            <div style={{ fontSize: 24, color: BRAND_COLORS.textMuted, marginTop: 12 }}>
+            <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 24, color: BRAND_COLORS.textMuted, marginTop: 12 }}>
               {locationsVisited.join(", ")}
             </div>
           </div>
@@ -138,20 +142,21 @@ export const ImpactSlide: React.FC<YearStats> = ({
             <div style={{ fontSize: 64, marginBottom: 20 }}>⭐</div>
             <div
               style={{
+                fontFamily: BRAND_FONTS.accent,
                 fontSize: 40,
                 fontWeight: "bold",
-                color: BRAND_COLORS.primary,
+                color: BRAND_COLORS.accent,
                 marginBottom: 12,
                 lineHeight: 1.2,
               }}
             >
               {favoriteShiftType?.name || "Kitchen Helper"}
             </div>
-            <div style={{ fontSize: 32, color: BRAND_COLORS.textMuted }}>
+            <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.textMuted }}>
               Favorite Role
             </div>
             {busiestMonth && (
-              <div style={{ fontSize: 24, color: BRAND_COLORS.textMuted, marginTop: 12 }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 24, color: BRAND_COLORS.textMuted, marginTop: 12 }}>
                 Busiest: {busiestMonth.month}
               </div>
             )}

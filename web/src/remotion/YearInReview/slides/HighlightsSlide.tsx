@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, longestShift, volunteerDays }) => {
   const frame = useCurrentFrame();
@@ -43,11 +43,13 @@ export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, lo
       {/* Title */}
       <h2
         style={{
+          fontFamily: BRAND_FONTS.accent,
           fontSize: 64,
           fontWeight: "bold",
           color: BRAND_COLORS.text,
           marginBottom: 80,
           opacity: titleOpacity,
+          letterSpacing: "-0.02em",
         }}
       >
         Year Highlights
@@ -72,20 +74,21 @@ export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, lo
           >
             <div style={{ fontSize: 80, lineHeight: 1 }}>🌟</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 8 }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 8 }}>
                 First Shift
               </div>
               <div
                 style={{
+                  fontFamily: BRAND_FONTS.accent,
                   fontSize: 48,
                   fontWeight: "bold",
-                  color: BRAND_COLORS.primary,
+                  color: BRAND_COLORS.accent,
                   marginBottom: 8,
                 }}
               >
                 {firstShift.date}
               </div>
-              <div style={{ fontSize: 32, color: BRAND_COLORS.text }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.text }}>
                 {firstShift.type} • {firstShift.location}
               </div>
             </div>
@@ -109,11 +112,12 @@ export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, lo
               }}
             >
               <div style={{ fontSize: 64, marginBottom: 20 }}>⏱️</div>
-              <div style={{ fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 12 }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 12 }}>
                 Longest Shift
               </div>
               <div
                 style={{
+                  fontFamily: BRAND_FONTS.accent,
                   fontSize: 72,
                   fontWeight: "bold",
                   color: BRAND_COLORS.accent,
@@ -123,7 +127,7 @@ export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, lo
               >
                 {longestShift.duration}h
               </div>
-              <div style={{ fontSize: 28, color: BRAND_COLORS.text }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 28, color: BRAND_COLORS.text }}>
                 {longestShift.date}
               </div>
             </div>
@@ -143,21 +147,22 @@ export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, lo
             }}
           >
             <div style={{ fontSize: 64, marginBottom: 20 }}>📅</div>
-            <div style={{ fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 12 }}>
+            <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 12 }}>
               Days Volunteered
             </div>
             <div
               style={{
+                fontFamily: BRAND_FONTS.accent,
                 fontSize: 72,
                 fontWeight: "bold",
-                color: BRAND_COLORS.primary,
+                color: BRAND_COLORS.accent,
                 lineHeight: 1,
                 marginBottom: 12,
               }}
             >
               {volunteerDays}
             </div>
-            <div style={{ fontSize: 28, color: BRAND_COLORS.text }}>
+            <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 28, color: BRAND_COLORS.text }}>
               Unique days
             </div>
           </div>
@@ -180,20 +185,21 @@ export const HighlightsSlide: React.FC<YearStats> = ({ firstShift, lastShift, lo
           >
             <div style={{ fontSize: 80, lineHeight: 1 }}>🎉</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 8 }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.textMuted, marginBottom: 8 }}>
                 Most Recent Shift
               </div>
               <div
                 style={{
+                  fontFamily: BRAND_FONTS.accent,
                   fontSize: 48,
                   fontWeight: "bold",
-                  color: BRAND_COLORS.primary,
+                  color: BRAND_COLORS.accent,
                   marginBottom: 8,
                 }}
               >
                 {lastShift.date}
               </div>
-              <div style={{ fontSize: 32, color: BRAND_COLORS.text }}>
+              <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 32, color: BRAND_COLORS.text }}>
                 {lastShift.type} • {lastShift.location}
               </div>
             </div>

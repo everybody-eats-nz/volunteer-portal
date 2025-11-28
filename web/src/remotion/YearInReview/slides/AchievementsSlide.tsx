@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 export const AchievementsSlide: React.FC<YearStats> = ({ achievementsUnlocked, volunteerGrade }) => {
   const frame = useCurrentFrame();
@@ -92,11 +92,13 @@ export const AchievementsSlide: React.FC<YearStats> = ({ achievementsUnlocked, v
       {/* Title */}
       <h2
         style={{
+          fontFamily: BRAND_FONTS.accent,
           fontSize: 64,
           fontWeight: "bold",
           color: BRAND_COLORS.text,
           marginBottom: 100,
           opacity: titleOpacity,
+          letterSpacing: "-0.02em",
         }}
       >
         Achievements Unlocked
@@ -123,6 +125,7 @@ export const AchievementsSlide: React.FC<YearStats> = ({ achievementsUnlocked, v
         </div>
         <div
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 180,
             fontWeight: "bold",
             color: BRAND_COLORS.accent,
@@ -133,6 +136,7 @@ export const AchievementsSlide: React.FC<YearStats> = ({ achievementsUnlocked, v
         </div>
         <div
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 48,
             color: BRAND_COLORS.textMuted,
             textAlign: "center",
@@ -158,11 +162,12 @@ export const AchievementsSlide: React.FC<YearStats> = ({ achievementsUnlocked, v
       >
         <div style={{ fontSize: 64 }}>{gradeInfo.emoji}</div>
         <div>
-          <div style={{ fontSize: 40, color: BRAND_COLORS.textMuted, marginBottom: 8 }}>
+          <div style={{ fontFamily: BRAND_FONTS.sans, fontSize: 40, color: BRAND_COLORS.textMuted, marginBottom: 8 }}>
             Volunteer Grade
           </div>
           <div
             style={{
+              fontFamily: BRAND_FONTS.accent,
               fontSize: 56,
               fontWeight: "bold",
               color: gradeInfo.color,

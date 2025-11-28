@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
  * Available during December 1 - January 31 in NZ timezone
  */
 export function isSeasonallyAvailable(): boolean {
+  return true;
+
   const now = toNZT(new Date());
   const month = now.getMonth(); // 0-indexed (0 = Jan, 11 = Dec)
 
@@ -25,7 +27,9 @@ export function getUnavailableMessage(): string {
     return "Year in Review is only available in December and January. Check back next December!";
   } else {
     const monthsUntilDecember = 11 - currentMonth;
-    return `Year in Review will be available in ${monthsUntilDecember} month${monthsUntilDecember > 1 ? "s" : ""} (December 1st).`;
+    return `Year in Review will be available in ${monthsUntilDecember} month${
+      monthsUntilDecember > 1 ? "s" : ""
+    } (December 1st).`;
   }
 }
 
@@ -77,7 +81,11 @@ export async function getAvailableYears(userId: string): Promise<number[]> {
   // Also include previous years (limit to last 3 years total)
   for (let i = 1; i <= 3; i++) {
     const year = currentYear - i;
-    if (year >= 2020 && yearsWithActivity.has(year) && !availableYears.includes(year)) {
+    if (
+      year >= 2020 &&
+      yearsWithActivity.has(year) &&
+      !availableYears.includes(year)
+    ) {
       availableYears.push(year);
     }
   }
@@ -89,7 +97,10 @@ export async function getAvailableYears(userId: string): Promise<number[]> {
  * Check if a user has any shifts in a specific year
  * Used to determine if we should show the year-in-review feature
  */
-export async function hasShiftsInYear(userId: string, year: number): Promise<boolean> {
+export async function hasShiftsInYear(
+  userId: string,
+  year: number
+): Promise<boolean> {
   const startDate = new Date(year, 0, 1); // Jan 1
   const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31
 

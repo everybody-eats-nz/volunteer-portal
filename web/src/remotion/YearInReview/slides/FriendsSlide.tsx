@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 export const FriendsSlide: React.FC<YearStats> = ({ friendsMade }) => {
   const frame = useCurrentFrame();
@@ -77,11 +77,13 @@ export const FriendsSlide: React.FC<YearStats> = ({ friendsMade }) => {
       {/* Title */}
       <h2
         style={{
+          fontFamily: BRAND_FONTS.accent,
           fontSize: 64,
           fontWeight: "bold",
           color: BRAND_COLORS.text,
           marginBottom: 100,
           opacity: titleOpacity,
+          letterSpacing: "-0.02em",
         }}
       >
         Community Connections
@@ -110,9 +112,10 @@ export const FriendsSlide: React.FC<YearStats> = ({ friendsMade }) => {
         {/* Number */}
         <div
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 200,
             fontWeight: "bold",
-            color: BRAND_COLORS.primary,
+            color: BRAND_COLORS.accent,
             lineHeight: 1,
           }}
         >
@@ -122,6 +125,7 @@ export const FriendsSlide: React.FC<YearStats> = ({ friendsMade }) => {
         {/* Label */}
         <div
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 48,
             color: BRAND_COLORS.textMuted,
             textAlign: "center",
@@ -138,13 +142,14 @@ export const FriendsSlide: React.FC<YearStats> = ({ friendsMade }) => {
           padding: "30px 60px",
           borderRadius: 24,
           backgroundColor: BRAND_COLORS.cardBg,
-          border: `2px solid ${BRAND_COLORS.primary}`,
+          border: `2px solid ${BRAND_COLORS.accent}`,
           opacity: cardOpacity,
           transform: `translateY(${(1 - cardOpacity) * 20}px)`,
         }}
       >
         <p
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 38,
             color: BRAND_COLORS.text,
             margin: 0,

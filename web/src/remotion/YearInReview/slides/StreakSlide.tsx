@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
-import { BRAND_COLORS, SPRING_CONFIG, type YearStats } from "../types";
+import { BRAND_COLORS, BRAND_FONTS, SPRING_CONFIG, type YearStats } from "../types";
 
 export const StreakSlide: React.FC<YearStats> = ({ currentStreak }) => {
   const frame = useCurrentFrame();
@@ -82,11 +82,13 @@ export const StreakSlide: React.FC<YearStats> = ({ currentStreak }) => {
       {/* Title */}
       <h2
         style={{
+          fontFamily: BRAND_FONTS.accent,
           fontSize: 64,
           fontWeight: "bold",
           color: BRAND_COLORS.text,
           marginBottom: 100,
           opacity: titleOpacity,
+          letterSpacing: "-0.02em",
         }}
       >
         Streak Status
@@ -113,6 +115,7 @@ export const StreakSlide: React.FC<YearStats> = ({ currentStreak }) => {
         >
           <div
             style={{
+              fontFamily: BRAND_FONTS.accent,
               fontSize: 200,
               fontWeight: "bold",
               color: BRAND_COLORS.accent,
@@ -123,6 +126,7 @@ export const StreakSlide: React.FC<YearStats> = ({ currentStreak }) => {
           </div>
           <div
             style={{
+              fontFamily: BRAND_FONTS.sans,
               fontSize: 56,
               color: BRAND_COLORS.textMuted,
               lineHeight: 1,
@@ -134,6 +138,7 @@ export const StreakSlide: React.FC<YearStats> = ({ currentStreak }) => {
 
         <div
           style={{
+            fontFamily: BRAND_FONTS.sans,
             fontSize: 40,
             color: BRAND_COLORS.text,
             textAlign: "center",
@@ -158,6 +163,7 @@ export const StreakSlide: React.FC<YearStats> = ({ currentStreak }) => {
       >
         <p
           style={{
+            fontFamily: BRAND_FONTS.accent,
             fontSize: 44,
             fontWeight: "bold",
             color: BRAND_COLORS.accent,
