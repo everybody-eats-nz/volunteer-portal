@@ -460,7 +460,7 @@ export default function ProfileEditClient({
 
   return (
     <div className="min-h-screen">
-      <MotionPageContainer className="max-w-6xl mx-auto p-6 space-y-8">
+      <MotionPageContainer className="space-y-8">
         <PageHeader
           title="Edit Your Profile"
           description="Update your volunteer profile to help us provide you with the best possible experience. Your information is kept secure and confidential."
