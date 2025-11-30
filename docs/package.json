@@ -13,12 +13,12 @@
     "screenshots:dev": "DOCS_SCREENSHOT_URL=http://localhost:3000 node scripts/generate-screenshots.js"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.47",
-    "@ai-sdk/openai": "^2.0.72",
+    "@ai-sdk/anthropic": "^2.0.50",
+    "@ai-sdk/openai": "^2.0.75",
     "@astrojs/starlight": "^0.36.3",
-    "@astrojs/vercel": "^9.0.1",
+    "@astrojs/vercel": "^9.0.2",
     "@rollup/plugin-typescript": "^12.3.0",
-    "ai": "^5.0.101",
+    "ai": "^5.0.104",
     "astro": "^5.15.9",
     "astro-mermaid": "^1.0.4",
     "fs-extra": "^11.3.1",
