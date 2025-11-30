@@ -1,3 +1,9 @@
+## [0.71.1] - 2025-11-30
+
+### Changes
+- chore(deps): bump react-hook-form from 7.62.0 to 7.67.0 in /web ([#316](https://github.com/everybody-eats-nz/volunteer-portal/pull/316)) by @dependabot[bot]
+
+
 ## [0.71.0] - 2025-11-26
 
 ### Changes
