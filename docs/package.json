@@ -28,6 +28,6 @@
     "starlight-sidebar-topics": "^0.6.2"
   },
   "devDependencies": {
-    "playwright": "^1.56.1"
+    "playwright": "^1.57.0"
   }
 }
