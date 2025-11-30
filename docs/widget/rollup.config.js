@@ -22,7 +22,11 @@ export default {
       browser: true
     }),
     typescript({
-      tsconfig: './tsconfig.json'
+      tsconfig: './tsconfig.json',
+      compilerOptions: {
+        outDir: undefined,
+        declaration: false
+      }
     })
   ]
 };
