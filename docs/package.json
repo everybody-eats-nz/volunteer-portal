@@ -13,14 +13,14 @@
     "screenshots:dev": "DOCS_SCREENSHOT_URL=http://localhost:3000 node scripts/generate-screenshots.js"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.47",
-    "@ai-sdk/openai": "^2.0.72",
-    "@astrojs/starlight": "^0.36.3",
-    "@astrojs/vercel": "^9.0.1",
+    "@ai-sdk/anthropic": "^2.0.50",
+    "@ai-sdk/openai": "^2.0.75",
+    "@astrojs/starlight": "^0.37.0",
+    "@astrojs/vercel": "^9.0.2",
     "@rollup/plugin-typescript": "^12.3.0",
-    "ai": "^5.0.101",
-    "astro": "^5.15.9",
-    "astro-mermaid": "^1.0.4",
+    "ai": "^5.0.104",
+    "astro": "^5.16.3",
+    "astro-mermaid": "^1.2.0",
     "fs-extra": "^11.3.1",
     "gray-matter": "^4.0.3",
     "mermaid": "^11.12.1",
@@ -28,6 +28,6 @@
     "starlight-sidebar-topics": "^0.6.2"
   },
   "devDependencies": {
-    "playwright": "^1.56.1"
+    "playwright": "^1.57.0"
   }
 }
