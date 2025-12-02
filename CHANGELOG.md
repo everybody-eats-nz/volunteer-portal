@@ -1,3 +1,33 @@
+## [0.72.4] - 2025-12-02
+
+### Changes
+- Fix: Improve shift duplicate detection to include shift type ([#329](https://github.com/everybody-eats-nz/volunteer-portal/pull/329)) by @malinmalliyawadu
+
+
+## [0.72.3] - 2025-12-02
+
+### Changes
+- Fix: Extract signup status correctly in batch import ([#328](https://github.com/everybody-eats-nz/volunteer-portal/pull/328)) by @malinmalliyawadu
+
+
+## [0.72.2] - 2025-12-02
+
+### Changes
+- Fix: Align migration duplicate detection logic across all import methods ([#327](https://github.com/everybody-eats-nz/volunteer-portal/pull/327)) by @malinmalliyawadu
+
+
+## [0.72.1] - 2025-12-02
+
+### Changes
+- chore(deps): bump mdast-util-to-hast from 13.2.0 to 13.2.1 in /web ([#324](https://github.com/everybody-eats-nz/volunteer-portal/pull/324)) by @dependabot[bot]
+
+
+## [0.72.0] - 2025-12-02
+
+### Changes
+- Add pagination controls to migration historical data page ([#326](https://github.com/everybody-eats-nz/volunteer-portal/pull/326)) by @malinmalliyawadu
+
+
 ## [0.71.1] - 2025-11-30
 
 ### Changes
