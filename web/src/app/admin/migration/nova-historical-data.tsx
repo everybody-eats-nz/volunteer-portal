@@ -80,7 +80,7 @@ export function NovaHistoricalData() {
 
   const [searchEmail, setSearchEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isDryRun, setIsDryRun] = useState(true);
+  const [isDryRun, setIsDryRun] = useState(false);
   const [migratedUsers, setMigratedUsers] = useState<MigratedUser[]>([]);
   const [scrapeResults, setScrapeResults] = useState<ScrapeResult[]>([]);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
@@ -396,7 +396,9 @@ export function NovaHistoricalData() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                      }
                       disabled={currentPage === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -411,7 +413,11 @@ export function NovaHistoricalData() {
                       </SelectTrigger>
                       <SelectContent>
                         {Array.from(
-                          { length: Math.ceil(migratedUsers.length / usersPerPage) },
+                          {
+                            length: Math.ceil(
+                              migratedUsers.length / usersPerPage
+                            ),
+                          },
                           (_, i) => i + 1
                         ).map((page) => (
                           <SelectItem key={page} value={page.toString()}>
