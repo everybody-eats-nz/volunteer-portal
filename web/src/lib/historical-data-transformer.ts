@@ -40,6 +40,35 @@ function extractUserData(novaUser: NovaUser): { email?: string; id: number } {
   return { email: legacyUser.email, id: legacyUser.id };
 }
 
+// Helper function to extract signup data from Nova resource and format for transformer
+export function extractSignupDataFromNovaResource(
+  novaResource: NovaUserResource
+): NovaShiftSignup {
+  // Extract status from fields
+  const statusField = novaResource.fields.find(
+    (f: NovaField) => f.attribute === "applicationStatus"
+  );
+  const statusId = statusField?.belongsToId;
+  const statusName =
+    statusField?.value &&
+    statusField.value !== null &&
+    typeof statusField.value !== "object"
+      ? statusField.value
+      : undefined;
+
+  // Return formatted NovaShiftSignup object for transformer
+  return {
+    id: { value: novaResource.id.value },
+    fields: [],
+    statusId: statusId,
+    statusName: typeof statusName === "string" ? statusName : undefined,
+    status: undefined,
+    canceled_at: undefined,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
 // Types are now imported from @/types/nova-migration
 
 export class HistoricalDataTransformer {

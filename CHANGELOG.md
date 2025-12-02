@@ -1,3 +1,9 @@
+## [0.72.3] - 2025-12-02
+
+### Changes
+- Fix: Extract signup status correctly in batch import ([#328](https://github.com/everybody-eats-nz/volunteer-portal/pull/328)) by @malinmalliyawadu
+
+
 ## [0.72.2] - 2025-12-02
 
 ### Changes
