@@ -1,3 +1,9 @@
+## [0.72.5] - 2025-12-02
+
+### Changes
+- Remove too much padding on edit profile ([#317](https://github.com/everybody-eats-nz/volunteer-portal/pull/317)) by @anatim
+
+
 ## [0.72.4] - 2025-12-02
 
 ### Changes
