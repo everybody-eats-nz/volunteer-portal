@@ -318,17 +318,14 @@ export class HistoricalDataTransformer {
         );
         const eventId = eventField?.belongsToId;
 
-        // Extract position to determine shift type
+        // Extract position to determine shift type (same logic as transformEvent)
         const positionField = novaSignup.fields.find(
           (f: NovaField) => f.attribute === "position"
         );
-        const positionName =
+        const shiftTypeName =
           typeof positionField?.value === "string"
             ? positionField.value
             : "General Volunteering";
-
-        // Map position to shift type (same logic as transformEvent)
-        const shiftTypeName = this.mapPositionToShiftType(positionName);
 
         // Find shift type
         const shiftType = await prisma.shiftType.findUnique({
