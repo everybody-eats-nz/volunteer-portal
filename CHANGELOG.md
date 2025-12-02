@@ -1,3 +1,9 @@
+## [0.72.0] - 2025-12-02
+
+### Changes
+- Add pagination controls to migration historical data page ([#326](https://github.com/everybody-eats-nz/volunteer-portal/pull/326)) by @malinmalliyawadu
+
+
 ## [0.71.1] - 2025-11-30
 
 ### Changes
