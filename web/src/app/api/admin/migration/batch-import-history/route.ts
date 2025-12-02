@@ -15,6 +15,7 @@ import {
 import {
   HistoricalDataTransformer,
   shouldImportSignup,
+  extractSignupDataFromNovaResource,
 } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 
@@ -457,36 +458,13 @@ export async function POST(request: NextRequest) {
                       });
 
                       if (!existingSignup) {
-                        // Extract status from fields (exact same pattern as single user import)
-                        const statusField = signupInfo.fields.find(
-                          (f: NovaField) => f.attribute === "applicationStatus"
-                        );
-                        const statusId = statusField?.belongsToId;
-                        const statusName =
-                          statusField?.value &&
-                          statusField.value !== null &&
-                          typeof statusField.value !== "object"
-                            ? statusField.value
-                            : undefined;
-
-                        // Construct NovaShiftSignupResource for transformer (exact same as single user import)
-                        const novaSignupLike: NovaShiftSignupResource = {
-                          id: { value: signupInfo.id.value },
-                          fields: [],
-                          statusId: statusId,
-                          statusName:
-                            typeof statusName === "string"
-                              ? statusName
-                              : undefined,
-                          status: undefined,
-                          canceled_at: undefined,
-                          created_at: new Date().toISOString(),
-                          updated_at: new Date().toISOString(),
-                        };
+                        // Use shared helper to extract and format signup data
+                        const novaSignupFormatted =
+                          extractSignupDataFromNovaResource(signupInfo);
 
                         await prisma.signup.create({
                           data: transformer.transformSignup(
-                            novaSignupLike,
+                            novaSignupFormatted,
                             ourUser.id,
                             shift.id
                           ),
