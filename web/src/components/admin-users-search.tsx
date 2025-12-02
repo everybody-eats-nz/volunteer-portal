@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,12 +17,15 @@ export function AdminUsersSearch({
   roleFilter,
 }: AdminUsersSearchProps) {
   const [searchValue, setSearchValue] = useState(initialSearch || "");
+  const [prevInitialSearch, setPrevInitialSearch] = useState(initialSearch);
   const router = useRouter();
 
-  // Sync search value with URL when initialSearch changes
-  useEffect(() => {
+  // Sync search input with URL params when they change (e.g., clicking "Clear filters")
+  // Using the getDerivedStateFromProps pattern (in hooks form) to update state during render
+  if (initialSearch !== prevInitialSearch) {
     setSearchValue(initialSearch || "");
-  }, [initialSearch]);
+    setPrevInitialSearch(initialSearch);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
