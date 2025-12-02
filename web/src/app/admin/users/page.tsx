@@ -38,6 +38,13 @@ export default async function AdminUsersPage({
     : params.search;
   const roleFilter = Array.isArray(params.role) ? params.role[0] : params.role;
 
+  // Get pagination parameters
+  const page = params.page ? parseInt(params.page as string, 10) : 1;
+  const pageSize = params.pageSize
+    ? parseInt(params.pageSize as string, 10)
+    : 10;
+  const skip = (page - 1) * pageSize;
+
   // Build where clause for filtering
   const whereClause: Prisma.UserWhereInput = {};
 
@@ -55,42 +62,53 @@ export default async function AdminUsersPage({
   }
 
   // Fetch users with signup counts
-  const [users, totalUsers, totalAdmins, totalVolunteers, newUsersThisMonth] =
-    await Promise.all([
-      prisma.user.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          profilePhotoUrl: true,
-          role: true,
-          volunteerGrade: true,
-          createdAt: true,
-          _count: {
-            select: {
-              signups: true,
-            },
+  const [
+    users,
+    filteredCount,
+    totalUsers,
+    totalAdmins,
+    totalVolunteers,
+    newUsersThisMonth,
+  ] = await Promise.all([
+    prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        profilePhotoUrl: true,
+        role: true,
+        volunteerGrade: true,
+        createdAt: true,
+        _count: {
+          select: {
+            signups: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip,
+      take: pageSize,
+    }),
+    prisma.user.count({ where: whereClause }),
+    prisma.user.count(),
+    prisma.user.count({ where: { role: "ADMIN" } }),
+    prisma.user.count({ where: { role: "VOLUNTEER" } }),
+    prisma.user.count({
+      where: {
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         },
-      }),
-      prisma.user.count(),
-      prisma.user.count({ where: { role: "ADMIN" } }),
-      prisma.user.count({ where: { role: "VOLUNTEER" } }),
-      prisma.user.count({
-        where: {
-          createdAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
-        },
-      }),
-    ]);
+      },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(filteredCount / pageSize);
 
   return (
     <AdminPageWrapper
@@ -229,7 +247,13 @@ export default async function AdminUsersPage({
           ) : (
             <div data-testid="users-table">
               <div data-testid="users-list">
-                <UsersDataTable users={users} />
+                <UsersDataTable
+                  users={users}
+                  currentPage={page}
+                  pageSize={pageSize}
+                  totalCount={filteredCount}
+                  totalPages={totalPages}
+                />
               </div>
             </div>
           )}

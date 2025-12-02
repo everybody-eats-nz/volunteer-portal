@@ -4,7 +4,6 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   SortingState,
@@ -62,6 +61,10 @@ export interface User {
 
 interface UsersDataTableProps {
   users: User[];
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
 }
 
 function getUserInitials(user: User): string {
@@ -281,7 +284,13 @@ export const columns: ColumnDef<User>[] = [
   },
 ];
 
-export function UsersDataTable({ users }: UsersDataTableProps) {
+export function UsersDataTable({
+  users,
+  currentPage,
+  pageSize,
+  totalCount,
+  totalPages,
+}: UsersDataTableProps) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
@@ -292,17 +301,19 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
     columns,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     state: {
       sorting,
     },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
+    manualPagination: true,
+    pageCount: totalPages,
   });
+
+  const handlePageChange = (newPage: number) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set("page", newPage.toString());
+    router.push(`?${searchParams.toString()}`);
+  };
 
   return (
     <div className="w-full" data-testid="users-datatable">
@@ -365,19 +376,25 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
 
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} user(s)
+          {totalCount > 0 ? (
+            <>
+              Showing {(currentPage - 1) * pageSize + 1} to{" "}
+              {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
+              user(s)
+            </>
+          ) : (
+            "No users found"
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <p className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
+            Page {currentPage} of {totalPages || 1}
           </p>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
             data-testid="users-prev-page"
           >
             Previous
@@ -385,8 +402,8 @@ export function UsersDataTable({ users }: UsersDataTableProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
             data-testid="users-next-page"
           >
             Next
