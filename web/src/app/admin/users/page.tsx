@@ -45,6 +45,14 @@ export default async function AdminUsersPage({
     : 10;
   const skip = (page - 1) * pageSize;
 
+  // Get sorting parameters
+  const sortBy = Array.isArray(params.sortBy)
+    ? params.sortBy[0]
+    : params.sortBy || "createdAt";
+  const sortOrder = Array.isArray(params.sortOrder)
+    ? params.sortOrder[0]
+    : params.sortOrder || "desc";
+
   // Build where clause for filtering
   const whereClause: Prisma.UserWhereInput = {};
 
@@ -59,6 +67,38 @@ export default async function AdminUsersPage({
 
   if (roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
     whereClause.role = roleFilter;
+  }
+
+  // Build orderBy clause for sorting
+  type PrismaOrderBy = Prisma.UserOrderByWithRelationInput;
+  let orderByClause: PrismaOrderBy | PrismaOrderBy[];
+
+  const order = sortOrder === "asc" ? "asc" : "desc";
+
+  switch (sortBy) {
+    case "user":
+    case "name":
+      // Sort by name (firstName, then lastName), fallback to email
+      orderByClause = [
+        { firstName: order },
+        { lastName: order },
+        { email: order },
+      ];
+      break;
+    case "signups":
+    case "_count.signups":
+      // Sort by signup count
+      orderByClause = {
+        signups: {
+          _count: order,
+        },
+      };
+      break;
+    case "createdAt":
+    default:
+      // Default sort by createdAt
+      orderByClause = { createdAt: order };
+      break;
   }
 
   // Fetch users with signup counts
@@ -89,9 +129,7 @@ export default async function AdminUsersPage({
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: orderByClause,
       skip,
       take: pageSize,
     }),
@@ -253,6 +291,8 @@ export default async function AdminUsersPage({
                   pageSize={pageSize}
                   totalCount={filteredCount}
                   totalPages={totalPages}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder as "asc" | "desc"}
                 />
               </div>
             </div>
