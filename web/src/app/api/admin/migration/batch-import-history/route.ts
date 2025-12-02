@@ -400,7 +400,7 @@ export async function POST(request: NextRequest) {
                   }
                 }
 
-                // Check if shift already exists
+                // Check if shift already exists by Nova Event ID (same logic as single user import)
                 let shift;
                 if (dryRun) {
                   shift = {
@@ -411,9 +411,9 @@ export async function POST(request: NextRequest) {
                 } else {
                   const existingShift = await prisma.shift.findFirst({
                     where: {
-                      start: shiftData.start,
-                      end: shiftData.end,
-                      shiftTypeId: shiftType.id,
+                      notes: {
+                        contains: `Nova ID: ${eventResource.id.value}`,
+                      },
                     },
                   });
 
@@ -423,7 +423,7 @@ export async function POST(request: NextRequest) {
                     if (shiftData.notes && shiftData.notes.trim()) {
                       noteParts.push(shiftData.notes.trim());
                     }
-                    noteParts.push(`Nova ID: ${eventId}`);
+                    noteParts.push(`Nova ID: ${eventResource.id.value}`);
 
                     shift = await prisma.shift.create({
                       data: {

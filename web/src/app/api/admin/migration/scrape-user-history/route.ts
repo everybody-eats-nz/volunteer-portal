@@ -572,7 +572,7 @@ export async function POST(request: NextRequest) {
                       where: {
                         // Match based on event name and date
                         notes: {
-                          contains: `Nova Event ID: ${eventDetail.id.value}`,
+                          contains: `Nova ID: ${eventDetail.id.value}`,
                         },
                       },
                     });
