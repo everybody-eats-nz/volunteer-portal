@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,11 @@ export function AdminUsersSearch({
 }: AdminUsersSearchProps) {
   const [searchValue, setSearchValue] = useState(initialSearch || "");
   const router = useRouter();
+
+  // Sync search value with URL when initialSearch changes
+  useEffect(() => {
+    setSearchValue(initialSearch || "");
+  }, [initialSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
