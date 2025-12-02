@@ -457,7 +457,7 @@ export async function POST(request: NextRequest) {
                       });
 
                       if (!existingSignup) {
-                        // Extract status from fields (same pattern as single user import)
+                        // Extract status from fields (exact same pattern as single user import)
                         const statusField = signupInfo.fields.find(
                           (f: NovaField) => f.attribute === "applicationStatus"
                         );
@@ -466,15 +466,18 @@ export async function POST(request: NextRequest) {
                           statusField?.value &&
                           statusField.value !== null &&
                           typeof statusField.value !== "object"
-                            ? String(statusField.value)
+                            ? statusField.value
                             : undefined;
 
-                        // Construct NovaShiftSignupResource for transformer (same as single user import)
+                        // Construct NovaShiftSignupResource for transformer (exact same as single user import)
                         const novaSignupLike: NovaShiftSignupResource = {
                           id: { value: signupInfo.id.value },
                           fields: [],
                           statusId: statusId,
-                          statusName: statusName,
+                          statusName:
+                            typeof statusName === "string"
+                              ? statusName
+                              : undefined,
                           status: undefined,
                           canceled_at: undefined,
                           created_at: new Date().toISOString(),
