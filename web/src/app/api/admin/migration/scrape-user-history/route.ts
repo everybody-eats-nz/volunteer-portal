@@ -569,13 +569,16 @@ export async function POST(request: NextRequest) {
                       });
                     }
 
-                    // Check if shift already exists
+                    // Check if shift already exists (by Nova event ID, shift type, and time)
+                    // Multiple shifts can share same Nova event (day+location) but differ by type
                     const existingShift = await prisma.shift.findFirst({
                       where: {
-                        // Match based on event name and date
                         notes: {
                           contains: `Nova ID: ${eventDetail.id.value}`,
                         },
+                        shiftTypeId: shiftType.id,
+                        start: shiftData.start,
+                        end: shiftData.end,
                       },
                     });
 
