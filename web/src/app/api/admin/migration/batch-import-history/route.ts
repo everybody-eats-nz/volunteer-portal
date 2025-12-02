@@ -15,6 +15,7 @@ import {
 import {
   HistoricalDataTransformer,
   shouldImportSignup,
+  extractSignupDataFromNovaResource,
 } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 
@@ -457,9 +458,13 @@ export async function POST(request: NextRequest) {
                       });
 
                       if (!existingSignup) {
+                        // Use shared helper to extract and format signup data
+                        const novaSignupFormatted =
+                          extractSignupDataFromNovaResource(signupInfo);
+
                         await prisma.signup.create({
                           data: transformer.transformSignup(
-                            signupInfo,
+                            novaSignupFormatted,
                             ourUser.id,
                             shift.id
                           ),
