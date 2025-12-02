@@ -4,11 +4,10 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   useReactTable,
   SortingState,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowUpDown,
   Mail,
@@ -65,6 +64,8 @@ interface UsersDataTableProps {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  sortBy: string;
+  sortOrder: "asc" | "desc";
 }
 
 function getUserInitials(user: User): string {
@@ -290,22 +291,44 @@ export function UsersDataTable({
   pageSize,
   totalCount,
   totalPages,
+  sortBy,
+  sortOrder,
 }: UsersDataTableProps) {
   const router = useRouter();
+
+  // Initialize sorting state from URL params
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "createdAt", desc: true },
+    { id: sortBy, desc: sortOrder === "desc" },
   ]);
+
+  // Sync sorting state when URL params change
+  useEffect(() => {
+    setSorting([{ id: sortBy, desc: sortOrder === "desc" }]);
+  }, [sortBy, sortOrder]);
 
   const table = useReactTable({
     data: users,
     columns,
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      // Handle sorting change by updating URL params
+      const newSorting =
+        typeof updater === "function" ? updater(sorting) : updater;
+      setSorting(newSorting);
+
+      if (newSorting.length > 0) {
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set("sortBy", newSorting[0].id);
+        searchParams.set("sortOrder", newSorting[0].desc ? "desc" : "asc");
+        searchParams.set("page", "1"); // Reset to page 1 when sorting changes
+        router.push(`?${searchParams.toString()}`);
+      }
+    },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     state: {
       sorting,
     },
     manualPagination: true,
+    manualSorting: true,
     pageCount: totalPages,
   });
 
