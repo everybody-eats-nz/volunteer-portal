@@ -1,3 +1,9 @@
+## [0.72.2] - 2025-12-02
+
+### Changes
+- Fix: Align migration duplicate detection logic across all import methods ([#327](https://github.com/everybody-eats-nz/volunteer-portal/pull/327)) by @malinmalliyawadu
+
+
 ## [0.72.1] - 2025-12-02
 
 ### Changes
