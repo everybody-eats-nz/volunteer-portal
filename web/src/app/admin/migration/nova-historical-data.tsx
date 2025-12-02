@@ -13,6 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   ResponsiveDialog,
@@ -31,6 +38,8 @@ import {
   User,
   Calendar,
   Settings,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -79,6 +88,8 @@ export function NovaHistoricalData() {
   const [selectedResult, setSelectedResult] = useState<ScrapeResult | null>(
     null
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
 
   // Load migrated users on component mount
   useEffect(() => {
@@ -338,36 +349,97 @@ export function NovaHistoricalData() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 max-h-48 overflow-y-auto">
-              {migratedUsers.slice(0, 10).map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-2 border rounded"
-                >
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="text-sm">
-                      {user.firstName} {user.lastName} ({user.email})
-                    </span>
-                    {user.registrationCompleted && (
-                      <Badge variant="default" className="text-xs">
-                        Registered
-                      </Badge>
-                    )}
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                {migratedUsers
+                  .slice(
+                    (currentPage - 1) * usersPerPage,
+                    currentPage * usersPerPage
+                  )
+                  .map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-2 border rounded"
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="text-sm">
+                          {user.firstName} {user.lastName} ({user.email})
+                        </span>
+                        {user.registrationCompleted && (
+                          <Badge variant="default" className="text-xs">
+                            Registered
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => scrapeUserHistory(user.email)}
+                        disabled={isLoading}
+                      >
+                        {isDryRun ? "Test" : "Scrape"}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {migratedUsers.length > usersPerPage && (
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * usersPerPage + 1} to{" "}
+                    {Math.min(currentPage * usersPerPage, migratedUsers.length)}{" "}
+                    of {migratedUsers.length} users
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => scrapeUserHistory(user.email)}
-                    disabled={isLoading}
-                  >
-                    {isDryRun ? "Test" : "Scrape"}
-                  </Button>
-                </div>
-              ))}
-              {migratedUsers.length > 10 && (
-                <div className="text-sm text-muted-foreground text-center p-2">
-                  ... and {migratedUsers.length - 10} more users
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <Select
+                      value={currentPage.toString()}
+                      onValueChange={(value) => setCurrentPage(Number(value))}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Page" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from(
+                          { length: Math.ceil(migratedUsers.length / usersPerPage) },
+                          (_, i) => i + 1
+                        ).map((page) => (
+                          <SelectItem key={page} value={page.toString()}>
+                            Page {page}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) =>
+                          Math.min(
+                            Math.ceil(migratedUsers.length / usersPerPage),
+                            prev + 1
+                          )
+                        )
+                      }
+                      disabled={
+                        currentPage >=
+                        Math.ceil(migratedUsers.length / usersPerPage)
+                      }
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
