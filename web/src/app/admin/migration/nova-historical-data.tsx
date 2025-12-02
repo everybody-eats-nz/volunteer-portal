@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -80,7 +80,7 @@ export function NovaHistoricalData() {
 
   const [searchEmail, setSearchEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isDryRun, setIsDryRun] = useState(false);
+  const [isDryRun, setIsDryRun] = useState(true);
   const [migratedUsers, setMigratedUsers] = useState<MigratedUser[]>([]);
   const [scrapeResults, setScrapeResults] = useState<ScrapeResult[]>([]);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
@@ -91,10 +91,37 @@ export function NovaHistoricalData() {
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 10;
 
+  // Memoized pagination calculations
+  const totalPages = useMemo(
+    () => Math.ceil(migratedUsers.length / usersPerPage),
+    [migratedUsers.length, usersPerPage]
+  );
+
+  const paginatedUsers = useMemo(
+    () =>
+      migratedUsers.slice(
+        (currentPage - 1) * usersPerPage,
+        currentPage * usersPerPage
+      ),
+    [migratedUsers, currentPage, usersPerPage]
+  );
+
+  // Safe page setter with bounds checking
+  const setPageSafely = (page: number) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages || 1));
+  };
+
   // Load migrated users on component mount
   useEffect(() => {
     loadMigratedUsers();
   }, []);
+
+  // Reset to page 1 when users list changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   const loadMigratedUsers = async () => {
     try {
@@ -351,41 +378,36 @@ export function NovaHistoricalData() {
           <CardContent>
             <div className="space-y-4">
               <div className="grid gap-2">
-                {migratedUsers
-                  .slice(
-                    (currentPage - 1) * usersPerPage,
-                    currentPage * usersPerPage
-                  )
-                  .map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-2 border rounded"
-                    >
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span className="text-sm">
-                          {user.firstName} {user.lastName} ({user.email})
-                        </span>
-                        {user.registrationCompleted && (
-                          <Badge variant="default" className="text-xs">
-                            Registered
-                          </Badge>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => scrapeUserHistory(user.email)}
-                        disabled={isLoading}
-                      >
-                        {isDryRun ? "Test" : "Scrape"}
-                      </Button>
+                {paginatedUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-2 border rounded"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span className="text-sm">
+                        {user.firstName} {user.lastName} ({user.email})
+                      </span>
+                      {user.registrationCompleted && (
+                        <Badge variant="default" className="text-xs">
+                          Registered
+                        </Badge>
+                      )}
                     </div>
-                  ))}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => scrapeUserHistory(user.email)}
+                      disabled={isLoading}
+                    >
+                      {isDryRun ? "Test" : "Scrape"}
+                    </Button>
+                  </div>
+                ))}
               </div>
 
               {/* Pagination Controls */}
-              {migratedUsers.length > usersPerPage && (
+              {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-2 border-t">
                   <div className="text-sm text-muted-foreground">
                     Showing {(currentPage - 1) * usersPerPage + 1} to{" "}
@@ -396,9 +418,7 @@ export function NovaHistoricalData() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(1, prev - 1))
-                      }
+                      onClick={() => setPageSafely(currentPage - 1)}
                       disabled={currentPage === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -406,41 +426,26 @@ export function NovaHistoricalData() {
                     </Button>
                     <Select
                       value={currentPage.toString()}
-                      onValueChange={(value) => setCurrentPage(Number(value))}
+                      onValueChange={(value) => setPageSafely(Number(value))}
                     >
                       <SelectTrigger className="w-[100px]">
                         <SelectValue placeholder="Page" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from(
-                          {
-                            length: Math.ceil(
-                              migratedUsers.length / usersPerPage
-                            ),
-                          },
-                          (_, i) => i + 1
-                        ).map((page) => (
-                          <SelectItem key={page} value={page.toString()}>
-                            Page {page}
-                          </SelectItem>
-                        ))}
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                          (page) => (
+                            <SelectItem key={page} value={page.toString()}>
+                              Page {page}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        setCurrentPage((prev) =>
-                          Math.min(
-                            Math.ceil(migratedUsers.length / usersPerPage),
-                            prev + 1
-                          )
-                        )
-                      }
-                      disabled={
-                        currentPage >=
-                        Math.ceil(migratedUsers.length / usersPerPage)
-                      }
+                      onClick={() => setPageSafely(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />
