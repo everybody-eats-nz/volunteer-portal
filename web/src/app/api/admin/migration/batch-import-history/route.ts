@@ -401,7 +401,8 @@ export async function POST(request: NextRequest) {
                   }
                 }
 
-                // Check if shift already exists by Nova Event ID (same logic as single user import)
+                // Check if shift already exists (by Nova event ID, shift type, and time)
+                // Multiple shifts can share same Nova event (day+location) but differ by type
                 let shift;
                 if (dryRun) {
                   shift = {
@@ -415,6 +416,9 @@ export async function POST(request: NextRequest) {
                       notes: {
                         contains: `Nova ID: ${eventResource.id.value}`,
                       },
+                      shiftTypeId: shiftType.id,
+                      start: shiftData.start,
+                      end: shiftData.end,
                     },
                   });
 
