@@ -71,6 +71,65 @@ export function extractSignupDataFromNovaResource(
 
 // Types are now imported from @/types/nova-migration
 
+/**
+ * Map Nova position names to production shift types
+ * Based on shift types defined in seed-production.ts
+ */
+export function mapNovaPositionToShiftType(novaPosition: string): string {
+  const position = novaPosition.toLowerCase().trim();
+
+  // Direct matches to production shift types
+  if (position.includes("dishwasher")) {
+    return "Dishwasher";
+  }
+  if (
+    position === "foh set-up & service" ||
+    position.includes("foh set-up")
+  ) {
+    return "FOH Set-Up & Service";
+  }
+  if (
+    position === "front of house" ||
+    position === "front of house service & clean up" ||
+    position.includes("foh queue")
+  ) {
+    return "Front of House";
+  }
+  if (position === "kitchen prep") {
+    return "Kitchen Prep";
+  }
+  if (
+    position === "kitchen service & pack down" ||
+    position === "kitchen prep & service"
+  ) {
+    return "Kitchen Service & Pack Down";
+  }
+  if (
+    position.includes("photography") ||
+    position.includes("media") ||
+    position.includes("socials")
+  ) {
+    return "Media Role";
+  }
+
+  // Additional Nova positions mapped to closest production types
+  if (position.includes("food rescue")) {
+    return "Kitchen Prep"; // Food rescue helpers typically do prep work
+  }
+  if (position.includes("event prep") || position.includes("event helper")) {
+    return "Kitchen Prep"; // Event prep is similar to kitchen prep
+  }
+  if (position.includes("cleaning")) {
+    return "Dishwasher"; // Cleaning helpers work with dishwasher team
+  }
+  if (position.includes("save a bite")) {
+    return "Kitchen Service & Pack Down"; // Save a Bite is during service time
+  }
+
+  // Fallback for unknown positions
+  return "Front of House"; // Default to FOH as most flexible role
+}
+
 export class HistoricalDataTransformer {
   private options: TransformationOptions;
   private result: TransformationResult;
@@ -318,14 +377,15 @@ export class HistoricalDataTransformer {
         );
         const eventId = eventField?.belongsToId;
 
-        // Extract position to determine shift type (same logic as transformEvent)
+        // Extract position to determine shift type (map to production shift types)
         const positionField = novaSignup.fields.find(
           (f: NovaField) => f.attribute === "position"
         );
-        const shiftTypeName =
+        const novaPositionName =
           typeof positionField?.value === "string"
             ? positionField.value
-            : "General Volunteering";
+            : "Front of House"; // Default position
+        const shiftTypeName = mapNovaPositionToShiftType(novaPositionName);
 
         // Find shift type
         const shiftType = await prisma.shiftType.findUnique({
@@ -660,23 +720,23 @@ export class HistoricalDataTransformer {
         ?.value as number) || 10;
 
     // Determine shift type from signup position data if available
-    let shiftTypeName = "General Volunteering";
+    let shiftTypeName = "Front of House"; // Default to most flexible role
     if (signupData && signupData.length > 0) {
-      // Use the first signup's position as the shift type
+      // Use the first signup's position, mapped to production shift type
       const firstSignup = signupData[0];
       if (firstSignup.positionName) {
-        shiftTypeName = firstSignup.positionName;
+        shiftTypeName = mapNovaPositionToShiftType(firstSignup.positionName);
       }
     } else {
       // Fallback to parsing event name if no signup data
       if (eventName.includes("WGTN")) {
-        shiftTypeName = "Wellington Event";
+        shiftTypeName = "Front of House"; // Wellington default
       } else if (eventName.includes("AKL")) {
-        shiftTypeName = "Auckland Event";
+        shiftTypeName = "Front of House"; // Auckland default
       }
     }
 
-    // Hardcoded shift times based on seed data templates
+    // Shift times matching production seed data templates
     const getShiftTimes = (
       shiftType: string
     ): {
@@ -685,29 +745,23 @@ export class HistoricalDataTransformer {
       endHour: number;
       endMinute: number;
     } => {
-      const normalizedType = shiftType.toLowerCase();
-
-      // Match patterns from seed data
-      if (normalizedType.includes("dishwasher")) {
-        return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
-      } else if (normalizedType.includes("front of house setup")) {
-        return { startHour: 16, startMinute: 30, endHour: 21, endMinute: 0 }; // 4:30pm-9:00pm
-      } else if (normalizedType.includes("front of house")) {
-        return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
-      } else if (normalizedType.includes("kitchen prep")) {
-        return { startHour: 12, startMinute: 0, endHour: 16, endMinute: 0 }; // 12:00pm-4:00pm
-      } else if (
-        normalizedType.includes("kitchen service") ||
-        normalizedType.includes("kitchen pack")
-      ) {
-        return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
-      } else if (normalizedType.includes("media")) {
-        return { startHour: 17, startMinute: 0, endHour: 19, endMinute: 0 }; // 5:00pm-7:00pm
-      } else if (normalizedType.includes("flexible")) {
-        return { startHour: 16, startMinute: 0, endHour: 21, endMinute: 0 }; // 4:00pm-9:00pm
-      } else {
-        // Default times for unknown shift types
-        return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
+      // Use exact production shift type names for matching
+      switch (shiftType) {
+        case "Dishwasher":
+          return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
+        case "FOH Set-Up & Service":
+          return { startHour: 16, startMinute: 30, endHour: 21, endMinute: 0 }; // 4:30pm-9:00pm
+        case "Front of House":
+          return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
+        case "Kitchen Prep":
+          return { startHour: 12, startMinute: 0, endHour: 16, endMinute: 0 }; // 12:00pm-4:00pm
+        case "Kitchen Service & Pack Down":
+          return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
+        case "Media Role":
+          return { startHour: 17, startMinute: 0, endHour: 19, endMinute: 0 }; // 5:00pm-7:00pm
+        default:
+          // Default to FOH times
+          return { startHour: 17, startMinute: 30, endHour: 21, endMinute: 0 }; // 5:30pm-9:00pm
       }
     };
 
