@@ -311,17 +311,39 @@ export class HistoricalDataTransformer {
           continue;
         }
 
-        // Find corresponding shift - this is tricky without direct ID mapping
-        // We'll match based on Nova event ID stored in notes
+        // Find corresponding shift - match by Nova event ID and shift type to handle
+        // multiple shifts per event (day+location)
         const eventField = novaSignup.fields.find(
           (f: NovaField) => f.attribute === "event"
         );
         const eventId = eventField?.belongsToId;
+
+        // Extract position to determine shift type (same logic as transformEvent)
+        const positionField = novaSignup.fields.find(
+          (f: NovaField) => f.attribute === "position"
+        );
+        const shiftTypeName =
+          typeof positionField?.value === "string"
+            ? positionField.value
+            : "General Volunteering";
+
+        // Find shift type
+        const shiftType = await prisma.shiftType.findUnique({
+          where: { name: shiftTypeName },
+        });
+
+        if (!shiftType) {
+          this.result.stats.signupsSkipped++;
+          continue;
+        }
+
+        // Find shift matching Nova event ID and shift type
         const shift = await prisma.shift.findFirst({
           where: {
             notes: {
               contains: `Nova ID: ${eventId}`,
             },
+            shiftTypeId: shiftType.id,
           },
         });
 
