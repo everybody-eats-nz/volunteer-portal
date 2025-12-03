@@ -1,4 +1,3 @@
-import createsend from "createsend-node";
 import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getBaseUrl } from "./utils";
 
@@ -175,17 +174,9 @@ interface EmailAttachment {
   Type: string; // MIME type
 }
 
-interface CampaignMonitorAPI {
-  transactional: {
-    sendSmartEmail: (
-      details: unknown,
-      callback: (err: Error | null, res: unknown) => void
-    ) => void;
-  };
-}
-
 class EmailService {
-  private api: CampaignMonitorAPI;
+  private readonly apiKey: string;
+  private readonly baseUrl = 'https://api.createsend.com/api/v3.3';
   private migrationSmartEmailID: string;
   private shiftCancellationAdminSmartEmailID: string;
   private shiftShortageSmartEmailID: string;
@@ -211,8 +202,7 @@ class EmailService {
       }
     }
 
-    const auth = { apiKey: apiKey || "dummy-key-for-dev" };
-    this.api = new createsend(auth) as CampaignMonitorAPI;
+    this.apiKey = apiKey || "dummy-key-for-dev";
 
     // Smart email ID for migration invites
     const migrationEmailId = process.env.CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID;
@@ -398,6 +388,49 @@ class EmailService {
     }
   }
 
+  /**
+   * Helper method to send email via Campaign Monitor API
+   */
+  private async sendSmartEmail(
+    smartEmailID: string,
+    to: string,
+    data: Record<string, string>,
+    attachments?: EmailAttachment[]
+  ): Promise<void> {
+    const emailData: {
+      To: string;
+      Data: Record<string, string>;
+      ConsentToTrack: string;
+      AddRecipientsToList: boolean;
+      Attachments?: EmailAttachment[];
+    } = {
+      To: to,
+      Data: data,
+      ConsentToTrack: 'Yes',
+      AddRecipientsToList: false,
+    };
+
+    if (attachments && attachments.length > 0) {
+      emailData.Attachments = attachments;
+    }
+
+    const response = await fetch(`${this.baseUrl}/transactional/smartemail/${smartEmailID}/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from(`${this.apiKey}:x`).toString('base64')}`,
+      },
+      body: JSON.stringify(emailData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
   async sendMigrationInvite({
     to,
     firstName,
@@ -413,34 +446,28 @@ class EmailService {
       return Promise.resolve();
     }
 
-    const details = {
-      smartEmailID: this.migrationSmartEmailID,
-      to: `${firstName} <${to}>`,
-      data: {
-        firstName,
-        link: migrationLink,
-      } as EmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending migration invite email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending migration invite email:", err);
-            reject(err);
-          }
-        } else {
-          console.log("Migration invite email sent successfully to:", to);
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.migrationSmartEmailID,
+        `${firstName} <${to}>`,
+        {
+          firstName,
+          link: migrationLink,
         }
-      });
-    });
+      );
+      console.log("Migration invite email sent successfully to:", to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending migration invite email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending migration invite email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendShiftCancellationNotification(
@@ -459,45 +486,36 @@ class EmailService {
       return Promise.resolve();
     }
 
-    const details = {
-      smartEmailID: this.shiftCancellationAdminSmartEmailID,
-      to: `${params.managerName} <${params.to}>`,
-      data: {
-        managerName: params.managerName,
-        volunteerName: params.volunteerName,
-        volunteerEmail: params.volunteerEmail,
-        shiftName: params.shiftName,
-        shiftDate: params.shiftDate,
-        shiftTime: params.shiftTime,
-        location: params.location,
-        cancellationTime: params.cancellationTime,
-        remainingVolunteers: params.remainingVolunteers.toString(),
-        shiftCapacity: params.shiftCapacity.toString(),
-      } as ShiftCancellationEmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending shift cancellation email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending shift cancellation email:", err);
-            reject(err);
-          }
-        } else {
-          console.log(
-            "Shift cancellation email sent successfully to:",
-            params.to
-          );
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.shiftCancellationAdminSmartEmailID,
+        `${params.managerName} <${params.to}>`,
+        {
+          managerName: params.managerName,
+          volunteerName: params.volunteerName,
+          volunteerEmail: params.volunteerEmail,
+          shiftName: params.shiftName,
+          shiftDate: params.shiftDate,
+          shiftTime: params.shiftTime,
+          location: params.location,
+          cancellationTime: params.cancellationTime,
+          remainingVolunteers: params.remainingVolunteers.toString(),
+          shiftCapacity: params.shiftCapacity.toString(),
         }
-      });
-    });
+      );
+      console.log("Shift cancellation email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending shift cancellation email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending shift cancellation email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendShiftShortageNotification(
@@ -529,38 +547,34 @@ class EmailService {
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
 
-    const details = {
-      smartEmailID: this.shiftShortageSmartEmailID,
-      to: `${params.volunteerName} <${params.to}>`,
-      data: {
-        firstName: firstName,
-        shiftType: params.shiftName,
-        shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
-        restarauntLocation: params.location,
-        linkToEvent: signupLink,
-      } as ShiftShortageEmailData,
+    const emailData = {
+      firstName: firstName,
+      shiftType: params.shiftName,
+      shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
+      restarauntLocation: params.location,
+      linkToEvent: signupLink,
     };
 
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending shift shortage email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending shift shortage email:", err);
-            reject(err);
-          }
-        } else {
-          console.log("Shift shortage email sent successfully to:", params.to);
-          console.log("Email data sent:", details.data);
-          resolve();
-        }
-      });
-    });
+    try {
+      await this.sendSmartEmail(
+        this.shiftShortageSmartEmailID,
+        `${params.volunteerName} <${params.to}>`,
+        emailData
+      );
+      console.log("Shift shortage email sent successfully to:", params.to);
+      console.log("Email data sent:", emailData);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending shift shortage email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending shift shortage email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendBulkShortageNotifications(
@@ -633,46 +647,37 @@ class EmailService {
       });
     }
 
-    const details = {
-      smartEmailID: this.shiftConfirmationSmartEmailID,
-      to: `${params.volunteerName} <${params.to}>`,
-      data: {
-        firstName: firstName,
-        role: params.shiftName,
-        shiftDate: params.shiftDate,
-        shiftTime: params.shiftTime,
-        location: params.location,
-        linkToShift: shiftLink,
-        addToGoogleCalendarLink: calendarData.google,
-        addToOutlookCalendarLink: calendarData.outlook,
-        addToCalendarIcsLink: icsDownloadLink,
-        locationMapLink: locationMapLink,
-      } as ShiftConfirmationEmailData,
-      Attachments: attachments,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending shift confirmation email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending shift confirmation email:", err);
-            reject(err);
-          }
-        } else {
-          console.log(
-            "Shift confirmation email sent successfully to:",
-            params.to
-          );
-          resolve();
-        }
-      });
-    });
+    try {
+      await this.sendSmartEmail(
+        this.shiftConfirmationSmartEmailID,
+        `${params.volunteerName} <${params.to}>`,
+        {
+          firstName: firstName,
+          role: params.shiftName,
+          shiftDate: params.shiftDate,
+          shiftTime: params.shiftTime,
+          location: params.location,
+          linkToShift: shiftLink,
+          addToGoogleCalendarLink: calendarData.google,
+          addToOutlookCalendarLink: calendarData.outlook,
+          addToCalendarIcsLink: icsDownloadLink,
+          locationMapLink: locationMapLink,
+        },
+        attachments.length > 0 ? attachments : undefined
+      );
+      console.log("Shift confirmation email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending shift confirmation email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending shift confirmation email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendVolunteerCancellationNotification(
@@ -698,41 +703,32 @@ class EmailService {
 
     const browseShiftsLink = `${getBaseUrl()}/shifts`;
 
-    const details = {
-      smartEmailID: this.volunteerCancellationSmartEmailID,
-      to: `${params.volunteerName} <${params.to}>`,
-      data: {
-        firstName: firstName,
-        shiftType: params.shiftName,
-        shiftDate: params.shiftDate,
-        shiftTime: params.shiftTime,
-        location: params.location,
-        browseShiftsLink: browseShiftsLink,
-      } as VolunteerCancellationEmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending volunteer cancellation email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending volunteer cancellation email:", err);
-            reject(err);
-          }
-        } else {
-          console.log(
-            "Volunteer cancellation email sent successfully to:",
-            params.to
-          );
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.volunteerCancellationSmartEmailID,
+        `${params.volunteerName} <${params.to}>`,
+        {
+          firstName: firstName,
+          shiftType: params.shiftName,
+          shiftDate: params.shiftDate,
+          shiftTime: params.shiftTime,
+          location: params.location,
+          browseShiftsLink: browseShiftsLink,
         }
-      });
-    });
+      );
+      console.log("Volunteer cancellation email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending volunteer cancellation email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending volunteer cancellation email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendVolunteerNotNeededNotification(
@@ -758,41 +754,32 @@ class EmailService {
 
     const browseShiftsLink = `${getBaseUrl()}/shifts`;
 
-    const details = {
-      smartEmailID: this.volunteerNotNeededSmartEmailID,
-      to: `${params.volunteerName} <${params.to}>`,
-      data: {
-        firstName: firstName,
-        shiftType: params.shiftName,
-        shiftDate: params.shiftDate,
-        shiftTime: params.shiftTime,
-        location: params.location,
-        browseShiftsLink: browseShiftsLink,
-      } as VolunteerNotNeededEmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending volunteer not needed email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending volunteer not needed email:", err);
-            reject(err);
-          }
-        } else {
-          console.log(
-            "Volunteer not needed email sent successfully to:",
-            params.to
-          );
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.volunteerNotNeededSmartEmailID,
+        `${params.volunteerName} <${params.to}>`,
+        {
+          firstName: firstName,
+          shiftType: params.shiftName,
+          shiftDate: params.shiftDate,
+          shiftTime: params.shiftTime,
+          location: params.location,
+          browseShiftsLink: browseShiftsLink,
         }
-      });
-    });
+      );
+      console.log("Volunteer not needed email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending volunteer not needed email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending volunteer not needed email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendParentalConsentApprovalNotification(
@@ -817,40 +804,28 @@ class EmailService {
       params.volunteerName.split(" ")[0] || params.volunteerName;
     const dashboardLink = `${getBaseUrl()}/dashboard`;
 
-    const details = {
-      smartEmailID: this.parentalConsentApprovalSmartEmailID,
-      to: `${params.volunteerName} <${params.to}>`,
-      data: {
-        firstName: firstName,
-        linkToDashboard: dashboardLink,
-      } as ParentalConsentApprovalEmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending parental consent approval email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error(
-              "Error sending parental consent approval email:",
-              err
-            );
-            reject(err);
-          }
-        } else {
-          console.log(
-            "Parental consent approval email sent successfully to:",
-            params.to
-          );
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.parentalConsentApprovalSmartEmailID,
+        `${params.volunteerName} <${params.to}>`,
+        {
+          firstName: firstName,
+          linkToDashboard: dashboardLink,
         }
-      });
-    });
+      );
+      console.log("Parental consent approval email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending parental consent approval email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending parental consent approval email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendEmailVerification(
@@ -873,34 +848,28 @@ class EmailService {
       return Promise.resolve();
     }
 
-    const details = {
-      smartEmailID: this.emailVerificationSmartEmailID,
-      to: `${params.firstName} <${params.to}>`,
-      data: {
-        firstName: params.firstName,
-        verificationLink: params.verificationLink,
-      } as EmailVerificationData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending email verification (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending email verification:", err);
-            reject(err);
-          }
-        } else {
-          console.log("Email verification sent successfully to:", params.to);
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.emailVerificationSmartEmailID,
+        `${params.firstName} <${params.to}>`,
+        {
+          firstName: params.firstName,
+          verificationLink: params.verificationLink,
         }
-      });
-    });
+      );
+      console.log("Email verification sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending email verification (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending email verification:", err);
+        throw err;
+      }
+    }
   }
 
   async sendUserInvitation(params: SendUserInvitationParams): Promise<void> {
@@ -930,40 +899,33 @@ class EmailService {
 
     const loginLink = `${getBaseUrl()}/login`;
 
-    const details = {
-      smartEmailID: this.userInvitationSmartEmailID,
-      to:
+    try {
+      await this.sendSmartEmail(
+        this.userInvitationSmartEmailID,
         params.firstName && params.lastName
           ? `${params.firstName} ${params.lastName} <${params.to}>`
           : `${firstName} <${params.to}>`,
-      data: {
-        firstName: firstName,
-        emailAddress: params.to,
-        role: params.role.toLowerCase(),
-        tempPassword: params.tempPassword,
-        loginLink: loginLink,
-      } as UserInvitationEmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending user invitation email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending user invitation email:", err);
-            reject(err);
-          }
-        } else {
-          console.log("User invitation email sent successfully to:", params.to);
-          resolve();
+        {
+          firstName: firstName,
+          emailAddress: params.to,
+          role: params.role.toLowerCase(),
+          tempPassword: params.tempPassword,
+          loginLink: loginLink,
         }
-      });
-    });
+      );
+      console.log("User invitation email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending user invitation email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending user invitation email:", err);
+        throw err;
+      }
+    }
   }
 
   async sendProfileCompletion(
@@ -988,37 +950,28 @@ class EmailService {
 
     const dashboardLink = `${getBaseUrl()}/dashboard`;
 
-    const details = {
-      smartEmailID: this.profileCompletionSmartEmailID,
-      to: `${params.firstName} <${params.to}>`,
-      data: {
-        firstName: params.firstName,
-        linkToDashboard: dashboardLink,
-      } as ProfileCompletionEmailData,
-    };
-
-    return new Promise<void>((resolve, reject) => {
-      this.api.transactional.sendSmartEmail(details, (err: Error | null) => {
-        if (err) {
-          if (isDevelopment) {
-            console.warn(
-              "[EMAIL SERVICE] Error sending profile completion email (development):",
-              err.message
-            );
-            resolve(); // Don't fail in development
-          } else {
-            console.error("Error sending profile completion email:", err);
-            reject(err);
-          }
-        } else {
-          console.log(
-            "Profile completion email sent successfully to:",
-            params.to
-          );
-          resolve();
+    try {
+      await this.sendSmartEmail(
+        this.profileCompletionSmartEmailID,
+        `${params.firstName} <${params.to}>`,
+        {
+          firstName: params.firstName,
+          linkToDashboard: dashboardLink,
         }
-      });
-    });
+      );
+      console.log("Profile completion email sent successfully to:", params.to);
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending profile completion email (development):",
+          err instanceof Error ? err.message : 'Unknown error'
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending profile completion email:", err);
+        throw err;
+      }
+    }
   }
 }
 

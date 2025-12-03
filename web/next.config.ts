@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Optimize for Vercel serverless functions
-  serverExternalPackages: ["@prisma/client", "bcrypt", "createsend-node"],
+  serverExternalPackages: ["@prisma/client", "bcrypt"],
 
   // Configure external image domains
   images: {
