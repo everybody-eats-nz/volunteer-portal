@@ -1,3 +1,9 @@
+## [0.72.6] - 2025-12-03
+
+### Changes
+- fix: replace createsend-node with direct Campaign Monitor API calls ([#330](https://github.com/everybody-eats-nz/volunteer-portal/pull/330)) by @malinmalliyawadu
+
+
 ## [0.72.5] - 2025-12-02
 
 ### Changes
