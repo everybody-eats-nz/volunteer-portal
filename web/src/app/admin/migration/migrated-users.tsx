@@ -40,22 +40,41 @@ interface MigratedUser {
   registrationCompletedAt?: string;
 }
 
+interface PaginationData {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export function MigratedUsers() {
   const [users, setUsers] = useState<MigratedUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<MigratedUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "invited" | "completed">("all");
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    page: 1,
+    pageSize: 100,
+    totalPages: 0,
+  });
   const { toast } = useToast();
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (page: number = pagination.page, pageSize: number = pagination.pageSize) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/migration/users");
+      const response = await fetch(`/api/admin/migration/users?page=${page}&pageSize=${pageSize}`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users);
         setFilteredUsers(data.users);
+        setPagination({
+          total: data.total,
+          page: data.page,
+          pageSize: data.pageSize,
+          totalPages: data.totalPages,
+        });
       } else {
         throw new Error("Failed to fetch users");
       }
@@ -70,7 +89,7 @@ export function MigratedUsers() {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pagination.page, pagination.pageSize]);
 
   useEffect(() => {
     fetchUsers();
@@ -187,7 +206,8 @@ export function MigratedUsers() {
             <div>
               <CardTitle>Migrated Users</CardTitle>
               <CardDescription>
-                {users.length} users have been migrated from the legacy system
+                {pagination.total} users have been migrated from the legacy system
+                {pagination.totalPages > 1 && ` (Page ${pagination.page} of ${pagination.totalPages})`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -359,6 +379,54 @@ export function MigratedUsers() {
                   ? "No users found matching your filters"
                   : "No migrated users found. Start by uploading a CSV file in the Upload CSV tab."}
               </p>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{" "}
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{" "}
+                {pagination.total} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchUsers(1)}
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchUsers(pagination.page - 1)}
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm font-medium px-3">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchUsers(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages || isLoading}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchUsers(pagination.totalPages)}
+                  disabled={pagination.page === pagination.totalPages || isLoading}
+                >
+                  Last
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

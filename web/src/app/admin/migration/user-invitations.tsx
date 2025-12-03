@@ -81,7 +81,8 @@ export function UserInvitations() {
   const fetchMigratedUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/migration/users");
+      // Fetch all users by setting a high page size (this component needs all users for bulk invitations)
+      const response = await fetch("/api/admin/migration/users?pageSize=10000");
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
