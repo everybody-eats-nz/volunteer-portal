@@ -31,7 +31,9 @@ interface RecommendedFriend {
 
 export function RecommendedFriends() {
   const router = useRouter();
-  const [recommendedFriends, setRecommendedFriends] = useState<RecommendedFriend[]>([]);
+  const [recommendedFriends, setRecommendedFriends] = useState<
+    RecommendedFriend[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [sendingRequest, setSendingRequest] = useState<Set<string>>(new Set());
 
@@ -119,7 +121,8 @@ export function RecommendedFriends() {
           Suggested Friends
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          Volunteers you&apos;ve recently worked with (5+ shared shifts in the last 3 months)
+          Volunteers you&apos;ve recently worked with (3+ shared shifts in the
+          last 3 months)
         </p>
       </CardHeader>
       <CardContent>
@@ -172,15 +175,23 @@ export function RecommendedFriends() {
                           {/* Recent shared shifts */}
                           {friend.recentSharedShifts.length > 0 && (
                             <div className="text-xs text-muted-foreground space-y-0.5">
-                              {friend.recentSharedShifts.slice(0, 2).map((shift) => (
-                                <div key={shift.id} className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  <span>
-                                    {shift.shiftTypeName} •{" "}
-                                    {formatInNZT(new Date(shift.start), "MMM d")}
-                                  </span>
-                                </div>
-                              ))}
+                              {friend.recentSharedShifts
+                                .slice(0, 2)
+                                .map((shift) => (
+                                  <div
+                                    key={shift.id}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Calendar className="h-3 w-3" />
+                                    <span>
+                                      {shift.shiftTypeName} •{" "}
+                                      {formatInNZT(
+                                        new Date(shift.start),
+                                        "MMM d"
+                                      )}
+                                    </span>
+                                  </div>
+                                ))}
                             </div>
                           )}
                         </div>
@@ -189,7 +200,9 @@ export function RecommendedFriends() {
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => handleSendRequest(friend.id, displayName)}
+                        onClick={() =>
+                          handleSendRequest(friend.id, displayName)
+                        }
                         disabled={sendingRequest.has(friend.id)}
                         className="flex-shrink-0"
                       >
