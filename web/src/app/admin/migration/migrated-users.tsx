@@ -221,7 +221,7 @@ export function MigratedUsers() {
                 Export CSV
               </Button>
               <Button
-                onClick={fetchUsers}
+                onClick={() => fetchUsers()}
                 disabled={isLoading}
                 size="sm"
                 variant="outline"
