@@ -196,9 +196,9 @@ export function FriendPrivacySettings({
                       <span className="font-medium">Private</span>
                     </Label>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Your profile cannot be viewed, you won&apos;t appear on the
-                      browse shifts page, and your shift history will be hidden
-                      from everyone.
+                      Your profile cannot be viewed, you won&apos;t appear on
+                      the browse shifts page, and your shift history will be
+                      hidden from everyone.
                     </p>
                   </div>
                 </div>
@@ -206,7 +206,9 @@ export function FriendPrivacySettings({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-base font-medium">Additional Settings</Label>
+              <Label className="text-base font-medium">
+                Additional Settings
+              </Label>
               <div className="space-y-3">
                 <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                   <Checkbox
@@ -244,7 +246,8 @@ export function FriendPrivacySettings({
                     </Label>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       Show up as a suggested friend for volunteers you&apos;ve
-                      recently worked with (5+ shared shifts in the last 3 months)
+                      recently worked with (3+ shared shifts in the last 3
+                      months)
                     </p>
                   </div>
                 </div>
