@@ -1,3 +1,9 @@
+## [0.72.7] - 2025-12-04
+
+### Changes
+- fix: add pagination to migration tables to display all users ([#332](https://github.com/everybody-eats-nz/volunteer-portal/pull/332)) by @malinmalliyawadu
+
+
 ## [0.72.6] - 2025-12-03
 
 ### Changes
