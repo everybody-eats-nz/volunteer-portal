@@ -138,11 +138,7 @@ export default function AchievementsCard() {
 
   if (loading) {
     return (
-      <motion.div
-        variants={slideUpVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -151,7 +147,10 @@ export default function AchievementsCard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center" style={{ minHeight: "400px" }}>
+            <div
+              className="flex items-center justify-center"
+              style={{ minHeight: "400px" }}
+            >
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -174,182 +173,188 @@ export default function AchievementsCard() {
   const nextAchievements = availableAchievements.slice(0, 3);
 
   return (
-    <motion.div
-      variants={slideUpVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
       <Card>
-      <CardHeader>
-        <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏆</span>
-            Achievements
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary" className="text-xs sm:text-sm whitespace-nowrap">
-              {totalPoints} points
-            </Badge>
-            <Badge variant="outline" className="hidden sm:inline-flex text-xs sm:text-sm whitespace-nowrap">
-              {userAchievements.length} unlocked
-            </Badge>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Recent Achievements */}
-        {recentAchievements.length > 0 && (
-          <div>
-            <h4 className="font-medium text-sm text-muted-foreground mb-3">
-              Recent Achievements
-            </h4>
-            <motion.div 
-              className="grid gap-3"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-            >
-              {recentAchievements.map((userAchievement) => (
-                <motion.div
-                  variants={staggerItem}
-                  key={userAchievement.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700"
-                >
-                  <div className="text-2xl flex-shrink-0">
-                    {userAchievement.achievement.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h5 className="font-medium text-sm">
-                        {userAchievement.achievement.name}
-                      </h5>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs whitespace-nowrap ${
-                          CATEGORY_COLORS[
-                            userAchievement.achievement
-                              .category as keyof typeof CATEGORY_COLORS
-                          ]
-                        }`}
-                      >
-                        {userAchievement.achievement.category}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {userAchievement.achievement.description}
-                    </p>
-                  </div>
-                  <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
-                    +{userAchievement.achievement.points}
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        )}
-
-        {/* Next Achievements */}
-        {nextAchievements.length > 0 && (
-          <div>
-            <h4 className="font-medium text-sm text-muted-foreground mb-3">
-              Next Goals
-            </h4>
-            <motion.div
-              className="grid gap-3"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-            >
-              {nextAchievements.map((achievement) => {
-                const achievementProgress = calculateAchievementProgress(
-                  achievement,
-                  achievementsData.progress
-                );
-
-                return (
+        <CardHeader>
+          <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🏆</span>
+              Achievements
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge
+                variant="secondary"
+                className="text-xs sm:text-sm whitespace-nowrap"
+              >
+                {totalPoints} points
+              </Badge>
+              <Badge
+                variant="outline"
+                className="hidden sm:inline-flex text-xs sm:text-sm whitespace-nowrap"
+              >
+                {userAchievements.length} unlocked
+              </Badge>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Recent Achievements */}
+          {recentAchievements.length > 0 && (
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                Recent Achievements
+              </h4>
+              <motion.div
+                className="grid gap-3"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                {recentAchievements.map((userAchievement) => (
                   <motion.div
                     variants={staggerItem}
-                    key={achievement.id}
-                    className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10"
+                    key={userAchievement.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl flex-shrink-0 opacity-60">
-                        {achievement.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h5 className="font-medium text-sm">
-                            {achievement.name}
-                          </h5>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs whitespace-nowrap ${
-                              CATEGORY_COLORS[
-                                achievement.category as keyof typeof CATEGORY_COLORS
-                              ]
-                            }`}
-                          >
-                            {achievement.category}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {achievement.description}
-                        </p>
-                      </div>
-                      <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                        {achievement.points} pts
-                      </div>
+                    <div className="text-2xl flex-shrink-0">
+                      {userAchievement.achievement.icon}
                     </div>
-
-                    {achievementProgress && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            {achievementProgress.label}
-                          </span>
-                          <span className="font-medium">
-                            {achievementProgress.percentage.toFixed(0)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={achievementProgress.percentage}
-                          className="h-2"
-                        />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h5 className="font-medium text-sm">
+                          {userAchievement.achievement.name}
+                        </h5>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs whitespace-nowrap ${
+                            CATEGORY_COLORS[
+                              userAchievement.achievement
+                                .category as keyof typeof CATEGORY_COLORS
+                            ]
+                          }`}
+                        >
+                          {userAchievement.achievement.category}
+                        </Badge>
                       </div>
-                    )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {userAchievement.achievement.description}
+                      </p>
+                    </div>
+                    <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
+                      +{userAchievement.achievement.points}
+                    </div>
                   </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        )}
+                ))}
+              </motion.div>
+            </div>
+          )}
 
-        {/* View All Button */}
-        {(userAchievements.length > 3 || availableAchievements.length > 3) && (
-          <Button variant="outline" size="sm" className="w-full" asChild>
-            <Link href="/achievements" className="flex items-center justify-center gap-2">
-              <span className="hidden sm:inline">View All Achievements</span>
-              <span className="sm:hidden">View All</span>
-              <span className="text-muted-foreground">
-                ({userAchievements.length + availableAchievements.length})
-              </span>
-              <ArrowRight className="h-4 w-4 flex-shrink-0" />
-            </Link>
-          </Button>
-        )}
+          {/* Next Achievements */}
+          {nextAchievements.length > 0 && (
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                Next Goals
+              </h4>
+              <motion.div
+                className="grid gap-3"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                {nextAchievements.map((achievement) => {
+                  const achievementProgress = calculateAchievementProgress(
+                    achievement,
+                    achievementsData.progress
+                  );
 
-        {/* Empty State */}
-        {userAchievements.length === 0 && (
-          <div className="text-center py-6">
-            <div className="text-4xl mb-2">🎯</div>
-            <h4 className="font-medium mb-1">Start Your Journey!</h4>
-            <p className="text-sm text-muted-foreground">
-              Complete your first shift to unlock achievements
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                  return (
+                    <motion.div
+                      variants={staggerItem}
+                      key={achievement.id}
+                      className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl flex-shrink-0 opacity-60">
+                          {achievement.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h5 className="font-medium text-sm">
+                              {achievement.name}
+                            </h5>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs whitespace-nowrap ${
+                                CATEGORY_COLORS[
+                                  achievement.category as keyof typeof CATEGORY_COLORS
+                                ]
+                              }`}
+                            >
+                              {achievement.category}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {achievement.description}
+                          </p>
+                        </div>
+                        <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                          {achievement.points} pts
+                        </div>
+                      </div>
+
+                      {achievementProgress && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {achievementProgress.label}
+                            </span>
+                            <span className="font-medium">
+                              {achievementProgress.percentage.toFixed(0)}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={achievementProgress.percentage}
+                            className="h-2"
+                          />
+                        </div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </div>
+          )}
+
+          {/* View All Button */}
+          {(userAchievements.length > 3 ||
+            availableAchievements.length > 3) && (
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <Link
+                href="/achievements"
+                className="flex items-center justify-center gap-2"
+              >
+                <span className="hidden sm:inline">View All Achievements</span>
+                <span className="sm:hidden">View All</span>
+                <span className="text-muted-foreground">
+                  ({userAchievements.length + availableAchievements.length})
+                </span>
+                <ArrowRight className="h-4 w-4 flex-shrink-0" />
+              </Link>
+            </Button>
+          )}
+
+          {/* Empty State */}
+          {userAchievements.length === 0 && (
+            <div className="text-center py-6">
+              <div className="text-4xl mb-2">🎯</div>
+              <h4 className="font-medium mb-1">Start Your Journey!</h4>
+              <p className="text-sm text-muted-foreground">
+                Complete your first shift to unlock achievements
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

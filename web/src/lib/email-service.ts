@@ -1,12 +1,6 @@
 import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getBaseUrl } from "./utils";
 
-interface EmailData {
-  firstName: string;
-  link: string;
-  [key: string]: string;
-}
-
 interface SendEmailParams {
   to: string;
   firstName: string;
@@ -176,7 +170,7 @@ interface EmailAttachment {
 
 class EmailService {
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://api.createsend.com/api/v3.3';
+  private readonly baseUrl = "https://api.createsend.com/api/v3.3";
   private migrationSmartEmailID: string;
   private shiftCancellationAdminSmartEmailID: string;
   private shiftShortageSmartEmailID: string;
@@ -303,8 +297,7 @@ class EmailService {
         console.warn(
           "[EMAIL SERVICE] CAMPAIGN_MONITOR_VOLUNTEER_NOT_NEEDED_EMAIL_ID is not configured - volunteer not needed emails will not be sent"
         );
-        this.volunteerNotNeededSmartEmailID =
-          "dummy-volunteer-not-needed-id";
+        this.volunteerNotNeededSmartEmailID = "dummy-volunteer-not-needed-id";
       } else {
         throw new Error(
           "CAMPAIGN_MONITOR_VOLUNTEER_NOT_NEEDED_EMAIL_ID is not configured"
@@ -406,7 +399,7 @@ class EmailService {
     } = {
       To: to,
       Data: data,
-      ConsentToTrack: 'Yes',
+      ConsentToTrack: "Yes",
       AddRecipientsToList: false,
     };
 
@@ -414,18 +407,25 @@ class EmailService {
       emailData.Attachments = attachments;
     }
 
-    const response = await fetch(`${this.baseUrl}/transactional/smartemail/${smartEmailID}/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${Buffer.from(`${this.apiKey}:x`).toString('base64')}`,
-      },
-      body: JSON.stringify(emailData),
-    });
+    const response = await fetch(
+      `${this.baseUrl}/transactional/smartemail/${smartEmailID}/send`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${Buffer.from(`${this.apiKey}:x`).toString(
+            "base64"
+          )}`,
+        },
+        body: JSON.stringify(emailData),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
+      throw new Error(
+        `Campaign Monitor API error: ${response.status} - ${errorText}`
+      );
     }
 
     return response.json();
@@ -460,7 +460,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending migration invite email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -508,7 +508,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending shift cancellation email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -567,7 +567,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending shift shortage email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -639,7 +639,9 @@ class EmailService {
       icsDownloadLink = `${getBaseUrl()}/api/shifts/${params.shiftId}/calendar`;
 
       // Create ICS file attachment
-      const icsContent = Buffer.from(calendarData.icsContent).toString('base64');
+      const icsContent = Buffer.from(calendarData.icsContent).toString(
+        "base64"
+      );
       attachments.push({
         Content: icsContent,
         Name: "shift-calendar.ics",
@@ -670,7 +672,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending shift confirmation email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -716,12 +718,15 @@ class EmailService {
           browseShiftsLink: browseShiftsLink,
         }
       );
-      console.log("Volunteer cancellation email sent successfully to:", params.to);
+      console.log(
+        "Volunteer cancellation email sent successfully to:",
+        params.to
+      );
     } catch (err) {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending volunteer cancellation email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -739,8 +744,7 @@ class EmailService {
     // In development, skip email sending if configuration is missing
     if (
       isDevelopment &&
-      this.volunteerNotNeededSmartEmailID ===
-        "dummy-volunteer-not-needed-id"
+      this.volunteerNotNeededSmartEmailID === "dummy-volunteer-not-needed-id"
     ) {
       console.log(
         `[EMAIL SERVICE] Would send volunteer not needed email to ${params.to} (skipped in dev - no config)`
@@ -767,12 +771,15 @@ class EmailService {
           browseShiftsLink: browseShiftsLink,
         }
       );
-      console.log("Volunteer not needed email sent successfully to:", params.to);
+      console.log(
+        "Volunteer not needed email sent successfully to:",
+        params.to
+      );
     } catch (err) {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending volunteer not needed email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -813,12 +820,15 @@ class EmailService {
           linkToDashboard: dashboardLink,
         }
       );
-      console.log("Parental consent approval email sent successfully to:", params.to);
+      console.log(
+        "Parental consent approval email sent successfully to:",
+        params.to
+      );
     } catch (err) {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending parental consent approval email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -862,7 +872,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending email verification (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -918,7 +928,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending user invitation email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
@@ -964,7 +974,7 @@ class EmailService {
       if (isDevelopment) {
         console.warn(
           "[EMAIL SERVICE] Error sending profile completion email (development):",
-          err instanceof Error ? err.message : 'Unknown error'
+          err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
