@@ -131,10 +131,15 @@ export function UserInvitations() {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
+        includeStats: "true",
       });
 
       if (searchTerm) {
         params.set("search", searchTerm);
+      }
+
+      if (filterStatus && filterStatus !== "all") {
+        params.set("status", filterStatus);
       }
 
       const response = await fetch(`/api/admin/migration/users?${params.toString()}`);
@@ -148,22 +153,9 @@ export function UserInvitations() {
           totalPages: data.totalPages,
         });
 
-        // Fetch all users for stats calculation (we need totals across all pages)
-        const statsResponse = await fetch("/api/admin/migration/users?pageSize=10000");
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          const allUsers = statsData.users || [];
-          setUserStats({
-            total: allUsers.length,
-            pending: allUsers.filter((u: MigratedUser) => !u.invitationSent).length,
-            invited: allUsers.filter((u: MigratedUser) =>
-              u.invitationSent && !u.registrationCompleted && !isTokenExpired(u.tokenExpiresAt)
-            ).length,
-            expired: allUsers.filter((u: MigratedUser) =>
-              u.invitationSent && !u.registrationCompleted && isTokenExpired(u.tokenExpiresAt)
-            ).length,
-            completed: allUsers.filter((u: MigratedUser) => u.registrationCompleted).length,
-          });
+        // Use stats from API response
+        if (data.stats) {
+          setUserStats(data.stats);
         }
       }
     } catch (error) {
@@ -172,38 +164,22 @@ export function UserInvitations() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, searchTerm]);
+  }, [pagination.page, pagination.pageSize, searchTerm, filterStatus]);
 
   useEffect(() => {
     fetchMigratedUsers();
   }, [fetchMigratedUsers]);
 
-  // Apply client-side filtering based on status (since API doesn't support status filtering yet)
-  const filteredUsers = users.filter((user) => {
-    const tokenExpired = isTokenExpired(user.tokenExpiresAt);
-    const matchesFilter =
-      filterStatus === "all" ||
-      (filterStatus === "pending" && !user.invitationSent) ||
-      (filterStatus === "invited" &&
-        user.invitationSent &&
-        !user.registrationCompleted &&
-        !tokenExpired) ||
-      (filterStatus === "expired" &&
-        user.invitationSent &&
-        !user.registrationCompleted &&
-        tokenExpired) ||
-      (filterStatus === "completed" && user.registrationCompleted);
+  // No client-side filtering needed - API handles it
+  const filteredUsers = users;
 
-    return matchesFilter;
-  });
-
-  // Handle search with debouncing
+  // Handle search change - reset to page 1 when searching
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     updateUrlParams({ search: value, page: "1" });
   };
 
-  // Handle filter status change
+  // Handle filter status change - reset to page 1 when filtering
   const handleFilterChange = (value: "all" | "pending" | "invited" | "expired" | "completed") => {
     setFilterStatus(value);
     updateUrlParams({ status: value, page: "1" });
