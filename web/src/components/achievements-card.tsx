@@ -182,7 +182,22 @@ export default function AchievementsCard() {
   const { userAchievements, availableAchievements, totalPoints } =
     achievementsData;
   const recentAchievements = userAchievements.slice(0, 3);
-  const nextAchievements = availableAchievements.slice(0, 3);
+
+  // Sort available achievements by completion percentage (descending)
+  const sortedAvailableAchievements = [...availableAchievements].sort((a, b) => {
+    const progressA = calculateAchievementProgress(a, achievementsData.progress);
+    const progressB = calculateAchievementProgress(b, achievementsData.progress);
+
+    // Handle null progress (shouldn't happen, but just in case)
+    if (!progressA && !progressB) return 0;
+    if (!progressA) return 1;
+    if (!progressB) return -1;
+
+    // Sort by percentage descending (closest to completion first)
+    return progressB.percentage - progressA.percentage;
+  });
+
+  const nextAchievements = sortedAvailableAchievements.slice(0, 3);
 
   return (
     <motion.div variants={slideUpVariants} initial="hidden" animate="visible">

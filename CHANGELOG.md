@@ -1,3 +1,9 @@
+## [0.76.0] - 2025-12-05
+
+### Changes
+- feat: Achievement improvements and leaderboard filtering ([#341](https://github.com/everybody-eats-nz/volunteer-portal/pull/341)) by @malinmalliyawadu
+
+
 ## [0.75.0] - 2025-12-05
 
 ### Changes
