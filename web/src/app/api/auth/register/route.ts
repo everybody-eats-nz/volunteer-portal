@@ -225,6 +225,7 @@ export async function POST(req: Request) {
           ...userData,
           profileCompleted: true, // Mark profile as completed for migrated users
           isMigrated: true, // Ensure migrated flag is set
+          emailVerified: true, // Mark as verified since they received migration invitation email
           migrationInvitationToken: null, // Clear the token after successful registration
           migrationTokenExpiresAt: null, // Clear the expiry
         },
