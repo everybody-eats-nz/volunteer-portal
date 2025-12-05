@@ -155,7 +155,7 @@ export async function DashboardImpactStats({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">
-                {mealsToDisplay}
+                {mealsToDisplay.toLocaleString()}
               </div>
               <p className="text-sm text-muted-foreground">
                 {hasAnyData ? "People served" : "Estimated people served"}
@@ -169,7 +169,7 @@ export async function DashboardImpactStats({
 
             <div className="text-center">
               <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-2">
-                {totalVolunteers}
+                {totalVolunteers.toLocaleString()}
               </div>
               <p className="text-sm text-muted-foreground">
                 Active volunteers in our community
@@ -183,7 +183,7 @@ export async function DashboardImpactStats({
 
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                {Math.round(totalHours * 2.5 * 10) / 10}kg
+                {(Math.round(totalHours * 2.5 * 10) / 10).toLocaleString()}kg
               </div>
               <p className="text-sm text-muted-foreground">
                 Estimated food waste prevented
