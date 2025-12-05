@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,18 +49,36 @@ interface PaginationData {
 }
 
 export function MigratedUsers() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [users, setUsers] = useState<MigratedUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<MigratedUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "invited" | "completed">("all");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "invited" | "completed">(
+    (searchParams.get("status") as "all" | "pending" | "invited" | "completed") || "all"
+  );
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
-    page: 1,
-    pageSize: 100,
+    page: parseInt(searchParams.get("page") || "1"),
+    pageSize: parseInt(searchParams.get("pageSize") || "100"),
     totalPages: 0,
   });
   const { toast } = useToast();
+
+  // Update URL params
+  const updateUrlParams = useCallback((params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    router.replace(`?${newParams.toString()}#users`, { scroll: false });
+  }, [searchParams, router]);
 
   const fetchUsers = useCallback(async (page: number = pagination.page, pageSize: number = pagination.pageSize) => {
     setIsLoading(true);
@@ -123,6 +142,24 @@ export function MigratedUsers() {
 
     setFilteredUsers(filtered);
   }, [users, searchTerm, filterStatus]);
+
+  // Handle search change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    updateUrlParams({ search: value });
+  };
+
+  // Handle filter status change
+  const handleFilterChange = (value: "all" | "pending" | "invited" | "completed") => {
+    setFilterStatus(value);
+    updateUrlParams({ status: value });
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    fetchUsers(newPage);
+    updateUrlParams({ page: newPage.toString() });
+  };
 
   const resendInvitation = async (userId: string) => {
     try {
@@ -240,7 +277,7 @@ export function MigratedUsers() {
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -248,7 +285,7 @@ export function MigratedUsers() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as "all" | "pending" | "invited" | "completed")}
+                onChange={(e) => handleFilterChange(e.target.value as "all" | "pending" | "invited" | "completed")}
                 className="border rounded-md px-3 py-2 text-sm"
               >
                 <option value="all">All Users</option>
@@ -394,7 +431,7 @@ export function MigratedUsers() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchUsers(1)}
+                  onClick={() => handlePageChange(1)}
                   disabled={pagination.page === 1 || isLoading}
                 >
                   First
@@ -402,7 +439,7 @@ export function MigratedUsers() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchUsers(pagination.page - 1)}
+                  onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1 || isLoading}
                 >
                   Previous
@@ -413,7 +450,7 @@ export function MigratedUsers() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchUsers(pagination.page + 1)}
+                  onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages || isLoading}
                 >
                   Next
@@ -421,7 +458,7 @@ export function MigratedUsers() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchUsers(pagination.totalPages)}
+                  onClick={() => handlePageChange(pagination.totalPages)}
                   disabled={pagination.page === pagination.totalPages || isLoading}
                 >
                   Last
