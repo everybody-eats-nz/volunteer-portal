@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { motion } from "motion/react";
 import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 interface Achievement {
   id: string;
@@ -45,11 +48,75 @@ const CATEGORY_COLORS = {
   IMPACT: "bg-red-100 text-red-800 border-red-200",
 };
 
+interface AchievementCriteria {
+  type:
+    | "shifts_completed"
+    | "hours_volunteered"
+    | "consecutive_months"
+    | "years_volunteering"
+    | "community_impact";
+  value: number;
+}
+
+interface AchievementProgress {
+  current: number;
+  target: number;
+  percentage: number;
+  label: string;
+}
+
+function calculateAchievementProgress(
+  achievement: Achievement,
+  progress: AchievementsData["progress"]
+): AchievementProgress | null {
+  try {
+    const criteria: AchievementCriteria = JSON.parse(achievement.criteria);
+    let current = 0;
+    let label = "";
+
+    switch (criteria.type) {
+      case "shifts_completed":
+        current = progress.shifts_completed;
+        label = `${current} / ${criteria.value} shifts`;
+        break;
+      case "hours_volunteered":
+        current = progress.hours_volunteered;
+        label = `${current} / ${criteria.value} hours`;
+        break;
+      case "consecutive_months":
+        current = progress.consecutive_months;
+        label = `${current} / ${criteria.value} months`;
+        break;
+      case "years_volunteering":
+        current = progress.years_volunteering;
+        label = `${current} / ${criteria.value} years`;
+        break;
+      case "community_impact":
+        current = progress.community_impact;
+        label = `${current} / ${criteria.value} meals`;
+        break;
+      default:
+        return null;
+    }
+
+    const percentage = Math.min((current / criteria.value) * 100, 100);
+
+    return {
+      current,
+      target: criteria.value,
+      percentage,
+      label,
+    };
+  } catch (error) {
+    console.error("Error parsing achievement criteria:", error);
+    return null;
+  }
+}
+
 export default function AchievementsCard() {
   const [achievementsData, setAchievementsData] =
     useState<AchievementsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     fetchAchievements();
@@ -114,16 +181,16 @@ export default function AchievementsCard() {
     >
       <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🏆</span>
             Achievements
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="secondary" className="text-xs sm:text-sm whitespace-nowrap">
               {totalPoints} points
             </Badge>
-            <Badge variant="outline" className="text-sm">
+            <Badge variant="outline" className="hidden sm:inline-flex text-xs sm:text-sm whitespace-nowrap">
               {userAchievements.length} unlocked
             </Badge>
           </div>
@@ -152,13 +219,13 @@ export default function AchievementsCard() {
                     {userAchievement.achievement.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h5 className="font-medium text-sm truncate">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h5 className="font-medium text-sm">
                         {userAchievement.achievement.name}
                       </h5>
                       <Badge
                         variant="outline"
-                        className={`text-xs ${
+                        className={`text-xs whitespace-nowrap ${
                           CATEGORY_COLORS[
                             userAchievement.achievement
                               .category as keyof typeof CATEGORY_COLORS
@@ -168,11 +235,11 @@ export default function AchievementsCard() {
                         {userAchievement.achievement.category}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {userAchievement.achievement.description}
                     </p>
                   </div>
-                  <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                  <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
                     +{userAchievement.achievement.points}
                   </div>
                 </motion.div>
@@ -187,125 +254,88 @@ export default function AchievementsCard() {
             <h4 className="font-medium text-sm text-muted-foreground mb-3">
               Next Goals
             </h4>
-            <motion.div 
+            <motion.div
               className="grid gap-3"
               variants={staggerContainer}
               initial="hidden"
               animate="visible"
             >
-              {nextAchievements.map((achievement) => (
-                <motion.div
-                  variants={staggerItem}
-                  key={achievement.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-muted/10"
-                >
-                  <div className="text-2xl flex-shrink-0 opacity-60">
-                    {achievement.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h5 className="font-medium text-sm truncate">
-                        {achievement.name}
-                      </h5>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${
-                          CATEGORY_COLORS[
-                            achievement.category as keyof typeof CATEGORY_COLORS
-                          ]
-                        }`}
-                      >
-                        {achievement.category}
-                      </Badge>
+              {nextAchievements.map((achievement) => {
+                const achievementProgress = calculateAchievementProgress(
+                  achievement,
+                  achievementsData.progress
+                );
+
+                return (
+                  <motion.div
+                    variants={staggerItem}
+                    key={achievement.id}
+                    className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl flex-shrink-0 opacity-60">
+                        {achievement.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h5 className="font-medium text-sm">
+                            {achievement.name}
+                          </h5>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs whitespace-nowrap ${
+                              CATEGORY_COLORS[
+                                achievement.category as keyof typeof CATEGORY_COLORS
+                              ]
+                            }`}
+                          >
+                            {achievement.category}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {achievement.description}
+                        </p>
+                      </div>
+                      <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                        {achievement.points} pts
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {achievement.description}
-                    </p>
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">
-                    {achievement.points} pts
-                  </div>
-                </motion.div>
-              ))}
+
+                    {achievementProgress && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            {achievementProgress.label}
+                          </span>
+                          <span className="font-medium">
+                            {achievementProgress.percentage.toFixed(0)}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={achievementProgress.percentage}
+                          className="h-2"
+                        />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
             </motion.div>
           </div>
         )}
 
-        {/* Expand/Collapse Button */}
+        {/* View All Button */}
         {(userAchievements.length > 3 || availableAchievements.length > 3) && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setExpanded(!expanded)}
-            className="w-full"
-          >
-            {expanded
-              ? "Show Less"
-              : `View All (${
-                  userAchievements.length + availableAchievements.length
-                } total)`}
+          <Button variant="outline" size="sm" className="w-full" asChild>
+            <Link href="/achievements" className="flex items-center justify-center gap-2">
+              <span className="hidden sm:inline">View All Achievements</span>
+              <span className="sm:hidden">View All</span>
+              <span className="text-muted-foreground">
+                ({userAchievements.length + availableAchievements.length})
+              </span>
+              <ArrowRight className="h-4 w-4 flex-shrink-0" />
+            </Link>
           </Button>
-        )}
-
-        {/* Expanded View */}
-        {expanded && (
-          <div className="space-y-4 pt-4 border-t">
-            {userAchievements.length > 3 && (
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground mb-3">
-                  All Achievements ({userAchievements.length})
-                </h4>
-                <div className="grid gap-2">
-                  {userAchievements.slice(3).map((userAchievement) => (
-                    <div
-                      key={userAchievement.id}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700"
-                    >
-                      <div className="text-lg flex-shrink-0">
-                        {userAchievement.achievement.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="font-medium text-sm truncate">
-                          {userAchievement.achievement.name}
-                        </h5>
-                      </div>
-                      <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
-                        +{userAchievement.achievement.points}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {availableAchievements.length > 3 && (
-              <div>
-                <h4 className="font-medium text-sm text-muted-foreground mb-3">
-                  Available Achievements ({availableAchievements.length})
-                </h4>
-                <div className="grid gap-2">
-                  {availableAchievements.slice(3).map((achievement) => (
-                    <div
-                      key={achievement.id}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 border border-muted"
-                    >
-                      <div className="text-lg flex-shrink-0 opacity-60">
-                        {achievement.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="font-medium text-sm truncate">
-                          {achievement.name}
-                        </h5>
-                      </div>
-                      <div className="text-xs font-medium text-muted-foreground">
-                        {achievement.points} pts
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         )}
 
         {/* Empty State */}
