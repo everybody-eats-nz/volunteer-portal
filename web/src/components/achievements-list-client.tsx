@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
+import { EyeOff, Eye } from "lucide-react";
 
 interface Achievement {
   id: string;
@@ -127,6 +129,7 @@ export function AchievementsListClient({
   progress,
 }: AchievementsListClientProps) {
   const [activeTab, setActiveTab] = useState("all");
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   // Group achievements by category
   const allAchievements = [
@@ -147,6 +150,13 @@ export function AchievementsListClient({
 
   const getAchievementsByCategory = (category: string) => {
     return allAchievements.filter((a) => a.category === category);
+  };
+
+  const filterAchievements = (achievements: typeof allAchievements) => {
+    if (hideCompleted) {
+      return achievements.filter((a) => !a.unlocked);
+    }
+    return achievements;
   };
 
   const renderAchievement = (
@@ -229,7 +239,27 @@ export function AchievementsListClient({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>All Achievements</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>All Achievements</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHideCompleted(!hideCompleted)}
+            className="flex items-center gap-2"
+          >
+            {hideCompleted ? (
+              <>
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">Show Completed</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="h-4 w-4" />
+                <span className="hidden sm:inline">Hide Completed</span>
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -249,7 +279,7 @@ export function AchievementsListClient({
               initial="hidden"
               animate="visible"
             >
-              {allAchievements
+              {filterAchievements(allAchievements)
                 .sort((a, b) => {
                   // Sort by unlocked status, then by points
                   if (a.unlocked && !b.unlocked) return -1;
@@ -268,7 +298,7 @@ export function AchievementsListClient({
                 initial="hidden"
                 animate="visible"
               >
-                {getAchievementsByCategory(category)
+                {filterAchievements(getAchievementsByCategory(category))
                   .sort((a, b) => {
                     // Sort by unlocked status, then by points
                     if (a.unlocked && !b.unlocked) return -1;
