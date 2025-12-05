@@ -6,7 +6,6 @@ import {
   getUserAchievements,
   getAvailableAchievements,
   checkAndUnlockAchievements,
-  calculateUserProgress,
 } from "@/lib/achievements";
 
 interface AchievementsStatsProps {
@@ -18,13 +17,10 @@ async function getAchievementsData(userId: string) {
   await checkAndUnlockAchievements(userId);
 
   // Get user's current achievements and available ones
-  const [userAchievements, availableAchievements, progress] = await Promise.all(
-    [
-      getUserAchievements(userId),
-      getAvailableAchievements(userId),
-      calculateUserProgress(userId),
-    ]
-  );
+  const [userAchievements, availableAchievements] = await Promise.all([
+    getUserAchievements(userId),
+    getAvailableAchievements(userId),
+  ]);
 
   // Calculate total points
   const totalPoints = userAchievements.reduce(
@@ -73,7 +69,6 @@ async function getAchievementsData(userId: string) {
   return {
     userAchievements,
     availableAchievements,
-    progress,
     totalPoints,
     ranking: {
       userRank,
