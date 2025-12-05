@@ -25,6 +25,7 @@ export interface UserProgress {
   consecutive_months: number;
   years_volunteering: number;
   community_impact: number;
+  shift_type_counts: Record<string, number>; // shiftTypeId -> count
 }
 
 export const ACHIEVEMENT_DEFINITIONS = [
@@ -257,6 +258,7 @@ export async function calculateUserProgress(
       consecutive_months: 0,
       years_volunteering: 0,
       community_impact: 0,
+      shift_type_counts: {},
     };
   }
 
@@ -269,6 +271,15 @@ export async function calculateUserProgress(
   );
   const estimatedMeals = totalHours * 15; // ~15 meals per hour
   const yearsVolunteering = differenceInYears(new Date(), user.createdAt);
+
+  // Calculate shift type counts
+  const shiftTypeCounts: Record<string, number> = {};
+  completedShifts.forEach((signup: (typeof completedShifts)[0]) => {
+    const shiftTypeId = signup.shift.shiftTypeId;
+    if (shiftTypeId) {
+      shiftTypeCounts[shiftTypeId] = (shiftTypeCounts[shiftTypeId] || 0) + 1;
+    }
+  });
 
   // Calculate consecutive months (simplified - volunteers who have at least one shift per month)
   const monthlyActivity = new Map<string, boolean>();
@@ -310,6 +321,7 @@ export async function calculateUserProgress(
     consecutive_months: consecutiveMonths,
     years_volunteering: yearsVolunteering,
     community_impact: estimatedMeals,
+    shift_type_counts: shiftTypeCounts,
   };
 }
 
@@ -372,11 +384,20 @@ export async function checkAndUnlockAchievements(userId: string) {
       }
 
       if (shouldUnlock) {
+        // Get the progress value to store
+        let progressValue = 0;
+        if (criteria.type === "specific_shift_type" && criteria.shiftType) {
+          progressValue = progress.shift_type_counts[criteria.shiftType] || 0;
+        } else {
+          const progressField = progress[criteria.type as keyof UserProgress];
+          progressValue = typeof progressField === "number" ? progressField : 0;
+        }
+
         await prisma.userAchievement.create({
           data: {
             userId,
             achievementId: achievement.id,
-            progress: progress[criteria.type as keyof UserProgress] || 0,
+            progress: progressValue,
           },
         });
         unlockedAchievements.push(achievement.name);
