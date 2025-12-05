@@ -3,8 +3,9 @@ import {
   differenceInHours,
   differenceInMonths,
   differenceInYears,
+  startOfDay,
 } from "date-fns";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, toUTC } from "@/lib/timezone";
 
 export interface AchievementCriteria {
   type:
@@ -269,8 +270,99 @@ export async function calculateUserProgress(
       total + differenceInHours(signup.shift.end, signup.shift.start),
     0
   );
-  const estimatedMeals = totalHours * 15; // ~15 meals per hour
   const yearsVolunteering = differenceInYears(new Date(), user.createdAt);
+
+  // Calculate total meals served using actual data from mealsServed and location tables
+  // Group shifts by date and location to get unique days
+  const uniqueDays = new Map<string, { date: Date; location: string }>();
+  completedShifts.forEach((signup: (typeof completedShifts)[0]) => {
+    const shiftDate = signup.shift.start;
+    const location = signup.shift.location || "Unknown";
+    const dateKey = `${startOfDay(shiftDate).toISOString()}-${location}`;
+
+    if (!uniqueDays.has(dateKey)) {
+      uniqueDays.set(dateKey, {
+        date: startOfDay(shiftDate),
+        location,
+      });
+    }
+  });
+
+  // Fetch meals served records for those days
+  const mealsServedRecords = await prisma.mealsServed.findMany({
+    where: {
+      OR: Array.from(uniqueDays.values()).map(({ date, location }) => ({
+        date: toUTC(date),
+        location,
+      })),
+    },
+  });
+
+  // Create a map of actual meals served by date-location key
+  const actualMealsMap = new Map<string, number>();
+  mealsServedRecords.forEach(
+    (record: { date: Date; location: string; mealsServed: number }) => {
+      const dateKey = `${record.date.toISOString()}-${record.location}`;
+      actualMealsMap.set(dateKey, record.mealsServed);
+    }
+  );
+
+  // For days without actual data, get default values from locations
+  const locationsToFetch = Array.from(
+    new Set(
+      Array.from(uniqueDays.values())
+        .filter(({ date, location }) => {
+          const dateKey = `${toUTC(date).toISOString()}-${location}`;
+          return !actualMealsMap.has(dateKey);
+        })
+        .map(({ location }) => location)
+    )
+  );
+
+  const locationDefaults = await prisma.location.findMany({
+    where: {
+      name: { in: locationsToFetch },
+    },
+    select: {
+      name: true,
+      defaultMealsServed: true,
+    },
+  });
+
+  const defaultsMap = new Map(
+    locationDefaults.map(
+      (loc: { name: string; defaultMealsServed: number }) => [
+        loc.name,
+        loc.defaultMealsServed,
+      ]
+    )
+  );
+
+  // Calculate total meals (actual + estimated)
+  let totalMealsServed = 0;
+  let hasAnyData = false;
+
+  Array.from(uniqueDays.values()).forEach(({ date, location }) => {
+    const dateKey = `${toUTC(date).toISOString()}-${location}`;
+
+    if (actualMealsMap.has(dateKey)) {
+      const meals = actualMealsMap.get(dateKey);
+      if (typeof meals === "number") {
+        totalMealsServed += meals;
+        hasAnyData = true;
+      }
+    } else if (defaultsMap.has(location)) {
+      const meals = defaultsMap.get(location);
+      if (typeof meals === "number") {
+        totalMealsServed += meals;
+        hasAnyData = true;
+      }
+    }
+  });
+
+  // Fall back to old estimation only if no location data exists
+  const estimatedMeals = totalHours * 15; // ~15 meals per hour
+  const communityImpact = hasAnyData ? totalMealsServed : estimatedMeals;
 
   // Calculate shift type counts
   const shiftTypeCounts: Record<string, number> = {};
@@ -320,7 +412,7 @@ export async function calculateUserProgress(
     hours_volunteered: totalHours,
     consecutive_months: consecutiveMonths,
     years_volunteering: yearsVolunteering,
-    community_impact: estimatedMeals,
+    community_impact: communityImpact,
     shift_type_counts: shiftTypeCounts,
   };
 }
