@@ -1,3 +1,9 @@
+## [0.76.1] - 2025-12-05
+
+### Changes
+- feat: Use accurate meal counts for achievement calculations ([#342](https://github.com/everybody-eats-nz/volunteer-portal/pull/342)) by @malinmalliyawadu
+
+
 ## [0.76.0] - 2025-12-05
 
 ### Changes
