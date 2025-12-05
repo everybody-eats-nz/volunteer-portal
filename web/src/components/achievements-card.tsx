@@ -17,6 +17,7 @@ interface Achievement {
   category: string;
   icon: string;
   points: number;
+  criteria: string;
 }
 
 interface UserAchievement {
