@@ -1,3 +1,9 @@
+## [0.73.0] - 2025-12-05
+
+### Changes
+- Add pagination and URL persistence to migration tabs ([#335](https://github.com/everybody-eats-nz/volunteer-portal/pull/335)) by @malinmalliyawadu
+
+
 ## [0.72.8] - 2025-12-04
 
 ### Changes
