@@ -1,3 +1,9 @@
+## [0.75.0] - 2025-12-05
+
+### Changes
+- feat: Add progress tracking for specialization achievements ([#340](https://github.com/everybody-eats-nz/volunteer-portal/pull/340)) by @malinmalliyawadu
+
+
 ## [0.74.0] - 2025-12-05
 
 ### Changes
