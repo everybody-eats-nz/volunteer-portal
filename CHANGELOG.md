@@ -1,3 +1,9 @@
+## [0.74.0] - 2025-12-05
+
+### Changes
+- feat: Add achievements page with rankings and progress tracking ([#337](https://github.com/everybody-eats-nz/volunteer-portal/pull/337)) by @malinmalliyawadu
+
+
 ## [0.73.1] - 2025-12-05
 
 ### Changes
