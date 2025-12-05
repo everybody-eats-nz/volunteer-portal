@@ -29,7 +29,15 @@ export async function GET(request: NextRequest) {
     const take = pageSize;
 
     // Build base where clause
-    const baseWhere: any = {
+    const baseWhere: {
+      isMigrated: boolean;
+      role: "VOLUNTEER";
+      OR?: Array<{
+        email?: { contains: string; mode: "insensitive" };
+        firstName?: { contains: string; mode: "insensitive" };
+        lastName?: { contains: string; mode: "insensitive" };
+      }>;
+    } = {
       isMigrated: true,
       role: "VOLUNTEER" as const,
     };
@@ -46,7 +54,17 @@ export async function GET(request: NextRequest) {
     // Build where clause with status filter
     // Note: For "expired" and "invited" statuses, we need to fetch all and filter in-memory
     // since we can't compare dates in Prisma where clause for tokenExpiresAt
-    let where = { ...baseWhere };
+    const where: {
+      isMigrated: boolean;
+      role: "VOLUNTEER";
+      OR?: Array<{
+        email?: { contains: string; mode: "insensitive" };
+        firstName?: { contains: string; mode: "insensitive" };
+        lastName?: { contains: string; mode: "insensitive" };
+      }>;
+      migrationInvitationSent?: boolean;
+      profileCompleted?: boolean;
+    } = { ...baseWhere };
 
     if (status === "pending") {
       where.migrationInvitationSent = false;
