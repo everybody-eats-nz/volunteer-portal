@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -31,6 +32,7 @@ import {
   AlertCircle,
   Copy,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,34 +60,111 @@ interface InvitationResult {
   success: boolean;
 }
 
+interface PaginationData {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+interface UserStats {
+  total: number;
+  pending: number;
+  invited: number;
+  expired: number;
+  completed: number;
+}
+
 const isTokenExpired = (expiresAt?: string): boolean => {
   if (!expiresAt) return false;
   return new Date(expiresAt) < new Date();
 };
 
 export function UserInvitations() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [users, setUsers] = useState<MigratedUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "pending" | "invited" | "expired" | "completed"
-  >("all");
   const [showInvitationDialog, setShowInvitationDialog] = useState(false);
   const [invitationResults, setInvitationResults] = useState<
     InvitationResult[]
   >([]);
+  const [userStats, setUserStats] = useState<UserStats>({
+    total: 0,
+    pending: 0,
+    invited: 0,
+    expired: 0,
+    completed: 0,
+  });
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    page: parseInt(searchParams.get("page") || "1"),
+    pageSize: parseInt(searchParams.get("pageSize") || "50"),
+    totalPages: 0,
+  });
 
+  // Get URL params
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "pending" | "invited" | "expired" | "completed"
+  >((searchParams.get("status") as "all" | "pending" | "invited" | "expired" | "completed") || "all");
 
-  const fetchMigratedUsers = async () => {
+  // Update URL params
+  const updateUrlParams = useCallback((params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    router.replace(`?${newParams.toString()}#invitations`, { scroll: false });
+  }, [searchParams, router]);
+
+  const fetchMigratedUsers = useCallback(async (page: number = pagination.page, pageSize: number = pagination.pageSize) => {
     setIsLoading(true);
     try {
-      // Fetch all users by setting a high page size (this component needs all users for bulk invitations)
-      const response = await fetch("/api/admin/migration/users?pageSize=10000");
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      });
+
+      if (searchTerm) {
+        params.set("search", searchTerm);
+      }
+
+      const response = await fetch(`/api/admin/migration/users?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
+        setPagination({
+          total: data.total,
+          page: data.page,
+          pageSize: data.pageSize,
+          totalPages: data.totalPages,
+        });
+
+        // Fetch all users for stats calculation (we need totals across all pages)
+        const statsResponse = await fetch("/api/admin/migration/users?pageSize=10000");
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          const allUsers = statsData.users || [];
+          setUserStats({
+            total: allUsers.length,
+            pending: allUsers.filter((u: MigratedUser) => !u.invitationSent).length,
+            invited: allUsers.filter((u: MigratedUser) =>
+              u.invitationSent && !u.registrationCompleted && !isTokenExpired(u.tokenExpiresAt)
+            ).length,
+            expired: allUsers.filter((u: MigratedUser) =>
+              u.invitationSent && !u.registrationCompleted && isTokenExpired(u.tokenExpiresAt)
+            ).length,
+            completed: allUsers.filter((u: MigratedUser) => u.registrationCompleted).length,
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to fetch migrated users:", error);
@@ -93,20 +172,14 @@ export function UserInvitations() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [pagination.page, pagination.pageSize, searchTerm]);
 
   useEffect(() => {
     fetchMigratedUsers();
-  }, []);
+  }, [fetchMigratedUsers]);
 
+  // Apply client-side filtering based on status (since API doesn't support status filtering yet)
   const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${user.firstName} ${user.lastName}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
     const tokenExpired = isTokenExpired(user.tokenExpiresAt);
     const matchesFilter =
       filterStatus === "all" ||
@@ -121,8 +194,27 @@ export function UserInvitations() {
         tokenExpired) ||
       (filterStatus === "completed" && user.registrationCompleted);
 
-    return matchesSearch && matchesFilter;
+    return matchesFilter;
   });
+
+  // Handle search with debouncing
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    updateUrlParams({ search: value, page: "1" });
+  };
+
+  // Handle filter status change
+  const handleFilterChange = (value: "all" | "pending" | "invited" | "expired" | "completed") => {
+    setFilterStatus(value);
+    updateUrlParams({ status: value, page: "1" });
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    fetchMigratedUsers(newPage);
+    updateUrlParams({ page: newPage.toString() });
+    setSelectedUsers(new Set()); // Clear selection when changing pages
+  };
 
   const toggleUserSelection = (userId: string) => {
     const newSelection = new Set(selectedUsers);
@@ -203,21 +295,6 @@ export function UserInvitations() {
     }
   };
 
-  const pendingUsers = users.filter((u) => !u.invitationSent);
-  const invitedUsers = users.filter(
-    (u) =>
-      u.invitationSent &&
-      !u.registrationCompleted &&
-      !isTokenExpired(u.tokenExpiresAt)
-  );
-  const expiredUsers = users.filter(
-    (u) =>
-      u.invitationSent &&
-      !u.registrationCompleted &&
-      isTokenExpired(u.tokenExpiresAt)
-  );
-  const completedUsers = users.filter((u) => u.registrationCompleted);
-
   const formatDateTime = (dateString?: string): string => {
     if (!dateString) return "Never";
     return (
@@ -264,7 +341,7 @@ export function UserInvitations() {
               <Users className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium">Total Migrated</span>
             </div>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{userStats.total}</div>
           </CardContent>
         </Card>
 
@@ -274,7 +351,7 @@ export function UserInvitations() {
               <Clock className="h-4 w-4 text-amber-600" />
               <span className="text-sm font-medium">Pending</span>
             </div>
-            <div className="text-2xl font-bold">{pendingUsers.length}</div>
+            <div className="text-2xl font-bold">{userStats.pending}</div>
           </CardContent>
         </Card>
 
@@ -284,7 +361,7 @@ export function UserInvitations() {
               <Mail className="h-4 w-4 text-purple-600" />
               <span className="text-sm font-medium">Invited</span>
             </div>
-            <div className="text-2xl font-bold">{invitedUsers.length}</div>
+            <div className="text-2xl font-bold">{userStats.invited}</div>
           </CardContent>
         </Card>
 
@@ -294,7 +371,7 @@ export function UserInvitations() {
               <AlertCircle className="h-4 w-4 text-red-600" />
               <span className="text-sm font-medium">Expired</span>
             </div>
-            <div className="text-2xl font-bold">{expiredUsers.length}</div>
+            <div className="text-2xl font-bold">{userStats.expired}</div>
           </CardContent>
         </Card>
 
@@ -304,7 +381,7 @@ export function UserInvitations() {
               <CheckCircle className="h-4 w-4 text-green-600" />
               <span className="text-sm font-medium">Completed</span>
             </div>
-            <div className="text-2xl font-bold">{completedUsers.length}</div>
+            <div className="text-2xl font-bold">{userStats.completed}</div>
           </CardContent>
         </Card>
       </div>
@@ -317,11 +394,21 @@ export function UserInvitations() {
             <div>
               <CardTitle>Migrated Users</CardTitle>
               <CardDescription>
-                Send invitation emails to migrated users to complete their
-                registration
+                {pagination.total} users have been migrated from the legacy system
+                {pagination.totalPages > 1 && ` (Page ${pagination.page} of ${pagination.totalPages})`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => fetchMigratedUsers()}
+                disabled={isLoading}
+                size="sm"
+                variant="outline"
+                data-testid="refresh-users-button"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
               <Button
                 onClick={sendInvitations}
                 disabled={selectedUsers.size === 0 || isSending}
@@ -331,7 +418,7 @@ export function UserInvitations() {
                 <Send className="h-4 w-4" />
                 {isSending
                   ? "Sending..."
-                  : `Send Invitations`}
+                  : `Send Invitations (${selectedUsers.size})`}
               </Button>
             </div>
           </div>
@@ -344,7 +431,7 @@ export function UserInvitations() {
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
                 data-testid="search-users-input"
               />
@@ -353,7 +440,7 @@ export function UserInvitations() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as "all" | "pending" | "invited" | "completed")}
+                onChange={(e) => handleFilterChange(e.target.value as "all" | "pending" | "invited" | "expired" | "completed")}
                 className="border rounded-md px-3 py-2 text-sm"
                 data-testid="filter-status-select"
               >
@@ -491,6 +578,54 @@ export function UserInvitations() {
               {searchTerm || filterStatus !== "all"
                 ? "No users match your search criteria"
                 : "No migrated users found. Upload and migrate users from the Upload CSV tab."}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{" "}
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{" "}
+                {pagination.total} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm font-medium px-3">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages || isLoading}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={pagination.page === pagination.totalPages || isLoading}
+                >
+                  Last
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
