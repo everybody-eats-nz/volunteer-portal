@@ -1,3 +1,9 @@
+## [0.73.1] - 2025-12-05
+
+### Changes
+- fix: mark migrated users as email verified upon registration ([#336](https://github.com/everybody-eats-nz/volunteer-portal/pull/336)) by @malinmalliyawadu
+
+
 ## [0.73.0] - 2025-12-05
 
 ### Changes
