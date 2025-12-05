@@ -158,9 +158,7 @@ export async function DashboardImpactStats({
                 {mealsToDisplay}
               </div>
               <p className="text-sm text-muted-foreground">
-                {hasAnyData
-                  ? "Meals helped prepare"
-                  : "Estimated meals helped prepare"}
+                {hasAnyData ? "People served" : "Estimated people served"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {hasAnyData
