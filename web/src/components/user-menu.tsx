@@ -40,6 +40,7 @@ export function UserMenu({
           variant="ghost"
           size="sm"
           className="relative text-white/90 hover:text-white hover:bg-white/10 transition-colors duration-200 rounded-lg px-2 py-1"
+          suppressHydrationWarning
         >
           <div data-testid="user-menu" className="flex items-center gap-2">
             <Avatar className="w-7 h-7 border border-white/20">
