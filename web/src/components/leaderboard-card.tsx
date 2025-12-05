@@ -83,7 +83,7 @@ export function LeaderboardCard() {
                 />
               </Button>
             </CollapsibleTrigger>
-            {isOpen && data?.locations.length > 0 && (
+            {isOpen && data?.locations?.length && data.locations.length > 0 && (
               <Select
                 value={selectedLocation}
                 onValueChange={setSelectedLocation}
@@ -93,7 +93,7 @@ export function LeaderboardCard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Locations</SelectItem>
-                  {data.locations.map((location) => (
+                  {data?.locations.map((location) => (
                     <SelectItem key={location} value={location}>
                       {location}
                     </SelectItem>
