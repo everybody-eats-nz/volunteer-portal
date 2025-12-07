@@ -14,7 +14,8 @@ export interface AchievementCriteria {
     | "consecutive_months"
     | "specific_shift_type"
     | "years_volunteering"
-    | "community_impact";
+    | "community_impact"
+    | "friends_count";
   value: number;
   shiftType?: string;
   timeframe?: "month" | "year" | "all_time";
@@ -26,6 +27,7 @@ export interface UserProgress {
   consecutive_months: number;
   years_volunteering: number;
   community_impact: number;
+  friends_count: number;
   shift_type_counts: Record<string, number>; // shiftTypeId -> count
 }
 
@@ -226,6 +228,63 @@ export const ACHIEVEMENT_DEFINITIONS = [
     }),
     points: 400,
   },
+
+  // Friend-based Community Achievements
+  {
+    name: "Social Butterfly",
+    description: "Make 3 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🦋",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 3,
+    }),
+    points: 25,
+  },
+  {
+    name: "Team Player",
+    description: "Make 5 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🤝",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 5,
+    }),
+    points: 50,
+  },
+  {
+    name: "Community Connector",
+    description: "Make 10 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🌐",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 10,
+    }),
+    points: 100,
+  },
+  {
+    name: "Networking Pro",
+    description: "Make 20 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🎭",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 20,
+    }),
+    points: 200,
+  },
+  {
+    name: "Community Leader",
+    description: "Make 50 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "⭐",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 50,
+    }),
+    points: 500,
+  },
 ];
 
 export async function calculateUserProgress(
@@ -259,6 +318,7 @@ export async function calculateUserProgress(
       consecutive_months: 0,
       years_volunteering: 0,
       community_impact: 0,
+      friends_count: 0,
       shift_type_counts: {},
     };
   }
@@ -407,12 +467,23 @@ export async function calculateUserProgress(
   }
   consecutiveMonths = Math.max(consecutiveMonths, currentStreak);
 
+  // Calculate friends count (only ACCEPTED friendships)
+  const friendsCount = await prisma.friendship.count({
+    where: {
+      OR: [
+        { userId, status: "ACCEPTED" },
+        { friendId: userId, status: "ACCEPTED" },
+      ],
+    },
+  });
+
   return {
     shifts_completed: totalShifts,
     hours_volunteered: totalHours,
     consecutive_months: consecutiveMonths,
     years_volunteering: yearsVolunteering,
     community_impact: communityImpact,
+    friends_count: friendsCount,
     shift_type_counts: shiftTypeCounts,
   };
 }
@@ -456,6 +527,9 @@ export async function checkAndUnlockAchievements(userId: string) {
           break;
         case "community_impact":
           shouldUnlock = progress.community_impact >= criteria.value;
+          break;
+        case "friends_count":
+          shouldUnlock = progress.friends_count >= criteria.value;
           break;
         case "specific_shift_type":
           // Use the already-calculated shift type counts from progress
