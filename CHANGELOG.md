@@ -1,3 +1,9 @@
+## [0.77.0] - 2025-12-07
+
+### Changes
+- feat: add friends count achievements to COMMUNITY category ([#344](https://github.com/everybody-eats-nz/volunteer-portal/pull/344)) by @malinmalliyawadu
+
+
 ## [0.76.2] - 2025-12-07
 
 ### Changes
