@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Optimize for Vercel serverless functions
-  serverExternalPackages: ["@prisma/client", "bcrypt", "createsend-node"],
+  serverExternalPackages: ["@prisma/client", "bcrypt"],
 
   // Configure external image domains
   images: {
@@ -43,6 +43,10 @@ const nextConfig: NextConfig = {
         destination: "https://us.i.posthog.com/:path*",
       },
     ];
+  },
+
+  experimental: {
+    turbopackUseSystemTlsCerts: true,
   },
 
   // This is required to support PostHog trailing slash API requests

@@ -3,8 +3,9 @@ import {
   differenceInHours,
   differenceInMonths,
   differenceInYears,
+  startOfDay,
 } from "date-fns";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, toUTC } from "@/lib/timezone";
 
 export interface AchievementCriteria {
   type:
@@ -13,7 +14,8 @@ export interface AchievementCriteria {
     | "consecutive_months"
     | "specific_shift_type"
     | "years_volunteering"
-    | "community_impact";
+    | "community_impact"
+    | "friends_count";
   value: number;
   shiftType?: string;
   timeframe?: "month" | "year" | "all_time";
@@ -25,6 +27,8 @@ export interface UserProgress {
   consecutive_months: number;
   years_volunteering: number;
   community_impact: number;
+  friends_count: number;
+  shift_type_counts: Record<string, number>; // shiftTypeId -> count
 }
 
 export const ACHIEVEMENT_DEFINITIONS = [
@@ -224,6 +228,63 @@ export const ACHIEVEMENT_DEFINITIONS = [
     }),
     points: 400,
   },
+
+  // Friend-based Community Achievements
+  {
+    name: "Social Butterfly",
+    description: "Make 3 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🦋",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 3,
+    }),
+    points: 25,
+  },
+  {
+    name: "Team Player",
+    description: "Make 5 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🤝",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 5,
+    }),
+    points: 50,
+  },
+  {
+    name: "Community Connector",
+    description: "Make 10 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🌐",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 10,
+    }),
+    points: 100,
+  },
+  {
+    name: "Networking Pro",
+    description: "Make 20 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "🎭",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 20,
+    }),
+    points: 200,
+  },
+  {
+    name: "Community Leader",
+    description: "Make 50 friends in the volunteer community",
+    category: "COMMUNITY" as const,
+    icon: "⭐",
+    criteria: JSON.stringify({
+      type: "friends_count",
+      value: 50,
+    }),
+    points: 500,
+  },
 ];
 
 export async function calculateUserProgress(
@@ -257,6 +318,8 @@ export async function calculateUserProgress(
       consecutive_months: 0,
       years_volunteering: 0,
       community_impact: 0,
+      friends_count: 0,
+      shift_type_counts: {},
     };
   }
 
@@ -267,8 +330,108 @@ export async function calculateUserProgress(
       total + differenceInHours(signup.shift.end, signup.shift.start),
     0
   );
-  const estimatedMeals = totalHours * 15; // ~15 meals per hour
   const yearsVolunteering = differenceInYears(new Date(), user.createdAt);
+
+  // Calculate total meals served using actual data from mealsServed and location tables
+  // Group shifts by date and location to get unique days
+  const uniqueDays = new Map<string, { date: Date; location: string }>();
+  completedShifts.forEach((signup: (typeof completedShifts)[0]) => {
+    const shiftDate = signup.shift.start;
+    const location = signup.shift.location || "Unknown";
+    const dateKey = `${startOfDay(shiftDate).toISOString()}-${location}`;
+
+    if (!uniqueDays.has(dateKey)) {
+      uniqueDays.set(dateKey, {
+        date: startOfDay(shiftDate),
+        location,
+      });
+    }
+  });
+
+  // Fetch meals served records for those days
+  const mealsServedRecords = await prisma.mealsServed.findMany({
+    where: {
+      OR: Array.from(uniqueDays.values()).map(({ date, location }) => ({
+        date: toUTC(date),
+        location,
+      })),
+    },
+  });
+
+  // Create a map of actual meals served by date-location key
+  const actualMealsMap = new Map<string, number>();
+  mealsServedRecords.forEach(
+    (record: { date: Date; location: string; mealsServed: number }) => {
+      const dateKey = `${record.date.toISOString()}-${record.location}`;
+      actualMealsMap.set(dateKey, record.mealsServed);
+    }
+  );
+
+  // For days without actual data, get default values from locations
+  const locationsToFetch = Array.from(
+    new Set(
+      Array.from(uniqueDays.values())
+        .filter(({ date, location }) => {
+          const dateKey = `${toUTC(date).toISOString()}-${location}`;
+          return !actualMealsMap.has(dateKey);
+        })
+        .map(({ location }) => location)
+    )
+  );
+
+  const locationDefaults = await prisma.location.findMany({
+    where: {
+      name: { in: locationsToFetch },
+    },
+    select: {
+      name: true,
+      defaultMealsServed: true,
+    },
+  });
+
+  const defaultsMap = new Map(
+    locationDefaults.map(
+      (loc: { name: string; defaultMealsServed: number }) => [
+        loc.name,
+        loc.defaultMealsServed,
+      ]
+    )
+  );
+
+  // Calculate total meals (actual + estimated)
+  let totalMealsServed = 0;
+  let hasAnyData = false;
+
+  Array.from(uniqueDays.values()).forEach(({ date, location }) => {
+    const dateKey = `${toUTC(date).toISOString()}-${location}`;
+
+    if (actualMealsMap.has(dateKey)) {
+      const meals = actualMealsMap.get(dateKey);
+      if (typeof meals === "number") {
+        totalMealsServed += meals;
+        hasAnyData = true;
+      }
+    } else if (defaultsMap.has(location)) {
+      const meals = defaultsMap.get(location);
+      if (typeof meals === "number") {
+        totalMealsServed += meals;
+        hasAnyData = true;
+      }
+    }
+  });
+
+  // Fall back to old estimation only if no location data exists
+  const estimatedMeals = totalHours * 15; // ~15 meals per hour
+  const communityImpact = hasAnyData ? totalMealsServed : estimatedMeals;
+
+  // Calculate shift type counts
+  const shiftTypeCounts: Record<string, number> = {};
+  completedShifts.forEach((signup: (typeof completedShifts)[0]) => {
+    const shiftTypeId = signup.shift.shiftTypeId;
+    if (shiftTypeId) {
+      shiftTypeCounts[shiftTypeId] = (shiftTypeCounts[shiftTypeId] || 0) + 1;
+    }
+  });
 
   // Calculate consecutive months (simplified - volunteers who have at least one shift per month)
   const monthlyActivity = new Map<string, boolean>();
@@ -304,12 +467,24 @@ export async function calculateUserProgress(
   }
   consecutiveMonths = Math.max(consecutiveMonths, currentStreak);
 
+  // Calculate friends count (only ACCEPTED friendships)
+  // Note: Friendships are stored bidirectionally, so we only count one direction
+  // to avoid double-counting
+  const friendsCount = await prisma.friendship.count({
+    where: {
+      userId,
+      status: "ACCEPTED",
+    },
+  });
+
   return {
     shifts_completed: totalShifts,
     hours_volunteered: totalHours,
     consecutive_months: consecutiveMonths,
     years_volunteering: yearsVolunteering,
-    community_impact: estimatedMeals,
+    community_impact: communityImpact,
+    friends_count: friendsCount,
+    shift_type_counts: shiftTypeCounts,
   };
 }
 
@@ -353,30 +528,33 @@ export async function checkAndUnlockAchievements(userId: string) {
         case "community_impact":
           shouldUnlock = progress.community_impact >= criteria.value;
           break;
+        case "friends_count":
+          shouldUnlock = progress.friends_count >= criteria.value;
+          break;
         case "specific_shift_type":
-          // Check if user has completed enough shifts of the specific type
+          // Use the already-calculated shift type counts from progress
           if (criteria.shiftType) {
-            const specificShiftCount = await prisma.signup.count({
-              where: {
-                userId,
-                status: "CONFIRMED",
-                shift: {
-                  end: { lt: new Date() },
-                  shiftTypeId: criteria.shiftType,
-                },
-              },
-            });
+            const specificShiftCount = progress.shift_type_counts[criteria.shiftType] || 0;
             shouldUnlock = specificShiftCount >= criteria.value;
           }
           break;
       }
 
       if (shouldUnlock) {
+        // Get the progress value to store
+        let progressValue = 0;
+        if (criteria.type === "specific_shift_type" && criteria.shiftType) {
+          progressValue = progress.shift_type_counts[criteria.shiftType] || 0;
+        } else {
+          const progressField = progress[criteria.type as keyof UserProgress];
+          progressValue = typeof progressField === "number" ? progressField : 0;
+        }
+
         await prisma.userAchievement.create({
           data: {
             userId,
             achievementId: achievement.id,
-            progress: progress[criteria.type as keyof UserProgress] || 0,
+            progress: progressValue,
           },
         });
         unlockedAchievements.push(achievement.name);

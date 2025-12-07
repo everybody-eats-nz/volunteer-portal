@@ -15,6 +15,7 @@ import {
 import {
   HistoricalDataTransformer,
   shouldImportSignup,
+  extractSignupDataFromNovaResource,
 } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 
@@ -400,7 +401,8 @@ export async function POST(request: NextRequest) {
                   }
                 }
 
-                // Check if shift already exists
+                // Check if shift already exists (by Nova event ID, shift type, and time)
+                // Multiple shifts can share same Nova event (day+location) but differ by type
                 let shift;
                 if (dryRun) {
                   shift = {
@@ -411,9 +413,12 @@ export async function POST(request: NextRequest) {
                 } else {
                   const existingShift = await prisma.shift.findFirst({
                     where: {
+                      notes: {
+                        contains: `Nova ID: ${eventResource.id.value}`,
+                      },
+                      shiftTypeId: shiftType.id,
                       start: shiftData.start,
                       end: shiftData.end,
-                      shiftTypeId: shiftType.id,
                     },
                   });
 
@@ -423,7 +428,7 @@ export async function POST(request: NextRequest) {
                     if (shiftData.notes && shiftData.notes.trim()) {
                       noteParts.push(shiftData.notes.trim());
                     }
-                    noteParts.push(`Nova ID: ${eventId}`);
+                    noteParts.push(`Nova ID: ${eventResource.id.value}`);
 
                     shift = await prisma.shift.create({
                       data: {
@@ -457,9 +462,13 @@ export async function POST(request: NextRequest) {
                       });
 
                       if (!existingSignup) {
+                        // Use shared helper to extract and format signup data
+                        const novaSignupFormatted =
+                          extractSignupDataFromNovaResource(signupInfo);
+
                         await prisma.signup.create({
                           data: transformer.transformSignup(
-                            signupInfo,
+                            novaSignupFormatted,
                             ourUser.id,
                             shift.id
                           ),

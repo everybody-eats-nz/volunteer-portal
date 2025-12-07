@@ -1,3 +1,105 @@
+## [0.77.0] - 2025-12-07
+
+### Changes
+- feat: add friends count achievements to COMMUNITY category ([#344](https://github.com/everybody-eats-nz/volunteer-portal/pull/344)) by @malinmalliyawadu
+
+
+## [0.76.2] - 2025-12-07
+
+### Changes
+- Fix admin user search logic for multi-word names ([#343](https://github.com/everybody-eats-nz/volunteer-portal/pull/343)) by @malinmalliyawadu
+
+
+## [0.76.1] - 2025-12-05
+
+### Changes
+- feat: Use accurate meal counts for achievement calculations ([#342](https://github.com/everybody-eats-nz/volunteer-portal/pull/342)) by @malinmalliyawadu
+
+
+## [0.76.0] - 2025-12-05
+
+### Changes
+- feat: Achievement improvements and leaderboard filtering ([#341](https://github.com/everybody-eats-nz/volunteer-portal/pull/341)) by @malinmalliyawadu
+
+
+## [0.75.0] - 2025-12-05
+
+### Changes
+- feat: Add progress tracking for specialization achievements ([#340](https://github.com/everybody-eats-nz/volunteer-portal/pull/340)) by @malinmalliyawadu
+
+
+## [0.74.0] - 2025-12-05
+
+### Changes
+- feat: Add achievements page with rankings and progress tracking ([#337](https://github.com/everybody-eats-nz/volunteer-portal/pull/337)) by @malinmalliyawadu
+
+
+## [0.73.1] - 2025-12-05
+
+### Changes
+- fix: mark migrated users as email verified upon registration ([#336](https://github.com/everybody-eats-nz/volunteer-portal/pull/336)) by @malinmalliyawadu
+
+
+## [0.73.0] - 2025-12-05
+
+### Changes
+- Add pagination and URL persistence to migration tabs ([#335](https://github.com/everybody-eats-nz/volunteer-portal/pull/335)) by @malinmalliyawadu
+
+
+## [0.72.8] - 2025-12-04
+
+### Changes
+- chore(deps): bump next from 16.0.6 to 16.0.7 in /web ([#333](https://github.com/everybody-eats-nz/volunteer-portal/pull/333)) by @dependabot[bot]
+
+
+## [0.72.7] - 2025-12-04
+
+### Changes
+- fix: add pagination to migration tables to display all users ([#332](https://github.com/everybody-eats-nz/volunteer-portal/pull/332)) by @malinmalliyawadu
+
+
+## [0.72.6] - 2025-12-03
+
+### Changes
+- fix: replace createsend-node with direct Campaign Monitor API calls ([#330](https://github.com/everybody-eats-nz/volunteer-portal/pull/330)) by @malinmalliyawadu
+
+
+## [0.72.5] - 2025-12-02
+
+### Changes
+- Remove too much padding on edit profile ([#317](https://github.com/everybody-eats-nz/volunteer-portal/pull/317)) by @anatim
+
+
+## [0.72.4] - 2025-12-02
+
+### Changes
+- Fix: Improve shift duplicate detection to include shift type ([#329](https://github.com/everybody-eats-nz/volunteer-portal/pull/329)) by @malinmalliyawadu
+
+
+## [0.72.3] - 2025-12-02
+
+### Changes
+- Fix: Extract signup status correctly in batch import ([#328](https://github.com/everybody-eats-nz/volunteer-portal/pull/328)) by @malinmalliyawadu
+
+
+## [0.72.2] - 2025-12-02
+
+### Changes
+- Fix: Align migration duplicate detection logic across all import methods ([#327](https://github.com/everybody-eats-nz/volunteer-portal/pull/327)) by @malinmalliyawadu
+
+
+## [0.72.1] - 2025-12-02
+
+### Changes
+- chore(deps): bump mdast-util-to-hast from 13.2.0 to 13.2.1 in /web ([#324](https://github.com/everybody-eats-nz/volunteer-portal/pull/324)) by @dependabot[bot]
+
+
+## [0.72.0] - 2025-12-02
+
+### Changes
+- Add pagination controls to migration historical data page ([#326](https://github.com/everybody-eats-nz/volunteer-portal/pull/326)) by @malinmalliyawadu
+
+
 ## [0.71.1] - 2025-11-30
 
 ### Changes

@@ -55,6 +55,7 @@ const CRITERIA_TYPES = [
   { value: "consecutive_months", label: "Consecutive Months" },
   { value: "years_volunteering", label: "Years Volunteering" },
   { value: "community_impact", label: "Community Impact (Meals)" },
+  { value: "friends_count", label: "Friends Count" },
   { value: "specific_shift_type", label: "Specific Shift Type" },
 ];
 
@@ -81,6 +82,10 @@ const ICON_OPTIONS = [
   "⚡",
   "✨",
   "🎖️",
+  "🦋",
+  "🤝",
+  "🌐",
+  "🎭",
 ];
 
 export function AchievementDialog({
@@ -201,6 +206,8 @@ export function AchievementDialog({
         return `Volunteer for ${value} year${value !== 1 ? "s" : ""}`;
       case "community_impact":
         return `Help prepare an estimated ${value} meal${value !== 1 ? "s" : ""}`;
+      case "friends_count":
+        return `Make ${value} friend${value !== 1 ? "s" : ""} in the volunteer community`;
       case "specific_shift_type":
         return selectedShiftType
           ? `Complete ${value} "${selectedShiftType.name}" shift${value !== 1 ? "s" : ""}`

@@ -8,13 +8,13 @@ import {
   NovaUser,
   NovaUserResource,
   NovaEventResource,
-  NovaShiftSignupResource,
   NovaField,
   MigrationProgressEvent,
 } from "@/types/nova-migration";
 import {
   HistoricalDataTransformer,
   shouldImportSignup,
+  extractSignupDataFromNovaResource,
 } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
@@ -59,6 +59,7 @@ interface SignupWithDetails {
   positionName?: string | number;
   statusId?: number;
   statusName?: string | number;
+  originalResource: NovaUserResource; // Keep reference to original for helper function
 }
 
 // Helper function to send progress updates
@@ -395,6 +396,7 @@ export async function POST(request: NextRequest) {
                   typeof statusField.value !== "object"
                     ? statusField.value
                     : undefined,
+                originalResource: signup, // Store reference for helper function
               });
             }
 
@@ -567,13 +569,16 @@ export async function POST(request: NextRequest) {
                       });
                     }
 
-                    // Check if shift already exists
+                    // Check if shift already exists (by Nova event ID, shift type, and time)
+                    // Multiple shifts can share same Nova event (day+location) but differ by type
                     const existingShift = await prisma.shift.findFirst({
                       where: {
-                        // Match based on event name and date
                         notes: {
-                          contains: `Nova Event ID: ${eventDetail.id.value}`,
+                          contains: `Nova ID: ${eventDetail.id.value}`,
                         },
+                        shiftTypeId: shiftType.id,
+                        start: shiftData.start,
+                        end: shiftData.end,
                       },
                     });
 
@@ -618,24 +623,14 @@ export async function POST(request: NextRequest) {
                         });
 
                         if (!existingSignup) {
-                          // Use transformer to properly map Nova status to our SignupStatus
-                          // We need to construct a NovaShiftSignup object for the transformer
-                          const novaSignupLike: NovaShiftSignupResource = {
-                            id: { value: signupInfo.id },
-                            fields: [],
-                            statusId: signupInfo.statusId,
-                            statusName:
-                              typeof signupInfo.statusName === "string"
-                                ? signupInfo.statusName
-                                : undefined,
-                            status: undefined,
-                            canceled_at: undefined,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                          };
+                          // Use shared helper to extract and format signup data
+                          const novaSignupFormatted =
+                            extractSignupDataFromNovaResource(
+                              signupInfo.originalResource
+                            );
 
                           const signupData = transformer.transformSignup(
-                            novaSignupLike,
+                            novaSignupFormatted,
                             ourUser.id,
                             shift.id
                           );

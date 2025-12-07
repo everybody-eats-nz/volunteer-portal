@@ -21,36 +21,15 @@ export async function GET(request: Request) {
     // If there's a search query, add search conditions
     if (query && query.trim()) {
       const searchQuery = query.trim();
+
       whereClause = {
         OR: [
+          // Email matching
           { email: { contains: searchQuery, mode: "insensitive" } },
+
+          // Name partial matching
           { firstName: { contains: searchQuery, mode: "insensitive" } },
           { lastName: { contains: searchQuery, mode: "insensitive" } },
-          { name: { contains: searchQuery, mode: "insensitive" } },
-          // Search for full name combinations
-          {
-            AND: [
-              { firstName: { not: null } },
-              { lastName: { not: null } },
-              {
-                OR: [
-                  // "First Last" format
-                  {
-                    firstName: {
-                      contains: searchQuery.split(" ")[0],
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    lastName: {
-                      contains: searchQuery.split(" ").slice(1).join(" "),
-                      mode: "insensitive",
-                    },
-                  },
-                ],
-              },
-            ],
-          },
         ],
       };
     }

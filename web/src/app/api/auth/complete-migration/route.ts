@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
       // Transfer OAuth data to migration user and mark as completed
       const updateData: Record<string, unknown> = {
         profileCompleted: true,
+        emailVerified: true, // Mark as verified since they received migration invitation email
         migrationInvitationToken: null,
         migrationTokenExpiresAt: null,
       };
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest) {
         where: { id: migrationUser.id },
         data: {
           profileCompleted: true,
+          emailVerified: true, // Mark as verified since they received migration invitation email
           migrationInvitationToken: null,
           migrationTokenExpiresAt: null,
         },

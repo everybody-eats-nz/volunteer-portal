@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { subMonths } from "date-fns";
 
-const SHARED_SHIFTS_THRESHOLD = 5;
+const SHARED_SHIFTS_THRESHOLD = 3;
 const MONTHS_TO_LOOK_BACK = 3;
 
 export async function GET() {
@@ -23,10 +23,10 @@ export async function GET() {
   }
 
   try {
-    // Get cutoff date (3 months ago)
+    // Get cutoff date
     const cutoffDate = subMonths(new Date(), MONTHS_TO_LOOK_BACK);
 
-    // Get user's shifts from the last 3 months
+    // Get user's shifts
     const userShifts = await prisma.signup.findMany({
       where: {
         userId: user.id,
@@ -128,14 +128,20 @@ export async function GET() {
     // Count shared shifts per user
     const userShiftCounts = new Map<
       string,
-      { user: (typeof sharedSignups)[0]["user"]; shifts: typeof sharedSignups[0]["shift"][] }
+      {
+        user: (typeof sharedSignups)[0]["user"];
+        shifts: (typeof sharedSignups)[0]["shift"][];
+      }
     >();
 
     sharedSignups.forEach((signup) => {
       const userId = signup.user.id;
 
       // Skip if user has pending request
-      if (pendingUserIds.includes(userId) || pendingUserIds.includes(signup.user.email)) {
+      if (
+        pendingUserIds.includes(userId) ||
+        pendingUserIds.includes(signup.user.email)
+      ) {
         return;
       }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,22 +41,59 @@ interface MigratedUser {
   registrationCompletedAt?: string;
 }
 
+interface PaginationData {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export function MigratedUsers() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [users, setUsers] = useState<MigratedUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<MigratedUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "invited" | "completed">("all");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "invited" | "completed">(
+    (searchParams.get("status") as "all" | "pending" | "invited" | "completed") || "all"
+  );
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    page: parseInt(searchParams.get("page") || "1"),
+    pageSize: parseInt(searchParams.get("pageSize") || "100"),
+    totalPages: 0,
+  });
   const { toast } = useToast();
 
-  const fetchUsers = useCallback(async () => {
+  // Update URL params
+  const updateUrlParams = useCallback((params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    router.replace(`?${newParams.toString()}#users`, { scroll: false });
+  }, [searchParams, router]);
+
+  const fetchUsers = useCallback(async (page: number = pagination.page, pageSize: number = pagination.pageSize) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/migration/users");
+      const response = await fetch(`/api/admin/migration/users?page=${page}&pageSize=${pageSize}`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users);
         setFilteredUsers(data.users);
+        setPagination({
+          total: data.total,
+          page: data.page,
+          pageSize: data.pageSize,
+          totalPages: data.totalPages,
+        });
       } else {
         throw new Error("Failed to fetch users");
       }
@@ -70,7 +108,7 @@ export function MigratedUsers() {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pagination.page, pagination.pageSize]);
 
   useEffect(() => {
     fetchUsers();
@@ -104,6 +142,24 @@ export function MigratedUsers() {
 
     setFilteredUsers(filtered);
   }, [users, searchTerm, filterStatus]);
+
+  // Handle search change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    updateUrlParams({ search: value });
+  };
+
+  // Handle filter status change
+  const handleFilterChange = (value: "all" | "pending" | "invited" | "completed") => {
+    setFilterStatus(value);
+    updateUrlParams({ status: value });
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    fetchUsers(newPage);
+    updateUrlParams({ page: newPage.toString() });
+  };
 
   const resendInvitation = async (userId: string) => {
     try {
@@ -187,7 +243,8 @@ export function MigratedUsers() {
             <div>
               <CardTitle>Migrated Users</CardTitle>
               <CardDescription>
-                {users.length} users have been migrated from the legacy system
+                {pagination.total} users have been migrated from the legacy system
+                {pagination.totalPages > 1 && ` (Page ${pagination.page} of ${pagination.totalPages})`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -201,7 +258,7 @@ export function MigratedUsers() {
                 Export CSV
               </Button>
               <Button
-                onClick={fetchUsers}
+                onClick={() => fetchUsers()}
                 disabled={isLoading}
                 size="sm"
                 variant="outline"
@@ -220,7 +277,7 @@ export function MigratedUsers() {
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -228,7 +285,7 @@ export function MigratedUsers() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as "all" | "pending" | "invited" | "completed")}
+                onChange={(e) => handleFilterChange(e.target.value as "all" | "pending" | "invited" | "completed")}
                 className="border rounded-md px-3 py-2 text-sm"
               >
                 <option value="all">All Users</option>
@@ -359,6 +416,54 @@ export function MigratedUsers() {
                   ? "No users found matching your filters"
                   : "No migrated users found. Start by uploading a CSV file in the Upload CSV tab."}
               </p>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{" "}
+                {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{" "}
+                {pagination.total} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1 || isLoading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm font-medium px-3">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages || isLoading}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(pagination.totalPages)}
+                  disabled={pagination.page === pagination.totalPages || isLoading}
+                >
+                  Last
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
