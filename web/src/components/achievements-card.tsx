@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { motion } from "motion/react";
 import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
-import { formatAchievementCriteria } from "@/lib/achievements";
+import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 

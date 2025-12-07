@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
-import { formatAchievementCriteria } from "@/lib/achievements";
+import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import { EyeOff, Eye } from "lucide-react";
 
 interface Achievement {
