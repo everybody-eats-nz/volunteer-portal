@@ -1,3 +1,9 @@
+## [0.76.2] - 2025-12-07
+
+### Changes
+- Fix admin user search logic for multi-word names ([#343](https://github.com/everybody-eats-nz/volunteer-portal/pull/343)) by @malinmalliyawadu
+
+
 ## [0.76.1] - 2025-12-05
 
 ### Changes
