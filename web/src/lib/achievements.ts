@@ -468,12 +468,12 @@ export async function calculateUserProgress(
   consecutiveMonths = Math.max(consecutiveMonths, currentStreak);
 
   // Calculate friends count (only ACCEPTED friendships)
+  // Note: Friendships are stored bidirectionally, so we only count one direction
+  // to avoid double-counting
   const friendsCount = await prisma.friendship.count({
     where: {
-      OR: [
-        { userId, status: "ACCEPTED" },
-        { friendId: userId, status: "ACCEPTED" },
-      ],
+      userId,
+      status: "ACCEPTED",
     },
   });
 
