@@ -4,12 +4,6 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
@@ -180,16 +174,15 @@ export function AchievementsListClient({
       : null;
 
     return (
-      <Tooltip key={achievement.id}>
-        <TooltipTrigger asChild>
-          <motion.div
-            variants={staggerItem}
-            className={`flex flex-col gap-3 p-4 rounded-lg border transition-all cursor-pointer ${
-              achievement.unlocked
-                ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700 hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 hover:scale-[1.005]"
-                : "border-muted/10 hover:border-primary/20 hover:bg-muted/30 hover:shadow-sm"
-            }`}
-          >
+      <motion.div
+        variants={staggerItem}
+        key={achievement.id}
+        className={`flex flex-col gap-3 p-4 rounded-lg border ${
+          achievement.unlocked
+            ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700"
+            : "border-muted/10"
+        }`}
+      >
         <div className="flex items-start gap-3">
           <div
             className={`text-3xl flex-shrink-0 ${
@@ -220,8 +213,12 @@ export function AchievementsListClient({
             <p className="text-sm text-muted-foreground mt-1">
               {achievement.description}
             </p>
+            <p className="text-xs text-muted-foreground/80 mt-2 flex items-center gap-1.5">
+              <span className="font-medium">Criteria:</span>
+              {formatAchievementCriteria(achievement.criteria)}
+            </p>
             {achievement.unlocked && achievement.unlockedAt && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Unlocked on{" "}
                 {new Date(achievement.unlockedAt).toLocaleDateString()}
               </p>
@@ -247,13 +244,6 @@ export function AchievementsListClient({
           </div>
         )}
       </motion.div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-medium">
-            {formatAchievementCriteria(achievement.criteria)}
-          </p>
-        </TooltipContent>
-      </Tooltip>
     );
   };
 
@@ -283,8 +273,7 @@ export function AchievementsListClient({
         </div>
       </CardHeader>
       <CardContent>
-        <TooltipProvider>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="MILESTONE">Milestone</TabsTrigger>
@@ -332,7 +321,6 @@ export function AchievementsListClient({
             </TabsContent>
           ))}
         </Tabs>
-        </TooltipProvider>
       </CardContent>
     </Card>
   );
