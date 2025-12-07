@@ -15,7 +15,7 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog";
-import { Camera, Upload, X, Loader2 } from "lucide-react";
+import { Camera, Upload, X, Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import "react-image-crop/dist/ReactCrop.css";
@@ -60,6 +60,7 @@ function centerAspectCrop(
 async function getCroppedImage(
   image: HTMLImageElement,
   crop: PixelCrop,
+  rotation = 0,
   maxWidth = 300,
   quality = 0.75
 ): Promise<string> {
@@ -74,14 +75,46 @@ async function getCroppedImage(
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
 
-  // Set canvas size to the desired output size (square)
+  // For rotations of 90 or 270 degrees, we need to swap width/height
+  const rotRad = (rotation * Math.PI) / 180;
+  const isVerticalRotation = rotation === 90 || rotation === 270;
+
+  // Create a temporary canvas for the full rotated image
+  const tempCanvas = document.createElement("canvas");
+  const tempCtx = tempCanvas.getContext("2d");
+
+  if (!tempCtx) {
+    throw new Error("No 2d context for temp canvas");
+  }
+
+  // Set temp canvas size based on rotation
+  if (isVerticalRotation) {
+    tempCanvas.width = image.naturalHeight;
+    tempCanvas.height = image.naturalWidth;
+  } else {
+    tempCanvas.width = image.naturalWidth;
+    tempCanvas.height = image.naturalHeight;
+  }
+
+  // Apply rotation to temp canvas and draw full image
+  tempCtx.save();
+  tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
+  tempCtx.rotate(rotRad);
+  tempCtx.drawImage(
+    image,
+    -image.naturalWidth / 2,
+    -image.naturalHeight / 2
+  );
+  tempCtx.restore();
+
+  // Now crop from the rotated image
   const outputSize = Math.min(crop.width * scaleX, maxWidth);
   canvas.width = outputSize;
   canvas.height = outputSize;
 
-  // Draw the cropped image
+  // Draw the cropped portion from the rotated temp canvas
   ctx.drawImage(
-    image,
+    tempCanvas,
     crop.x * scaleX,
     crop.y * scaleY,
     crop.width * scaleX,
@@ -102,11 +135,11 @@ async function getCroppedImage(
   if (sizeInBytes > maxSizeInBytes) {
     // Try with lower quality
     if (quality > 0.3) {
-      return getCroppedImage(image, crop, maxWidth, quality - 0.15);
+      return getCroppedImage(image, crop, rotation, maxWidth, quality - 0.15);
     } else {
       // Try with smaller dimensions
       if (maxWidth > 150) {
-        return getCroppedImage(image, crop, maxWidth - 50, 0.75);
+        return getCroppedImage(image, crop, rotation, maxWidth - 50, 0.75);
       } else {
         throw new Error(
           "Image is too large even after compression. Please try a different image."
@@ -135,6 +168,8 @@ export function ProfileImageUpload({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [imageKey, setImageKey] = useState(0); // Add this to force re-renders
+  const [rotation, setRotation] = useState(0); // Rotation in degrees: 0, 90, 180, 270
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false); // Show upload/rotate options
 
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +234,37 @@ export function ProfileImageUpload({
     []
   );
 
+  const handleRotateLeft = useCallback(() => {
+    setRotation((prev) => (prev - 90 + 360) % 360);
+  }, []);
+
+  const handleRotateRight = useCallback(() => {
+    setRotation((prev) => (prev + 90) % 360);
+  }, []);
+
+  const handleRotateExisting = useCallback(() => {
+    if (currentImage) {
+      setImageSrc(currentImage);
+      setShowPhotoOptions(false);
+      setIsDialogOpen(true);
+    }
+  }, [currentImage]);
+
+  const handleUploadNew = useCallback(() => {
+    setShowPhotoOptions(false);
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleChangePhoto = useCallback(() => {
+    if (currentImage) {
+      // Show options to upload or rotate
+      setShowPhotoOptions(true);
+    } else {
+      // No existing photo, just upload
+      fileInputRef.current?.click();
+    }
+  }, [currentImage]);
+
   const handleCropComplete = useCallback(async () => {
     if (!imgRef.current || !completedCrop) return;
 
@@ -206,13 +272,15 @@ export function ProfileImageUpload({
     try {
       const croppedImageUrl = await getCroppedImage(
         imgRef.current,
-        completedCrop
+        completedCrop,
+        rotation
       );
       onImageChange(croppedImageUrl);
       setImageKey((prev) => prev + 1); // Force re-render
       setIsDialogOpen(false);
       setImageSrc("");
       setSelectedFile(null);
+      setRotation(0);
 
       // Reset file input
       if (fileInputRef.current) {
@@ -228,7 +296,7 @@ export function ProfileImageUpload({
     } finally {
       setIsProcessing(false);
     }
-  }, [completedCrop, onImageChange, toast]);
+  }, [completedCrop, rotation, onImageChange, toast]);
 
   const handleRemoveImage = useCallback(() => {
     onImageChange(null);
@@ -241,6 +309,7 @@ export function ProfileImageUpload({
     setCrop(undefined);
     setCompletedCrop(undefined);
     setIsLoadingImage(false);
+    setRotation(0);
 
     // Reset file input
     if (fileInputRef.current) {
@@ -308,7 +377,7 @@ export function ProfileImageUpload({
             variant="outline"
             size="sm"
             disabled={disabled || isLoadingImage}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleChangePhoto}
             className="gap-2"
           >
             {isLoadingImage ? (
@@ -319,17 +388,78 @@ export function ProfileImageUpload({
             {isLoadingImage ? "Loading..." : currentImage ? "Change Photo" : "Upload Photo"}
           </Button>
 
+          {/* Photo Options Dialog */}
+          <ResponsiveDialog open={showPhotoOptions} onOpenChange={setShowPhotoOptions}>
+            <ResponsiveDialogContent className="sm:max-w-md" data-testid="photo-options-dialog">
+              <ResponsiveDialogHeader>
+                <ResponsiveDialogTitle>Change Profile Photo</ResponsiveDialogTitle>
+                <ResponsiveDialogDescription>
+                  Choose to upload a new photo or rotate your current one.
+                </ResponsiveDialogDescription>
+              </ResponsiveDialogHeader>
+              <div className="flex flex-col gap-3 py-4">
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={handleUploadNew}
+                  className="gap-2"
+                  data-testid="upload-new-photo-button"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload New Photo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleRotateExisting}
+                  className="gap-2"
+                  data-testid="rotate-existing-photo-button"
+                >
+                  <RotateCw className="h-4 w-4" />
+                  Rotate Current Photo
+                </Button>
+              </div>
+            </ResponsiveDialogContent>
+          </ResponsiveDialog>
+
           <ResponsiveDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <ResponsiveDialogContent className="max-w-2xl" data-testid="crop-dialog">
               <ResponsiveDialogHeader>
                 <ResponsiveDialogTitle>Crop Your Profile Photo</ResponsiveDialogTitle>
                 <ResponsiveDialogDescription>
-                  Adjust the crop area to frame your photo perfectly. The image
-                  will be resized to a square format.
+                  Adjust the crop area to frame your photo perfectly. Use the rotation buttons if needed.
                 </ResponsiveDialogDescription>
               </ResponsiveDialogHeader>
 
               <div className="space-y-4">
+                {/* Rotation Controls */}
+                <div className="flex justify-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRotateLeft}
+                    disabled={isProcessing}
+                    className="gap-2"
+                    data-testid="rotate-left-button"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Rotate Left
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRotateRight}
+                    disabled={isProcessing}
+                    className="gap-2"
+                    data-testid="rotate-right-button"
+                  >
+                    <RotateCw className="h-4 w-4" />
+                    Rotate Right
+                  </Button>
+                </div>
+
                 {imageSrc && (
                   <div className="flex justify-center overflow-auto max-h-[500px]">
                     <ReactCrop
@@ -345,12 +475,14 @@ export function ProfileImageUpload({
                         ref={imgRef}
                         alt="Crop preview"
                         src={imageSrc}
-                        style={{ 
-                          maxHeight: "400px", 
+                        style={{
+                          maxHeight: "400px",
                           maxWidth: "100%",
                           height: "auto",
                           width: "auto",
-                          display: "block"
+                          display: "block",
+                          transform: `rotate(${rotation}deg)`,
+                          transformOrigin: "center center"
                         }}
                         onLoad={onImageLoad}
                       />
