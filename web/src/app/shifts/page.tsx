@@ -91,6 +91,12 @@ export default async function ShiftsCalendarPage({
     currentUser?.availableLocations
   );
 
+  // Filter out special event venue from auto-default logic
+  // Special events shouldn't be auto-selected as the default location
+  const userPreferredLocationsForDefault = userPreferredLocations.filter(
+    (loc: string) => loc !== "Special Event Venue"
+  );
+
   // Handle location filtering
   const rawLocation = Array.isArray(params.location)
     ? params.location[0]
@@ -115,12 +121,12 @@ export default async function ShiftsCalendarPage({
   } else if (showAll) {
     filterLocations = [];
     hasExplicitLocationChoice = true;
-  } else if (userPreferredLocations.length > 0 && !chooseLocation) {
+  } else if (userPreferredLocationsForDefault.length > 0 && !chooseLocation) {
     // Only auto-filter by profile preferences if there's only one preferred location
-    // and user hasn't explicitly requested to choose a location
+    // (excluding special event venues) and user hasn't explicitly requested to choose a location
     // Otherwise, force explicit selection to avoid confusion
-    if (userPreferredLocations.length === 1) {
-      filterLocations = userPreferredLocations.filter((loc: string) =>
+    if (userPreferredLocationsForDefault.length === 1) {
+      filterLocations = userPreferredLocationsForDefault.filter((loc: string) =>
         LOCATIONS.includes(loc as LocationOption)
       );
       // Set selectedLocation for address display
