@@ -184,10 +184,10 @@ export function AchievementsListClient({
         <TooltipTrigger asChild>
           <motion.div
             variants={staggerItem}
-            className={`flex flex-col gap-3 p-4 rounded-lg border cursor-help ${
+            className={`flex flex-col gap-3 p-4 rounded-lg border transition-all cursor-pointer ${
               achievement.unlocked
-                ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700"
-                : "border-muted/10"
+                ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700 hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 hover:scale-[1.005]"
+                : "border-muted/10 hover:border-primary/20 hover:bg-muted/30 hover:shadow-sm"
             }`}
           >
         <div className="flex items-start gap-3">

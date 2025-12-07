@@ -256,7 +256,7 @@ export default function AchievementsCard() {
                       <TooltipTrigger asChild>
                         <motion.div
                           variants={staggerItem}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700 cursor-help"
+                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700 transition-all hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 hover:scale-[1.01] cursor-pointer"
                         >
                           <div className="text-2xl flex-shrink-0">
                             {userAchievement.achievement.icon}
@@ -323,7 +323,7 @@ export default function AchievementsCard() {
                       <TooltipTrigger asChild>
                         <motion.div
                           variants={staggerItem}
-                          className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10 cursor-help"
+                          className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10 transition-all hover:border-primary/20 hover:bg-muted/30 hover:shadow-sm cursor-pointer"
                         >
                           <div className="flex items-start gap-3">
                             <div className="text-2xl flex-shrink-0 opacity-60">
