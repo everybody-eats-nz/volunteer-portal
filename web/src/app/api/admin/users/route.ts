@@ -21,39 +21,19 @@ export async function GET(request: Request) {
     // If there's a search query, add search conditions
     if (query && query.trim()) {
       const searchQuery = query.trim();
-      const searchWords = searchQuery.split(" ").filter(word => word.length > 0);
 
-      const orConditions: any[] = [
-        { email: { contains: searchQuery, mode: "insensitive" } },
-        { firstName: { contains: searchQuery, mode: "insensitive" } },
-        { lastName: { contains: searchQuery, mode: "insensitive" } },
-        { name: { contains: searchQuery, mode: "insensitive" } },
-      ];
-
-      // For multi-word searches, add full name combination search
-      // Example: "John Doe" should match firstName="John" AND lastName="Doe"
-      if (searchWords.length >= 2) {
-        orConditions.push({
-          AND: [
-            { firstName: { not: null } },
-            { lastName: { not: null } },
-            {
-              firstName: {
-                contains: searchWords[0],
-                mode: "insensitive"
-              }
-            },
-            {
-              lastName: {
-                contains: searchWords.slice(1).join(" "),
-                mode: "insensitive"
-              }
-            },
-          ],
-        });
-      }
-
-      whereClause = { OR: orConditions };
+      // Use PostgreSQL full-text search for name fields (faster and supports word stemming)
+      // Keep contains for email (better for exact email matching)
+      whereClause = {
+        OR: [
+          // Exact email matching
+          { email: { contains: searchQuery, mode: "insensitive" } },
+          // Full-text search on name fields (uses @@fulltext index)
+          { firstName: { search: searchQuery } },
+          { lastName: { search: searchQuery } },
+          { name: { search: searchQuery } },
+        ],
+      };
     }
 
     const users = await prisma.user.findMany({
