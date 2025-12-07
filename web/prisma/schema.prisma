@@ -1,7 +1,6 @@
 generator client {
   provider = "prisma-client"
   output = "../src/generated"
-  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 // Seed configuration
@@ -110,8 +109,6 @@ model User {
 
   // Resource hub uploads
   uploadedResources            Resource[]         @relation("ResourceUploader")
-
-  // Note: PostgreSQL full-text search indexes are created via raw SQL migration
 }
 
 model ShiftType {

@@ -26,12 +26,12 @@ export async function GET(request: Request) {
       // Keep contains for email (better for exact email matching)
       whereClause = {
         OR: [
-          // Exact email matching
+          // Email matching
           { email: { contains: searchQuery, mode: "insensitive" } },
-          // Full-text search on name fields (uses @@fulltext index)
-          { firstName: { search: searchQuery } },
-          { lastName: { search: searchQuery } },
-          { name: { search: searchQuery } },
+
+          // Name partial matching
+          { firstName: { contains: searchQuery, mode: "insensitive" } },
+          { lastName: { contains: searchQuery, mode: "insensitive" } },
         ],
       };
     }
