@@ -5,8 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { motion } from "motion/react";
 import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
+import { formatAchievementCriteria } from "@/lib/achievements";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -36,6 +43,7 @@ interface AchievementsData {
     consecutive_months: number;
     years_volunteering: number;
     community_impact: number;
+    friends_count: number;
     shift_type_counts: Record<string, number>;
   };
   totalPoints: number;
@@ -57,6 +65,7 @@ interface AchievementCriteria {
     | "consecutive_months"
     | "years_volunteering"
     | "community_impact"
+    | "friends_count"
     | "specific_shift_type";
   value: number;
   shiftType?: string;
@@ -98,6 +107,10 @@ function calculateAchievementProgress(
       case "community_impact":
         current = progress.community_impact;
         label = `${current} / ${criteria.value} meals`;
+        break;
+      case "friends_count":
+        current = progress.friends_count;
+        label = `${current} / ${criteria.value} friends`;
         break;
       case "specific_shift_type":
         if (criteria.shiftType) {
@@ -225,53 +238,64 @@ export default function AchievementsCard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Recent Achievements */}
-          {recentAchievements.length > 0 && (
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-3">
-                Recent Achievements
-              </h4>
-              <motion.div
-                className="grid gap-3"
-                variants={staggerContainer}
-                initial="hidden"
-                animate="visible"
-              >
-                {recentAchievements.map((userAchievement) => (
-                  <motion.div
-                    variants={staggerItem}
-                    key={userAchievement.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700"
-                  >
-                    <div className="text-2xl flex-shrink-0">
-                      {userAchievement.achievement.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h5 className="font-medium text-sm">
-                          {userAchievement.achievement.name}
-                        </h5>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs whitespace-nowrap ${
-                            CATEGORY_COLORS[
-                              userAchievement.achievement
-                                .category as keyof typeof CATEGORY_COLORS
-                            ]
-                          }`}
+          <TooltipProvider>
+            {/* Recent Achievements */}
+            {recentAchievements.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                  Recent Achievements
+                </h4>
+                <motion.div
+                  className="grid gap-3"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {recentAchievements.map((userAchievement) => (
+                    <Tooltip key={userAchievement.id}>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          variants={staggerItem}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700 cursor-help"
                         >
-                          {userAchievement.achievement.category}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {userAchievement.achievement.description}
-                      </p>
-                    </div>
-                    <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
-                      +{userAchievement.achievement.points}
-                    </div>
-                  </motion.div>
-                ))}
+                          <div className="text-2xl flex-shrink-0">
+                            {userAchievement.achievement.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h5 className="font-medium text-sm">
+                                {userAchievement.achievement.name}
+                              </h5>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs whitespace-nowrap ${
+                                  CATEGORY_COLORS[
+                                    userAchievement.achievement
+                                      .category as keyof typeof CATEGORY_COLORS
+                                  ]
+                                }`}
+                              >
+                                {userAchievement.achievement.category}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {userAchievement.achievement.description}
+                            </p>
+                          </div>
+                          <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
+                            +{userAchievement.achievement.points}
+                          </div>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="font-medium">
+                          {formatAchievementCriteria(
+                            userAchievement.achievement.criteria
+                          )}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
               </motion.div>
             </div>
           )}
@@ -295,57 +319,65 @@ export default function AchievementsCard() {
                   );
 
                   return (
-                    <motion.div
-                      variants={staggerItem}
-                      key={achievement.id}
-                      className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="text-2xl flex-shrink-0 opacity-60">
-                          {achievement.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h5 className="font-medium text-sm">
-                              {achievement.name}
-                            </h5>
-                            <Badge
-                              variant="outline"
-                              className={`text-xs whitespace-nowrap ${
-                                CATEGORY_COLORS[
-                                  achievement.category as keyof typeof CATEGORY_COLORS
-                                ]
-                              }`}
-                            >
-                              {achievement.category}
-                            </Badge>
+                    <Tooltip key={achievement.id}>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          variants={staggerItem}
+                          className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10 cursor-help"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="text-2xl flex-shrink-0 opacity-60">
+                              {achievement.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h5 className="font-medium text-sm">
+                                  {achievement.name}
+                                </h5>
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs whitespace-nowrap ${
+                                    CATEGORY_COLORS[
+                                      achievement.category as keyof typeof CATEGORY_COLORS
+                                    ]
+                                  }`}
+                                >
+                                  {achievement.category}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {achievement.description}
+                              </p>
+                            </div>
+                            <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                              {achievement.points} pts
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {achievement.description}
-                          </p>
-                        </div>
-                        <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                          {achievement.points} pts
-                        </div>
-                      </div>
 
-                      {achievementProgress && (
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">
-                              {achievementProgress.label}
-                            </span>
-                            <span className="font-medium">
-                              {achievementProgress.percentage.toFixed(0)}%
-                            </span>
-                          </div>
-                          <Progress
-                            value={achievementProgress.percentage}
-                            className="h-2"
-                          />
-                        </div>
-                      )}
-                    </motion.div>
+                          {achievementProgress && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  {achievementProgress.label}
+                                </span>
+                                <span className="font-medium">
+                                  {achievementProgress.percentage.toFixed(0)}%
+                                </span>
+                              </div>
+                              <Progress
+                                value={achievementProgress.percentage}
+                                className="h-2"
+                              />
+                            </div>
+                          )}
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="font-medium">
+                          {formatAchievementCriteria(achievement.criteria)}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </motion.div>
@@ -380,6 +412,7 @@ export default function AchievementsCard() {
               </p>
             </div>
           )}
+          </TooltipProvider>
         </CardContent>
       </Card>
     </motion.div>

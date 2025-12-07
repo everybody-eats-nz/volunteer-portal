@@ -4,10 +4,17 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
+import { formatAchievementCriteria } from "@/lib/achievements";
 import { EyeOff, Eye } from "lucide-react";
 
 interface Achievement {
@@ -173,15 +180,16 @@ export function AchievementsListClient({
       : null;
 
     return (
-      <motion.div
-        variants={staggerItem}
-        key={achievement.id}
-        className={`flex flex-col gap-3 p-4 rounded-lg border ${
-          achievement.unlocked
-            ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700"
-            : "border-muted/10"
-        }`}
-      >
+      <Tooltip key={achievement.id}>
+        <TooltipTrigger asChild>
+          <motion.div
+            variants={staggerItem}
+            className={`flex flex-col gap-3 p-4 rounded-lg border cursor-help ${
+              achievement.unlocked
+                ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700"
+                : "border-muted/10"
+            }`}
+          >
         <div className="flex items-start gap-3">
           <div
             className={`text-3xl flex-shrink-0 ${
@@ -239,6 +247,13 @@ export function AchievementsListClient({
           </div>
         )}
       </motion.div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="font-medium">
+            {formatAchievementCriteria(achievement.criteria)}
+          </p>
+        </TooltipContent>
+      </Tooltip>
     );
   };
 
@@ -268,7 +283,8 @@ export function AchievementsListClient({
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TooltipProvider>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="MILESTONE">Milestone</TabsTrigger>
@@ -316,6 +332,7 @@ export function AchievementsListClient({
             </TabsContent>
           ))}
         </Tabs>
+        </TooltipProvider>
       </CardContent>
     </Card>
   );
