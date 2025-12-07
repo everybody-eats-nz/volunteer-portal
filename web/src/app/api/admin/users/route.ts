@@ -22,8 +22,6 @@ export async function GET(request: Request) {
     if (query && query.trim()) {
       const searchQuery = query.trim();
 
-      // Use PostgreSQL full-text search for name fields (faster and supports word stemming)
-      // Keep contains for email (better for exact email matching)
       whereClause = {
         OR: [
           // Email matching
