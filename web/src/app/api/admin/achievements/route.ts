@@ -118,6 +118,7 @@ export async function POST(request: Request) {
         "specific_shift_type",
         "years_volunteering",
         "community_impact",
+        "friends_count",
       ];
       if (!validTypes.includes(criteriaObj.type)) {
         return NextResponse.json(
