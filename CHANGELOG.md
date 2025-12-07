@@ -1,3 +1,9 @@
+## [0.77.1] - 2025-12-07
+
+### Changes
+- Fix: Implement server-side sorting for admin users page ([#325](https://github.com/everybody-eats-nz/volunteer-portal/pull/325)) by @malinmalliyawadu
+
+
 ## [0.77.0] - 2025-12-07
 
 ### Changes

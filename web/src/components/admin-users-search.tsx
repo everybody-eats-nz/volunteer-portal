@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export function AdminUsersSearch({
   const [searchValue, setSearchValue] = useState(initialSearch || "");
   const [prevInitialSearch, setPrevInitialSearch] = useState(initialSearch);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Sync search input with URL params when they change (e.g., clicking "Clear filters")
   // Using the getDerivedStateFromProps pattern (in hooks form) to update state during render
@@ -27,16 +28,48 @@ export function AdminUsersSearch({
     setPrevInitialSearch(initialSearch);
   }
 
+  // Helper to build URLs that preserve sorting parameters
+  const buildFilterUrl = useMemo(
+    () => (role?: string) => {
+      const params = new URLSearchParams();
+
+      // Preserve sorting if exists
+      const currentSortBy = searchParams.get("sortBy");
+      const currentSortOrder = searchParams.get("sortOrder");
+      if (currentSortBy) params.set("sortBy", currentSortBy);
+      if (currentSortOrder) params.set("sortOrder", currentSortOrder);
+
+      // Add search if exists
+      if (searchValue) params.set("search", searchValue);
+
+      // Add role if specified
+      if (role) params.set("role", role);
+
+      const queryString = params.toString();
+      return queryString ? `/admin/users?${queryString}` : "/admin/users";
+    },
+    [searchParams, searchValue]
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
+
+    // Update or remove search parameter
     if (searchValue.trim()) {
       params.set("search", searchValue.trim());
+    } else {
+      params.delete("search");
     }
+
+    // Preserve role filter if it exists
     if (roleFilter) {
       params.set("role", roleFilter);
     }
+
+    // Reset to page 1 when searching
+    params.set("page", "1");
 
     const queryString = params.toString();
     const url = queryString ? `/admin/users?${queryString}` : "/admin/users";
@@ -74,12 +107,7 @@ export function AdminUsersSearch({
 
       {/* Role Filter Buttons */}
       <div className="flex flex-wrap gap-2 mt-4" data-testid="main-role-filter-buttons">
-        <Link
-          href={{
-            pathname: "/admin/users",
-            query: searchValue ? { search: searchValue } : {},
-          }}
-        >
+        <Link href={buildFilterUrl()}>
           <Button
             variant={!roleFilter ? "default" : "outline"}
             size="sm"
@@ -91,15 +119,7 @@ export function AdminUsersSearch({
             All Roles
           </Button>
         </Link>
-        <Link
-          href={{
-            pathname: "/admin/users",
-            query: {
-              role: "VOLUNTEER",
-              ...(searchValue ? { search: searchValue } : {}),
-            },
-          }}
-        >
+        <Link href={buildFilterUrl("VOLUNTEER")}>
           <Button
             variant={roleFilter === "VOLUNTEER" ? "default" : "outline"}
             size="sm"
@@ -113,15 +133,7 @@ export function AdminUsersSearch({
             Volunteers
           </Button>
         </Link>
-        <Link
-          href={{
-            pathname: "/admin/users",
-            query: {
-              role: "ADMIN",
-              ...(searchValue ? { search: searchValue } : {}),
-            },
-          }}
-        >
+        <Link href={buildFilterUrl("ADMIN")}>
           <Button
             variant={roleFilter === "ADMIN" ? "default" : "outline"}
             size="sm"
