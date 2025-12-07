@@ -45,6 +45,14 @@ export default async function AdminUsersPage({
     : 10;
   const skip = (page - 1) * pageSize;
 
+  // Get sorting parameters
+  const sortBy = Array.isArray(params.sortBy)
+    ? params.sortBy[0]
+    : params.sortBy || "createdAt";
+  const sortOrder = Array.isArray(params.sortOrder)
+    ? params.sortOrder[0]
+    : params.sortOrder || "desc";
+
   // Build where clause for filtering
   const whereClause: Prisma.UserWhereInput = {};
 
@@ -61,16 +69,19 @@ export default async function AdminUsersPage({
     whereClause.role = roleFilter;
   }
 
-  // Fetch users with signup counts
-  const [
-    users,
-    filteredCount,
-    totalUsers,
-    totalAdmins,
-    totalVolunteers,
-    newUsersThisMonth,
-  ] = await Promise.all([
-    prisma.user.findMany({
+  // Fetch users with completed signup counts (confirmed signups for past shifts)
+  const now = new Date();
+
+  // When sorting by signups, we need to fetch all users, sort by completed count, then paginate
+  // This is necessary because Prisma doesn't support orderBy on filtered _count
+  const isSortingBySignups = sortBy === "signups" || sortBy === "_count.signups";
+
+  let users;
+  let filteredCount;
+
+  if (isSortingBySignups) {
+    // Fetch all users with completed signup counts
+    const allUsers = await prisma.user.findMany({
       where: whereClause,
       select: {
         id: true,
@@ -85,28 +96,105 @@ export default async function AdminUsersPage({
         createdAt: true,
         _count: {
           select: {
-            signups: true,
+            signups: {
+              where: {
+                status: "CONFIRMED",
+                shift: {
+                  end: {
+                    lt: now,
+                  },
+                },
+              },
+            },
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      skip,
-      take: pageSize,
-    }),
-    prisma.user.count({ where: whereClause }),
-    prisma.user.count(),
-    prisma.user.count({ where: { role: "ADMIN" } }),
-    prisma.user.count({ where: { role: "VOLUNTEER" } }),
-    prisma.user.count({
-      where: {
-        createdAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    });
+
+    // Sort by completed signup count in memory
+    const sortedUsers = allUsers.sort((a, b) => {
+      const countA = a._count.signups;
+      const countB = b._count.signups;
+      return sortOrder === "asc" ? countA - countB : countB - countA;
+    });
+
+    // Apply pagination
+    users = sortedUsers.slice(skip, skip + pageSize);
+    filteredCount = allUsers.length;
+  } else {
+    // Build orderBy clause for non-signup sorting
+    type PrismaOrderBy = Prisma.UserOrderByWithRelationInput;
+    let orderByClause: PrismaOrderBy | PrismaOrderBy[];
+
+    const order = sortOrder === "asc" ? "asc" : "desc";
+
+    switch (sortBy) {
+      case "user":
+      case "name":
+        // Sort by name (firstName, then lastName), fallback to email
+        orderByClause = [
+          { firstName: order },
+          { lastName: order },
+          { email: order },
+        ];
+        break;
+      case "createdAt":
+      default:
+        // Default sort by createdAt
+        orderByClause = { createdAt: order };
+        break;
+    }
+
+    const result = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        profilePhotoUrl: true,
+        role: true,
+        volunteerGrade: true,
+        createdAt: true,
+        _count: {
+          select: {
+            signups: {
+              where: {
+                status: "CONFIRMED",
+                shift: {
+                  end: {
+                    lt: now,
+                  },
+                },
+              },
+            },
+          },
         },
       },
-    }),
-  ]);
+      orderBy: orderByClause,
+      skip,
+      take: pageSize,
+    });
+
+    users = result;
+    filteredCount = await prisma.user.count({ where: whereClause });
+  }
+
+  const [totalUsers, totalAdmins, totalVolunteers, newUsersThisMonth] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { role: "ADMIN" } }),
+      prisma.user.count({ where: { role: "VOLUNTEER" } }),
+      prisma.user.count({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      }),
+    ]);
 
   const totalPages = Math.ceil(filteredCount / pageSize);
 
@@ -253,6 +341,8 @@ export default async function AdminUsersPage({
                   pageSize={pageSize}
                   totalCount={filteredCount}
                   totalPages={totalPages}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder as "asc" | "desc"}
                 />
               </div>
             </div>
