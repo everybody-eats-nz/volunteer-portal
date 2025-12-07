@@ -10,6 +10,8 @@ import {
 import { useState, useEffect } from "react";
 import {
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   Mail,
   Calendar,
   Shield,
@@ -41,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type VolunteerGrade } from "@/generated/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
+import { TableSkeleton } from "@/components/loading-skeleton";
 
 export interface User {
   id: string;
@@ -97,14 +100,21 @@ export const columns: ColumnDef<User>[] = [
   {
     accessorKey: "user",
     header: ({ column }) => {
+      const isSorted = column.getIsSorted();
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-medium hover:bg-transparent"
+          className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
         >
           User
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+          ) : (
+            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+          )}
         </Button>
       );
     },
@@ -189,14 +199,21 @@ export const columns: ColumnDef<User>[] = [
     id: "signups",
     accessorKey: "_count.signups",
     header: ({ column }) => {
+      const isSorted = column.getIsSorted();
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-medium hover:bg-transparent"
+          className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
         >
           Shifts
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+          ) : (
+            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+          )}
         </Button>
       );
     },
@@ -216,14 +233,21 @@ export const columns: ColumnDef<User>[] = [
   {
     accessorKey: "createdAt",
     header: ({ column }) => {
+      const isSorted = column.getIsSorted();
       return (
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 h-auto font-medium hover:bg-transparent"
+          className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
         >
           Joined
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          {isSorted === "asc" ? (
+            <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+          ) : isSorted === "desc" ? (
+            <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
+          ) : (
+            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+          )}
         </Button>
       );
     },
@@ -302,10 +326,20 @@ export function UsersDataTable({
     { id: sortBy, desc: sortOrder === "desc" },
   ]);
 
+  // Track loading state when sorting
+  const [isLoading, setIsLoading] = useState(false);
+
   // Sync sorting state when URL params change
   useEffect(() => {
     setSorting([{ id: sortBy, desc: sortOrder === "desc" }]);
+    // Clear loading state when new data arrives
+    setIsLoading(false);
   }, [sortBy, sortOrder]);
+
+  // Also clear loading state when users data changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [users]);
 
   const table = useReactTable({
     data: users,
@@ -317,6 +351,8 @@ export function UsersDataTable({
       setSorting(newSorting);
 
       if (newSorting.length > 0) {
+        // Set loading state when sorting changes
+        setIsLoading(true);
         const searchParams = new URLSearchParams(window.location.search);
         searchParams.set("sortBy", newSorting[0].id);
         searchParams.set("sortOrder", newSorting[0].desc ? "desc" : "asc");
@@ -342,60 +378,66 @@ export function UsersDataTable({
   return (
     <div className="w-full" data-testid="users-datatable">
       <div className="rounded-md border dark:border-zinc-800 shadow-sm dark:shadow-lg dark:shadow-zinc-900/20 bg-card">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id} className="px-4 py-3">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
-                  data-testid={`user-row-${row.original.id}`}
-                  onClick={() =>
-                    router.push(`/admin/volunteers/${row.original.id}`)
-                  }
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-4 py-3">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+        {isLoading ? (
+          <div className="p-4" data-testid="users-table-loading">
+            <TableSkeleton rows={pageSize} />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} className="px-4 py-3">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                  data-testid="no-users-found"
-                >
-                  No users found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
+                    data-testid={`user-row-${row.original.id}`}
+                    onClick={() =>
+                      router.push(`/admin/volunteers/${row.original.id}`)
+                    }
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-4 py-3">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                    data-testid="no-users-found"
+                  >
+                    No users found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
       <div className="flex items-center justify-between space-x-2 py-4">
