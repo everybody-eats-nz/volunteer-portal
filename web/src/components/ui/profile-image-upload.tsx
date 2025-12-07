@@ -169,7 +169,6 @@ export function ProfileImageUpload({
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [imageKey, setImageKey] = useState(0); // Add this to force re-renders
   const [rotation, setRotation] = useState(0); // Rotation in degrees: 0, 90, 180, 270
-  const [showPhotoOptions, setShowPhotoOptions] = useState(false); // Show upload/rotate options
 
   const imgRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -242,28 +241,21 @@ export function ProfileImageUpload({
     setRotation((prev) => (prev + 90) % 360);
   }, []);
 
-  const handleRotateExisting = useCallback(() => {
-    if (currentImage) {
-      setImageSrc(currentImage);
-      setShowPhotoOptions(false);
-      setIsDialogOpen(true);
-    }
-  }, [currentImage]);
-
-  const handleUploadNew = useCallback(() => {
-    setShowPhotoOptions(false);
-    fileInputRef.current?.click();
-  }, []);
-
   const handleChangePhoto = useCallback(() => {
     if (currentImage) {
-      // Show options to upload or rotate
-      setShowPhotoOptions(true);
+      // Load existing photo into dialog for rotation/cropping
+      setImageSrc(currentImage);
+      setIsDialogOpen(true);
     } else {
-      // No existing photo, just upload
+      // No existing photo, prompt for upload
       fileInputRef.current?.click();
     }
   }, [currentImage]);
+
+  const handleUploadNewFromDialog = useCallback(() => {
+    // Trigger file input while keeping dialog open
+    fileInputRef.current?.click();
+  }, []);
 
   const handleCropComplete = useCallback(async () => {
     if (!imgRef.current || !completedCrop) return;
@@ -388,105 +380,110 @@ export function ProfileImageUpload({
             {isLoadingImage ? "Loading..." : currentImage ? "Change Photo" : "Upload Photo"}
           </Button>
 
-          {/* Photo Options Dialog */}
-          <ResponsiveDialog open={showPhotoOptions} onOpenChange={setShowPhotoOptions}>
-            <ResponsiveDialogContent className="sm:max-w-md" data-testid="photo-options-dialog">
-              <ResponsiveDialogHeader>
-                <ResponsiveDialogTitle>Change Profile Photo</ResponsiveDialogTitle>
-                <ResponsiveDialogDescription>
-                  Choose to upload a new photo or rotate your current one.
-                </ResponsiveDialogDescription>
-              </ResponsiveDialogHeader>
-              <div className="flex flex-col gap-3 py-4">
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={handleUploadNew}
-                  className="gap-2"
-                  data-testid="upload-new-photo-button"
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload New Photo
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleRotateExisting}
-                  className="gap-2"
-                  data-testid="rotate-existing-photo-button"
-                >
-                  <RotateCw className="h-4 w-4" />
-                  Rotate Current Photo
-                </Button>
-              </div>
-            </ResponsiveDialogContent>
-          </ResponsiveDialog>
-
+          {/* Crop and Rotate Dialog */}
           <ResponsiveDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <ResponsiveDialogContent className="max-w-2xl" data-testid="crop-dialog">
               <ResponsiveDialogHeader>
-                <ResponsiveDialogTitle>Crop Your Profile Photo</ResponsiveDialogTitle>
+                <ResponsiveDialogTitle>
+                  {currentImage ? "Edit Profile Photo" : "Upload Profile Photo"}
+                </ResponsiveDialogTitle>
                 <ResponsiveDialogDescription>
-                  Adjust the crop area to frame your photo perfectly. Use the rotation buttons if needed.
+                  {currentImage
+                    ? "Adjust the crop area and rotation, or upload a new photo."
+                    : "Upload a photo and adjust the crop area to frame it perfectly."}
                 </ResponsiveDialogDescription>
               </ResponsiveDialogHeader>
 
-              <div className="space-y-4">
-                {/* Rotation Controls */}
-                <div className="flex justify-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRotateLeft}
-                    disabled={isProcessing}
-                    className="gap-2"
-                    data-testid="rotate-left-button"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Rotate Left
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRotateRight}
-                    disabled={isProcessing}
-                    className="gap-2"
-                    data-testid="rotate-right-button"
-                  >
-                    <RotateCw className="h-4 w-4" />
-                    Rotate Right
-                  </Button>
-                </div>
-
+              <div className="space-y-6">
+                {/* Image Preview Area */}
                 {imageSrc && (
-                  <div className="flex justify-center overflow-auto max-h-[500px]">
-                    <ReactCrop
-                      crop={crop}
-                      onChange={(_, percentCrop) => setCrop(percentCrop)}
-                      onComplete={(c) => setCompletedCrop(c)}
-                      aspect={1}
-                      minWidth={100}
-                      minHeight={100}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        ref={imgRef}
-                        alt="Crop preview"
-                        src={imageSrc}
-                        style={{
-                          maxHeight: "400px",
-                          maxWidth: "100%",
-                          height: "auto",
-                          width: "auto",
-                          display: "block",
-                          transform: `rotate(${rotation}deg)`,
-                          transformOrigin: "center center"
-                        }}
-                        onLoad={onImageLoad}
-                      />
-                    </ReactCrop>
+                  <div className="space-y-3">
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <div className="flex justify-center overflow-auto max-h-[450px]">
+                        <ReactCrop
+                          crop={crop}
+                          onChange={(_, percentCrop) => setCrop(percentCrop)}
+                          onComplete={(c) => setCompletedCrop(c)}
+                          aspect={1}
+                          minWidth={100}
+                          minHeight={100}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            ref={imgRef}
+                            alt="Crop preview"
+                            src={imageSrc}
+                            style={{
+                              maxHeight: "400px",
+                              maxWidth: "100%",
+                              height: "auto",
+                              width: "auto",
+                              display: "block",
+                              transform: `rotate(${rotation}deg)`,
+                              transformOrigin: "center center",
+                              transition: "transform 0.2s ease"
+                            }}
+                            onLoad={onImageLoad}
+                          />
+                        </ReactCrop>
+                      </div>
+                    </div>
+                    <p className="text-xs text-center text-muted-foreground">
+                      Drag to adjust the crop area for your profile photo
+                    </p>
+                  </div>
+                )}
+
+                {/* Controls Section */}
+                {currentImage && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-sm font-medium">Rotation:</span>
+                        <span className="text-sm text-muted-foreground">{rotation}°</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRotateLeft}
+                          disabled={isProcessing || !imageSrc}
+                          className="gap-2"
+                          data-testid="rotate-left-button"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          <span className="hidden sm:inline">Left</span>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRotateRight}
+                          disabled={isProcessing || !imageSrc}
+                          className="gap-2"
+                          data-testid="rotate-right-button"
+                        >
+                          <RotateCw className="h-4 w-4" />
+                          <span className="hidden sm:inline">Right</span>
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleUploadNewFromDialog}
+                        disabled={isProcessing}
+                        className="w-full gap-2"
+                        data-testid="upload-new-photo-button"
+                      >
+                        <Upload className="h-4 w-4" />
+                        Upload Different Photo
+                      </Button>
+                    </div>
                   </div>
                 )}
 
