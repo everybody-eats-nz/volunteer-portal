@@ -36,6 +36,7 @@ interface AchievementsListClientProps {
     consecutive_months: number;
     years_volunteering: number;
     community_impact: number;
+    friends_count: number;
     shift_type_counts: Record<string, number>;
   };
 }
@@ -47,6 +48,7 @@ interface AchievementCriteria {
     | "consecutive_months"
     | "years_volunteering"
     | "community_impact"
+    | "friends_count"
     | "specific_shift_type";
   value: number;
   shiftType?: string;
@@ -96,6 +98,10 @@ function calculateAchievementProgress(
       case "community_impact":
         current = progress.community_impact;
         label = `${current} / ${criteria.value} meals`;
+        break;
+      case "friends_count":
+        current = progress.friends_count;
+        label = `${current} / ${criteria.value} friends`;
         break;
       case "specific_shift_type":
         if (criteria.shiftType) {
