@@ -23,10 +23,38 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
     const includeStats = searchParams.get("includeStats") === "true";
+    const sortBy = searchParams.get("sortBy") || "createdAt-desc";
 
     // Calculate skip and take for pagination
     const skip = (page - 1) * pageSize;
     const take = pageSize;
+
+    // Determine if we need to sort by signup count (which requires in-memory sorting)
+    const sortBySignups = sortBy.startsWith("signups-");
+
+    // Build orderBy clause for database queries (used when not sorting by signups)
+    const getOrderBy = () => {
+      if (sortBySignups) {
+        // Default sorting for database query when we'll sort in-memory
+        return { createdAt: "desc" as const };
+      }
+
+      switch (sortBy) {
+        case "name-asc":
+          return { firstName: "asc" as const };
+        case "name-desc":
+          return { firstName: "desc" as const };
+        case "email-asc":
+          return { email: "asc" as const };
+        case "email-desc":
+          return { email: "desc" as const };
+        case "createdAt-asc":
+          return { createdAt: "asc" as const };
+        case "createdAt-desc":
+        default:
+          return { createdAt: "desc" as const };
+      }
+    };
 
     // Build base where clause
     const baseWhere: {
@@ -107,9 +135,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: getOrderBy(),
       });
 
       // Filter by token expiration in-memory
@@ -117,6 +143,17 @@ export async function GET(request: NextRequest) {
         filteredUsers = allUsers.filter((user) => !isTokenExpired(user.migrationTokenExpiresAt));
       } else {
         filteredUsers = allUsers.filter((user) => isTokenExpired(user.migrationTokenExpiresAt));
+      }
+
+      // Sort by signup count if requested
+      if (sortBySignups) {
+        filteredUsers.sort((a, b) => {
+          const signupsA = a._count.signups;
+          const signupsB = b._count.signups;
+          return sortBy === "signups-desc"
+            ? signupsB - signupsA
+            : signupsA - signupsB;
+        });
       }
 
       // Apply pagination to filtered results
@@ -184,33 +221,72 @@ export async function GET(request: NextRequest) {
     // For other statuses, use regular pagination
     const totalCount = await prisma.user.count({ where });
 
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        profileCompleted: true,
-        isMigrated: true,
-        migrationInvitationSent: true,
-        migrationInvitationSentAt: true,
-        migrationInvitationCount: true,
-        migrationLastSentAt: true,
-        migrationTokenExpiresAt: true,
-        _count: {
-          select: {
-            signups: true,
+    let users;
+
+    // If sorting by signups, we need to fetch all users and sort in-memory
+    if (sortBySignups) {
+      const allUsers = await prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          createdAt: true,
+          profileCompleted: true,
+          isMigrated: true,
+          migrationInvitationSent: true,
+          migrationInvitationSentAt: true,
+          migrationInvitationCount: true,
+          migrationLastSentAt: true,
+          migrationTokenExpiresAt: true,
+          _count: {
+            select: {
+              signups: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      skip,
-      take,
-    });
+      });
+
+      // Sort by signup count
+      allUsers.sort((a, b) => {
+        const signupsA = a._count.signups;
+        const signupsB = b._count.signups;
+        return sortBy === "signups-desc"
+          ? signupsB - signupsA
+          : signupsA - signupsB;
+      });
+
+      // Apply pagination
+      users = allUsers.slice(skip, skip + take);
+    } else {
+      // Use database ordering for other sort options
+      users = await prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          createdAt: true,
+          profileCompleted: true,
+          isMigrated: true,
+          migrationInvitationSent: true,
+          migrationInvitationSentAt: true,
+          migrationInvitationCount: true,
+          migrationLastSentAt: true,
+          migrationTokenExpiresAt: true,
+          _count: {
+            select: {
+              signups: true,
+            },
+          },
+        },
+        orderBy: getOrderBy(),
+        skip,
+        take,
+      });
+    }
 
     // Transform users to include invitation status and signup count
     const usersWithInvitationStatus = users.map((user) => ({
