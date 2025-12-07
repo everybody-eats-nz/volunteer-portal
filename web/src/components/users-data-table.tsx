@@ -186,6 +186,7 @@ export const columns: ColumnDef<User>[] = [
     },
   },
   {
+    id: "signups",
     accessorKey: "_count.signups",
     header: ({ column }) => {
       return (
