@@ -33,6 +33,7 @@ import {
   Copy,
   ExternalLink,
   RefreshCw,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +50,8 @@ interface MigratedUser {
   registrationCompleted: boolean;
   registrationCompletedAt?: string;
   invitationToken?: string;
+  signupCount: number;
+  hasHistoricalData: boolean;
 }
 
 
@@ -111,6 +114,7 @@ export function UserInvitations() {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "pending" | "invited" | "expired" | "completed"
   >((searchParams.get("status") as "all" | "pending" | "invited" | "expired" | "completed") || "all");
+  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "signups-desc");
 
   // Update URL params
   const updateUrlParams = useCallback((params: Record<string, string>) => {
@@ -142,6 +146,10 @@ export function UserInvitations() {
         params.set("status", filterStatus);
       }
 
+      if (sortBy) {
+        params.set("sortBy", sortBy);
+      }
+
       const response = await fetch(`/api/admin/migration/users?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
@@ -164,7 +172,7 @@ export function UserInvitations() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, searchTerm, filterStatus]);
+  }, [pagination.page, pagination.pageSize, searchTerm, filterStatus, sortBy]);
 
   useEffect(() => {
     fetchMigratedUsers();
@@ -183,6 +191,12 @@ export function UserInvitations() {
   const handleFilterChange = (value: "all" | "pending" | "invited" | "expired" | "completed") => {
     setFilterStatus(value);
     updateUrlParams({ status: value, page: "1" });
+  };
+
+  // Handle sort change - reset to page 1 when sorting changes
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    updateUrlParams({ sortBy: value, page: "1" });
   };
 
   // Handle page change
@@ -401,8 +415,8 @@ export function UserInvitations() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search and Filter */}
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
@@ -425,6 +439,24 @@ export function UserInvitations() {
                 <option value="invited">Invited</option>
                 <option value="expired">Expired</option>
                 <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={sortBy}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm"
+                data-testid="sort-by-select"
+              >
+                <option value="signups-desc">Most Shifts</option>
+                <option value="signups-asc">Fewest Shifts</option>
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="email-asc">Email (A-Z)</option>
+                <option value="email-desc">Email (Z-A)</option>
+                <option value="createdAt-desc">Newest First</option>
+                <option value="createdAt-asc">Oldest First</option>
               </select>
             </div>
           </div>
@@ -466,8 +498,15 @@ export function UserInvitations() {
                         <div className="font-medium">
                           {user.firstName} {user.lastName}
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {user.email}
+                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <span>{user.email}</span>
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-blue-100 text-blue-800"
+                            data-testid="shift-count-badge"
+                          >
+                            {user.signupCount} {user.signupCount === 1 ? 'shift' : 'shifts'}
+                          </Badge>
                         </div>
 
                         {/* Invitation Statistics */}
