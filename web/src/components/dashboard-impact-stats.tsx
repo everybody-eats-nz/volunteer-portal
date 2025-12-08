@@ -152,7 +152,7 @@ export async function DashboardImpactStats({
       <CardContent>
         <div className="space-y-6">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">
                 {mealsToDisplay.toLocaleString()}
@@ -181,7 +181,7 @@ export async function DashboardImpactStats({
               )}
             </div>
 
-            <div className="text-center">
+            {/* <div className="text-center">
               <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
                 {(Math.round(totalHours * 2.5 * 10) / 10).toLocaleString()}kg
               </div>
@@ -191,7 +191,7 @@ export async function DashboardImpactStats({
               <p className="text-xs text-muted-foreground mt-1">
                 Based on rescue food operations
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
       </CardContent>
