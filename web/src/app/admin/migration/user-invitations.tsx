@@ -54,7 +54,6 @@ interface MigratedUser {
   hasHistoricalData: boolean;
 }
 
-
 interface InvitationResult {
   email: string;
   firstName: string;
@@ -110,69 +109,91 @@ export function UserInvitations() {
   });
 
   // Get URL params
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("search") || ""
+  );
   const [filterStatus, setFilterStatus] = useState<
     "all" | "pending" | "invited" | "expired" | "completed"
-  >((searchParams.get("status") as "all" | "pending" | "invited" | "expired" | "completed") || "all");
-  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "signups-desc");
+  >(
+    (searchParams.get("status") as
+      | "all"
+      | "pending"
+      | "invited"
+      | "expired"
+      | "completed") || "pending"
+  );
+  const [sortBy, setSortBy] = useState(
+    searchParams.get("sortBy") || "signups-desc"
+  );
 
   // Update URL params
-  const updateUrlParams = useCallback((params: Record<string, string>) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-    router.replace(`?${newParams.toString()}#invitations`, { scroll: false });
-  }, [searchParams, router]);
-
-  const fetchMigratedUsers = useCallback(async (page: number = pagination.page, pageSize: number = pagination.pageSize) => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-        includeStats: "true",
+  const updateUrlParams = useCallback(
+    (params: Record<string, string>) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, value);
+        } else {
+          newParams.delete(key);
+        }
       });
+      router.replace(`?${newParams.toString()}#invitations`, { scroll: false });
+    },
+    [searchParams, router]
+  );
 
-      if (searchTerm) {
-        params.set("search", searchTerm);
-      }
-
-      if (filterStatus && filterStatus !== "all") {
-        params.set("status", filterStatus);
-      }
-
-      if (sortBy) {
-        params.set("sortBy", sortBy);
-      }
-
-      const response = await fetch(`/api/admin/migration/users?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-        setPagination({
-          total: data.total,
-          page: data.page,
-          pageSize: data.pageSize,
-          totalPages: data.totalPages,
+  const fetchMigratedUsers = useCallback(
+    async (
+      page: number = pagination.page,
+      pageSize: number = pagination.pageSize
+    ) => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+          includeStats: "true",
         });
 
-        // Use stats from API response
-        if (data.stats) {
-          setUserStats(data.stats);
+        if (searchTerm) {
+          params.set("search", searchTerm);
         }
+
+        if (filterStatus && filterStatus !== "all") {
+          params.set("status", filterStatus);
+        }
+
+        if (sortBy) {
+          params.set("sortBy", sortBy);
+        }
+
+        const response = await fetch(
+          `/api/admin/migration/users?${params.toString()}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+          setPagination({
+            total: data.total,
+            page: data.page,
+            pageSize: data.pageSize,
+            totalPages: data.totalPages,
+          });
+
+          // Use stats from API response
+          if (data.stats) {
+            setUserStats(data.stats);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch migrated users:", error);
+        toast.error("Failed to load migrated users");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch migrated users:", error);
-      toast.error("Failed to load migrated users");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pagination.page, pagination.pageSize, searchTerm, filterStatus, sortBy]);
+    },
+    [pagination.page, pagination.pageSize, searchTerm, filterStatus, sortBy]
+  );
 
   useEffect(() => {
     fetchMigratedUsers();
@@ -188,7 +209,9 @@ export function UserInvitations() {
   };
 
   // Handle filter status change - reset to page 1 when filtering
-  const handleFilterChange = (value: "all" | "pending" | "invited" | "expired" | "completed") => {
+  const handleFilterChange = (
+    value: "all" | "pending" | "invited" | "expired" | "completed"
+  ) => {
     setFilterStatus(value);
     updateUrlParams({ status: value, page: "1" });
   };
@@ -288,9 +311,9 @@ export function UserInvitations() {
   const formatDateTime = (dateString?: string): string => {
     if (!dateString) return "Never";
     return (
-      new Date(dateString).toLocaleDateString('en-NZ') +
+      new Date(dateString).toLocaleDateString("en-NZ") +
       " at " +
-      new Date(dateString).toLocaleTimeString('en-NZ')
+      new Date(dateString).toLocaleTimeString("en-NZ")
     );
   };
 
@@ -376,7 +399,6 @@ export function UserInvitations() {
         </Card>
       </div>
 
-
       {/* User Management */}
       <Card>
         <CardHeader>
@@ -384,8 +406,10 @@ export function UserInvitations() {
             <div>
               <CardTitle>Migrated Users</CardTitle>
               <CardDescription>
-                {pagination.total} users have been migrated from the legacy system
-                {pagination.totalPages > 1 && ` (Page ${pagination.page} of ${pagination.totalPages})`}
+                {pagination.total} users have been migrated from the legacy
+                system
+                {pagination.totalPages > 1 &&
+                  ` (Page ${pagination.page} of ${pagination.totalPages})`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -396,7 +420,9 @@ export function UserInvitations() {
                 variant="outline"
                 data-testid="refresh-users-button"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
               <Button
@@ -430,7 +456,16 @@ export function UserInvitations() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <select
                 value={filterStatus}
-                onChange={(e) => handleFilterChange(e.target.value as "all" | "pending" | "invited" | "expired" | "completed")}
+                onChange={(e) =>
+                  handleFilterChange(
+                    e.target.value as
+                      | "all"
+                      | "pending"
+                      | "invited"
+                      | "expired"
+                      | "completed"
+                  )
+                }
                 className="border rounded-md px-3 py-2 text-sm"
                 data-testid="filter-status-select"
               >
@@ -505,7 +540,8 @@ export function UserInvitations() {
                             className="text-xs bg-blue-100 text-blue-800"
                             data-testid="shift-count-badge"
                           >
-                            {user.signupCount} {user.signupCount === 1 ? 'shift' : 'shifts'}
+                            {user.signupCount}{" "}
+                            {user.signupCount === 1 ? "shift" : "shifts"}
                           </Badge>
                         </div>
 
@@ -600,9 +636,12 @@ export function UserInvitations() {
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-6 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{" "}
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{" "}
-                {pagination.total} users
+                Showing {(pagination.page - 1) * pagination.pageSize + 1} to{" "}
+                {Math.min(
+                  pagination.page * pagination.pageSize,
+                  pagination.total
+                )}{" "}
+                of {pagination.total} users
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -628,7 +667,9 @@ export function UserInvitations() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages || isLoading}
+                  disabled={
+                    pagination.page === pagination.totalPages || isLoading
+                  }
                 >
                   Next
                 </Button>
@@ -636,7 +677,9 @@ export function UserInvitations() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(pagination.totalPages)}
-                  disabled={pagination.page === pagination.totalPages || isLoading}
+                  disabled={
+                    pagination.page === pagination.totalPages || isLoading
+                  }
                 >
                   Last
                 </Button>
@@ -651,7 +694,10 @@ export function UserInvitations() {
         open={showInvitationDialog}
         onOpenChange={setShowInvitationDialog}
       >
-        <ResponsiveDialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" data-testid="registration-urls-dialog">
+        <ResponsiveDialogContent
+          className="max-w-4xl max-h-[80vh] overflow-y-auto"
+          data-testid="registration-urls-dialog"
+        >
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
