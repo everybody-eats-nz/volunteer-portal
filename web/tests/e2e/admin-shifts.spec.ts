@@ -165,20 +165,20 @@ test.describe("Admin Shifts Page", () => {
   });
 
   test.describe("With Test Shifts", () => {
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Create test shifts for different scenarios using NZ timezone
       const today = nowInNZT();
       const shiftDate = new Date(today);
       shiftDate.setDate(shiftDate.getDate() + 1); // Tomorrow in NZ timezone
 
-      const shift1 = await createShift({
+      const shift1 = await createShift(page, {
         location: "Wellington",
         start: new Date(shiftDate.setHours(10, 0)),
         capacity: 4,
       });
       testShiftIds.push(shift1.id);
 
-      const shift2 = await createShift({
+      const shift2 = await createShift(page, {
         location: "Wellington",
         start: new Date(shiftDate.setHours(14, 0)),
         capacity: 2,
@@ -278,7 +278,7 @@ test.describe("Admin Shifts Page", () => {
     }) => {
       // First create a shift for today
       const today = new Date();
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(today.setHours(15, 0)),
         capacity: 3,
@@ -392,7 +392,7 @@ test.describe("Admin Shifts Page", () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(tomorrow.setHours(10, 0)),
         capacity: 2,
