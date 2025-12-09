@@ -561,6 +561,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should not allow volunteers to access edit page", async ({
       page,
     }) => {
+      await logout(page);
       await loginAsVolunteer(page);
 
       await page.goto(`/admin/shifts/${testShiftId}/edit`);
