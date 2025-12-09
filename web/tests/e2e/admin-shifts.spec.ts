@@ -31,16 +31,16 @@ test.describe("Admin Shifts Page", () => {
   ];
   const testShiftIds: string[] = [];
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ page }) => {
     // Create test users with unique emails
-    await createTestUser(testEmails[0], "ADMIN");
-    await createTestUser(testEmails[1], "VOLUNTEER");
+    await createTestUser(page, testEmails[0], "ADMIN");
+    await createTestUser(page, testEmails[1], "VOLUNTEER");
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async ({ page }) => {
     // Cleanup test users and shifts
-    await deleteTestUsers(testEmails);
-    await deleteTestShifts(testShiftIds);
+    await deleteTestUsers(page, testEmails);
+    await deleteTestShifts(page, testShiftIds);
   });
 
   test.beforeEach(async ({ page }) => {
@@ -546,7 +546,7 @@ test.describe("Admin Shifts Page", () => {
         0,
         8
       )}@example.com`;
-      await createTestUser(testVolunteerEmail, "VOLUNTEER");
+      await createTestUser(page, testVolunteerEmail, "VOLUNTEER");
       testEmails.push(testVolunteerEmail);
 
       // Login as the new volunteer and create signup

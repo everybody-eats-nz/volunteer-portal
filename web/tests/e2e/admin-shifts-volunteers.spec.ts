@@ -21,9 +21,9 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   const testShiftIds: string[] = [];
   const testSignupIds: string[] = [];
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ page }) => {
     // Create test users with different grades
-    await createTestUser(testEmails[0], "ADMIN");
+    await createTestUser(page, testEmails[0], "ADMIN");
 
     // Create volunteers with different grades
     const pinkVolunteer = await prisma.user.create({

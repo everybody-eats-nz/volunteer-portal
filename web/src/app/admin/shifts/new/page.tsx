@@ -25,6 +25,7 @@ import { DeleteTemplateForm } from "@/components/delete-template-form";
 import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
 import { LOCATIONS } from "@/lib/locations";
+import { createShiftRecord } from "@/lib/services/shift-service";
 
 // Templates are now stored in the database and fetched dynamically
 
@@ -87,15 +88,13 @@ export default async function NewShiftPage() {
 
     try {
       // Create the shift
-      const shift = await prisma.shift.create({
-        data: {
-          shiftTypeId,
-          start,
-          end,
-          location,
-          capacity,
-          notes: notes ?? null,
-        },
+      const shift = await createShiftRecord({
+        shiftTypeId,
+        start,
+        end,
+        location,
+        capacity,
+        notes: notes ?? null,
       });
 
       // Find matching regular volunteers (use NZ timezone for day calculation)

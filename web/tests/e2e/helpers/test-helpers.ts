@@ -1,11 +1,11 @@
 import { Page, expect } from "@playwright/test";
-import { prisma } from "@/lib/prisma";
-import bcryptjs from "bcryptjs";
 
 /**
- * Create a test user with optional notification preferences
+ * Create a test user via test API endpoint
+ * Uses /api/test/users which is only available in non-production
  */
 export async function createTestUser(
+  page: Page,
   email: string,
   role: "ADMIN" | "VOLUNTEER" = "VOLUNTEER",
   additionalData?: {
@@ -15,20 +15,13 @@ export async function createTestUser(
     excludedShortageNotificationTypes?: string[];
   }
 ): Promise<void> {
-  // Delete existing user first to avoid conflicts
-  await prisma.user.deleteMany({
-    where: { email },
-  });
-
-  const hashedPassword = await bcryptjs.hash("Test123456", 12);
-  await prisma.user.create({
+  await page.request.post("/api/test/users", {
     data: {
       email,
-      hashedPassword,
-      role,
-      name: `Test User ${email}`,
+      password: "Test123456",
       firstName: "Test",
       lastName: "User",
+      role,
       profileCompleted: true,
       ...additionalData,
     },
@@ -37,48 +30,18 @@ export async function createTestUser(
 
 /**
  * Delete test users
+ * Note: For E2E tests, consider using database resets between test runs
+ * instead of manual cleanup. This function is kept for backward compatibility.
  */
-export async function deleteTestUsers(emails: string[]): Promise<void> {
-  // First get user IDs for the emails
-  const users = await prisma.user.findMany({
-    where: {
-      email: {
-        in: emails,
-      },
-    },
-    select: { id: true },
-  });
-
-  const userIds = users.map((user) => user.id);
-
-  if (userIds.length > 0) {
-    // Delete any remaining signups for these users
-    await prisma.signup.deleteMany({
-      where: {
-        userId: {
-          in: userIds,
-        },
-      },
-    });
-
-    // Delete any notifications for these users
-    await prisma.notification.deleteMany({
-      where: {
-        userId: {
-          in: userIds,
-        },
-      },
-    });
-
-    // Finally delete the users
-    await prisma.user.deleteMany({
-      where: {
-        id: {
-          in: userIds,
-        },
-      },
-    });
-  }
+export async function deleteTestUsers(
+  page: Page,
+  emails: string[]
+): Promise<void> {
+  // TODO: Implement admin API endpoint for bulk user deletion if needed
+  // For now, tests should use isolated data or database resets
+  console.warn(
+    "deleteTestUsers: Consider using database resets instead of manual cleanup"
+  );
 }
 
 /**
@@ -105,84 +68,47 @@ export async function ensureAdmin(page: Page): Promise<void> {
 }
 
 /**
- * Create a test shift
+ * Create a test shift via admin API
  */
-export async function createShift(data: {
-  location: string;
-  start: Date;
-  end?: Date;
-  capacity: number;
-  shiftTypeId?: string;
-  notes?: string;
-}): Promise<{ id: string }> {
-  // Get or create a shift type
-  let shiftType = await prisma.shiftType.findFirst({
-    where: { name: "Kitchen" },
-  });
-
-  if (!shiftType) {
-    try {
-      shiftType = await prisma.shiftType.create({
-        data: {
-          name: "Kitchen",
-          description: "Kitchen duties",
-        },
-      });
-    } catch (error) {
-      // If creation fails due to unique constraint (another test created it), fetch it again
-      shiftType = await prisma.shiftType.findFirst({
-        where: { name: "Kitchen" },
-      });
-      if (!shiftType) {
-        throw error; // Re-throw if it's not a unique constraint issue
-      }
-    }
+export async function createShift(
+  page: Page,
+  data: {
+    location: string;
+    start: Date;
+    end?: Date;
+    capacity: number;
+    shiftTypeId?: string;
+    notes?: string;
   }
-
-  const shift = await prisma.shift.create({
+): Promise<{ id: string }> {
+  const response = await page.request.post("/api/admin/shifts", {
     data: {
-      shiftTypeId: data.shiftTypeId || shiftType.id,
+      shiftTypeId: data.shiftTypeId,
       location: data.location,
-      start: data.start,
-      end: data.end || new Date(data.start.getTime() + 3 * 60 * 60 * 1000), // 3 hours later or provided end time
+      start: data.start.toISOString(),
+      end:
+        data.end?.toISOString() ||
+        new Date(data.start.getTime() + 3 * 60 * 60 * 1000).toISOString(),
       capacity: data.capacity,
       notes: data.notes || "Test shift",
     },
   });
 
-  return { id: shift.id };
+  const result = await response.json();
+  return { id: result.id };
 }
 
 /**
- * Delete test shifts
+ * Delete test shifts via admin API
  */
-export async function deleteTestShifts(shiftIds: string[]): Promise<void> {
+export async function deleteTestShifts(
+  page: Page,
+  shiftIds: string[]
+): Promise<void> {
   if (shiftIds.length === 0) return;
 
-  // First delete all signups for these shifts
-  await prisma.signup.deleteMany({
-    where: {
-      shiftId: {
-        in: shiftIds,
-      },
-    },
-  });
-
-  // Delete any group bookings for these shifts
-  await prisma.groupBooking.deleteMany({
-    where: {
-      shiftId: {
-        in: shiftIds,
-      },
-    },
-  });
-
-  // Then delete the shifts
-  await prisma.shift.deleteMany({
-    where: {
-      id: {
-        in: shiftIds,
-      },
-    },
-  });
+  // Delete shifts one by one using admin API
+  for (const shiftId of shiftIds) {
+    await page.request.delete(`/api/admin/shifts/${shiftId}`);
+  }
 }

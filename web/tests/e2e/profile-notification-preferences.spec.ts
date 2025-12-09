@@ -5,10 +5,10 @@ import { randomUUID } from "node:crypto";
 test.describe("User Notification Preferences", () => {
   let volunteerEmail: string;
 
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ page }) => {
     // Create a test volunteer
     volunteerEmail = `volunteer-prefs-${randomUUID()}@test.com`;
-    await createTestUser(volunteerEmail, "VOLUNTEER", {
+    await createTestUser(page, volunteerEmail, "VOLUNTEER", {
       availableLocations: JSON.stringify(["Wellington"]),
       availableDays: JSON.stringify(["Monday", "Wednesday"]),
       receiveShortageNotifications: true,

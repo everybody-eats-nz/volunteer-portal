@@ -21,10 +21,10 @@ test.describe("General Volunteer Movement System", () => {
   let targetShiftId: string;
   let signupId: string;
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ page }) => {
     // Create test users
-    await createTestUser(adminEmail, "ADMIN");
-    await createTestUser(volunteerEmail, "VOLUNTEER");
+    await createTestUser(page, adminEmail, "ADMIN");
+    await createTestUser(page, volunteerEmail, "VOLUNTEER");
 
     // Get volunteer user ID
     const volunteer = await prisma.user.findUnique({
@@ -42,7 +42,7 @@ test.describe("General Volunteer Movement System", () => {
       where: { name: "Kitchen Prep & Service" },
     });
 
-    const sourceShift = await createShift({
+    const sourceShift = await createShift(page, {
       location: "Wellington",
       start: tomorrow,
       end: new Date(tomorrow.getTime() + 3 * 60 * 60 * 1000),
@@ -58,7 +58,7 @@ test.describe("General Volunteer Movement System", () => {
       where: { name: "FOH Set-Up & Service" },
     });
 
-    const targetShift = await createShift({
+    const targetShift = await createShift(page, {
       location: "Wellington",
       start: new Date(tomorrow.getTime() - 60 * 60 * 1000), // 1 hour earlier (4:30 PM)
       end: new Date(tomorrow.getTime() + 3.5 * 60 * 60 * 1000),
@@ -80,7 +80,7 @@ test.describe("General Volunteer Movement System", () => {
     signupId = signup.id;
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async ({ page }) => {
     // Clean up notifications
     await prisma.notification.deleteMany({
       where: { userId: volunteerUserId },
@@ -94,8 +94,8 @@ test.describe("General Volunteer Movement System", () => {
     });
 
     // Cleanup test users and shifts
-    await deleteTestUsers(testEmails);
-    await deleteTestShifts(testShiftIds);
+    await deleteTestUsers(page, testEmails);
+    await deleteTestShifts(page, testShiftIds);
   });
 
   test.describe.skip("Admin Volunteer Movement Interface", () => {

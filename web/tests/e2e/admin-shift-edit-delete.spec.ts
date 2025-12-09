@@ -29,16 +29,16 @@ test.describe("Admin Shift Edit and Delete", () => {
   ];
   const testShiftIds: string[] = [];
 
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ page }) => {
     // Create test users with unique emails
-    await createTestUser(testEmails[0], "ADMIN");
-    await createTestUser(testEmails[1], "VOLUNTEER");
+    await createTestUser(page, testEmails[0], "ADMIN");
+    await createTestUser(page, testEmails[1], "VOLUNTEER");
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async ({ page }) => {
     // Cleanup test users and shifts
-    await deleteTestUsers(testEmails);
-    await deleteTestShifts(testShiftIds);
+    await deleteTestUsers(page, testEmails);
+    await deleteTestShifts(page, testShiftIds);
   });
 
   test.beforeEach(async ({ page }) => {
@@ -49,12 +49,12 @@ test.describe("Admin Shift Edit and Delete", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Get next operating day (when restaurant is open)
       operatingDateStr = getNextOperatingDay();
       const operatingDate = new Date(operatingDateStr + "T00:00:00");
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(operatingDate.setHours(10, 0)),
         end: new Date(operatingDate.setHours(14, 0)),
@@ -186,7 +186,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      const pastShift = await createShift({
+      const pastShift = await createShift(page, {
         location: "Wellington",
         start: new Date(yesterday.setHours(10, 0)),
         end: new Date(yesterday.setHours(14, 0)),
@@ -230,12 +230,12 @@ test.describe("Admin Shift Edit and Delete", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Get next operating day (when restaurant is open)
       operatingDateStr = getNextOperatingDay();
       const operatingDate = new Date(operatingDateStr + "T00:00:00");
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(operatingDate.setHours(15, 0)),
         end: new Date(operatingDate.setHours(18, 0)),
@@ -416,12 +416,12 @@ test.describe("Admin Shift Edit and Delete", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Get next operating day (when restaurant is open)
       operatingDateStr = getNextOperatingDay();
       const operatingDate = new Date(operatingDateStr + "T00:00:00");
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(operatingDate.setHours(11, 0)),
         end: new Date(operatingDate.setHours(15, 0)),
@@ -476,12 +476,12 @@ test.describe("Admin Shift Edit and Delete", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Get next operating day (when restaurant is open)
       operatingDateStr = getNextOperatingDay();
       const operatingDate = new Date(operatingDateStr + "T00:00:00");
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(operatingDate.setHours(12, 0)),
         end: new Date(operatingDate.setHours(16, 0)),
@@ -546,12 +546,12 @@ test.describe("Admin Shift Edit and Delete", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Get next operating day (when restaurant is open)
       operatingDateStr = getNextOperatingDay();
       const operatingDate = new Date(operatingDateStr + "T00:00:00");
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(operatingDate.setHours(13, 0)),
         end: new Date(operatingDate.setHours(17, 0)),
@@ -592,12 +592,12 @@ test.describe("Admin Shift Edit and Delete", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Get next operating day (when restaurant is open)
       operatingDateStr = getNextOperatingDay();
       const operatingDate = new Date(operatingDateStr + "T00:00:00");
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(operatingDate.setHours(16, 0)),
         end: new Date(operatingDate.setHours(20, 0)),
