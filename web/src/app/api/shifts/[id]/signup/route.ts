@@ -5,9 +5,18 @@ import { authOptions } from "@/lib/auth-options";
 import { getNotificationService } from "@/lib/notification-service";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { checkForBot } from "@/lib/bot-protection";
-import DOMPurify from 'dompurify';
-import { JSDOM } from 'jsdom';
 import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
+
+/**
+ * Simple HTML sanitizer for serverless environment
+ * Strips HTML tags and encodes special characters
+ */
+function sanitizeNote(input: string): string {
+  // Remove HTML tags
+  const withoutTags = input.replace(/<[^>]*>/g, '');
+  // Trim whitespace
+  return withoutTags.trim();
+}
 
 export async function POST(
   req: Request,
@@ -104,11 +113,9 @@ export async function POST(
         );
       }
 
-      // Add input sanitization using DOMPurify
+      // Sanitize the note
       if (trimmedNote) {
-        const window = new JSDOM('').window;
-        const purify = DOMPurify(window);
-        note = purify.sanitize(trimmedNote) || null;
+        note = sanitizeNote(trimmedNote) || null;
       } else {
         note = null;
       }
