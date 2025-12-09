@@ -118,10 +118,12 @@ jobs:
         run: |
           cd web
           mkdir -p blob-report
+
           npx playwright test \
             --shard=${{ matrix.shard }}/${{ strategy.job-total }} \
             --project=chromium \
-            --reporter=blob,json=blob-report/shard-${{ matrix.shard }}.json
+            --reporter=blob \
+            --reporter=json=blob-report/shard-${{ matrix.shard }}.json
 
       - name: Upload blob report
         uses: actions/upload-artifact@v5
