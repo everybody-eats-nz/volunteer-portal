@@ -194,6 +194,7 @@ jobs:
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
       - name: Add/Update Playwright Report Comment on PR
+        if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
