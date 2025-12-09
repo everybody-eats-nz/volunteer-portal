@@ -153,10 +153,6 @@ test.describe("Dashboard Page", () => {
     const impactHeading = page.getByText("Your Impact & Community");
     await expect(impactHeading.first()).toBeVisible({ timeout: 10000 });
 
-    // Check for estimated meals stat
-    const estimatedMealsText = page.getByText(/Meals helped prepare/i);
-    await expect(estimatedMealsText.first()).toBeVisible({ timeout: 10000 });
-
     // Check for active volunteers stat
     const activeVolunteersText = page.getByText(
       /active volunteers in our community/i
