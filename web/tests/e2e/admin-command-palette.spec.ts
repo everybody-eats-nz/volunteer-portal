@@ -134,9 +134,9 @@ test.describe("Admin Command Palette", () => {
         // Should have user name/email visible
         await expect(firstResult).toBeVisible();
 
-        // Should show role information (Admin/Volunteer)
-        const roleText = firstResult.locator("text=/Admin|Volunteer/");
-        await expect(roleText).toBeVisible();
+        // Should show email address of initial admin
+        const email = firstResult.locator("text=/admin@everybodyeats.nz/");
+        await expect(email).toBeVisible();
       }
     });
   });
