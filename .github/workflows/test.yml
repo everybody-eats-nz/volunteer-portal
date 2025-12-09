@@ -174,63 +174,25 @@ jobs:
           node <<'EOF'
           const fs = require('fs');
           const path = require('path');
+          const reportDir = '../all-blob-reports';
+          const files = fs.readdirSync(reportDir).filter(f => f.endsWith('.json'));
 
-          const SUMMARY_FILE = path.join(__dirname, 'blob-report', 'summary.json');
+          let passed = 0, failed = 0, skipped = 0;
 
-          if (!fs.existsSync(SUMMARY_FILE)) {
-            console.error(`❌ Summary file not found at ${SUMMARY_FILE}`);
-            process.exit(1);
-          }
-
-          const report = JSON.parse(fs.readFileSync(SUMMARY_FILE, 'utf-8'));
-
-          let totalTests = 0;
-          let passed = 0;
-          let failed = 0;
-          let skipped = 0;
-
-          function processSuite(suite, indent = 0) {
-            const prefix = ' '.repeat(indent);
-
-            console.log(`${prefix}Suite: ${suite.title || '(no title)'} (${suite.tests?.length || 0} tests)`);
-
-            if (suite.tests) {
+          for (const file of files) {
+            const report = JSON.parse(fs.readFileSync(path.join(reportDir, file)));
+            for (const suite of report.suites) {
               for (const test of suite.tests) {
-                console.log(
-                  `${prefix}  Test: ${test.title} — status: ${test.status}`
-                );
-                totalTests++;
                 if (test.status === 'passed') passed++;
                 else if (test.status === 'failed') failed++;
                 else if (test.status === 'skipped') skipped++;
               }
-            } else {
-              console.log(`${prefix}  No tests in this suite`);
-            }
-
-            if (suite.suites) {
-              console.log(`${prefix}  ${suite.suites.length} child suites`);
-              for (const child of suite.suites) {
-                processSuite(child, indent + 4);
-              }
             }
           }
 
-          // Top-level suites
-          if (report.suites) {
-            console.log(`Found ${report.suites.length} top-level suites`);
-            for (const suite of report.suites) {
-              processSuite(suite, 2);
-            }
-          } else {
-            console.warn('⚠️ No top-level suites found in summary.json');
-          }
-
-          console.log('---');
-          console.log(`Total tests: ${totalTests}`);
-          console.log(`✅ Passed: ${passed}`);
-          console.log(`❌ Failed: ${failed}`);
-          console.log(`⚠️ Skipped: ${skipped}`);
+          const summary = { passed, failed, skipped };
+          fs.writeFileSync('playwright-report/summary.json', JSON.stringify(summary));
+          console.log(summary);
           EOF
 
       - name: Upload merged report
