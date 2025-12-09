@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  ArrowUpDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MigrationProgressEvent } from "@/types/nova-migration";
@@ -103,6 +104,9 @@ export function HistoricalDataSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // Sorting state - default to showing users without migration data first
+  const [sortBy, setSortBy] = useState("migration-status-asc");
+
   const { toast } = useToast();
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const toastRef = useRef(toast);
@@ -136,6 +140,7 @@ export function HistoricalDataSelector({
         page: page.toString(),
         pageSize: pageSize.toString(),
         ...(debouncedSearch && { search: debouncedSearch }),
+        ...(sortBy && { sortBy }),
       });
       const response = await fetch(`/api/admin/migration/users?${params}`);
       const data = await response.json();
@@ -152,7 +157,7 @@ export function HistoricalDataSelector({
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, debouncedSearch]);
+  }, [page, pageSize, debouncedSearch, sortBy]);
 
   // Load migrated users when page, pageSize, or search changes
   useEffect(() => {
@@ -175,6 +180,29 @@ export function HistoricalDataSelector({
 
   const deselectAll = () => {
     setSelectedUserEmails([]);
+  };
+
+  const toggleAllVisible = () => {
+    // Only consider users without historical data (since those with data are disabled)
+    const selectableUsers = users.filter((u) => !u.hasHistoricalData);
+
+    // Check if all selectable visible users are selected
+    const allVisibleSelected = selectableUsers.every((u) =>
+      selectedUserEmails.includes(u.email)
+    );
+
+    if (allVisibleSelected) {
+      // Deselect all visible selectable users
+      const visibleEmails = selectableUsers.map((u) => u.email);
+      setSelectedUserEmails(
+        selectedUserEmails.filter((email) => !visibleEmails.includes(email))
+      );
+    } else {
+      // Select all visible selectable users
+      const newSelection = new Set(selectedUserEmails);
+      selectableUsers.forEach((u) => newSelection.add(u.email));
+      setSelectedUserEmails(Array.from(newSelection));
+    }
   };
 
   const importHistoricalData = async () => {
@@ -359,15 +387,43 @@ export function HistoricalDataSelector({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by email or name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          {/* Search and Sort */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by email or name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setPage(1); // Reset to first page when sort changes
+                }}
+                className="border rounded-md px-3 py-2 text-sm"
+              >
+                <option value="migration-status-asc">
+                  Migration Status (Pending First)
+                </option>
+                <option value="migration-status-desc">
+                  Migration Status (Completed First)
+                </option>
+                <option value="signups-desc">Most Shifts</option>
+                <option value="signups-asc">Fewest Shifts</option>
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="email-asc">Email (A-Z)</option>
+                <option value="email-desc">Email (Z-A)</option>
+                <option value="createdAt-desc">Newest First</option>
+                <option value="createdAt-asc">Oldest First</option>
+              </select>
+            </div>
           </div>
 
           {/* Summary Stats */}
@@ -447,7 +503,18 @@ export function HistoricalDataSelector({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={
+                        users.filter((u) => !u.hasHistoricalData).length > 0 &&
+                        users
+                          .filter((u) => !u.hasHistoricalData)
+                          .every((u) => selectedUserEmails.includes(u.email))
+                      }
+                      onCheckedChange={toggleAllVisible}
+                      aria-label="Select all visible rows"
+                    />
+                  </TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Signup Count</TableHead>

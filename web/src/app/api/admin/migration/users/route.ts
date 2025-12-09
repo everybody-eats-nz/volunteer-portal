@@ -29,12 +29,13 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * pageSize;
     const take = pageSize;
 
-    // Determine if we need to sort by signup count (which requires in-memory sorting)
+    // Determine if we need to sort by signup count or migration status (which requires in-memory sorting)
     const sortBySignups = sortBy.startsWith("signups-");
+    const sortByMigrationStatus = sortBy.startsWith("migration-status-");
 
-    // Build orderBy clause for database queries (used when not sorting by signups)
+    // Build orderBy clause for database queries (used when not sorting by signups or migration status)
     const getOrderBy = () => {
-      if (sortBySignups) {
+      if (sortBySignups || sortByMigrationStatus) {
         // Default sorting for database query when we'll sort in-memory
         return { createdAt: "desc" as const };
       }
@@ -156,6 +157,17 @@ export async function GET(request: NextRequest) {
         });
       }
 
+      // Sort by migration status (hasHistoricalData) if requested
+      if (sortByMigrationStatus) {
+        filteredUsers.sort((a, b) => {
+          const hasDataA = a._count.signups > 0 ? 1 : 0;
+          const hasDataB = b._count.signups > 0 ? 1 : 0;
+          return sortBy === "migration-status-desc"
+            ? hasDataB - hasDataA
+            : hasDataA - hasDataB;
+        });
+      }
+
       // Apply pagination to filtered results
       const totalCount = filteredUsers.length;
       const paginatedUsers = filteredUsers.slice(skip, skip + take);
@@ -223,8 +235,8 @@ export async function GET(request: NextRequest) {
 
     let users;
 
-    // If sorting by signups, we need to fetch all users and sort in-memory
-    if (sortBySignups) {
+    // If sorting by signups or migration status, we need to fetch all users and sort in-memory
+    if (sortBySignups || sortByMigrationStatus) {
       const allUsers = await prisma.user.findMany({
         where,
         select: {
@@ -249,13 +261,26 @@ export async function GET(request: NextRequest) {
       });
 
       // Sort by signup count
-      allUsers.sort((a, b) => {
-        const signupsA = a._count.signups;
-        const signupsB = b._count.signups;
-        return sortBy === "signups-desc"
-          ? signupsB - signupsA
-          : signupsA - signupsB;
-      });
+      if (sortBySignups) {
+        allUsers.sort((a, b) => {
+          const signupsA = a._count.signups;
+          const signupsB = b._count.signups;
+          return sortBy === "signups-desc"
+            ? signupsB - signupsA
+            : signupsA - signupsB;
+        });
+      }
+
+      // Sort by migration status (hasHistoricalData)
+      if (sortByMigrationStatus) {
+        allUsers.sort((a, b) => {
+          const hasDataA = a._count.signups > 0 ? 1 : 0;
+          const hasDataB = b._count.signups > 0 ? 1 : 0;
+          return sortBy === "migration-status-desc"
+            ? hasDataB - hasDataA
+            : hasDataA - hasDataB;
+        });
+      }
 
       // Apply pagination
       users = allUsers.slice(skip, skip + take);
