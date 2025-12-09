@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer, logout } from "./helpers/auth";
 
 test.describe("Admin Command Palette", () => {
   test.beforeEach(async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("non-admin users do not see command palette", async ({ page }) => {
-      // Skip the logout part for now and directly login as volunteer in new context
+      await logout(page);
       await loginAsVolunteer(page);
 
       await page.goto("/dashboard");
@@ -134,9 +134,9 @@ test.describe("Admin Command Palette", () => {
         // Should have user name/email visible
         await expect(firstResult).toBeVisible();
 
-        // Should show role information (Admin/Volunteer)
-        const roleText = firstResult.locator("text=/Admin|Volunteer/");
-        await expect(roleText).toBeVisible();
+        // Should show email address of initial admin
+        const email = firstResult.locator("text=/admin@everybodyeats.nz/");
+        await expect(email).toBeVisible();
       }
     });
   });

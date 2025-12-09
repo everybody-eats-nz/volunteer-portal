@@ -44,59 +44,66 @@ export function useAchievementTracker() {
   /**
    * Check for achievements unlocked since last dashboard visit
    */
-  const checkAchievements = useCallback(async (): Promise<AchievementsData | null> => {
-    try {
-      setIsLoading(true);
+  const checkAchievements =
+    useCallback(async (): Promise<AchievementsData | null> => {
+      try {
+        setIsLoading(true);
 
-      // Get last dashboard visit time from localStorage
-      const lastVisitKey = "dashboard_last_visit";
-      const lastVisit = localStorage.getItem(lastVisitKey);
-      const lastVisitTime = lastVisit ? new Date(lastVisit) : new Date(0); // Use epoch if never visited
+        // Get last dashboard visit time from localStorage
+        const lastVisitKey = "dashboard_last_visit";
+        const lastVisit = localStorage.getItem(lastVisitKey);
+        const lastVisitTime = lastVisit ? new Date(lastVisit) : new Date(0); // Use epoch if never visited
 
-      // Trigger achievement calculation to unlock any new ones
-      const response = await fetch("/api/achievements");
-      if (!response.ok) {
-        console.error("Failed to fetch achievements:", {
-          status: response.status,
-          statusText: response.statusText,
+        // Trigger achievement calculation to unlock any new ones
+        const response = await fetch("/api/achievements");
+        if (!response.ok) {
+          console.error("Failed to fetch achievements:", {
+            status: response.status,
+            statusText: response.statusText,
+          });
+          if (response.status === 401) {
+            console.error(
+              "User not authenticated - skipping achievement check"
+            );
+          }
+          return null;
+        }
+        const data: AchievementsData = await response.json();
+
+        // Find achievements unlocked since last visit
+        const recentAchievements: Achievement[] = [];
+        data.userAchievements.forEach((userAchievement) => {
+          const unlockedAt = new Date(userAchievement.unlockedAt);
+          if (unlockedAt > lastVisitTime) {
+            recentAchievements.push(userAchievement.achievement);
+          }
         });
-        if (response.status === 401) {
-          console.error("User not authenticated - skipping achievement check");
+
+        if (
+          recentAchievements.length > 0 &&
+          // don't show when running tests
+          !process.env.NEXT_PUBLIC_DISABLE_ANIMATIONS
+        ) {
+          setNewAchievements(recentAchievements);
+          setShowCelebration(true);
+
+          console.log(
+            `🎉 Found ${recentAchievements.length} achievements unlocked since last visit:`,
+            recentAchievements.map((a) => a.name)
+          );
         }
+
+        // Update last visit time AFTER checking for new achievements
+        localStorage.setItem(lastVisitKey, new Date().toISOString());
+
+        return data;
+      } catch (error) {
+        console.error("Error checking achievements:", error);
         return null;
+      } finally {
+        setIsLoading(false);
       }
-      const data: AchievementsData = await response.json();
-
-      // Find achievements unlocked since last visit
-      const recentAchievements: Achievement[] = [];
-      data.userAchievements.forEach((userAchievement) => {
-        const unlockedAt = new Date(userAchievement.unlockedAt);
-        if (unlockedAt > lastVisitTime) {
-          recentAchievements.push(userAchievement.achievement);
-        }
-      });
-
-      if (recentAchievements.length > 0) {
-        setNewAchievements(recentAchievements);
-        setShowCelebration(true);
-
-        console.log(
-          `🎉 Found ${recentAchievements.length} achievements unlocked since last visit:`,
-          recentAchievements.map((a) => a.name)
-        );
-      }
-
-      // Update last visit time AFTER checking for new achievements
-      localStorage.setItem(lastVisitKey, new Date().toISOString());
-
-      return data;
-    } catch (error) {
-      console.error("Error checking achievements:", error);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []); // Empty deps - function is stable
+    }, []); // Empty deps - function is stable
 
   /**
    * Close the celebration dialog

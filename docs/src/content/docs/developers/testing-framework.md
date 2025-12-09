@@ -70,6 +70,7 @@ The Playwright configuration (`web/playwright.config.ts`) includes:
 ### Animation Handling
 
 Tests automatically disable animations using:
+
 - Environment variables: `NEXT_PUBLIC_DISABLE_ANIMATIONS=true` and `PLAYWRIGHT_TEST=true`
 - CSS class: `e2e-testing` added to document body (via `base.ts`)
 
@@ -135,7 +136,7 @@ import {
   createTestUser,
   deleteTestUsers,
   createShift,
-  deleteTestShifts
+  deleteTestShifts,
 } from "./helpers/test-helpers";
 
 test.describe("User Management", () => {
@@ -144,8 +145,8 @@ test.describe("User Management", () => {
 
   test.beforeEach(async () => {
     // Create test users
-    await createTestUser("test1@example.com", "VOLUNTEER");
-    await createTestUser("test2@example.com", "ADMIN");
+    await createTestUser(page, "test1@example.com", "VOLUNTEER");
+    await createTestUser(page, "test2@example.com", "ADMIN");
 
     // Create test shift
     const shift = await createShift({
@@ -206,6 +207,7 @@ Use descriptive, hierarchical naming: `section-element-type`
 ### When to Add TestIds
 
 Add `data-testid` attributes to:
+
 - Page containers and sections
 - Form fields and inputs
 - Interactive elements (buttons, links)
@@ -404,8 +406,9 @@ test("should allow user to sign up for shift", async ({ page }) => {
 
   await page.getByTestId("confirm-signup-button").click();
 
-  await expect(page.getByTestId("success-message"))
-    .toContainText("Successfully signed up");
+  await expect(page.getByTestId("success-message")).toContainText(
+    "Successfully signed up"
+  );
 });
 
 // ❌ Bad - Tests implementation details
@@ -551,6 +554,7 @@ npx playwright show-trace trace.zip
 ## CI/CD Integration
 
 Tests run automatically in CI with:
+
 - **2 retries** for flaky tests
 - **2 parallel workers** for performance
 - **Blob reporter** for aggregating results
@@ -563,6 +567,7 @@ The CI configuration ensures tests are reliable and provides debugging informati
 ### Test Timeout
 
 If tests timeout, check:
+
 1. Is the dev server running? (Playwright auto-starts it)
 2. Are animations disabled? (Check `NEXT_PUBLIC_DISABLE_ANIMATIONS=true`)
 3. Are you waiting for the right condition? (Use proper waitFor methods)
@@ -570,6 +575,7 @@ If tests timeout, check:
 ### Flaky Tests
 
 If tests are flaky:
+
 1. Add proper wait conditions instead of timeouts
 2. Use `{ strict: false }` for non-unique selectors
 3. Check for race conditions in async operations
@@ -578,6 +584,7 @@ If tests are flaky:
 ### Element Not Found
 
 If elements aren't found:
+
 1. Check the `data-testid` spelling
 2. Verify the element is actually in the DOM (not conditionally rendered)
 3. Use `page.locator("selector").count()` to debug

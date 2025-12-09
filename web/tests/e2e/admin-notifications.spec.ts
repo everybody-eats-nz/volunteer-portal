@@ -16,14 +16,14 @@ test.describe("Admin Shift Shortage Notifications", () => {
   test.beforeEach(async ({ page }) => {
     // Create admin user
     adminEmail = `admin-notify-${Date.now()}@test.com`;
-    await createTestUser(adminEmail, "ADMIN");
+    await createTestUser(page, adminEmail, "ADMIN");
 
     // Create test volunteers with different preferences
     const baseTime = Date.now();
 
     // Volunteer 1: Wellington, opted in
     volunteerEmails.push(`volunteer1-${baseTime}@test.com`);
-    await createTestUser(volunteerEmails[0], "VOLUNTEER", {
+    await createTestUser(page, volunteerEmails[0], "VOLUNTEER", {
       availableLocations: JSON.stringify(["Wellington"]),
       availableDays: JSON.stringify(["Monday", "Wednesday"]),
       receiveShortageNotifications: true,
@@ -32,7 +32,7 @@ test.describe("Admin Shift Shortage Notifications", () => {
 
     // Volunteer 2: Glen Innes, opted in
     volunteerEmails.push(`volunteer2-${baseTime}@test.com`);
-    await createTestUser(volunteerEmails[1], "VOLUNTEER", {
+    await createTestUser(page, volunteerEmails[1], "VOLUNTEER", {
       availableLocations: JSON.stringify(["Glen Innes"]),
       availableDays: JSON.stringify(["Tuesday", "Thursday"]),
       receiveShortageNotifications: true,
@@ -40,7 +40,7 @@ test.describe("Admin Shift Shortage Notifications", () => {
     });
 
     // Create a test shift
-    const shiftData = await createShift({
+    const shiftData = await createShift(page, {
       location: "Wellington",
       start: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
       capacity: 10,
@@ -52,11 +52,11 @@ test.describe("Admin Shift Shortage Notifications", () => {
     await ensureAdmin(page);
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async ({ page }) => {
     // Clean up test data
-    await deleteTestUsers([adminEmail, ...volunteerEmails]);
+    await deleteTestUsers(page, [adminEmail, ...volunteerEmails]);
     if (shiftId) {
-      await deleteTestShifts([shiftId]);
+      await deleteTestShifts(page, [shiftId]);
     }
   });
 

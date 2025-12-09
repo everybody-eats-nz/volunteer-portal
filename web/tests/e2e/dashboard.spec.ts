@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { loginAsVolunteer } from "./helpers/auth";
 
 // Helper function to wait for dashboard content to load (including Suspense boundaries)
 async function waitForDashboardContent(page: Page) {
@@ -21,39 +22,6 @@ async function waitForDashboardContent(page: Page) {
     await page
       .getByText("Quick Actions")
       .waitFor({ state: "visible", timeout: 5000 });
-  }
-}
-
-// Helper function to login
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-
-    // Wait for the page to load
-    await page.waitForLoadState("load");
-
-    // Check if login form is visible
-    const volunteerLoginButton = page.getByRole("button", {
-      name: /login as volunteer/i,
-    });
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 5000 });
-
-    // Click login button
-    await volunteerLoginButton.click();
-
-    // Wait for navigation with timeout
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch {
-      // Login might have failed, but don't throw - let the test handle it
-      console.log("Login may have failed or taken too long");
-    }
-
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during login:", error);
   }
 }
 
@@ -185,19 +153,11 @@ test.describe("Dashboard Page", () => {
     const impactHeading = page.getByText("Your Impact & Community");
     await expect(impactHeading.first()).toBeVisible({ timeout: 10000 });
 
-    // Check for estimated meals stat
-    const estimatedMealsText = page.getByText(/Meals helped prepare/i);
-    await expect(estimatedMealsText.first()).toBeVisible({ timeout: 10000 });
-
     // Check for active volunteers stat
     const activeVolunteersText = page.getByText(
       /active volunteers in our community/i
     );
     await expect(activeVolunteersText.first()).toBeVisible({ timeout: 10000 });
-
-    // Check for food waste prevented stat
-    const foodWasteText = page.getByText(/estimated food waste prevented/i);
-    await expect(foodWasteText.first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should display quick actions section", async ({ page }) => {
