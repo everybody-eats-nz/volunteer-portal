@@ -28,6 +28,11 @@ interface UserAchievement {
   achievement: Achievement;
 }
 
+interface ShiftType {
+  id: string;
+  name: string;
+}
+
 interface AchievementsListClientProps {
   userAchievements: UserAchievement[];
   availableAchievements: Achievement[];
@@ -40,6 +45,7 @@ interface AchievementsListClientProps {
     friends_count: number;
     shift_type_counts: Record<string, number>;
   };
+  shiftTypes: ShiftType[];
 }
 
 interface AchievementCriteria {
@@ -134,9 +140,23 @@ export function AchievementsListClient({
   userAchievements,
   availableAchievements,
   progress,
+  shiftTypes,
 }: AchievementsListClientProps) {
   const [activeTab, setActiveTab] = useState("all");
   const [hideCompleted, setHideCompleted] = useState(false);
+
+  // Helper to format achievement criteria with shift type name
+  const formatCriteria = (criteriaJson: string) => {
+    try {
+      const criteria = JSON.parse(criteriaJson);
+      const shiftTypeName = criteria.shiftType
+        ? shiftTypes.find((st) => st.id === criteria.shiftType)?.name
+        : undefined;
+      return formatAchievementCriteria(criteriaJson, shiftTypeName);
+    } catch {
+      return formatAchievementCriteria(criteriaJson);
+    }
+  };
 
   // Group achievements by category
   const allAchievements = [
@@ -215,7 +235,7 @@ export function AchievementsListClient({
             </p>
             <p className="text-xs text-muted-foreground/80 mt-2 flex items-center gap-1.5">
               <span className="font-medium">Criteria:</span>
-              {formatAchievementCriteria(achievement.criteria)}
+              {formatCriteria(achievement.criteria)}
             </p>
             {achievement.unlocked && achievement.unlockedAt && (
               <p className="text-xs text-muted-foreground mt-1.5">
