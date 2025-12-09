@@ -182,7 +182,6 @@ jobs:
 
           # Link project
           vercel link \
-            $TARGET_FLAG \
             --project volunteer-portal-playwright-reports \
             --yes \
             --token=${{ secrets.VERCEL_TOKEN }}
