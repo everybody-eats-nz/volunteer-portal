@@ -1,3 +1,9 @@
+## [0.79.0] - 2025-12-09
+
+### Changes
+- feat: add sorting and select all to Import Historical Data page ([#354](https://github.com/everybody-eats-nz/volunteer-portal/pull/354)) by @malinmalliyawadu
+
+
 ## [0.78.0] - 2025-12-07
 
 ### Changes
