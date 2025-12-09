@@ -51,7 +51,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Apply cache
         uses: actions/cache@v4
