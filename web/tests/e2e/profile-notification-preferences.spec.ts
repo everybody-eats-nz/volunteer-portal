@@ -16,10 +16,10 @@ test.describe("User Notification Preferences", () => {
     });
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async ({ page }) => {
     // Clean up test data
     if (volunteerEmail) {
-      await deleteTestUsers([volunteerEmail]);
+      await deleteTestUsers(page, [volunteerEmail]);
     }
   });
 
@@ -31,7 +31,7 @@ test.describe("User Notification Preferences", () => {
 
     // Check that notification section exists
     await expect(
-      page.getByTestId("notification-preferences-section")
+      page.getByTestId("notification-preferences-section").first()
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /Shift Shortage Notifications/i })
