@@ -115,8 +115,6 @@ jobs:
           npx prisma db seed
 
       - name: Run Playwright tests (blob + JSON)
-        env:
-          PLAYWRIGHT_JSON_OUTPUT_NAME: blob-report/shard-${{ matrix.shard }}.json
         run: |
           cd web
           mkdir -p blob-report
@@ -125,7 +123,7 @@ jobs:
             --shard=${{ matrix.shard }}/${{ strategy.job-total }} \
             --project=chromium \
             --reporter=blob \
-            --reporter=json
+            --reporter=json=blob-report/shard-${{ matrix.shard }}.json
 
       - name: Upload blob report
         uses: actions/upload-artifact@v5
