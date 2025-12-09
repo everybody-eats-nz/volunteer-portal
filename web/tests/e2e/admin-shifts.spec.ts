@@ -31,20 +31,17 @@ test.describe("Admin Shifts Page", () => {
   ];
   const testShiftIds: string[] = [];
 
-  test.beforeAll(async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     // Create test users with unique emails
     await createTestUser(page, testEmails[0], "ADMIN");
     await createTestUser(page, testEmails[1], "VOLUNTEER");
+    await loginAsAdmin(page);
   });
 
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     // Cleanup test users and shifts
     await deleteTestUsers(page, testEmails);
     await deleteTestShifts(page, testShiftIds);
-  });
-
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
   });
 
   test("should display admin shifts page with correct title and elements", async ({

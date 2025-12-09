@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer, logout } from "./helpers/auth";
 import {
   createTestUser,
   deleteTestUsers,
@@ -575,6 +575,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should return 403 when volunteer tries to delete shift via API", async ({
       page,
     }) => {
+      await logout(page);
       await loginAsVolunteer(page);
 
       // Try to delete via API call
