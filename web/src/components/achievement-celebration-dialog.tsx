@@ -47,7 +47,6 @@ export function AchievementCelebrationDialog({
   // Trigger confetti when dialog opens
   useEffect(() => {
     if (isOpen && achievements.length > 0) {
-
       // Create a celebratory confetti effect similar to auto-approval
       const colors = ["#FFD700", "#FFA500", "#FF6347", "#98FB98", "#87CEEB"];
 
@@ -192,7 +191,7 @@ export function AchievementCelebrationDialog({
           </AnimatePresence>
         </div>
 
-        <div className="flex justify-center pt-4 flex-shrink-0">
+        <div className="flex justify-center pt-4 shrink-0">
           <Button onClick={onClose} className="font-medium px-8">
             Awesome!
           </Button>

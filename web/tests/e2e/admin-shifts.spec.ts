@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer, logout } from "./helpers/auth";
 import {
   createTestUser,
   deleteTestUsers,
@@ -31,20 +31,17 @@ test.describe("Admin Shifts Page", () => {
   ];
   const testShiftIds: string[] = [];
 
-  test.beforeAll(async () => {
-    // Create test users with unique emails
-    await createTestUser(testEmails[0], "ADMIN");
-    await createTestUser(testEmails[1], "VOLUNTEER");
-  });
-
-  test.afterAll(async () => {
-    // Cleanup test users and shifts
-    await deleteTestUsers(testEmails);
-    await deleteTestShifts(testShiftIds);
-  });
-
   test.beforeEach(async ({ page }) => {
+    // Create test users with unique emails
+    await createTestUser(page, testEmails[0], "ADMIN");
+    await createTestUser(page, testEmails[1], "VOLUNTEER");
     await loginAsAdmin(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Cleanup test users and shifts
+    await deleteTestUsers(page, testEmails);
+    await deleteTestShifts(page, testShiftIds);
   });
 
   test("should display admin shifts page with correct title and elements", async ({
@@ -159,6 +156,7 @@ test.describe("Admin Shifts Page", () => {
   });
 
   test("should restrict access to volunteers", async ({ page }) => {
+    await logout(page);
     await loginAsVolunteer(page);
 
     await page.goto("/admin/shifts");
@@ -168,20 +166,20 @@ test.describe("Admin Shifts Page", () => {
   });
 
   test.describe("With Test Shifts", () => {
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ page }) => {
       // Create test shifts for different scenarios using NZ timezone
       const today = nowInNZT();
       const shiftDate = new Date(today);
       shiftDate.setDate(shiftDate.getDate() + 1); // Tomorrow in NZ timezone
 
-      const shift1 = await createShift({
+      const shift1 = await createShift(page, {
         location: "Wellington",
         start: new Date(shiftDate.setHours(10, 0)),
         capacity: 4,
       });
       testShiftIds.push(shift1.id);
 
-      const shift2 = await createShift({
+      const shift2 = await createShift(page, {
         location: "Wellington",
         start: new Date(shiftDate.setHours(14, 0)),
         capacity: 2,
@@ -281,7 +279,7 @@ test.describe("Admin Shifts Page", () => {
     }) => {
       // First create a shift for today
       const today = new Date();
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(today.setHours(15, 0)),
         capacity: 3,
@@ -395,7 +393,7 @@ test.describe("Admin Shifts Page", () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const shift = await createShift({
+      const shift = await createShift(page, {
         location: "Wellington",
         start: new Date(tomorrow.setHours(10, 0)),
         capacity: 2,
@@ -546,7 +544,7 @@ test.describe("Admin Shifts Page", () => {
         0,
         8
       )}@example.com`;
-      await createTestUser(testVolunteerEmail, "VOLUNTEER");
+      await createTestUser(page, testVolunteerEmail, "VOLUNTEER");
       testEmails.push(testVolunteerEmail);
 
       // Login as the new volunteer and create signup

@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { loginAsVolunteer } from "./helpers/auth";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -51,32 +52,6 @@ function getShiftElements(page: Page) {
     hasText: /\d{2}:\d{2}/,
     visible: true,
   });
-}
-
-// Helper function to login as volunteer
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    const volunteerLoginButton = page.getByRole("button", {
-      name: /login as volunteer/i,
-    });
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 5000 });
-    await volunteerLoginButton.click();
-
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch {
-      console.log("Login may have failed or taken too long");
-    }
-
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during login:", error);
-  }
 }
 
 test.describe("My Shifts Calendar Page", () => {

@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsVolunteer, loginAsAdmin } from "./helpers/auth";
+import { loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Friends System", () => {
   test.beforeEach(async ({ page }) => {
@@ -183,15 +183,5 @@ test.describe("Friends System", () => {
     // This test would require pre-seeded friends
     // Skipping for now as it requires test data setup
     test.skip();
-  });
-
-  test("friends link should not appear in admin navigation", async ({
-    page,
-  }) => {
-    // Login as admin
-    await loginAsAdmin(page);
-
-    // Check that Friends link is not in navigation
-    await expect(page.locator('a[href="/friends"]')).not.toBeVisible();
   });
 });

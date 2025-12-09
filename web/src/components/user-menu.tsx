@@ -37,10 +37,10 @@ export function UserMenu({
     <ThemedDropdownMenu>
       <ThemedDropdownMenuTrigger asChild>
         <Button
+          data-testid="user-menu-button"
           variant="ghost"
           size="sm"
           className="relative text-white/90 hover:text-white hover:bg-white/10 transition-colors duration-200 rounded-lg px-2 py-1"
-          suppressHydrationWarning
         >
           <div data-testid="user-menu" className="flex items-center gap-2">
             <Avatar className="w-7 h-7 border border-white/20">
@@ -50,9 +50,12 @@ export function UserMenu({
                   alt="Profile"
                   className="object-cover"
                   onError={(e) => {
-                    console.error('Avatar image failed to load:', profilePhotoUrl);
+                    console.error(
+                      "Avatar image failed to load:",
+                      profilePhotoUrl
+                    );
                     // Hide the image on error so fallback shows
-                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.style.display = "none";
                   }}
                 />
               ) : null}
@@ -79,7 +82,11 @@ export function UserMenu({
           </div>
         </Button>
       </ThemedDropdownMenuTrigger>
-      <ThemedDropdownMenuContent align="end" sideOffset={8} className="w-64 p-2">
+      <ThemedDropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-64 p-2"
+      >
         <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5">
           <Avatar className="w-10 h-10 border-2 border-primary/20">
             <AvatarImage

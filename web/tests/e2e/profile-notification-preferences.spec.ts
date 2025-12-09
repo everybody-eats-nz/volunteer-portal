@@ -5,10 +5,10 @@ import { randomUUID } from "node:crypto";
 test.describe("User Notification Preferences", () => {
   let volunteerEmail: string;
 
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ page }) => {
     // Create a test volunteer
     volunteerEmail = `volunteer-prefs-${randomUUID()}@test.com`;
-    await createTestUser(volunteerEmail, "VOLUNTEER", {
+    await createTestUser(page, volunteerEmail, "VOLUNTEER", {
       availableLocations: JSON.stringify(["Wellington"]),
       availableDays: JSON.stringify(["Monday", "Wednesday"]),
       receiveShortageNotifications: true,
@@ -16,10 +16,10 @@ test.describe("User Notification Preferences", () => {
     });
   });
 
-  test.afterEach(async () => {
+  test.afterEach(async ({ page }) => {
     // Clean up test data
     if (volunteerEmail) {
-      await deleteTestUsers([volunteerEmail]);
+      await deleteTestUsers(page, [volunteerEmail]);
     }
   });
 
@@ -31,7 +31,7 @@ test.describe("User Notification Preferences", () => {
 
     // Check that notification section exists
     await expect(
-      page.getByTestId("notification-preferences-section")
+      page.getByTestId("notification-preferences-section").first()
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /Shift Shortage Notifications/i })

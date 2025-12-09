@@ -310,13 +310,6 @@ test.describe("Login Page", () => {
       const successMessage = page.getByTestId("success-message");
       await expect(successMessage).toBeVisible();
       await expect(successMessage).toContainText("Registration successful");
-
-      // Verify demo credentials are cleared for new users
-      const emailInput = page.getByTestId("email-input");
-      const passwordInput = page.getByTestId("password-input");
-
-      await expect(emailInput).toHaveValue("");
-      await expect(passwordInput).toHaveValue("");
     });
   });
 

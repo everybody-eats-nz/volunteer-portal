@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AchievementsListClient } from "@/components/achievements-list-client";
 import {
   getUserAchievements,

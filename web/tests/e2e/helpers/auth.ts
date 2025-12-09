@@ -13,9 +13,7 @@ export async function loginAsAdmin(page: Page) {
     await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
     await adminLoginButton.click();
 
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
+    await page.waitForURL("/admin");
     await page.waitForLoadState("load");
     await page.waitForTimeout(1000);
   } catch (error) {
@@ -53,9 +51,7 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
       await volunteerLoginButton.click();
     }
 
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
+    await page.waitForURL("/dashboard");
     await page.waitForLoadState("load");
     await page.waitForTimeout(1000);
   } catch (error) {
@@ -66,17 +62,16 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
 
 /**
  * Helper function to logout
+ * Uses server-side logout page for reliability
  */
 export async function logout(page: Page) {
   try {
-    // Click user menu
-    await page.getByTestId("user-menu-button").click();
-
-    // Click logout
-    await page.getByText("Logout").click();
+    // Navigate to logout page which handles signout server-side
+    await page.goto("/logout");
 
     // Wait for redirect to login page
-    await page.waitForURL("**/login");
+    await page.waitForURL("**/login", { timeout: 10000 });
+    await page.waitForLoadState("load");
   } catch (error) {
     console.log("Error during logout:", error);
     throw error;
