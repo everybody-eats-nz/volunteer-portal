@@ -104,8 +104,8 @@ export function HistoricalDataSelector({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Sorting state - default to showing users without migration data first
-  const [sortBy, setSortBy] = useState("migration-status-asc");
+  // Sorting state - default to showing users without invitations first
+  const [sortBy, setSortBy] = useState("invitation-sent-asc");
 
   const { toast } = useToast();
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -405,6 +405,12 @@ export function HistoricalDataSelector({
                 }}
                 className="border rounded-md px-3 py-2 text-sm"
               >
+                <option value="invitation-sent-asc">
+                  Invitation Status (Not Invited First)
+                </option>
+                <option value="invitation-sent-desc">
+                  Invitation Status (Invited First)
+                </option>
                 <option value="migration-status-asc">
                   Migration Status (Pending First)
                 </option>

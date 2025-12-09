@@ -29,13 +29,14 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * pageSize;
     const take = pageSize;
 
-    // Determine if we need to sort by signup count or migration status (which requires in-memory sorting)
+    // Determine if we need to sort by signup count, migration status, or invitation status (which requires in-memory sorting)
     const sortBySignups = sortBy.startsWith("signups-");
     const sortByMigrationStatus = sortBy.startsWith("migration-status-");
+    const sortByInvitationSent = sortBy.startsWith("invitation-sent-");
 
-    // Build orderBy clause for database queries (used when not sorting by signups or migration status)
+    // Build orderBy clause for database queries (used when not sorting by signups, migration status, or invitation status)
     const getOrderBy = () => {
-      if (sortBySignups || sortByMigrationStatus) {
+      if (sortBySignups || sortByMigrationStatus || sortByInvitationSent) {
         // Default sorting for database query when we'll sort in-memory
         return { createdAt: "desc" as const };
       }
@@ -168,6 +169,17 @@ export async function GET(request: NextRequest) {
         });
       }
 
+      // Sort by invitation sent status if requested
+      if (sortByInvitationSent) {
+        filteredUsers.sort((a, b) => {
+          const invitedA = a.migrationInvitationSent ? 1 : 0;
+          const invitedB = b.migrationInvitationSent ? 1 : 0;
+          return sortBy === "invitation-sent-desc"
+            ? invitedB - invitedA
+            : invitedA - invitedB;
+        });
+      }
+
       // Apply pagination to filtered results
       const totalCount = filteredUsers.length;
       const paginatedUsers = filteredUsers.slice(skip, skip + take);
@@ -235,8 +247,8 @@ export async function GET(request: NextRequest) {
 
     let users;
 
-    // If sorting by signups or migration status, we need to fetch all users and sort in-memory
-    if (sortBySignups || sortByMigrationStatus) {
+    // If sorting by signups, migration status, or invitation status, we need to fetch all users and sort in-memory
+    if (sortBySignups || sortByMigrationStatus || sortByInvitationSent) {
       const allUsers = await prisma.user.findMany({
         where,
         select: {
@@ -279,6 +291,17 @@ export async function GET(request: NextRequest) {
           return sortBy === "migration-status-desc"
             ? hasDataB - hasDataA
             : hasDataA - hasDataB;
+        });
+      }
+
+      // Sort by invitation sent status
+      if (sortByInvitationSent) {
+        allUsers.sort((a, b) => {
+          const invitedA = a.migrationInvitationSent ? 1 : 0;
+          const invitedB = b.migrationInvitationSent ? 1 : 0;
+          return sortBy === "invitation-sent-desc"
+            ? invitedB - invitedA
+            : invitedA - invitedB;
         });
       }
 
