@@ -18,7 +18,7 @@ export function AdminLayoutHeader() {
           {title}
         </h1>
         {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          <p className="hidden md:block text-sm text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
       <div className="flex items-center gap-2">
