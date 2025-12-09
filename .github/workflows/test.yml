@@ -1,5 +1,4 @@
 name: Test
-
 permissions:
   contents: read
   pull-requests: write
@@ -12,6 +11,7 @@ on:
     branches: [main]
     paths: ["web/**", ".github/workflows/test.yml"]
 
+# cancel previous runs if this one is triggered
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -114,14 +114,10 @@ jobs:
           npx prisma migrate deploy
           npx prisma db seed
 
-      - name: Run Playwright tests (blob + JSON)
+      - name: Run Playwright tests
         run: |
           cd web
-          mkdir -p blob-report
-          npx playwright test \
-            --shard=${{ matrix.shard }}/${{ strategy.job-total }} \
-            --project=chromium \
-            --reporter=blob,json=blob-report/shard-${{ matrix.shard }}.json
+          npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --project=chromium --reporter=blob
 
       - name: Upload blob report
         uses: actions/upload-artifact@v5
@@ -166,33 +162,6 @@ jobs:
           cd web
           npx playwright merge-reports --reporter=html ../all-blob-reports
 
-      - name: Generate test summary
-        run: |
-          cd web
-          node <<'EOF'
-          const fs = require('fs');
-          const path = require('path');
-          const reportDir = '../all-blob-reports';
-          const files = fs.readdirSync(reportDir).filter(f => f.endsWith('.json'));
-
-          let passed = 0, failed = 0, skipped = 0;
-
-          for (const file of files) {
-            const report = JSON.parse(fs.readFileSync(path.join(reportDir, file)));
-            for (const suite of report.suites) {
-              for (const test of suite.tests) {
-                if (test.status === 'passed') passed++;
-                else if (test.status === 'failed') failed++;
-                else if (test.status === 'skipped') skipped++;
-              }
-            }
-          }
-
-          const summary = { passed, failed, skipped };
-          fs.writeFileSync('playwright-report/summary.json', JSON.stringify(summary));
-          console.log(summary);
-          EOF
-
       - name: Upload merged report
         uses: actions/upload-artifact@v5
         with:
@@ -204,18 +173,23 @@ jobs:
         id: deploy_report
         run: |
           cd web/playwright-report
+
+          # Decide whether this is prod or preview
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
             TARGET_FLAG="--prod"
           else
             TARGET_FLAG="--target=preview"
           fi
 
+          # Link project
           vercel link \
             --project volunteer-portal-playwright-reports \
             --yes \
             --token=${{ secrets.VERCEL_TOKEN }}
 
+          # Deploy + capture final URL
           DEPLOY_URL=$(vercel deploy $TARGET_FLAG --yes --token=${{ secrets.VERCEL_TOKEN }} | tail -n 1)
+
           echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
@@ -225,12 +199,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          chmod +x .github/scripts/comment-playwright-report.sh
+          chmod +x .github/scripts/comment-playwright-report.sh # Ensure script is executable
           ./.github/scripts/comment-playwright-report.sh \
             "$COMMIT_SHA" \
             "${{ env.DEPLOY_URL }}" \
             "$GH_REPO"
-
   tests-passed:
     if: always()
     needs: [test, merge-reports]
