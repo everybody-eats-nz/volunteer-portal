@@ -196,7 +196,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           chmod +x .github/scripts/comment-playwright-report.sh # Ensure script is executable
           ./.github/scripts/comment-playwright-report.sh \
