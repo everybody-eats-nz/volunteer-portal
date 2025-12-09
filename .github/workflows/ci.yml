@@ -10,6 +10,10 @@ on:
     branches: [main]
     paths: ["web/**", ".github/workflows/ci.yml"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
   NEXTAUTH_URL: http://localhost:3000
