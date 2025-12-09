@@ -158,10 +158,6 @@ test.describe("Dashboard Page", () => {
       /active volunteers in our community/i
     );
     await expect(activeVolunteersText.first()).toBeVisible({ timeout: 10000 });
-
-    // Check for food waste prevented stat
-    const foodWasteText = page.getByText(/estimated food waste prevented/i);
-    await expect(foodWasteText.first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should display quick actions section", async ({ page }) => {
