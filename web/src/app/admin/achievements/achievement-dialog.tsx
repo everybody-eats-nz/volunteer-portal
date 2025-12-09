@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { type Achievement } from "@/generated/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatAchievementCriteria } from "@/lib/achievement-utils";
 
 interface ShiftType {
   id: string;
@@ -193,28 +194,16 @@ export function AchievementDialog({
   };
 
   const getCriteriaDescription = () => {
-    const value = parseInt(criteriaValue, 10) || 0;
+    const criteriaObj = {
+      type: criteriaType,
+      value: parseInt(criteriaValue, 10),
+      shiftType: shiftTypeId,
+    };
     const selectedShiftType = shiftTypes.find((st) => st.id === shiftTypeId);
-    switch (criteriaType) {
-      case "shifts_completed":
-        return `Complete ${value} volunteer shift${value !== 1 ? "s" : ""}`;
-      case "hours_volunteered":
-        return `Volunteer for ${value} hour${value !== 1 ? "s" : ""}`;
-      case "consecutive_months":
-        return `Volunteer for ${value} consecutive month${value !== 1 ? "s" : ""}`;
-      case "years_volunteering":
-        return `Volunteer for ${value} year${value !== 1 ? "s" : ""}`;
-      case "community_impact":
-        return `Help prepare an estimated ${value} meal${value !== 1 ? "s" : ""}`;
-      case "friends_count":
-        return `Make ${value} friend${value !== 1 ? "s" : ""} in the volunteer community`;
-      case "specific_shift_type":
-        return selectedShiftType
-          ? `Complete ${value} "${selectedShiftType.name}" shift${value !== 1 ? "s" : ""}`
-          : `Complete ${value} shift${value !== 1 ? "s" : ""} of a specific type`;
-      default:
-        return "";
-    }
+    return formatAchievementCriteria(
+      JSON.stringify(criteriaObj),
+      selectedShiftType?.name
+    );
   };
 
   return (
@@ -298,7 +287,9 @@ export function AchievementDialog({
                   onClick={() => setIcon(emoji)}
                   className={`
                     p-2 text-2xl hover:bg-slate-100 rounded transition-colors
-                    ${icon === emoji ? "bg-slate-200 ring-2 ring-slate-400" : ""}
+                    ${
+                      icon === emoji ? "bg-slate-200 ring-2 ring-slate-400" : ""
+                    }
                   `}
                   data-testid={`icon-option-${emoji}`}
                 >
@@ -347,10 +338,7 @@ export function AchievementDialog({
             <div className="space-y-2">
               <Label htmlFor="shift-type">Shift Type *</Label>
               <Select value={shiftTypeId} onValueChange={setShiftTypeId}>
-                <SelectTrigger
-                  id="shift-type"
-                  data-testid="shift-type-select"
-                >
+                <SelectTrigger id="shift-type" data-testid="shift-type-select">
                   <SelectValue placeholder="Select shift type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -414,16 +402,10 @@ export function AchievementDialog({
             </Button>
             <Button
               type="submit"
-              disabled={
-                !name.trim() || !description.trim() || isSubmitting
-              }
+              disabled={!name.trim() || !description.trim() || isSubmitting}
               data-testid="save-achievement-button"
             >
-              {isSubmitting
-                ? "Saving..."
-                : achievement
-                  ? "Update"
-                  : "Create"}
+              {isSubmitting ? "Saving..." : achievement ? "Update" : "Create"}
             </Button>
           </div>
         </form>

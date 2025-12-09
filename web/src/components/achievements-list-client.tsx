@@ -279,7 +279,7 @@ export function AchievementsListClient({
             <TabsTrigger value="MILESTONE">Milestone</TabsTrigger>
             <TabsTrigger value="DEDICATION">Dedication</TabsTrigger>
             <TabsTrigger value="IMPACT">Impact</TabsTrigger>
-            <TabsTrigger value="SPECIALIZATION">Special</TabsTrigger>
+            <TabsTrigger value="SPECIALIZATION">Role</TabsTrigger>
             <TabsTrigger value="COMMUNITY">Community</TabsTrigger>
           </TabsList>
 
