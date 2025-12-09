@@ -1,7 +1,8 @@
 import { test, expect } from "./base";
 import { loginAsVolunteer, loginAsAdmin } from "./helpers/auth";
 
-test.describe("Group Booking Feature", () => {
+// TODO: Group booking feature is disabled for now
+test.describe.skip("Group Booking Feature", () => {
   test("volunteer can access group booking dialog", async ({ page }) => {
     await loginAsVolunteer(page);
 

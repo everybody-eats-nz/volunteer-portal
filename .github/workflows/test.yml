@@ -10,6 +10,11 @@ on:
     branches: [main]
     paths: ["web/**", ".github/workflows/test.yml"]
 
+# cancel previous runs if this one is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
   DIRECT_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
