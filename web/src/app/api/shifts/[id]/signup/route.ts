@@ -6,16 +6,14 @@ import { getNotificationService } from "@/lib/notification-service";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { checkForBot } from "@/lib/bot-protection";
 import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
+import sanitizeHtml from "sanitize-html";
 
 /**
- * Simple HTML sanitizer for serverless environment
- * Strips HTML tags and encodes special characters
+ * HTML sanitizer for serverless environment.
+ * Removes all HTML tags and encodes special characters to prevent injection.
  */
 function sanitizeNote(input: string): string {
-  // Remove HTML tags
-  const withoutTags = input.replace(/<[^>]*>/g, '');
-  // Trim whitespace
-  return withoutTags.trim();
+  return sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }).trim();
 }
 
 export async function POST(
