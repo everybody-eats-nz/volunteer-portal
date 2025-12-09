@@ -53,6 +53,7 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
       await volunteerLoginButton.click();
     }
 
+    await page.waitForURL("/dashboard");
     await page.waitForLoadState("load");
     await page.waitForTimeout(1000);
   } catch (error) {
