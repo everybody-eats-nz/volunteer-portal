@@ -325,8 +325,8 @@ export default function AchievementsCard() {
                           variants={staggerItem}
                           className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10 transition-all hover:border-primary/20 hover:bg-muted/30 hover:shadow-sm cursor-pointer"
                         >
-                          <div className="flex items-start gap-3">
-                            <div className="text-2xl flex-shrink-0 opacity-60">
+                          <div className="flex items-center gap-3">
+                            <div className="text-2xl shrink-0 opacity-60">
                               {achievement.icon}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -345,9 +345,6 @@ export default function AchievementsCard() {
                                   {achievement.category}
                                 </Badge>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {achievement.description}
-                              </p>
                             </div>
                             <div className="text-xs font-medium text-muted-foreground whitespace-nowrap">
                               {achievement.points} pts

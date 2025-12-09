@@ -165,7 +165,7 @@ export function AchievementsListClient({
       unlocked: true,
       unlockedAt: ua.unlockedAt,
     })),
-    ...availableAchievements.map((a) => ({ ...a, unlocked: false })),
+    ...availableAchievements.map((a) => ({ ...a, unlocked: false, unlockedAt: undefined })),
   ];
   const categories = [
     "MILESTONE",
@@ -230,9 +230,11 @@ export function AchievementsListClient({
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {achievement.description}
-            </p>
+            {achievement.unlocked && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {achievement.description}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground/80 mt-2 flex items-center gap-1.5">
               <span className="font-medium">Criteria:</span>
               {formatCriteria(achievement.criteria)}
@@ -312,9 +314,28 @@ export function AchievementsListClient({
             >
               {filterAchievements(allAchievements)
                 .sort((a, b) => {
-                  // Sort by unlocked status, then by points
+                  // Sort by unlocked status first
                   if (a.unlocked && !b.unlocked) return -1;
                   if (!a.unlocked && b.unlocked) return 1;
+
+                  // For unlocked achievements, sort by unlock date (most recent first)
+                  if (a.unlocked && b.unlocked) {
+                    const dateA = a.unlockedAt ? new Date(a.unlockedAt).getTime() : 0;
+                    const dateB = b.unlockedAt ? new Date(b.unlockedAt).getTime() : 0;
+                    return dateB - dateA;
+                  }
+
+                  // For locked achievements, sort by progress percentage (highest first)
+                  const progressA = calculateAchievementProgress(a, progress);
+                  const progressB = calculateAchievementProgress(b, progress);
+
+                  if (progressA && progressB) {
+                    return progressB.percentage - progressA.percentage;
+                  }
+                  if (progressA) return -1;
+                  if (progressB) return 1;
+
+                  // Fallback to points
                   return a.points - b.points;
                 })
                 .map(renderAchievement)}
@@ -331,9 +352,28 @@ export function AchievementsListClient({
               >
                 {filterAchievements(getAchievementsByCategory(category))
                   .sort((a, b) => {
-                    // Sort by unlocked status, then by points
+                    // Sort by unlocked status first
                     if (a.unlocked && !b.unlocked) return -1;
                     if (!a.unlocked && b.unlocked) return 1;
+
+                    // For unlocked achievements, sort by unlock date (most recent first)
+                    if (a.unlocked && b.unlocked) {
+                      const dateA = a.unlockedAt ? new Date(a.unlockedAt).getTime() : 0;
+                      const dateB = b.unlockedAt ? new Date(b.unlockedAt).getTime() : 0;
+                      return dateB - dateA;
+                    }
+
+                    // For locked achievements, sort by progress percentage (highest first)
+                    const progressA = calculateAchievementProgress(a, progress);
+                    const progressB = calculateAchievementProgress(b, progress);
+
+                    if (progressA && progressB) {
+                      return progressB.percentage - progressA.percentage;
+                    }
+                    if (progressA) return -1;
+                    if (progressB) return 1;
+
+                    // Fallback to points
                     return a.points - b.points;
                   })
                   .map(renderAchievement)}
