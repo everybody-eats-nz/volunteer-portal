@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -9,9 +10,12 @@ export default defineConfig({
   reporter: process.env.CI
     ? [
         // Blob reporter for merging across shards
-        ["blob", { outputDir: "blob-report" }],
+        ["blob", { outputDir: path.join(__dirname, "blob-report") }],
         // JSON reporter for summary extraction
-        ["json", { outputFile: "blob-report/summary.json" }],
+        [
+          "json",
+          { outputFile: path.join(__dirname, "blob-report", "summary.json") },
+        ],
       ]
     : "html",
   use: {
