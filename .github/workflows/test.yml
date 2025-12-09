@@ -169,11 +169,41 @@ jobs:
           retention-days: 30
 
       - name: Deploy Playwright report to Vercel
+        id: deploy_report
         run: |
           cd web/playwright-report
-          vercel link --project volunteer-portal-playwright-reports --yes --token=${{ secrets.VERCEL_TOKEN }}
-          vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }}
 
+          # Decide whether this is prod or preview
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            TARGET_FLAG="--prod"
+          else
+            TARGET_FLAG="--target=preview"
+          fi
+
+          # Link project
+          vercel link \
+            $TARGET_FLAG \
+            --project volunteer-portal-playwright-reports \
+            --yes \
+            --token=${{ secrets.VERCEL_TOKEN }}
+
+          # Deploy + capture final URL
+          DEPLOY_URL=$(vercel deploy $TARGET_FLAG --yes --token=${{ secrets.VERCEL_TOKEN }} | tail -n 1)
+
+          echo "DEPLOY_URL=$DEPLOY_URL" >> $GITHUB_ENV
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+
+      - name: Add/Update Playwright Report Comment on PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.event.ref }}
+        run: |
+          chmod +x .github/scripts/comment-playwright-report.sh # Ensure script is executable
+          ./.github/scripts/comment-playwright-report.sh \
+            "$COMMIT_SHA" \
+            "${{ env.DEPLOY_URL }}" \
+            "$GH_REPO"
   tests-passed:
     if: always()
     needs: [test, merge-reports]
