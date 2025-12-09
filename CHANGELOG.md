@@ -1,3 +1,9 @@
+## [0.79.1] - 2025-12-09
+
+### Changes
+- chore(deps-dev): bump eslint-config-next from 16.0.7 to 16.0.8 in /web in the development-dependencies group ([#363](https://github.com/everybody-eats-nz/volunteer-portal/pull/363)) by @dependabot[bot]
+
+
 ## [0.79.0] - 2025-12-09
 
 ### Changes
