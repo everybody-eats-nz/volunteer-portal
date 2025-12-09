@@ -13,9 +13,7 @@ export async function loginAsAdmin(page: Page) {
     await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
     await adminLoginButton.click();
 
-    await page.waitForURL((url) => !url.pathname.includes("/login"), {
-      timeout: 15000,
-    });
+    await page.waitForURL("/admin");
     await page.waitForLoadState("load");
     await page.waitForTimeout(1000);
   } catch (error) {
