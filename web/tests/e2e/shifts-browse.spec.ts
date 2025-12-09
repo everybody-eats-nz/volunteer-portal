@@ -689,7 +689,7 @@ test.describe("Shifts Browse Page", () => {
   test.describe("Daily Signup Validation", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsVolunteer(page);
-      await page.goto("/shifts/wellington");
+      await page.goto("/shifts?location=Wellington");
     });
 
     test("should prevent multiple shift signups on the same day", async ({
