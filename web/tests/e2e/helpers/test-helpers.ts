@@ -187,38 +187,3 @@ export async function deleteTestShifts(shiftIds: string[]): Promise<void> {
     },
   });
 }
-
-/**
- * Create a notification group
- */
-export async function createNotificationGroup(data: {
-  name: string;
-  description?: string;
-  filters: InputJsonValue;
-  createdBy: string;
-}): Promise<{ id: string }> {
-  const group = await prisma.notificationGroup.create({
-    data: {
-      name: data.name,
-      description: data.description,
-      filters: data.filters,
-      createdBy: data.createdBy,
-      isActive: true,
-    },
-  });
-
-  return { id: group.id };
-}
-
-/**
- * Delete notification groups
- */
-export async function deleteNotificationGroups(names: string[]): Promise<void> {
-  await prisma.notificationGroup.deleteMany({
-    where: {
-      name: {
-        in: names,
-      },
-    },
-  });
-}
