@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
+import { loginAsVolunteer } from "./helpers/auth";
 
 // Helper function to wait for dashboard content to load (including Suspense boundaries)
 async function waitForDashboardContent(page: Page) {
@@ -21,39 +22,6 @@ async function waitForDashboardContent(page: Page) {
     await page
       .getByText("Quick Actions")
       .waitFor({ state: "visible", timeout: 5000 });
-  }
-}
-
-// Helper function to login
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-
-    // Wait for the page to load
-    await page.waitForLoadState("load");
-
-    // Check if login form is visible
-    const volunteerLoginButton = page.getByRole("button", {
-      name: /login as volunteer/i,
-    });
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 5000 });
-
-    // Click login button
-    await volunteerLoginButton.click();
-
-    // Wait for navigation with timeout
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch {
-      // Login might have failed, but don't throw - let the test handle it
-      console.log("Login may have failed or taken too long");
-    }
-
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during login:", error);
   }
 }
 

@@ -1,31 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
-
-// Helper function to login as volunteer
-async function loginAsVolunteer(page: Page) {
-  try {
-    await page.goto("/login");
-    await page.waitForLoadState("load");
-
-    const volunteerLoginButton = page.getByRole("button", {
-      name: /login as volunteer/i,
-    });
-    await volunteerLoginButton.waitFor({ state: "visible", timeout: 5000 });
-    await volunteerLoginButton.click();
-
-    try {
-      await page.waitForURL((url) => !url.pathname.includes("/login"), {
-        timeout: 10000,
-      });
-    } catch (error) {
-      console.log("Login may have failed or taken too long: ", error);
-    }
-
-    await page.waitForLoadState("load");
-  } catch (error) {
-    console.log("Error during login:", error);
-  }
-}
+import { loginAsVolunteer } from "./helpers/auth";
 
 // Helper function to navigate to shifts with location selected
 async function navigateToShiftsWithLocation(
@@ -714,17 +689,7 @@ test.describe("Shifts Browse Page", () => {
   test.describe("Daily Signup Validation", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsVolunteer(page);
-      await page.goto("/shifts");
-      await page.waitForLoadState("load");
-
-      // Skip tests if login failed
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(
-          true,
-          "Login failed - skipping daily signup validation tests"
-        );
-      }
+      await page.goto("/shifts/wellington");
     });
 
     test("should prevent multiple shift signups on the same day", async ({
