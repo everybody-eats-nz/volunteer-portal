@@ -123,7 +123,9 @@ jobs:
 
           npx playwright test \
             --shard=${{ matrix.shard }}/${{ strategy.job-total }} \
-            --project=chromium
+            --project=chromium \
+            --reporter=blob \
+            --reporter=json
 
       - name: Upload blob report
         uses: actions/upload-artifact@v5
