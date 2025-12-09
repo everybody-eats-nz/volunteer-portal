@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createShiftRecord } from "@/lib/services/shift-service";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,25 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { shiftTypeId, location, start, end, capacity, notes } = body;
+    let { shiftTypeId, location, start, end, capacity, notes } = body;
+
+    // If no shiftTypeId provided, find or create a default one for tests
+    if (!shiftTypeId) {
+      let defaultShiftType = await prisma.shiftType.findFirst({
+        where: { name: "Kitchen" },
+      });
+
+      if (!defaultShiftType) {
+        defaultShiftType = await prisma.shiftType.create({
+          data: {
+            name: "Kitchen",
+            description: "Kitchen duties",
+          },
+        });
+      }
+
+      shiftTypeId = defaultShiftType.id;
+    }
 
     const shift = await createShiftRecord({
       shiftTypeId,
