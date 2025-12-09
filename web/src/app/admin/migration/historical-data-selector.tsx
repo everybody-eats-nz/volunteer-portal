@@ -183,24 +183,21 @@ export function HistoricalDataSelector({
   };
 
   const toggleAllVisible = () => {
-    // Only consider users without historical data (since those with data are disabled)
-    const selectableUsers = users.filter((u) => !u.hasHistoricalData);
-
-    // Check if all selectable visible users are selected
-    const allVisibleSelected = selectableUsers.every((u) =>
+    // Check if all visible users are selected
+    const allVisibleSelected = users.every((u) =>
       selectedUserEmails.includes(u.email)
     );
 
     if (allVisibleSelected) {
-      // Deselect all visible selectable users
-      const visibleEmails = selectableUsers.map((u) => u.email);
+      // Deselect all visible users
+      const visibleEmails = users.map((u) => u.email);
       setSelectedUserEmails(
         selectedUserEmails.filter((email) => !visibleEmails.includes(email))
       );
     } else {
-      // Select all visible selectable users
+      // Select all visible users
       const newSelection = new Set(selectedUserEmails);
-      selectableUsers.forEach((u) => newSelection.add(u.email));
+      users.forEach((u) => newSelection.add(u.email));
       setSelectedUserEmails(Array.from(newSelection));
     }
   };
@@ -506,10 +503,8 @@ export function HistoricalDataSelector({
                   <TableHead className="w-12">
                     <Checkbox
                       checked={
-                        users.filter((u) => !u.hasHistoricalData).length > 0 &&
-                        users
-                          .filter((u) => !u.hasHistoricalData)
-                          .every((u) => selectedUserEmails.includes(u.email))
+                        users.length > 0 &&
+                        users.every((u) => selectedUserEmails.includes(u.email))
                       }
                       onCheckedChange={toggleAllVisible}
                       aria-label="Select all visible rows"
@@ -549,7 +544,6 @@ export function HistoricalDataSelector({
                           onCheckedChange={() =>
                             toggleUserSelection(user.email)
                           }
-                          disabled={user.hasHistoricalData}
                         />
                       </TableCell>
                       <TableCell className="font-medium">
