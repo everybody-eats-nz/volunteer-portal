@@ -160,6 +160,33 @@ export async function createSignup(
 }
 
 /**
+ * Get signup by ID
+ */
+export async function getSignupById(
+  page: Page,
+  signupId: string
+): Promise<any> {
+  const response = await page.request.get(
+    `/api/test/signups?signupId=${signupId}`
+  );
+  return await response.json();
+}
+
+/**
+ * Update signup
+ */
+export async function updateSignup(
+  page: Page,
+  signupId: string,
+  data: Record<string, any>
+): Promise<any> {
+  const response = await page.request.patch("/api/test/signups", {
+    data: { signupId, ...data },
+  });
+  return await response.json();
+}
+
+/**
  * Delete signups by shift IDs
  */
 export async function deleteSignupsByShiftIds(
