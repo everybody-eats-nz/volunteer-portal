@@ -165,6 +165,12 @@ jobs:
           path: web/playwright-report/
           retention-days: 30
 
+      - name: Deploy playwright report to Vercel
+        run: |
+          cd web/playwright-report
+          vercel link --project volunteer-portal-playwright-reports --yes --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }}
+
   tests-passed:
     if: always()
     needs: [test, merge-reports]
