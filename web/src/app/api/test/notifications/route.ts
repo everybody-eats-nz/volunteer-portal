@@ -15,16 +15,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, type, title, message, shiftId } = body;
 
-    const data: any = {
+    const data = {
       userId,
       type,
       title,
       message,
+      shiftId,
     };
-
-    if (shiftId) {
-      data.shiftId = shiftId;
-    }
 
     const notification = await prisma.notification.create({ data });
 
@@ -48,7 +45,7 @@ export async function DELETE(request: NextRequest) {
     const userId = searchParams.get("userId");
     const type = searchParams.get("type");
 
-    const where: any = {};
+    const where: Record<string, string> = {};
     if (userId) where.userId = userId;
     if (type) where.type = type;
 
@@ -74,7 +71,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get("userId");
     const type = searchParams.get("type");
 
-    const where: any = {};
+    const where: Record<string, string> = {};
     if (userId) where.userId = userId;
     if (type) where.type = type;
 

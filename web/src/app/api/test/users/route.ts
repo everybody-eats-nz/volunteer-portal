@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     });
 
     // For migration users, don't set password or profileCompleted
-    const userData: any = {
+    const userData = {
       email,
       role,
       firstName,
@@ -78,10 +78,7 @@ export async function POST(request: NextRequest) {
       userData.hashedPassword = null;
     } else {
       // Regular users get a password and completed profile
-      userData.hashedPassword = await bcrypt.hash(
-        password || "Test123456",
-        10
-      );
+      userData.hashedPassword = await bcrypt.hash(password || "Test123456", 10);
       userData.profileCompleted = profileCompleted;
     }
 

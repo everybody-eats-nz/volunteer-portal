@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsVolunteer, loginAsAdmin } from "./helpers/auth";
+import { loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Friends System", () => {
   test.beforeEach(async ({ page }) => {

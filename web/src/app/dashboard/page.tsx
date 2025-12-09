@@ -70,7 +70,7 @@ export default async function DashboardPage() {
       <DashboardQuickActions />
 
       {/* Achievement Tracker - client component for celebration dialog */}
-      <AchievementTracker userId={userId} />
+      <AchievementTracker />
     </PageContainer>
   );
 }

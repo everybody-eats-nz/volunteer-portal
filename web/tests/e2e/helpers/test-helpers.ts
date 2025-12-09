@@ -34,7 +34,7 @@ export async function createTestUser(
 export async function createMigrationUser(
   page: Page,
   email: string,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, string | boolean | number | Date>
 ): Promise<{ id: string; email: string }> {
   const response = await page.request.post("/api/test/users", {
     data: {
@@ -57,7 +57,9 @@ export async function deleteTestUsers(
   emails: string[]
 ): Promise<void> {
   for (const email of emails) {
-    await page.request.delete(`/api/test/users?email=${encodeURIComponent(email)}`);
+    await page.request.delete(
+      `/api/test/users?email=${encodeURIComponent(email)}`
+    );
   }
 }
 
@@ -160,33 +162,6 @@ export async function createSignup(
 }
 
 /**
- * Get signup by ID
- */
-export async function getSignupById(
-  page: Page,
-  signupId: string
-): Promise<any> {
-  const response = await page.request.get(
-    `/api/test/signups?signupId=${signupId}`
-  );
-  return await response.json();
-}
-
-/**
- * Update signup
- */
-export async function updateSignup(
-  page: Page,
-  signupId: string,
-  data: Record<string, any>
-): Promise<any> {
-  const response = await page.request.patch("/api/test/signups", {
-    data: { signupId, ...data },
-  });
-  return await response.json();
-}
-
-/**
  * Delete signups by shift IDs
  */
 export async function deleteSignupsByShiftIds(
@@ -194,9 +169,7 @@ export async function deleteSignupsByShiftIds(
   shiftIds: string[]
 ): Promise<void> {
   if (shiftIds.length === 0) return;
-  await page.request.delete(
-    `/api/test/signups?shiftIds=${shiftIds.join(",")}`
-  );
+  await page.request.delete(`/api/test/signups?shiftIds=${shiftIds.join(",")}`);
 }
 
 /**
@@ -246,21 +219,4 @@ export async function deleteNotifications(
   if (filters.type) params.set("type", filters.type);
 
   await page.request.delete(`/api/test/notifications?${params.toString()}`);
-}
-
-/**
- * Get notifications
- */
-export async function getNotifications(
-  page: Page,
-  filters: { userId?: string; type?: string }
-): Promise<any[]> {
-  const params = new URLSearchParams();
-  if (filters.userId) params.set("userId", filters.userId);
-  if (filters.type) params.set("type", filters.type);
-
-  const response = await page.request.get(
-    `/api/test/notifications?${params.toString()}`
-  );
-  return await response.json();
 }

@@ -1,145 +1,129 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
-import {
-  createTestUser,
-  deleteTestUsers,
-  createShift,
-  deleteTestShifts,
-} from "./helpers/test-helpers";
-import { prisma } from "@/lib/prisma";
-import { randomUUID } from "crypto";
+import { createShift } from "./helpers/test-helpers";
 
 test.describe("Admin Shifts - Volunteer Management", () => {
-  const testId = randomUUID().slice(0, 8);
-  const testEmails = [
-    `admin-shifts-volunteers-${testId}@example.com`,
-    `volunteer-pink-${testId}@example.com`,
-    `volunteer-yellow-${testId}@example.com`,
-    `volunteer-green-${testId}@example.com`,
-    `volunteer-new-${testId}@example.com`,
-  ];
   const testShiftIds: string[] = [];
-  const testSignupIds: string[] = [];
 
-  test.beforeAll(async ({ page }) => {
-    // Create test users with different grades
-    await createTestUser(page, testEmails[0], "ADMIN");
+  // test.beforeAll(async ({ page }) => {
+  //   // Create test users with different grades
+  //   await createTestUser(page, testEmails[0], "ADMIN");
 
-    // Create volunteers with different grades
-    const pinkVolunteer = await prisma.user.create({
-      data: {
-        email: testEmails[1],
-        hashedPassword: "hashed",
-        role: "VOLUNTEER",
-        name: "Pink Volunteer",
-        firstName: "Pink",
-        lastName: "Volunteer",
-        profileCompleted: true,
-        volunteerGrade: "PINK",
-      },
-    });
+  //   // Create volunteers with different grades
+  //   const pinkVolunteer = await prisma.user.create({
+  //     data: {
+  //       email: testEmails[1],
+  //       hashedPassword: "hashed",
+  //       role: "VOLUNTEER",
+  //       name: "Pink Volunteer",
+  //       firstName: "Pink",
+  //       lastName: "Volunteer",
+  //       profileCompleted: true,
+  //       volunteerGrade: "PINK",
+  //     },
+  //   });
 
-    const yellowVolunteer = await prisma.user.create({
-      data: {
-        email: testEmails[2],
-        hashedPassword: "hashed",
-        role: "VOLUNTEER",
-        name: "Yellow Volunteer",
-        firstName: "Yellow",
-        lastName: "Volunteer",
-        profileCompleted: true,
-        volunteerGrade: "YELLOW",
-      },
-    });
+  //   const yellowVolunteer = await prisma.user.create({
+  //     data: {
+  //       email: testEmails[2],
+  //       hashedPassword: "hashed",
+  //       role: "VOLUNTEER",
+  //       name: "Yellow Volunteer",
+  //       firstName: "Yellow",
+  //       lastName: "Volunteer",
+  //       profileCompleted: true,
+  //       volunteerGrade: "YELLOW",
+  //     },
+  //   });
 
-    const greenVolunteer = await prisma.user.create({
-      data: {
-        email: testEmails[3],
-        hashedPassword: "hashed",
-        role: "VOLUNTEER",
-        name: "Green Volunteer",
-        firstName: "Green",
-        lastName: "Volunteer",
-        profileCompleted: true,
-        volunteerGrade: "GREEN",
-      },
-    });
+  //   const greenVolunteer = await prisma.user.create({
+  //     data: {
+  //       email: testEmails[3],
+  //       hashedPassword: "hashed",
+  //       role: "VOLUNTEER",
+  //       name: "Green Volunteer",
+  //       firstName: "Green",
+  //       lastName: "Volunteer",
+  //       profileCompleted: true,
+  //       volunteerGrade: "GREEN",
+  //     },
+  //   });
 
-    const newVolunteer = await prisma.user.create({
-      data: {
-        email: testEmails[4],
-        hashedPassword: "hashed",
-        role: "VOLUNTEER",
-        name: "New Volunteer",
-        firstName: "New",
-        lastName: "Volunteer",
-        profileCompleted: true,
-        // No volunteerGrade = new volunteer
-      },
-    });
+  //   const newVolunteer = await prisma.user.create({
+  //     data: {
+  //       email: testEmails[4],
+  //       hashedPassword: "hashed",
+  //       role: "VOLUNTEER",
+  //       name: "New Volunteer",
+  //       firstName: "New",
+  //       lastName: "Volunteer",
+  //       profileCompleted: true,
+  //       // No volunteerGrade = new volunteer
+  //     },
+  //   });
 
-    // Create test shift
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const shift = await createShift({
-      location: "Wellington",
-      start: new Date(tomorrow.setHours(12, 0)),
-      capacity: 6,
-    });
-    testShiftIds.push(shift.id);
+  //   // Create test shift
+  //   const tomorrow = new Date();
+  //   tomorrow.setDate(tomorrow.getDate() + 1);
+  //   const shift = await createShift({
+  //     location: "Wellington",
+  //     start: new Date(tomorrow.setHours(12, 0)),
+  //     capacity: 6,
+  //   });
+  //   testShiftIds.push(shift.id);
 
-    // Create signups with different statuses
-    const confirmedSignup = await prisma.signup.create({
-      data: {
-        userId: pinkVolunteer.id,
-        shiftId: shift.id,
-        status: "CONFIRMED",
-      },
-    });
-    testSignupIds.push(confirmedSignup.id);
+  //   // Create signups with different statuses
+  //   const confirmedSignup = await prisma.signup.create({
+  //     data: {
+  //       userId: pinkVolunteer.id,
+  //       shiftId: shift.id,
+  //       status: "CONFIRMED",
+  //     },
+  //   });
+  //   testSignupIds.push(confirmedSignup.id);
 
-    const pendingSignup = await prisma.signup.create({
-      data: {
-        userId: yellowVolunteer.id,
-        shiftId: shift.id,
-        status: "PENDING",
-      },
-    });
-    testSignupIds.push(pendingSignup.id);
+  //   const pendingSignup = await prisma.signup.create({
+  //     data: {
+  //       userId: yellowVolunteer.id,
+  //       shiftId: shift.id,
+  //       status: "PENDING",
+  //     },
+  //   });
+  //   testSignupIds.push(pendingSignup.id);
 
-    const waitlistedSignup = await prisma.signup.create({
-      data: {
-        userId: greenVolunteer.id,
-        shiftId: shift.id,
-        status: "WAITLISTED",
-      },
-    });
-    testSignupIds.push(waitlistedSignup.id);
+  //   const waitlistedSignup = await prisma.signup.create({
+  //     data: {
+  //       userId: greenVolunteer.id,
+  //       shiftId: shift.id,
+  //       status: "WAITLISTED",
+  //     },
+  //   });
+  //   testSignupIds.push(waitlistedSignup.id);
 
-    const regularPendingSignup = await prisma.signup.create({
-      data: {
-        userId: newVolunteer.id,
-        shiftId: shift.id,
-        status: "REGULAR_PENDING",
-      },
-    });
-    testSignupIds.push(regularPendingSignup.id);
-  });
+  //   const regularPendingSignup = await prisma.signup.create({
+  //     data: {
+  //       userId: newVolunteer.id,
+  //       shiftId: shift.id,
+  //       status: "REGULAR_PENDING",
+  //     },
+  //   });
+  //   testSignupIds.push(regularPendingSignup.id);
+  // });
 
-  test.afterAll(async () => {
-    // Cleanup signups first
-    await prisma.signup.deleteMany({
-      where: {
-        id: {
-          in: testSignupIds,
-        },
-      },
-    });
+  // test.afterAll(async () => {
+  //   // Cleanup signups first
+  //   await prisma.signup.deleteMany({
+  //     where: {
+  //       id: {
+  //         in: testSignupIds,
+  //       },
+  //     },
+  //   });
 
-    // Cleanup test users and shifts
-    await deleteTestUsers(testEmails);
-    await deleteTestShifts(testShiftIds);
-  });
+  //   // Cleanup test users and shifts
+  //   await deleteTestUsers(testEmails);
+  //   await deleteTestShifts(testShiftIds);
+  // });
 
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
@@ -281,7 +265,7 @@ test.describe("Admin Shifts - Volunteer Management", () => {
     // Create an empty shift
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 2);
-    const emptyShift = await createShift({
+    const emptyShift = await createShift(page, {
       location: "Wellington",
       start: new Date(tomorrow.setHours(16, 0)),
       capacity: 3,

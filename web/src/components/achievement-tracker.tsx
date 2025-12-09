@@ -4,16 +4,12 @@ import { useEffect } from "react";
 import { AchievementCelebrationDialog } from "@/components/achievement-celebration-dialog";
 import { useAchievementTracker } from "@/hooks/use-achievement-tracker";
 
-interface AchievementTrackerProps {
-  userId: string;
-}
-
 /**
  * Achievement tracker component that runs in the background
  * Handles achievement state tracking and shows celebration dialog for new achievements
  * This is a client component that doesn't interfere with server components
  */
-export function AchievementTracker({ userId }: AchievementTrackerProps) {
+export function AchievementTracker() {
   const {
     newAchievements,
     showCelebration,

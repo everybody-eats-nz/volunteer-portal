@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    let { shiftTypeId, location, start, end, capacity, notes } = body;
+    let { shiftTypeId } = body;
+    const { location, start, end, capacity, notes } = body;
 
     // If no shiftTypeId provided, find or create a default one for tests
     if (!shiftTypeId) {
