@@ -29,19 +29,36 @@ export async function createTestUser(
 }
 
 /**
- * Delete test users
- * Note: For E2E tests, consider using database resets between test runs
- * instead of manual cleanup. This function is kept for backward compatibility.
+ * Create a migration user (user without password that needs to complete registration)
+ */
+export async function createMigrationUser(
+  page: Page,
+  email: string,
+  additionalData?: Record<string, any>
+): Promise<{ id: string; email: string }> {
+  const response = await page.request.post("/api/test/users", {
+    data: {
+      email,
+      firstName: "Migration",
+      lastName: "User",
+      isMigrationUser: true,
+      ...additionalData,
+    },
+  });
+
+  return await response.json();
+}
+
+/**
+ * Delete test users via API
  */
 export async function deleteTestUsers(
   page: Page,
   emails: string[]
 ): Promise<void> {
-  // TODO: Implement admin API endpoint for bulk user deletion if needed
-  // For now, tests should use isolated data or database resets
-  console.warn(
-    "deleteTestUsers: Consider using database resets instead of manual cleanup"
-  );
+  for (const email of emails) {
+    await page.request.delete(`/api/test/users?email=${encodeURIComponent(email)}`);
+  }
 }
 
 /**
@@ -111,4 +128,112 @@ export async function deleteTestShifts(
   for (const shiftId of shiftIds) {
     await page.request.delete(`/api/admin/shifts/${shiftId}`);
   }
+}
+
+/**
+ * Get user ID by email (for tests that need to reference users)
+ */
+export async function getUserByEmail(
+  page: Page,
+  email: string
+): Promise<{ id: string; email: string } | null> {
+  const response = await page.request.get(
+    `/api/test/users?email=${encodeURIComponent(email)}`
+  );
+  if (response.ok()) {
+    return await response.json();
+  }
+  return null;
+}
+
+/**
+ * Create a signup (volunteer registration for a shift)
+ */
+export async function createSignup(
+  page: Page,
+  data: { userId: string; shiftId: string; status?: string }
+): Promise<{ id: string }> {
+  const response = await page.request.post("/api/test/signups", {
+    data,
+  });
+  return await response.json();
+}
+
+/**
+ * Delete signups by shift IDs
+ */
+export async function deleteSignupsByShiftIds(
+  page: Page,
+  shiftIds: string[]
+): Promise<void> {
+  if (shiftIds.length === 0) return;
+  await page.request.delete(
+    `/api/test/signups?shiftIds=${shiftIds.join(",")}`
+  );
+}
+
+/**
+ * Get shift type by name
+ */
+export async function getShiftTypeByName(
+  page: Page,
+  name: string
+): Promise<{ id: string; name: string } | null> {
+  const response = await page.request.get(
+    `/api/test/shift-types?name=${encodeURIComponent(name)}`
+  );
+  if (response.ok()) {
+    return await response.json();
+  }
+  return null;
+}
+
+/**
+ * Create a notification
+ */
+export async function createNotification(
+  page: Page,
+  data: {
+    userId: string;
+    type: string;
+    title: string;
+    message: string;
+    shiftId?: string;
+  }
+): Promise<{ id: string }> {
+  const response = await page.request.post("/api/test/notifications", {
+    data,
+  });
+  return await response.json();
+}
+
+/**
+ * Delete notifications
+ */
+export async function deleteNotifications(
+  page: Page,
+  filters: { userId?: string; type?: string }
+): Promise<void> {
+  const params = new URLSearchParams();
+  if (filters.userId) params.set("userId", filters.userId);
+  if (filters.type) params.set("type", filters.type);
+
+  await page.request.delete(`/api/test/notifications?${params.toString()}`);
+}
+
+/**
+ * Get notifications
+ */
+export async function getNotifications(
+  page: Page,
+  filters: { userId?: string; type?: string }
+): Promise<any[]> {
+  const params = new URLSearchParams();
+  if (filters.userId) params.set("userId", filters.userId);
+  if (filters.type) params.set("type", filters.type);
+
+  const response = await page.request.get(
+    `/api/test/notifications?${params.toString()}`
+  );
+  return await response.json();
 }

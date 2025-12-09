@@ -21,7 +21,7 @@ test.describe("General Volunteer Movement System", () => {
   let targetShiftId: string;
   let signupId: string;
 
-  test.beforeAll(async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     // Create test users
     await createTestUser(page, adminEmail, "ADMIN");
     await createTestUser(page, volunteerEmail, "VOLUNTEER");
@@ -80,7 +80,7 @@ test.describe("General Volunteer Movement System", () => {
     signupId = signup.id;
   });
 
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     // Clean up notifications
     await prisma.notification.deleteMany({
       where: { userId: volunteerUserId },
