@@ -146,6 +146,9 @@ jobs:
           cd web
           npm ci
 
+      - name: Install Vercel CLI
+        run: pnpm install -g vercel@latest
+
       - name: Download all blob reports
         uses: actions/download-artifact@v6
         with:
@@ -165,7 +168,7 @@ jobs:
           path: web/playwright-report/
           retention-days: 30
 
-      - name: Deploy playwright report to Vercel
+      - name: Deploy Playwright report to Vercel
         run: |
           cd web/playwright-report
           vercel link --project volunteer-portal-playwright-reports --yes --token=${{ secrets.VERCEL_TOKEN }}
