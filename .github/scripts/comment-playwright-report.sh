@@ -1,20 +1,21 @@
 #!/bin/bash
 set -e
 
+# Arguments
 COMMIT_SHA="$1"
 DEPLOY_URL="$2"
 REPO="$3"
 
 SUMMARY_FILE="web/playwright-report/summary.json"
 
-# Validate args
+# Validate arguments
 if [[ -z "$COMMIT_SHA" || -z "$DEPLOY_URL" || -z "$REPO" ]]; then
   echo "Usage: $0 <commit-sha> <deploy-url> <repo>"
   echo "Error: Missing required arguments."
   exit 1
 fi
 
-# Validate token
+# Validate GITHUB_TOKEN
 if [[ -z "$GITHUB_TOKEN" ]]; then
   echo "Error: GITHUB_TOKEN is not set."
   exit 1
@@ -24,7 +25,7 @@ echo "Commit SHA: $COMMIT_SHA"
 echo "Report URL: $DEPLOY_URL"
 echo "Repository: $REPO"
 
-# Load summary if exists
+# Load summary if it exists
 if [[ -f "$SUMMARY_FILE" ]]; then
   PASSED=$(jq .passed "$SUMMARY_FILE")
   FAILED=$(jq .failed "$SUMMARY_FILE")
@@ -58,8 +59,7 @@ fi
 
 echo "Targeting PR #$PR_NUMBER"
 
-COMMENT_MARKER="Playwright Test Report"
-
+# Construct PR comment
 COMMENT_BODY=$(cat <<EOF
 # 📊 Playwright Test Report
 
@@ -77,24 +77,15 @@ COMMENT_BODY=$(cat <<EOF
 EOF
 )
 
+# Write comment to temp file
 BODY_TEMP_FILE=$(mktemp)
 trap 'rm -f "$BODY_TEMP_FILE"' EXIT
-
 printf "%s" "$COMMENT_BODY" > "$BODY_TEMP_FILE"
 
-# Find existing comment
-readarray -t EXISTING_COMMENT_IDS < <(
-  gh pr view "$PR_NUMBER" --repo "$REPO" --json comments --jq '.comments[] | select(.body | contains("'"$COMMENT_MARKER"'")) | .id' 2>/dev/null || true
-)
-
-if [[ ${#EXISTING_COMMENT_IDS[@]} -gt 0 ]]; then
-  EXISTING_COMMENT_ID="${EXISTING_COMMENT_IDS[0]}"
-  echo "Updating existing comment $EXISTING_COMMENT_ID"
-  gh pr comment "$PR_NUMBER" --repo "$REPO" --edit "$EXISTING_COMMENT_ID" --body-file "$BODY_TEMP_FILE"
-else
-  echo "Creating new comment"
-  gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file "$BODY_TEMP_FILE"
-fi
+# Post comment safely
+# --edit-last edits your last comment made by this workflow
+# --create-if-none creates a new comment if none exists
+gh pr comment "$PR_NUMBER" --repo "$REPO" --edit-last --body-file "$BODY_TEMP_FILE" --create-if-none
 
 echo "Successfully added/updated comment on PR #$PR_NUMBER."
 exit 0
