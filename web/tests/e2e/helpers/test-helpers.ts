@@ -1,7 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
 import bcryptjs from "bcryptjs";
-import { InputJsonValue } from "@prisma/client/runtime/client";
 
 /**
  * Create a test user with optional notification preferences
