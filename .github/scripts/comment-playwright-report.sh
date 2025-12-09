@@ -56,9 +56,14 @@ echo "Targeting PR #$PR_NUMBER"
 COMMENT_MARKER="Playwright Test Report"
 
 COMMENT_BODY=$(cat <<EOF
-📊 **Playwright Test Report**
+# 📊 Playwright Test Report
 
-A new [report](${DEPLOY_URL}) for [commit](https://github.com/${REPO}/commit/${COMMIT_SHA}) is available.
+### 🧪 Test Run for [\`${COMMIT_SHA:0:7}\`](https://github.com/${REPO}/commit/${COMMIT_SHA})
+
+📄 **View detailed report:**  
+👉 <${DEPLOY_URL}>
+
+---
 EOF
 )
 
