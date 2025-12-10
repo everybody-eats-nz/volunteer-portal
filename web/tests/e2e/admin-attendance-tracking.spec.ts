@@ -29,7 +29,7 @@ test.describe("Admin Attendance Tracking", () => {
   });
 
   test.describe("Calendar Navigation to Past Shifts", () => {
-    test.skip("should allow navigation to past dates in calendar", async ({
+    test("should allow navigation to past dates in calendar", async ({
       page,
     }) => {
       await page.goto("/admin/shifts");
@@ -154,7 +154,7 @@ test.describe("Admin Attendance Tracking", () => {
       }
     });
 
-    test.skip("should show move buttons with proper testids for confirmed volunteers", async ({
+    test("should show move buttons with proper testids for confirmed volunteers", async ({
       page,
     }) => {
       await page.goto("/admin/shifts?location=Wellington");

@@ -15,7 +15,7 @@ export async function createTestUser(
     excludedShortageNotificationTypes?: string[];
   }
 ): Promise<void> {
-  await page.request.post("/api/test/users", {
+  const response = await page.request.post("/api/test/users", {
     data: {
       email,
       password: "Test123456",
@@ -26,6 +26,11 @@ export async function createTestUser(
       ...additionalData,
     },
   });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create test user: ${response.status()} - ${errorText}`);
+  }
 }
 
 /**

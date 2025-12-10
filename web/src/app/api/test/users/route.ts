@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       // Regular users get a password and completed profile
       userData.hashedPassword = await bcrypt.hash(password || "Test123456", 10);
       userData.profileCompleted = profileCompleted;
+      userData.emailVerified = true; // Test users have verified emails by default
     }
 
     const user = await prisma.user.create({
