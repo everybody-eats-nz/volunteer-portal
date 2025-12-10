@@ -407,6 +407,44 @@ test.describe("Admin Shift Edit and Delete", () => {
       );
       await expect(notifyWarning).toBeVisible();
     });
+
+    test("should preserve date and location filters when deleting from calendar view", async ({
+      page,
+    }) => {
+      await page.goto(
+        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
+      );
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(1000);
+
+      // Get initial URL parameters
+      const initialUrl = page.url();
+      expect(initialUrl).toContain(`date=${operatingDateStr}`);
+      expect(initialUrl).toContain("location=Wellington");
+
+      // Click delete button
+      const deleteButton = page
+        .locator('[data-testid^="delete-shift-button-"]')
+        .first();
+      await expect(deleteButton).toBeVisible();
+      await deleteButton.click();
+
+      // Wait for dialog and confirm deletion
+      await expect(page.getByTestId("delete-shift-dialog")).toBeVisible({
+        timeout: 10000,
+      });
+      const confirmButton = page.getByTestId("delete-shift-confirm-button");
+      await confirmButton.click();
+
+      // Wait for redirect with deleted parameter
+      await page.waitForURL(/\/admin\/shifts\?.*deleted=1/, { timeout: 10000 });
+
+      // Verify the URL still contains the original date and location filters
+      const redirectUrl = page.url();
+      expect(redirectUrl).toContain("deleted=1");
+      expect(redirectUrl).toContain(`date=${operatingDateStr}`);
+      expect(redirectUrl).toContain("location=Wellington");
+    });
   });
 
   test.describe("Edit and Delete from Edit Page", () => {
@@ -438,7 +476,9 @@ test.describe("Admin Shift Edit and Delete", () => {
       await expect(deleteButton).toContainText("Delete Shift");
     });
 
-    test("should delete shift from edit page", async ({ page }) => {
+    test("should delete shift from edit page and redirect to shift's date and location", async ({
+      page,
+    }) => {
       await page.goto(`/admin/shifts/${testShiftId}/edit`);
       await page.waitForLoadState("load");
 
@@ -450,8 +490,15 @@ test.describe("Admin Shift Edit and Delete", () => {
       const confirmButton = page.getByTestId("delete-shift-confirm-button");
       await confirmButton.click();
 
-      // Should redirect with success message
-      await expect(page).toHaveURL(/\/admin\/shifts\?deleted=1/);
+      // Wait for redirect
+      await page.waitForURL(/\/admin\/shifts\?/, { timeout: 10000 });
+
+      // Should redirect with success message and preserve the shift's date and location
+      const redirectUrl = page.url();
+      expect(redirectUrl).toContain("deleted=1");
+      expect(redirectUrl).toContain(`date=${operatingDateStr}`);
+      expect(redirectUrl).toContain("location=Wellington");
+
       await expect(page.getByTestId("shift-deleted-message")).toBeVisible();
     });
 
