@@ -1,7 +1,30 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import {
+  createTestUser,
+  getUserByEmail,
+  deleteTestUsers,
+} from "./helpers/test-helpers";
 
 test.describe("Admin User Impersonation", () => {
+  let testVolunteerId: string | null = null;
+  const testEmail = "impersonation-test@example.com";
+
+  test.beforeAll(async ({ browser }) => {
+    // Create a test volunteer for all tests in this suite
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Create test user
+    await createTestUser(page, testEmail, "VOLUNTEER");
+
+    // Get the user ID
+    const user = await getUserByEmail(page, testEmail);
+    testVolunteerId = user?.id || null;
+
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
@@ -10,22 +33,9 @@ test.describe("Admin User Impersonation", () => {
     test("should show impersonate button on volunteer profile page for admins", async ({
       page,
     }) => {
-      // Navigate to admin users page
-      await page.goto("/admin/users");
-
-      // Wait for users table to load
-      const usersTable = page.getByTestId("users-datatable");
-      await expect(usersTable).toBeVisible();
-
-      // Find first volunteer row (assuming there's at least one volunteer)
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await expect(firstUserRow).toBeVisible();
-
-      // Click on the first user row to view their profile
-      await firstUserRow.click();
-
-      // Wait for volunteer profile page to load
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      // Navigate to test volunteer profile
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       // Check that admin actions card is visible
       const adminActionsCard = page.getByTestId("admin-actions-card");
@@ -41,19 +51,12 @@ test.describe("Admin User Impersonation", () => {
       page,
       context,
     }) => {
-      // Get a volunteer user ID first as admin
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/(.+)/);
-      const volunteerUrl = page.url();
-
       // Logout and login as volunteer
       await context.clearCookies();
       await loginAsVolunteer(page);
 
       // Try to access the volunteer profile page directly
-      await page.goto(volunteerUrl);
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
 
       // Should be redirected away from admin page
       const currentUrl = page.url();
@@ -65,11 +68,9 @@ test.describe("Admin User Impersonation", () => {
     test("should show confirmation dialog when clicking impersonate button", async ({
       page,
     }) => {
-      // Navigate to a user profile
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      // Navigate to test volunteer profile
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       // Click impersonate button
       const impersonateButton = page.getByTestId("impersonate-user-button");
@@ -94,11 +95,9 @@ test.describe("Admin User Impersonation", () => {
     test("should allow canceling impersonation from dialog", async ({
       page,
     }) => {
-      // Navigate to a user profile
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      // Navigate to test volunteer profile
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const currentUrl = page.url();
 
@@ -122,20 +121,9 @@ test.describe("Admin User Impersonation", () => {
     test("should successfully start impersonation and redirect to dashboard", async ({
       page,
     }) => {
-      // Navigate to a user profile
-      await page.goto("/admin/users");
+      // Navigate to test volunteer profile
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
       await page.waitForLoadState("load");
-
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await expect(firstUserRow).toBeVisible();
-
-      // Get the user's name from the row for verification
-      const userName = await firstUserRow
-        .getByTestId(/^user-name-/)
-        .textContent();
-
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
 
       // Click impersonate button
       const impersonateButton = page.getByTestId("impersonate-user-button");
@@ -153,10 +141,8 @@ test.describe("Admin User Impersonation", () => {
       const banner = page.getByTestId("impersonation-banner");
       await expect(banner).toBeVisible({ timeout: 10000 });
 
-      // Banner should contain the impersonated user's name
-      if (userName) {
-        await expect(banner).toContainText(userName);
-      }
+      // Banner should contain the impersonated user's name (Test User from createTestUser)
+      await expect(banner).toContainText("Test User");
       await expect(banner).toContainText(/impersonating/i);
     });
   });
@@ -166,13 +152,8 @@ test.describe("Admin User Impersonation", () => {
       page,
     }) => {
       // Start impersonation
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      const userName = await firstUserRow
-        .getByTestId(/^user-name-/)
-        .textContent();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
@@ -187,9 +168,7 @@ test.describe("Admin User Impersonation", () => {
 
       // Should show who we're impersonating
       await expect(banner).toContainText(/impersonating/i);
-      if (userName) {
-        await expect(banner).toContainText(userName);
-      }
+      await expect(banner).toContainText("Test User");
 
       // Should show who is logged in (admin)
       await expect(banner).toContainText(/logged in as/i);
@@ -204,10 +183,8 @@ test.describe("Admin User Impersonation", () => {
       page,
     }) => {
       // Start impersonation
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
@@ -243,10 +220,8 @@ test.describe("Admin User Impersonation", () => {
       page,
     }) => {
       // Start impersonation
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
@@ -280,10 +255,8 @@ test.describe("Admin User Impersonation", () => {
       page,
     }) => {
       // Start impersonation
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
@@ -314,14 +287,12 @@ test.describe("Admin User Impersonation", () => {
   });
 
   test.describe("Impersonation as User", () => {
-    test.skip("should see volunteer dashboard when impersonating volunteer", async ({
+    test("should see volunteer dashboard when impersonating volunteer", async ({
       page,
     }) => {
-      // Start impersonation of a volunteer
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      // Start impersonation of test volunteer
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
@@ -331,7 +302,7 @@ test.describe("Admin User Impersonation", () => {
       await page.waitForURL("**/dashboard");
 
       // Should see volunteer dashboard elements (not admin dashboard)
-      const dashboardPage = page.getByTestId("volunteer-dashboard-page");
+      const dashboardPage = page.getByTestId("dashboard-page");
       await expect(dashboardPage).toBeVisible();
 
       // Should not see admin navigation
@@ -342,11 +313,9 @@ test.describe("Admin User Impersonation", () => {
     test("should not be able to access admin pages while impersonating volunteer", async ({
       page,
     }) => {
-      // Start impersonation of a volunteer
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      // Start impersonation of test volunteer
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
@@ -370,10 +339,8 @@ test.describe("Admin User Impersonation", () => {
       page,
     }) => {
       // Start first impersonation
-      await page.goto("/admin/users");
-      const firstUserRow = page.getByTestId(/^user-row-/).first();
-      await firstUserRow.click();
-      await page.waitForURL(/\/admin\/volunteers\/.+/);
+      await page.goto(`/admin/volunteers/${testVolunteerId}`);
+      await page.waitForLoadState("load");
 
       const impersonateButton = page.getByTestId("impersonate-user-button");
       await impersonateButton.click();
