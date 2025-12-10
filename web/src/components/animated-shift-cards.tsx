@@ -698,8 +698,14 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                             throw new Error("Failed to delete shift");
                           }
 
-                          // Refresh the page to show the updated list
-                          window.location.href = "/admin/shifts?deleted=1";
+                          // Preserve current date and location filters when redirecting
+                          const currentParams = new URLSearchParams(window.location.search);
+                          const date = currentParams.get('date') || '';
+                          const location = currentParams.get('location') || '';
+                          const params = new URLSearchParams({ deleted: '1' });
+                          if (date) params.set('date', date);
+                          if (location) params.set('location', location);
+                          window.location.href = `/admin/shifts?${params.toString()}`;
                         }}
                       >
                         <Button
