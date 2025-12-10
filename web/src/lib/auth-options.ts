@@ -158,18 +158,32 @@ export const authOptions: NextAuthOptions = {
                 profilePhotoUrl: user.image || null,
                 // OAuth users don't need a password
                 hashedPassword: "",
+                // OAuth providers (Google, Facebook) verify emails, so trust them
+                emailVerified: true,
                 // Set default agreement acceptance for OAuth users
                 volunteerAgreementAccepted: false, // They'll need to complete profile
                 healthSafetyPolicyAccepted: false,
               },
             });
           } else {
-            // Update existing user's profile photo if from OAuth
+            // Update existing user's profile photo and email verification if from OAuth
+            const updateData: { profilePhotoUrl?: string; emailVerified?: boolean } = {};
+
             if (user.image && !existingUser.profilePhotoUrl) {
+              updateData.profilePhotoUrl = user.image;
+            }
+
+            // OAuth providers verify emails, so mark as verified if not already
+            if (!existingUser.emailVerified) {
+              updateData.emailVerified = true;
+            }
+
+            if (Object.keys(updateData).length > 0) {
               await prisma.user.update({
                 where: { id: existingUser.id },
-                data: { profilePhotoUrl: user.image },
+                data: updateData,
               });
+              existingUser.emailVerified = updateData.emailVerified ?? existingUser.emailVerified;
             }
           }
 
@@ -179,6 +193,7 @@ export const authOptions: NextAuthOptions = {
           user.phone = existingUser.phone;
           user.firstName = existingUser.firstName;
           user.lastName = existingUser.lastName;
+          user.emailVerified = existingUser.emailVerified;
         } catch (error) {
           console.error("Error handling OAuth sign-in:", error);
           return false;
