@@ -16,6 +16,8 @@ import Link from "next/link";
 import { resetPasswordAction } from "@/lib/actions/password-reset";
 import { validatePassword } from "@/lib/utils/password-validation";
 import { PasswordRequirements } from "@/components/password-requirements";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const formFieldVariants = {
   hidden: { opacity: 0, x: -20 },
@@ -201,6 +203,29 @@ export default function ResetPasswordPage() {
                   disabled={isLoading}
                   data-testid="confirm-password-input"
                 />
+                {confirmPassword && (
+                  <div
+                    data-testid="password-match-check"
+                    className={cn(
+                      "flex items-center gap-2 text-sm mt-2",
+                      password === confirmPassword
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    )}
+                  >
+                    {password === confirmPassword ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Passwords match</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4" />
+                        <span>Passwords do not match</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </motion.div>
 
               <MotionFormSuccess show={!!message} data-testid="success-message">
