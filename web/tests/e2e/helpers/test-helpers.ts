@@ -8,12 +8,7 @@ export async function createTestUser(
   page: Page,
   email: string,
   role: "ADMIN" | "VOLUNTEER" = "VOLUNTEER",
-  additionalData?: {
-    availableLocations?: string;
-    availableDays?: string;
-    receiveShortageNotifications?: boolean;
-    excludedShortageNotificationTypes?: string[];
-  }
+  additionalData?: Record<string, string | boolean | number | string[] | null>
 ): Promise<void> {
   const response = await page.request.post("/api/test/users", {
     data: {
