@@ -76,7 +76,7 @@ readarray -t EXISTING_COMMENT_IDS < <(
   gh pr view "$PR_NUMBER" \
     --repo "$REPO" \
     --json comments \
-    --jq '.comments[] | select(.body | contains("'"$COMMENT_MARKER"'")) | .id' \
+    --jq '.comments[] | select(.body | contains("'"$COMMENT_MARKER"'")) | .databaseId' \
     2>/dev/null || true
 )
 
