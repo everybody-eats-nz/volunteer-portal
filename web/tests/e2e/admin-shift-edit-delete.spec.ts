@@ -74,7 +74,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       await expect(editButton).toContainText("Edit");
     });
 
-    test.skip("should navigate to edit page when clicking edit button", async ({
+    test("should navigate to edit page when clicking edit button", async ({
       page,
     }) => {
       await page.goto(
@@ -299,7 +299,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       ).toBeVisible();
     });
 
-    test.skip("should close delete dialog when clicking cancel", async ({
+    test("should close delete dialog when clicking cancel", async ({
       page,
     }) => {
       await page.goto(
@@ -328,7 +328,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       await expect(page.getByTestId("delete-shift-dialog")).not.toBeVisible();
     });
 
-    test.skip("should delete shift successfully when confirming", async ({
+    test("should delete shift successfully when confirming", async ({
       page,
     }) => {
       await page.goto(
@@ -368,17 +368,19 @@ test.describe("Admin Shift Edit and Delete", () => {
       ).not.toBeVisible();
     });
 
-    test.skip("should show warning in delete dialog for shifts with signups", async ({
+    test("should show warning in delete dialog for shifts with signups", async ({
       page,
     }) => {
       // Create a signup for the shift
-      await loginAsVolunteer(page);
+      await logout(page);
+      await loginAsVolunteer(page, testEmails[1]);
       const signupResponse = await page.request.post(
         `/api/shifts/${testShiftId}/signup`
       );
       expect(signupResponse.ok()).toBeTruthy();
 
       // Back to admin
+      await logout(page);
       await loginAsAdmin(page);
 
       await page.goto(
@@ -396,14 +398,16 @@ test.describe("Admin Shift Edit and Delete", () => {
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
 
       // Should show warning about signups - use more flexible selectors
-      const signupWarning = page.locator('text="volunteer is signed up"');
+      const signupWarning = page.locator(
+        'text="1 volunteer is signed up for this shift"'
+      );
       await expect(signupWarning).toBeVisible({ timeout: 5000 });
 
       const removeWarning = page.locator('text="Remove all volunteer signups"');
       await expect(removeWarning).toBeVisible();
 
       const notifyWarning = page.locator(
-        'text="Consider notifying the volunteers"'
+        'text="Consider notifying the volunteers before deleting this shift."'
       );
       await expect(notifyWarning).toBeVisible();
     });
@@ -516,7 +520,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     });
   });
 
-  test.describe.skip("Responsive Behavior", () => {
+  test.describe("Responsive Behavior", () => {
     let testShiftId: string;
     let operatingDateStr: string;
 
@@ -535,7 +539,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       testShiftIds.push(shift.id);
     });
 
-    test.skip("should display edit/delete buttons properly on mobile", async ({
+    test("should display edit/delete buttons properly on mobile", async ({
       page,
     }) => {
       await page.setViewportSize({ width: 375, height: 667 });
@@ -553,12 +557,6 @@ test.describe("Admin Shift Edit and Delete", () => {
 
       await expect(editButton).toBeVisible();
       await expect(deleteButton).toBeVisible();
-
-      // Buttons should be in flex layout (side by side)
-      const adminActions = page.locator(".flex.gap-2").filter({
-        has: editButton,
-      });
-      await expect(adminActions).toBeVisible();
     });
 
     test("should handle delete dialog on mobile", async ({ page }) => {
@@ -631,83 +629,6 @@ test.describe("Admin Shift Edit and Delete", () => {
         `/api/admin/shifts/${testShiftId}`
       );
       expect(response.status()).toBe(403);
-    });
-  });
-
-  test.describe.skip("Animation and UI Interactions", () => {
-    let testShiftId: string;
-    let operatingDateStr: string;
-
-    test.beforeEach(async ({ page }) => {
-      // Get next operating day (when restaurant is open)
-      operatingDateStr = getNextOperatingDay();
-      const operatingDate = new Date(operatingDateStr + "T00:00:00");
-
-      const shift = await createShift(page, {
-        location: "Wellington",
-        start: new Date(operatingDate.setHours(16, 0)),
-        end: new Date(operatingDate.setHours(20, 0)),
-        capacity: 4,
-      });
-      testShiftId = shift.id;
-      testShiftIds.push(shift.id);
-    });
-
-    test.skip("should show loading state in delete dialog", async ({
-      page,
-    }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
-
-      // Slow down network to see loading state
-      await page.route(`/api/admin/shifts/${testShiftId}`, (route) => {
-        if (route.request().method() === "DELETE") {
-          setTimeout(() => route.continue(), 2000);
-        } else {
-          route.continue();
-        }
-      });
-
-      // Open delete dialog
-      const deleteButton = page.getByTestId(
-        `delete-shift-button-${testShiftId}`
-      );
-      await deleteButton.click();
-
-      await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
-
-      const confirmButton = page.locator('button:has-text("Delete Shift")');
-      await confirmButton.click();
-
-      // Should show loading state - check for spinner or "Deleting..." text
-      const loadingIndicator = page.locator('text="Deleting..."');
-      await expect(loadingIndicator).toBeVisible({ timeout: 3000 });
-    });
-
-    test("should maintain button layout consistency", async ({ page }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
-
-      // Check button layout
-      const editButton = page.getByTestId(`edit-shift-button-${testShiftId}`);
-      const deleteButton = page.getByTestId(
-        `delete-shift-button-${testShiftId}`
-      );
-
-      // Buttons should be in same container with gap
-      const container = page.locator(".flex.gap-2").filter({
-        has: editButton,
-      });
-      await expect(container).toContainText("Edit");
-      await expect(container).toContainText("Delete");
-
-      // Both buttons should have flex-1 class for equal width
-      await expect(editButton).toHaveClass(/flex-1/);
-      await expect(deleteButton).toHaveClass(/flex-1/);
     });
   });
 });

@@ -3,7 +3,6 @@ import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import {
   createTestUser,
   getUserByEmail,
-  deleteTestUsers,
 } from "./helpers/test-helpers";
 
 test.describe("Admin User Impersonation", () => {
