@@ -163,7 +163,13 @@ export default async function EditShiftPage({
       redirect(`/admin/shifts/${id}/edit?error=delete`);
     }
 
-    redirect("/admin/shifts?deleted=1");
+    // Redirect back to the shift's date and location
+    const date = formatInNZT(shift.start, "yyyy-MM-dd");
+    const location = shift.location || "";
+    const params = new URLSearchParams({ deleted: "1" });
+    if (date) params.set("date", date);
+    if (location) params.set("location", location);
+    redirect(`/admin/shifts?${params.toString()}`);
   }
 
   // Format existing shift data for form defaults (in NZ timezone)
