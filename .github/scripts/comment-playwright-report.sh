@@ -69,7 +69,6 @@ EOF
 
 BODY_TEMP_FILE=$(mktemp)
 trap 'rm -f "$BODY_TEMP_FILE"' EXIT
-
 printf "%s" "$COMMENT_BODY" > "$BODY_TEMP_FILE"
 
 # Find existing comment
@@ -84,12 +83,18 @@ readarray -t EXISTING_COMMENT_IDS < <(
 if [[ ${#EXISTING_COMMENT_IDS[@]} -gt 0 ]]; then
   EXISTING_COMMENT_ID="${EXISTING_COMMENT_IDS[0]}"
   echo "Updating existing comment $EXISTING_COMMENT_ID"
+
+  echo "Deleting old comment..."
+  gh api \
+    --method DELETE \
+    "/repos/$REPO/issues/comments/$EXISTING_COMMENT_ID"
+
+  echo "Posting updated comment..."
   gh pr comment "$PR_NUMBER" \
     --repo "$REPO" \
-    --edit "$EXISTING_COMMENT_ID" \
     --body-file "$BODY_TEMP_FILE"
 else
-  echo "Creating new comment"
+  echo "Creating new comment..."
   gh pr comment "$PR_NUMBER" \
     --repo "$REPO" \
     --body-file "$BODY_TEMP_FILE"
