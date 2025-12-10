@@ -113,7 +113,17 @@ export async function createShift(
     },
   });
 
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create shift: ${response.status()} - ${errorText}`);
+  }
+
   const result = await response.json();
+  if (!result.id) {
+    throw new Error(`Shift created but no ID returned: ${JSON.stringify(result)}`);
+  }
+
+  console.log(`Created shift ${result.id} for ${data.start.toISOString()}`);
   return { id: result.id };
 }
 
