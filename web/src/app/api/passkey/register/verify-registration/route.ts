@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
     // Check if this credential is already registered (shouldn't happen due to excludeCredentials)
     const existingPasskey = await prisma.passkey.findUnique({
       where: {
-        credentialId: credentialIdBuffer,
+        credentialId: Buffer.from(credentialIdBuffer),
       },
     });
 
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     const passkey = await prisma.passkey.create({
       data: {
         userId,
-        credentialId: credentialIdBuffer,
+        credentialId: Buffer.from(credentialIdBuffer),
         credentialPublicKey: Buffer.from(credentialPublicKey),
         counter: BigInt(counter),
         deviceName: validatedDeviceName,

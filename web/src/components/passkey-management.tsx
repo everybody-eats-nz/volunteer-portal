@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -95,21 +95,7 @@ export function PasskeyManagement() {
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
-  // Check passkey support
-  useEffect(() => {
-    const checkSupport = async () => {
-      const isSupported = await isPasskeySupported();
-      setSupported(isSupported);
-      if (isSupported) {
-        await fetchPasskeys();
-      } else {
-        setLoading(false);
-      }
-    };
-    checkSupport();
-  }, []);
-
-  async function fetchPasskeys() {
+  const fetchPasskeys = useCallback(async () => {
     try {
       setLoading(true);
       const data = await listPasskeys();
@@ -124,7 +110,21 @@ export function PasskeyManagement() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
+
+  // Check passkey support
+  useEffect(() => {
+    const checkSupport = async () => {
+      const isSupported = await isPasskeySupported();
+      setSupported(isSupported);
+      if (isSupported) {
+        await fetchPasskeys();
+      } else {
+        setLoading(false);
+      }
+    };
+    checkSupport();
+  }, [fetchPasskeys]);
 
   async function handleAddPasskey() {
     setIsAdding(true);
@@ -188,7 +188,6 @@ export function PasskeyManagement() {
       toast({
         title: "Passkey removed from server",
         description: deviceInstructions,
-        duration: 10000, // Show for 10 seconds
       });
       setDeleteDialogOpen(false);
       setSelectedPasskey(null);

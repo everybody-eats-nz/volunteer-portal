@@ -40,9 +40,9 @@ export const userVerification: "required" | "preferred" | "discouraged" = "prefe
  * Attestation type
  * - "none": Privacy-friendly, don't track authenticator models
  * - "direct": Get authenticator attestation (can reveal device model)
- * - "indirect": Get attestation through a trusted third party
+ * - "enterprise": Enterprise attestation (requires enterprise configuration)
  */
-export const attestationType: "none" | "direct" | "indirect" = "none";
+export const attestationType: "none" | "direct" | "enterprise" = "none";
 
 /**
  * Timeout for WebAuthn ceremony in milliseconds (1 minute)

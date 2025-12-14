@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import {
   verifyAndConsumeChallenge,
   base64URLToBuffer,
+  bufferToBase64URL,
 } from "@/lib/webauthn-utils";
 import { rpID, expectedOrigin } from "@/lib/webauthn-config";
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Find the passkey in database
     const passkey = await prisma.passkey.findUnique({
       where: {
-        credentialId: credentialIdBuffer,
+        credentialId: Buffer.from(credentialIdBuffer),
       },
       include: {
         user: {
@@ -99,8 +100,8 @@ export async function POST(req: NextRequest) {
         expectedRPID: rpID,
         // SimpleWebAuthn v11+ uses 'credential' instead of 'authenticator'
         credential: {
-          id: new Uint8Array(passkey.credentialId),
-          publicKey: new Uint8Array(passkey.credentialPublicKey),
+          id: bufferToBase64URL(passkey.credentialId),
+          publicKey: Uint8Array.from(passkey.credentialPublicKey),
           counter: Number(passkey.counter),
           transports: passkey.transports as AuthenticatorTransport[],
         },

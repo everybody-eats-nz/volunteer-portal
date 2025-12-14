@@ -120,7 +120,7 @@ export async function registerPasskey(deviceName?: string): Promise<void> {
     // Step 2: Start WebAuthn registration ceremony
     let registrationResponse: RegistrationResponseJSON;
     try {
-      registrationResponse = await startRegistration(options);
+      registrationResponse = await startRegistration({ optionsJSON: options });
     } catch (error) {
       // User canceled or error during WebAuthn ceremony
       throw new Error(getWebAuthnErrorMessage(error));
@@ -187,7 +187,7 @@ export async function authenticateWithPasskey(
     // Step 2: Start WebAuthn authentication ceremony
     let authenticationResponse: AuthenticationResponseJSON;
     try {
-      authenticationResponse = await startAuthentication(options);
+      authenticationResponse = await startAuthentication({ optionsJSON: options });
     } catch (error) {
       // User canceled or error during WebAuthn ceremony
       throw new Error(getWebAuthnErrorMessage(error));
@@ -241,7 +241,10 @@ export async function startConditionalAuthentication(
 
     // Start authentication with conditional mediation
     // This will show passkeys in the autofill dropdown
-    startAuthentication(options, true) // true enables conditional mediation
+    startAuthentication({
+      optionsJSON: options,
+      useBrowserAutofill: true  // Enables conditional mediation
+    })
       .then((authResponse) => {
         onSuccess(authResponse);
       })
