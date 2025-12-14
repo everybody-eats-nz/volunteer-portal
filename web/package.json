@@ -75,7 +75,7 @@
     "react": "19.2.1",
     "react-day-picker": "^9.12.0",
     "react-dom": "19.2.1",
-    "react-hook-form": "^7.67.0",
+    "react-hook-form": "^7.68.0",
     "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",
     "recharts": "^3.5.1",
