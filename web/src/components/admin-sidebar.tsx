@@ -66,7 +66,7 @@ export function AdminSidebar({
     <Sidebar variant="inset" data-testid="admin-sidebar">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center justify-between gap-3 px-2">
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/admin" className="flex items-center gap-2 group">
             <div className="relative">
               <Image
                 src="/logo.svg"
@@ -159,10 +159,7 @@ export function AdminSidebar({
 
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      data-testid={testId}
-                    >
+                    <SidebarMenuButton asChild data-testid={testId}>
                       <Link
                         href={item.href}
                         onClick={handleLinkClick}
