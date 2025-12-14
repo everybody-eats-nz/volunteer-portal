@@ -16,6 +16,14 @@ import { MotionFormError, MotionFormSuccess } from "@/components/motion-form";
 import { MotionPageContainer } from "@/components/motion-page-container";
 import { MotionCard } from "@/components/motion-card";
 import type { Provider } from "@/lib/auth-providers";
+import {
+  isPasskeySupported,
+  authenticateWithPasskey,
+  getPasskeyMessage,
+  getPasskeyErrorMessage,
+} from "@/lib/passkey-client";
+import { Fingerprint } from "lucide-react";
+import dynamic from "next/dynamic";
 
 interface LoginClientProps {
   providers: Provider[];
@@ -70,9 +78,20 @@ export default function LoginClient({ providers }: LoginClientProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [passkeySupported, setPasskeySupported] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
+
+  // Check passkey support on mount (client-side only)
+  useEffect(() => {
+    const checkSupport = async () => {
+      const supported = await isPasskeySupported();
+      setPasskeySupported(supported);
+    };
+    checkSupport();
+  }, []);
 
   // Redirect to appropriate page if already logged in
   useEffect(() => {
@@ -104,24 +123,30 @@ export default function LoginClient({ providers }: LoginClientProps) {
 
     // Check for authentication errors first
     if (authError === "CredentialsSignin") {
-      errorMsg = "Invalid credentials. Please check your email and password and try again.";
+      errorMsg =
+        "Invalid credentials. Please check your email and password and try again.";
     }
 
     if (message === "registration-success") {
-      successMsg = "Registration successful! You can now sign in with your new account.";
+      successMsg =
+        "Registration successful! You can now sign in with your new account.";
       clearPassword = true;
     } else if (message === "verify-email") {
-      successMsg = "Registration successful! Please check your email and click the verification link to complete your registration.";
+      successMsg =
+        "Registration successful! Please check your email and click the verification link to complete your registration.";
       if (urlEmail) {
         emailValue = urlEmail; // Pre-fill with registered email
       }
       clearPassword = true;
     } else if (verified === "true") {
-      successMsg = "Email verified successfully! You can now sign in to your account.";
+      successMsg =
+        "Email verified successfully! You can now sign in to your account.";
     } else if (message === "password-reset-success") {
-      successMsg = "Password reset successful! You can now sign in with your new password.";
+      successMsg =
+        "Password reset successful! You can now sign in with your new password.";
     } else if (message === "migration-complete") {
-      successMsg = "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile.";
+      successMsg =
+        "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile.";
     }
 
     return { errorMsg, successMsg, emailValue, clearPassword };
@@ -130,7 +155,13 @@ export default function LoginClient({ providers }: LoginClientProps) {
   // Apply initial messages using layout effect
   const hasAppliedInitialMessages = useRef(false);
   useIsomorphicLayoutEffect(() => {
-    if (!hasAppliedInitialMessages.current && (initialMessages.errorMsg || initialMessages.successMsg || initialMessages.emailValue || initialMessages.clearPassword)) {
+    if (
+      !hasAppliedInitialMessages.current &&
+      (initialMessages.errorMsg ||
+        initialMessages.successMsg ||
+        initialMessages.emailValue ||
+        initialMessages.clearPassword)
+    ) {
       hasAppliedInitialMessages.current = true;
       if (initialMessages.errorMsg && !error) {
         setError(initialMessages.errorMsg);
@@ -197,6 +228,55 @@ export default function LoginClient({ providers }: LoginClientProps) {
       console.error("OAuth sign in error:", error);
       setError("Authentication failed. Please try again.");
       setOauthLoading(null);
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setError(null);
+    setSuccessMessage(null);
+    setPasskeyLoading(true);
+
+    try {
+      const authResponse = await authenticateWithPasskey(email || undefined);
+
+      const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
+      const result = await signIn("passkey", {
+        authenticationResponse: JSON.stringify(authResponse),
+        redirect: false,
+        callbackUrl,
+      });
+
+      if (result?.error) {
+        // Check if it's a passkey not found error
+        if (result.error.includes("not found")) {
+          setError(
+            "This passkey is no longer registered. Please use another sign-in method or re-register your passkey."
+          );
+        } else {
+          setError("Passkey authentication failed. Please try again.");
+        }
+        setPasskeyLoading(false);
+      } else if (result?.ok) {
+        // Success! Update session and refresh router
+        // Then navigate to callback URL
+        router.push(callbackUrl);
+        router.refresh();
+      } else {
+        setError("Passkey authentication failed. Please try again.");
+        setPasskeyLoading(false);
+      }
+    } catch (error) {
+      console.error("Passkey login error:", error);
+      const errorMessage = getPasskeyErrorMessage(error);
+      // Only show error if it's not a user cancellation
+      if (
+        !errorMessage.includes("canceled") &&
+        !errorMessage.includes("abort")
+      ) {
+        setError(errorMessage);
+      }
+      setPasskeyLoading(false);
     }
   }
 
@@ -335,7 +415,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
             {/* OAuth Providers */}
             {oauthProviders.length > 0 && (
               <motion.div
-                className="mb-6"
+                className="mb-4"
                 data-testid="oauth-providers"
                 variants={containerVariants}
                 initial="hidden"
@@ -350,7 +430,6 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   {oauthProviders.map((provider) => (
                     <motion.div key={provider.id} variants={itemVariants}>
                       <Button
-                        key={provider.id}
                         onClick={() => handleOAuthSignIn(provider.id)}
                         disabled={oauthLoading !== null || isLoading}
                         className={`w-full h-11 ${getProviderButtonStyle(
@@ -373,23 +452,55 @@ export default function LoginClient({ providers }: LoginClientProps) {
                     </motion.div>
                   ))}
                 </div>
-
-                <motion.div
-                  className="relative my-6"
-                  data-testid="oauth-divider"
-                  variants={itemVariants}
-                >
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or continue with email
-                    </span>
-                  </div>
-                </motion.div>
               </motion.div>
             )}
+
+            {/* Passkey Button - Client-side only */}
+            <div suppressHydrationWarning>
+              {passkeySupported && (
+                <motion.div
+                  className="mb-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.div variants={itemVariants}>
+                    <Button
+                      onClick={handlePasskeyLogin}
+                      disabled={
+                        isLoading || oauthLoading !== null || passkeyLoading
+                      }
+                      className="w-full h-11 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
+                      data-testid="passkey-login-button"
+                    >
+                      {passkeyLoading ? (
+                        <MotionSpinner size="sm" color="white" />
+                      ) : (
+                        <>
+                          <Fingerprint className="w-5 h-5 mr-3" />
+                          <span>{getPasskeyMessage()}</span>
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+
+                  <motion.div
+                    className="relative my-6"
+                    data-testid="passkey-divider"
+                    variants={itemVariants}
+                  >
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or use email and password
+                      </span>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </div>
 
             <motion.form
               onSubmit={onSubmit}
@@ -414,6 +525,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="username"
                   className="focus-ring"
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="email-input"
