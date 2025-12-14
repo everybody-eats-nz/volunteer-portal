@@ -260,7 +260,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
         // Success! Update session and refresh router
         // Then navigate to callback URL
         router.push(callbackUrl);
-        router.refresh();
+        setTimeout(() => router.refresh(), 500);
       } else {
         setError("Passkey authentication failed. Please try again.");
         setPasskeyLoading(false);
