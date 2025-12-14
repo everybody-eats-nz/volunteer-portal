@@ -1,31 +1,12 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/auth";
+import { createTestUser, getUserByEmail } from "./helpers/test-helpers";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState("load");
   await page.waitForTimeout(500); // Small buffer for animations
-}
-
-// Helper function to get a volunteer ID from the admin users list
-async function getVolunteerIdFromUsersList(page: Page): Promise<string | null> {
-  await page.goto("/admin/users");
-  await waitForPageLoad(page);
-
-  // Look for volunteer cards with view profile links
-  const viewProfileLinks = page.locator('a[href*="/admin/volunteers/"]');
-  const linkCount = await viewProfileLinks.count();
-
-  if (linkCount > 0) {
-    const href = await viewProfileLinks.first().getAttribute("href");
-    if (href) {
-      const match = href.match(/\/admin\/volunteers\/(.+)/);
-      return match ? match[1] : null;
-    }
-  }
-
-  return null;
 }
 
 // Helper function to navigate to a volunteer profile
@@ -36,13 +17,20 @@ async function navigateToVolunteerProfile(page: Page, volunteerId: string) {
 
 test.describe("Admin Notes Management", () => {
   let testVolunteerId: string | null = null;
+  const testEmail = "admin-notes-test@example.com";
 
   test.beforeAll(async ({ browser }) => {
-    // Get a volunteer ID once for all tests in this suite
+    // Create a test volunteer for all tests in this suite
     const context = await browser.newContext();
     const page = await context.newPage();
-    await loginAsAdmin(page);
-    testVolunteerId = await getVolunteerIdFromUsersList(page);
+
+    // Create test user
+    await createTestUser(page, testEmail, "VOLUNTEER");
+
+    // Get the user ID
+    const user = await getUserByEmail(page, testEmail);
+    testVolunteerId = user?.id || null;
+
     await context.close();
   });
 
@@ -87,8 +75,6 @@ test.describe("Admin Notes Management", () => {
   test("should display admin notes section on volunteer profile", async ({
     page,
   }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     // Navigate to volunteer profile
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
@@ -102,8 +88,6 @@ test.describe("Admin Notes Management", () => {
   });
 
   test("should create a new admin note", async ({ page }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // Click the "Add Admin Note" button
@@ -132,8 +116,6 @@ test.describe("Admin Notes Management", () => {
   });
 
   test("should edit an existing admin note", async ({ page }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // First create a note to edit
@@ -175,8 +157,6 @@ test.describe("Admin Notes Management", () => {
   test("should delete an admin note with confirmation dialog", async ({
     page,
   }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // First create a note to delete
@@ -215,8 +195,6 @@ test.describe("Admin Notes Management", () => {
   });
 
   test("should cancel note deletion when clicking cancel", async ({ page }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // First create a note
@@ -248,8 +226,6 @@ test.describe("Admin Notes Management", () => {
   });
 
   test("should cancel adding a new note", async ({ page }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // Click add note button
@@ -276,8 +252,6 @@ test.describe("Admin Notes Management", () => {
   test("should display no notes message when volunteer has no notes", async ({
     page,
   }) => {
-    test.skip(!testVolunteerId, "No volunteer found in database");
-
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
     // Check for the no notes message (should show for fresh user with no notes)
@@ -368,17 +342,5 @@ test.describe("Admin Notes on Shifts Page", () => {
       const buttonText = await singleNoteButton.first().textContent();
       expect(buttonText).toContain("Note");
     }
-  });
-});
-
-test.describe("Admin Notes Permissions", () => {
-  test("should not allow volunteers to access admin notes", async () => {
-    // This test would require setting up a volunteer user and testing access
-    // For now, we can test that the admin notes sections are not visible to non-admins
-    // This would require a separate test setup or login as volunteer functionality
-    test.skip(
-      true,
-      "Volunteer permission test - requires volunteer login setup"
-    );
   });
 });

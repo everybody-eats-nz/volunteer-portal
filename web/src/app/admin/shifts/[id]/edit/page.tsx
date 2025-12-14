@@ -112,8 +112,8 @@ export default async function EditShiftPage({
       parsed.data;
 
     // Parse time components and create dates in NZ timezone
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
     const start = createNZDate(date, startHour, startMinute);
     const end = createNZDate(date, endHour, endMinute);
 
@@ -163,7 +163,15 @@ export default async function EditShiftPage({
       redirect(`/admin/shifts/${id}/edit?error=delete`);
     }
 
-    redirect("/admin/shifts?deleted=1");
+    // Redirect back to the shift's date and location
+    if (shift) {
+      const date = formatInNZT(shift.start, "yyyy-MM-dd");
+      const location = shift.location || "";
+      const params = new URLSearchParams({ deleted: "1" });
+      if (date) params.set("date", date);
+      if (location) params.set("location", location);
+      redirect(`/admin/shifts?${params.toString()}`);
+    }
   }
 
   // Format existing shift data for form defaults (in NZ timezone)
