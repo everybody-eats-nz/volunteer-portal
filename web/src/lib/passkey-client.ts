@@ -7,13 +7,14 @@
 
 "use client";
 
-import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
-import type {
+import {
+  startRegistration,
+  startAuthentication,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
-} from "@simplewebauthn/types";
+} from "@simplewebauthn/browser";
 
 /**
  * Check if passkeys are supported in the current browser
@@ -25,7 +26,10 @@ export async function isPasskeySupported(): Promise<boolean> {
   }
 
   // Additional check for create method
-  if (typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== "function") {
+  if (
+    typeof window.PublicKeyCredential
+      .isUserVerifyingPlatformAuthenticatorAvailable !== "function"
+  ) {
     return false;
   }
 
@@ -43,7 +47,9 @@ export async function isConditionalMediationSupported(): Promise<boolean> {
 
   try {
     // Check if isConditionalMediationAvailable method exists
-    if (typeof PublicKeyCredential.isConditionalMediationAvailable === "function") {
+    if (
+      typeof PublicKeyCredential.isConditionalMediationAvailable === "function"
+    ) {
       return await PublicKeyCredential.isConditionalMediationAvailable();
     }
     return false;
@@ -94,17 +100,20 @@ export function getPasskeyMessage(): string {
 export async function registerPasskey(deviceName?: string): Promise<void> {
   try {
     // Step 1: Get registration options from server
-    const optionsResponse = await fetch("/api/passkey/register/generate-options", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const optionsResponse = await fetch(
+      "/api/passkey/register/generate-options",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
     if (!optionsResponse.ok) {
       const error = await optionsResponse.json();
       throw new Error(error.error || "Failed to get registration options");
     }
 
-    const { options } = await optionsResponse.json() as {
+    const { options } = (await optionsResponse.json()) as {
       options: PublicKeyCredentialCreationOptionsJSON;
     };
 
@@ -118,14 +127,17 @@ export async function registerPasskey(deviceName?: string): Promise<void> {
     }
 
     // Step 3: Send response to server for verification
-    const verifyResponse = await fetch("/api/passkey/register/verify-registration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        registrationResponse,
-        deviceName: deviceName || getDefaultDeviceName(),
-      }),
-    });
+    const verifyResponse = await fetch(
+      "/api/passkey/register/verify-registration",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          registrationResponse,
+          deviceName: deviceName || getDefaultDeviceName(),
+        }),
+      }
+    );
 
     if (!verifyResponse.ok) {
       const error = await verifyResponse.json();
@@ -154,18 +166,21 @@ export async function authenticateWithPasskey(
 ): Promise<AuthenticationResponseJSON> {
   try {
     // Step 1: Get authentication options from server
-    const optionsResponse = await fetch("/api/passkey/authenticate/generate-options", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    const optionsResponse = await fetch(
+      "/api/passkey/authenticate/generate-options",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }
+    );
 
     if (!optionsResponse.ok) {
       const error = await optionsResponse.json();
       throw new Error(error.error || "Failed to get authentication options");
     }
 
-    const { options } = await optionsResponse.json() as {
+    const { options } = (await optionsResponse.json()) as {
       options: PublicKeyCredentialRequestOptionsJSON;
     };
 
@@ -203,18 +218,21 @@ export async function startConditionalAuthentication(
     }
 
     // Get authentication options from server
-    const optionsResponse = await fetch("/api/passkey/authenticate/generate-options", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}), // No email filter for conditional UI
-    });
+    const optionsResponse = await fetch(
+      "/api/passkey/authenticate/generate-options",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // No email filter for conditional UI
+      }
+    );
 
     if (!optionsResponse.ok) {
       console.error("Failed to get authentication options for conditional UI");
       return null;
     }
 
-    const { options } = await optionsResponse.json() as {
+    const { options } = (await optionsResponse.json()) as {
       options: PublicKeyCredentialRequestOptionsJSON;
     };
 
@@ -244,13 +262,15 @@ export async function startConditionalAuthentication(
 /**
  * List user's registered passkeys
  */
-export async function listPasskeys(): Promise<Array<{
-  id: string;
-  deviceName: string;
-  transports: string[];
-  createdAt: string;
-  lastUsedAt: string | null;
-}>> {
+export async function listPasskeys(): Promise<
+  Array<{
+    id: string;
+    deviceName: string;
+    transports: string[];
+    createdAt: string;
+    lastUsedAt: string | null;
+  }>
+> {
   try {
     const response = await fetch("/api/passkey/list", {
       method: "GET",
@@ -283,7 +303,9 @@ export async function deletePasskey(passkeyId: string): Promise<void> {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || error.message || "Failed to delete passkey");
+      throw new Error(
+        error.error || error.message || "Failed to delete passkey"
+      );
     }
   } catch (error) {
     console.error("Error deleting passkey:", error);
@@ -294,7 +316,10 @@ export async function deletePasskey(passkeyId: string): Promise<void> {
 /**
  * Rename a passkey
  */
-export async function renamePasskey(passkeyId: string, deviceName: string): Promise<void> {
+export async function renamePasskey(
+  passkeyId: string,
+  deviceName: string
+): Promise<void> {
   try {
     const response = await fetch("/api/passkey/rename", {
       method: "PATCH",

@@ -8,14 +8,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { generateRegistrationOptions } from "@simplewebauthn/server";
-import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
-import { prisma } from "@/lib/prisma";
 import {
-  storeChallenge,
-  bufferToBase64URL,
-} from "@/lib/webauthn-utils";
-import { rpName, rpID, userVerification, attestationType, timeout } from "@/lib/webauthn-config";
+  generateRegistrationOptions,
+  PublicKeyCredentialCreationOptionsJSON,
+} from "@simplewebauthn/server";
+import { prisma } from "@/lib/prisma";
+import { storeChallenge, bufferToBase64URL } from "@/lib/webauthn-utils";
+import {
+  rpName,
+  rpID,
+  userVerification,
+  attestationType,
+  timeout,
+} from "@/lib/webauthn-config";
 
 export async function POST() {
   try {
@@ -50,21 +55,22 @@ export async function POST() {
     }));
 
     // Generate registration options using @simplewebauthn/server
-    const options: PublicKeyCredentialCreationOptionsJSON = await generateRegistrationOptions({
-      rpName,
-      rpID,
-      userID: new TextEncoder().encode(userId), // Convert string to Uint8Array
-      userName: userEmail,
-      userDisplayName: userName,
-      attestationType,
-      excludeCredentials,
-      authenticatorSelection: {
-        residentKey: "preferred", // Allows discoverable credentials (for autofill)
-        userVerification,
-        authenticatorAttachment: undefined, // Allow both platform and cross-platform authenticators
-      },
-      timeout,
-    });
+    const options: PublicKeyCredentialCreationOptionsJSON =
+      await generateRegistrationOptions({
+        rpName,
+        rpID,
+        userID: new TextEncoder().encode(userId), // Convert string to Uint8Array
+        userName: userEmail,
+        userDisplayName: userName,
+        attestationType,
+        excludeCredentials,
+        authenticatorSelection: {
+          residentKey: "preferred", // Allows discoverable credentials (for autofill)
+          userVerification,
+          authenticatorAttachment: undefined, // Allow both platform and cross-platform authenticators
+        },
+        timeout,
+      });
 
     // Store the challenge for verification
     await storeChallenge(options.challenge, "registration", {

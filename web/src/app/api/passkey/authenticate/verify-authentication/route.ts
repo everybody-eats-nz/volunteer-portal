@@ -7,14 +7,17 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAuthenticationResponse } from "@simplewebauthn/server";
-import type {
+import {
+  verifyAuthenticationResponse,
   AuthenticationResponseJSON,
   VerifiedAuthenticationResponse,
   AuthenticatorTransport,
-} from "@simplewebauthn/types";
+} from "@simplewebauthn/server";
 import { prisma } from "@/lib/prisma";
-import { verifyAndConsumeChallenge, base64URLToBuffer } from "@/lib/webauthn-utils";
+import {
+  verifyAndConsumeChallenge,
+  base64URLToBuffer,
+} from "@/lib/webauthn-utils";
 import { rpID, expectedOrigin } from "@/lib/webauthn-config";
 
 export async function POST(req: NextRequest) {
@@ -57,10 +60,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!passkey) {
-      return NextResponse.json(
-        { error: "Passkey not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Passkey not found" }, { status: 404 });
     }
 
     // Extract and verify the challenge
@@ -68,15 +68,15 @@ export async function POST(req: NextRequest) {
 
     try {
       const clientDataJSON = JSON.parse(
-        Buffer.from(authenticationResponse.response.clientDataJSON, "base64url").toString()
+        Buffer.from(
+          authenticationResponse.response.clientDataJSON,
+          "base64url"
+        ).toString()
       );
 
       extractedChallenge = clientDataJSON.challenge;
 
-      await verifyAndConsumeChallenge(
-        extractedChallenge,
-        "authentication"
-      );
+      await verifyAndConsumeChallenge(extractedChallenge, "authentication");
     } catch (error) {
       console.error("Challenge verification failed:", error);
       return NextResponse.json(

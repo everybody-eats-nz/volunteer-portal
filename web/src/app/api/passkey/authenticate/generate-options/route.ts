@@ -7,13 +7,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { generateAuthenticationOptions } from "@simplewebauthn/server";
-import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
-import { prisma } from "@/lib/prisma";
 import {
-  storeChallenge,
-  bufferToBase64URL,
-} from "@/lib/webauthn-utils";
+  generateAuthenticationOptions,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/server";
+import { prisma } from "@/lib/prisma";
+import { storeChallenge, bufferToBase64URL } from "@/lib/webauthn-utils";
 import { rpID, userVerification, timeout } from "@/lib/webauthn-config";
 
 export async function POST(req: NextRequest) {
@@ -48,7 +47,8 @@ export async function POST(req: NextRequest) {
         allowCredentials = user.passkeys.map((passkey) => ({
           id: bufferToBase64URL(passkey.credentialId),
           type: "public-key" as const,
-          transports: (passkey.transports as AuthenticatorTransport[]) || undefined,
+          transports:
+            (passkey.transports as AuthenticatorTransport[]) || undefined,
         }));
       } else if (user && user.passkeys.length === 0) {
         // User exists but has no passkeys
@@ -68,22 +68,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate authentication options
-    const options: PublicKeyCredentialRequestOptionsJSON = await generateAuthenticationOptions({
-      rpID,
-      userVerification,
-      allowCredentials: allowCredentials.length > 0 ? allowCredentials : undefined,
-      timeout,
-    });
+    const options: PublicKeyCredentialRequestOptionsJSON =
+      await generateAuthenticationOptions({
+        rpID,
+        userVerification,
+        allowCredentials:
+          allowCredentials.length > 0 ? allowCredentials : undefined,
+        timeout,
+      });
 
     // Store the challenge for verification
     await storeChallenge(options.challenge, "authentication", {
       email: email || undefined,
     });
 
-    return NextResponse.json(
-      { options },
-      { status: 200 }
-    );
+    return NextResponse.json({ options }, { status: 200 });
   } catch (error) {
     console.error("Error generating passkey authentication options:", error);
     return NextResponse.json(
