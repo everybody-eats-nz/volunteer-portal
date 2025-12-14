@@ -5,12 +5,12 @@
  * Returns sanitized data (no sensitive cryptographic material).
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Verify user is authenticated
     const session = await getServerSession(authOptions);

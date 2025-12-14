@@ -23,7 +23,6 @@ import {
   getPasskeyErrorMessage,
 } from "@/lib/passkey-client";
 import { Fingerprint } from "lucide-react";
-import dynamic from "next/dynamic";
 
 interface LoginClientProps {
   providers: Provider[];

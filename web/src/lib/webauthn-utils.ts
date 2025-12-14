@@ -79,7 +79,9 @@ export async function verifyAndConsumeChallenge(
 
   // Check type matches
   if (record.type !== type) {
-    throw new Error(`Invalid challenge type. Expected ${type}, got ${record.type}`);
+    throw new Error(
+      `Invalid challenge type. Expected ${type}, got ${record.type}`
+    );
   }
 
   // Delete the challenge (one-time use)
@@ -138,6 +140,7 @@ export function isoUint8ArrayToBuffer(isoString: string): Buffer {
     const parsed = JSON.parse(isoString);
     return Buffer.from(Object.values(parsed) as number[]);
   } catch (error) {
+    console.error(error);
     throw new Error("Invalid ISO Uint8Array string");
   }
 }

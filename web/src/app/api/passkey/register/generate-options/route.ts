@@ -5,20 +5,19 @@
  * This is the first step in the passkey registration ceremony.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import type { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
 import { prisma } from "@/lib/prisma";
 import {
-  generateChallenge,
   storeChallenge,
   bufferToBase64URL,
 } from "@/lib/webauthn-utils";
 import { rpName, rpID, userVerification, attestationType, timeout } from "@/lib/webauthn-config";
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     // Verify user is authenticated
     const session = await getServerSession(authOptions);

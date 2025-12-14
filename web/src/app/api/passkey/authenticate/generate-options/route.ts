@@ -11,7 +11,6 @@ import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
 import { prisma } from "@/lib/prisma";
 import {
-  generateChallenge,
   storeChallenge,
   bufferToBase64URL,
 } from "@/lib/webauthn-utils";

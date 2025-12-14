@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +39,15 @@ import {
   renamePasskey,
   getPasskeyErrorMessage,
 } from "@/lib/passkey-client";
-import { Fingerprint, Plus, Trash2, Smartphone, Usb, Edit2, Key } from "lucide-react";
+import {
+  Fingerprint,
+  Plus,
+  Trash2,
+  Smartphone,
+  Usb,
+  Edit2,
+  Key,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { formatDistanceToNow } from "date-fns";
@@ -235,7 +249,8 @@ export function PasskeyManagement() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            To use passkeys, please use a modern browser like Chrome, Safari, or Edge.
+            To use passkeys, please use a modern browser like Chrome, Safari, or
+            Edge.
           </p>
         </CardContent>
       </Card>
@@ -281,7 +296,8 @@ export function PasskeyManagement() {
               <Fingerprint className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">No passkeys yet</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Add a passkey to sign in faster with your fingerprint, face, or device PIN
+                Add a passkey to sign in faster with your fingerprint, face, or
+                device PIN
               </p>
               <Button
                 type="button"
@@ -311,24 +327,39 @@ export function PasskeyManagement() {
                       <Fingerprint className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium" data-testid="passkey-device-name">
+                      <h4
+                        className="font-medium"
+                        data-testid="passkey-device-name"
+                      >
                         {passkey.deviceName}
                       </h4>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {passkey.transports.map((transport) => (
-                          <Badge key={transport} variant="secondary" className="text-xs">
-                            <span className="mr-1">{getTransportIcon(transport)}</span>
+                          <Badge
+                            key={transport}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            <span className="mr-1">
+                              {getTransportIcon(transport)}
+                            </span>
                             {transport}
                           </Badge>
                         ))}
                       </div>
                       <div className="text-xs text-muted-foreground mt-2 space-y-1">
                         <p>
-                          Created {formatDistanceToNow(new Date(passkey.createdAt), { addSuffix: true })}
+                          Created{" "}
+                          {formatDistanceToNow(new Date(passkey.createdAt), {
+                            addSuffix: true,
+                          })}
                         </p>
                         {passkey.lastUsedAt && (
                           <p>
-                            Last used {formatDistanceToNow(new Date(passkey.lastUsedAt), { addSuffix: true })}
+                            Last used{" "}
+                            {formatDistanceToNow(new Date(passkey.lastUsedAt), {
+                              addSuffix: true,
+                            })}
                           </p>
                         )}
                       </div>
@@ -385,7 +416,8 @@ export function PasskeyManagement() {
           <DialogHeader>
             <DialogTitle>Add Passkey</DialogTitle>
             <DialogDescription>
-              Give your passkey a name to help you remember which device it's for.
+              Give your passkey a name to help you remember which device
+              it&apos;s for.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -401,10 +433,18 @@ export function PasskeyManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={isAdding}>
+            <Button
+              variant="outline"
+              onClick={() => setAddDialogOpen(false)}
+              disabled={isAdding}
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddPasskey} disabled={isAdding} data-testid="confirm-add-passkey-button">
+            <Button
+              onClick={handleAddPasskey}
+              disabled={isAdding}
+              data-testid="confirm-add-passkey-button"
+            >
               {isAdding ? (
                 <>
                   <MotionSpinner size="sm" className="mr-2" />
@@ -440,10 +480,18 @@ export function PasskeyManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isRenaming}>
+            <Button
+              variant="outline"
+              onClick={() => setRenameDialogOpen(false)}
+              disabled={isRenaming}
+            >
               Cancel
             </Button>
-            <Button onClick={handleRenamePasskey} disabled={isRenaming || !deviceName.trim()} data-testid="confirm-rename-passkey-button">
+            <Button
+              onClick={handleRenamePasskey}
+              disabled={isRenaming || !deviceName.trim()}
+              data-testid="confirm-rename-passkey-button"
+            >
               {isRenaming ? (
                 <>
                   <MotionSpinner size="sm" className="mr-2" />
@@ -463,8 +511,9 @@ export function PasskeyManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Passkey</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedPasskey?.deviceName}"? You won't be able
-              to use this passkey to sign in anymore.
+              Are you sure you want to delete &rdquo;
+              {selectedPasskey?.deviceName}&ldquo;? You won&apos;t be able to
+              use this passkey to sign in anymore.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
