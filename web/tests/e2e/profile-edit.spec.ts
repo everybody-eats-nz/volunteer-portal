@@ -72,6 +72,9 @@ test.describe("Profile Edit Page", () => {
 
       const communicationTab = page.getByTestId("communication-tab-button");
       await expect(communicationTab).toBeVisible();
+
+      const securityTab = page.getByTestId("security-tab-button");
+      await expect(securityTab).toBeVisible();
     });
 
     test("should display form content with save button", async ({ page }) => {
