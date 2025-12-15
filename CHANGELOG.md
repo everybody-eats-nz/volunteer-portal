@@ -1,3 +1,9 @@
+## [0.80.0] - 2025-12-15
+
+### Changes
+- feat: Add passkey (WebAuthn) authentication support ([#381](https://github.com/everybody-eats-nz/volunteer-portal/pull/381)) by @malinmalliyawadu
+
+
 ## [0.79.0] - 2025-12-09
 
 ### Changes

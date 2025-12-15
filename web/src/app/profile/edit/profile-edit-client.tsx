@@ -22,6 +22,7 @@ import {
   Shield,
   MapPin,
   Bell,
+  Key,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -33,6 +34,7 @@ import {
   UserProfileFormData,
 } from "@/components/forms/user-profile-form";
 import { MotionPageContainer } from "@/components/motion-page-container";
+import { PasskeyManagement } from "@/components/passkey-management";
 
 interface ProfileEditClientProps {
   locationOptions: Array<{ value: string; label: string }>;
@@ -236,6 +238,13 @@ export default function ProfileEditClient({
         icon: Bell,
         color: "bg-orange-500",
       },
+      {
+        id: "security",
+        title: "Security",
+        description: "Manage passkeys and account security",
+        icon: Key,
+        color: "bg-indigo-500",
+      },
     ],
     []
   );
@@ -432,6 +441,8 @@ export default function ProfileEditClient({
             shiftTypes={shiftTypes}
           />
         );
+      case 5: // Security
+        return <PasskeyManagement />;
       default:
         return null;
     }
