@@ -166,9 +166,7 @@ export function HistoricalDataSelector({
 
   const toggleUserSelection = (email: string) => {
     setSelectedUserEmails((prev) =>
-      prev.includes(email)
-        ? prev.filter((e) => e !== email)
-        : [...prev, email]
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
     );
   };
 
@@ -280,18 +278,21 @@ export function HistoricalDataSelector({
     };
 
     try {
-      const response = await fetch("/api/admin/migration/batch-import-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userEmails: selectedUserEmails,
-          novaConfig,
-          sessionId,
-          options: {
-            dryRun: false,
-          },
-        }),
-      });
+      const response = await fetch(
+        "/api/admin/migration/batch-import-history",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userEmails: selectedUserEmails,
+            novaConfig,
+            sessionId,
+            options: {
+              dryRun: false,
+            },
+          }),
+        }
+      );
 
       const data: BatchImportResult = await response.json();
       setResult(data);
@@ -620,6 +621,7 @@ export function HistoricalDataSelector({
                   className="ml-2 text-sm border rounded px-2 py-1"
                   disabled={isLoading}
                 >
+                  <option value="10">10 / page</option>
                   <option value="25">25 / page</option>
                   <option value="50">50 / page</option>
                   <option value="100">100 / page</option>
@@ -651,30 +653,32 @@ export function HistoricalDataSelector({
               </div>
             )}
 
-            {progressData?.stage === "processing" && progressData?.totalUsers && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Users Processed</span>
-                  <span>
-                    {progressData.usersProcessed || 0} / {progressData.totalUsers}
-                  </span>
-                </div>
-                <Progress
-                  value={
-                    ((progressData.usersProcessed || 0) /
-                      progressData.totalUsers) *
-                    100
-                  }
-                  className="w-full"
-                />
-
-                {progressData.currentUser && (
-                  <div className="text-xs text-muted-foreground">
-                    Current: {progressData.currentUser}
+            {progressData?.stage === "processing" &&
+              progressData?.totalUsers && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Users Processed</span>
+                    <span>
+                      {progressData.usersProcessed || 0} /{" "}
+                      {progressData.totalUsers}
+                    </span>
                   </div>
-                )}
-              </div>
-            )}
+                  <Progress
+                    value={
+                      ((progressData.usersProcessed || 0) /
+                        progressData.totalUsers) *
+                      100
+                    }
+                    className="w-full"
+                  />
+
+                  {progressData.currentUser && (
+                    <div className="text-xs text-muted-foreground">
+                      Current: {progressData.currentUser}
+                    </div>
+                  )}
+                </div>
+              )}
 
             {/* Migration Logs */}
             {migrationLogs.length > 0 && (
@@ -739,7 +743,9 @@ export function HistoricalDataSelector({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="text-sm font-medium">Users Processed</div>
-                <div className="text-2xl font-bold">{result.usersProcessed}</div>
+                <div className="text-2xl font-bold">
+                  {result.usersProcessed}
+                </div>
               </div>
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="text-sm font-medium">With History</div>
