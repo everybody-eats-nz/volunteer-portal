@@ -8,12 +8,13 @@
 /**
  * Relying Party (RP) Name - shown to users during passkey registration
  */
-export const rpName = process.env.WEBAUTHN_RP_NAME || "Everybody Eats Volunteer Portal";
+export const rpName =
+  process.env.WEBAUTHN_RP_NAME || "Everybody Eats Volunteer Portal";
 
 /**
  * Relying Party ID - must match the domain
  * For localhost: "localhost"
- * For production: "volunteer.everybodyeats.nz" (or your actual domain)
+ * For production: "volunteers.everybodyeats.nz" (or your actual domain)
  */
 export const rpID = process.env.WEBAUTHN_RP_ID || getRpIdFromUrl();
 
@@ -21,7 +22,8 @@ export const rpID = process.env.WEBAUTHN_RP_ID || getRpIdFromUrl();
  * Expected origin - the full URL where the app is hosted
  * Used for verification during authentication
  */
-export const expectedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+export const expectedOrigin =
+  process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 /**
  * Challenge timeout in milliseconds (5 minutes)
@@ -34,7 +36,8 @@ export const challengeTimeout = 5 * 60 * 1000; // 5 minutes
  * - "preferred": Use biometrics if available, but allow security keys without
  * - "discouraged": Don't use biometrics
  */
-export const userVerification: "required" | "preferred" | "discouraged" = "preferred";
+export const userVerification: "required" | "preferred" | "discouraged" =
+  "preferred";
 
 /**
  * Attestation type
@@ -98,7 +101,9 @@ export function validateWebAuthnConfig(): void {
   // Warn if using default values in production
   if (process.env.NODE_ENV === "production") {
     if (rpID === "localhost") {
-      console.warn("WARNING: Using 'localhost' as RP ID in production. Set WEBAUTHN_RP_ID environment variable.");
+      console.warn(
+        "WARNING: Using 'localhost' as RP ID in production. Set WEBAUTHN_RP_ID environment variable."
+      );
     }
     if (!process.env.WEBAUTHN_RP_NAME) {
       console.warn("WARNING: WEBAUTHN_RP_NAME not set. Using default value.");
