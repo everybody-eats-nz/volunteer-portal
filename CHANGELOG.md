@@ -1,3 +1,9 @@
+## [0.81.1] - 2025-12-15
+
+### Changes
+- Fix friend notifications and re-add 500 error ([#393](https://github.com/everybody-eats-nz/volunteer-portal/pull/393)) by @malinmalliyawadu
+
+
 ## [0.81.0] - 2025-12-15
 
 ### Changes
