@@ -1,3 +1,9 @@
+## [0.81.0] - 2025-12-15
+
+### Changes
+- feat: improve admin dashboard with time-based signup stats and passkey notice ([#391](https://github.com/everybody-eats-nz/volunteer-portal/pull/391)) by @malinmalliyawadu
+
+
 ## [0.80.0] - 2025-12-15
 
 ### Changes

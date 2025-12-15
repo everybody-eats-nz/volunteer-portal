@@ -107,14 +107,14 @@ test.describe("Admin Dashboard Page", () => {
       );
       await expect(totalShiftsNumber).toBeVisible();
 
-      // Check Total Signups card
-      const totalSignupsCard = page.getByTestId("total-signups-card");
-      await expect(totalSignupsCard).toBeVisible();
+      // Check Recent Signups card
+      const recentSignupsCard = page.getByTestId("recent-signups-card");
+      await expect(recentSignupsCard).toBeVisible();
 
-      const totalSignupsNumber = totalSignupsCard.locator(
+      const recentSignupsNumber = recentSignupsCard.locator(
         '[class*="text-2xl"][class*="font-bold"]'
       );
-      await expect(totalSignupsNumber).toBeVisible();
+      await expect(recentSignupsNumber).toBeVisible();
 
       // Check This Month card
       const thisMonthCard = page.getByTestId("this-month-card");
