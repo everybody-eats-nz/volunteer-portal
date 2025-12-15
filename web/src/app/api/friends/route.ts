@@ -198,45 +198,71 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if friend request already exists
+    // Check if friend request already exists (any status)
     const existingRequest = await prisma.friendRequest.findFirst({
       where: {
         fromUserId: user.id,
         toEmail: email,
-        status: "PENDING",
-        expiresAt: { gt: new Date() },
       },
     });
 
-    if (existingRequest) {
-      return NextResponse.json(
-        { error: "Friend request already sent" },
-        { status: 400 }
-      );
-    }
-
-    // Create friend request
+    // Calculate new expiry date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
 
-    const friendRequest = await prisma.friendRequest.create({
-      data: {
-        fromUserId: user.id,
-        toEmail: email,
-        message: message || null,
-        expiresAt,
-      },
-      include: {
-        fromUser: {
-          select: {
-            name: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+    let friendRequest;
+
+    if (existingRequest) {
+      // If there's a pending request that hasn't expired, don't allow resending
+      if (existingRequest.status === "PENDING" && existingRequest.expiresAt > new Date()) {
+        return NextResponse.json(
+          { error: "Friend request already sent" },
+          { status: 400 }
+        );
+      }
+
+      // If request was previously accepted, declined, expired, or canceled, update it
+      // This handles the case where users removed each other as friends and want to reconnect
+      friendRequest = await prisma.friendRequest.update({
+        where: { id: existingRequest.id },
+        data: {
+          status: "PENDING",
+          message: message || null,
+          expiresAt,
+          updatedAt: new Date(),
+        },
+        include: {
+          fromUser: {
+            select: {
+              name: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      });
+    } else {
+      // Create new friend request
+      friendRequest = await prisma.friendRequest.create({
+        data: {
+          fromUserId: user.id,
+          toEmail: email,
+          message: message || null,
+          expiresAt,
+        },
+        include: {
+          fromUser: {
+            select: {
+              name: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      });
+    }
 
     // Create notification for the target user
     try {

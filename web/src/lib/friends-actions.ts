@@ -5,6 +5,10 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import {
+  createFriendRequestNotification,
+  createFriendRequestAcceptedNotification,
+} from "@/lib/notifications";
 
 const sendFriendRequestSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -75,32 +79,66 @@ export async function sendFriendRequest(formData: FormData) {
       return { error: "Friendship already exists or is pending" };
     }
 
-    // Check if friend request already exists
+    // Check if friend request already exists (any status)
     const existingRequest = await prisma.friendRequest.findFirst({
       where: {
         fromUserId: user.id,
         toEmail: validatedEmail,
-        status: "PENDING",
-        expiresAt: { gt: new Date() },
       },
     });
 
-    if (existingRequest) {
-      return { error: "Friend request already sent" };
-    }
-
-    // Create friend request
+    // Calculate new expiry date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
 
-    await prisma.friendRequest.create({
-      data: {
-        fromUserId: user.id,
-        toEmail: validatedEmail,
-        message: validatedMessage || null,
-        expiresAt,
-      },
-    });
+    let friendRequest;
+
+    if (existingRequest) {
+      // If there's a pending request that hasn't expired, don't allow resending
+      if (existingRequest.status === "PENDING" && existingRequest.expiresAt > new Date()) {
+        return { error: "Friend request already sent" };
+      }
+
+      // If request was previously accepted, declined, expired, or canceled, update it
+      // This handles the case where users removed each other as friends and want to reconnect
+      friendRequest = await prisma.friendRequest.update({
+        where: { id: existingRequest.id },
+        data: {
+          status: "PENDING",
+          message: validatedMessage || null,
+          expiresAt,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new friend request
+      friendRequest = await prisma.friendRequest.create({
+        data: {
+          fromUserId: user.id,
+          toEmail: validatedEmail,
+          message: validatedMessage || null,
+          expiresAt,
+        },
+      });
+    }
+
+    // Create notification for the target user
+    try {
+      const senderName =
+        user.name ||
+        (user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.email);
+
+      await createFriendRequestNotification(
+        targetUser.id,
+        senderName,
+        friendRequest.id
+      );
+    } catch (notificationError) {
+      // Don't fail the friend request if notification creation fails
+      console.error("Error creating friend request notification:", notificationError);
+    }
 
     revalidatePath("/friends");
     return { success: "Friend request sent successfully" };
@@ -131,7 +169,13 @@ export async function acceptFriendRequest(requestId: string) {
       where: { id: requestId },
       include: {
         fromUser: {
-          select: { id: true, email: true, name: true },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+          },
         },
       },
     });
@@ -151,9 +195,9 @@ export async function acceptFriendRequest(requestId: string) {
     }
 
     // Use a transaction to create bidirectional friendship and update request
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Create bidirectional friendship records
-      await tx.friendship.create({
+      const friendship1 = await tx.friendship.create({
         data: {
           userId: user.id,
           friendId: friendRequest.fromUser.id,
@@ -162,7 +206,7 @@ export async function acceptFriendRequest(requestId: string) {
         },
       });
 
-      await tx.friendship.create({
+      const friendship2 = await tx.friendship.create({
         data: {
           userId: friendRequest.fromUser.id,
           friendId: user.id,
@@ -176,7 +220,27 @@ export async function acceptFriendRequest(requestId: string) {
         where: { id: requestId },
         data: { status: "ACCEPTED" },
       });
+
+      return { friendship1, friendship2 };
     });
+
+    // Create notification for the requester about acceptance
+    try {
+      const accepterName =
+        user.name ||
+        (user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.email);
+
+      await createFriendRequestAcceptedNotification(
+        friendRequest.fromUserId,
+        accepterName,
+        result.friendship1.id
+      );
+    } catch (notificationError) {
+      // Don't fail the acceptance if notification creation fails
+      console.error("Error creating friend request accepted notification:", notificationError);
+    }
 
     revalidatePath("/friends");
     return { success: "Friend request accepted" };
@@ -259,7 +323,14 @@ export async function sendFriendRequestByUserId(userId: string) {
     // Check if user allows friend requests
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, allowFriendRequests: true, name: true },
+      select: {
+        id: true,
+        email: true,
+        allowFriendRequests: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+      },
     });
 
     if (!targetUser) {
@@ -284,32 +355,66 @@ export async function sendFriendRequestByUserId(userId: string) {
       return { error: "Friendship already exists or is pending" };
     }
 
-    // Check if friend request already exists
+    // Check if friend request already exists (any status)
     const existingRequest = await prisma.friendRequest.findFirst({
       where: {
         fromUserId: user.id,
         toEmail: targetUser.email,
-        status: "PENDING",
-        expiresAt: { gt: new Date() },
       },
     });
 
-    if (existingRequest) {
-      return { error: "Friend request already sent" };
-    }
-
-    // Create friend request
+    // Calculate new expiry date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
 
-    await prisma.friendRequest.create({
-      data: {
-        fromUserId: user.id,
-        toEmail: targetUser.email,
-        message: null, // No message for suggested friends
-        expiresAt,
-      },
-    });
+    let friendRequest;
+
+    if (existingRequest) {
+      // If there's a pending request that hasn't expired, don't allow resending
+      if (existingRequest.status === "PENDING" && existingRequest.expiresAt > new Date()) {
+        return { error: "Friend request already sent" };
+      }
+
+      // If request was previously accepted, declined, expired, or canceled, update it
+      // This handles the case where users removed each other as friends and want to reconnect
+      friendRequest = await prisma.friendRequest.update({
+        where: { id: existingRequest.id },
+        data: {
+          status: "PENDING",
+          message: null, // No message for suggested friends
+          expiresAt,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new friend request
+      friendRequest = await prisma.friendRequest.create({
+        data: {
+          fromUserId: user.id,
+          toEmail: targetUser.email,
+          message: null, // No message for suggested friends
+          expiresAt,
+        },
+      });
+    }
+
+    // Create notification for the target user
+    try {
+      const senderName =
+        user.name ||
+        (user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.email);
+
+      await createFriendRequestNotification(
+        targetUser.id,
+        senderName,
+        friendRequest.id
+      );
+    } catch (notificationError) {
+      // Don't fail the friend request if notification creation fails
+      console.error("Error creating friend request notification:", notificationError);
+    }
 
     revalidatePath("/friends");
     return { success: "Friend request sent successfully" };
