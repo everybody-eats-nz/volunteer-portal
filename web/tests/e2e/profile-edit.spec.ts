@@ -145,7 +145,7 @@ test.describe("Profile Edit Page", () => {
     }) => {
       // Start on step 1
       await expect(page.getByTestId("step-indicator")).toContainText(
-        "Step 1 of 5"
+        "Step 1 of 6"
       );
 
       // Navigate to next section
@@ -153,7 +153,7 @@ test.describe("Profile Edit Page", () => {
       await nextButton.click();
       await page.waitForTimeout(500);
       await expect(page.getByTestId("step-indicator")).toContainText(
-        "Step 2 of 5"
+        "Step 2 of 6"
       );
 
       // Navigate to a specific section via tab
@@ -161,7 +161,7 @@ test.describe("Profile Edit Page", () => {
       await availabilityTab.click();
       await page.waitForTimeout(500);
       await expect(page.getByTestId("step-indicator")).toContainText(
-        "Step 4 of 5"
+        "Step 4 of 6"
       );
     });
   });
