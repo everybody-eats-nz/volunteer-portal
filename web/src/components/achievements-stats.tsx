@@ -137,7 +137,7 @@ export async function AchievementsStats({ userId }: AchievementsStatsProps) {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Top {100 - ranking.percentile}% of volunteers
+                Top {Math.ceil((ranking.userRank / ranking.totalUsers) * 100)}% of volunteers
               </p>
             </CardContent>
           </Card>
