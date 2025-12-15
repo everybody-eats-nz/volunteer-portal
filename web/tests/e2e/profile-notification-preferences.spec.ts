@@ -38,7 +38,7 @@ test.describe("User Notification Preferences", () => {
     ).toBeVisible();
 
     // Check current preferences are displayed
-    const notificationToggle = page.getByTestId("receive-notifications-toggle");
+    const notificationToggle = page.getByTestId("receive-notifications-toggle").first();
     await expect(notificationToggle).toBeVisible();
     await expect(notificationToggle).toBeChecked();
 
@@ -66,8 +66,8 @@ test.describe("User Notification Preferences", () => {
     // Toggle off notifications
     await page.getByTestId("receive-notifications-toggle").click();
 
-    // Save changes
-    await page.getByTestId("save-notification-preferences").click();
+    // Save changes using the header save button
+    await page.getByTestId("header-save-button").click();
 
     // Check success toast message
     await expect(page.getByText("Profile saved successfully!")).toBeVisible();
@@ -139,8 +139,8 @@ test.describe("User Notification Preferences", () => {
       await kitchenCheckbox.click();
     }
 
-    // Save changes
-    await page.getByTestId("save-notification-preferences").click();
+    // Save changes using the header save button
+    await page.getByTestId("header-save-button").click();
 
     // Check success toast
     await expect(page.getByText("Profile saved successfully!")).toBeVisible();

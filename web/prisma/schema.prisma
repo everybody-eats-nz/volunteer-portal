@@ -109,6 +109,47 @@ model User {
 
   // Resource hub uploads
   uploadedResources            Resource[]         @relation("ResourceUploader")
+
+  // Passkey authentication
+  passkeys                     Passkey[]
+}
+
+model Passkey {
+  id                  String   @id @default(cuid())
+  userId              String
+
+  // WebAuthn credential data
+  credentialId        Bytes    @unique  // Base64URL decoded credential ID
+  credentialPublicKey Bytes              // Public key for verification
+  counter             BigInt   @default(0) // Signature counter for security
+
+  // Device metadata
+  deviceName          String?             // User-friendly name (e.g., "iPhone 15", "YubiKey")
+  transports          String[] @default([]) // ["usb", "nfc", "ble", "internal"]
+  aaguid              String?             // Authenticator AAGUID
+
+  // Tracking
+  createdAt           DateTime @default(now())
+  lastUsedAt          DateTime?           // Track when last used for login
+
+  // Relations
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([credentialId])
+}
+
+model WebAuthnChallenge {
+  id         String   @id @default(cuid())
+  challenge  String   @unique
+  userId     String?  // Null during registration if user not yet created
+  email      String?  // For registration flow
+  expiresAt  DateTime
+  type       String   // "registration" | "authentication"
+  createdAt  DateTime @default(now())
+
+  @@index([challenge])
+  @@index([expiresAt])
 }
 
 model ShiftType {
