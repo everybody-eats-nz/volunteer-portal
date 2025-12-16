@@ -1,3 +1,9 @@
+## [0.82.0] - 2025-12-16
+
+### Changes
+- feat: add ability to disable and re-enable locations ([#397](https://github.com/everybody-eats-nz/volunteer-portal/pull/397)) by @malinmalliyawadu
+
+
 ## [0.81.2] - 2025-12-16
 
 ### Changes
