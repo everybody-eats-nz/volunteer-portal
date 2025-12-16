@@ -1,3 +1,9 @@
+## [0.81.2] - 2025-12-16
+
+### Changes
+- fix: use correct ISO 8601 date format for Outlook calendar deeplinks ([#394](https://github.com/everybody-eats-nz/volunteer-portal/pull/394)) by @malinmalliyawadu
+
+
 ## [0.81.1] - 2025-12-15
 
 ### Changes
