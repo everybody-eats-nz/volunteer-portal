@@ -91,7 +91,7 @@ function DisableLocationDialog({
             <AlertDescription>
               <div className="space-y-2">
                 <p>Any upcoming shifts at this location will remain active.</p>
-                <p className="text-sm">Disabled locations can be re-enabled at any time from the "Disabled Locations" section.</p>
+                <p className="text-sm">Disabled locations can be re-enabled at any time from the &ldquo;Disabled Locations&rdquo; section.</p>
               </div>
             </AlertDescription>
           </Alert>

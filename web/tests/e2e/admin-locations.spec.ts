@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
-import { loginAsAdmin, logout } from "./helpers/auth";
+import type { Page } from "@playwright/test";
+import { loginAsAdmin } from "./helpers/auth";
 import {
   createTestUser,
   deleteTestUsers,
@@ -12,7 +13,7 @@ import { randomUUID } from "crypto";
  * Helper function to create a test location
  */
 async function createTestLocation(
-  page: any,
+  page: Page,
   name: string,
   address: string,
   defaultMealsServed = 60
@@ -42,7 +43,7 @@ async function createTestLocation(
  * Helper function to delete test locations
  */
 async function deleteTestLocations(
-  page: any,
+  page: Page,
   locationIds: string[]
 ): Promise<void> {
   for (const id of locationIds) {
