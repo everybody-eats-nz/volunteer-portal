@@ -1,167 +1,167 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
-import { createShift } from "./helpers/test-helpers";
+import {
+  createShift,
+  createTestUser,
+  deleteTestUsers,
+  deleteTestShifts,
+  getUserByEmail,
+  createSignup,
+  deleteSignupsByShiftIds,
+  getShiftTypeByName,
+} from "./helpers/test-helpers";
 
 test.describe("Admin Shifts - Volunteer Management", () => {
-  const testShiftIds: string[] = [];
-
-  // test.beforeAll(async ({ page }) => {
-  //   // Create test users with different grades
-  //   await createTestUser(page, testEmails[0], "ADMIN");
-
-  //   // Create volunteers with different grades
-  //   const pinkVolunteer = await prisma.user.create({
-  //     data: {
-  //       email: testEmails[1],
-  //       hashedPassword: "hashed",
-  //       role: "VOLUNTEER",
-  //       name: "Pink Volunteer",
-  //       firstName: "Pink",
-  //       lastName: "Volunteer",
-  //       profileCompleted: true,
-  //       volunteerGrade: "PINK",
-  //     },
-  //   });
-
-  //   const yellowVolunteer = await prisma.user.create({
-  //     data: {
-  //       email: testEmails[2],
-  //       hashedPassword: "hashed",
-  //       role: "VOLUNTEER",
-  //       name: "Yellow Volunteer",
-  //       firstName: "Yellow",
-  //       lastName: "Volunteer",
-  //       profileCompleted: true,
-  //       volunteerGrade: "YELLOW",
-  //     },
-  //   });
-
-  //   const greenVolunteer = await prisma.user.create({
-  //     data: {
-  //       email: testEmails[3],
-  //       hashedPassword: "hashed",
-  //       role: "VOLUNTEER",
-  //       name: "Green Volunteer",
-  //       firstName: "Green",
-  //       lastName: "Volunteer",
-  //       profileCompleted: true,
-  //       volunteerGrade: "GREEN",
-  //     },
-  //   });
-
-  //   const newVolunteer = await prisma.user.create({
-  //     data: {
-  //       email: testEmails[4],
-  //       hashedPassword: "hashed",
-  //       role: "VOLUNTEER",
-  //       name: "New Volunteer",
-  //       firstName: "New",
-  //       lastName: "Volunteer",
-  //       profileCompleted: true,
-  //       // No volunteerGrade = new volunteer
-  //     },
-  //   });
-
-  //   // Create test shift
-  //   const tomorrow = new Date();
-  //   tomorrow.setDate(tomorrow.getDate() + 1);
-  //   const shift = await createShift({
-  //     location: "Wellington",
-  //     start: new Date(tomorrow.setHours(12, 0)),
-  //     capacity: 6,
-  //   });
-  //   testShiftIds.push(shift.id);
-
-  //   // Create signups with different statuses
-  //   const confirmedSignup = await prisma.signup.create({
-  //     data: {
-  //       userId: pinkVolunteer.id,
-  //       shiftId: shift.id,
-  //       status: "CONFIRMED",
-  //     },
-  //   });
-  //   testSignupIds.push(confirmedSignup.id);
-
-  //   const pendingSignup = await prisma.signup.create({
-  //     data: {
-  //       userId: yellowVolunteer.id,
-  //       shiftId: shift.id,
-  //       status: "PENDING",
-  //     },
-  //   });
-  //   testSignupIds.push(pendingSignup.id);
-
-  //   const waitlistedSignup = await prisma.signup.create({
-  //     data: {
-  //       userId: greenVolunteer.id,
-  //       shiftId: shift.id,
-  //       status: "WAITLISTED",
-  //     },
-  //   });
-  //   testSignupIds.push(waitlistedSignup.id);
-
-  //   const regularPendingSignup = await prisma.signup.create({
-  //     data: {
-  //       userId: newVolunteer.id,
-  //       shiftId: shift.id,
-  //       status: "REGULAR_PENDING",
-  //     },
-  //   });
-  //   testSignupIds.push(regularPendingSignup.id);
-  // });
-
-  // test.afterAll(async () => {
-  //   // Cleanup signups first
-  //   await prisma.signup.deleteMany({
-  //     where: {
-  //       id: {
-  //         in: testSignupIds,
-  //       },
-  //     },
-  //   });
-
-  //   // Cleanup test users and shifts
-  //   await deleteTestUsers(testEmails);
-  //   await deleteTestShifts(testShiftIds);
-  // });
-
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
 
-  test.skip("should display all volunteer grades with correct labels", async ({
+  test("should display all volunteer grades with correct labels", async ({
     page,
   }) => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    const testEmails = [
+      "pink-volunteer-test@example.com",
+      "yellow-volunteer-test@example.com",
+      "green-volunteer-test@example.com",
+      "new-volunteer-test@example.com",
+    ];
+    const testShiftIds: string[] = [];
 
-    await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForLoadState("load");
+    try {
+      // Create volunteers with different grades
+      await createTestUser(page, testEmails[0], "VOLUNTEER", {
+        firstName: "Pink",
+        lastName: "Volunteer",
+        name: "Pink Volunteer",
+        volunteerGrade: "PINK",
+      });
 
-    // Get the shift card (should be the first one)
-    const shiftCard = page.locator('[data-testid^="shift-card-"]').first();
-    await expect(shiftCard).toBeVisible();
+      await createTestUser(page, testEmails[1], "VOLUNTEER", {
+        firstName: "Yellow",
+        lastName: "Volunteer",
+        name: "Yellow Volunteer",
+        volunteerGrade: "YELLOW",
+      });
 
-    // Check grade summary badges are present
-    await expect(
-      shiftCard.locator('[data-testid^="grade-pink-badge-"]')
-    ).toBeVisible();
-    await expect(
-      shiftCard.locator('[data-testid^="grade-yellow-badge-"]')
-    ).toBeVisible();
-    await expect(
-      shiftCard.locator('[data-testid^="grade-green-badge-"]')
-    ).toBeVisible();
-    await expect(
-      shiftCard.locator('[data-testid^="grade-new-badge-"]')
-    ).toBeVisible();
+      await createTestUser(page, testEmails[2], "VOLUNTEER", {
+        firstName: "Green",
+        lastName: "Volunteer",
+        name: "Green Volunteer",
+        volunteerGrade: "GREEN",
+      });
 
-    // Check individual volunteer cards show correct grade labels
-    await expect(page.getByText("Shift Leader")).toBeVisible(); // PINK
-    await expect(page.getByText("Experienced")).toBeVisible(); // YELLOW
-    await expect(page.getByText("Standard")).toBeVisible(); // GREEN
-    await expect(page.getByText("New")).toBeVisible(); // No grade
+      await createTestUser(page, testEmails[3], "VOLUNTEER", {
+        firstName: "New",
+        lastName: "Volunteer",
+        name: "New Volunteer",
+        // No volunteerGrade = new volunteer
+      });
+
+      // Get user IDs
+      const pinkVolunteer = await getUserByEmail(page, testEmails[0]);
+      const yellowVolunteer = await getUserByEmail(page, testEmails[1]);
+      const greenVolunteer = await getUserByEmail(page, testEmails[2]);
+      const newVolunteer = await getUserByEmail(page, testEmails[3]);
+
+      if (!pinkVolunteer || !yellowVolunteer || !greenVolunteer || !newVolunteer) {
+        throw new Error("Failed to create test volunteers");
+      }
+
+      // Get a shift type
+      const shiftType = await getShiftTypeByName(page, "Kitchen");
+      if (!shiftType) {
+        throw new Error("Failed to get shift type");
+      }
+
+      // Create test shift for 14 days from now at 12pm to avoid conflicts with existing shifts
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 14);
+      futureDate.setHours(12, 0, 0, 0);
+      const futureDateStr = futureDate.toISOString().split("T")[0];
+
+      const shift = await createShift(page, {
+        location: "Wellington",
+        start: futureDate,
+        capacity: 6,
+        shiftTypeId: shiftType.id,
+      });
+      console.log(`Created shift with ID: ${shift.id} for date: ${futureDateStr}`);
+      testShiftIds.push(shift.id);
+
+      // Create signups with different statuses
+      await createSignup(page, {
+        userId: pinkVolunteer.id,
+        shiftId: shift.id,
+        status: "CONFIRMED",
+      });
+
+      await createSignup(page, {
+        userId: yellowVolunteer.id,
+        shiftId: shift.id,
+        status: "PENDING",
+      });
+
+      await createSignup(page, {
+        userId: greenVolunteer.id,
+        shiftId: shift.id,
+        status: "WAITLISTED",
+      });
+
+      await createSignup(page, {
+        userId: newVolunteer.id,
+        shiftId: shift.id,
+        status: "REGULAR_PENDING",
+      });
+
+      // Now run the actual test
+      await page.goto(`/admin/shifts?date=${futureDateStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      // Reload to ensure database changes are reflected
+      await page.reload({ waitUntil: 'load' });
+
+      // Wait a moment for any animations
+      await page.waitForTimeout(1000);
+
+      // Wait for the shift card to be visible
+      const shiftCard = page.locator('[data-testid^="shift-card-"]').first();
+      await expect(shiftCard).toBeVisible({ timeout: 10000 });
+
+      // Wait for volunteers to load - check for volunteer list
+      await expect(page.locator('[data-testid^="volunteers-"]').first()).toBeVisible({ timeout: 10000 });
+
+      // Debug: Check what volunteers are actually showing
+      const volunteerLinks = page.locator('[data-testid^="volunteer-name-link-"]');
+      const count = await volunteerLinks.count();
+      console.log(`Found ${count} volunteer links`);
+
+      // Print the text content of each volunteer link
+      for (let i = 0; i < count; i++) {
+        const text = await volunteerLinks.nth(i).textContent();
+        console.log(`Volunteer ${i}: ${text}`);
+      }
+
+      // Check that all 4 volunteers are visible with their names
+      await expect(page.locator('[data-testid^="volunteer-name-link-"]')).toHaveCount(4);
+      await expect(page.getByText("Pink Volunteer")).toBeVisible();
+      await expect(page.getByText("Yellow Volunteer")).toBeVisible();
+      await expect(page.getByText("Green Volunteer")).toBeVisible();
+      await expect(page.getByText("New Volunteer")).toBeVisible();
+
+      // Check individual volunteer grade labels are displayed correctly
+      await expect(page.getByText("Shift Leader")).toBeVisible(); // PINK
+      await expect(page.getByText("Experienced")).toBeVisible(); // YELLOW
+      await expect(page.getByText("Standard")).toBeVisible(); // GREEN
+      await expect(page.getByText("New")).toBeVisible(); // No grade
+
+      // Verify the shift shows correct capacity (1 confirmed out of 6)
+      await expect(page.getByText("1/6").first()).toBeVisible();
+    } finally {
+      // Cleanup: delete signups, users, and shifts
+      await deleteSignupsByShiftIds(page, testShiftIds);
+      await deleteTestUsers(page, testEmails);
+      await deleteTestShifts(page, testShiftIds);
+    }
   });
 
   test.skip("should display all volunteer statuses including waitlisted", async ({
@@ -262,31 +262,38 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   test.skip("should handle shift with no volunteers correctly", async ({
     page,
   }) => {
-    // Create an empty shift
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 2);
-    const emptyShift = await createShift(page, {
-      location: "Wellington",
-      start: new Date(tomorrow.setHours(16, 0)),
-      capacity: 3,
-    });
-    testShiftIds.push(emptyShift.id);
+    const testShiftIds: string[] = [];
 
-    const dayAfterTomorrowStr = tomorrow.toISOString().split("T")[0];
+    try {
+      // Create an empty shift
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 2);
+      const emptyShift = await createShift(page, {
+        location: "Wellington",
+        start: new Date(tomorrow.setHours(16, 0)),
+        capacity: 3,
+      });
+      testShiftIds.push(emptyShift.id);
 
-    await page.goto(
-      `/admin/shifts?date=${dayAfterTomorrowStr}&location=Wellington`
-    );
-    await page.waitForLoadState("load");
+      const dayAfterTomorrowStr = tomorrow.toISOString().split("T")[0];
 
-    // Should show "No volunteers yet" message (use first instance to avoid strict mode violation)
-    await expect(page.getByText("No volunteers yet").first()).toBeVisible();
-    await expect(
-      page.getByText("Click to manage this shift").first()
-    ).toBeVisible();
+      await page.goto(
+        `/admin/shifts?date=${dayAfterTomorrowStr}&location=Wellington`
+      );
+      await page.waitForLoadState("load");
 
-    // Should show 0/3 capacity (use first instance)
-    await expect(page.getByText("0/3").first()).toBeVisible();
+      // Should show "No volunteers yet" message (use first instance to avoid strict mode violation)
+      await expect(page.getByText("No volunteers yet").first()).toBeVisible();
+      await expect(
+        page.getByText("Click to manage this shift").first()
+      ).toBeVisible();
+
+      // Should show 0/3 capacity (use first instance)
+      await expect(page.getByText("0/3").first()).toBeVisible();
+    } finally {
+      // Cleanup
+      await deleteTestShifts(page, testShiftIds);
+    }
   });
 
   test.skip("should display volunteer avatars with initials", async ({
