@@ -26,7 +26,6 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeleteShiftDialog } from "@/components/delete-shift-dialog";
 import { PageContainer } from "@/components/page-container";
-import { LOCATIONS } from "@/lib/locations";
 import { createNZDate, formatInNZT } from "@/lib/timezone";
 
 type ShiftType = {
@@ -70,6 +69,19 @@ export default async function EditShiftPage({
   const shiftTypes = await prisma.shiftType.findMany({
     orderBy: { name: "asc" },
   });
+
+  // Fetch locations: active locations + current location if disabled
+  const locations = await prisma.location.findMany({
+    where: {
+      OR: [
+        { isActive: true },
+        ...(shift.location ? [{ name: shift.location }] : []),
+      ],
+    },
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+  const locationOptions = locations.map((loc) => loc.name);
 
   // Count active signups
   const activeSignups = shift.signups.filter(
@@ -407,7 +419,7 @@ export default async function EditShiftPage({
                       placeholder="Choose a location..."
                       required
                       defaultValue={defaultValues.location}
-                      options={LOCATIONS.map((loc) => ({
+                      options={locationOptions.map((loc) => ({
                         value: loc,
                         label: loc,
                       }))}
