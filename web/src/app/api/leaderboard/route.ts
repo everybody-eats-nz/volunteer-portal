@@ -17,6 +17,11 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get all volunteers with their achievements
+    // Note: For very large databases (10k+ volunteers), consider:
+    // 1. Caching leaderboard results with periodic refresh
+    // 2. Computing and storing total points in the User model
+    // 3. Adding pagination at the API level
+    // 4. Using database views or materialized views for rankings
     const allUsersWithPoints = await prisma.user.findMany({
       where: {
         role: "VOLUNTEER",
@@ -25,7 +30,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         achievements: {
-          include: {
+          select: {
             achievement: {
               select: {
                 points: true,
