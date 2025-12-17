@@ -1,3 +1,9 @@
+## [0.83.0] - 2025-12-17
+
+### Changes
+- feat: show shift type in achievement tooltips for specialization achievements ([#398](https://github.com/everybody-eats-nz/volunteer-portal/pull/398)) by @malinmalliyawadu
+
+
 ## [0.82.0] - 2025-12-16
 
 ### Changes
