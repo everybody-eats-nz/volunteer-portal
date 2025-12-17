@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const location = searchParams.get("location") || "all";
+  const showAll = searchParams.get("showAll") === "true";
   const userId = session.user.id;
 
   try {
@@ -73,10 +74,10 @@ export async function GET(request: NextRequest) {
         ? Math.round(((totalUsers - userRank + 1) / totalUsers) * 100)
         : 100;
 
-    // Get nearby users (3 above and 3 below, if available)
+    // Get users to display based on showAll parameter
     const userIndex = userRank - 1;
-    const startIndex = Math.max(0, userIndex - 3);
-    const endIndex = Math.min(userRankings.length, userIndex + 4);
+    const startIndex = showAll ? 0 : Math.max(0, userIndex - 3); // Show all above if requested, otherwise 3
+    const endIndex = Math.min(userRankings.length, userIndex + 4); // Always show current user + 3 below
     const nearbyUsers = userRankings.slice(startIndex, endIndex).map((u, idx) => ({
       rank: startIndex + idx + 1,
       name:
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
       percentile,
       nearbyUsers,
       locations: uniqueLocations,
+      hasMoreAbove: !showAll && userRank > 4, // True if there are users above the shown range
     });
   } catch (error) {
     console.error("Error fetching leaderboard:", error);
