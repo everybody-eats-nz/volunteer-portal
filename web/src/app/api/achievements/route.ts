@@ -33,11 +33,17 @@ export async function GET(request: Request) {
     const newAchievements = await checkAndUnlockAchievements(user.id);
 
     // Get user's current achievements and available ones
-    const [userAchievements, availableAchievements, progress] =
+    const [userAchievements, availableAchievements, progress, shiftTypes] =
       await Promise.all([
         getUserAchievements(user.id),
         getAvailableAchievements(user.id),
         calculateUserProgress(user.id),
+        prisma.shiftType.findMany({
+          select: {
+            id: true,
+            name: true,
+          },
+        }),
       ]);
 
     // Calculate total points
@@ -52,6 +58,7 @@ export async function GET(request: Request) {
       progress: typeof progress;
       totalPoints: number;
       newAchievements: string[];
+      shiftTypes: typeof shiftTypes;
       ranking?: {
         userRank: number;
         totalUsers: number;
@@ -69,6 +76,7 @@ export async function GET(request: Request) {
       progress,
       totalPoints,
       newAchievements,
+      shiftTypes,
     };
 
     // Include ranking data if requested
