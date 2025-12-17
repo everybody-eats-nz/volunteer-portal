@@ -1,3 +1,9 @@
+## [0.84.0] - 2025-12-17
+
+### Changes
+- feat: add show all users above me button in achievements leaderboard ([#400](https://github.com/everybody-eats-nz/volunteer-portal/pull/400)) by @malinmalliyawadu
+
+
 ## [0.83.0] - 2025-12-17
 
 ### Changes
