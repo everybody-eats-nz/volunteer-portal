@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ export default function NewsletterListsClient() {
   const [listToDelete, setListToDelete] = useState<NewsletterList | null>(null);
   const { toast } = useToast();
 
-  const fetchLists = async () => {
+  const fetchLists = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/newsletter-lists");
       if (response.ok) {
@@ -57,11 +57,11 @@ export default function NewsletterListsClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchLists();
-  }, []);
+  }, [fetchLists]);
 
   const handleCreate = () => {
     setEditingList(null);
@@ -238,9 +238,9 @@ export default function NewsletterListsClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the newsletter list "{listToDelete?.name}".
+              This will permanently delete the newsletter list &quot;{listToDelete?.name}&quot;.
               Users currently subscribed to this list will remain subscribed in Campaign Monitor,
-              but won't be able to manage their subscription through this portal.
+              but won&apos;t be able to manage their subscription through this portal.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

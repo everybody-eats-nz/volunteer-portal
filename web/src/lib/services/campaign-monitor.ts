@@ -188,7 +188,7 @@ Action: SUBSCRIBE
         throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
       }
 
-      const result = await response.text();
+      await response.text();
       return {
         success: true,
         message: `Successfully subscribed ${email} to list ${listId}`,
@@ -268,7 +268,7 @@ Action: UNSUBSCRIBE
   ): Promise<{
     success: boolean;
     subscribed: boolean;
-    data?: any;
+    data?: unknown;
     message: string
   }> {
     if (!this.apiKey) {

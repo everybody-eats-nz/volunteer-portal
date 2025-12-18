@@ -101,7 +101,7 @@ export default function NewsletterListDialog({
         const error = await response.json();
         if (error.details) {
           const fieldErrors: Record<string, string> = {};
-          error.details.forEach((detail: any) => {
+          error.details.forEach((detail: { path?: string[]; message: string }) => {
             if (detail.path && detail.path.length > 0) {
               fieldErrors[detail.path[0]] = detail.message;
             }
