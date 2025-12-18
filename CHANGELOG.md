@@ -1,3 +1,9 @@
+## [0.85.1] - 2025-12-18
+
+### Changes
+- feat: Sync newsletter subscription state with Campaign Monitor on profile load ([#404](https://github.com/everybody-eats-nz/volunteer-portal/pull/404)) by @malinmalliyawadu
+
+
 ## [0.85.0] - 2025-12-18
 
 ### Changes
