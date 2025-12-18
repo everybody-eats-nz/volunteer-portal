@@ -80,11 +80,63 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // Sync newsletter subscription state with Campaign Monitor
+  let actualNewsletterLists = user.newsletterLists || [];
+
+  if (user.emailNewsletterSubscription) {
+    try {
+      const campaignMonitor = new CampaignMonitorService();
+
+      // Get all active newsletter lists from database
+      const allLists = await prisma.newsletterList.findMany({
+        where: { active: true },
+        select: { campaignMonitorId: true },
+      });
+
+      // Check subscription status for each list in Campaign Monitor
+      const subscriptionChecks = await Promise.allSettled(
+        allLists.map(async (list) => {
+          const details = await campaignMonitor.getSubscriberDetails(
+            list.campaignMonitorId,
+            user.email
+          );
+          return {
+            listId: list.campaignMonitorId,
+            isSubscribed: details.success && details.subscribed,
+          };
+        })
+      );
+
+      // Build the actual subscription list based on Campaign Monitor reality
+      actualNewsletterLists = subscriptionChecks
+        .filter((result): result is PromiseFulfilledResult<{ listId: string; isSubscribed: boolean }> =>
+          result.status === "fulfilled" && result.value.isSubscribed
+        )
+        .map((result) => result.value.listId);
+
+      // Update database to match Campaign Monitor if different
+      if (JSON.stringify(actualNewsletterLists.sort()) !== JSON.stringify([...(user.newsletterLists || [])].sort())) {
+        await prisma.user.update({
+          where: { email: user.email },
+          data: { newsletterLists: actualNewsletterLists },
+        });
+      }
+    } catch (error) {
+      console.error("Error syncing newsletter subscriptions from Campaign Monitor:", error);
+      // On error, fall back to database state
+      actualNewsletterLists = user.newsletterLists || [];
+    }
+  } else {
+    // If newsletter subscription is disabled, ensure newsletterLists is empty
+    actualNewsletterLists = [];
+  }
+
   // Parse JSON fields safely (handles both JSON arrays and plain text from migration)
   const userWithParsedFields = {
     ...user,
     availableDays: safeParseAvailability(user.availableDays),
     availableLocations: safeParseAvailability(user.availableLocations),
+    newsletterLists: actualNewsletterLists,
   };
 
   return NextResponse.json(userWithParsedFields);
