@@ -84,6 +84,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Manage volunteer achievements",
         commandKey: "achievements",
       },
+      {
+        title: "Newsletter Lists",
+        href: "/admin/newsletter-lists",
+        icon: Mail,
+        description: "Manage Campaign Monitor lists",
+        commandKey: "newsletter-lists",
+      },
     ],
   },
   {
@@ -219,6 +226,8 @@ export const getIconColor = (
     "Restaurant Managers": "text-orange-600",
     "Parental Consent": "text-blue-600",
     "Custom Labels": "text-indigo-600",
+    Achievements: "text-amber-600",
+    "Newsletter Lists": "text-cyan-600",
 
     // Shift Management
     "Create Shift": "text-green-600",

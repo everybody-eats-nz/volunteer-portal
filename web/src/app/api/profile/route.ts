@@ -7,6 +7,7 @@ import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
+import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
 
 const updateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -26,6 +27,7 @@ const updateProfileSchema = z.object({
   availableDays: z.array(z.string()).optional(),
   availableLocations: z.array(z.string()).optional(),
   emailNewsletterSubscription: z.boolean().optional(),
+  newsletterLists: z.array(z.string()).optional(),
   notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
   receiveShortageNotifications: z.boolean().optional(),
   excludedShortageNotificationTypes: z.array(z.string()).optional(),
@@ -62,6 +64,7 @@ export async function GET() {
       availableDays: true,
       availableLocations: true,
       emailNewsletterSubscription: true,
+      newsletterLists: true,
       notificationPreference: true,
       receiveShortageNotifications: true,
       excludedShortageNotificationTypes: true,
@@ -219,6 +222,9 @@ export async function PUT(req: Request) {
           ? JSON.stringify(validatedData.availableLocations)
           : null;
     }
+    if (validatedData.newsletterLists !== undefined) {
+      updateData.newsletterLists = validatedData.newsletterLists;
+    }
 
     // Update the derived name field if first/last names are provided
     if (
@@ -253,6 +259,7 @@ export async function PUT(req: Request) {
         availableDays: true,
         availableLocations: true,
         emailNewsletterSubscription: true,
+        newsletterLists: true,
         notificationPreference: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
@@ -269,6 +276,43 @@ export async function PUT(req: Request) {
         ? new Date(validatedData.dateOfBirth)
         : null;
       await autoLabelUnder16User(user.id, dateOfBirth);
+    }
+
+    // Campaign Monitor newsletter sync
+    if (validatedData.emailNewsletterSubscription !== undefined || validatedData.newsletterLists !== undefined) {
+      try {
+        const campaignMonitor = new CampaignMonitorService();
+        const userEmail = updatedUser.email;
+        const userName = `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim() || userEmail;
+
+        const oldLists = user.newsletterLists || [];
+        const newLists = validatedData.newsletterLists !== undefined
+          ? validatedData.newsletterLists
+          : oldLists;
+
+        if (validatedData.emailNewsletterSubscription === false) {
+          // Unsubscribe from all lists
+          for (const listId of oldLists) {
+            await campaignMonitor.unsubscribeFromList(listId, userEmail);
+          }
+        } else if (validatedData.emailNewsletterSubscription === true || validatedData.newsletterLists !== undefined) {
+          // Subscribe to new lists
+          const listsToAdd = newLists.filter((id: string) => !oldLists.includes(id));
+          for (const listId of listsToAdd) {
+            await campaignMonitor.subscribeToList(listId, userEmail, userName, {});
+          }
+
+          // Unsubscribe from removed lists
+          const listsToRemove = oldLists.filter((id: string) => !newLists.includes(id));
+          for (const listId of listsToRemove) {
+            await campaignMonitor.unsubscribeFromList(listId, userEmail);
+          }
+        }
+      } catch (error) {
+        // Log error but don't fail profile update
+        console.error('Campaign Monitor sync error:', error);
+        // Could optionally add a warning to the response
+      }
     }
 
     // Parse JSON fields for response safely

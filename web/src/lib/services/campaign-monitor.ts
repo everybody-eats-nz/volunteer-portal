@@ -135,6 +135,198 @@ Error: ${error instanceof Error ? error.message : 'Unknown error'}
       return false;
     }
   }
+
+  /**
+   * Subscribe a user to a newsletter list
+   */
+  async subscribeToList(
+    listId: string,
+    email: string,
+    name: string,
+    customFields: Record<string, string>
+  ): Promise<{ success: boolean; message: string }> {
+    if (!this.apiKey) {
+      console.log(`
+=================================
+NEWSLETTER SUBSCRIPTION (DEVELOPMENT)
+=================================
+List ID: ${listId}
+Email: ${email}
+Name: ${name}
+Custom Fields: ${JSON.stringify(customFields)}
+Action: SUBSCRIBE
+=================================
+      `);
+      return {
+        success: true,
+        message: 'Development mode: Subscription logged to console'
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/subscribers/${listId}.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${this.apiKey}:x`).toString('base64')}`,
+        },
+        body: JSON.stringify({
+          EmailAddress: email,
+          Name: name,
+          CustomFields: Object.entries(customFields).map(([key, value]) => ({
+            Key: key,
+            Value: value
+          })),
+          Resubscribe: true,
+          RestartSubscriptionBasedAutoresponders: false,
+          ConsentToTrack: 'Yes'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
+      }
+
+      await response.text();
+      return {
+        success: true,
+        message: `Successfully subscribed ${email} to list ${listId}`,
+      };
+    } catch (error) {
+      console.error('Campaign Monitor subscription error:', error);
+      return {
+        success: false,
+        message: `Failed to subscribe: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Unsubscribe a user from a newsletter list
+   */
+  async unsubscribeFromList(
+    listId: string,
+    email: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!this.apiKey) {
+      console.log(`
+=================================
+NEWSLETTER UNSUBSCRIPTION (DEVELOPMENT)
+=================================
+List ID: ${listId}
+Email: ${email}
+Action: UNSUBSCRIBE
+=================================
+      `);
+      return {
+        success: true,
+        message: 'Development mode: Unsubscription logged to console'
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/subscribers/${listId}.json?email=${encodeURIComponent(email)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`${this.apiKey}:x`).toString('base64')}`,
+        },
+      });
+
+      if (!response.ok) {
+        // 404 means already unsubscribed or never subscribed - treat as success
+        if (response.status === 404) {
+          return {
+            success: true,
+            message: `Email ${email} was not subscribed to list ${listId}`,
+          };
+        }
+
+        const errorText = await response.text();
+        throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
+      }
+
+      return {
+        success: true,
+        message: `Successfully unsubscribed ${email} from list ${listId}`,
+      };
+    } catch (error) {
+      console.error('Campaign Monitor unsubscription error:', error);
+      return {
+        success: false,
+        message: `Failed to unsubscribe: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Get subscriber details from a list
+   */
+  async getSubscriberDetails(
+    listId: string,
+    email: string
+  ): Promise<{
+    success: boolean;
+    subscribed: boolean;
+    data?: unknown;
+    message: string
+  }> {
+    if (!this.apiKey) {
+      console.log(`
+=================================
+GET SUBSCRIBER DETAILS (DEVELOPMENT)
+=================================
+List ID: ${listId}
+Email: ${email}
+=================================
+      `);
+      return {
+        success: true,
+        subscribed: false,
+        message: 'Development mode: Details logged to console'
+      };
+    }
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/subscribers/${listId}.json?email=${encodeURIComponent(email)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${Buffer.from(`${this.apiKey}:x`).toString('base64')}`,
+          },
+        }
+      );
+
+      if (response.status === 404) {
+        return {
+          success: true,
+          subscribed: false,
+          message: `Email ${email} is not subscribed to list ${listId}`,
+        };
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        subscribed: data.State === 'Active',
+        data,
+        message: `Retrieved subscriber details for ${email}`,
+      };
+    } catch (error) {
+      console.error('Campaign Monitor get subscriber error:', error);
+      return {
+        success: false,
+        subscribed: false,
+        message: `Failed to get subscriber details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
 }
 
 // Export singleton instance
