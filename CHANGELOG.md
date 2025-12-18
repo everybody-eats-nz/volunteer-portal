@@ -1,3 +1,9 @@
+## [0.85.0] - 2025-12-18
+
+### Changes
+- feat: Add newsletter list management with Campaign Monitor integration ([#403](https://github.com/everybody-eats-nz/volunteer-portal/pull/403)) by @malinmalliyawadu
+
+
 ## [0.84.0] - 2025-12-17
 
 ### Changes
