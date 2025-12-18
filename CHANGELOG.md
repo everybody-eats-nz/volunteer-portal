@@ -1,3 +1,9 @@
+## [0.85.2] - 2025-12-18
+
+### Changes
+- fix: send welcome email to OAuth users after profile completion ([#406](https://github.com/everybody-eats-nz/volunteer-portal/pull/406)) by @malinmalliyawadu
+
+
 ## [0.85.1] - 2025-12-18
 
 ### Changes
