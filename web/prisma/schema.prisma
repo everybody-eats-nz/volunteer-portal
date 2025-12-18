@@ -33,6 +33,7 @@ model User {
   availableDays                String?
   availableLocations           String?
   emailNewsletterSubscription  Boolean                @default(true)
+  newsletterLists              String[]               @default([])
   notificationPreference       NotificationPreference @default(EMAIL)
   volunteerAgreementAccepted   Boolean                @default(false)
   healthSafetyPolicyAccepted   Boolean                @default(false)
@@ -714,3 +715,17 @@ model MealsServed {
   @@index([date])
 }
 
+// Newsletter list management
+model NewsletterList {
+  id                String   @id @default(cuid())
+  name              String   // Display name (e.g., "Auckland Newsletter")
+  campaignMonitorId String   @unique // Campaign Monitor list ID
+  description       String?  // Optional description
+  active            Boolean  @default(true) // Can be disabled without deleting
+  displayOrder      Int      @default(0) // For ordering lists in UI
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([active])
+  @@index([displayOrder])
+}

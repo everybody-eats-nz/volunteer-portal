@@ -125,6 +125,7 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
 
     // Communication & agreements
     emailNewsletterSubscription: true,
+    newsletterLists: [],
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
