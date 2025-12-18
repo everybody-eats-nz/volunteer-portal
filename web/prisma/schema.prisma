@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client"
-  output = "../src/generated"
+  output   = "../src/generated"
 }
 
 // Seed configuration
@@ -38,150 +38,150 @@ model User {
   volunteerAgreementAccepted   Boolean                @default(false)
   healthSafetyPolicyAccepted   Boolean                @default(false)
   profileCompleted             Boolean                @default(false)
-  
+
   // Parental consent for minors (under 16)
-  requiresParentalConsent      Boolean                @default(false) // Calculated based on age
-  parentalConsentReceived      Boolean                @default(false) // Admin manually sets after receiving signed PDF
-  parentalConsentReceivedAt    DateTime?              // When admin approved parental consent
-  parentalConsentApprovedBy    String?                // Admin who approved the consent
-  
+  requiresParentalConsent   Boolean   @default(false) // Calculated based on age
+  parentalConsentReceived   Boolean   @default(false) // Admin manually sets after receiving signed PDF
+  parentalConsentReceivedAt DateTime? // When admin approved parental consent
+  parentalConsentApprovedBy String? // Admin who approved the consent
+
   // Shift shortage notification preferences
-  receiveShortageNotifications Boolean                @default(true)
-  excludedShortageNotificationTypes String[]          @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
-  
+  receiveShortageNotifications      Boolean  @default(true)
+  excludedShortageNotificationTypes String[] @default([]) // Array of shift type IDs they DON'T want notifications for (opt-out list), empty means get all types
+
   // Email verification
-  emailVerified                Boolean                @default(false) // Whether email is verified
-  emailVerificationToken       String?                @unique // Token for email verification
-  emailVerificationTokenExpiresAt DateTime?          // When verification token expires
-  
+  emailVerified                   Boolean   @default(false) // Whether email is verified
+  emailVerificationToken          String?   @unique // Token for email verification
+  emailVerificationTokenExpiresAt DateTime? // When verification token expires
+
   // Password reset
-  passwordResetToken           String?                @unique // Token for password reset
-  passwordResetTokenExpiresAt  DateTime?              // When password reset token expires
-  
+  passwordResetToken          String?   @unique // Token for password reset
+  passwordResetTokenExpiresAt DateTime? // When password reset token expires
+
   // Migration invitation tracking
-  isMigrated                   Boolean                @default(false)
-  migrationInvitationSent      Boolean                @default(false)
-  migrationInvitationSentAt    DateTime?
-  migrationInvitationCount     Int                    @default(0)
-  migrationLastSentAt          DateTime?
-  migrationInvitationToken     String?                @unique
-  migrationTokenExpiresAt      DateTime?
-  
-  createdAt                    DateTime               @default(now())
-  updatedAt                    DateTime               @updatedAt
-  signups                      Signup[]
-  achievements                 UserAchievement[]
-  ledGroupBookings             GroupBooking[]         @relation("GroupLeader")
-  groupInvitationsSent         GroupInvitation[]
-  
+  isMigrated                Boolean   @default(false)
+  migrationInvitationSent   Boolean   @default(false)
+  migrationInvitationSentAt DateTime?
+  migrationInvitationCount  Int       @default(0)
+  migrationLastSentAt       DateTime?
+  migrationInvitationToken  String?   @unique
+  migrationTokenExpiresAt   DateTime?
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  signups              Signup[]
+  achievements         UserAchievement[]
+  ledGroupBookings     GroupBooking[]    @relation("GroupLeader")
+  groupInvitationsSent GroupInvitation[]
+
   // Friend system relations
-  friendships                  Friendship[]           @relation("UserFriendships")
-  friendOf                     Friendship[]           @relation("FriendFriendships")
-  initiatedFriendships         Friendship[]           @relation("InitiatedFriendships")
-  sentFriendRequests           FriendRequest[]
-  
+  friendships          Friendship[]    @relation("UserFriendships")
+  friendOf             Friendship[]    @relation("FriendFriendships")
+  initiatedFriendships Friendship[]    @relation("InitiatedFriendships")
+  sentFriendRequests   FriendRequest[]
+
   // Privacy settings
-  friendVisibility             FriendVisibility       @default(FRIENDS_ONLY)
-  allowFriendRequests          Boolean                @default(true)
-  allowFriendSuggestions       Boolean                @default(true)
-  
+  friendVisibility       FriendVisibility @default(FRIENDS_ONLY)
+  allowFriendRequests    Boolean          @default(true)
+  allowFriendSuggestions Boolean          @default(true)
+
   // Notifications
-  notifications                Notification[]
-  
+  notifications Notification[]
+
   // Restaurant Manager
-  restaurantManager            RestaurantManager?
-  
+  restaurantManager RestaurantManager?
+
   // Regular volunteer relation
-  regularVolunteer             RegularVolunteer?
-  
-  notificationGroupMembers     NotificationGroupMember[]
-  
+  regularVolunteer RegularVolunteer?
+
+  notificationGroupMembers NotificationGroupMember[]
+
   // Auto-accept rules
-  createdAutoAcceptRules       AutoAcceptRule[]       @relation("RuleCreator")
-  overriddenAutoApprovals      AutoApproval[]         @relation("ApprovalOverrider")
-  createdShiftTemplates        ShiftTemplate[]        @relation("TemplateCreator")
-  
+  createdAutoAcceptRules  AutoAcceptRule[] @relation("RuleCreator")
+  overriddenAutoApprovals AutoApproval[]   @relation("ApprovalOverrider")
+  createdShiftTemplates   ShiftTemplate[]  @relation("TemplateCreator")
+
   // Admin notes
-  adminNotes                   AdminNote[]            @relation("VolunteerNotes")
-  createdAdminNotes            AdminNote[]            @relation("NoteCreator")
-  
+  adminNotes        AdminNote[] @relation("VolunteerNotes")
+  createdAdminNotes AdminNote[] @relation("NoteCreator")
+
   // Custom labels (admin-only)
-  customLabels                 UserCustomLabel[]
+  customLabels UserCustomLabel[]
 
   // Resource hub uploads
-  uploadedResources            Resource[]         @relation("ResourceUploader")
+  uploadedResources Resource[] @relation("ResourceUploader")
 
   // Passkey authentication
-  passkeys                     Passkey[]
+  passkeys Passkey[]
 }
 
 model Passkey {
-  id                  String   @id @default(cuid())
-  userId              String
+  id     String @id @default(cuid())
+  userId String
 
   // WebAuthn credential data
-  credentialId        Bytes    @unique  // Base64URL decoded credential ID
-  credentialPublicKey Bytes              // Public key for verification
-  counter             BigInt   @default(0) // Signature counter for security
+  credentialId        Bytes  @unique // Base64URL decoded credential ID
+  credentialPublicKey Bytes // Public key for verification
+  counter             BigInt @default(0) // Signature counter for security
 
   // Device metadata
-  deviceName          String?             // User-friendly name (e.g., "iPhone 15", "YubiKey")
-  transports          String[] @default([]) // ["usb", "nfc", "ble", "internal"]
-  aaguid              String?             // Authenticator AAGUID
+  deviceName String? // User-friendly name (e.g., "iPhone 15", "YubiKey")
+  transports String[] @default([]) // ["usb", "nfc", "ble", "internal"]
+  aaguid     String? // Authenticator AAGUID
 
   // Tracking
-  createdAt           DateTime @default(now())
-  lastUsedAt          DateTime?           // Track when last used for login
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime? // Track when last used for login
 
   // Relations
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([credentialId])
 }
 
 model WebAuthnChallenge {
-  id         String   @id @default(cuid())
-  challenge  String   @unique
-  userId     String?  // Null during registration if user not yet created
-  email      String?  // For registration flow
-  expiresAt  DateTime
-  type       String   // "registration" | "authentication"
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  userId    String? // Null during registration if user not yet created
+  email     String? // For registration flow
+  expiresAt DateTime
+  type      String // "registration" | "authentication"
+  createdAt DateTime @default(now())
 
   @@index([challenge])
   @@index([expiresAt])
 }
 
 model ShiftType {
-  id               String             @id @default(cuid())
-  name             String             @unique
-  description      String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  shifts           Shift[]
+  id                String             @id @default(cuid())
+  name              String             @unique
+  description       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  shifts            Shift[]
   regularVolunteers RegularVolunteer[]
-  autoAcceptRules  AutoAcceptRule[]
-  shiftTemplates   ShiftTemplate[]
+  autoAcceptRules   AutoAcceptRule[]
+  shiftTemplates    ShiftTemplate[]
 }
 
 model ShiftTemplate {
-  id          String    @id @default(cuid())
-  name        String    
+  id          String   @id @default(cuid())
+  name        String
   shiftTypeId String
-  location    String?   // If null, template applies to all locations
-  startTime   String    // Format: "HH:MM"
-  endTime     String    // Format: "HH:MM"
+  location    String? // If null, template applies to all locations
+  startTime   String // Format: "HH:MM"
+  endTime     String // Format: "HH:MM"
   capacity    Int
   notes       String?
-  isActive    Boolean   @default(true)
-  createdBy   String?   // User ID who created the template
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  shiftType   ShiftType @relation(fields: [shiftTypeId], references: [id])
-  creator     User?     @relation("TemplateCreator", fields: [createdBy], references: [id])
-  
+  isActive    Boolean  @default(true)
+  createdBy   String? // User ID who created the template
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shiftType ShiftType @relation(fields: [shiftTypeId], references: [id])
+  creator   User?     @relation("TemplateCreator", fields: [createdBy], references: [id])
+
   @@unique([name, location]) // Template names must be unique per location (or globally if location is null)
 }
 
@@ -201,34 +201,34 @@ model Shift {
 }
 
 model Signup {
-  id             String         @id @default(cuid())
+  id             String       @id @default(cuid())
   userId         String
   shiftId        String
-  status         SignupStatus   @default(CONFIRMED)
+  status         SignupStatus @default(CONFIRMED)
   groupBookingId String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
   // Cancellation tracking - only tracks cancellations from CONFIRMED status
-  canceledAt     DateTime?      // When a CONFIRMED signup was canceled
-  previousStatus String?        // Status before cancellation (only set when canceling from CONFIRMED)
-  cancellationReason String?     // Optional reason for cancellation
-  
+  canceledAt         DateTime? // When a CONFIRMED signup was canceled
+  previousStatus     String? // Status before cancellation (only set when canceling from CONFIRMED)
+  cancellationReason String? // Optional reason for cancellation
+
   // Flexible placement tracking (deprecated - kept for backwards compatibility)
-  isFlexiblePlacement Boolean    @default(false)
+  isFlexiblePlacement Boolean   @default(false)
   originalShiftId     String?
-  placedAt           DateTime?
-  placementNotes     String?
+  placedAt            DateTime?
+  placementNotes      String?
 
   // Volunteer-provided note
-  note           String?        // Optional note from volunteer when signing up
-  
-  shift          Shift          @relation(fields: [shiftId], references: [id])
-  user           User           @relation(fields: [userId], references: [id])
-  groupBooking   GroupBooking?  @relation(fields: [groupBookingId], references: [id])
-  regularSignup  RegularSignup? // One-to-one relation with RegularSignup
-  autoApproval   AutoApproval?
-  
+  note String? // Optional note from volunteer when signing up
+
+  shift         Shift          @relation(fields: [shiftId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+  groupBooking  GroupBooking?  @relation(fields: [groupBookingId], references: [id])
+  regularSignup RegularSignup? // One-to-one relation with RegularSignup
+  autoApproval  AutoApproval?
+
   @@unique([userId, shiftId])
   @@index([status, canceledAt])
   @@index([userId, canceledAt])
@@ -261,43 +261,43 @@ model UserAchievement {
 }
 
 model GroupBooking {
-  id          String              @id @default(cuid())
-  name        String              // e.g., "Smith Family", "Acme Corp Team"
-  description String?             // Optional group description
+  id          String             @id @default(cuid())
+  name        String // e.g., "Smith Family", "Acme Corp Team"
+  description String? // Optional group description
   shiftId     String
-  leaderId    String              // Group leader (creator)
-  maxMembers  Int                 @default(10) // Configurable limit
-  status      GroupBookingStatus  @default(PENDING)
-  notes       String?             // Admin/leader notes
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  
+  leaderId    String // Group leader (creator)
+  maxMembers  Int                @default(10) // Configurable limit
+  status      GroupBookingStatus @default(PENDING)
+  notes       String? // Admin/leader notes
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
   // Relations
-  shift       Shift               @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  leader      User                @relation("GroupLeader", fields: [leaderId], references: [id])
-  signups     Signup[]            // Individual signups linked to this group
-  invitations GroupInvitation[]   // Pending invitations
-  
+  shift       Shift             @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  leader      User              @relation("GroupLeader", fields: [leaderId], references: [id])
+  signups     Signup[] // Individual signups linked to this group
+  invitations GroupInvitation[] // Pending invitations
+
   @@unique([shiftId, leaderId]) // One group per leader per shift
 }
 
 model GroupInvitation {
-  id             String                @id @default(cuid())
-  groupBookingId String
-  email          String
-  invitedById    String
-  status         GroupInvitationStatus @default(PENDING)
-  message        String?               // Personal message from inviter
-  token          String                @unique @default(cuid()) // For invitation links
-  expiresAt      DateTime              // Invitation expiry (7 days)
-  assignedShiftIds String[]            // Array of shift IDs this member is assigned to
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  
+  id               String                @id @default(cuid())
+  groupBookingId   String
+  email            String
+  invitedById      String
+  status           GroupInvitationStatus @default(PENDING)
+  message          String? // Personal message from inviter
+  token            String                @unique @default(cuid()) // For invitation links
+  expiresAt        DateTime // Invitation expiry (7 days)
+  assignedShiftIds String[] // Array of shift IDs this member is assigned to
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
   // Relations
-  groupBooking   GroupBooking          @relation(fields: [groupBookingId], references: [id], onDelete: Cascade)
-  invitedBy      User                  @relation(fields: [invitedById], references: [id])
-  
+  groupBooking GroupBooking @relation(fields: [groupBookingId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id])
+
   @@unique([groupBookingId, email])
 }
 
@@ -308,12 +308,12 @@ enum Role {
 
 enum SignupStatus {
   PENDING
-  REGULAR_PENDING  // Auto-generated signup for regular volunteers
+  REGULAR_PENDING // Auto-generated signup for regular volunteers
   CONFIRMED
   WAITLISTED
   CANCELED
-  NOT_NEEDED       // Shift/position was not needed (Nova status 7)
-  UNAVAILABLE      // User became unavailable (Nova status 8)
+  NOT_NEEDED // Shift/position was not needed (Nova status 7)
+  UNAVAILABLE // User became unavailable (Nova status 8)
   NO_SHOW
 }
 
@@ -333,18 +333,18 @@ enum AchievementCategory {
 }
 
 enum GroupBookingStatus {
-  PENDING    // Awaiting admin review
-  CONFIRMED  // Approved by admin
+  PENDING // Awaiting admin review
+  CONFIRMED // Approved by admin
   WAITLISTED // On waitlist as a group
-  CANCELED   // Canceled by leader or admin
-  PARTIAL    // Some members approved, others not
+  CANCELED // Canceled by leader or admin
+  PARTIAL // Some members approved, others not
 }
 
 enum GroupInvitationStatus {
-  PENDING  // Invitation sent, awaiting response
+  PENDING // Invitation sent, awaiting response
   ACCEPTED // User accepted and joined (signup created)
   DECLINED // User declined invitation
-  EXPIRED  // Invitation expired
+  EXPIRED // Invitation expired
   CANCELED // Canceled by leader
 }
 
@@ -353,92 +353,92 @@ model Friendship {
   userId      String
   friendId    String
   status      FriendshipStatus @default(PENDING)
-  initiatedBy String           // Who sent the friend request
+  initiatedBy String // Who sent the friend request
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
-  
+
   // Relations
-  user        User             @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
-  friend      User             @relation("FriendFriendships", fields: [friendId], references: [id], onDelete: Cascade)
-  initiator   User             @relation("InitiatedFriendships", fields: [initiatedBy], references: [id])
-  
+  user      User @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User @relation("FriendFriendships", fields: [friendId], references: [id], onDelete: Cascade)
+  initiator User @relation("InitiatedFriendships", fields: [initiatedBy], references: [id])
+
   @@unique([userId, friendId])
   @@index([userId, status])
   @@index([friendId, status])
 }
 
 model FriendRequest {
-  id          String                @id @default(cuid())
-  fromUserId  String
-  toEmail     String                // Can be existing user email or new invitation
-  message     String?               // Personal message from requester
-  token       String                @unique @default(cuid()) // For invitation links
-  status      FriendRequestStatus   @default(PENDING)
-  expiresAt   DateTime              // Request expiry (30 days)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  
+  id         String              @id @default(cuid())
+  fromUserId String
+  toEmail    String // Can be existing user email or new invitation
+  message    String? // Personal message from requester
+  token      String              @unique @default(cuid()) // For invitation links
+  status     FriendRequestStatus @default(PENDING)
+  expiresAt  DateTime // Request expiry (30 days)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
   // Relations
-  fromUser    User                  @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
-  
+  fromUser User @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+
   @@unique([fromUserId, toEmail])
 }
 
 enum FriendshipStatus {
-  PENDING     // Friend request sent, awaiting acceptance
-  ACCEPTED    // Friendship established
-  BLOCKED     // User blocked this friend
+  PENDING // Friend request sent, awaiting acceptance
+  ACCEPTED // Friendship established
+  BLOCKED // User blocked this friend
 }
 
 enum FriendRequestStatus {
-  PENDING     // Request sent, awaiting response
-  ACCEPTED    // Request accepted, friendship created
-  DECLINED    // Request declined
-  EXPIRED     // Request expired
-  CANCELED    // Canceled by sender
+  PENDING // Request sent, awaiting response
+  ACCEPTED // Request accepted, friendship created
+  DECLINED // Request declined
+  EXPIRED // Request expired
+  CANCELED // Canceled by sender
 }
 
 enum FriendVisibility {
-  PUBLIC        // Anyone can see user's shift activity
-  FRIENDS_ONLY  // Only friends can see shift activity
-  PRIVATE       // No one can see shift activity
+  PUBLIC // Anyone can see user's shift activity
+  FRIENDS_ONLY // Only friends can see shift activity
+  PRIVATE // No one can see shift activity
 }
 
 enum VolunteerGrade {
-  GREEN   // Standard volunteer
-  YELLOW  // Experienced volunteer
-  PINK    // Shift leader capability
+  GREEN // Standard volunteer
+  YELLOW // Experienced volunteer
+  PINK // Shift leader capability
 }
 
 model Notification {
-  id             String           @id @default(cuid())
-  userId         String           // Recipient of the notification
-  type           NotificationType
-  title          String           // e.g., "New friend request", "Shift confirmed"
-  message        String           // e.g., "John Doe sent you a friend request"
-  isRead         Boolean          @default(false)
-  actionUrl      String?          // Optional URL to navigate to when clicked
-  relatedId      String?          // ID of related entity (friendRequestId, shiftId, etc.)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  
+  id        String           @id @default(cuid())
+  userId    String // Recipient of the notification
+  type      NotificationType
+  title     String // e.g., "New friend request", "Shift confirmed"
+  message   String // e.g., "John Doe sent you a friend request"
+  isRead    Boolean          @default(false)
+  actionUrl String? // Optional URL to navigate to when clicked
+  relatedId String? // ID of related entity (friendRequestId, shiftId, etc.)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
   // Relations
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, isRead])
   @@index([userId, createdAt])
 }
 
 enum NotificationType {
-  FRIEND_REQUEST_RECEIVED  // Someone sent you a friend request
-  FRIEND_REQUEST_ACCEPTED  // Someone accepted your friend request
-  SHIFT_CONFIRMED         // Your shift signup was confirmed
-  SHIFT_WAITLISTED        // Your shift signup was waitlisted
-  SHIFT_CANCELED          // Your shift was canceled by admin
-  GROUP_INVITATION        // You were invited to a group booking
-  ACHIEVEMENT_UNLOCKED    // You unlocked a new achievement
+  FRIEND_REQUEST_RECEIVED // Someone sent you a friend request
+  FRIEND_REQUEST_ACCEPTED // Someone accepted your friend request
+  SHIFT_CONFIRMED // Your shift signup was confirmed
+  SHIFT_WAITLISTED // Your shift signup was waitlisted
+  SHIFT_CANCELED // Your shift was canceled by admin
+  GROUP_INVITATION // You were invited to a group booking
+  ACHIEVEMENT_UNLOCKED // You unlocked a new achievement
   SHIFT_CANCELLATION_MANAGER // Volunteer canceled shift - notify managers
-  FLEXIBLE_PLACEMENT      // Deprecated - kept for backwards compatibility
+  FLEXIBLE_PLACEMENT // Deprecated - kept for backwards compatibility
   UNDERAGE_USER_REGISTERED // Underage user registered - notify admins for parental consent
 }
 
@@ -447,35 +447,35 @@ model RestaurantManager {
   userId               String   @unique
   locations            String[] // Array of location strings they manage
   receiveNotifications Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
   // Relations
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RegularVolunteer {
-  id              String          @id @default(cuid())
-  userId          String          @unique
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shiftTypeId     String
-  shiftType       ShiftType       @relation(fields: [shiftTypeId], references: [id])
-  location        String          // Wellington, Glen Innes, Onehunga
-  frequency       Frequency       @default(WEEKLY)
-  availableDays   String[]        // Array of day names: ["Monday", "Wednesday", "Friday"]
-  isActive        Boolean         @default(true)
-  isPausedByUser  Boolean         @default(false) // User-controlled pause
-  pausedUntil     DateTime?       // Optional pause end date
-  notes           String?         // Admin notes about this regular assignment
-  volunteerNotes  String?         // Volunteer's own notes/preferences
-  createdAt       DateTime        @default(now())
-  createdBy       String          // Admin who created this
-  updatedAt       DateTime        @updatedAt
-  lastModifiedBy  String?         // Track who last modified (admin or volunteer)
-  
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shiftTypeId    String
+  shiftType      ShiftType @relation(fields: [shiftTypeId], references: [id])
+  location       String // Wellington, Glen Innes, Onehunga
+  frequency      Frequency @default(WEEKLY)
+  availableDays  String[] // Array of day names: ["Monday", "Wednesday", "Friday"]
+  isActive       Boolean   @default(true)
+  isPausedByUser Boolean   @default(false) // User-controlled pause
+  pausedUntil    DateTime? // Optional pause end date
+  notes          String? // Admin notes about this regular assignment
+  volunteerNotes String? // Volunteer's own notes/preferences
+  createdAt      DateTime  @default(now())
+  createdBy      String // Admin who created this
+  updatedAt      DateTime  @updatedAt
+  lastModifiedBy String? // Track who last modified (admin or volunteer)
+
   // Track auto-generated signups
-  autoSignups     RegularSignup[]
-  
+  autoSignups RegularSignup[]
+
   @@index([userId, isActive])
   @@index([shiftTypeId, location, isActive])
 }
@@ -486,9 +486,9 @@ model RegularSignup {
   regularVolunteer   RegularVolunteer @relation(fields: [regularVolunteerId], references: [id], onDelete: Cascade)
   signupId           String           @unique
   signup             Signup           @relation(fields: [signupId], references: [id], onDelete: Cascade)
-  skipReason         String?          // If admin skips this auto-signup
+  skipReason         String? // If admin skips this auto-signup
   createdAt          DateTime         @default(now())
-  
+
   @@index([regularVolunteerId])
 }
 
@@ -500,27 +500,27 @@ enum Frequency {
 
 // Saved filter groups for notifications
 model NotificationGroup {
-  id                String                    @id @default(cuid())
-  name              String                    @unique
-  description       String?
-  filters           Json                      // Stored filter criteria
-  isActive          Boolean                   @default(true)
-  createdBy         String
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  
-  members           NotificationGroupMember[]
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  filters     Json // Stored filter criteria
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members NotificationGroupMember[]
 }
 
 model NotificationGroupMember {
-  id          String            @id @default(cuid())
-  groupId     String
-  userId      String
-  addedAt     DateTime          @default(now())
-  
-  group       NotificationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id      String   @id @default(cuid())
+  groupId String
+  userId  String
+  addedAt DateTime @default(now())
+
+  group NotificationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([groupId, userId])
   @@index([groupId])
   @@index([userId])
@@ -528,79 +528,79 @@ model NotificationGroupMember {
 
 // Auto-accept rules for shift signups
 model AutoAcceptRule {
-  id                String              @id @default(cuid())
-  name              String
-  description       String?
-  enabled           Boolean             @default(true)
-  priority          Int                 @default(0) // Higher priority evaluated first
-  global            Boolean             @default(false) // Apply to all shift types
-  shiftTypeId       String?             // Specific shift type (if not global)
-  location          String?             // Specific location (if null, applies to all locations)
-  
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  enabled     Boolean @default(true)
+  priority    Int     @default(0) // Higher priority evaluated first
+  global      Boolean @default(false) // Apply to all shift types
+  shiftTypeId String? // Specific shift type (if not global)
+  location    String? // Specific location (if null, applies to all locations)
+
   // Criteria - all optional, evaluated based on what's set
-  minVolunteerGrade VolunteerGrade?     // Minimum grade required
-  minCompletedShifts Int?               // Minimum completed shifts
-  minAttendanceRate Float?              // Minimum attendance percentage (0-100)
-  minAccountAgeDays Int?                // Days since registration
-  maxDaysInAdvance  Int?                // Only auto-accept if shift is X+ days away
-  requireShiftTypeExperience Boolean    @default(false) // Must have done this shift type before
-  
+  minVolunteerGrade          VolunteerGrade? // Minimum grade required
+  minCompletedShifts         Int? // Minimum completed shifts
+  minAttendanceRate          Float? // Minimum attendance percentage (0-100)
+  minAccountAgeDays          Int? // Days since registration
+  maxDaysInAdvance           Int? // Only auto-accept if shift is X+ days away
+  requireShiftTypeExperience Boolean         @default(false) // Must have done this shift type before
+
   // Logic configuration
-  criteriaLogic     CriteriaLogic       @default(AND) // AND or OR logic for criteria
-  stopOnMatch       Boolean             @default(true) // Stop evaluating other rules if matched
-  
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  createdBy         String              // Admin who created the rule
-  
+  criteriaLogic CriteriaLogic @default(AND) // AND or OR logic for criteria
+  stopOnMatch   Boolean       @default(true) // Stop evaluating other rules if matched
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String // Admin who created the rule
+
   // Relations
-  shiftType         ShiftType?          @relation(fields: [shiftTypeId], references: [id])
-  creator           User                @relation("RuleCreator", fields: [createdBy], references: [id])
-  approvals         AutoApproval[]      // Track which signups were auto-approved by this rule
-  
+  shiftType ShiftType?     @relation(fields: [shiftTypeId], references: [id])
+  creator   User           @relation("RuleCreator", fields: [createdBy], references: [id])
+  approvals AutoApproval[] // Track which signups were auto-approved by this rule
+
   @@index([enabled, priority])
   @@index([shiftTypeId, enabled])
 }
 
 // Track auto-approvals for audit and override purposes
 model AutoApproval {
-  id              String           @id @default(cuid())
-  signupId        String           @unique
-  ruleId          String
-  approvedAt      DateTime         @default(now())
-  overridden      Boolean          @default(false)
-  overriddenBy    String?
-  overriddenAt    DateTime?
-  overrideReason  String?
-  
+  id             String    @id @default(cuid())
+  signupId       String    @unique
+  ruleId         String
+  approvedAt     DateTime  @default(now())
+  overridden     Boolean   @default(false)
+  overriddenBy   String?
+  overriddenAt   DateTime?
+  overrideReason String?
+
   // Relations
-  signup          Signup           @relation(fields: [signupId], references: [id], onDelete: Cascade)
-  rule            AutoAcceptRule   @relation(fields: [ruleId], references: [id])
-  overrider       User?            @relation("ApprovalOverrider", fields: [overriddenBy], references: [id])
-  
+  signup    Signup         @relation(fields: [signupId], references: [id], onDelete: Cascade)
+  rule      AutoAcceptRule @relation(fields: [ruleId], references: [id])
+  overrider User?          @relation("ApprovalOverrider", fields: [overriddenBy], references: [id])
+
   @@index([ruleId])
   @@index([overridden])
 }
 
 enum CriteriaLogic {
-  AND  // All criteria must be met
-  OR   // Any criterion must be met
+  AND // All criteria must be met
+  OR // Any criterion must be met
 }
 
 // Admin notes for volunteer management
 model AdminNote {
   id          String   @id @default(cuid())
-  volunteerId String   // User ID this note is about
-  content     String   // Note content
-  createdBy   String   // Admin who created the note
+  volunteerId String // User ID this note is about
+  content     String // Note content
+  createdBy   String // Admin who created the note
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   isArchived  Boolean  @default(false) // For soft deletes
-  
+
   // Relations
-  volunteer   User     @relation("VolunteerNotes", fields: [volunteerId], references: [id], onDelete: Cascade)
-  creator     User     @relation("NoteCreator", fields: [createdBy], references: [id])
-  
+  volunteer User @relation("VolunteerNotes", fields: [volunteerId], references: [id], onDelete: Cascade)
+  creator   User @relation("NoteCreator", fields: [createdBy], references: [id])
+
   @@index([volunteerId, isArchived])
   @@index([createdBy])
   @@index([createdAt])
@@ -608,31 +608,31 @@ model AdminNote {
 
 // Custom labels for admin use
 model CustomLabel {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  color       String   // Tailwind color classes like "bg-purple-50 text-purple-700 border-purple-200"
-  icon        String?  // Optional emoji icon
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String // Tailwind color classes like "bg-purple-50 text-purple-700 border-purple-200"
+  icon      String? // Optional emoji icon
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  users       UserCustomLabel[]
-  
+  users UserCustomLabel[]
+
   @@index([isActive])
 }
 
 // Junction table for user custom labels
 model UserCustomLabel {
-  id        String   @id @default(cuid())
-  userId    String
-  labelId   String
+  id         String   @id @default(cuid())
+  userId     String
+  labelId    String
   assignedAt DateTime @default(now())
-  
+
   // Relations
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label     CustomLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
-  
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label CustomLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
   @@unique([userId, labelId])
   @@index([userId])
   @@index([labelId])
@@ -648,19 +648,19 @@ model Resource {
   tags        String[]         @default([]) // Flexible tags for organization
 
   // File/URL fields
-  fileUrl     String?          // Supabase storage URL for uploaded files
-  fileName    String?          // Original file name
-  fileSize    Int?             // File size in bytes
-  url         String?          // External URL for links/videos
+  fileUrl  String? // Supabase storage URL for uploaded files
+  fileName String? // Original file name
+  fileSize Int? // File size in bytes
+  url      String? // External URL for links/videos
 
   // Metadata
-  isPublished Boolean          @default(true)
-  uploadedBy  String           // Admin who uploaded
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  isPublished Boolean  @default(true)
+  uploadedBy  String // Admin who uploaded
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  uploader    User             @relation("ResourceUploader", fields: [uploadedBy], references: [id])
+  uploader User @relation("ResourceUploader", fields: [uploadedBy], references: [id])
 
   @@index([type, isPublished])
   @@index([category, isPublished])
@@ -671,19 +671,19 @@ model Resource {
 enum ResourceType {
   PDF
   IMAGE
-  DOCUMENT      // Word, Excel, etc.
-  LINK          // External website
-  VIDEO         // YouTube, Vimeo, etc.
+  DOCUMENT // Word, Excel, etc.
+  LINK // External website
+  VIDEO // YouTube, Vimeo, etc.
 }
 
 enum ResourceCategory {
-  TRAINING      // Training materials
-  POLICIES      // Policies and procedures
-  FORMS         // Downloadable forms
-  GUIDES        // How-to guides
-  RECIPES       // Recipes and food preparation
-  SAFETY        // Health and safety
-  GENERAL       // General resources
+  TRAINING // Training materials
+  POLICIES // Policies and procedures
+  FORMS // Downloadable forms
+  GUIDES // How-to guides
+  RECIPES // Recipes and food preparation
+  SAFETY // Health and safety
+  GENERAL // General resources
 }
 
 // Restaurant location configuration
@@ -703,12 +703,12 @@ model Location {
 model MealsServed {
   id          String   @id @default(cuid())
   date        DateTime // Date for this record (stored as start of day in UTC)
-  location    String   // Location name (Wellington, Glen Innes, Onehunga)
-  mealsServed Int      // Actual number of meals served that day
-  notes       String?  // Optional notes about the day
+  location    String // Location name (Wellington, Glen Innes, Onehunga)
+  mealsServed Int // Actual number of meals served that day
+  notes       String? // Optional notes about the day
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  createdBy   String?  // Admin who recorded this
+  createdBy   String? // Admin who recorded this
 
   @@unique([date, location]) // One record per day per location
   @@index([location, date])
@@ -718,9 +718,9 @@ model MealsServed {
 // Newsletter list management
 model NewsletterList {
   id                String   @id @default(cuid())
-  name              String   // Display name (e.g., "Auckland Newsletter")
+  name              String // Display name (e.g., "Auckland Newsletter")
   campaignMonitorId String   @unique // Campaign Monitor list ID
-  description       String?  // Optional description
+  description       String? // Optional description
   active            Boolean  @default(true) // Can be disabled without deleting
   displayOrder      Int      @default(0) // For ordering lists in UI
   createdAt         DateTime @default(now())
