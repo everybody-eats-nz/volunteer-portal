@@ -84,13 +84,6 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Manage volunteer achievements",
         commandKey: "achievements",
       },
-      {
-        title: "Newsletter Lists",
-        href: "/admin/newsletter-lists",
-        icon: Mail,
-        description: "Manage Campaign Monitor lists",
-        commandKey: "newsletter-lists",
-      },
     ],
   },
   {
@@ -154,6 +147,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: FileText,
         description: "Manage volunteer resources",
         commandKey: "resources",
+      },
+      {
+        title: "Newsletter Lists",
+        href: "/admin/newsletter-lists",
+        icon: Mail,
+        description: "Manage Campaign Monitor lists",
+        commandKey: "newsletter-lists",
       },
     ],
   },
