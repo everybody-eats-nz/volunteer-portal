@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { autoLabelUnder16User } from "@/lib/auto-label-utils";
+import { autoLabelUnder16User, autoLabelNewVolunteer } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
 import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
+import { getEmailService } from "@/lib/email-service";
 
 const updateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -319,6 +320,7 @@ export async function PUT(req: Request) {
         healthSafetyPolicyAccepted: true,
         requiresParentalConsent: true,
         parentalConsentReceived: true,
+        profileCompleted: true,
       },
     });
 
@@ -328,6 +330,49 @@ export async function PUT(req: Request) {
         ? new Date(validatedData.dateOfBirth)
         : null;
       await autoLabelUnder16User(user.id, dateOfBirth);
+    }
+
+    // Check if profile is now complete and send welcome email for OAuth users
+    // This handles the case where OAuth users (Google/Facebook) bypass email verification
+    // and should receive the welcome email after completing their profile
+    if (!user.profileCompleted && updatedUser.firstName) {
+      // Check if profile has all required fields
+      const hasRequiredFields =
+        updatedUser.phone &&
+        updatedUser.dateOfBirth &&
+        updatedUser.emergencyContactName &&
+        updatedUser.emergencyContactPhone &&
+        updatedUser.volunteerAgreementAccepted &&
+        updatedUser.healthSafetyPolicyAccepted;
+
+      if (hasRequiredFields) {
+        // Mark profile as completed
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { profileCompleted: true },
+        });
+
+        // Auto-label as new volunteer (OAuth users don't go through regular registration flow)
+        try {
+          await autoLabelNewVolunteer(user.id);
+        } catch (labelError) {
+          console.error("Failed to auto-label new volunteer:", labelError);
+          // Don't fail the profile update if labeling fails
+        }
+
+        // Send welcome email
+        try {
+          const emailService = getEmailService();
+          await emailService.sendProfileCompletion({
+            to: updatedUser.email,
+            firstName: updatedUser.firstName,
+          });
+          console.log(`Profile completion email sent to ${updatedUser.email}`);
+        } catch (emailError) {
+          console.error("Failed to send profile completion email:", emailError);
+          // Don't fail the profile update if email sending fails
+        }
+      }
     }
 
     // Campaign Monitor newsletter sync
