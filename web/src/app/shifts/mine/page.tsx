@@ -273,11 +273,14 @@ export default async function MyShiftsPage({
           },
         }),
       ]),
-      // Available shifts in user's preferred locations for the month
+      // Available shifts in user's preferred locations for the month (future dates only)
       userPreferredLocations.length > 0
         ? prisma.shift.findMany({
             where: {
-              start: { gte: monthStart, lte: monthEnd },
+              start: {
+                gte: now > monthStart ? now : monthStart,
+                lte: monthEnd
+              },
               location: { in: userPreferredLocations },
               // Only shifts that aren't full and user hasn't signed up for
               signups: {
