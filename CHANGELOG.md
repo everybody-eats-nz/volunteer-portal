@@ -1,3 +1,9 @@
+## [0.85.4] - 2025-12-19
+
+### Changes
+- fix: prevent past dates from showing available shifts on mobile in My Shifts ([#411](https://github.com/everybody-eats-nz/volunteer-portal/pull/411)) by @malinmalliyawadu
+
+
 ## [0.85.3] - 2025-12-19
 
 ### Changes
