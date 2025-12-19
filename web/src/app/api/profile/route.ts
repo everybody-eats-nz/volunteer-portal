@@ -48,6 +48,7 @@ export async function GET() {
     select: {
       id: true,
       email: true,
+      emailVerified: true,
       name: true,
       firstName: true,
       lastName: true,
