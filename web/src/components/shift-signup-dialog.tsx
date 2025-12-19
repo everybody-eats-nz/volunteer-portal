@@ -69,6 +69,9 @@ export function ShiftSignupDialog({
   const [note, setNote] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [isUnderage, setIsUnderage] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(true); // Default to true to avoid showing warning before check
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationResent, setVerificationResent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoApprovalEligible, setAutoApprovalEligible] = useState<{
     eligible: boolean;
@@ -86,14 +89,19 @@ export function ShiftSignupDialog({
     }
   }, [open]);
 
-  // Check if user is underage (14 and under)
+  // Check if user is underage (14 and under) and email verification status
   useEffect(() => {
     if (open && session?.user) {
-      const checkAge = async () => {
+      const checkUserData = async () => {
         try {
           const response = await fetch('/api/profile');
           if (response.ok) {
             const userData = await response.json();
+
+            // Check email verification status
+            setEmailVerified(userData.emailVerified ?? true);
+
+            // Check age
             if (userData.dateOfBirth) {
               const age = calculateAge(new Date(userData.dateOfBirth));
               setIsUnderage(age <= 14);
@@ -101,20 +109,23 @@ export function ShiftSignupDialog({
           } else {
             console.warn('Profile fetch failed:', response.status);
             setIsUnderage(false); // Default to not underage if we can't check
+            setEmailVerified(true); // Default to verified to avoid blocking
           }
         } catch (error) {
-          console.error('Error checking user age:', error);
+          console.error('Error checking user data:', error);
           setIsUnderage(false); // Default to not underage if there's an error
+          setEmailVerified(true); // Default to verified to avoid blocking
         }
       };
 
       // Add timeout to prevent hanging
       const timeoutId = setTimeout(() => {
-        console.warn('Age check timed out, defaulting to not underage');
+        console.warn('User data check timed out');
         setIsUnderage(false);
+        setEmailVerified(true); // Default to verified to avoid blocking
       }, 3000); // 3 second timeout
 
-      checkAge().finally(() => {
+      checkUserData().finally(() => {
         clearTimeout(timeoutId);
       });
 
@@ -160,6 +171,30 @@ export function ShiftSignupDialog({
       setAutoApprovalEligible({ eligible: false, loading: false });
     }
   }, [open, currentUserId, shift.id, isWaitlist]);
+
+  const handleResendVerification = async () => {
+    setIsResendingVerification(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (response.ok) {
+        setVerificationResent(true);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to resend verification email");
+      }
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      setError("Failed to resend verification email. Please try again.");
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
 
   const handleSignup = async () => {
     // Clear any previous errors
@@ -278,6 +313,46 @@ export function ShiftSignupDialog({
         </ResponsiveDialogHeader>
 
         <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0" data-testid="shift-signup-dialog-content-body">
+          {/* Email Verification Warning */}
+          {!emailVerified && (
+            <InfoBox
+              title="Email Verification Required"
+              variant="red"
+              testId="email-verification-warning"
+            >
+              <div className="space-y-3">
+                <p className="text-red-700">
+                  You must verify your email address before signing up for shifts. Please check your inbox for a verification email.
+                </p>
+                {verificationResent ? (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <p className="text-green-700 text-sm">
+                      ✓ Verification email sent! Please check your inbox and spam folder.
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleResendVerification}
+                    disabled={isResendingVerification}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    data-testid="resend-verification-button"
+                  >
+                    {isResendingVerification ? (
+                      <span className="flex items-center gap-2">
+                        <MotionSpinner className="w-4 h-4" />
+                        Sending...
+                      </span>
+                    ) : (
+                      "Resend Verification Email"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </InfoBox>
+          )}
+
           {/* Shift Details */}
           <div className="rounded-lg border p-4 bg-muted/50" data-testid="shift-details-section">
             <h3 className="font-semibold text-lg mb-2" data-testid="shift-details-name">
@@ -412,7 +487,7 @@ export function ShiftSignupDialog({
           </Button>
           <Button
             onClick={handleSignup}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !emailVerified}
             className="min-w-[120px]"
             data-testid="shift-signup-confirm-button"
           >
