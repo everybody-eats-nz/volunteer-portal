@@ -1,3 +1,9 @@
+## [0.85.3] - 2025-12-19
+
+### Changes
+- fix: show email verification warning and disable signup buttons for unverified users ([#408](https://github.com/everybody-eats-nz/volunteer-portal/pull/408)) by @malinmalliyawadu
+
+
 ## [0.85.2] - 2025-12-18
 
 ### Changes
