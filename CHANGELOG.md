@@ -1,3 +1,9 @@
+## [0.86.2] - 2025-12-20
+
+### Changes
+- fix: add passkeys_added to API validation criteria types ([#414](https://github.com/everybody-eats-nz/volunteer-portal/pull/414)) by @malinmalliyawadu
+
+
 ## [0.86.1] - 2025-12-20
 
 ### Changes
