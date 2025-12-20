@@ -159,13 +159,15 @@ export async function DashboardImpactStats({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">
-                {hasActualData ? "" : "~"}{mealsToDisplay.toLocaleString()}
+                {hasAnyData ? "" : "~"}{mealsToDisplay.toLocaleString()}
               </div>
               <p className="text-sm text-muted-foreground">
-                {hasActualData ? "People served" : "Estimated people served"}
+                {hasAnyData ? "People served" : "Estimated people served"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {hasActualData
+                {hasActualData && daysWithEstimatedData > 0
+                  ? `${daysWithActualData} shift${daysWithActualData !== 1 ? "s" : ""} with actual data, ${daysWithEstimatedData} estimated`
+                  : hasActualData
                   ? `Across ${daysWithActualData} shift${daysWithActualData !== 1 ? "s" : ""} you completed`
                   : hasAnyData
                   ? `Based on ${daysWithEstimatedData} shift${daysWithEstimatedData !== 1 ? "s" : ""} you completed`
