@@ -1,37 +1,330 @@
 # CLAUDE.md - Testing Guidelines
 
-This file provides guidance to Claude Code for working with tests in this directory, using Playwright for e2e testing.
+This file provides guidance to Claude Code for working with tests in this directory, using Vitest for unit tests and Playwright for e2e testing.
 
 ## Overview
 
-This directory contains all test files for the Volunteer Portal, primarily using Playwright for end-to-end testing with some utility files for test setup and data generation.
+This project uses a comprehensive testing strategy:
+- **Vitest** for unit testing utility functions, business logic, and isolated components
+- **Playwright** for end-to-end testing of complete user workflows and integration tests
 
 ## Directory Structure
 
 ```
-tests/
-├── e2e/                    # End-to-end tests with Playwright
-│   ├── auth.spec.ts       # Authentication flow tests
-│   ├── admin.spec.ts      # Admin dashboard tests
-│   ├── volunteers.spec.ts # Volunteer management tests
-│   ├── shifts.spec.ts     # Shift scheduling tests
-│   └── profile.spec.ts    # Profile management tests
-├── fixtures/              # Test data and fixtures
-│   ├── users.json        # Test user data
-│   ├── shifts.json       # Test shift data
-│   └── achievements.json # Test achievement data
-├── utils/                 # Test utilities
-│   ├── auth-helpers.ts   # Authentication helpers
-│   ├── data-generators.ts # Random data generation
-│   └── db-helpers.ts     # Database setup/teardown
-└── setup/                # Test setup files
-    ├── global-setup.ts   # Global test setup
-    └── global-teardown.ts # Global test cleanup
+web/
+├── src/
+│   └── **/*.test.ts(x)    # Unit tests with Vitest (co-located with source)
+│       └── lib/
+│           └── calendar-utils.test.ts  # Example unit test
+└── tests/
+    ├── e2e/                    # End-to-end tests with Playwright
+    │   ├── auth.spec.ts       # Authentication flow tests
+    │   ├── admin.spec.ts      # Admin dashboard tests
+    │   ├── volunteers.spec.ts # Volunteer management tests
+    │   ├── shifts.spec.ts     # Shift scheduling tests
+    │   └── profile.spec.ts    # Profile management tests
+    ├── fixtures/              # Test data and fixtures
+    │   ├── users.json        # Test user data
+    │   ├── shifts.json       # Test shift data
+    │   └── achievements.json # Test achievement data
+    ├── utils/                 # Test utilities
+    │   ├── auth-helpers.ts   # Authentication helpers
+    │   ├── data-generators.ts # Random data generation
+    │   └── db-helpers.ts     # Database setup/teardown
+    └── setup/                # Test setup files
+        ├── global-setup.ts   # Global test setup
+        └── global-teardown.ts # Global test cleanup
 ```
 
 ## Testing Philosophy
 
-Based on the existing .cursor/rules, this project uses **Playwright for e2e testing** rather than Vitest unit tests. The focus is on testing user workflows and ensuring the application works end-to-end.
+This project uses a layered testing approach:
+
+1. **Unit Tests (Vitest)**: Test individual functions, utilities, and business logic in isolation
+2. **E2E Tests (Playwright)**: Test complete user workflows and integration between components
+
+Choose the right testing tool:
+- Use **Vitest** for pure functions, utilities, data transformations, and isolated logic
+- Use **Playwright** for user workflows, page interactions, and full-stack integration tests
+
+## Vitest Unit Test Patterns
+
+### 1. Basic Unit Test
+
+```typescript
+// src/lib/my-utility.test.ts
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./my-utility";
+
+describe("myFunction", () => {
+  it("should return expected result for valid input", () => {
+    const result = myFunction("test");
+    expect(result).toBe("expected");
+  });
+
+  it("should handle edge cases", () => {
+    expect(myFunction("")).toBe("");
+    expect(myFunction(null)).toBeNull();
+  });
+
+  it("should throw error for invalid input", () => {
+    expect(() => myFunction(undefined)).toThrow("Invalid input");
+  });
+});
+```
+
+### 2. Testing Date/Time Utilities
+
+```typescript
+// src/lib/date-utils.test.ts
+import { describe, it, expect } from "vitest";
+import { formatDate, addDays } from "./date-utils";
+
+describe("date-utils", () => {
+  describe("formatDate", () => {
+    it("should format date in NZ timezone", () => {
+      const date = new Date("2024-12-31T10:00:00Z");
+      const formatted = formatDate(date, "yyyy-MM-dd");
+      expect(formatted).toBe("2024-12-31");
+    });
+
+    it("should handle different formats", () => {
+      const date = new Date("2024-01-15T12:00:00Z");
+      expect(formatDate(date, "dd/MM/yyyy")).toBe("15/01/2024");
+      expect(formatDate(date, "MMM dd, yyyy")).toBe("Jan 15, 2024");
+    });
+  });
+
+  describe("addDays", () => {
+    it("should add days correctly", () => {
+      const date = new Date("2024-01-01");
+      const result = addDays(date, 5);
+      expect(result.getDate()).toBe(6);
+    });
+
+    it("should handle month boundaries", () => {
+      const date = new Date("2024-01-30");
+      const result = addDays(date, 5);
+      expect(result.getMonth()).toBe(1); // February
+      expect(result.getDate()).toBe(4);
+    });
+  });
+});
+```
+
+### 3. Testing Data Transformations
+
+```typescript
+// src/lib/transformers.test.ts
+import { describe, it, expect } from "vitest";
+import { transformShiftData, normalizeUserInput } from "./transformers";
+
+describe("transformers", () => {
+  describe("transformShiftData", () => {
+    it("should transform raw shift data to display format", () => {
+      const rawData = {
+        id: "1",
+        start: "2024-12-31T10:00:00Z",
+        end: "2024-12-31T13:00:00Z",
+        shift_type: "KITCHEN",
+      };
+
+      const result = transformShiftData(rawData);
+
+      expect(result).toEqual({
+        id: "1",
+        startTime: expect.any(Date),
+        endTime: expect.any(Date),
+        shiftType: "Kitchen",
+        duration: 3,
+      });
+    });
+
+    it("should handle missing optional fields", () => {
+      const rawData = {
+        id: "1",
+        start: "2024-12-31T10:00:00Z",
+        end: "2024-12-31T13:00:00Z",
+      };
+
+      const result = transformShiftData(rawData);
+      expect(result.shiftType).toBe("General");
+    });
+  });
+
+  describe("normalizeUserInput", () => {
+    it("should trim and lowercase email", () => {
+      expect(normalizeUserInput("  TEST@EXAMPLE.COM  ")).toBe(
+        "test@example.com"
+      );
+    });
+
+    it("should remove extra whitespace", () => {
+      expect(normalizeUserInput("  hello   world  ")).toBe("hello world");
+    });
+  });
+});
+```
+
+### 4. Testing Validation Functions
+
+```typescript
+// src/lib/validators.test.ts
+import { describe, it, expect } from "vitest";
+import {
+  validateEmail,
+  validatePhone,
+  validateShiftTime,
+} from "./validators";
+
+describe("validators", () => {
+  describe("validateEmail", () => {
+    it("should accept valid emails", () => {
+      expect(validateEmail("user@example.com")).toBe(true);
+      expect(validateEmail("test.user+tag@domain.co.nz")).toBe(true);
+    });
+
+    it("should reject invalid emails", () => {
+      expect(validateEmail("invalid")).toBe(false);
+      expect(validateEmail("@example.com")).toBe(false);
+      expect(validateEmail("user@")).toBe(false);
+    });
+  });
+
+  describe("validatePhone", () => {
+    it("should accept valid NZ phone numbers", () => {
+      expect(validatePhone("+64212345678")).toBe(true);
+      expect(validatePhone("0212345678")).toBe(true);
+    });
+
+    it("should reject invalid formats", () => {
+      expect(validatePhone("123")).toBe(false);
+      expect(validatePhone("abc")).toBe(false);
+    });
+  });
+
+  describe("validateShiftTime", () => {
+    it("should ensure end time is after start time", () => {
+      const start = new Date("2024-01-01T10:00:00");
+      const end = new Date("2024-01-01T14:00:00");
+      expect(validateShiftTime(start, end)).toBe(true);
+    });
+
+    it("should reject end time before start time", () => {
+      const start = new Date("2024-01-01T14:00:00");
+      const end = new Date("2024-01-01T10:00:00");
+      expect(validateShiftTime(start, end)).toBe(false);
+    });
+  });
+});
+```
+
+### 5. Testing with Mocks
+
+```typescript
+// src/lib/api-client.test.ts
+import { describe, it, expect, vi } from "vitest";
+import { fetchUserData } from "./api-client";
+
+// Mock fetch globally
+global.fetch = vi.fn();
+
+describe("api-client", () => {
+  it("should fetch user data successfully", async () => {
+    const mockUser = { id: "1", name: "Test User" };
+
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockUser,
+    });
+
+    const result = await fetchUserData("1");
+    expect(result).toEqual(mockUser);
+    expect(global.fetch).toHaveBeenCalledWith("/api/users/1");
+  });
+
+  it("should handle fetch errors", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    });
+
+    await expect(fetchUserData("999")).rejects.toThrow("User not found");
+  });
+});
+```
+
+## Vitest Configuration
+
+The project uses the following Vitest configuration (`vitest.config.ts`):
+
+```typescript
+import { defineConfig } from 'vitest/config'
+import path from 'path'
+
+export default defineConfig({
+  test: {
+    globals: true,              // Auto-import describe, it, expect
+    environment: 'node',        // Node environment for server-side code
+    setupFiles: ['./src/lib/test-setup.ts'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/tests/e2e/**',        // Exclude Playwright tests
+      '**/.{idea,git,cache,output,temp}/**',
+    ],
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),  // Path alias support
+    },
+  },
+})
+```
+
+### Test Setup File
+
+The test setup file (`src/lib/test-setup.ts`) contains mocks for:
+- Prisma client (prevents database connections)
+- External modules (e.g., locations module with top-level await)
+
+```typescript
+import { vi } from 'vitest';
+
+// Mock Prisma client
+vi.mock('./prisma', () => ({
+  prisma: {
+    $connect: vi.fn(),
+    $disconnect: vi.fn(),
+    user: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    // Add other models as needed
+  },
+}));
+```
+
+## Running Unit Tests
+
+```bash
+# Run tests in watch mode (development)
+npm run test
+
+# Run tests once (CI mode)
+npm run test:run
+
+# Run tests with UI
+npm run test:ui
+
+# Run specific test file
+npx vitest src/lib/calendar-utils.test.ts
+
+# Run tests with coverage
+npx vitest --coverage
+```
 
 ## Playwright Test Patterns
 
@@ -555,18 +848,39 @@ Follow consistent patterns for test IDs:
 
 ## Running Tests
 
+### Unit Tests (Vitest)
+
 ```bash
-# Run all tests
+# Run unit tests in watch mode
+npm run test
+
+# Run unit tests once (CI mode)
+npm run test:run
+
+# Run unit tests with UI
+npm run test:ui
+
+# Run specific test file
+npx vitest src/lib/calendar-utils.test.ts
+
+# Run tests with coverage
+npx vitest --coverage
+```
+
+### E2E Tests (Playwright)
+
+```bash
+# Run all e2e tests
 npm run test:e2e
 
 # Run tests in headed mode for debugging
 npm run test:e2e:ui
 
-# Run tests in CI mode (Chromium only)
+# Run tests in CI mode (Chromium only) - RECOMMENDED
 npm run test:e2e:ci
 
-# Run specific test file
-npx playwright test volunteer.spec.ts
+# Run specific test file in Chromium only
+npx playwright test volunteer.spec.ts --project=chromium
 
 # Run tests with debugging
 npx playwright test --debug
@@ -575,25 +889,67 @@ npx playwright test --debug
 npx playwright show-report
 ```
 
+### Running All Tests
+
+```bash
+# Run unit tests first, then e2e tests
+npm run test:run && npm run test:e2e:ci
+```
+
 ## Best Practices
 
-1. **Use data-testid attributes** for reliable element selection
+### Unit Testing Best Practices
+
+1. **Test behavior, not implementation** - Focus on what the function does, not how it does it
+2. **Write focused tests** - Each test should verify one specific behavior
+3. **Use descriptive test names** - Test names should clearly state what is being tested
+4. **Follow AAA pattern** - Arrange, Act, Assert
+5. **Mock external dependencies** - Use mocks for Prisma, fetch, and other external services
+6. **Test edge cases** - Include tests for null, undefined, empty strings, boundary values
+7. **Keep tests simple** - Tests should be easier to understand than the code they test
+8. **Co-locate tests** - Place test files next to the code they test (e.g., `utils.ts` and `utils.test.ts`)
+9. **Run tests frequently** - Use watch mode during development (`npm run test`)
+10. **Maintain test coverage** - Aim for high coverage of utility functions and business logic
+
+### E2E Testing Best Practices
+
+1. **Use data-testid attributes** for reliable element selection in Playwright tests
 2. **Test user workflows**, not implementation details
-3. **Create reusable helper functions** for common operations
+3. **Create reusable helper functions** for common operations (login, navigation, etc.)
 4. **Clean up test data** after each test
-5. **Use descriptive test names** that explain the scenario
+5. **Use descriptive test names** that explain the user scenario
 6. **Group related tests** in describe blocks
 7. **Test both happy path and error cases**
 8. **Verify visual elements and user feedback**
 9. **Test responsive design** on different devices
-10. **Run tests in CI/CD** to catch regressions early
+10. **Run tests in Chromium only** for faster feedback (use `--project=chromium`)
+
+### General Testing Best Practices
+
+1. **Choose the right testing tool** - Vitest for units, Playwright for workflows
+2. **Run tests before committing** - Ensure unit tests pass before pushing code
+3. **Run tests in CI/CD** to catch regressions early
+4. **Review test failures carefully** - Understand why a test failed before fixing it
+5. **Keep tests maintainable** - Refactor tests when you refactor code
+6. **Document complex test scenarios** - Add comments for non-obvious test logic
 
 ## Common Patterns to Avoid
 
-- Don't test internal component state
+### Unit Testing Anti-Patterns
+
+- Don't test framework/library code (e.g., React, Next.js internals)
+- Don't test implementation details (private methods, internal state)
+- Don't create tests that depend on other tests
+- Don't use real database connections in unit tests (use mocks)
+- Don't test multiple behaviors in a single test
+- Don't skip edge case testing
+
+### E2E Testing Anti-Patterns
+
 - Don't rely on text content that might change
 - Don't test third-party library functionality
 - Don't create overly complex test scenarios
 - Don't forget to clean up test data
 - Don't skip accessibility testing
-- Don't ignore flaky tests
+- Don't ignore flaky tests - fix them or remove them
+- Don't run tests across all browsers in development (use Chromium only)
