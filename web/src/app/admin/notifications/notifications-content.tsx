@@ -33,6 +33,7 @@ import {
 import { formatInNZT } from "@/lib/timezone";
 import { Send, Save } from "lucide-react";
 import { toast } from "sonner";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface Shift {
   id: string;
@@ -704,22 +705,29 @@ export function NotificationsContent({
             )}
           </div>
 
-          <Button
-            size="lg"
-            onClick={handleSendNotifications}
-            disabled={
-              !selectedShift || selectedVolunteers.size === 0 || isSending
-            }
-          >
-            {isSending ? (
-              <>Sending...</>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Send Notifications
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <EmailPreviewDialog
+              emailType="shortage"
+              triggerLabel="Preview Email"
+              triggerVariant="outline"
+            />
+            <Button
+              size="lg"
+              onClick={handleSendNotifications}
+              disabled={
+                !selectedShift || selectedVolunteers.size === 0 || isSending
+              }
+            >
+              {isSending ? (
+                <>Sending...</>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Notifications
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </TabsContent>
 
