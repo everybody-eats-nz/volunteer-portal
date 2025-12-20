@@ -3,7 +3,7 @@ import { differenceInHours, startOfDay } from "date-fns";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MotionContentCard } from "@/components/motion-content-card";
 import { CheckCircle } from "lucide-react";
-import { toUTC } from "@/lib/timezone";
+import { toUTC, toNZT } from "@/lib/timezone";
 
 interface DashboardImpactStatsProps {
   userId: string;
@@ -53,11 +53,14 @@ export async function DashboardImpactStats({
   completedShifts.forEach((signup) => {
     const shiftDate = signup.shift.start;
     const location = signup.shift.location || "Unknown";
-    const dateKey = `${startOfDay(shiftDate).toISOString()}-${location}`;
+    // Convert to NZ timezone first, then get start of day in NZ
+    const shiftDateNZT = toNZT(shiftDate);
+    const startOfDayNZT = startOfDay(shiftDateNZT);
+    const dateKey = `${startOfDayNZT.toISOString()}-${location}`;
 
     if (!uniqueDays.has(dateKey)) {
       uniqueDays.set(dateKey, {
-        date: startOfDay(shiftDate),
+        date: startOfDayNZT,
         location,
       });
     }
@@ -136,6 +139,7 @@ export async function DashboardImpactStats({
     }
   });
   const hasAnyData = daysWithActualData > 0 || daysWithEstimatedData > 0;
+  const hasActualData = daysWithActualData > 0;
 
   // Fall back to old estimation only if no location data exists
   const estimatedMeals = totalHours * 15;
@@ -155,14 +159,18 @@ export async function DashboardImpactStats({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">
-                {mealsToDisplay.toLocaleString()}
+                {hasAnyData ? "" : "~"}{mealsToDisplay.toLocaleString()}
               </div>
               <p className="text-sm text-muted-foreground">
                 {hasAnyData ? "People served" : "Estimated people served"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {hasAnyData
-                  ? "Based on the shifts you completed"
+                {hasActualData && daysWithEstimatedData > 0
+                  ? `${daysWithActualData} shift${daysWithActualData !== 1 ? "s" : ""} with actual data, ${daysWithEstimatedData} estimated`
+                  : hasActualData
+                  ? `Across ${daysWithActualData} shift${daysWithActualData !== 1 ? "s" : ""} you completed`
+                  : hasAnyData
+                  ? `Based on ${daysWithEstimatedData} shift${daysWithEstimatedData !== 1 ? "s" : ""} you completed`
                   : "Based on ~15 meals per volunteer hour"}
               </p>
             </div>
