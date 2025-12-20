@@ -33,6 +33,14 @@ export const ACHIEVEMENT_CRITERIA_TYPES = [
   { value: "specific_shift_type", label: "Specific Shift Type" },
 ] as const;
 
+/**
+ * Valid criteria type values for validation
+ * Extracted from ACHIEVEMENT_CRITERIA_TYPES for use in API validation
+ */
+export const VALID_CRITERIA_TYPES = ACHIEVEMENT_CRITERIA_TYPES.map(
+  (type) => type.value
+);
+
 export function formatAchievementCriteria(
   criteriaJson: string,
   shiftTypeName?: string
