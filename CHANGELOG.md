@@ -1,3 +1,9 @@
+## [0.86.0] - 2025-12-20
+
+### Changes
+- feat: add Security Champion achievement for passkey registration ([#412](https://github.com/everybody-eats-nz/volunteer-portal/pull/412)) by @malinmalliyawadu
+
+
 ## [0.85.4] - 2025-12-19
 
 ### Changes
