@@ -1,3 +1,9 @@
+## [0.86.4] - 2025-12-20
+
+### Changes
+- fix: correct timezone handling for meals served queries ([#416](https://github.com/everybody-eats-nz/volunteer-portal/pull/416)) by @malinmalliyawadu
+
+
 ## [0.86.3] - 2025-12-20
 
 ### Changes
