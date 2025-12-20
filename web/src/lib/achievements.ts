@@ -15,7 +15,8 @@ export interface AchievementCriteria {
     | "specific_shift_type"
     | "years_volunteering"
     | "community_impact"
-    | "friends_count";
+    | "friends_count"
+    | "passkeys_added";
   value: number;
   shiftType?: string;
   timeframe?: "month" | "year" | "all_time";
@@ -28,6 +29,7 @@ export interface UserProgress {
   years_volunteering: number;
   community_impact: number;
   friends_count: number;
+  passkeys_added: number;
   shift_type_counts: Record<string, number>; // shiftTypeId -> count
 }
 
@@ -285,6 +287,18 @@ export const ACHIEVEMENT_DEFINITIONS = [
     }),
     points: 500,
   },
+  // Security Achievement
+  {
+    name: "Security Champion",
+    description: "Enhance your account security by adding your first passkey",
+    category: "MILESTONE" as const,
+    icon: "🔐",
+    criteria: JSON.stringify({
+      type: "passkeys_added",
+      value: 1,
+    }),
+    points: 50,
+  },
 ];
 
 export async function calculateUserProgress(
@@ -319,6 +333,7 @@ export async function calculateUserProgress(
       years_volunteering: 0,
       community_impact: 0,
       friends_count: 0,
+      passkeys_added: 0,
       shift_type_counts: {},
     };
   }
@@ -477,6 +492,13 @@ export async function calculateUserProgress(
     },
   });
 
+  // Calculate passkeys count
+  const passkeysCount = await prisma.passkey.count({
+    where: {
+      userId,
+    },
+  });
+
   return {
     shifts_completed: totalShifts,
     hours_volunteered: totalHours,
@@ -484,6 +506,7 @@ export async function calculateUserProgress(
     years_volunteering: yearsVolunteering,
     community_impact: communityImpact,
     friends_count: friendsCount,
+    passkeys_added: passkeysCount,
     shift_type_counts: shiftTypeCounts,
   };
 }
@@ -530,6 +553,9 @@ export async function checkAndUnlockAchievements(userId: string) {
           break;
         case "friends_count":
           shouldUnlock = progress.friends_count >= criteria.value;
+          break;
+        case "passkeys_added":
+          shouldUnlock = progress.passkeys_added >= criteria.value;
           break;
         case "specific_shift_type":
           // Use the already-calculated shift type counts from progress
