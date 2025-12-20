@@ -1,3 +1,9 @@
+## [0.88.0] - 2025-12-20
+
+### Changes
+- feat: Add email preview to restaurant manager assignments ([#419](https://github.com/everybody-eats-nz/volunteer-portal/pull/419)) by @malinmalliyawadu
+
+
 ## [0.87.0] - 2025-12-20
 
 ### Changes
