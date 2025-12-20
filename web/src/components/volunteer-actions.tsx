@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface VolunteerActionsProps {
   signupId: string;
@@ -376,26 +377,35 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                   {cancelDialogContent.description}
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDialogOpen(null)}
-                  disabled={loading === "cancel"}
-                  data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-cancel` : `volunteer-cancel-dialog-cancel-${signupId}`}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant={cancelDialogContent.variant}
-                  onClick={() => handleAction("cancel")}
-                  disabled={loading === "cancel"}
-                  data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-confirm` : `volunteer-cancel-dialog-confirm-${signupId}`}
-                >
-                  {loading === "cancel" ? (
-                    <Clock className="h-3 w-3 animate-spin mr-2" />
-                  ) : null}
-                  {cancelDialogContent.actionText}
-                </Button>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <div className="flex-1">
+                  <EmailPreviewDialog
+                    emailType="volunteerCancellation"
+                    triggerLabel="Preview Email"
+                    triggerVariant="outline"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDialogOpen(null)}
+                    disabled={loading === "cancel"}
+                    data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-cancel` : `volunteer-cancel-dialog-cancel-${signupId}`}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant={cancelDialogContent.variant}
+                    onClick={() => handleAction("cancel")}
+                    disabled={loading === "cancel"}
+                    data-testid={testIdPrefix ? `${testIdPrefix}-cancel-dialog-confirm` : `volunteer-cancel-dialog-confirm-${signupId}`}
+                  >
+                    {loading === "cancel" ? (
+                      <Clock className="h-3 w-3 animate-spin mr-2" />
+                    ) : null}
+                    {cancelDialogContent.actionText}
+                  </Button>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -589,26 +599,35 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
               </label>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(null)}
-              disabled={loading === "reject"}
-              data-testid={testIdPrefix ? `${testIdPrefix}-reject-dialog-cancel` : `volunteer-reject-dialog-cancel-${signupId}`}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={rejectDialogContent.variant}
-              onClick={() => handleAction("reject")}
-              disabled={loading === "reject"}
-              data-testid={testIdPrefix ? `${testIdPrefix}-reject-dialog-confirm` : `volunteer-reject-dialog-confirm-${signupId}`}
-            >
-              {loading === "reject" ? (
-                <Clock className="h-3 w-3 animate-spin mr-2" />
-              ) : null}
-              {rejectDialogContent.actionText}
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex-1">
+              <EmailPreviewDialog
+                emailType="volunteerNotNeeded"
+                triggerLabel="Preview Email"
+                triggerVariant="outline"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setDialogOpen(null)}
+                disabled={loading === "reject"}
+                data-testid={testIdPrefix ? `${testIdPrefix}-reject-dialog-cancel` : `volunteer-reject-dialog-cancel-${signupId}`}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant={rejectDialogContent.variant}
+                onClick={() => handleAction("reject")}
+                disabled={loading === "reject"}
+                data-testid={testIdPrefix ? `${testIdPrefix}-reject-dialog-confirm` : `volunteer-reject-dialog-confirm-${signupId}`}
+              >
+                {loading === "reject" ? (
+                  <Clock className="h-3 w-3 animate-spin mr-2" />
+                ) : null}
+                {rejectDialogContent.actionText}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

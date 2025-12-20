@@ -61,6 +61,15 @@ export function EmailPreviewDialog({
         throw new Error("Failed to fetch email preview");
       }
       const data = await response.json();
+
+      // Fix HTTP URLs to HTTPS
+      if (data?.Properties?.HtmlPreviewUrl) {
+        data.Properties.HtmlPreviewUrl = data.Properties.HtmlPreviewUrl.replace(
+          /^http:/,
+          "https:"
+        );
+      }
+
       setPreviewData(data);
     } catch (error) {
       console.error("Error fetching email preview:", error);
@@ -85,7 +94,7 @@ export function EmailPreviewDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl w-[95vw] max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Email Template Preview</DialogTitle>
           <DialogDescription>
@@ -137,7 +146,7 @@ export function EmailPreviewDialog({
                 <div className="border rounded-lg overflow-hidden bg-white">
                   <iframe
                     src={previewData.Properties.HtmlPreviewUrl}
-                    className="w-full h-[500px]"
+                    className="w-full h-[600px]"
                     title="Email Preview"
                     sandbox="allow-same-origin"
                   />
