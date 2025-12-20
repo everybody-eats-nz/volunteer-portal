@@ -11,11 +11,27 @@ export interface AchievementCriteria {
     | "specific_shift_type"
     | "years_volunteering"
     | "community_impact"
-    | "friends_count";
+    | "friends_count"
+    | "passkeys_added";
   value: number;
   shiftType?: string;
   timeframe?: "month" | "year" | "all_time";
 }
+
+/**
+ * Criteria types with labels for UI components
+ * Single source of truth for achievement criteria types
+ */
+export const ACHIEVEMENT_CRITERIA_TYPES = [
+  { value: "shifts_completed", label: "Shifts Completed" },
+  { value: "hours_volunteered", label: "Hours Volunteered" },
+  { value: "consecutive_months", label: "Consecutive Months" },
+  { value: "years_volunteering", label: "Years Volunteering" },
+  { value: "community_impact", label: "Community Impact (Meals)" },
+  { value: "friends_count", label: "Friends Count" },
+  { value: "passkeys_added", label: "Passkeys Added" },
+  { value: "specific_shift_type", label: "Specific Shift Type" },
+] as const;
 
 export function formatAchievementCriteria(
   criteriaJson: string,
@@ -44,6 +60,8 @@ export function formatAchievementCriteria(
         return `Make ${value} friend${
           value !== 1 ? "s" : ""
         } in the volunteer community`;
+      case "passkeys_added":
+        return `Add ${value} passkey${value !== 1 ? "s" : ""} to your account`;
       case "specific_shift_type":
         return shiftTypeName
           ? `Complete ${value} "${shiftTypeName}" shift${
