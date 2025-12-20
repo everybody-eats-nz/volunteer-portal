@@ -327,6 +327,86 @@ Email: ${email}
       };
     }
   }
+
+  /**
+   * Get smart email template details including preview URLs
+   */
+  async getSmartEmailDetails(
+    smartEmailId: string
+  ): Promise<{
+    success: boolean;
+    data?: {
+      SmartEmailID: string;
+      Name: string;
+      CreatedAt: string;
+      Status: string;
+      Properties: {
+        From: string;
+        ReplyTo: string;
+        Subject: string;
+        TextPreviewUrl?: string;
+        HtmlPreviewUrl?: string;
+      };
+    };
+    message: string;
+  }> {
+    if (!this.apiKey) {
+      console.log(`
+=================================
+GET SMART EMAIL DETAILS (DEVELOPMENT)
+=================================
+Smart Email ID: ${smartEmailId}
+=================================
+      `);
+      return {
+        success: true,
+        data: {
+          SmartEmailID: smartEmailId,
+          Name: 'Development Email Template',
+          CreatedAt: new Date().toISOString(),
+          Status: 'Active',
+          Properties: {
+            From: 'noreply@example.com',
+            ReplyTo: 'noreply@example.com',
+            Subject: 'Development Email Subject',
+            TextPreviewUrl: 'https://example.com/preview/text',
+            HtmlPreviewUrl: 'https://example.com/preview/html',
+          },
+        },
+        message: 'Development mode: Mock email details returned'
+      };
+    }
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/transactional/smartEmail/${smartEmailId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Basic ${Buffer.from(`${this.apiKey}:x`).toString('base64')}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Campaign Monitor API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: 'Smart email details retrieved successfully',
+      };
+    } catch (error) {
+      console.error('Campaign Monitor get smart email details error:', error);
+      return {
+        success: false,
+        message: `Failed to get smart email details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
 }
 
 // Export singleton instance

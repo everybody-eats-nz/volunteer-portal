@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Mail, UserPlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface InviteUserDialogProps {
   children: React.ReactNode;
@@ -187,34 +188,41 @@ export function InviteUserDialog({ children }: InviteUserDialogProps) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isLoading}
-              data-testid="invite-cancel-button"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="btn-primary gap-2"
-              data-testid="invite-submit-button"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sending Invitation...
-                </>
-              ) : (
-                <>
-                  <Mail className="h-4 w-4" />
-                  Send Invitation
-                </>
-              )}
-            </Button>
+          <div className="flex justify-between items-center pt-4 border-t border-border">
+            <EmailPreviewDialog
+              emailType="userInvitation"
+              triggerLabel="Preview"
+              triggerVariant="outline"
+            />
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isLoading}
+                data-testid="invite-cancel-button"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="btn-primary gap-2"
+                data-testid="invite-submit-button"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending Invitation...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4" />
+                    Send Invitation
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </ResponsiveDialogContent>
