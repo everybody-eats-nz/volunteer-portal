@@ -1,3 +1,9 @@
+## [0.87.0] - 2025-12-20
+
+### Changes
+- feat: Add email preview functionality for transactional emails ([#417](https://github.com/everybody-eats-nz/volunteer-portal/pull/417)) by @malinmalliyawadu
+
+
 ## [0.86.4] - 2025-12-20
 
 ### Changes
