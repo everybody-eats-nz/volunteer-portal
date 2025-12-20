@@ -36,6 +36,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface MigratedUser {
   id: string;
@@ -413,6 +414,11 @@ export function UserInvitations() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              <EmailPreviewDialog
+                emailType="migration"
+                triggerLabel="Preview Email"
+                triggerVariant="outline"
+              />
               <Button
                 onClick={() => fetchMigratedUsers()}
                 disabled={isLoading}
