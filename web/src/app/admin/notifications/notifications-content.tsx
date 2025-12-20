@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -419,11 +420,11 @@ export function NotificationsContent({
 
   return (
     <Tabs defaultValue="send" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <ScrollableTabsList>
         <TabsTrigger value="send">Send Notifications</TabsTrigger>
         <TabsTrigger value="groups">Manage Groups</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
 
       <TabsContent value="send" className="space-y-6">
         {notificationGroups.length === 0 && (

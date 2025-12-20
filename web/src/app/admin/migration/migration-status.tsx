@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import {
   RefreshCw,
   Users,
@@ -205,7 +206,7 @@ export function MigrationStatus() {
 
       {/* Detailed Data Tabs */}
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <ScrollableTabsList>
           <TabsTrigger value="users">
             Users ({data.data.users.recent.length})
           </TabsTrigger>
@@ -218,7 +219,7 @@ export function MigrationStatus() {
           <TabsTrigger value="shift-types">
             Types ({data.data.shiftTypes.recent.length})
           </TabsTrigger>
-        </TabsList>
+        </ScrollableTabsList>
 
         <TabsContent value="users" className="mt-6">
           <Card>
