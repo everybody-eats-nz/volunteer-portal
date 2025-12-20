@@ -127,4 +127,111 @@ test.describe("Admin Shift Shortage Notifications", () => {
     // Availability filter should now be enabled
     await expect(page.getByTestId("availability-filter")).toBeEnabled();
   });
+
+  test("should display email preview button", async ({ page }) => {
+    await page.goto("/admin/notifications");
+
+    // Check that preview button is visible
+    await expect(page.getByTestId("preview-email-button")).toBeVisible();
+    await expect(page.getByTestId("preview-email-button")).toContainText(
+      "Preview Email"
+    );
+  });
+
+  test("should open email preview dialog when button is clicked", async ({
+    page,
+  }) => {
+    await page.goto("/admin/notifications");
+
+    // Click the preview button
+    await page.getByTestId("preview-email-button").click();
+
+    // Dialog should open
+    await expect(
+      page.getByRole("dialog", { name: /Email Template Preview/i })
+    ).toBeVisible();
+
+    // Check dialog content headers
+    await expect(
+      page.getByRole("heading", { name: "Email Template Preview" })
+    ).toBeVisible();
+    await expect(
+      page.getByText("Preview the email template that will be sent to volunteers")
+    ).toBeVisible();
+  });
+
+  test("should display email preview details in dialog", async ({ page }) => {
+    await page.goto("/admin/notifications");
+
+    // Click the preview button
+    await page.getByTestId("preview-email-button").click();
+
+    // Wait for dialog to open
+    await expect(
+      page.getByRole("dialog", { name: /Email Template Preview/i })
+    ).toBeVisible();
+
+    // Wait for preview to load (either real data or mock data in dev)
+    await expect(
+      page.getByText(/Template Name:/i).first()
+    ).toBeVisible({ timeout: 10000 });
+
+    // Check that template metadata is displayed
+    await expect(page.getByText(/Status:/i).first()).toBeVisible();
+    await expect(page.getByText(/From:/i).first()).toBeVisible();
+    await expect(page.getByText(/Reply To:/i).first()).toBeVisible();
+    await expect(page.getByText(/Subject:/i).first()).toBeVisible();
+
+    // Check that iframe for preview exists
+    const iframe = page.frameLocator('iframe[title="Email Preview"]');
+    await expect(iframe.locator("body")).toBeVisible({ timeout: 10000 });
+
+    // Check for "Open in New Tab" button
+    await expect(
+      page.getByRole("button", { name: /Open in New Tab/i })
+    ).toBeVisible();
+  });
+
+  test("should display note about placeholder variables", async ({ page }) => {
+    await page.goto("/admin/notifications");
+
+    // Click the preview button
+    await page.getByTestId("preview-email-button").click();
+
+    // Wait for dialog to open
+    await expect(
+      page.getByRole("dialog", { name: /Email Template Preview/i })
+    ).toBeVisible();
+
+    // Wait for content to load
+    await page.waitForTimeout(1000);
+
+    // Check for the note about placeholder variables
+    await expect(
+      page.getByText(/This preview shows the template with placeholder variables/i)
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Actual emails will have these replaced with real data/i)
+    ).toBeVisible();
+  });
+
+  test("should close email preview dialog", async ({ page }) => {
+    await page.goto("/admin/notifications");
+
+    // Click the preview button
+    await page.getByTestId("preview-email-button").click();
+
+    // Dialog should open
+    await expect(
+      page.getByRole("dialog", { name: /Email Template Preview/i })
+    ).toBeVisible();
+
+    // Close the dialog by pressing Escape
+    await page.keyboard.press("Escape");
+
+    // Dialog should be closed
+    await expect(
+      page.getByRole("dialog", { name: /Email Template Preview/i })
+    ).not.toBeVisible();
+  });
 });
