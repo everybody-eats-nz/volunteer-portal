@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import RestaurantManagerForm from "./restaurant-manager-form";
 import RestaurantManagersTable from "./restaurant-managers-table";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface User {
   id: string;
@@ -37,16 +38,25 @@ export function RestaurantManagersContent({ adminUsers, locations }: RestaurantM
       {/* Assignment Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Assign Restaurant Manager</CardTitle>
-          <CardDescription>
-            Select an admin user and assign them to restaurant locations for notifications.
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <CardTitle>Assign Restaurant Manager</CardTitle>
+              <CardDescription>
+                Select an admin user and assign them to restaurant locations for notifications.
+              </CardDescription>
+            </div>
+            <EmailPreviewDialog
+              emailType="cancellation"
+              triggerLabel="Preview Email"
+              triggerVariant="outline"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          <RestaurantManagerForm 
+          <RestaurantManagerForm
             adminUsers={adminUsers}
             locations={locations}
-            onManagerAssigned={handleManagerUpdate} 
+            onManagerAssigned={handleManagerUpdate}
           />
         </CardContent>
       </Card>
