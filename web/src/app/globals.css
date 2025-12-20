@@ -24,6 +24,15 @@
     /* Orange variants */
     @apply dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-950/30;
   }
+
+  /* Hide scrollbar while keeping scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }
 
 :root {
