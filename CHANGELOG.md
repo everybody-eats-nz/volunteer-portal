@@ -1,3 +1,9 @@
+## [0.86.3] - 2025-12-20
+
+### Changes
+- Fix mobile tabs with scrollable layout ([#415](https://github.com/everybody-eats-nz/volunteer-portal/pull/415)) by @malinmalliyawadu
+
+
 ## [0.86.2] - 2025-12-20
 
 ### Changes
