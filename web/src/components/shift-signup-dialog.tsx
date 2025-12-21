@@ -457,10 +457,10 @@ export function ShiftSignupDialog({
             <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
               <div>
                 <Label className="text-sm font-medium">
-                  Also willing to help with (optional)
+                  Flexible with shift changes? (optional)
                 </Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Select other shifts at the same time you&apos;d be willing to fill in for
+                  If we need to move you, which other shifts at the same time would you be OK with?
                 </p>
               </div>
               <div className="space-y-2">
