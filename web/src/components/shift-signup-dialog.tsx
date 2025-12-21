@@ -40,6 +40,12 @@ interface ShiftSignupDialogProps {
   isWaitlist?: boolean;
   currentUserId?: string; // For auto-approval eligibility check
   onSignupSuccess?: (result: { autoApproved: boolean; status: string }) => void; // Callback for successful signup
+  concurrentShifts?: Array<{
+    id: string;
+    shiftTypeName: string;
+    shiftTypeDescription: string | null;
+    spotsRemaining: number;
+  }>; // Optional backup shift options
   children: React.ReactNode; // The trigger button
 }
 
@@ -61,6 +67,7 @@ export function ShiftSignupDialog({
   isWaitlist = false,
   currentUserId,
   onSignupSuccess,
+  concurrentShifts = [],
   children,
 }: ShiftSignupDialogProps) {
   const router = useRouter();
@@ -70,13 +77,6 @@ export function ShiftSignupDialog({
   const [note, setNote] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [selectedBackupShiftIds, setSelectedBackupShiftIds] = useState<string[]>([]);
-  const [concurrentShifts, setConcurrentShifts] = useState<Array<{
-    id: string;
-    shiftTypeName: string;
-    shiftTypeDescription: string | null;
-    spotsRemaining: number;
-  }>>([]);
-  const [loadingConcurrent, setLoadingConcurrent] = useState(false);
   const [isUnderage, setIsUnderage] = useState(false);
   const [emailVerified, setEmailVerified] = useState(true); // Default to true to avoid showing warning before check
   const [isResendingVerification, setIsResendingVerification] = useState(false);
@@ -91,35 +91,13 @@ export function ShiftSignupDialog({
   const duration = getDurationInHours(shift.start, shift.end);
   const remaining = Math.max(0, shift.capacity - confirmedCount);
 
-  // Clear error and fetch concurrent shifts when dialog opens
+  // Clear error when dialog opens
   useEffect(() => {
     if (open) {
       setError(null);
       setSelectedBackupShiftIds([]);
-
-      // Fetch concurrent shifts for backup options
-      const fetchConcurrentShifts = async () => {
-        setLoadingConcurrent(true);
-        try {
-          const response = await fetch(`/api/shifts/${shift.id}/concurrent`);
-          if (response.ok) {
-            const data = await response.json();
-            setConcurrentShifts(data.concurrentShifts || []);
-          } else {
-            console.warn('Failed to fetch concurrent shifts:', response.status);
-            setConcurrentShifts([]);
-          }
-        } catch (error) {
-          console.error('Error fetching concurrent shifts:', error);
-          setConcurrentShifts([]);
-        } finally {
-          setLoadingConcurrent(false);
-        }
-      };
-
-      fetchConcurrentShifts();
     }
-  }, [open, shift.id]);
+  }, [open]);
 
   // Check if user is underage (14 and under) and email verification status
   useEffect(() => {
@@ -475,14 +453,7 @@ export function ShiftSignupDialog({
           )}
 
           {/* Backup Shift Options */}
-          {loadingConcurrent ? (
-            <div className="rounded-lg border p-4 bg-muted/30">
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <MotionSpinner className="w-4 h-4" />
-                Loading backup options...
-              </p>
-            </div>
-          ) : concurrentShifts.length > 0 ? (
+          {concurrentShifts.length > 0 && (
             <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
               <div>
                 <Label className="text-sm font-medium">
@@ -529,7 +500,7 @@ export function ShiftSignupDialog({
                 ))}
               </div>
             </div>
-          ) : null}
+          )}
 
           {/* Error Display */}
           {error && (

@@ -21,6 +21,12 @@ interface ShiftSignupButtonProps {
   };
   confirmedCount: number;
   currentUserId?: string;
+  concurrentShifts?: Array<{
+    id: string;
+    shiftTypeName: string;
+    shiftTypeDescription: string | null;
+    spotsRemaining: number;
+  }>;
 }
 
 export function ShiftSignupButton({
@@ -28,7 +34,8 @@ export function ShiftSignupButton({
   theme,
   shift,
   confirmedCount,
-  currentUserId
+  currentUserId,
+  concurrentShifts,
 }: ShiftSignupButtonProps) {
   return (
     <ShiftSignupDialog
@@ -36,6 +43,7 @@ export function ShiftSignupButton({
       confirmedCount={confirmedCount}
       isWaitlist={isFull}
       currentUserId={currentUserId}
+      concurrentShifts={concurrentShifts}
     >
       <Button
         data-testid="shift-signup-button"
