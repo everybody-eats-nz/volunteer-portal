@@ -15,6 +15,7 @@ import {
   Tags,
   MapPin,
   Trophy,
+  BarChart3,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -43,6 +44,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         exact: true,
         description: "Overview and statistics",
         commandKey: "dashboard",
+      },
+      {
+        title: "Analytics (Beta)",
+        href: "/admin/analytics",
+        icon: BarChart3,
+        description: "Volunteer engagement insights",
+        commandKey: "analytics",
       },
     ],
   },
@@ -219,6 +227,7 @@ export const getIconColor = (
   const colorMap: Record<string, string> = {
     // Overview
     Dashboard: "text-blue-600",
+    "Analytics (Beta)": "text-purple-600",
 
     // Volunteer Management
     "All Users": "text-purple-600",
