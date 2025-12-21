@@ -514,17 +514,6 @@ export function ShiftSignupDialog({
           )}
 
           {/* Approval Process Info */}
-          {selectedBackupShiftIds.length > 0 && (
-            <InfoBox
-              title="🤝 Backup Flexibility"
-              variant="blue"
-              testId="backup-flexibility-info"
-            >
-              <p>
-                You&apos;ve indicated flexibility to help with {selectedBackupShiftIds.length} other shift{selectedBackupShiftIds.length !== 1 ? 's' : ''} at the same time. The coordinator may contact you if help is needed.
-              </p>
-            </InfoBox>
-          )}
           {autoApprovalEligible.loading ? (
             <InfoBox
               title="Checking eligibility..."
