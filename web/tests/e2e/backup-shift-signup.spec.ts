@@ -24,7 +24,10 @@ test.describe("Backup Shift Signup Feature", () => {
   let backupShift1Id: string;
   let backupShift2Id: string;
 
-  test.beforeAll(async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    // Reset test shift IDs array
+    testShiftIds.length = 0;
+
     // Create test users
     await createTestUser(page, volunteerEmail, "VOLUNTEER");
     await createTestUser(page, adminEmail, "ADMIN");
@@ -83,7 +86,7 @@ test.describe("Backup Shift Signup Feature", () => {
     testShiftIds.push(backupShift2Id);
   });
 
-  test.afterAll(async ({ page }) => {
+  test.afterEach(async ({ page }) => {
     // Clean up notifications
     await deleteNotifications(page, { userId: volunteerUserId });
 
