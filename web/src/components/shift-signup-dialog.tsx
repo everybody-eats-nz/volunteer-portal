@@ -75,6 +75,7 @@ export function ShiftSignupDialog({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [note, setNote] = useState("");
+  const [showNoteField, setShowNoteField] = useState(false);
   const [guardianName, setGuardianName] = useState("");
   const [selectedBackupShiftIds, setSelectedBackupShiftIds] = useState<string[]>([]);
   const [isUnderage, setIsUnderage] = useState(false);
@@ -91,11 +92,12 @@ export function ShiftSignupDialog({
   const duration = getDurationInHours(shift.start, shift.end);
   const remaining = Math.max(0, shift.capacity - confirmedCount);
 
-  // Clear error when dialog opens
+  // Clear error and reset fields when dialog opens
   useEffect(() => {
     if (open) {
       setError(null);
       setSelectedBackupShiftIds([]);
+      setShowNoteField(false);
     }
   }, [open]);
 
@@ -420,18 +422,31 @@ export function ShiftSignupDialog({
           </div>
 
           {/* Note Field */}
-          <div className="space-y-2">
-            <Label htmlFor="note">Note (optional)</Label>
-            <Textarea
-              id="note"
-              placeholder="Add any notes for the shift coordinator..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              className="resize-none"
-              data-testid="shift-signup-note"
-            />
-          </div>
+          {!showNoteField ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowNoteField(true)}
+              className="w-full"
+              data-testid="show-note-button"
+            >
+              + Add a note for the coordinator (optional)
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="note">Note (optional)</Label>
+              <Textarea
+                id="note"
+                placeholder="Add any notes for the shift coordinator..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                className="resize-none"
+                data-testid="shift-signup-note"
+              />
+            </div>
+          )}
 
           {/* Guardian Field for Underage Users */}
           {isUnderage && (
