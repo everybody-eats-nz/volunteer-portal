@@ -33,8 +33,10 @@ interface AnalyticsData {
 
 export function AnalyticsClient({
   initialFilters,
+  locations,
 }: {
   initialFilters: Filters;
+  locations: readonly string[];
 }) {
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [data, setData] = useState<AnalyticsData>({});
@@ -100,7 +102,7 @@ export function AnalyticsClient({
   return (
     <div className="space-y-8">
       {/* Filters */}
-      <AnalyticsFilters filters={filters} onChange={handleFilterChange} />
+      <AnalyticsFilters filters={filters} onChange={handleFilterChange} locations={locations} />
 
       {/* Insights/Alerts */}
       {!loading && data.retention && data.signups && data.impact && (

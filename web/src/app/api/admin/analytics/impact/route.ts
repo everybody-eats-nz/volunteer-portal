@@ -152,7 +152,12 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     if (location === "all") {
-      const locations = ["Wellington", "Glen Innes", "Onehunga"];
+      // Fetch active locations from database
+      const activeLocations = await prisma.location.findMany({
+        where: { isActive: true },
+        select: { name: true },
+      });
+      const locations = activeLocations.map((loc) => loc.name);
 
       locationComparison = await Promise.all(
         locations.map(async (loc) => {

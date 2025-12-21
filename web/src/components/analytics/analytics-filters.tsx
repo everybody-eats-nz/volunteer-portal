@@ -29,9 +29,10 @@ interface Filters {
 interface AnalyticsFiltersProps {
   filters: Filters;
   onChange: (filters: Partial<Filters>) => void;
+  locations: readonly string[];
 }
 
-export function AnalyticsFilters({ filters, onChange }: AnalyticsFiltersProps) {
+export function AnalyticsFilters({ filters, onChange, locations }: AnalyticsFiltersProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(
     filters.startDate ? new Date(filters.startDate) : undefined
   );
@@ -86,9 +87,11 @@ export function AnalyticsFilters({ filters, onChange }: AnalyticsFiltersProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="Wellington">🏙️ Wellington</SelectItem>
-              <SelectItem value="Glen Innes">🏘️ Glen Innes</SelectItem>
-              <SelectItem value="Onehunga">🌊 Onehunga</SelectItem>
+              {locations.map((location) => (
+                <SelectItem key={location} value={location}>
+                  {location}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { AnalyticsClient } from "./analytics-client";
+import { LOCATIONS } from "@/lib/locations";
 
 export default async function AnalyticsPage({
   searchParams,
@@ -37,7 +38,7 @@ export default async function AnalyticsPage({
       description="Comprehensive insights into volunteer engagement and operations. This feature is in beta - your feedback is welcome!"
     >
       <PageContainer testid="analytics-page">
-        <AnalyticsClient initialFilters={initialFilters} />
+        <AnalyticsClient initialFilters={initialFilters} locations={LOCATIONS} />
       </PageContainer>
     </AdminPageWrapper>
   );
