@@ -28,7 +28,8 @@ export async function calculateAchievementsForUser(userId: string) {
     return newAchievements;
   } catch (error) {
     console.error(
-      `❌ Error calculating achievements for user ${userId}:`,
+      "❌ Error calculating achievements for user %s:",
+      userId,
       error
     );
     throw error;
