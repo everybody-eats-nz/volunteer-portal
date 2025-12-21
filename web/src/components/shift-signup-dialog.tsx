@@ -21,6 +21,7 @@ import { MotionSpinner } from "@/components/motion-spinner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge } from "@/lib/utils";
 
 interface ShiftSignupDialogProps {
@@ -68,6 +69,14 @@ export function ShiftSignupDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [note, setNote] = useState("");
   const [guardianName, setGuardianName] = useState("");
+  const [selectedBackupShiftIds, setSelectedBackupShiftIds] = useState<string[]>([]);
+  const [concurrentShifts, setConcurrentShifts] = useState<Array<{
+    id: string;
+    shiftTypeName: string;
+    shiftTypeDescription: string | null;
+    spotsRemaining: number;
+  }>>([]);
+  const [loadingConcurrent, setLoadingConcurrent] = useState(false);
   const [isUnderage, setIsUnderage] = useState(false);
   const [emailVerified, setEmailVerified] = useState(true); // Default to true to avoid showing warning before check
   const [isResendingVerification, setIsResendingVerification] = useState(false);
@@ -82,12 +91,35 @@ export function ShiftSignupDialog({
   const duration = getDurationInHours(shift.start, shift.end);
   const remaining = Math.max(0, shift.capacity - confirmedCount);
 
-  // Clear error when dialog opens
+  // Clear error and fetch concurrent shifts when dialog opens
   useEffect(() => {
     if (open) {
       setError(null);
+      setSelectedBackupShiftIds([]);
+
+      // Fetch concurrent shifts for backup options
+      const fetchConcurrentShifts = async () => {
+        setLoadingConcurrent(true);
+        try {
+          const response = await fetch(`/api/shifts/${shift.id}/concurrent`);
+          if (response.ok) {
+            const data = await response.json();
+            setConcurrentShifts(data.concurrentShifts || []);
+          } else {
+            console.warn('Failed to fetch concurrent shifts:', response.status);
+            setConcurrentShifts([]);
+          }
+        } catch (error) {
+          console.error('Error fetching concurrent shifts:', error);
+          setConcurrentShifts([]);
+        } finally {
+          setLoadingConcurrent(false);
+        }
+      };
+
+      fetchConcurrentShifts();
     }
-  }, [open]);
+  }, [open, shift.id]);
 
   // Check if user is underage (14 and under) and email verification status
   useEffect(() => {
@@ -213,6 +245,11 @@ export function ShiftSignupDialog({
         formData.append("waitlist", "1");
       }
 
+      // Add backup shift IDs if any selected
+      if (selectedBackupShiftIds.length > 0) {
+        formData.append("backupShiftIds", JSON.stringify(selectedBackupShiftIds));
+      }
+
       // Prepare the note with guardian info if underage
       let finalNote = note.trim();
       if (isUnderage && guardianName.trim()) {
@@ -301,7 +338,11 @@ export function ShiftSignupDialog({
       <ResponsiveDialogContent className="sm:max-w-md flex flex-col max-h-[85vh]" data-testid="shift-signup-dialog">
         <ResponsiveDialogHeader data-testid="shift-signup-dialog-header">
           <ResponsiveDialogTitle className="flex items-center gap-2" data-testid="shift-signup-dialog-title">
-            {isWaitlist ? "🎯 Join Waitlist" : autoApprovalEligible.eligible && !autoApprovalEligible.loading ? "🚀 Instant Signup" : "✨ Confirm Signup"}
+            {isWaitlist
+              ? "🎯 Join Waitlist"
+              : autoApprovalEligible.eligible && !autoApprovalEligible.loading
+              ? "🚀 Instant Signup"
+              : "✨ Confirm Signup"}
           </ResponsiveDialogTitle>
           <ResponsiveDialogDescription data-testid="shift-signup-dialog-description">
             {isWaitlist
@@ -433,6 +474,63 @@ export function ShiftSignupDialog({
             </div>
           )}
 
+          {/* Backup Shift Options */}
+          {loadingConcurrent ? (
+            <div className="rounded-lg border p-4 bg-muted/30">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <MotionSpinner className="w-4 h-4" />
+                Loading backup options...
+              </p>
+            </div>
+          ) : concurrentShifts.length > 0 ? (
+            <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
+              <div>
+                <Label className="text-sm font-medium">
+                  Also willing to help with (optional)
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select other shifts at the same time you&apos;d be willing to fill in for
+                </p>
+              </div>
+              <div className="space-y-2">
+                {concurrentShifts.map((concurrentShift) => (
+                  <div key={concurrentShift.id} className="flex items-start space-x-3">
+                    <Checkbox
+                      id={`backup-${concurrentShift.id}`}
+                      checked={selectedBackupShiftIds.includes(concurrentShift.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedBackupShiftIds((prev) =>
+                          checked
+                            ? [...prev, concurrentShift.id]
+                            : prev.filter((id) => id !== concurrentShift.id)
+                        );
+                      }}
+                      data-testid={`backup-shift-${concurrentShift.id}`}
+                    />
+                    <div className="space-y-0.5 leading-none flex-1">
+                      <Label
+                        htmlFor={`backup-${concurrentShift.id}`}
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        {concurrentShift.shiftTypeName}
+                      </Label>
+                      {concurrentShift.shiftTypeDescription && (
+                        <p className="text-xs text-muted-foreground">
+                          {concurrentShift.shiftTypeDescription}
+                        </p>
+                      )}
+                      {concurrentShift.spotsRemaining > 0 && (
+                        <p className="text-xs text-green-600">
+                          {concurrentShift.spotsRemaining} spot{concurrentShift.spotsRemaining !== 1 ? 's' : ''} available
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {/* Error Display */}
           {error && (
             <InfoBox
@@ -445,6 +543,17 @@ export function ShiftSignupDialog({
           )}
 
           {/* Approval Process Info */}
+          {selectedBackupShiftIds.length > 0 && (
+            <InfoBox
+              title="🤝 Backup Flexibility"
+              variant="blue"
+              testId="backup-flexibility-info"
+            >
+              <p>
+                You&apos;ve indicated flexibility to help with {selectedBackupShiftIds.length} other shift{selectedBackupShiftIds.length !== 1 ? 's' : ''} at the same time. The coordinator may contact you if help is needed.
+              </p>
+            </InfoBox>
+          )}
           {autoApprovalEligible.loading ? (
             <InfoBox
               title="Checking eligibility..."
