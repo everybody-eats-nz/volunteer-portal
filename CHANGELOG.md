@@ -1,3 +1,9 @@
+## [0.89.5] - 2025-12-21
+
+### Changes
+- chore(deps-dev): bump @types/node from 20.19.10 to 25.0.3 in /web ([#436](https://github.com/everybody-eats-nz/volunteer-portal/pull/436)) by @dependabot[bot]
+
+
 ## [0.89.4] - 2025-12-21
 
 ### Changes
