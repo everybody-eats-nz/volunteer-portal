@@ -1,3 +1,9 @@
+## [0.89.4] - 2025-12-21
+
+### Changes
+- chore(deps): bump zod from 4.1.13 to 4.2.1 in /web ([#435](https://github.com/everybody-eats-nz/volunteer-portal/pull/435)) by @dependabot[bot]
+
+
 ## [0.89.3] - 2025-12-21
 
 ### Changes
