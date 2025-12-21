@@ -23,13 +23,9 @@ export async function GET(request: NextRequest) {
       : new Date();
     const volunteerGrade = searchParams.get("volunteerGrade");
 
-    // Build location filter
-    const locationFilter =
-      location && location !== "all" ? { location } : {};
-
     // Build volunteer grade filter
     const gradeFilter = volunteerGrade
-      ? { volunteerGrade: volunteerGrade as any }
+      ? { volunteerGrade: volunteerGrade as "GREEN" | "YELLOW" | "PINK" }
       : {};
 
     // Fetch volunteers with their signups

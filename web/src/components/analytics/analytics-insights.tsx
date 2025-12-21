@@ -2,15 +2,36 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Info, TrendingUp, AlertCircle } from "lucide-react";
+import { Info, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 interface AnalyticsInsightsProps {
   data: {
-    retention?: any;
-    signups?: any;
-    engagement?: any;
-    impact?: any;
+    retention?: {
+      atRiskVolunteers?: Array<{
+        userId: string;
+        name: string;
+        lastShiftDate: string | null;
+        daysSinceLastShift: number;
+        totalShifts: number;
+        riskScore: number;
+      }>;
+      dropoutAnalysis?: {
+        dropoutRate: number;
+      };
+    };
+    signups?: {
+      noShowPatterns?: {
+        totalNoShows: number;
+        noShowRate: number;
+      };
+    };
+    impact?: {
+      capacityUtilization?: {
+        averageFillRate: number;
+        underutilizedShifts: number;
+      };
+    };
   };
 }
 
@@ -25,7 +46,7 @@ export function AnalyticsInsights({ data }: AnalyticsInsightsProps) {
   }> = [];
 
   // At-risk volunteers
-  if (retention?.atRiskVolunteers?.length > 0) {
+  if (retention?.atRiskVolunteers && retention.atRiskVolunteers.length > 0) {
     insights.push({
       type: "destructive",
       title: `${retention.atRiskVolunteers.length} volunteers at risk`,
@@ -38,7 +59,7 @@ export function AnalyticsInsights({ data }: AnalyticsInsightsProps) {
   }
 
   // High no-show rate
-  if (signups?.noShowPatterns?.noShowRate > 10) {
+  if (signups?.noShowPatterns && signups.noShowPatterns.noShowRate > 10) {
     insights.push({
       type: "destructive",
       title: `High no-show rate: ${signups.noShowPatterns.noShowRate}%`,
@@ -47,7 +68,7 @@ export function AnalyticsInsights({ data }: AnalyticsInsightsProps) {
   }
 
   // Low capacity utilization
-  if (impact?.capacityUtilization?.averageFillRate < 60) {
+  if (impact?.capacityUtilization && impact.capacityUtilization.averageFillRate < 60) {
     insights.push({
       type: "default",
       title: "Shifts are underutilized",
@@ -60,7 +81,7 @@ export function AnalyticsInsights({ data }: AnalyticsInsightsProps) {
   }
 
   // Positive: High retention
-  if (retention?.dropoutAnalysis?.dropoutRate < 20) {
+  if (retention?.dropoutAnalysis && retention.dropoutAnalysis.dropoutRate < 20) {
     insights.push({
       type: "default",
       title: "Excellent volunteer retention!",

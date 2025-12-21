@@ -44,7 +44,7 @@ export function MealsImpactChart({ data }: MealsImpactChartProps) {
       });
     }
     return acc;
-  }, [] as any[]);
+  }, [] as Array<{ date: string; total: number; [key: string]: number | string }>);
 
   // Get unique locations for colors
   const locations = [...new Set(data.map((d) => d.location))];

@@ -6,10 +6,41 @@ import { motion } from "motion/react";
 
 interface AnalyticsStatCardsProps {
   data: {
-    retention?: any;
-    signups?: any;
-    engagement?: any;
-    impact?: any;
+    retention?: {
+      atRiskVolunteers?: Array<{
+        userId: string;
+        name: string;
+        lastShiftDate: string | null;
+        daysSinceLastShift: number;
+        totalShifts: number;
+        riskScore: number;
+      }>;
+      dropoutAnalysis?: {
+        totalVolunteers: number;
+        activeVolunteers: number;
+        dropoutRate: number;
+      };
+    };
+    signups?: {
+      timeSeriesData?: Array<{
+        date: string;
+        signups: number;
+      }>;
+      noShowPatterns?: {
+        totalNoShows: number;
+        noShowRate: number;
+      };
+    };
+    impact?: {
+      impactMetrics?: {
+        totalMealsServed: number;
+        totalHoursVolunteered: number;
+        averageHoursPerVolunteer: number;
+      };
+      capacityUtilization?: {
+        averageFillRate: number;
+      };
+    };
   };
 }
 
@@ -36,7 +67,7 @@ const cardVariants = {
 };
 
 export function AnalyticsStatCards({ data }: AnalyticsStatCardsProps) {
-  const { retention, signups, engagement, impact } = data;
+  const { retention, signups, impact } = data;
 
   const stats = [
     {
@@ -64,14 +95,14 @@ export function AnalyticsStatCards({ data }: AnalyticsStatCardsProps) {
       value: retention?.atRiskVolunteers?.length || 0,
       icon: AlertTriangle,
       description: "No shifts in 30+ days",
-      color: retention?.atRiskVolunteers?.length > 5 ? "from-red-500 to-orange-500" : "from-yellow-500 to-amber-500",
-      bgColor: retention?.atRiskVolunteers?.length > 5 ? "bg-red-500/10" : "bg-yellow-500/10",
-      iconColor: retention?.atRiskVolunteers?.length > 5 ? "text-red-600" : "text-yellow-600",
-      variant: retention?.atRiskVolunteers?.length > 5 ? ("destructive" as const) : ("default" as const),
+      color: (retention?.atRiskVolunteers?.length || 0) > 5 ? "from-red-500 to-orange-500" : "from-yellow-500 to-amber-500",
+      bgColor: (retention?.atRiskVolunteers?.length || 0) > 5 ? "bg-red-500/10" : "bg-yellow-500/10",
+      iconColor: (retention?.atRiskVolunteers?.length || 0) > 5 ? "text-red-600" : "text-yellow-600",
+      variant: (retention?.atRiskVolunteers?.length || 0) > 5 ? ("destructive" as const) : ("default" as const),
     },
     {
       title: "Total Signups",
-      value: signups?.timeSeriesData?.reduce((sum: number, day: any) => sum + day.signups, 0) || 0,
+      value: signups?.timeSeriesData?.reduce((sum: number, day: { signups: number }) => sum + day.signups, 0) || 0,
       icon: Calendar,
       description: "In selected period",
       color: "from-purple-500 to-pink-500",

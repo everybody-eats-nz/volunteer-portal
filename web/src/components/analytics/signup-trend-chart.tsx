@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 
@@ -58,7 +57,6 @@ export function SignupTrendChart({ data }: SignupTrendChartProps) {
           }}
           labelStyle={{ color: "hsl(var(--foreground))" }}
         />
-        <Legend />
         <Area
           type="monotone"
           dataKey="confirmed"

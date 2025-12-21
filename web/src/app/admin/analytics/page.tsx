@@ -22,12 +22,16 @@ export default async function AnalyticsPage({
   }
 
   const params = await searchParams;
+
+  // Calculate default dates outside of component render
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
   const initialFilters = {
     location: (params.location as string) || "all",
-    startDate:
-      (params.startDate as string) ||
-      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    endDate: (params.endDate as string) || new Date().toISOString(),
+    startDate: (params.startDate as string) || thirtyDaysAgo.toISOString(),
+    endDate: (params.endDate as string) || now.toISOString(),
     volunteerGrade: params.volunteerGrade as string | undefined,
     shiftTypeId: params.shiftTypeId as string | undefined,
   };

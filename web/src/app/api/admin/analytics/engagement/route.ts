@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => a.month.localeCompare(b.month));
 
     // Achievement stats
-    const [achievementUnlocks, totalAchievements, allVolunteers] =
+    const [achievementUnlocks, , allVolunteers] =
       await Promise.all([
         prisma.userAchievement.findMany({
           where: {

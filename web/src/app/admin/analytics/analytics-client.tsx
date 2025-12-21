@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
@@ -8,6 +8,7 @@ import { AnalyticsStatCards } from "@/components/analytics/analytics-stat-cards"
 import { AnalyticsInsights } from "@/components/analytics/analytics-insights";
 import { RetentionChart } from "@/components/analytics/retention-chart";
 import { SignupTrendChart } from "@/components/analytics/signup-trend-chart";
+import { RegistrationTrendChart } from "@/components/analytics/registration-trend-chart";
 import { MealsImpactChart } from "@/components/analytics/meals-impact-chart";
 import { CapacityGaugeChart } from "@/components/analytics/capacity-gauge-chart";
 import { VolunteerGradePieChart } from "@/components/analytics/volunteer-grade-pie-chart";
@@ -24,11 +25,93 @@ interface Filters {
   shiftTypeId?: string;
 }
 
+interface RetentionData {
+  cohortData: Array<{
+    cohortMonth: string;
+    volunteersStarted: number;
+    retained30Days: number;
+    retained60Days: number;
+    retained90Days: number;
+    retentionRate30: number;
+    retentionRate60: number;
+    retentionRate90: number;
+  }>;
+  atRiskVolunteers: Array<{
+    userId: string;
+    name: string;
+    lastShiftDate: string | null;
+    daysSinceLastShift: number;
+    totalShifts: number;
+    riskScore: number;
+  }>;
+  dropoutAnalysis: {
+    totalVolunteers: number;
+    activeVolunteers: number;
+    inactiveVolunteers: number;
+    dropoutRate: number;
+    averageDaysToDropout: number;
+  };
+}
+
+interface SignupsData {
+  timeSeriesData: Array<{
+    date: string;
+    signups: number;
+    confirmed: number;
+    pending: number;
+    canceled: number;
+    noShows: number;
+  }>;
+  cancellationReasons: Array<{
+    reason: string;
+    count: number;
+    percentage: number;
+  }>;
+  noShowPatterns: {
+    totalNoShows: number;
+    noShowRate: number;
+  };
+}
+
+interface EngagementData {
+  registrationTrend: Array<{
+    month: string;
+    newRegistrations: number;
+    activated: number;
+    activationRate: number;
+  }>;
+  volunteerGradeDistribution: {
+    GREEN: number;
+    YELLOW: number;
+    PINK: number;
+  };
+}
+
+interface ImpactData {
+  impactMetrics: {
+    totalMealsServed: number;
+    totalHoursVolunteered: number;
+    averageHoursPerVolunteer: number;
+    totalShiftsCompleted: number;
+  };
+  mealsTrend: Array<{
+    date: string;
+    location: string;
+    mealsServed: number;
+  }>;
+  capacityUtilization: {
+    averageFillRate: number;
+    underutilizedShifts: number;
+    fullShifts: number;
+    oversubscribed: number;
+  };
+}
+
 interface AnalyticsData {
-  retention?: any;
-  signups?: any;
-  engagement?: any;
-  impact?: any;
+  retention?: RetentionData;
+  signups?: SignupsData;
+  engagement?: EngagementData;
+  impact?: ImpactData;
 }
 
 export function AnalyticsClient({
@@ -43,11 +126,7 @@ export function AnalyticsClient({
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchAnalyticsData();
-  }, [filters]);
-
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -93,7 +172,11 @@ export function AnalyticsClient({
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, toast]);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [fetchAnalyticsData]);
 
   const handleFilterChange = (newFilters: Partial<Filters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
@@ -207,7 +290,7 @@ export function AnalyticsClient({
               ) : (
                 <div className="space-y-2">
                   {data.signups?.cancellationReasons?.map(
-                    (reason: any, idx: number) => (
+                    (reason, idx) => (
                       <div
                         key={idx}
                         className="flex justify-between items-center p-3 bg-muted rounded"
@@ -244,7 +327,7 @@ export function AnalyticsClient({
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
-                <SignupTrendChart
+                <RegistrationTrendChart
                   data={data.engagement?.registrationTrend || []}
                 />
               )}
@@ -264,7 +347,7 @@ export function AnalyticsClient({
                 <AnalyticsChartSkeleton />
               ) : (
                 <VolunteerGradePieChart
-                  data={data.engagement?.volunteerGradeDistribution || {}}
+                  data={data.engagement?.volunteerGradeDistribution || { GREEN: 0, YELLOW: 0, PINK: 0 }}
                 />
               )}
             </CardContent>
@@ -303,7 +386,7 @@ export function AnalyticsClient({
                 <AnalyticsChartSkeleton />
               ) : (
                 <CapacityGaugeChart
-                  data={data.impact?.capacityUtilization || {}}
+                  data={data.impact?.capacityUtilization || { averageFillRate: 0, underutilizedShifts: 0, fullShifts: 0, oversubscribed: 0 }}
                 />
               )}
             </CardContent>

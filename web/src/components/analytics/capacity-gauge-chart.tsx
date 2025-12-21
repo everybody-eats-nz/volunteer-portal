@@ -1,6 +1,6 @@
 "use client";
 
-import { RadialBarChart, RadialBar, Legend, ResponsiveContainer } from "recharts";
+import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
 
 interface CapacityUtilization {
   averageFillRate: number;
