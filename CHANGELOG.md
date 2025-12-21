@@ -1,3 +1,9 @@
+## [0.89.6] - 2025-12-21
+
+### Changes
+- chore(deps): bump posthog-node from 5.17.2 to 5.17.4 in /web in the production-dependencies group ([#434](https://github.com/everybody-eats-nz/volunteer-portal/pull/434)) by @dependabot[bot]
+
+
 ## [0.89.5] - 2025-12-21
 
 ### Changes
