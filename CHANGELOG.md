@@ -1,3 +1,9 @@
+## [0.89.3] - 2025-12-21
+
+### Changes
+- Potential fix for code scanning alert no. 20: Use of externally-controlled format string ([#429](https://github.com/everybody-eats-nz/volunteer-portal/pull/429)) by @malinmalliyawadu
+
+
 ## [0.89.2] - 2025-12-21
 
 ### Changes
