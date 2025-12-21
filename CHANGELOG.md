@@ -1,3 +1,9 @@
+## [0.89.0] - 2025-12-21
+
+### Changes
+- feat: Add comprehensive analytics dashboard for admins (Beta) ([#420](https://github.com/everybody-eats-nz/volunteer-portal/pull/420)) by @malinmalliyawadu
+
+
 ## [0.88.0] - 2025-12-20
 
 ### Changes
