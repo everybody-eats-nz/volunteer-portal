@@ -67,103 +67,112 @@ export function AnalyticsFilters({ filters, onChange }: AnalyticsFiltersProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Location Filter */}
-      <div>
-        <label className="text-sm font-medium mb-2 block">Location</label>
-        <Select
-          value={filters.location || "all"}
-          onValueChange={(value) => onChange({ location: value })}
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select location" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            <SelectItem value="Mt Albert">Mt Albert</SelectItem>
-            <SelectItem value="New Lynn">New Lynn</SelectItem>
-            <SelectItem value="Papatoetoe">Papatoetoe</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="rounded-lg border bg-card p-6 shadow-sm">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filters
+      </h3>
 
-      {/* Date Range Filter */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Start Date</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : "Pick a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={handleStartDateChange}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">End Date</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "PPP") : "Pick a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={handleEndDateChange}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Volunteer Grade</label>
+      <div className="space-y-4">
+        {/* Location Filter */}
+        <div>
+          <label className="text-sm font-medium mb-2 block text-muted-foreground">Location</label>
           <Select
-            value={filters.volunteerGrade || "all"}
-            onValueChange={(value) =>
-              onChange({
-                volunteerGrade: value === "all" ? undefined : value,
-              })
-            }
+            value={filters.location || "all"}
+            onValueChange={(value) => onChange({ location: value })}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="All grades" />
+            <SelectTrigger className="w-full md:w-64">
+              <SelectValue placeholder="Select location" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All grades</SelectItem>
-              <SelectItem value="GREEN">Green</SelectItem>
-              <SelectItem value="YELLOW">Yellow</SelectItem>
-              <SelectItem value="PINK">Pink</SelectItem>
+              <SelectItem value="all">All Locations</SelectItem>
+              <SelectItem value="Wellington">🏙️ Wellington</SelectItem>
+              <SelectItem value="Glen Innes">🏘️ Glen Innes</SelectItem>
+              <SelectItem value="Onehunga">🌊 Onehunga</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
+        {/* Date Range Filter */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Start Date</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={handleStartDateChange}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">End Date</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={handleEndDateChange}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Volunteer Grade</label>
+            <Select
+              value={filters.volunteerGrade || "all"}
+              onValueChange={(value) =>
+                onChange({
+                  volunteerGrade: value === "all" ? undefined : value,
+                })
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All grades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All grades</SelectItem>
+                <SelectItem value="GREEN">🟢 Green</SelectItem>
+                <SelectItem value="YELLOW">🟡 Yellow</SelectItem>
+                <SelectItem value="PINK">🌸 Pink</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Quick Date Presets */}
         <div className="space-y-2">
-          <label className="text-sm font-medium invisible">Presets</label>
-          <div className="flex gap-2">
+          <label className="text-sm font-medium text-muted-foreground">Quick Filters</label>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleDatePreset(7)}
+              className="hover:bg-primary hover:text-primary-foreground transition-colors"
             >
               Last 7 days
             </Button>
@@ -171,6 +180,7 @@ export function AnalyticsFilters({ filters, onChange }: AnalyticsFiltersProps) {
               variant="outline"
               size="sm"
               onClick={() => handleDatePreset(30)}
+              className="hover:bg-primary hover:text-primary-foreground transition-colors"
             >
               Last 30 days
             </Button>
@@ -178,6 +188,7 @@ export function AnalyticsFilters({ filters, onChange }: AnalyticsFiltersProps) {
               variant="outline"
               size="sm"
               onClick={() => handleDatePreset(90)}
+              className="hover:bg-primary hover:text-primary-foreground transition-colors"
             >
               Last 90 days
             </Button>

@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     }> = [];
 
     if (location === "all") {
-      const locations = ["Mt Albert", "New Lynn", "Papatoetoe"];
+      const locations = ["Wellington", "Glen Innes", "Onehunga"];
 
       locationComparison = await Promise.all(
         locations.map(async (loc) => {

@@ -98,13 +98,15 @@ export function AnalyticsClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Filters */}
       <AnalyticsFilters filters={filters} onChange={handleFilterChange} />
 
       {/* Insights/Alerts */}
       {!loading && data.retention && data.signups && data.impact && (
-        <AnalyticsInsights data={data} />
+        <div className="animate-in fade-in duration-500">
+          <AnalyticsInsights data={data} />
+        </div>
       )}
 
       {/* KPI Cards */}
@@ -115,20 +117,33 @@ export function AnalyticsClient({
       )}
 
       {/* Charts in Tabs */}
-      <Tabs defaultValue="retention" className="mt-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="retention">Retention</TabsTrigger>
-          <TabsTrigger value="signups">Signups</TabsTrigger>
-          <TabsTrigger value="engagement">Engagement</TabsTrigger>
-          <TabsTrigger value="impact">Impact</TabsTrigger>
+      <Tabs defaultValue="retention" className="mt-8">
+        <TabsList className="grid w-full grid-cols-4 bg-muted p-1 h-auto">
+          <TabsTrigger value="retention" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            📈 Retention
+          </TabsTrigger>
+          <TabsTrigger value="signups" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            📅 Signups
+          </TabsTrigger>
+          <TabsTrigger value="engagement" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            🎯 Engagement
+          </TabsTrigger>
+          <TabsTrigger value="impact" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            💪 Impact
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="retention" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Volunteer Retention Curves</CardTitle>
+        <TabsContent value="retention" className="space-y-6 mt-6">
+          <Card className="border-l-4 border-l-blue-500 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                </div>
+                Volunteer Retention Curves
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
@@ -136,11 +151,16 @@ export function AnalyticsClient({
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>At-Risk Volunteers</CardTitle>
+          <Card className="shadow-md">
+            <CardHeader className="bg-gradient-to-r from-amber-50 to-transparent dark:from-amber-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                </div>
+                At-Risk Volunteers
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <div className="h-64 animate-pulse bg-muted rounded" />
               ) : (
@@ -152,12 +172,17 @@ export function AnalyticsClient({
           </Card>
         </TabsContent>
 
-        <TabsContent value="signups" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Signup Trends</CardTitle>
+        <TabsContent value="signups" className="space-y-6 mt-6">
+          <Card className="border-l-4 border-l-purple-500 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                </div>
+                Signup Trends
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
@@ -165,11 +190,16 @@ export function AnalyticsClient({
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Cancellation Reasons</CardTitle>
+          <Card className="shadow-md">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-orange-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                </div>
+                Cancellation Reasons
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <div className="h-64 animate-pulse bg-muted rounded" />
               ) : (
@@ -198,12 +228,17 @@ export function AnalyticsClient({
           </Card>
         </TabsContent>
 
-        <TabsContent value="engagement" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Registration Trend</CardTitle>
+        <TabsContent value="engagement" className="space-y-6 mt-6">
+          <Card className="border-l-4 border-l-green-500 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                Registration Trend
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
@@ -213,11 +248,16 @@ export function AnalyticsClient({
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Volunteer Grade Distribution</CardTitle>
+          <Card className="shadow-md">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-transparent dark:from-pink-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-pink-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-600"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                </div>
+                Volunteer Grade Distribution
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
@@ -229,12 +269,17 @@ export function AnalyticsClient({
           </Card>
         </TabsContent>
 
-        <TabsContent value="impact" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Meals Served Over Time</CardTitle>
+        <TabsContent value="impact" className="space-y-6 mt-6">
+          <Card className="border-l-4 border-l-orange-500 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-orange-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                </div>
+                Meals Served Over Time
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
@@ -242,11 +287,16 @@ export function AnalyticsClient({
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Capacity Utilization</CardTitle>
+          <Card className="shadow-md">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-transparent dark:from-indigo-950/30">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-2 bg-indigo-500/10 rounded-lg">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                </div>
+                Capacity Utilization
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {loading ? (
                 <AnalyticsChartSkeleton />
               ) : (
