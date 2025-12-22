@@ -220,6 +220,9 @@ model Signup {
   placedAt            DateTime?
   placementNotes      String?
 
+  // Backup shift preferences - alternative shift IDs volunteer is willing to fill
+  backupForShiftIds String[] @default([]) // Array of shift IDs they're willing to backup for (same time slots)
+
   // Volunteer-provided note
   note String? // Optional note from volunteer when signing up
 

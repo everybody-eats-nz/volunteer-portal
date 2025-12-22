@@ -21,7 +21,6 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("non-admin users do not see command palette", async ({ page }) => {
-      await logout(page);
       await loginAsVolunteer(page);
 
       await page.goto("/dashboard");

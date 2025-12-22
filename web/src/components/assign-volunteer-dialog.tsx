@@ -229,10 +229,7 @@ export function AssignVolunteerDialog({
               {shift.shiftType.name}
             </h3>
 
-            <div
-              className="space-y-2 text-sm"
-              data-testid="shift-details-info"
-            >
+            <div className="space-y-2 text-sm" data-testid="shift-details-info">
               <div
                 className="flex items-center gap-2"
                 data-testid="shift-details-date"
