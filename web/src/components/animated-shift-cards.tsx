@@ -104,6 +104,7 @@ interface Shift {
     id: string;
     status: string;
     note: string | null;
+    backupForShiftIds: string[];
     user: {
       id: string;
       name: string | null;
@@ -141,6 +142,7 @@ interface Shift {
 
 interface AnimatedShiftCardsProps {
   shifts: Shift[];
+  shiftIdToTypeName: Map<string, string>;
 }
 
 function getStaffingStatus(confirmed: number, capacity: number) {
@@ -273,7 +275,7 @@ function useMasonry(itemCount: number, columnCount: number, shifts: Shift[]) {
   return { containerRef, triggerLayoutUpdate };
 }
 
-export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
+export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftCardsProps) {
   // Determine column count based on screen size (we'll use a simple approach)
   const [columnCount, setColumnCount] = useState(1);
 
@@ -549,6 +551,16 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                       {signup.note}
                                     </div>
                                   )}
+                                  {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
+                                    <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-amber-50/50 dark:bg-amber-900/20 border-l-2 border-amber-400 dark:border-amber-600 rounded">
+                                      <span className="font-semibold text-amber-700 dark:text-amber-300">🤝 Backup options: </span>
+                                      <span className="text-amber-600 dark:text-amber-400">
+                                        {signup.backupForShiftIds
+                                          .map((shiftId) => shiftIdToTypeName.get(shiftId) || 'Unknown')
+                                          .join(', ')}
+                                      </span>
+                                    </div>
+                                  )}
                                   <div className="flex items-center justify-between gap-3 mt-2">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <div
@@ -596,6 +608,7 @@ export function AnimatedShiftCards({ shifts }: AnimatedShiftCardsProps) {
                                           signup.user.name ||
                                           `${signup.user.firstName} ${signup.user.lastName}`
                                         }
+                                        backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
                                       />
                                     </div>
                                   </div>

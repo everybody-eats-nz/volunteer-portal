@@ -196,6 +196,12 @@ export default async function AdminShiftsPage({
 
   const calendarShifts = allCalendarShifts;
 
+  // Create a mapping from shift ID to shift type name for backup preferences display
+  const shiftIdToTypeName = new Map<string, string>();
+  allShifts.forEach((shift) => {
+    shiftIdToTypeName.set(shift.id, shift.shiftType.name);
+  });
+
   // Process shifts into calendar-friendly format
   const shiftSummariesMap = new Map<
     string,
@@ -346,7 +352,7 @@ export default async function AdminShiftsPage({
             </Button>
           </div>
         ) : (
-          <ShiftsByTimeOfDay shifts={shifts} />
+          <ShiftsByTimeOfDay shifts={shifts} shiftIdToTypeName={shiftIdToTypeName} />
         )}
       </PageContainer>
     </AdminPageWrapper>

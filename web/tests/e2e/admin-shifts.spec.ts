@@ -156,7 +156,6 @@ test.describe("Admin Shifts Page", () => {
   });
 
   test("should restrict access to volunteers", async ({ page }) => {
-    await logout(page);
     await loginAsVolunteer(page);
 
     await page.goto("/admin/shifts");

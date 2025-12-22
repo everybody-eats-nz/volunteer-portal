@@ -23,13 +23,23 @@ export async function createTestUser(
       lastName: "User",
       role,
       profileCompleted: true,
+      emailVerified: true,
+      phone: "+64 21 555 0001",
+      dateOfBirth: "1999-12-21T09:15:53.416Z",
+      emergencyContactName: "Test emergency contact",
+      emergencyContactPhone: "0211234567",
+      emergencyContactRelationship: "Partner",
+      healthSafetyPolicyAccepted: true,
+      volunteerAgreementAccepted: true,
       ...additionalData,
     },
   });
 
   if (!response.ok()) {
     const errorText = await response.text();
-    throw new Error(`Failed to create test user: ${response.status()} - ${errorText}`);
+    throw new Error(
+      `Failed to create test user: ${response.status()} - ${errorText}`
+    );
   }
 }
 

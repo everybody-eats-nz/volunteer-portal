@@ -372,7 +372,6 @@ test.describe("Admin Shift Edit and Delete", () => {
       page,
     }) => {
       // Create a signup for the shift
-      await logout(page);
       await loginAsVolunteer(page, testEmails[1]);
       const signupResponse = await page.request.post(
         `/api/shifts/${testShiftId}/signup`
@@ -380,7 +379,6 @@ test.describe("Admin Shift Edit and Delete", () => {
       expect(signupResponse.ok()).toBeTruthy();
 
       // Back to admin
-      await logout(page);
       await loginAsAdmin(page);
 
       await page.goto(
@@ -606,7 +604,6 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should not allow volunteers to access edit page", async ({
       page,
     }) => {
-      await logout(page);
       await loginAsVolunteer(page);
 
       await page.goto(`/admin/shifts/${testShiftId}/edit`);
@@ -621,7 +618,6 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should return 403 when volunteer tries to delete shift via API", async ({
       page,
     }) => {
-      await logout(page);
       await loginAsVolunteer(page);
 
       // Try to delete via API call
