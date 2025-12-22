@@ -82,7 +82,7 @@
     "react-hook-form": "^7.68.0",
     "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",
-    "recharts": "^3.5.1",
+    "recharts": "^3.6.0",
     "remark-gfm": "^4.0.1",
     "sanitize-html": "^2.17.0",
     "sharp": "^0.34.5",
