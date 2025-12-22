@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer, logout } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Admin Command Palette", () => {
   test.beforeEach(async ({ page }) => {

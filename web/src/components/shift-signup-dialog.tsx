@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge } from "@/lib/utils";
-import { MessageSquareDot, Split } from "lucide-react";
+import { MessageSquareDot } from "lucide-react";
 
 interface ShiftSignupDialogProps {
   shift: {
