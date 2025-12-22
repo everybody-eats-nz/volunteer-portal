@@ -1,3 +1,9 @@
+## [0.90.0] - 2025-12-22
+
+### Changes
+- Add backup shift signup feature (Issue #422) ([#430](https://github.com/everybody-eats-nz/volunteer-portal/pull/430)) by @malinmalliyawadu
+
+
 ## [0.89.5] - 2025-12-21
 
 ### Changes
