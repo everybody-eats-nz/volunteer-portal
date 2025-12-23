@@ -310,6 +310,95 @@ This project uses **motion.dev** for all animations. We've migrated from CSS ani
 3. Maintain grid/flex layouts by avoiding unnecessary wrapper divs
 4. Test animations across different screen sizes
 
+## SEO & Search Optimization
+
+This application implements comprehensive SEO following Next.js 16 best practices.
+
+### Key Components
+
+- **Sitemap**: Auto-generated at `/sitemap.xml` via `src/app/sitemap.ts`
+- **Robots**: Auto-generated at `/robots.txt` via `src/app/robots.ts`
+- **Metadata**: Centralized utilities in `src/lib/seo.ts`
+- **Structured Data**: Organization and Event schemas via JSON-LD
+
+### Public vs Private Pages
+
+**Indexable** (robots: index, follow):
+- `/` - Homepage
+- `/login` - Sign in
+- `/register` - Registration
+- `/shifts` - Shift browsing
+
+**Non-Indexable** (robots: noindex, nofollow):
+- All authenticated pages (`/dashboard`, `/profile`, `/achievements`, `/friends`, `/resources`)
+- All admin pages (`/admin/*`)
+- All API routes (`/api/*`)
+
+### Adding SEO to New Pages
+
+For new public pages:
+
+```typescript
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Page Title",
+  description: "Page description (150-160 chars)",
+  path: "/page-path",
+});
+```
+
+For dynamic pages, use `generateMetadata`:
+
+```typescript
+export async function generateMetadata({ params }): Promise<Metadata> {
+  // Fetch data and return metadata
+  return buildPageMetadata({
+    title: dynamicTitle,
+    description: dynamicDescription,
+    path: "/page-path",
+  });
+}
+```
+
+For authenticated/private pages:
+
+```typescript
+export const metadata: Metadata = {
+  title: "Page Title",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+```
+
+### Testing SEO
+
+**Development:**
+```bash
+npm run dev
+# Visit http://localhost:3000/sitemap.xml
+# Visit http://localhost:3000/robots.txt
+# Inspect <head> tags on each public page
+```
+
+**Validation Tools:**
+- [Google Rich Results Test](https://search.google.com/test/rich-results) - Test structured data
+- [Schema Markup Validator](https://validator.schema.org/) - Validate JSON-LD
+- [Facebook OG Debugger](https://developers.facebook.com/tools/debug/) - Test Open Graph tags
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator) - Test Twitter Cards
+
+**Monitoring:**
+- Google Search Console for indexing status and crawl errors
+- Core Web Vitals via Vercel Speed Insights
+- Organic traffic via PostHog
+
+### Documentation
+
+For comprehensive SEO guidelines, see **[SEO Guide](web/docs/seo-guide.md)**.
+
 ## Development Tips
 
 1. **Type Safety**: Use generated Prisma types for database operations
