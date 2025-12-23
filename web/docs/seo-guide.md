@@ -22,12 +22,14 @@ This guide covers the SEO implementation, best practices, and maintenance proced
 The volunteer portal implements a comprehensive SEO strategy to improve discoverability and drive volunteer recruitment through organic search.
 
 **Key Goals:**
+
 - Rank for volunteer-related searches in New Zealand
 - Drive qualified volunteer registrations
 - Build authority for Everybody Eats brand
 - Ensure all public pages are properly indexed
 
 **Target Keywords:**
+
 - "volunteer New Zealand"
 - "Everybody Eats volunteer"
 - "food rescue volunteer [city]"
@@ -37,12 +39,14 @@ The volunteer portal implements a comprehensive SEO strategy to improve discover
 ### Indexing Policy
 
 **Public Pages (Indexable):**
+
 - `/` - Homepage
 - `/login` - Sign in
 - `/register` - Registration
 - `/shifts` - Shift browsing (all locations)
 
 **Private Pages (Non-Indexable):**
+
 - `/dashboard`, `/profile`, `/achievements`, `/friends`, `/resources` - Authenticated pages
 - `/admin/*` - All admin pages
 - `/api/*` - All API routes
@@ -63,7 +67,8 @@ import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Page Title", // Unique, descriptive title (50-60 chars)
-  description: "Page description that appears in search results. Should be compelling and include target keywords.", // 150-160 chars
+  description:
+    "Page description that appears in search results. Should be compelling and include target keywords.", // 150-160 chars
   path: "/page-path", // Path from root
 });
 ```
@@ -183,6 +188,7 @@ export const metadata: Metadata = {
 The template is configured in the root layout, so you only need to provide the unique part.
 
 **Best Practices:**
+
 - 50-60 characters optimal
 - Include primary keyword
 - Make it compelling and descriptive
@@ -190,6 +196,7 @@ The template is configured in the root layout, so you only need to provide the u
 - Avoid keyword stuffing
 
 **Examples:**
+
 - ✅ "Join as Volunteer | Everybody Eats"
 - ✅ "Volunteer Shifts in Auckland | Everybody Eats"
 - ❌ "Volunteer Volunteer Volunteer Auckland Wellington" (keyword stuffing)
@@ -198,6 +205,7 @@ The template is configured in the root layout, so you only need to provide the u
 ### Meta Descriptions
 
 **Best Practices:**
+
 - 150-160 characters optimal
 - Include target keywords naturally
 - Write compelling copy that encourages clicks
@@ -205,18 +213,21 @@ The template is configured in the root layout, so you only need to provide the u
 - Avoid duplicate descriptions across pages
 
 **Examples:**
+
 - ✅ "Register to become an Everybody Eats volunteer. Choose shifts that fit your schedule and help fight food waste while building community connections."
 - ❌ "This is the register page for volunteers." (too short, not compelling)
 
 ### Open Graph Images
 
 **Specifications:**
+
 - Dimensions: 1200x630px (1.91:1 ratio)
 - Format: JPG or PNG
 - File size: < 100KB ideal
 - Location: `/web/public/og-image.jpg`
 
 **Content Guidelines:**
+
 - Include Everybody Eats branding/logo
 - Use high-contrast, readable text
 - Avoid small text (won't be readable in previews)
@@ -231,10 +242,12 @@ The template is configured in the root layout, so you only need to provide the u
 **File:** `/web/src/app/sitemap.ts`
 
 The sitemap is automatically generated and served at `/sitemap.xml`. It includes:
+
 - Static public pages (home, login, register, shifts)
 - Dynamic location pages (pulled from database)
 
 **How It Works:**
+
 1. Next.js calls the `sitemap()` function at build time and on-demand
 2. Function queries database for active locations
 3. Returns array of URLs with metadata (priority, change frequency)
@@ -256,6 +269,7 @@ const staticPages: MetadataRoute.Sitemap = [
 ```
 
 **Priority Guidelines:**
+
 - 1.0 - Homepage only
 - 0.9 - High priority pages (register, shifts)
 - 0.8 - Important pages (login, location pages)
@@ -263,6 +277,7 @@ const staticPages: MetadataRoute.Sitemap = [
 - < 0.5 - Low priority or archived content
 
 **Change Frequency Guidelines:**
+
 - `always` - Live content (not recommended)
 - `daily` - Shifts, events, dynamic content
 - `weekly` - Homepage, regularly updated pages
@@ -276,6 +291,7 @@ const staticPages: MetadataRoute.Sitemap = [
 The robots.txt is automatically generated and served at `/robots.txt`.
 
 **Current Configuration:**
+
 - **Allow:** `/`, `/login`, `/register`, `/shifts`
 - **Disallow:** All authenticated pages, admin pages, API routes
 
@@ -312,6 +328,7 @@ export default function robots(): MetadataRoute.Robots {
 **Purpose:** Helps Google understand Everybody Eats as an organization.
 
 **Fields:**
+
 - Name, URL, logo
 - Description
 - Social media profiles (Facebook, Instagram)
@@ -327,7 +344,6 @@ export function buildOrganizationSchema() {
     sameAs: [
       "https://www.facebook.com/EverybodyEatsNZ",
       "https://www.instagram.com/everybodyeatsnz",
-      "https://twitter.com/everybodyeatsnz", // Add new platforms
     ],
   };
 }
@@ -340,6 +356,7 @@ export function buildOrganizationSchema() {
 **Purpose:** Helps shifts appear in Google Events search and rich results.
 
 **Fields:**
+
 - Event name, description
 - Start/end dates
 - Location address
@@ -347,10 +364,12 @@ export function buildOrganizationSchema() {
 - Organizer (Everybody Eats)
 
 **When It Appears:**
+
 - Only when shifts are displayed (not on location selection screen)
 - Limited to first 20 shifts for performance
 
 **Benefits:**
+
 - Shifts may appear in Google Events
 - Rich results with date/time/location
 - Increased visibility in event searches
@@ -365,11 +384,11 @@ export function buildBreadcrumbSchema(items: { name: string; url: string }[]) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": items.map((item, index) => ({
+    itemListElement: items.map((item, index) => ({
       "@type": "ListItem",
-      "position": index + 1,
-      "name": item.name,
-      "item": item.url,
+      position: index + 1,
+      name: item.name,
+      item: item.url,
     })),
   };
 }
@@ -382,14 +401,17 @@ export function buildBreadcrumbSchema(items: { name: string; url: string }[]) {
 ### Initial Setup
 
 1. **Visit Google Search Console**
+
    - Go to: https://search.google.com/search-console
 
 2. **Add Property**
+
    - Click "Add Property"
    - Select "URL prefix" method
    - Enter: `https://volunteers.everybodyeats.nz`
 
 3. **Verify Ownership**
+
    - Choose "HTML tag" verification method
    - Copy the verification code
    - Add to `/web/src/app/layout.tsx`:
@@ -413,38 +435,45 @@ export function buildBreadcrumbSchema(items: { name: string; url: string }[]) {
 ### Key Metrics to Monitor
 
 **Coverage Report:**
+
 - Tracks indexed vs. non-indexed pages
 - Identifies crawl errors
 - Shows indexing status over time
 
 **Performance Report:**
+
 - Total clicks, impressions, CTR, average position
 - Top queries driving traffic
 - Top pages receiving clicks
 - Country/device breakdowns
 
 **Core Web Vitals:**
+
 - Largest Contentful Paint (LCP): < 2.5s
 - First Input Delay (FID): < 100ms
 - Cumulative Layout Shift (CLS): < 0.1
 
 **Mobile Usability:**
+
 - Identifies mobile-specific issues
 - Ensures responsive design compliance
 
 ### Common Issues & Solutions
 
 **Issue: Pages not indexed**
+
 - Check robots.txt isn't blocking
 - Verify page is in sitemap
 - Ensure page is linked internally
 - Request indexing via URL Inspection tool
 
 **Issue: Soft 404 errors**
+
 - Ensure pages return correct HTTP status codes
 - Verify content is substantial (not thin content)
 
 **Issue: Structured data errors**
+
 - Use Rich Results Test to debug
 - Verify all required fields are present
 - Check for type mismatches
@@ -467,6 +496,7 @@ npm run dev
 ```
 
 **2. Metadata Validation:**
+
 - Visit each public page
 - Right-click → "View Page Source"
 - Search for `<head>` section
@@ -479,11 +509,13 @@ npm run dev
 **3. Structured Data Validation:**
 
 Use Google Rich Results Test:
+
 - URL: https://search.google.com/test/rich-results
 - Enter page URL or paste HTML
 - Verify no errors in schema markup
 
 Use Schema.org Validator:
+
 - URL: https://validator.schema.org/
 - Paste JSON-LD code
 - Check for validation errors
@@ -493,27 +525,32 @@ Use Schema.org Validator:
 **1. Production Verification:**
 
 Visit production URLs:
+
 - https://volunteers.everybodyeats.nz/sitemap.xml
 - https://volunteers.everybodyeats.nz/robots.txt
 
 Check metadata on live pages:
+
 - View source and inspect `<head>` tags
 - Verify canonical URLs use production domain
 
 **2. Social Media Preview Testing:**
 
 **Facebook Debugger:**
+
 - URL: https://developers.facebook.com/tools/debug/
 - Enter page URL
 - Click "Scrape Again" to refresh
 - Verify Open Graph image and description
 
 **Twitter Card Validator:**
+
 - URL: https://cards-dev.twitter.com/validator
 - Enter page URL
 - Verify card preview displays correctly
 
 **LinkedIn Post Inspector:**
+
 - URL: https://www.linkedin.com/post-inspector/
 - Enter page URL
 - Verify preview looks correct
@@ -521,6 +558,7 @@ Check metadata on live pages:
 **3. Search Console Submission:**
 
 Within 24 hours of deployment:
+
 - Submit sitemap in Google Search Console
 - Request indexing for key pages via URL Inspection
 - Monitor for crawl errors
@@ -528,22 +566,26 @@ Within 24 hours of deployment:
 ### Validation Tools
 
 **Metadata & SEO:**
+
 - [Google Rich Results Test](https://search.google.com/test/rich-results)
 - [Schema Markup Validator](https://validator.schema.org/)
 - [Meta Tags Preview](https://metatags.io/)
 - [SEO Checker](https://www.seobility.net/en/seocheck/)
 
 **Social Sharing:**
+
 - [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
 - [Twitter Card Validator](https://cards-dev.twitter.com/validator)
 - [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/)
 
 **Performance:**
+
 - [PageSpeed Insights](https://pagespeed.web.dev/)
 - [GTmetrix](https://gtmetrix.com/)
 - [WebPageTest](https://www.webpagetest.org/)
 
 **Mobile:**
+
 - [Google Mobile-Friendly Test](https://search.google.com/test/mobile-friendly)
 - [Responsive Design Checker](https://responsivedesignchecker.com/)
 
@@ -554,6 +596,7 @@ Within 24 hours of deployment:
 ### Daily Tasks
 
 No daily SEO tasks required. Automated systems handle:
+
 - Sitemap updates (via Next.js)
 - Metadata generation
 - Structured data
@@ -561,35 +604,41 @@ No daily SEO tasks required. Automated systems handle:
 ### Weekly Tasks
 
 **First Month After Launch:**
+
 - Check Google Search Console for new errors
 - Monitor indexing progress
 - Review any manual actions or warnings
 - Check for unexpected 404s
 
 **After Stable:**
+
 - Review Search Console once weekly
 - Quick check for critical errors only
 
 ### Monthly Tasks
 
 **Search Console Review:**
+
 - Coverage report: Any new errors?
 - Performance: Traffic trends (up/down)
 - Core Web Vitals: Any degradation?
 - Top queries: New opportunities?
 
 **Content Audit:**
+
 - Are meta descriptions still relevant?
 - Do page titles reflect current content?
 - Are there new pages that need indexing?
 
 **Competitor Analysis:**
+
 - What volunteer keywords are competitors ranking for?
 - Any new content opportunities?
 
 ### Quarterly Tasks
 
 **Comprehensive SEO Audit:**
+
 - Review all public page metadata
 - Check for broken internal links
 - Verify structured data is valid
@@ -599,6 +648,7 @@ No daily SEO tasks required. Automated systems handle:
 - Identify new content opportunities
 
 **Performance Review:**
+
 - Compare traffic quarter-over-quarter
 - Analyze conversion rates (registrations from organic)
 - Review top landing pages
@@ -608,6 +658,7 @@ No daily SEO tasks required. Automated systems handle:
 ### Annual Tasks
 
 **Strategic Review:**
+
 - Full SEO strategy assessment
 - Competitive landscape analysis
 - Keyword research refresh
@@ -618,17 +669,20 @@ No daily SEO tasks required. Automated systems handle:
 ### Updating Content
 
 **When to Update Metadata:**
+
 - Major page content changes
 - Shift in target keywords
 - Low CTR on well-ranked pages
 - Seasonal campaigns or events
 
 **When to Update Structured Data:**
+
 - New locations added
 - Organization information changes
 - New event types introduced
 
 **When to Update Sitemap:**
+
 - Already automated - no manual updates needed
 - Sitemap regenerates on deployment
 - New locations automatically included
@@ -641,6 +695,7 @@ No daily SEO tasks required. Automated systems handle:
 
 **Q: Page isn't showing in Google search**
 A:
+
 1. Check it's in sitemap: `/sitemap.xml`
 2. Verify not blocked in robots.txt
 3. Request indexing via Search Console
@@ -649,6 +704,7 @@ A:
 
 **Q: Wrong page title showing in search results**
 A:
+
 1. Verify metadata is correct in source
 2. Clear cache with `?` parameter in URL
 3. Request re-indexing in Search Console
@@ -656,6 +712,7 @@ A:
 
 **Q: Open Graph image not displaying**
 A:
+
 1. Verify image is accessible: `/og-image.jpg`
 2. Check image dimensions (1200x630px)
 3. Clear social media cache:
@@ -665,6 +722,7 @@ A:
 
 **Q: Structured data errors in Search Console**
 A:
+
 1. Use Rich Results Test to identify issues
 2. Check all required fields are present
 3. Verify data types match schema.org spec
@@ -672,6 +730,7 @@ A:
 
 **Q: Core Web Vitals failing**
 A:
+
 1. Use PageSpeed Insights for detailed report
 2. Check Vercel Speed Insights dashboard
 3. Optimize images (already using next/image)
@@ -683,16 +742,19 @@ A:
 ## Additional Resources
 
 **Documentation:**
+
 - [Next.js Metadata API](https://nextjs.org/docs/app/building-your-application/optimizing/metadata)
 - [Schema.org Documentation](https://schema.org/)
 - [Google Search Central](https://developers.google.com/search)
 
 **Tools:**
+
 - [Google Search Console](https://search.google.com/search-console)
 - [Vercel Speed Insights](https://vercel.com/analytics)
 - [PostHog Analytics](https://posthog.com/) (already integrated)
 
 **Learning:**
+
 - [Google SEO Starter Guide](https://developers.google.com/search/docs/fundamentals/seo-starter-guide)
 - [Moz Beginner's Guide to SEO](https://moz.com/beginners-guide-to-seo)
 
@@ -712,16 +774,25 @@ A:
 
 ```typescript
 // Build page metadata
-buildPageMetadata({ title, description, path })
+buildPageMetadata({ title, description, path });
 
 // Build Organization schema
-buildOrganizationSchema()
+buildOrganizationSchema();
 
 // Build Event schema for shifts
-buildShiftEventSchema({ id, name, description, startDate, endDate, location, capacity, spotsAvailable })
+buildShiftEventSchema({
+  id,
+  name,
+  description,
+  startDate,
+  endDate,
+  location,
+  capacity,
+  spotsAvailable,
+});
 
 // Get canonical URL
-buildCanonicalUrl("/path")
+buildCanonicalUrl("/path");
 ```
 
 ### Checklist for New Public Pages

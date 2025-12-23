@@ -65,14 +65,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Volunteer Portal - Everybody Eats",
-    description:
-      "Join our community of volunteers making a difference in fighting food waste and food insecurity.",
-    images: ["/og-image.png"],
-    creator: "@EverybodyEatsNZ",
-  },
   robots: {
     index: true,
     follow: true,

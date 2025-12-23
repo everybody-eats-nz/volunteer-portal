@@ -9,7 +9,6 @@ export const SEO_CONFIG = {
     "Join Everybody Eats as a volunteer and help transform rescued food into quality meals on a pay-what-you-can basis. Make a difference in fighting food waste and food insecurity across New Zealand.",
   locale: "en_NZ",
   ogImage: "/og-image.png",
-  twitterHandle: "@EverybodyEatsNZ",
 } as const;
 
 // Metadata Builder Options
@@ -46,13 +45,6 @@ export function buildPageMetadata(options: MetadataOptions): Metadata {
           alt: title,
         },
       ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [image],
-      creator: SEO_CONFIG.twitterHandle,
     },
     robots: noIndex
       ? {
