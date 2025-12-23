@@ -58,7 +58,7 @@ export const metadata: Metadata = {
       "Join our community of volunteers making a difference in fighting food waste and food insecurity across New Zealand.",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Everybody Eats Volunteer Portal",
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     title: "Volunteer Portal - Everybody Eats",
     description:
       "Join our community of volunteers making a difference in fighting food waste and food insecurity.",
-    images: ["/og-image.jpg"],
+    images: ["/og-image.png"],
     creator: "@EverybodyEatsNZ",
   },
   robots: {

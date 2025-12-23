@@ -8,7 +8,7 @@ export const SEO_CONFIG = {
   defaultDescription:
     "Join Everybody Eats as a volunteer and help transform rescued food into quality meals on a pay-what-you-can basis. Make a difference in fighting food waste and food insecurity across New Zealand.",
   locale: "en_NZ",
-  ogImage: "/og-image.jpg",
+  ogImage: "/og-image.png",
   twitterHandle: "@EverybodyEatsNZ",
 } as const;
 
@@ -110,11 +110,11 @@ interface ShiftEventData {
 
 // Location addresses mapping (for Event schema)
 const LOCATION_ADDRESSES: Record<string, string> = {
-  "Avondale": "2023 Great North Road, Avondale, Auckland 1026",
-  "Onehunga": "99 Onehunga Mall, Onehunga, Auckland 1061",
-  "Ponsonby": "106 Ponsonby Road, Ponsonby, Auckland 1011",
+  Avondale: "2023 Great North Road, Avondale, Auckland 1026",
+  Onehunga: "99 Onehunga Mall, Onehunga, Auckland 1061",
+  Ponsonby: "106 Ponsonby Road, Ponsonby, Auckland 1011",
   "Mt Roskill": "1042 Dominion Road, Mt Roskill, Auckland 1041",
-  "Ōtautahi": "96 Lichfield Street, Christchurch Central, Christchurch 8011",
+  Ōtautahi: "96 Lichfield Street, Christchurch Central, Christchurch 8011",
   "Tāmaki Makaurau Central": "Location TBD, Auckland",
   "Special Event Venue": "Various Locations",
 };
