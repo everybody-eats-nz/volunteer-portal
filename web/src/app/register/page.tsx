@@ -1,6 +1,15 @@
 import { Suspense } from "react";
 import RegisterClient from "./register-client";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Join as Volunteer",
+  description:
+    "Register to become an Everybody Eats volunteer. Choose shifts that fit your schedule and help fight food waste while building community connections.",
+  path: "/register",
+});
 
 async function getLocationOptions() {
   // Get all unique locations from shifts that are not null

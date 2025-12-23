@@ -13,6 +13,15 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminDashboardPage({
   searchParams,

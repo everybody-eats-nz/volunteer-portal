@@ -4,6 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { ResourcesGrid } from "@/components/resources-grid";
 import { ResourcesSearch } from "@/components/resources-search";
 import { PageContainer } from "@/components/page-container";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Resources",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 interface ResourcesPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

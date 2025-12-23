@@ -12,6 +12,8 @@ import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { BotProtectionClient } from "@/components/bot-protection-client";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { getBaseUrl } from "@/lib/utils";
+import { SEO_CONFIG } from "@/lib/seo";
 
 const libreFranklin = Libre_Franklin({
   variable: "--font-libre-franklin",
@@ -25,7 +27,58 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  description: "Sign up for volunteer shifts",
+  metadataBase: new URL(getBaseUrl()),
+  title: {
+    default: "Volunteer Portal - Everybody Eats",
+    template: "%s | Everybody Eats",
+  },
+  description: SEO_CONFIG.defaultDescription,
+  keywords: [
+    "volunteer",
+    "New Zealand",
+    "food rescue",
+    "community",
+    "charitable restaurant",
+    "Everybody Eats",
+  ],
+  authors: [{ name: "Everybody Eats" }],
+  creator: "Everybody Eats",
+  publisher: "Everybody Eats",
+  formatDetection: {
+    email: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NZ",
+    url: getBaseUrl(),
+    siteName: "Everybody Eats Volunteer Portal",
+    title: "Volunteer Portal - Everybody Eats",
+    description:
+      "Join our community of volunteers making a difference in fighting food waste and food insecurity across New Zealand.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Everybody Eats Volunteer Portal",
+      },
+    ],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: "VERIFICATION_CODE_PLACEHOLDER",
+  },
 };
 
 export default async function RootLayout({
@@ -53,7 +106,6 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Volunteer Portal - Everybody Eats</title>
         <link href="/favicon.jpg" rel="shortcut icon" type="image/x-icon" />
       </head>
       <body
