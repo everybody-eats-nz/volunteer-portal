@@ -11,6 +11,15 @@ import { FriendsManagerServer } from "@/components/friends-manager-server";
 import { BarChart3 } from "lucide-react";
 import ErrorBoundary from "@/components/error-boundary";
 import { FriendsErrorFallback } from "@/components/friends-error-fallback";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Friends",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function FriendsPage({
   searchParams,

@@ -10,6 +10,15 @@ import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { MotionCard } from "@/components/motion-card";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
