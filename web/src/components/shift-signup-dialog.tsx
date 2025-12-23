@@ -576,11 +576,15 @@ export function ShiftSignupDialog({
                           {concurrentShift.shiftTypeDescription}
                         </p>
                       )}
-                      {concurrentShift.spotsRemaining > 0 && (
+                      {concurrentShift.spotsRemaining > 0 ? (
                         <p className="text-xs text-green-600">
                           {concurrentShift.spotsRemaining} spot
                           {concurrentShift.spotsRemaining !== 1 ? "s" : ""}{" "}
                           available
+                        </p>
+                      ) : (
+                        <p className="text-xs text-orange-600">
+                          Full - Waitlist available
                         </p>
                       )}
                     </div>
