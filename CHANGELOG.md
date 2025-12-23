@@ -1,3 +1,9 @@
+## [0.90.2] - 2025-12-23
+
+### Changes
+- feat: show waitlist status for full backup shifts ([#440](https://github.com/everybody-eats-nz/volunteer-portal/pull/440)) by @malinmalliyawadu
+
+
 ## [0.90.1] - 2025-12-23
 
 ### Changes
