@@ -1,3 +1,9 @@
+## [0.91.0] - 2025-12-23
+
+### Changes
+- feat: Implement comprehensive SEO foundation ([#441](https://github.com/everybody-eats-nz/volunteer-portal/pull/441)) by @malinmalliyawadu
+
+
 ## [0.90.2] - 2025-12-23
 
 ### Changes
