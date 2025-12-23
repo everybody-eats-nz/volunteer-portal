@@ -1,3 +1,9 @@
+## [0.90.1] - 2025-12-23
+
+### Changes
+- fix: disable profile links for non-friend public users in shifts calendar ([#439](https://github.com/everybody-eats-nz/volunteer-portal/pull/439)) by @malinmalliyawadu
+
+
 ## [0.90.0] - 2025-12-22
 
 ### Changes
