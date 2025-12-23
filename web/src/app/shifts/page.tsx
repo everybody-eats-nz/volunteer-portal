@@ -38,6 +38,7 @@ interface ShiftSummary {
       email: string;
       profilePhotoUrl: string | null;
     };
+    isFriend: boolean;
   }>;
 }
 
@@ -176,6 +177,7 @@ export default async function ShiftsCalendarPage({
       email: string;
       profilePhotoUrl: string | null;
     };
+    isFriend: boolean;
   };
   let friendSignupsMap: Record<string, FriendSignup[]> = {};
 
@@ -223,7 +225,10 @@ export default async function ShiftsCalendarPage({
       })
       .reduce<Record<string, FriendSignup[]>>((acc, signup) => {
         if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
-        acc[signup.shiftId].push(signup);
+        acc[signup.shiftId].push({
+          user: signup.user,
+          isFriend: userFriendIds.includes(signup.user.id),
+        });
         return acc;
       }, {});
   }

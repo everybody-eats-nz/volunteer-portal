@@ -24,7 +24,7 @@ interface AvatarListProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   maxDisplay?: number;
-  enableLinks?: boolean;
+  enableLinks?: boolean | ((user: AvatarUser) => boolean);
 }
 
 export function AvatarList({
@@ -69,6 +69,12 @@ export function AvatarList({
     return getDisplayName(user);
   };
 
+  const shouldEnableLink = (user: AvatarUser) => {
+    if (typeof enableLinks === "function") {
+      return enableLinks(user);
+    }
+    return enableLinks ?? true;
+  };
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -76,7 +82,7 @@ export function AvatarList({
         {displayUsers.map((user, index) => (
           <Tooltip key={user.id}>
             <TooltipTrigger asChild>
-              {enableLinks ? (
+              {shouldEnableLink(user) ? (
                 <Link href={`/friends/${user.id}`} className="cursor-pointer">
                   <div
                     className={cn(
