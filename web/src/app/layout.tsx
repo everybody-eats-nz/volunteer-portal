@@ -76,9 +76,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "VERIFICATION_CODE_PLACEHOLDER",
-  },
 };
 
 export default async function RootLayout({
