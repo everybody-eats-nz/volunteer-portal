@@ -1,3 +1,9 @@
+## [0.91.1] - 2025-12-25
+
+### Changes
+- Fix: Date picker opens to selected date's month ([#443](https://github.com/everybody-eats-nz/volunteer-portal/pull/443)) by @malinmalliyawadu
+
+
 ## [0.91.0] - 2025-12-23
 
 ### Changes
