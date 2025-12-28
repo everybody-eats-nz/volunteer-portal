@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.1",
-    "@ai-sdk/openai": "^2.0.88",
+    "@ai-sdk/openai": "^3.0.1",
     "@astrojs/starlight": "^0.37.1",
     "@astrojs/vercel": "^9.0.2",
     "@rollup/plugin-typescript": "^12.3.0",
