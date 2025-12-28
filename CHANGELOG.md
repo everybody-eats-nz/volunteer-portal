@@ -1,3 +1,39 @@
+## [0.91.6] - 2025-12-28
+
+### Changes
+- chore(deps): bump @supabase/supabase-js from 2.87.1 to 2.89.0 in /web ([#448](https://github.com/everybody-eats-nz/volunteer-portal/pull/448)) by @dependabot[bot]
+
+
+## [0.91.5] - 2025-12-28
+
+### Changes
+- chore(deps): bump @prisma/client from 7.0.1 to 7.2.0 in /web ([#450](https://github.com/everybody-eats-nz/volunteer-portal/pull/450)) by @dependabot[bot]
+
+
+## [0.91.4] - 2025-12-28
+
+### Changes
+- chore(deps): bump lucide-react from 0.556.0 to 0.562.0 in /web ([#449](https://github.com/everybody-eats-nz/volunteer-portal/pull/449)) by @dependabot[bot]
+
+
+## [0.91.3] - 2025-12-28
+
+### Changes
+- chore(deps): bump posthog-js from 1.297.2 to 1.310.1 in /web ([#451](https://github.com/everybody-eats-nz/volunteer-portal/pull/451)) by @dependabot[bot]
+
+
+## [0.91.2] - 2025-12-28
+
+### Changes
+- chore(deps-dev): bump eslint-config-next from 16.1.0 to 16.1.1 in /web in the development-dependencies group ([#445](https://github.com/everybody-eats-nz/volunteer-portal/pull/445)) by @dependabot[bot]
+
+
+## [0.91.1] - 2025-12-25
+
+### Changes
+- Fix: Date picker opens to selected date's month ([#443](https://github.com/everybody-eats-nz/volunteer-portal/pull/443)) by @malinmalliyawadu
+
+
 ## [0.91.0] - 2025-12-23
 
 ### Changes
