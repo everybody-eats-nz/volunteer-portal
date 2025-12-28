@@ -1,3 +1,9 @@
+## [0.91.6] - 2025-12-28
+
+### Changes
+- chore(deps): bump @supabase/supabase-js from 2.87.1 to 2.89.0 in /web ([#448](https://github.com/everybody-eats-nz/volunteer-portal/pull/448)) by @dependabot[bot]
+
+
 ## [0.91.5] - 2025-12-28
 
 ### Changes
