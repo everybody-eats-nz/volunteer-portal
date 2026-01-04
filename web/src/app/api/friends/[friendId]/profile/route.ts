@@ -81,7 +81,7 @@ export async function GET(
     const upcomingShifts = await prisma.signup.findMany({
       where: {
         userId: friendId,
-        status: { in: ["CONFIRMED", "PENDING"] },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
         shift: {
           start: { gte: new Date() },
         },
