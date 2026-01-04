@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { PlusIcon, CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { BulkDateRangeSection } from "@/components/shift-date-time-section";
@@ -657,7 +658,7 @@ export default async function NewShiftPage() {
     >
       <PageContainer testid="create-shift-page">
         <Tabs defaultValue="bulk" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <ScrollableTabsList>
             <TabsTrigger value="single" className="flex items-center gap-2">
               <PlusIcon className="h-4 w-4" />
               Single Shift
@@ -670,7 +671,7 @@ export default async function NewShiftPage() {
               <RefreshCwIcon className="h-4 w-4" />
               Edit Templates
             </TabsTrigger>
-          </TabsList>
+          </ScrollableTabsList>
 
           {/* Single Shift Creation */}
           <TabsContent value="single">

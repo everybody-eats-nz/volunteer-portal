@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Users, Mail, CheckCircle, Database } from "lucide-react";
 import { MigrationStatus } from "./migration-status";
 import { UserInvitations } from "./user-invitations";
@@ -42,10 +43,7 @@ export function MigrationTabs() {
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList
-        className="grid w-full grid-cols-4"
-        data-testid="migration-tabs"
-      >
+      <ScrollableTabsList data-testid="migration-tabs">
         <TabsTrigger
           value="migration"
           className="flex items-center gap-2"
@@ -78,7 +76,7 @@ export function MigrationTabs() {
           <Users className="h-4 w-4" />
           Users
         </TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
 
       <TabsContent
         value="migration"

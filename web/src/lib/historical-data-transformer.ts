@@ -812,10 +812,10 @@ export class HistoricalDataTransformer {
       })})`
     );
 
-    // Generate clean notes - only include meaningful event name
-    let notes = "";
+    // Generate clean notes - include Nova ID for signup matching and event name
+    let notes = `Nova ID: ${novaEvent.id.value}`;
     if (eventName && eventName !== "Unknown Event") {
-      notes = `Event: ${eventName}`;
+      notes += ` | Event: ${eventName}`;
     }
 
     return {

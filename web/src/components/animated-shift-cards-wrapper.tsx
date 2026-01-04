@@ -18,6 +18,7 @@ interface Shift {
     id: string;
     status: string;
     note: string | null;
+    backupForShiftIds: string[];
     user: {
       id: string;
       name: string | null;
@@ -57,18 +58,21 @@ interface AnimatedShiftCardsWrapperProps {
   shifts: Shift[];
   dateString: string;
   selectedLocation: string;
+  shiftIdToTypeName: Map<string, string>;
 }
 
-export function AnimatedShiftCardsWrapper({ 
-  shifts, 
-  dateString, 
-  selectedLocation 
+export function AnimatedShiftCardsWrapper({
+  shifts,
+  dateString,
+  selectedLocation,
+  shiftIdToTypeName
 }: AnimatedShiftCardsWrapperProps) {
   return (
     <AnimatePresence mode="wait">
-      <AnimatedShiftCards 
+      <AnimatedShiftCards
         key={`${dateString}-${selectedLocation}`}
-        shifts={shifts} 
+        shifts={shifts}
+        shiftIdToTypeName={shiftIdToTypeName}
       />
     </AnimatePresence>
   );

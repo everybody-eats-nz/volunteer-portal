@@ -10,15 +10,25 @@ import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { MotionCard } from "@/components/motion-card";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
 
-  // Fetch complete user profile data and shift types
+  // Fetch complete user profile data, shift types, and newsletter lists
   let userProfile = null;
   let shiftTypes: { id: string; name: string; }[] = [];
+  let newsletterLists: { id: string; name: string; campaignMonitorId: string; }[] = [];
   if (session?.user?.email) {
-    [userProfile, shiftTypes] = await Promise.all([
+    [userProfile, shiftTypes, newsletterLists] = await Promise.all([
       prisma.user.findUnique({
       where: { email: session.user.email },
       select: {
@@ -40,6 +50,7 @@ export default async function ProfilePage() {
         availableDays: true,
         availableLocations: true,
         emailNewsletterSubscription: true,
+        newsletterLists: true,
         notificationPreference: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
@@ -55,6 +66,17 @@ export default async function ProfilePage() {
         },
         orderBy: {
           name: 'asc'
+        }
+      }),
+      prisma.newsletterList.findMany({
+        where: { active: true },
+        select: {
+          id: true,
+          name: true,
+          campaignMonitorId: true,
+        },
+        orderBy: {
+          displayOrder: 'asc'
         }
       })
     ]);
@@ -506,6 +528,39 @@ export default async function ProfilePage() {
                       )}
                     </>
                   )}
+
+                  <div className="mt-6 pt-4 border-t border-border">
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Newsletter Subscription
+                      </span>
+                      <span className="text-sm">
+                        {userProfile?.emailNewsletterSubscription ? 'Subscribed' : 'Not subscribed'}
+                      </span>
+                    </div>
+
+                    {userProfile?.emailNewsletterSubscription && userProfile?.newsletterLists && userProfile.newsletterLists.length > 0 && (
+                      <div className="mt-2">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Subscribed to:
+                        </span>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {userProfile.newsletterLists.map((listId: string) => {
+                            const list = newsletterLists.find(l => l.campaignMonitorId === listId);
+                            return (
+                              <Badge
+                                key={listId}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {list?.name || listId}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="pt-4 border-t border-border">
                     <Button

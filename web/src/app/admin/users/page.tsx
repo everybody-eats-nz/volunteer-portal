@@ -72,55 +72,155 @@ export default async function AdminUsersPage({
   // Fetch users with completed signup counts (confirmed signups for past shifts)
   const now = new Date();
 
-  // When sorting by signups, we need to fetch all users, sort by completed count, then paginate
-  // This is necessary because Prisma doesn't support orderBy on filtered _count
+  // Check if we're sorting by signups
   const isSortingBySignups = sortBy === "signups" || sortBy === "_count.signups";
 
-  let users;
-  let filteredCount;
+  // Define the user type based on the select query - use Prisma's inferred type
+  type UserSelect = Prisma.UserGetPayload<{
+    select: {
+      id: true;
+      email: true;
+      name: true;
+      firstName: true;
+      lastName: true;
+      phone: true;
+      profilePhotoUrl: true;
+      role: true;
+      volunteerGrade: true;
+      createdAt: true;
+      _count: {
+        select: {
+          signups: true;
+        };
+      };
+    };
+  }>;
+
+  let users: UserSelect[];
+  let filteredCount: number;
 
   if (isSortingBySignups) {
-    // Fetch all users with completed signup counts
-    const allUsers = await prisma.user.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        profilePhotoUrl: true,
-        role: true,
-        volunteerGrade: true,
-        createdAt: true,
-        _count: {
-          select: {
-            signups: {
-              where: {
-                status: "CONFIRMED",
-                shift: {
-                  end: {
-                    lt: now,
+    // Use raw SQL query to sort by completed signup count at database level
+    // This is much more efficient than fetching all users and sorting in memory
+
+    // Build SQL WHERE conditions with proper parameterization
+    // We'll build the WHERE clause dynamically using Prisma.sql
+    const orderDirection = sortOrder === "asc" ? "ASC" : "DESC";
+
+    let whereCondition = Prisma.empty;
+    let countWhereCondition = Prisma.empty;
+
+    if (searchQuery && roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
+      // Both search and role filter
+      const searchPattern = `%${searchQuery.toLowerCase()}%`;
+      whereCondition = Prisma.sql`
+        WHERE (LOWER(u.email) LIKE ${searchPattern}
+          OR LOWER(u.name) LIKE ${searchPattern}
+          OR LOWER(u."firstName") LIKE ${searchPattern}
+          OR LOWER(u."lastName") LIKE ${searchPattern})
+        AND u.role = ${roleFilter}::text
+      `;
+      countWhereCondition = Prisma.sql`
+        WHERE (LOWER(u.email) LIKE ${searchPattern}
+          OR LOWER(u.name) LIKE ${searchPattern}
+          OR LOWER(u."firstName") LIKE ${searchPattern}
+          OR LOWER(u."lastName") LIKE ${searchPattern})
+        AND u.role = ${roleFilter}::text
+      `;
+    } else if (searchQuery) {
+      // Only search filter
+      const searchPattern = `%${searchQuery.toLowerCase()}%`;
+      whereCondition = Prisma.sql`
+        WHERE (LOWER(u.email) LIKE ${searchPattern}
+          OR LOWER(u.name) LIKE ${searchPattern}
+          OR LOWER(u."firstName") LIKE ${searchPattern}
+          OR LOWER(u."lastName") LIKE ${searchPattern})
+      `;
+      countWhereCondition = Prisma.sql`
+        WHERE (LOWER(u.email) LIKE ${searchPattern}
+          OR LOWER(u.name) LIKE ${searchPattern}
+          OR LOWER(u."firstName") LIKE ${searchPattern}
+          OR LOWER(u."lastName") LIKE ${searchPattern})
+      `;
+    } else if (roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
+      // Only role filter
+      whereCondition = Prisma.sql`WHERE u.role = ${roleFilter}::text`;
+      countWhereCondition = Prisma.sql`WHERE u.role = ${roleFilter}::text`;
+    }
+
+    // Query to get user IDs sorted by completed signup count
+    const userIdsWithCount = await prisma.$queryRaw<
+      Array<{ id: string; signup_count: bigint }>
+    >`
+      SELECT
+        u.id,
+        COUNT(DISTINCT s.id) FILTER (
+          WHERE s.status = 'CONFIRMED'
+          AND sh.end < ${now}
+        ) as signup_count
+      FROM "User" u
+      LEFT JOIN "Signup" s ON u.id = s."userId"
+      LEFT JOIN "Shift" sh ON s."shiftId" = sh.id
+      ${whereCondition}
+      GROUP BY u.id
+      ORDER BY signup_count ${Prisma.raw(orderDirection)}, u."createdAt" DESC
+      LIMIT ${pageSize}
+      OFFSET ${skip}
+    `;
+
+    // Get total count for pagination
+    const countResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(DISTINCT u.id) as count
+      FROM "User" u
+      ${countWhereCondition}
+    `;
+    filteredCount = Number(countResult[0]?.count || 0);
+
+    // Fetch full user details for the paginated IDs, maintaining order
+    if (userIdsWithCount.length > 0) {
+      const userIds = userIdsWithCount.map((u) => u.id);
+
+      // Fetch users with their counts
+      const usersWithDetails = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          profilePhotoUrl: true,
+          role: true,
+          volunteerGrade: true,
+          createdAt: true,
+          _count: {
+            select: {
+              signups: {
+                where: {
+                  status: "CONFIRMED",
+                  shift: {
+                    end: {
+                      lt: now,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    // Sort by completed signup count in memory
-    const sortedUsers = allUsers.sort((a, b) => {
-      const countA = a._count.signups;
-      const countB = b._count.signups;
-      return sortOrder === "asc" ? countA - countB : countB - countA;
-    });
+      // Create a map for quick lookup
+      const userMap = new Map(usersWithDetails.map((u) => [u.id, u]));
 
-    // Apply pagination
-    users = sortedUsers.slice(skip, skip + pageSize);
-    filteredCount = allUsers.length;
+      // Maintain the order from the SQL query
+      users = userIds
+        .map((id) => userMap.get(id))
+        .filter((u): u is UserSelect => u !== undefined);
+    } else {
+      users = [];
+    }
   } else {
     // Build orderBy clause for non-signup sorting
     type PrismaOrderBy = Prisma.UserOrderByWithRelationInput;

@@ -1,3 +1,207 @@
+## [0.91.6] - 2025-12-28
+
+### Changes
+- chore(deps): bump @supabase/supabase-js from 2.87.1 to 2.89.0 in /web ([#448](https://github.com/everybody-eats-nz/volunteer-portal/pull/448)) by @dependabot[bot]
+
+
+## [0.91.5] - 2025-12-28
+
+### Changes
+- chore(deps): bump @prisma/client from 7.0.1 to 7.2.0 in /web ([#450](https://github.com/everybody-eats-nz/volunteer-portal/pull/450)) by @dependabot[bot]
+
+
+## [0.91.4] - 2025-12-28
+
+### Changes
+- chore(deps): bump lucide-react from 0.556.0 to 0.562.0 in /web ([#449](https://github.com/everybody-eats-nz/volunteer-portal/pull/449)) by @dependabot[bot]
+
+
+## [0.91.3] - 2025-12-28
+
+### Changes
+- chore(deps): bump posthog-js from 1.297.2 to 1.310.1 in /web ([#451](https://github.com/everybody-eats-nz/volunteer-portal/pull/451)) by @dependabot[bot]
+
+
+## [0.91.2] - 2025-12-28
+
+### Changes
+- chore(deps-dev): bump eslint-config-next from 16.1.0 to 16.1.1 in /web in the development-dependencies group ([#445](https://github.com/everybody-eats-nz/volunteer-portal/pull/445)) by @dependabot[bot]
+
+
+## [0.91.1] - 2025-12-25
+
+### Changes
+- Fix: Date picker opens to selected date's month ([#443](https://github.com/everybody-eats-nz/volunteer-portal/pull/443)) by @malinmalliyawadu
+
+
+## [0.91.0] - 2025-12-23
+
+### Changes
+- feat: Implement comprehensive SEO foundation ([#441](https://github.com/everybody-eats-nz/volunteer-portal/pull/441)) by @malinmalliyawadu
+
+
+## [0.90.2] - 2025-12-23
+
+### Changes
+- feat: show waitlist status for full backup shifts ([#440](https://github.com/everybody-eats-nz/volunteer-portal/pull/440)) by @malinmalliyawadu
+
+
+## [0.90.1] - 2025-12-23
+
+### Changes
+- fix: disable profile links for non-friend public users in shifts calendar ([#439](https://github.com/everybody-eats-nz/volunteer-portal/pull/439)) by @malinmalliyawadu
+
+
+## [0.90.0] - 2025-12-22
+
+### Changes
+- Add backup shift signup feature (Issue #422) ([#430](https://github.com/everybody-eats-nz/volunteer-portal/pull/430)) by @malinmalliyawadu
+
+
+## [0.89.5] - 2025-12-21
+
+### Changes
+- chore(deps-dev): bump @types/node from 20.19.10 to 25.0.3 in /web ([#436](https://github.com/everybody-eats-nz/volunteer-portal/pull/436)) by @dependabot[bot]
+
+
+## [0.89.4] - 2025-12-21
+
+### Changes
+- chore(deps): bump zod from 4.1.13 to 4.2.1 in /web ([#435](https://github.com/everybody-eats-nz/volunteer-portal/pull/435)) by @dependabot[bot]
+
+
+## [0.89.3] - 2025-12-21
+
+### Changes
+- Potential fix for code scanning alert no. 20: Use of externally-controlled format string ([#429](https://github.com/everybody-eats-nz/volunteer-portal/pull/429)) by @malinmalliyawadu
+
+
+## [0.89.2] - 2025-12-21
+
+### Changes
+- Potential fix for code scanning alert no. 19: Use of externally-controlled format string ([#428](https://github.com/everybody-eats-nz/volunteer-portal/pull/428)) by @malinmalliyawadu
+
+
+## [0.89.1] - 2025-12-21
+
+### Changes
+- Potential fix for code scanning alert no. 18: Use of externally-controlled format string ([#426](https://github.com/everybody-eats-nz/volunteer-portal/pull/426)) by @malinmalliyawadu
+
+
+## [0.89.0] - 2025-12-21
+
+### Changes
+- feat: Add comprehensive analytics dashboard for admins (Beta) ([#420](https://github.com/everybody-eats-nz/volunteer-portal/pull/420)) by @malinmalliyawadu
+
+
+## [0.88.0] - 2025-12-20
+
+### Changes
+- feat: Add email preview to restaurant manager assignments ([#419](https://github.com/everybody-eats-nz/volunteer-portal/pull/419)) by @malinmalliyawadu
+
+
+## [0.87.0] - 2025-12-20
+
+### Changes
+- feat: Add email preview functionality for transactional emails ([#417](https://github.com/everybody-eats-nz/volunteer-portal/pull/417)) by @malinmalliyawadu
+
+
+## [0.86.4] - 2025-12-20
+
+### Changes
+- fix: correct timezone handling for meals served queries ([#416](https://github.com/everybody-eats-nz/volunteer-portal/pull/416)) by @malinmalliyawadu
+
+
+## [0.86.3] - 2025-12-20
+
+### Changes
+- Fix mobile tabs with scrollable layout ([#415](https://github.com/everybody-eats-nz/volunteer-portal/pull/415)) by @malinmalliyawadu
+
+
+## [0.86.2] - 2025-12-20
+
+### Changes
+- fix: add passkeys_added to API validation criteria types ([#414](https://github.com/everybody-eats-nz/volunteer-portal/pull/414)) by @malinmalliyawadu
+
+
+## [0.86.1] - 2025-12-20
+
+### Changes
+- refactor: create single source of truth for achievement criteria types ([#413](https://github.com/everybody-eats-nz/volunteer-portal/pull/413)) by @malinmalliyawadu
+
+
+## [0.86.0] - 2025-12-20
+
+### Changes
+- feat: add Security Champion achievement for passkey registration ([#412](https://github.com/everybody-eats-nz/volunteer-portal/pull/412)) by @malinmalliyawadu
+
+
+## [0.85.4] - 2025-12-19
+
+### Changes
+- fix: prevent past dates from showing available shifts on mobile in My Shifts ([#411](https://github.com/everybody-eats-nz/volunteer-portal/pull/411)) by @malinmalliyawadu
+
+
+## [0.85.3] - 2025-12-19
+
+### Changes
+- fix: show email verification warning and disable signup buttons for unverified users ([#408](https://github.com/everybody-eats-nz/volunteer-portal/pull/408)) by @malinmalliyawadu
+
+
+## [0.85.2] - 2025-12-18
+
+### Changes
+- fix: send welcome email to OAuth users after profile completion ([#406](https://github.com/everybody-eats-nz/volunteer-portal/pull/406)) by @malinmalliyawadu
+
+
+## [0.85.1] - 2025-12-18
+
+### Changes
+- feat: Sync newsletter subscription state with Campaign Monitor on profile load ([#404](https://github.com/everybody-eats-nz/volunteer-portal/pull/404)) by @malinmalliyawadu
+
+
+## [0.85.0] - 2025-12-18
+
+### Changes
+- feat: Add newsletter list management with Campaign Monitor integration ([#403](https://github.com/everybody-eats-nz/volunteer-portal/pull/403)) by @malinmalliyawadu
+
+
+## [0.84.0] - 2025-12-17
+
+### Changes
+- feat: add show all users above me button in achievements leaderboard ([#400](https://github.com/everybody-eats-nz/volunteer-portal/pull/400)) by @malinmalliyawadu
+
+
+## [0.83.0] - 2025-12-17
+
+### Changes
+- feat: show shift type in achievement tooltips for specialization achievements ([#398](https://github.com/everybody-eats-nz/volunteer-portal/pull/398)) by @malinmalliyawadu
+
+
+## [0.82.0] - 2025-12-16
+
+### Changes
+- feat: add ability to disable and re-enable locations ([#397](https://github.com/everybody-eats-nz/volunteer-portal/pull/397)) by @malinmalliyawadu
+
+
+## [0.81.2] - 2025-12-16
+
+### Changes
+- fix: use correct ISO 8601 date format for Outlook calendar deeplinks ([#394](https://github.com/everybody-eats-nz/volunteer-portal/pull/394)) by @malinmalliyawadu
+
+
+## [0.81.1] - 2025-12-15
+
+### Changes
+- Fix friend notifications and re-add 500 error ([#393](https://github.com/everybody-eats-nz/volunteer-portal/pull/393)) by @malinmalliyawadu
+
+
+## [0.81.0] - 2025-12-15
+
+### Changes
+- feat: improve admin dashboard with time-based signup stats and passkey notice ([#391](https://github.com/everybody-eats-nz/volunteer-portal/pull/391)) by @malinmalliyawadu
+
+
 ## [0.80.0] - 2025-12-15
 
 ### Changes

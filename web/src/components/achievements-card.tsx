@@ -34,6 +34,11 @@ interface UserAchievement {
   achievement: Achievement;
 }
 
+interface ShiftType {
+  id: string;
+  name: string;
+}
+
 interface AchievementsData {
   userAchievements: UserAchievement[];
   availableAchievements: Achievement[];
@@ -48,6 +53,7 @@ interface AchievementsData {
   };
   totalPoints: number;
   newAchievements: string[];
+  shiftTypes: ShiftType[];
 }
 
 const CATEGORY_COLORS = {
@@ -76,6 +82,22 @@ interface AchievementProgress {
   target: number;
   percentage: number;
   label: string;
+}
+
+function getShiftTypeName(
+  criteria: string,
+  shiftTypes: ShiftType[]
+): string | undefined {
+  try {
+    const parsedCriteria: AchievementCriteria = JSON.parse(criteria);
+    if (parsedCriteria.type === "specific_shift_type" && parsedCriteria.shiftType) {
+      const shiftType = shiftTypes.find(st => st.id === parsedCriteria.shiftType);
+      return shiftType?.name;
+    }
+  } catch (error) {
+    console.error("Error parsing criteria for shift type:", error);
+  }
+  return undefined;
 }
 
 function calculateAchievementProgress(
@@ -192,7 +214,7 @@ export default function AchievementsCard() {
     return null;
   }
 
-  const { userAchievements, availableAchievements, totalPoints } =
+  const { userAchievements, availableAchievements, totalPoints, shiftTypes } =
     achievementsData;
   const recentAchievements = userAchievements.slice(0, 3);
 
@@ -290,7 +312,8 @@ export default function AchievementsCard() {
                       <TooltipContent>
                         <p className="font-medium">
                           {formatAchievementCriteria(
-                            userAchievement.achievement.criteria
+                            userAchievement.achievement.criteria,
+                            getShiftTypeName(userAchievement.achievement.criteria, shiftTypes)
                           )}
                         </p>
                       </TooltipContent>
@@ -371,7 +394,10 @@ export default function AchievementsCard() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="font-medium">
-                          {formatAchievementCriteria(achievement.criteria)}
+                          {formatAchievementCriteria(
+                            achievement.criteria,
+                            getShiftTypeName(achievement.criteria, shiftTypes)
+                          )}
                         </p>
                       </TooltipContent>
                     </Tooltip>

@@ -137,6 +137,7 @@ export function ShiftCalendar({
           <Calendar
             mode="single"
             selected={selectedDate}
+            defaultMonth={selectedDate}
             onSelect={handleDateSelect}
             modifiers={{
               hasShifts: (date) => hasShifts(date),

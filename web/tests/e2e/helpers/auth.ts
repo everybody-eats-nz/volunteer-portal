@@ -6,6 +6,12 @@ import type { Page } from "@playwright/test";
  */
 export async function loginAsAdmin(page: Page) {
   try {
+    await logout(page);
+  } catch {
+    console.warn("Couldn't logout - might not be logged in");
+  }
+
+  try {
     await page.goto("/login");
     await page.waitForLoadState("load");
 
@@ -28,6 +34,12 @@ export async function loginAsAdmin(page: Page) {
  * If customEmail is provided, uses credentials login instead
  */
 export async function loginAsVolunteer(page: Page, customEmail?: string) {
+  try {
+    await logout(page);
+  } catch {
+    console.warn("Couldn't logout - might not be logged in");
+  }
+
   try {
     await page.goto("/login");
     await page.waitForLoadState("load");

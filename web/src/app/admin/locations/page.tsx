@@ -13,11 +13,13 @@ export default async function LocationsPage() {
     redirect("/dashboard");
   }
 
-  // Fetch all locations
-  const locations = await prisma.location.findMany({
-    where: { isActive: true },
+  // Fetch all locations (both active and inactive)
+  const allLocations = await prisma.location.findMany({
     orderBy: { name: "asc" },
   });
+
+  const activeLocations = allLocations.filter((loc) => loc.isActive);
+  const inactiveLocations = allLocations.filter((loc) => !loc.isActive);
 
   return (
     <AdminPageWrapper
@@ -26,7 +28,10 @@ export default async function LocationsPage() {
     >
       <PageContainer>
         <div className="space-y-6">
-          <LocationSettingsForm locations={locations} />
+          <LocationSettingsForm
+            activeLocations={activeLocations}
+            inactiveLocations={inactiveLocations}
+          />
         </div>
       </PageContainer>
     </AdminPageWrapper>

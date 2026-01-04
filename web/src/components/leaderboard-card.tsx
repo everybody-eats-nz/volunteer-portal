@@ -34,6 +34,7 @@ interface LeaderboardData {
   percentile: number;
   nearbyUsers: LeaderboardUser[];
   locations: string[];
+  hasMoreAbove: boolean;
 }
 
 export function LeaderboardCard() {
@@ -41,18 +42,24 @@ export function LeaderboardCard() {
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [isOpen, setIsOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    // Reset showAll when location changes
+    setShowAll(false);
+  }, [selectedLocation]);
 
   useEffect(() => {
     // Only fetch when panel is open
     if (isOpen) {
-      fetchLeaderboard(selectedLocation);
+      fetchLeaderboard(selectedLocation, showAll);
     }
-  }, [selectedLocation, isOpen]);
+  }, [selectedLocation, isOpen, showAll]);
 
-  const fetchLeaderboard = async (location: string) => {
+  const fetchLeaderboard = async (location: string, showAllUsers: boolean) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/leaderboard?location=${location}`);
+      const response = await fetch(`/api/leaderboard?location=${location}&showAll=${showAllUsers}`);
       if (response.ok) {
         const leaderboardData = await response.json();
         setData(leaderboardData);
@@ -115,13 +122,38 @@ export function LeaderboardCard() {
               </div>
             ) : (
               data && (
-                <motion.div
-                  className="space-y-2"
-                  variants={staggerContainer}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {data.nearbyUsers.map((user) => (
+                <div className="space-y-4">
+                  {data.hasMoreAbove && !showAll && (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAll(true)}
+                        className="text-sm"
+                      >
+                        Show All Above Me ({data.userRank - 1} more)
+                      </Button>
+                    </div>
+                  )}
+                  {showAll && data.userRank > 4 && (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAll(false)}
+                        className="text-sm"
+                      >
+                        Show Less
+                      </Button>
+                    </div>
+                  )}
+                  <motion.div
+                    className="space-y-2"
+                    variants={staggerContainer}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    {data.nearbyUsers.map((user) => (
                     <motion.div
                       key={user.rank}
                       variants={staggerItem}
@@ -167,7 +199,8 @@ export function LeaderboardCard() {
                       </div>
                     </motion.div>
                   ))}
-                </motion.div>
+                  </motion.div>
+                </div>
               )
             )}
           </CardContent>
