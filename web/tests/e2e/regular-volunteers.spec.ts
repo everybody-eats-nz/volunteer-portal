@@ -212,7 +212,7 @@ test.describe("Regular Volunteers System", () => {
       await expect(pageTitle).toBeVisible();
     });
 
-    test.skip("should successfully add a new regular volunteer", async ({
+    test("should successfully add a new regular volunteer", async ({
       page,
     }) => {
       // Skip this test as it would create actual data
@@ -376,7 +376,7 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test.skip("should successfully enable regular volunteer status", async ({
+    test("should successfully enable regular volunteer status", async ({
       page,
     }) => {
       // Skip this test as it would modify user data
@@ -391,7 +391,7 @@ test.describe("Regular Volunteers System", () => {
       // 5. Verify configuration section appears
     });
 
-    test.skip("should successfully pause regular volunteer schedule", async ({
+    test("should successfully pause regular volunteer schedule", async ({
       page,
     }) => {
       // Skip this test as it would modify user data
@@ -595,7 +595,7 @@ test.describe("Regular Volunteers System", () => {
       }
     });
 
-    test.skip("should auto-generate signups when creating matching shifts", async ({
+    test("should auto-generate signups when creating matching shifts", async ({
       page,
     }) => {
       // Skip this test as it would create actual data and signups

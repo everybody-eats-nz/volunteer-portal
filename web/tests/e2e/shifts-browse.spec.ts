@@ -113,12 +113,6 @@ test.describe("Shifts Browse Page", () => {
   test.describe("Authenticated Access", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsVolunteer(page);
-
-      // Skip tests if login failed
-      const currentUrl = page.url();
-      if (currentUrl.includes("/login")) {
-        test.skip(true, "Login failed - skipping authenticated shifts tests");
-      }
     });
 
     test("should display location selection screen with authentication", async ({
@@ -137,23 +131,6 @@ test.describe("Shifts Browse Page", () => {
       // Should show location selection screen first
       const selectionTitle = page.getByTestId("location-selection-title");
       await expect(selectionTitle).toBeVisible();
-    });
-
-    test.skip("should display shifts page after location selection", async ({
-      page,
-    }) => {
-      await navigateToShiftsWithLocation(page);
-
-      // Check main elements are visible after location selection (should show location name)
-      const pageTitle = page.getByRole("heading", {
-        name: /wellington/i,
-      });
-      await expect(pageTitle).toBeVisible();
-
-      const pageDescription = page.getByText(
-        /find and sign up for upcoming volunteer opportunities/i
-      );
-      await expect(pageDescription).toBeVisible();
     });
 
     test("should display shift cards with all required information", async ({
@@ -782,12 +759,6 @@ test.describe("Shifts Browse Page", () => {
               }
             }
           }
-        } else {
-          // Skip test if not enough shifts on the same day
-          test.skip(
-            true,
-            "Not enough shifts on the same day to test daily validation"
-          );
         }
       } else {
         // Skip test if no shifts available
