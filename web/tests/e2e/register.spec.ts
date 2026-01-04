@@ -145,7 +145,7 @@ test.describe("Registration Page", () => {
   });
 
   test.describe("OAuth Providers", () => {
-    test.skip("should display OAuth providers section if available", async ({
+    test("should display OAuth providers section if available", async ({
       page,
     }) => {
       // Check if OAuth providers section exists
@@ -173,26 +173,20 @@ test.describe("Registration Page", () => {
     });
 
     test("should handle OAuth button interactions", async ({ page }) => {
-      const oauthProviders = page.getByTestId("oauth-providers");
+      const googleButton = page.getByTestId("oauth-google-button");
 
-      if (await oauthProviders.isVisible()) {
-        const googleButton = page.getByTestId("oauth-google-button");
-
-        if (await googleButton.isVisible()) {
-          // Intercept OAuth request to prevent actual OAuth flow in tests
-          await page.route("**/api/auth/signin/google*", (route) => {
-            route.fulfill({
-              status: 200,
-              contentType: "text/html",
-              body: "<html><body>OAuth test intercept</body></html>",
-            });
+      if (await googleButton.isVisible()) {
+        // Intercept OAuth request to prevent actual OAuth flow in tests
+        await page.route("**/api/auth/signin/google*", (route) => {
+          route.fulfill({
+            status: 200,
+            contentType: "text/html",
+            body: "<html><body>OAuth test intercept</body></html>",
           });
+        });
 
-          await googleButton.click();
-          await page.waitForTimeout(1000);
-        }
-      } else {
-        test.skip(true, "OAuth providers not configured in test environment");
+        await googleButton.click();
+        await page.waitForTimeout(1000);
       }
     });
   });
