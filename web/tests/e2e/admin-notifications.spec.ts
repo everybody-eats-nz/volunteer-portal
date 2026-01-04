@@ -8,12 +8,15 @@ import {
   deleteTestShifts,
 } from "./helpers/test-helpers";
 
-test.describe("Admin Shift Shortage Notifications", () => {
+test.describe.serial("Admin Shift Shortage Notifications", () => {
   let adminEmail: string;
   const volunteerEmails: string[] = [];
   let shiftId: string;
 
   test.beforeEach(async ({ page }) => {
+    // Clear volunteer emails from previous test
+    volunteerEmails.length = 0;
+
     // Create admin user
     adminEmail = `admin-notify-${Date.now()}@test.com`;
     await createTestUser(page, adminEmail, "ADMIN");
@@ -39,6 +42,10 @@ test.describe("Admin Shift Shortage Notifications", () => {
       excludedShortageNotificationTypes: [],
     });
 
+    // Login as admin (must happen before creating shifts)
+    await login(page, adminEmail, "Test123456");
+    await ensureAdmin(page);
+
     // Create a test shift
     const shiftData = await createShift(page, {
       location: "Wellington",
@@ -46,10 +53,6 @@ test.describe("Admin Shift Shortage Notifications", () => {
       capacity: 10,
     });
     shiftId = shiftData.id;
-
-    // Login as admin
-    await login(page, adminEmail, "Test123456");
-    await ensureAdmin(page);
   });
 
   test.afterEach(async ({ page }) => {
