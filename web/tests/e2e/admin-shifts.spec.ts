@@ -488,7 +488,6 @@ test.describe("Admin Shifts Page", () => {
       testEmails.push(testVolunteerEmail);
 
       // Login as the new volunteer and create signup
-      await logout(page);
       await loginAsVolunteer(page, testVolunteerEmail);
 
       await page.request.post("/api/shifts/signup", {
@@ -496,7 +495,6 @@ test.describe("Admin Shifts Page", () => {
       });
 
       // Back to admin view
-      await logout(page);
       await loginAsAdmin(page);
 
       const tomorrow = new Date();
