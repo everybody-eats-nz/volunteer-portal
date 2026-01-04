@@ -8,12 +8,7 @@ export async function createTestUser(
   page: Page,
   email: string,
   role: "ADMIN" | "VOLUNTEER" = "VOLUNTEER",
-  additionalData?: {
-    availableLocations?: string;
-    availableDays?: string;
-    receiveShortageNotifications?: boolean;
-    excludedShortageNotificationTypes?: string[];
-  }
+  additionalData?: Record<string, string | boolean | number | string[] | null>
 ): Promise<void> {
   const response = await page.request.post("/api/test/users", {
     data: {
@@ -128,7 +123,17 @@ export async function createShift(
     },
   });
 
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create shift: ${response.status()} - ${errorText}`);
+  }
+
   const result = await response.json();
+  if (!result.id) {
+    throw new Error(`Shift created but no ID returned: ${JSON.stringify(result)}`);
+  }
+
+  console.log(`Created shift ${result.id} for ${data.start.toISOString()}`);
   return { id: result.id };
 }
 

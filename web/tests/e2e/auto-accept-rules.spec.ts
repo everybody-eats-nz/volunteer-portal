@@ -180,15 +180,6 @@ test.describe("Auto-Accept Rules Delete Functionality", () => {
     // Navigate to admin dashboard first
     await page.goto("/admin");
     await page.waitForLoadState("load");
-
-    // Skip tests if login failed
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(
-        true,
-        "Admin login failed - skipping delete functionality tests"
-      );
-    }
   });
 
   test("should show confirmation dialog when deleting a rule", async ({

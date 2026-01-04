@@ -396,7 +396,8 @@ test.describe("Backup Shift Signup Feature", () => {
   });
 
   test("note field is hidden behind a button by default", async ({ page }) => {
-    await loginAsVolunteer(page, volunteerEmail);
+    // Login as admin first to create the shift
+    await loginAsAdmin(page);
 
     // Create a new shift for this test
     const tomorrow = nowInNZT();
@@ -412,6 +413,9 @@ test.describe("Backup Shift Signup Feature", () => {
       shiftTypeId: kitchenShiftType?.id,
     });
     testShiftIds.push(testShift.id);
+
+    // Now login as volunteer to test the signup flow
+    await loginAsVolunteer(page, volunteerEmail);
 
     await page.goto(`/shifts/details?date=${tomorrowStr}&location=Wellington`);
     await page.waitForLoadState("load");

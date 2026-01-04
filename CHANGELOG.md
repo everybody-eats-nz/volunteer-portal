@@ -1,3 +1,9 @@
+## [0.91.7] - 2026-01-04
+
+### Changes
+- Fix/more skipped tests ([#376](https://github.com/everybody-eats-nz/volunteer-portal/pull/376)) by @malinmalliyawadu
+
+
 ## [0.91.6] - 2025-12-28
 
 ### Changes

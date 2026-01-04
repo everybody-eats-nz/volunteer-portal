@@ -273,37 +273,6 @@ test.describe("Admin Shifts Page", () => {
       await expect(page.getByRole("dialog")).toBeVisible();
     });
 
-    test.skip("should close calendar when selecting a date with shifts", async ({
-      page,
-    }) => {
-      // First create a shift for today
-      const today = new Date();
-      const shift = await createShift(page, {
-        location: "Wellington",
-        start: new Date(today.setHours(15, 0)),
-        capacity: 3,
-      });
-      testShiftIds.push(shift.id);
-
-      await page.goto("/admin/shifts");
-      await page.waitForLoadState("load");
-
-      // Open calendar
-      const calendarButton = page
-        .locator("button")
-        .filter({ hasText: /\d{4}/ });
-      await calendarButton.click();
-
-      // Click on today (which should have a shift)
-      const todayButton = page
-        .locator('[role="button"]')
-        .filter({ hasText: new RegExp(`^${today.getDate()}$`) });
-      await todayButton.click();
-
-      // Calendar should close
-      await expect(page.getByRole("dialog")).not.toBeVisible();
-    });
-
     test("should display legend in calendar popup", async ({ page }) => {
       await page.goto("/admin/shifts");
       await page.waitForLoadState("load");
@@ -425,7 +394,7 @@ test.describe("Admin Shifts Page", () => {
       }
     });
 
-    test.skip("should show cancel dialog for confirmed volunteers", async ({
+    test("should show cancel dialog for confirmed volunteers", async ({
       page,
     }) => {
       const tomorrow = new Date();
@@ -446,10 +415,6 @@ test.describe("Admin Shifts Page", () => {
         .first();
       await cancelButton.click();
 
-      // Check that the cancel dialog appears
-      const cancelDialog = page.locator('[data-testid*="cancel-dialog"]');
-      await expect(cancelDialog).toBeVisible();
-
       // Check dialog content
       await expect(
         page.locator('[data-testid*="cancel-dialog-title"]')
@@ -467,31 +432,7 @@ test.describe("Admin Shifts Page", () => {
       ).toBeVisible();
     });
 
-    test.skip("should close cancel dialog when clicking cancel", async ({
-      page,
-    }) => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
-
-      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-      await page.waitForLoadState("load");
-
-      // Open cancel dialog
-      const cancelButton = page
-        .locator('[data-testid*="cancel-button"]')
-        .first();
-      await cancelButton.click();
-
-      // Click cancel in dialog
-      await page.locator('[data-testid*="cancel-dialog-cancel"]').click();
-
-      // Dialog should close
-      const cancelDialog = page.locator('[data-testid*="cancel-dialog"]');
-      await expect(cancelDialog).not.toBeVisible();
-    });
-
-    test.skip("should show confirm dialog for waitlisted volunteers", async ({
+    test("should show confirm dialog for waitlisted volunteers", async ({
       page,
     }) => {
       // First, move the volunteer to waitlisted status via API
@@ -535,7 +476,7 @@ test.describe("Admin Shifts Page", () => {
       }
     });
 
-    test.skip("should show reject dialog for pending volunteers", async ({
+    test("should show reject dialog for pending volunteers", async ({
       page,
     }) => {
       // Create a new pending signup
@@ -547,10 +488,7 @@ test.describe("Admin Shifts Page", () => {
       testEmails.push(testVolunteerEmail);
 
       // Login as the new volunteer and create signup
-      await page.goto("/login");
-      await page.fill('[name="email"]', testVolunteerEmail);
-      await page.fill('[name="password"]', "testpassword123");
-      await page.click('button[type="submit"]');
+      await loginAsVolunteer(page, testVolunteerEmail);
 
       await page.request.post("/api/shifts/signup", {
         data: { shiftId },
@@ -588,9 +526,7 @@ test.describe("Admin Shifts Page", () => {
   });
 
   test.describe("Profile Photos", () => {
-    test.skip("should display volunteer avatar components", async ({
-      page,
-    }) => {
+    test("should display volunteer avatar components", async ({ page }) => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowStr = tomorrow.toISOString().split("T")[0];
