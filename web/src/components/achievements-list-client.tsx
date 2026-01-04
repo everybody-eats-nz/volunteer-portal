@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { CompactScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
@@ -296,14 +297,14 @@ export function AchievementsListClient({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <CompactScrollableTabsList>
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="MILESTONE">Milestone</TabsTrigger>
             <TabsTrigger value="DEDICATION">Dedication</TabsTrigger>
             <TabsTrigger value="IMPACT">Impact</TabsTrigger>
             <TabsTrigger value="SPECIALIZATION">Role</TabsTrigger>
             <TabsTrigger value="COMMUNITY">Community</TabsTrigger>
-          </TabsList>
+          </CompactScrollableTabsList>
 
           <TabsContent value="all" className="mt-6">
             <motion.div

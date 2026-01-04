@@ -20,6 +20,7 @@ import {
   base64URLToBuffer,
 } from "@/lib/webauthn-utils";
 import { rpID, expectedOrigin } from "@/lib/webauthn-config";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 export async function POST(req: NextRequest) {
   try {
@@ -163,6 +164,13 @@ export async function POST(req: NextRequest) {
         aaguid: aaguid || null,
       },
     });
+
+    // Check for "Security Champion" achievement unlock
+    try {
+      await checkAndUnlockAchievements(userId);
+    } catch (error) {
+      console.error("Error checking achievements after passkey registration:", error);
+    }
 
     return NextResponse.json(
       {

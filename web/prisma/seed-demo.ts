@@ -534,6 +534,7 @@ async function main() {
       volunteerAgreementAccepted: true,
       healthSafetyPolicyAccepted: true,
       notificationPreference: "EMAIL",
+      emailVerified: true,
     },
   });
 
@@ -568,6 +569,7 @@ async function main() {
       role: "VOLUNTEER",
       volunteerGrade: "YELLOW", // Experienced volunteer for testing auto-approval
       createdAt: subMonths(new Date(), 6), // Been volunteering for 6 months
+      emailVerified: true,
     },
   });
 
@@ -598,6 +600,7 @@ async function main() {
         role: "VOLUNTEER",
         volunteerGrade: volunteerGrade as VolunteerGrade,
         notificationPreference: "NONE",
+        emailVerified: true,
       },
     });
     extraVolunteers.push(u);
@@ -752,6 +755,7 @@ async function main() {
         hashedPassword: volunteerHash,
         role: "VOLUNTEER",
         volunteerGrade: volunteerGrade,
+        emailVerified: true,
       },
     });
     extraVolunteers.push(u);

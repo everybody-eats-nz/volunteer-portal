@@ -26,6 +26,7 @@ import {
 import { calculateAge } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface User {
   id: string;
@@ -341,20 +342,29 @@ export function ParentalConsentTable() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setApproveDialog({ isOpen: false, user: null })}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmApproval}
-              disabled={!!approving}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {approving ? "Approving..." : "Approve Consent"}
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex-1">
+              <EmailPreviewDialog
+                emailType="parentalConsentApproval"
+                triggerLabel="Preview Email"
+                triggerVariant="outline"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setApproveDialog({ isOpen: false, user: null })}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmApproval}
+                disabled={!!approving}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {approving ? "Approving..." : "Approve Consent"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

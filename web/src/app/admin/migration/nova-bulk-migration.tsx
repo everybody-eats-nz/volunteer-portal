@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import {
   Database,
   Users,
@@ -476,7 +477,7 @@ export function NovaBulkMigration() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
+      <ScrollableTabsList className="mb-6">
         <TabsTrigger value="step1" className="gap-2">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
             1
@@ -489,7 +490,7 @@ export function NovaBulkMigration() {
           </span>
           Import Historical Data
         </TabsTrigger>
-      </TabsList>
+      </ScrollableTabsList>
 
       <TabsContent value="step1" className="space-y-6">
         <Alert>

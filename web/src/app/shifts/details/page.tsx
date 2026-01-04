@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay } from "date-fns";
-import { formatInNZT, toUTC, parseISOInNZT } from "@/lib/timezone";
+import { formatInNZT, toUTC, parseISOInNZT, toNZT } from "@/lib/timezone";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -37,6 +37,49 @@ function getDurationInHours(start: Date, end: Date): string {
   const wholeHours = Math.floor(hours);
   const minutes = Math.round((hours - wholeHours) * 60);
   return minutes === 0 ? `${wholeHours}h` : `${wholeHours}h ${minutes}m`;
+}
+
+// Helper to determine if a shift is AM or PM (in NZ timezone)
+function isAMShiftHelper(shiftStart: Date): boolean {
+  const nzTime = toNZT(shiftStart);
+  const hour = nzTime.getHours();
+  return hour < 16;
+}
+
+// Helper to get shift date in NZ timezone
+function getShiftDateHelper(shiftStart: Date): string {
+  return formatInNZT(shiftStart, "yyyy-MM-dd");
+}
+
+// Compute concurrent shifts from already-fetched shifts
+function getConcurrentShiftsFromList(
+  targetShift: ShiftWithRelations,
+  allShifts: ShiftWithRelations[]
+) {
+  const targetDate = getShiftDateHelper(targetShift.start);
+  const targetIsAM = isAMShiftHelper(targetShift.start);
+
+  return allShifts
+    .filter((shift) => {
+      if (shift.id === targetShift.id) return false;
+      if (shift.location !== targetShift.location) return false;
+
+      const shiftDate = getShiftDateHelper(shift.start);
+      const shiftIsAM = isAMShiftHelper(shift.start);
+
+      return shiftDate === targetDate && shiftIsAM === targetIsAM;
+    })
+    .map((shift) => {
+      const confirmedCount = shift.signups.filter(
+        (s) => s.status === "CONFIRMED" || s.status === "REGULAR_PENDING"
+      ).length;
+      return {
+        id: shift.id,
+        shiftTypeName: shift.shiftType.name,
+        shiftTypeDescription: shift.shiftType.description,
+        spotsRemaining: Math.max(0, shift.capacity - confirmedCount),
+      };
+    });
 }
 
 interface ShiftWithRelations {
@@ -83,6 +126,7 @@ function ShiftCard({
   userFriendIds = [],
   canSignUp = true,
   needsParentalConsent = false,
+  allShifts = [],
 }: {
   shift: ShiftWithRelations;
   currentUserId?: string;
@@ -90,9 +134,13 @@ function ShiftCard({
   userFriendIds?: string[];
   canSignUp?: boolean;
   needsParentalConsent?: boolean;
+  allShifts?: ShiftWithRelations[];
 }) {
   const theme = getShiftTheme(shift.shiftType.name);
   const duration = getDurationInHours(shift.start, shift.end);
+
+  // Compute concurrent shifts for backup options
+  const concurrentShifts = getConcurrentShiftsFromList(shift, allShifts);
 
   // Calculate signup counts - only count non-canceled signups
   let confirmedCount = 0;
@@ -283,6 +331,7 @@ function ShiftCard({
                   shift={shift}
                   confirmedCount={confirmedCount}
                   currentUserId={currentUserId}
+                  concurrentShifts={concurrentShifts}
                 />
               ) : (
                 <Button
@@ -635,6 +684,7 @@ export default async function ShiftDetailsPage({
                           userFriendIds={userFriendIds}
                           canSignUp={canSignUpForShifts}
                           needsParentalConsent={needsParentalConsent}
+                          allShifts={allShifts}
                         />
                       ))}
                     </div>
@@ -674,6 +724,7 @@ export default async function ShiftDetailsPage({
                           userFriendIds={userFriendIds}
                           canSignUp={canSignUpForShifts}
                           needsParentalConsent={needsParentalConsent}
+                          allShifts={allShifts}
                         />
                       ))}
                     </div>

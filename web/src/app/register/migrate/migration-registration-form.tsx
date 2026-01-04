@@ -177,6 +177,7 @@ function AccountStepWithOAuth({
         availableDays: formData.availableDays,
         availableLocations: formData.availableLocations,
         emailNewsletterSubscription: formData.emailNewsletterSubscription,
+        newsletterLists: formData.newsletterLists || [],
         notificationPreference: formData.notificationPreference,
         receiveShortageNotifications: formData.receiveShortageNotifications,
         excludedShortageNotificationTypes:
@@ -357,6 +358,7 @@ export function MigrationRegistrationForm({
 
     // Communication & agreements
     emailNewsletterSubscription: true,
+    newsletterLists: [],
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],

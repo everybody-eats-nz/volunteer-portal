@@ -29,6 +29,7 @@ import {
   CalendarIcon,
   Eye,
   EyeOff,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -103,6 +104,7 @@ export interface UserProfileFormData {
 
   // Communication & agreements
   emailNewsletterSubscription: boolean;
+  newsletterLists: string[];
   notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
@@ -845,6 +847,7 @@ export function CommunicationStep({
   healthSafetyPolicyOpen,
   setHealthSafetyPolicyOpen,
   shiftTypes = [],
+  newsletterLists = [],
 }: {
   formData: UserProfileFormData;
   onInputChange: (
@@ -859,6 +862,7 @@ export function CommunicationStep({
   healthSafetyPolicyOpen: boolean;
   setHealthSafetyPolicyOpen: (open: boolean) => void;
   shiftTypes?: Array<{ id: string; name: string }>;
+  newsletterLists?: Array<{ id: string; name: string; campaignMonitorId: string; description: string | null }>;
 }) {
   return (
     <div className="space-y-6" data-testid="notification-preferences-form">
@@ -945,6 +949,72 @@ export function CommunicationStep({
               </div>
             </div>
           </>
+        )}
+      </div>
+
+      {/* Newsletter Subscription Section */}
+      <div className="space-y-4 pt-6 border-t border-border">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <Mail className="h-4 w-4" />
+          Newsletter Subscription
+        </h3>
+
+        <div className="p-4 rounded-lg border border-border bg-muted/20">
+          <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
+            <Checkbox
+              checked={formData.emailNewsletterSubscription}
+              onCheckedChange={(checked) => {
+                onInputChange("emailNewsletterSubscription", checked);
+                if (!checked) {
+                  // Clear newsletter lists when unsubscribing
+                  onInputChange("newsletterLists", []);
+                }
+              }}
+              disabled={loading}
+              className="mt-1"
+              data-testid="newsletter-subscription-toggle"
+            />
+            <div>
+              <span>Subscribe to our newsletter</span>
+              <p className="text-xs text-muted-foreground mt-1 font-normal">
+                Receive updates about events, volunteer opportunities, and organization news.
+              </p>
+            </div>
+          </Label>
+        </div>
+
+        {formData.emailNewsletterSubscription && newsletterLists.length > 0 && (
+          <div className="space-y-2 ml-6">
+            <Label className="text-sm font-medium">
+              Select newsletters
+            </Label>
+            <div className="space-y-2">
+              {newsletterLists.map((list) => (
+                <Label key={list.id} className="flex items-center space-x-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={formData.newsletterLists?.includes(list.campaignMonitorId) || false}
+                    onCheckedChange={(checked) => {
+                      const currentLists = formData.newsletterLists || [];
+                      onInputChange(
+                        "newsletterLists",
+                        checked
+                          ? [...currentLists, list.campaignMonitorId]
+                          : currentLists.filter(id => id !== list.campaignMonitorId)
+                      );
+                    }}
+                    disabled={loading}
+                    data-testid={`newsletter-${list.name.toLowerCase().replace(/\s+/g, '-')}-checkbox`}
+                  />
+                  <div>
+                    <span>{list.name}</span>
+                    {list.description && (
+                      <p className="text-xs text-muted-foreground">{list.description}</p>
+                    )}
+                  </div>
+                </Label>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

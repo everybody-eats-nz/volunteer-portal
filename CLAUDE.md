@@ -29,6 +29,32 @@ npm run prisma:deploy    # Deploy migrations to production
 
 ### Testing
 
+#### Unit Tests (Vitest)
+
+```bash
+cd web
+npm run test         # Run unit tests in watch mode
+npm run test:ui      # Run tests with Vitest UI
+npm run test:run     # Run tests once (CI mode)
+```
+
+**Unit Testing Guidelines**:
+- Use Vitest for testing utility functions, business logic, and isolated components
+- Test files should be named `*.test.ts` or `*.test.tsx` and placed alongside the code they test
+- Use `describe` blocks to group related tests
+- Follow the existing pattern in `src/lib/calendar-utils.test.ts` for consistency
+- Mock Prisma client and external dependencies in test setup (`src/lib/test-setup.ts`)
+- Use `globals: true` in vitest.config.ts, so `describe`, `it`, `expect` are auto-imported
+
+**When to use unit tests**:
+- Pure functions and utility libraries
+- Data transformation logic
+- Validation functions
+- Calendar/date utilities
+- Complex business logic that doesn't require DOM or database
+
+#### E2E Tests (Playwright)
+
 ```bash
 cd web
 npm run test:e2e                # Run all Playwright e2e tests
@@ -38,6 +64,13 @@ npx playwright test test.spec.ts --project=chromium # Run specific test in Chrom
 ```
 
 **Important**: ALWAYS run e2e tests in Chromium only using `--project=chromium` flag. This avoids cross-browser compatibility issues and provides cleaner debugging output. Running tests across all browsers can cause timeouts and false positives.
+
+**When to use e2e tests**:
+- Full user workflows
+- Page interactions and navigation
+- Form submissions
+- Authentication flows
+- Admin dashboard operations
 
 ### Build & Lint
 
@@ -56,6 +89,7 @@ npm run lint      # Run ESLint
 - **Prisma ORM** with PostgreSQL
 - **NextAuth.js** for authentication (OAuth + credentials)
 - **Tailwind CSS v4** + **shadcn/ui** components
+- **Vitest** for unit testing
 - **Playwright** for e2e testing
 
 ### Directory Structure
@@ -150,6 +184,43 @@ Group booking features are integrated throughout the admin dashboard and volunte
 
 ### Testing Approach
 
+#### Unit Testing with Vitest
+
+Unit tests in `/web/src/**/*.test.ts` cover:
+
+- Utility functions (calendar, date formatting, etc.)
+- Business logic and data transformations
+- Validation functions
+- Pure functions that don't require DOM or database
+
+**Writing Unit Tests**:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./my-module";
+
+describe("myFunction", () => {
+  it("should do something specific", () => {
+    const result = myFunction("input");
+    expect(result).toBe("expected output");
+  });
+
+  it("should handle edge cases", () => {
+    expect(myFunction("")).toBe("");
+    expect(myFunction(null)).toBeNull();
+  });
+});
+```
+
+**Vitest Configuration**:
+- Config file: `vitest.config.ts`
+- Setup file: `src/lib/test-setup.ts` (mocks Prisma client and modules)
+- Environment: Node
+- Globals enabled: `describe`, `it`, `expect` are auto-imported
+- E2E tests excluded from Vitest (handled by Playwright)
+
+#### E2E Testing with Playwright
+
 E2e tests in `/web/tests/e2e/` cover:
 
 - Authentication flows (login, register)
@@ -181,7 +252,12 @@ Example testid usage:
 </Button>
 ```
 
-Run tests before committing changes that affect user flows.
+**Testing Best Practices**:
+- Write unit tests for business logic and utilities
+- Write e2e tests for user workflows and integration
+- Run unit tests (`npm run test:run`) before committing
+- Run relevant e2e tests before committing changes that affect user flows
+- Use `--project=chromium` flag for faster e2e test execution
 
 ## Animation System
 
@@ -233,6 +309,95 @@ This project uses **motion.dev** for all animations. We've migrated from CSS ani
 2. Create motion wrapper components as needed
 3. Maintain grid/flex layouts by avoiding unnecessary wrapper divs
 4. Test animations across different screen sizes
+
+## SEO & Search Optimization
+
+This application implements comprehensive SEO following Next.js 16 best practices.
+
+### Key Components
+
+- **Sitemap**: Auto-generated at `/sitemap.xml` via `src/app/sitemap.ts`
+- **Robots**: Auto-generated at `/robots.txt` via `src/app/robots.ts`
+- **Metadata**: Centralized utilities in `src/lib/seo.ts`
+- **Structured Data**: Organization and Event schemas via JSON-LD
+
+### Public vs Private Pages
+
+**Indexable** (robots: index, follow):
+- `/` - Homepage
+- `/login` - Sign in
+- `/register` - Registration
+- `/shifts` - Shift browsing
+
+**Non-Indexable** (robots: noindex, nofollow):
+- All authenticated pages (`/dashboard`, `/profile`, `/achievements`, `/friends`, `/resources`)
+- All admin pages (`/admin/*`)
+- All API routes (`/api/*`)
+
+### Adding SEO to New Pages
+
+For new public pages:
+
+```typescript
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Page Title",
+  description: "Page description (150-160 chars)",
+  path: "/page-path",
+});
+```
+
+For dynamic pages, use `generateMetadata`:
+
+```typescript
+export async function generateMetadata({ params }): Promise<Metadata> {
+  // Fetch data and return metadata
+  return buildPageMetadata({
+    title: dynamicTitle,
+    description: dynamicDescription,
+    path: "/page-path",
+  });
+}
+```
+
+For authenticated/private pages:
+
+```typescript
+export const metadata: Metadata = {
+  title: "Page Title",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+```
+
+### Testing SEO
+
+**Development:**
+```bash
+npm run dev
+# Visit http://localhost:3000/sitemap.xml
+# Visit http://localhost:3000/robots.txt
+# Inspect <head> tags on each public page
+```
+
+**Validation Tools:**
+- [Google Rich Results Test](https://search.google.com/test/rich-results) - Test structured data
+- [Schema Markup Validator](https://validator.schema.org/) - Validate JSON-LD
+- [Facebook OG Debugger](https://developers.facebook.com/tools/debug/) - Test Open Graph tags
+- [Twitter Card Validator](https://cards-dev.twitter.com/validator) - Test Twitter Cards
+
+**Monitoring:**
+- Google Search Console for indexing status and crawl errors
+- Core Web Vitals via Vercel Speed Insights
+- Organic traffic via PostHog
+
+### Documentation
+
+For comprehensive SEO guidelines, see **[SEO Guide](web/docs/seo-guide.md)**.
 
 ## Development Tips
 

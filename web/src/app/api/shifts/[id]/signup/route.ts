@@ -90,13 +90,26 @@ export async function POST(
     if (signup.status === "CONFIRMED") confirmedCount += 1;
   }
 
-  // Read optional waitlist flag and note from form body
+  // Read optional waitlist flag, backup shift IDs, and note from form body
   let waitlistRequested = false;
+  let backupShiftIds: string[] = [];
   let note: string | null = null;
   try {
     const form = await req.formData();
     const val = form.get("waitlist");
     waitlistRequested = val === "1" || val === "true" || val === "on";
+
+    // Parse backup shift IDs (comma-separated or JSON array)
+    const backupVal = form.get("backupShiftIds");
+    if (backupVal && typeof backupVal === "string" && backupVal.trim()) {
+      try {
+        // Try parsing as JSON array first
+        backupShiftIds = JSON.parse(backupVal);
+      } catch {
+        // Fall back to comma-separated string
+        backupShiftIds = backupVal.split(",").map((id) => id.trim()).filter(Boolean);
+      }
+    }
 
     // Get optional note
     const noteValue = form.get("note");
@@ -220,6 +233,7 @@ export async function POST(
         shiftId: shift.id,
         status: "WAITLISTED",
         note: note,
+        backupForShiftIds: backupShiftIds,
       },
     });
 
@@ -236,6 +250,7 @@ export async function POST(
         shiftId: shift.id,
         status: "PENDING",
         note: note,
+        backupForShiftIds: backupShiftIds,
       },
     });
 

@@ -18,6 +18,7 @@ interface Shift {
     id: string;
     status: string;
     note: string | null;
+    backupForShiftIds: string[];
     user: {
       id: string;
       name: string | null;
@@ -55,9 +56,10 @@ interface Shift {
 
 interface ShiftsByTimeOfDayProps {
   shifts: Shift[];
+  shiftIdToTypeName: Map<string, string>;
 }
 
-export function ShiftsByTimeOfDay({ shifts }: ShiftsByTimeOfDayProps) {
+export function ShiftsByTimeOfDay({ shifts, shiftIdToTypeName }: ShiftsByTimeOfDayProps) {
   // Helper function to determine if a shift is AM or PM (in NZ timezone)
   const isAMShift = (shift: Shift) => {
     const nzTime = toNZT(shift.start);
@@ -92,6 +94,7 @@ export function ShiftsByTimeOfDay({ shifts }: ShiftsByTimeOfDayProps) {
             shifts={amShifts}
             dateString={amShifts[0]?.start ? formatInNZT(amShifts[0].start, 'yyyy-MM-dd') : ''}
             selectedLocation={amShifts[0]?.location || ''}
+            shiftIdToTypeName={shiftIdToTypeName}
           />
         </section>
       )}
@@ -114,6 +117,7 @@ export function ShiftsByTimeOfDay({ shifts }: ShiftsByTimeOfDayProps) {
             shifts={pmShifts}
             dateString={pmShifts[0]?.start ? formatInNZT(pmShifts[0].start, 'yyyy-MM-dd') : ''}
             selectedLocation={pmShifts[0]?.location || ''}
+            shiftIdToTypeName={shiftIdToTypeName}
           />
         </section>
       )}

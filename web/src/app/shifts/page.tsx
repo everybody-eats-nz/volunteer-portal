@@ -16,6 +16,39 @@ import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-compl
 import { Suspense } from "react";
 import { getAuthInfo } from "@/lib/auth-utils";
 import { LocationAddress } from "@/components/location-address";
+import type { Metadata } from "next";
+import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const location = Array.isArray(params.location)
+    ? params.location[0]
+    : params.location;
+  const showAll = params.showAll === "true";
+
+  let title = "Browse Volunteer Shifts";
+  let description =
+    "Explore available volunteer opportunities at Everybody Eats. From prep work to service, find shifts that fit your schedule.";
+
+  if (location && LOCATIONS.includes(location as LocationOption)) {
+    title = `Volunteer Shifts in ${location}`;
+    description = `Browse upcoming volunteer shifts at Everybody Eats ${location}. From prep work to service, find opportunities that fit your schedule.`;
+  } else if (showAll) {
+    title = "All Volunteer Shifts";
+    description =
+      "Browse all upcoming volunteer shifts across all Everybody Eats locations in New Zealand.";
+  }
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: "/shifts",
+  });
+}
 
 interface ShiftSummary {
   id: string;
@@ -38,6 +71,7 @@ interface ShiftSummary {
       email: string;
       profilePhotoUrl: string | null;
     };
+    isFriend: boolean;
   }>;
 }
 
@@ -176,6 +210,7 @@ export default async function ShiftsCalendarPage({
       email: string;
       profilePhotoUrl: string | null;
     };
+    isFriend: boolean;
   };
   let friendSignupsMap: Record<string, FriendSignup[]> = {};
 
@@ -223,7 +258,10 @@ export default async function ShiftsCalendarPage({
       })
       .reduce<Record<string, FriendSignup[]>>((acc, signup) => {
         if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
-        acc[signup.shiftId].push(signup);
+        acc[signup.shiftId].push({
+          user: signup.user,
+          isFriend: userFriendIds.includes(signup.user.id),
+        });
         return acc;
       }, {});
   }
@@ -387,11 +425,33 @@ export default async function ShiftsCalendarPage({
     );
   }
 
+  // Generate Event schema for up to 20 shifts
+  const shiftSchemas = shiftSummaries.slice(0, 20).map((shift) =>
+    buildShiftEventSchema({
+      id: shift.id,
+      name: shift.shiftType.name,
+      description: shift.shiftType.description,
+      startDate: shift.start,
+      endDate: shift.end,
+      location: shift.location,
+      capacity: shift.capacity,
+      spotsAvailable: shift.capacity - shift.confirmedCount,
+    })
+  );
+
   return (
-    <PageContainer testid="shifts-browse-page">
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-        <div className="flex-1">
-          <PageHeader
+    <>
+      {shiftSchemas.map((schema, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+      <PageContainer testid="shifts-browse-page">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div className="flex-1">
+            <PageHeader
             title={
               selectedLocation ||
               (showAll
@@ -448,5 +508,6 @@ export default async function ShiftsCalendarPage({
         selectedLocation={selectedLocation}
       />
     </PageContainer>
+    </>
   );
 }

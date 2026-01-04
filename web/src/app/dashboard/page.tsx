@@ -15,6 +15,15 @@ import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
 import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
 import { AchievementTracker } from "@/components/achievement-tracker";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);

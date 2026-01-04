@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { formatInNZT } from "@/lib/timezone";
 import {
   ResponsiveDialog,
@@ -18,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InfoBox } from "@/components/ui/info-box";
+import { MotionSpinner } from "@/components/motion-spinner";
 import { X, Plus, Users, Mail, Check, AlertCircle, Clock, MapPin } from "lucide-react";
 
 interface Shift {
@@ -64,6 +66,7 @@ export function GroupBookingDialog({
   onOpenChange,
   currentUserEmail,
 }: GroupBookingDialogProps) {
+  const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([]);
   const [groupName, setGroupName] = useState("");
@@ -72,6 +75,9 @@ export function GroupBookingDialog({
   const [newEmail, setNewEmail] = useState("");
   // Track member assignments: { email: shiftId } - now only one shift per person
   const [memberAssignments, setMemberAssignments] = useState<Record<string, string>>({});
+  const [emailVerified, setEmailVerified] = useState(true); // Default to true to avoid showing warning before check
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [verificationResent, setVerificationResent] = useState(false);
   const [errors, setErrors] = useState<{
     shifts?: string;
     groupName?: string;
@@ -79,6 +85,63 @@ export function GroupBookingDialog({
     assignments?: string;
     general?: string;
   }>({});
+
+  // Check email verification status when dialog opens
+  useEffect(() => {
+    if (open && session?.user) {
+      const checkEmailVerification = async () => {
+        try {
+          const response = await fetch('/api/profile');
+          if (response.ok) {
+            const userData = await response.json();
+            setEmailVerified(userData.emailVerified ?? true);
+          } else {
+            console.warn('Profile fetch failed:', response.status);
+            setEmailVerified(true); // Default to verified to avoid blocking
+          }
+        } catch (error) {
+          console.error('Error checking email verification:', error);
+          setEmailVerified(true); // Default to verified to avoid blocking
+        }
+      };
+
+      // Add timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        console.warn('Email verification check timed out');
+        setEmailVerified(true); // Default to verified to avoid blocking
+      }, 3000); // 3 second timeout
+
+      checkEmailVerification().finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [open, session]);
+
+  const handleResendVerification = async () => {
+    setIsResendingVerification(true);
+    setErrors({ ...errors, general: undefined });
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (response.ok) {
+        setVerificationResent(true);
+      } else {
+        const errorData = await response.json();
+        setErrors({ ...errors, general: errorData.error || "Failed to resend verification email" });
+      }
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      setErrors({ ...errors, general: "Failed to resend verification email. Please try again." });
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -240,6 +303,46 @@ export function GroupBookingDialog({
               </div>
             </div>
           </div>
+
+          {/* Email Verification Warning */}
+          {!emailVerified && (
+            <InfoBox
+              title="Email Verification Required"
+              variant="red"
+              testId="group-booking-email-verification-warning"
+            >
+              <div className="space-y-3">
+                <p className="text-red-700">
+                  You must verify your email address before creating group bookings. Please check your inbox for a verification email.
+                </p>
+                {verificationResent ? (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <p className="text-green-700 text-sm">
+                      ✓ Verification email sent! Please check your inbox and spam folder.
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleResendVerification}
+                    disabled={isResendingVerification}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    data-testid="group-booking-resend-verification-button"
+                  >
+                    {isResendingVerification ? (
+                      <span className="flex items-center gap-2">
+                        <MotionSpinner className="w-4 h-4" />
+                        Sending...
+                      </span>
+                    ) : (
+                      "Resend Verification Email"
+                    )}
+                  </Button>
+                )}
+              </div>
+            </InfoBox>
+          )}
 
           {/* Shift Selection */}
           <div className="space-y-3" data-testid="shift-selection-section">
@@ -610,7 +713,7 @@ export function GroupBookingDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || selectedShiftIds.length === 0 || !groupName.trim() || memberEmails.length === 0}
+            disabled={isSubmitting || !emailVerified || selectedShiftIds.length === 0 || !groupName.trim() || memberEmails.length === 0}
             className="min-w-[140px]"
             data-testid="group-booking-create-button"
           >

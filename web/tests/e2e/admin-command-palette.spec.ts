@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsAdmin, loginAsVolunteer, logout } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Admin Command Palette", () => {
   test.beforeEach(async ({ page }) => {
@@ -21,7 +21,6 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("non-admin users do not see command palette", async ({ page }) => {
-      await logout(page);
       await loginAsVolunteer(page);
 
       await page.goto("/dashboard");

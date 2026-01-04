@@ -983,6 +983,160 @@ class EmailService {
       }
     }
   }
+
+  /**
+   * Get email template ID by type
+   */
+  private getSmartEmailIdByType(
+    emailType:
+      | "shortage"
+      | "cancellation"
+      | "confirmation"
+      | "volunteerCancellation"
+      | "volunteerNotNeeded"
+      | "emailVerification"
+      | "parentalConsentApproval"
+      | "userInvitation"
+      | "profileCompletion"
+      | "migration"
+  ): { id: string; name: string } {
+    const emailTemplates = {
+      shortage: {
+        id: this.shiftShortageSmartEmailID,
+        name: "Shift Shortage Notification",
+      },
+      cancellation: {
+        id: this.shiftCancellationAdminSmartEmailID,
+        name: "Shift Cancellation (Admin)",
+      },
+      confirmation: {
+        id: this.shiftConfirmationSmartEmailID,
+        name: "Shift Confirmation",
+      },
+      volunteerCancellation: {
+        id: this.volunteerCancellationSmartEmailID,
+        name: "Volunteer Cancellation",
+      },
+      volunteerNotNeeded: {
+        id: this.volunteerNotNeededSmartEmailID,
+        name: "Volunteer Not Needed",
+      },
+      emailVerification: {
+        id: this.emailVerificationSmartEmailID,
+        name: "Email Verification",
+      },
+      parentalConsentApproval: {
+        id: this.parentalConsentApprovalSmartEmailID,
+        name: "Parental Consent Approval",
+      },
+      userInvitation: {
+        id: this.userInvitationSmartEmailID,
+        name: "User Invitation",
+      },
+      profileCompletion: {
+        id: this.profileCompletionSmartEmailID,
+        name: "Profile Completion",
+      },
+      migration: { id: this.migrationSmartEmailID, name: "Migration Invite" },
+    };
+
+    return emailTemplates[emailType];
+  }
+
+  /**
+   * Get email template details for preview (generic)
+   */
+  async getEmailPreview(
+    emailType:
+      | "shortage"
+      | "cancellation"
+      | "confirmation"
+      | "volunteerCancellation"
+      | "volunteerNotNeeded"
+      | "emailVerification"
+      | "parentalConsentApproval"
+      | "userInvitation"
+      | "profileCompletion"
+      | "migration"
+  ): Promise<{
+    success: boolean;
+    data?: {
+      SmartEmailID: string;
+      Name: string;
+      CreatedAt: string;
+      Status: string;
+      Properties: {
+        From: string;
+        ReplyTo: string;
+        Subject: string;
+        TextPreviewUrl?: string;
+        HtmlPreviewUrl?: string;
+      };
+    };
+    message: string;
+  }> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const template = this.getSmartEmailIdByType(emailType);
+
+    // In development, return mock data if configuration is missing
+    if (isDevelopment && template.id.startsWith("dummy-")) {
+      console.log(
+        `[EMAIL SERVICE] Would fetch ${emailType} email preview (skipped in dev - no config)`
+      );
+      return {
+        success: true,
+        data: {
+          SmartEmailID: template.id,
+          Name: `${template.name} (Development)`,
+          CreatedAt: new Date().toISOString(),
+          Status: "Active",
+          Properties: {
+            From: "noreply@example.com",
+            ReplyTo: "noreply@example.com",
+            Subject: `${template.name} Subject`,
+            TextPreviewUrl: "https://example.com/preview/text",
+            HtmlPreviewUrl: "https://example.com/preview/html",
+          },
+        },
+        message: "Development mode: Mock email preview returned",
+      };
+    }
+
+    try {
+      // Make direct API call to get smart email details
+      const response = await fetch(
+        `${this.baseUrl}/transactional/smartEmail/${template.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${Buffer.from(`${this.apiKey}:x`).toString(
+              "base64"
+            )}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Campaign Monitor API error: ${response.status} - ${errorText}`
+        );
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+        message: "Email preview retrieved successfully",
+      };
+    } catch (err) {
+      console.error(`Error fetching ${emailType} email preview:`, err);
+      return {
+        success: false,
+        message: `Failed to fetch email preview: ${err instanceof Error ? err.message : "Unknown error"}`,
+      };
+    }
+  }
 }
 
 // Export singleton instance
