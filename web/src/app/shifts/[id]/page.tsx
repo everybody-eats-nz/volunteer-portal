@@ -3,6 +3,7 @@ import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
+import { getConcurrentShifts } from "@/lib/concurrent-shifts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -217,6 +218,9 @@ export default async function ShiftDetailPage({
     });
   }
 
+  // Fetch concurrent shifts for backup options
+  const concurrentShifts = await getConcurrentShifts(id);
+
   const confirmedCount = shift._count.signups;
   const isWaitlist = confirmedCount >= shift.capacity;
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
@@ -419,6 +423,7 @@ export default async function ShiftDetailPage({
                   confirmedCount={confirmedCount}
                   isWaitlist={isWaitlist}
                   currentUserId={userId}
+                  concurrentShifts={concurrentShifts}
                 >
                   <Button
                     variant={isWaitlist ? "secondary" : "default"}

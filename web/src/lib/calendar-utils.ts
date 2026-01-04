@@ -89,6 +89,11 @@ export function generateCalendarUrls(shift: ShiftCalendarData): CalendarUrls {
   // Format dates in NZ timezone for calendar exports
   const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
   const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
+
+  // Outlook requires ISO 8601 format with separators
+  const outlookStartDate = formatInNZT(shift.start, "yyyy-MM-dd'T'HH:mm:ss");
+  const outlookEndDate = formatInNZT(shift.end, "yyyy-MM-dd'T'HH:mm:ss");
+
   const title = encodeURIComponent(`Everybody Eats - ${shift.shiftType.name}`);
   const description = encodeURIComponent(buildCalendarDescription(shift));
   const location = encodeURIComponent(getFullAddress(shift.location));
@@ -101,7 +106,7 @@ export function generateCalendarUrls(shift: ShiftCalendarData): CalendarUrls {
 
   return {
     google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${description}&location=${location}&ctz=Pacific/Auckland`,
-    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${startDate}&enddt=${endDate}&body=${description}&location=${location}`,
+    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${outlookStartDate}&enddt=${outlookEndDate}&body=${description}&location=${location}`,
     ics: icsDataUrl,
   };
 }
@@ -156,13 +161,18 @@ END:VCALENDAR`;
 export function generateCalendarData(shift: ShiftCalendarData): CalendarData {
   const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
   const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
+
+  // Outlook requires ISO 8601 format with separators
+  const outlookStartDate = formatInNZT(shift.start, "yyyy-MM-dd'T'HH:mm:ss");
+  const outlookEndDate = formatInNZT(shift.end, "yyyy-MM-dd'T'HH:mm:ss");
+
   const title = encodeURIComponent(`Everybody Eats - ${shift.shiftType.name}`);
   const description = encodeURIComponent(buildCalendarDescription(shift));
   const location = encodeURIComponent(getFullAddress(shift.location));
 
   return {
     google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${description}&location=${location}&ctz=Pacific/Auckland`,
-    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${startDate}&enddt=${endDate}&body=${description}&location=${location}`,
+    outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${outlookStartDate}&enddt=${outlookEndDate}&body=${description}&location=${location}`,
     icsContent: generateICSContent(shift),
   };
 }

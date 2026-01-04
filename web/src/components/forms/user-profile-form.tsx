@@ -29,6 +29,7 @@ import {
   CalendarIcon,
   Eye,
   EyeOff,
+  Mail,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -103,6 +104,7 @@ export interface UserProfileFormData {
 
   // Communication & agreements
   emailNewsletterSubscription: boolean;
+  newsletterLists: string[];
   notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
@@ -232,12 +234,28 @@ export function AccountStep({
             data-testid="password-match-check"
           >
             {formData.password === formData.confirmPassword ? (
-              <svg className="h-3 w-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="h-3 w-3 text-green-600"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             ) : (
-              <svg className="h-3 w-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="h-3 w-3 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
             )}
             <span
@@ -292,7 +310,8 @@ export function PersonalInfoStep({
   // Check if fields are locked (can be set initially but locked afterwards for non-admins)
   const isAdmin = userRole === "ADMIN";
   const isEmailLocked = !isRegistration && !isAdmin && !!initialEmail;
-  const isDateOfBirthLocked = !isRegistration && !isAdmin && !!initialDateOfBirth;
+  const isDateOfBirthLocked =
+    !isRegistration && !isAdmin && !!initialDateOfBirth;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -342,7 +361,8 @@ export function PersonalInfoStep({
           />
           {isEmailLocked && (
             <p className="text-xs text-muted-foreground">
-              Email address cannot be changed. Contact an administrator if you need to update it.
+              Email address cannot be changed. Contact an administrator if you
+              need to update it.
             </p>
           )}
         </div>
@@ -413,7 +433,8 @@ export function PersonalInfoStep({
           </Popover>
           {isDateOfBirthLocked && (
             <p className="text-xs text-muted-foreground">
-              Date of birth cannot be changed. Contact an administrator if you need to update it.
+              Date of birth cannot be changed. Contact an administrator if you
+              need to update it.
             </p>
           )}
         </div>
@@ -558,7 +579,9 @@ export function EmergencyContactStep({
         <div className="flex items-start space-x-3">
           <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">Important</h4>
+            <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Important
+            </h4>
             <p className="text-sm text-amber-700 dark:text-amber-300">
               This information is kept confidential and used only in case of
               emergencies during volunteer activities.
@@ -694,14 +717,16 @@ export function MedicalInfoStep({
           className="h-11"
           data-testid="how-did-you-hear-select"
         />
-        
+
         {formData.howDidYouHearAboutUs === "other" && (
           <div className="mt-3">
             <Input
               id="customHowDidYouHearAboutUs"
               data-testid="custom-how-did-you-hear-input"
               value={formData.customHowDidYouHearAboutUs || ""}
-              onChange={(e) => onInputChange("customHowDidYouHearAboutUs", e.target.value)}
+              onChange={(e) =>
+                onInputChange("customHowDidYouHearAboutUs", e.target.value)
+              }
               placeholder="Please specify how you heard about us"
               disabled={loading}
               className="h-11"
@@ -737,8 +762,8 @@ export function AvailabilityStep({
             Days you&apos;re typically available
           </Label>
           <p className="text-xs text-muted-foreground mb-4">
-            Select the days you&apos;re generally available to volunteer. This
-            helps us match you with suitable shifts.
+            Select the days you&apos;re available to volunteer. This helps us
+            match you with suitable shifts.
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -822,6 +847,7 @@ export function CommunicationStep({
   healthSafetyPolicyOpen,
   setHealthSafetyPolicyOpen,
   shiftTypes = [],
+  newsletterLists = [],
 }: {
   formData: UserProfileFormData;
   onInputChange: (
@@ -836,6 +862,7 @@ export function CommunicationStep({
   healthSafetyPolicyOpen: boolean;
   setHealthSafetyPolicyOpen: (open: boolean) => void;
   shiftTypes?: Array<{ id: string; name: string }>;
+  newsletterLists?: Array<{ id: string; name: string; campaignMonitorId: string; description: string | null }>;
 }) {
   return (
     <div className="space-y-6" data-testid="notification-preferences-form">
@@ -922,6 +949,72 @@ export function CommunicationStep({
               </div>
             </div>
           </>
+        )}
+      </div>
+
+      {/* Newsletter Subscription Section */}
+      <div className="space-y-4 pt-6 border-t border-border">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <Mail className="h-4 w-4" />
+          Newsletter Subscription
+        </h3>
+
+        <div className="p-4 rounded-lg border border-border bg-muted/20">
+          <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
+            <Checkbox
+              checked={formData.emailNewsletterSubscription}
+              onCheckedChange={(checked) => {
+                onInputChange("emailNewsletterSubscription", checked);
+                if (!checked) {
+                  // Clear newsletter lists when unsubscribing
+                  onInputChange("newsletterLists", []);
+                }
+              }}
+              disabled={loading}
+              className="mt-1"
+              data-testid="newsletter-subscription-toggle"
+            />
+            <div>
+              <span>Subscribe to our newsletter</span>
+              <p className="text-xs text-muted-foreground mt-1 font-normal">
+                Receive updates about events, volunteer opportunities, and organization news.
+              </p>
+            </div>
+          </Label>
+        </div>
+
+        {formData.emailNewsletterSubscription && newsletterLists.length > 0 && (
+          <div className="space-y-2 ml-6">
+            <Label className="text-sm font-medium">
+              Select newsletters
+            </Label>
+            <div className="space-y-2">
+              {newsletterLists.map((list) => (
+                <Label key={list.id} className="flex items-center space-x-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={formData.newsletterLists?.includes(list.campaignMonitorId) || false}
+                    onCheckedChange={(checked) => {
+                      const currentLists = formData.newsletterLists || [];
+                      onInputChange(
+                        "newsletterLists",
+                        checked
+                          ? [...currentLists, list.campaignMonitorId]
+                          : currentLists.filter(id => id !== list.campaignMonitorId)
+                      );
+                    }}
+                    disabled={loading}
+                    data-testid={`newsletter-${list.name.toLowerCase().replace(/\s+/g, '-')}-checkbox`}
+                  />
+                  <div>
+                    <span>{list.name}</span>
+                    {list.description && (
+                      <p className="text-xs text-muted-foreground">{list.description}</p>
+                    )}
+                  </div>
+                </Label>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 

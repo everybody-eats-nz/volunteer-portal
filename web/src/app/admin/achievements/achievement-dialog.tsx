@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { type Achievement } from "@/generated/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatAchievementCriteria } from "@/lib/achievement-utils";
+import { formatAchievementCriteria, ACHIEVEMENT_CRITERIA_TYPES } from "@/lib/achievement-utils";
 
 interface ShiftType {
   id: string;
@@ -48,16 +48,6 @@ const CATEGORIES = [
   { value: "SPECIALIZATION", label: "Specialization" },
   { value: "COMMUNITY", label: "Community" },
   { value: "IMPACT", label: "Impact" },
-];
-
-const CRITERIA_TYPES = [
-  { value: "shifts_completed", label: "Shifts Completed" },
-  { value: "hours_volunteered", label: "Hours Volunteered" },
-  { value: "consecutive_months", label: "Consecutive Months" },
-  { value: "years_volunteering", label: "Years Volunteering" },
-  { value: "community_impact", label: "Community Impact (Meals)" },
-  { value: "friends_count", label: "Friends Count" },
-  { value: "specific_shift_type", label: "Specific Shift Type" },
 ];
 
 const ICON_OPTIONS = [
@@ -310,7 +300,7 @@ export function AchievementDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {CRITERIA_TYPES.map((type) => (
+                  {ACHIEVEMENT_CRITERIA_TYPES.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
                     </SelectItem>

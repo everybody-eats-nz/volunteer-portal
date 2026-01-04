@@ -44,6 +44,7 @@ interface ShiftSummary {
       email: string;
       profilePhotoUrl: string | null;
     };
+    isFriend: boolean;
   }>;
 }
 
@@ -68,6 +69,7 @@ interface DayShifts {
       email: string;
       profilePhotoUrl: string | null;
     };
+    isFriend: boolean;
   }>;
 }
 
@@ -397,6 +399,12 @@ export function ShiftsCalendar({
                                     )}
                                     maxDisplay={2}
                                     size="sm"
+                                    enableLinks={(user) => {
+                                      const signup = dayShifts.allFriendSignups.find(
+                                        (s) => s.user.id === user.id
+                                      );
+                                      return signup?.isFriend ?? false;
+                                    }}
                                   />
                                 </div>
                               )}

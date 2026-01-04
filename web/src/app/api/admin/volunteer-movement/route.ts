@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
+import { getEmailService } from "@/lib/email-service";
+import { formatInNZT } from "@/lib/timezone";
 
 // POST /api/admin/volunteer-movement - Move a volunteer from one shift to another
 export async function POST(request: Request) {
@@ -156,6 +158,9 @@ export async function POST(request: Request) {
       );
     }
 
+    // Track if the volunteer was pending before the move
+    const wasPending = signup.status === "PENDING" || signup.status === "REGULAR_PENDING";
+
     // Use transaction to handle the movement
     const result = await prisma.$transaction(async (tx) => {
       // Update the signup to point to the new shift
@@ -198,6 +203,31 @@ export async function POST(request: Request) {
 
       return updatedSignup;
     });
+
+    // If volunteer was pending, send them a confirmation email
+    if (wasPending && result.user.email) {
+      try {
+        const volunteerName = `${result.user.firstName} ${result.user.lastName}`;
+        const shiftDate = formatInNZT(targetShift.start, "EEEE, MMMM d, yyyy");
+        const shiftTime = `${formatInNZT(targetShift.start, "h:mm a")} - ${formatInNZT(targetShift.end, "h:mm a")}`;
+
+        const emailService = getEmailService();
+        await emailService.sendShiftConfirmationNotification({
+          to: result.user.email,
+          volunteerName,
+          shiftName: targetShift.shiftType.name,
+          shiftDate,
+          shiftTime,
+          location: targetShift.location || "TBD",
+          shiftId: targetShiftId,
+          shiftStart: targetShift.start,
+          shiftEnd: targetShift.end,
+        });
+      } catch (emailError) {
+        console.error("Error sending confirmation email:", emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

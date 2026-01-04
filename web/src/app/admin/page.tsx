@@ -8,10 +8,20 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Star as StarIcon, User as UserIcon } from "lucide-react";
+import { Plus, Star as StarIcon, User as UserIcon, ShieldAlert } from "lucide-react";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -41,6 +51,10 @@ export default async function AdminDashboardPage({
     : undefined;
 
   const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   // Create location filter for queries
   const locationFilter = selectedLocation ? { location: selectedLocation } : {};
@@ -53,10 +67,13 @@ export default async function AdminDashboardPage({
     totalShifts,
     upcomingShifts,
     pastShifts,
-    totalSignups,
-    confirmedSignups,
+    _totalSignups, // Not displayed - we show time-based stats instead
+    _confirmedSignups, // Not displayed - we show time-based stats instead
     pendingSignups,
-    waitlistedSignups,
+    _waitlistedSignups, // Not displayed - we show time-based stats instead
+    signupsLast7Days,
+    signupsLast30Days,
+    adminPasskeyCount,
     recentSignups,
     nextShift,
     shiftsNeedingAttention,
@@ -93,6 +110,25 @@ export default async function AdminDashboardPage({
         status: "WAITLISTED",
         ...(selectedLocation ? { shift: { location: selectedLocation } } : {}),
       },
+    }),
+
+    // Time-based signup counts
+    prisma.signup.count({
+      where: {
+        createdAt: { gte: sevenDaysAgo },
+        ...(selectedLocation ? { shift: { location: selectedLocation } } : {}),
+      },
+    }),
+    prisma.signup.count({
+      where: {
+        createdAt: { gte: thirtyDaysAgo },
+        ...(selectedLocation ? { shift: { location: selectedLocation } } : {}),
+      },
+    }),
+
+    // Check if current admin has passkeys
+    prisma.passkey.count({
+      where: { userId: session.user.id },
     }),
 
     // Recent activity (filtered by location)
@@ -212,6 +248,26 @@ export default async function AdminDashboardPage({
           />
         </div>
 
+        {/* Passkey Setup Notice */}
+        {adminPasskeyCount === 0 && (
+          <Alert data-testid="passkey-setup-notice" className="border-blue-200 bg-blue-50 dark:border-blue-800/50 dark:bg-blue-950/30">
+            <ShieldAlert className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-900 dark:text-blue-100">
+              Enhance Your Account Security
+            </AlertTitle>
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
+              Set up passkey authentication for faster, more secure sign-ins using your fingerprint, face, or device PIN.{" "}
+              <Link
+                href="/profile/edit?step=security"
+                className="font-medium underline underline-offset-4 hover:text-blue-600 dark:hover:text-blue-300"
+                data-testid="setup-passkey-link"
+              >
+                Set up passkey now
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card data-testid="total-users-card">
@@ -249,14 +305,14 @@ export default async function AdminDashboardPage({
           </Card>
 
           <Card
-            data-testid="total-signups-card"
+            data-testid="recent-signups-card"
             className={
               pendingSignups > 0 ? "border-orange-200 bg-orange-50 dark:border-orange-800/50 dark:bg-orange-950/30" : ""
             }
           >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                Total Signups
+                Recent Signups
                 {pendingSignups > 0 && (
                   <Badge
                     className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-400 dark:border-orange-800/50"
@@ -268,13 +324,18 @@ export default async function AdminDashboardPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalSignups}</div>
+              <div className="text-2xl font-bold">{signupsLast7Days}</div>
               <p
                 className="text-xs text-muted-foreground"
                 data-testid="signups-breakdown"
               >
-                {confirmedSignups} confirmed, {pendingSignups} pending,{" "}
-                {waitlistedSignups} waitlisted
+                last 7 days
+              </p>
+              <p
+                className="text-xs text-muted-foreground mt-1"
+                data-testid="signups-30day-text"
+              >
+                {signupsLast30Days} in last 30 days
               </p>
             </CardContent>
           </Card>

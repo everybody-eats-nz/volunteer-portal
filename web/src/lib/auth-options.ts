@@ -131,6 +131,55 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+
+    // Passkey Provider
+    Credentials({
+      id: "passkey",
+      name: "Passkey",
+      credentials: {
+        authenticationResponse: { label: "Authentication Response", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.authenticationResponse) return null;
+
+        try {
+          const response = JSON.parse(credentials.authenticationResponse);
+
+          // Call our verification endpoint
+          const verifyResult = await fetch(
+            `${process.env.NEXTAUTH_URL}/api/passkey/authenticate/verify-authentication`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ authenticationResponse: response }),
+            }
+          );
+
+          if (!verifyResult.ok) {
+            console.error("Passkey verification failed:", await verifyResult.text());
+            return null;
+          }
+
+          const { verified, user } = await verifyResult.json();
+
+          if (!verified || !user) return null;
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            phone: user.phone,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            emailVerified: user.emailVerified,
+          };
+        } catch (error) {
+          console.error("Passkey authentication error:", error);
+          return null;
+        }
+      },
+    }),
   ],
   callbacks: {
     async signIn({ user, account }) {

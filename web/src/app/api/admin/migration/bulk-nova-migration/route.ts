@@ -55,7 +55,8 @@ async function sendProgress(
 
   try {
     console.log(
-      `[SSE] Sending progress update for session ${sessionId}:`,
+      "[SSE] Sending progress update for session %s:",
+      sessionId,
       data.message || data.type
     );
     await sendProgressUpdate(sessionId, data);

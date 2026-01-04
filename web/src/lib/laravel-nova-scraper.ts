@@ -343,7 +343,7 @@ export class LaravelNovaScraper {
           hasMorePages = false;
         }
       } catch (error) {
-        console.error(`Error scraping users page ${page}:`, error);
+        console.error("Error scraping users page %s:", page, error);
         hasMorePages = false;
       }
     }

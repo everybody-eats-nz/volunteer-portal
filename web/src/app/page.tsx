@@ -10,6 +10,15 @@ import {
   FeatureCard,
   FeatureGrid,
 } from "@/components/home-animated";
+import type { Metadata } from "next";
+import { buildPageMetadata, buildOrganizationSchema } from "@/lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "Make a Difference One Plate at a Time",
+  description:
+    "Everybody Eats is an innovative charitable restaurant transforming rescued food into quality 3-course meals. Join hundreds of volunteers making a real difference in communities across New Zealand.",
+  path: "/",
+});
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -25,8 +34,15 @@ export default async function Home() {
     }
   }
 
+  const organizationSchema = buildOrganizationSchema();
+
   return (
-    <HomePageWrapper data-testid="home-page">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <HomePageWrapper data-testid="home-page">
       <section className="section-hero md:py-14" data-testid="hero-section">
         <div className="grid gap-8 md:grid-cols-2 md:items-center">
           <HeroContent>
@@ -238,5 +254,6 @@ export default async function Home() {
         </div>
       </section>
     </HomePageWrapper>
+    </>
   );
 }

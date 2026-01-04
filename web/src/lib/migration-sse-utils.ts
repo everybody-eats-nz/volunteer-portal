@@ -11,7 +11,7 @@ export async function sendProgress(
   const writer = sessions.get(sessionId);
 
   if (!writer) {
-    console.log(`[SSE] No active session for ${sessionId}`);
+    console.log("[SSE] No active session for sessionId:", sessionId);
     return false;
   }
 
@@ -28,11 +28,13 @@ export async function sendProgress(
     await writer.write(encoder.encode(message));
 
     console.log(
-      `[SSE] Sent ${data.type || "progress"} event to session ${sessionId}`
+      "[SSE] Sent %s event to session %s",
+      data.type || "progress",
+      sessionId
     );
     return true;
   } catch (error) {
-    console.error(`[SSE] Failed to send to session ${sessionId}:`, error);
+    console.error("[SSE] Failed to send to session %s:", sessionId, error);
     sessions.delete(sessionId); // Remove dead session
     return false;
   }

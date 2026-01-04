@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 import { AchievementCategory } from "@/generated/client";
+import { VALID_CRITERIA_TYPES } from "@/lib/achievement-utils";
 
 // Validation schema for achievement
 const achievementSchema = z.object({
@@ -111,19 +112,10 @@ export async function POST(request: Request) {
       }
 
       // Validate criteria type
-      const validTypes = [
-        "shifts_completed",
-        "hours_volunteered",
-        "consecutive_months",
-        "specific_shift_type",
-        "years_volunteering",
-        "community_impact",
-        "friends_count",
-      ];
-      if (!validTypes.includes(criteriaObj.type)) {
+      if (!VALID_CRITERIA_TYPES.includes(criteriaObj.type)) {
         return NextResponse.json(
           {
-            error: `Invalid criteria type. Must be one of: ${validTypes.join(
+            error: `Invalid criteria type. Must be one of: ${VALID_CRITERIA_TYPES.join(
               ", "
             )}`,
           },

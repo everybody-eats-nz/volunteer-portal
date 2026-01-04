@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
 interface AssignVolunteerDialogProps {
   shift: {
@@ -228,10 +229,7 @@ export function AssignVolunteerDialog({
               {shift.shiftType.name}
             </h3>
 
-            <div
-              className="space-y-2 text-sm"
-              data-testid="shift-details-info"
-            >
+            <div className="space-y-2 text-sm" data-testid="shift-details-info">
               <div
                 className="flex items-center gap-2"
                 data-testid="shift-details-date"
@@ -444,35 +442,44 @@ export function AssignVolunteerDialog({
         </div>
 
         <ResponsiveDialogFooter
-          className="flex gap-2"
+          className="flex-col sm:flex-row gap-2"
           data-testid="assign-volunteer-dialog-footer"
         >
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={isSubmitting}
-            data-testid="assign-volunteer-cancel-button"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleAssignVolunteer}
-            disabled={isSubmitting || !selectedVolunteer}
-            className="min-w-[120px]"
-            data-testid="assign-volunteer-confirm-button"
-          >
-            {isSubmitting ? (
-              <span
-                className="flex items-center gap-2"
-                data-testid="assign-volunteer-loading-text"
-              >
-                <MotionSpinner className="w-4 h-4" />
-                Assigning...
-              </span>
-            ) : (
-              "👥 Assign Volunteer"
-            )}
-          </Button>
+          <div className="flex-1">
+            <EmailPreviewDialog
+              emailType="confirmation"
+              triggerLabel="Preview Email"
+              triggerVariant="outline"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSubmitting}
+              data-testid="assign-volunteer-cancel-button"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignVolunteer}
+              disabled={isSubmitting || !selectedVolunteer}
+              className="min-w-[120px]"
+              data-testid="assign-volunteer-confirm-button"
+            >
+              {isSubmitting ? (
+                <span
+                  className="flex items-center gap-2"
+                  data-testid="assign-volunteer-loading-text"
+                >
+                  <MotionSpinner className="w-4 h-4" />
+                  Assigning...
+                </span>
+              ) : (
+                "👥 Assign Volunteer"
+              )}
+            </Button>
+          </div>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>
     </ResponsiveDialog>

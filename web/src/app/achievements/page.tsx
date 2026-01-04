@@ -5,6 +5,15 @@ import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { AchievementsStats } from "@/components/achievements-stats";
 import { AchievementsList } from "@/components/achievements-list";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Achievements",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AchievementsPage() {
   const session = await getServerSession(authOptions);

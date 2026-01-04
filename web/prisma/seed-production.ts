@@ -367,6 +367,35 @@ async function main() {
   }
 
   console.log("✅ Shift templates created");
+
+  // Create newsletter lists
+  console.log("Creating newsletter lists...");
+
+  await prisma.newsletterList.upsert({
+    where: { campaignMonitorId: "d0fa752b4fe96d8b9a14e77d3c917222" },
+    update: {},
+    create: {
+      name: "Auckland Newsletter",
+      campaignMonitorId: "d0fa752b4fe96d8b9a14e77d3c917222",
+      description: "Newsletter for Auckland region volunteers",
+      active: true,
+      displayOrder: 1,
+    },
+  });
+
+  await prisma.newsletterList.upsert({
+    where: { campaignMonitorId: "dca35fce91d251a98c06a2d783794181" },
+    update: {},
+    create: {
+      name: "Wellington Newsletter",
+      campaignMonitorId: "dca35fce91d251a98c06a2d783794181",
+      description: "Newsletter for Wellington region volunteers",
+      active: true,
+      displayOrder: 2,
+    },
+  });
+
+  console.log("✅ Newsletter lists created");
   console.log("🎉 Production seed completed successfully!");
 }
 

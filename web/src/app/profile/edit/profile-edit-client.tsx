@@ -22,6 +22,7 @@ import {
   Shield,
   MapPin,
   Bell,
+  Key,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -33,6 +34,7 @@ import {
   UserProfileFormData,
 } from "@/components/forms/user-profile-form";
 import { MotionPageContainer } from "@/components/motion-page-container";
+import { PasskeyManagement } from "@/components/passkey-management";
 
 interface ProfileEditClientProps {
   locationOptions: Array<{ value: string; label: string }>;
@@ -63,6 +65,9 @@ export default function ProfileEditClient({
   const [initialDateOfBirth, setInitialDateOfBirth] = useState<
     string | undefined
   >(undefined);
+  const [newsletterLists, setNewsletterLists] = useState<
+    Array<{ id: string; name: string; campaignMonitorId: string; description: string | null }>
+  >([]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -94,6 +99,23 @@ export default function ProfileEditClient({
     loadPolicyContent();
   }, []);
 
+  // Load newsletter lists
+  useEffect(() => {
+    const loadNewsletterLists = async () => {
+      try {
+        const response = await fetch("/api/newsletter-lists");
+        if (response.ok) {
+          const lists = await response.json();
+          setNewsletterLists(lists);
+        }
+      } catch (error) {
+        console.error("Failed to load newsletter lists:", error);
+      }
+    };
+
+    loadNewsletterLists();
+  }, []);
+
   // Profile form data - same interface as registration but without account fields
   const [formData, setFormData] = useState<UserProfileFormData>({
     firstName: "",
@@ -113,6 +135,7 @@ export default function ProfileEditClient({
     availableDays: [],
     availableLocations: [],
     emailNewsletterSubscription: true,
+    newsletterLists: [],
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
@@ -167,6 +190,7 @@ export default function ProfileEditClient({
             availableLocations: profileData.availableLocations || [],
             emailNewsletterSubscription:
               profileData.emailNewsletterSubscription !== false,
+            newsletterLists: profileData.newsletterLists || [],
             notificationPreference:
               profileData.notificationPreference || "EMAIL",
             receiveShortageNotifications:
@@ -235,6 +259,13 @@ export default function ProfileEditClient({
         description: "Notification preferences and policy agreements",
         icon: Bell,
         color: "bg-orange-500",
+      },
+      {
+        id: "security",
+        title: "Security",
+        description: "Manage passkeys and account security",
+        icon: Key,
+        color: "bg-indigo-500",
       },
     ],
     []
@@ -430,8 +461,11 @@ export default function ProfileEditClient({
             healthSafetyPolicyOpen={healthSafetyPolicyOpen}
             setHealthSafetyPolicyOpen={setHealthSafetyPolicyOpen}
             shiftTypes={shiftTypes}
+            newsletterLists={newsletterLists}
           />
         );
+      case 5: // Security
+        return <PasskeyManagement />;
       default:
         return null;
     }

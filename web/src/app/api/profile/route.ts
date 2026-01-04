@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { autoLabelUnder16User } from "@/lib/auto-label-utils";
+import { autoLabelUnder16User, autoLabelNewVolunteer } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
+import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
+import { getEmailService } from "@/lib/email-service";
 
 const updateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -26,6 +28,7 @@ const updateProfileSchema = z.object({
   availableDays: z.array(z.string()).optional(),
   availableLocations: z.array(z.string()).optional(),
   emailNewsletterSubscription: z.boolean().optional(),
+  newsletterLists: z.array(z.string()).optional(),
   notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
   receiveShortageNotifications: z.boolean().optional(),
   excludedShortageNotificationTypes: z.array(z.string()).optional(),
@@ -45,6 +48,7 @@ export async function GET() {
     select: {
       id: true,
       email: true,
+      emailVerified: true,
       name: true,
       firstName: true,
       lastName: true,
@@ -62,6 +66,7 @@ export async function GET() {
       availableDays: true,
       availableLocations: true,
       emailNewsletterSubscription: true,
+      newsletterLists: true,
       notificationPreference: true,
       receiveShortageNotifications: true,
       excludedShortageNotificationTypes: true,
@@ -77,11 +82,63 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // Sync newsletter subscription state with Campaign Monitor
+  let actualNewsletterLists = user.newsletterLists || [];
+
+  if (user.emailNewsletterSubscription) {
+    try {
+      const campaignMonitor = new CampaignMonitorService();
+
+      // Get all active newsletter lists from database
+      const allLists = await prisma.newsletterList.findMany({
+        where: { active: true },
+        select: { campaignMonitorId: true },
+      });
+
+      // Check subscription status for each list in Campaign Monitor
+      const subscriptionChecks = await Promise.allSettled(
+        allLists.map(async (list) => {
+          const details = await campaignMonitor.getSubscriberDetails(
+            list.campaignMonitorId,
+            user.email
+          );
+          return {
+            listId: list.campaignMonitorId,
+            isSubscribed: details.success && details.subscribed,
+          };
+        })
+      );
+
+      // Build the actual subscription list based on Campaign Monitor reality
+      actualNewsletterLists = subscriptionChecks
+        .filter((result): result is PromiseFulfilledResult<{ listId: string; isSubscribed: boolean }> =>
+          result.status === "fulfilled" && result.value.isSubscribed
+        )
+        .map((result) => result.value.listId);
+
+      // Update database to match Campaign Monitor if different
+      if (JSON.stringify(actualNewsletterLists.sort()) !== JSON.stringify([...(user.newsletterLists || [])].sort())) {
+        await prisma.user.update({
+          where: { email: user.email },
+          data: { newsletterLists: actualNewsletterLists },
+        });
+      }
+    } catch (error) {
+      console.error("Error syncing newsletter subscriptions from Campaign Monitor:", error);
+      // On error, fall back to database state
+      actualNewsletterLists = user.newsletterLists || [];
+    }
+  } else {
+    // If newsletter subscription is disabled, ensure newsletterLists is empty
+    actualNewsletterLists = [];
+  }
+
   // Parse JSON fields safely (handles both JSON arrays and plain text from migration)
   const userWithParsedFields = {
     ...user,
     availableDays: safeParseAvailability(user.availableDays),
     availableLocations: safeParseAvailability(user.availableLocations),
+    newsletterLists: actualNewsletterLists,
   };
 
   return NextResponse.json(userWithParsedFields);
@@ -219,6 +276,9 @@ export async function PUT(req: Request) {
           ? JSON.stringify(validatedData.availableLocations)
           : null;
     }
+    if (validatedData.newsletterLists !== undefined) {
+      updateData.newsletterLists = validatedData.newsletterLists;
+    }
 
     // Update the derived name field if first/last names are provided
     if (
@@ -253,6 +313,7 @@ export async function PUT(req: Request) {
         availableDays: true,
         availableLocations: true,
         emailNewsletterSubscription: true,
+        newsletterLists: true,
         notificationPreference: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
@@ -260,6 +321,7 @@ export async function PUT(req: Request) {
         healthSafetyPolicyAccepted: true,
         requiresParentalConsent: true,
         parentalConsentReceived: true,
+        profileCompleted: true,
       },
     });
 
@@ -269,6 +331,86 @@ export async function PUT(req: Request) {
         ? new Date(validatedData.dateOfBirth)
         : null;
       await autoLabelUnder16User(user.id, dateOfBirth);
+    }
+
+    // Check if profile is now complete and send welcome email for OAuth users
+    // This handles the case where OAuth users (Google/Facebook) bypass email verification
+    // and should receive the welcome email after completing their profile
+    if (!user.profileCompleted && updatedUser.firstName) {
+      // Check if profile has all required fields
+      const hasRequiredFields =
+        updatedUser.phone &&
+        updatedUser.dateOfBirth &&
+        updatedUser.emergencyContactName &&
+        updatedUser.emergencyContactPhone &&
+        updatedUser.volunteerAgreementAccepted &&
+        updatedUser.healthSafetyPolicyAccepted;
+
+      if (hasRequiredFields) {
+        // Mark profile as completed
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { profileCompleted: true },
+        });
+
+        // Auto-label as new volunteer (OAuth users don't go through regular registration flow)
+        try {
+          await autoLabelNewVolunteer(user.id);
+        } catch (labelError) {
+          console.error("Failed to auto-label new volunteer:", labelError);
+          // Don't fail the profile update if labeling fails
+        }
+
+        // Send welcome email
+        try {
+          const emailService = getEmailService();
+          await emailService.sendProfileCompletion({
+            to: updatedUser.email,
+            firstName: updatedUser.firstName,
+          });
+          console.log(`Profile completion email sent to ${updatedUser.email}`);
+        } catch (emailError) {
+          console.error("Failed to send profile completion email:", emailError);
+          // Don't fail the profile update if email sending fails
+        }
+      }
+    }
+
+    // Campaign Monitor newsletter sync
+    if (validatedData.emailNewsletterSubscription !== undefined || validatedData.newsletterLists !== undefined) {
+      try {
+        const campaignMonitor = new CampaignMonitorService();
+        const userEmail = updatedUser.email;
+        const userName = `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim() || userEmail;
+
+        const oldLists = user.newsletterLists || [];
+        const newLists = validatedData.newsletterLists !== undefined
+          ? validatedData.newsletterLists
+          : oldLists;
+
+        if (validatedData.emailNewsletterSubscription === false) {
+          // Unsubscribe from all lists
+          for (const listId of oldLists) {
+            await campaignMonitor.unsubscribeFromList(listId, userEmail);
+          }
+        } else if (validatedData.emailNewsletterSubscription === true || validatedData.newsletterLists !== undefined) {
+          // Subscribe to new lists
+          const listsToAdd = newLists.filter((id: string) => !oldLists.includes(id));
+          for (const listId of listsToAdd) {
+            await campaignMonitor.subscribeToList(listId, userEmail, userName, {});
+          }
+
+          // Unsubscribe from removed lists
+          const listsToRemove = oldLists.filter((id: string) => !newLists.includes(id));
+          for (const listId of listsToRemove) {
+            await campaignMonitor.unsubscribeFromList(listId, userEmail);
+          }
+        }
+      } catch (error) {
+        // Log error but don't fail profile update
+        console.error('Campaign Monitor sync error:', error);
+        // Could optionally add a warning to the response
+      }
     }
 
     // Parse JSON fields for response safely
