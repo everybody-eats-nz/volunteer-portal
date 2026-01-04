@@ -187,7 +187,7 @@ export default async function MyShiftsPage({
                   userFriendIds.length > 0
                     ? {
                         userId: { in: userFriendIds },
-                        status: { in: ["CONFIRMED", "PENDING"] },
+                        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
                       }
                     : {
                         id: { equals: "never-match" },
@@ -234,7 +234,7 @@ export default async function MyShiftsPage({
                   userFriendIds.length > 0
                     ? {
                         userId: { in: userFriendIds },
-                        status: { in: ["CONFIRMED", "PENDING"] },
+                        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
                       }
                     : {
                         id: { equals: "never-match" },
@@ -269,7 +269,7 @@ export default async function MyShiftsPage({
           where: {
             userId: userId!,
             shift: { start: { gte: now } },
-            status: { in: ["CONFIRMED", "PENDING"] },
+            status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
           },
         }),
       ]),
@@ -293,7 +293,7 @@ export default async function MyShiftsPage({
             include: {
               signups: {
                 where: {
-                  status: { in: ["CONFIRMED", "PENDING"] },
+                  status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
                 },
               },
               shiftType: true,
@@ -337,7 +337,7 @@ export default async function MyShiftsPage({
       (s) => s.status === "CONFIRMED"
     ).length;
     const pendingSignups = shift.signups.filter(
-      (s) => s.status === "PENDING"
+      (s) => s.status === "PENDING" || s.status === "REGULAR_PENDING"
     ).length;
     const hasAvailableSpots =
       confirmedSignups + pendingSignups < shift.capacity;
@@ -976,7 +976,7 @@ export default async function MyShiftsPage({
                             className="h-7 px-3 text-xs font-medium border-dashed border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-200"
                           >
                             <Link
-                              href="/shifts"
+                              href={`/shifts?date=${dateKey}`}
                               className="flex items-center gap-1"
                             >
                               <CalendarPlus className="h-3 w-3" />
@@ -1142,7 +1142,7 @@ export default async function MyShiftsPage({
                         asChild
                         className="w-full justify-start gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
                       >
-                        <Link href="/shifts">
+                        <Link href={`/shifts?date=${dateKey}`}>
                           <CalendarPlus className="h-4 w-4" />
                           Browse Available Shifts
                         </Link>

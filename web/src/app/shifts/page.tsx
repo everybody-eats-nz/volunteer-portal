@@ -191,7 +191,7 @@ export default async function ShiftsCalendarPage({
           signups: {
             where: {
               status: {
-                in: ["CONFIRMED", "PENDING"],
+                in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
               },
             },
           },
@@ -219,7 +219,7 @@ export default async function ShiftsCalendarPage({
     const allSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: shifts.map((s) => s.id) },
-        status: { in: ["CONFIRMED", "PENDING"] },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
         // Exclude the current user from the list
         userId: { not: currentUser.id },
       },
@@ -273,8 +273,8 @@ export default async function ShiftsCalendarPage({
     end: shift.end,
     location: shift.location,
     capacity: shift.capacity,
-    confirmedCount: shift._count.signups, // This includes both CONFIRMED and PENDING
-    pendingCount: 0, // For calendar view, we simplify this
+    confirmedCount: shift._count.signups, // This includes CONFIRMED, PENDING, and REGULAR_PENDING
+    pendingCount: 0, // For calendar view, we simplify by putting all counts in confirmedCount
     shiftType: {
       name: shift.shiftType.name,
       description: shift.shiftType.description,

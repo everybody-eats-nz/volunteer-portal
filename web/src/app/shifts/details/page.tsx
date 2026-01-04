@@ -71,7 +71,7 @@ function getConcurrentShiftsFromList(
     })
     .map((shift) => {
       const confirmedCount = shift.signups.filter(
-        (s) => s.status === "CONFIRMED" || s.status === "REGULAR_PENDING"
+        (s) => s.status === "CONFIRMED" || s.status === "PENDING" || s.status === "REGULAR_PENDING"
       ).length;
       return {
         id: shift.id,
@@ -148,7 +148,7 @@ function ShiftCard({
 
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
-    if (signup.status === "PENDING") pendingCount += 1;
+    if (signup.status === "PENDING" || signup.status === "REGULAR_PENDING") pendingCount += 1;
   }
 
   // Debug: log if counts seem wrong

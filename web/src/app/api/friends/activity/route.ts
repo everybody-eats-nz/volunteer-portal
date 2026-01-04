@@ -68,7 +68,7 @@ export async function GET() {
     const recentActivities = await prisma.signup.findMany({
       where: {
         userId: { in: visibleFriendIds },
-        status: { in: ["CONFIRMED", "PENDING"] },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
         shift: {
           start: { gte: new Date() }, // Only future shifts
         },
