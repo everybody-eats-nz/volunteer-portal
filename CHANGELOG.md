@@ -1,3 +1,9 @@
+## [0.91.8] - 2026-01-04
+
+### Changes
+- fix: standardize shift availability logic across all pages ([#452](https://github.com/everybody-eats-nz/volunteer-portal/pull/452)) by @malinmalliyawadu
+
+
 ## [0.91.7] - 2026-01-04
 
 ### Changes
