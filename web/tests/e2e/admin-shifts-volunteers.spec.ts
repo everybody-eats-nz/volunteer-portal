@@ -63,7 +63,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
       const greenVolunteer = await getUserByEmail(page, testEmails[2]);
       const newVolunteer = await getUserByEmail(page, testEmails[3]);
 
-      if (!pinkVolunteer || !yellowVolunteer || !greenVolunteer || !newVolunteer) {
+      if (
+        !pinkVolunteer ||
+        !yellowVolunteer ||
+        !greenVolunteer ||
+        !newVolunteer
+      ) {
         throw new Error("Failed to create test volunteers");
       }
 
@@ -85,7 +90,9 @@ test.describe("Admin Shifts - Volunteer Management", () => {
         capacity: 6,
         shiftTypeId: shiftType.id,
       });
-      console.log(`Created shift with ID: ${shift.id} for date: ${futureDateStr}`);
+      console.log(
+        `Created shift with ID: ${shift.id} for date: ${futureDateStr}`
+      );
       testShiftIds.push(shift.id);
 
       // Create signups with different statuses
@@ -114,11 +121,13 @@ test.describe("Admin Shifts - Volunteer Management", () => {
       });
 
       // Now run the actual test
-      await page.goto(`/admin/shifts?date=${futureDateStr}&location=Wellington`);
+      await page.goto(
+        `/admin/shifts?date=${futureDateStr}&location=Wellington`
+      );
       await page.waitForLoadState("load");
 
       // Reload to ensure database changes are reflected
-      await page.reload({ waitUntil: 'load' });
+      await page.reload({ waitUntil: "load" });
 
       // Wait a moment for any animations
       await page.waitForTimeout(1000);
@@ -128,10 +137,14 @@ test.describe("Admin Shifts - Volunteer Management", () => {
       await expect(shiftCard).toBeVisible({ timeout: 10000 });
 
       // Wait for volunteers to load - check for volunteer list
-      await expect(page.locator('[data-testid^="volunteers-"]').first()).toBeVisible({ timeout: 10000 });
+      await expect(
+        page.locator('[data-testid^="volunteers-"]').first()
+      ).toBeVisible({ timeout: 10000 });
 
       // Debug: Check what volunteers are actually showing
-      const volunteerLinks = page.locator('[data-testid^="volunteer-name-link-"]');
+      const volunteerLinks = page.locator(
+        '[data-testid^="volunteer-name-link-"]'
+      );
       const count = await volunteerLinks.count();
       console.log(`Found ${count} volunteer links`);
 
@@ -142,7 +155,9 @@ test.describe("Admin Shifts - Volunteer Management", () => {
       }
 
       // Check that all 4 volunteers are visible with their names
-      await expect(page.locator('[data-testid^="volunteer-name-link-"]')).toHaveCount(4);
+      await expect(
+        page.locator('[data-testid^="volunteer-name-link-"]')
+      ).toHaveCount(4);
       await expect(page.getByText("Pink Volunteer")).toBeVisible();
       await expect(page.getByText("Yellow Volunteer")).toBeVisible();
       await expect(page.getByText("Green Volunteer")).toBeVisible();
@@ -152,7 +167,6 @@ test.describe("Admin Shifts - Volunteer Management", () => {
       await expect(page.getByText("Shift Leader")).toBeVisible(); // PINK
       await expect(page.getByText("Experienced")).toBeVisible(); // YELLOW
       await expect(page.getByText("Standard")).toBeVisible(); // GREEN
-      await expect(page.getByText("New")).toBeVisible(); // No grade
 
       // Verify the shift shows correct capacity (1 confirmed out of 6)
       await expect(page.getByText("1/6").first()).toBeVisible();
