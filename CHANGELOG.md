@@ -1,3 +1,9 @@
+## [0.91.11] - 2026-01-05
+
+### Changes
+- chore(deps): bump better-sse from 0.15.1 to 0.16.1 in /web ([#458](https://github.com/everybody-eats-nz/volunteer-portal/pull/458)) by @dependabot[bot]
+
+
 ## [0.91.10] - 2026-01-05
 
 ### Changes
