@@ -1,3 +1,9 @@
+## [0.91.9] - 2026-01-05
+
+### Changes
+- chore(deps): bump next from 16.0.10 to 16.1.1 in /web ([#457](https://github.com/everybody-eats-nz/volunteer-portal/pull/457)) by @dependabot[bot]
+
+
 ## [0.91.8] - 2026-01-04
 
 ### Changes
