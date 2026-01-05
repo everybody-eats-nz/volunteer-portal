@@ -1,3 +1,9 @@
+## [0.91.12] - 2026-01-05
+
+### Changes
+- chore(deps): bump @prisma/adapter-pg from 7.0.1 to 7.2.0 in /web ([#455](https://github.com/everybody-eats-nz/volunteer-portal/pull/455)) by @dependabot[bot]
+
+
 ## [0.91.11] - 2026-01-05
 
 ### Changes
