@@ -38,7 +38,7 @@ import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
-import { hearAboutUsOptions } from "@/components/forms/user-profile-form";
+import { hearAboutUsOptions } from "@/lib/form-constants";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
