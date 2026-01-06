@@ -1,3 +1,9 @@
+## [0.91.16] - 2026-01-06
+
+### Changes
+- Fix: Use single source of truth for 'How did you hear about us?' and improve favicon SEO ([#461](https://github.com/everybody-eats-nz/volunteer-portal/pull/461)) by @malinmalliyawadu
+
+
 ## [0.91.15] - 2026-01-06
 
 ### Changes
