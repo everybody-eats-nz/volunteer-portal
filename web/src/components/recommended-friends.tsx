@@ -133,10 +133,22 @@ export function RecommendedFriends() {
           animate="visible"
         >
           {recommendedFriends.map((friend) => {
-            const displayName =
-              friend.name ||
-              `${friend.firstName || ""} ${friend.lastName || ""}`.trim() ||
-              "Volunteer";
+            // Privacy-focused: show first name + last initial only
+            let displayName = "Volunteer";
+            if (friend.firstName && friend.lastName) {
+              displayName = `${friend.firstName} ${friend.lastName[0]}.`;
+            } else if (friend.firstName) {
+              displayName = friend.firstName;
+            } else if (friend.name) {
+              // If only 'name' field exists, try to extract first name
+              const nameParts = friend.name.split(" ");
+              if (nameParts.length > 1) {
+                displayName = `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`;
+              } else {
+                displayName = friend.name;
+              }
+            }
+
             const initials = (
               friend.firstName?.[0] ||
               friend.name?.[0] ||
