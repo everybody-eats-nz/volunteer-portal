@@ -1,3 +1,15 @@
+## [0.91.15] - 2026-01-06
+
+### Changes
+- fix: add canonical URLs to resolve Google Search Console indexing ([#460](https://github.com/everybody-eats-nz/volunteer-portal/pull/460)) by @malinmalliyawadu
+
+
+## [0.91.14] - 2026-01-06
+
+### Changes
+- Fix: Add pending status display in admin volunteer shift history ([#459](https://github.com/everybody-eats-nz/volunteer-portal/pull/459)) by @malinmalliyawadu
+
+
 ## [0.91.13] - 2026-01-05
 
 ### Changes

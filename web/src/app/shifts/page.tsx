@@ -33,10 +33,12 @@ export async function generateMetadata({
   let title = "Browse Volunteer Shifts";
   let description =
     "Explore available volunteer opportunities at Everybody Eats. From prep work to service, find shifts that fit your schedule.";
+  let path = "/shifts";
 
   if (location && LOCATIONS.includes(location as LocationOption)) {
     title = `Volunteer Shifts in ${location}`;
     description = `Browse upcoming volunteer shifts at Everybody Eats ${location}. From prep work to service, find opportunities that fit your schedule.`;
+    path = `/shifts?location=${encodeURIComponent(location)}`;
   } else if (showAll) {
     title = "All Volunteer Shifts";
     description =
@@ -46,7 +48,7 @@ export async function generateMetadata({
   return buildPageMetadata({
     title,
     description,
-    path: "/shifts",
+    path,
   });
 }
 
