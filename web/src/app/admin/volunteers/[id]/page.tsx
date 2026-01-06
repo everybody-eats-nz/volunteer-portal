@@ -924,6 +924,8 @@ export default async function AdminVolunteerPage({
                               className={cn(
                                 signup.status === "CONFIRMED" &&
                                   "bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/30",
+                                signup.status === "PENDING" &&
+                                  "bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30",
                                 signup.status === "WAITLISTED" &&
                                   "bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-950/30",
                                 signup.status === "CANCELED" &&
@@ -933,6 +935,7 @@ export default async function AdminVolunteerPage({
                               )}
                             >
                               {signup.status === "CONFIRMED" && "Confirmed"}
+                              {signup.status === "PENDING" && "Pending"}
                               {signup.status === "WAITLISTED" && "Waitlisted"}
                               {signup.status === "CANCELED" && "Canceled"}
                               {signup.status === "NO_SHOW" && "No-show"}
