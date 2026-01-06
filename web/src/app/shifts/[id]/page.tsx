@@ -97,7 +97,7 @@ export default async function ShiftDetailPage({
       signups: {
         where: {
           status: {
-            in: ["CONFIRMED", "REGULAR_PENDING"],
+            in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
           },
         },
         include: {
@@ -122,7 +122,7 @@ export default async function ShiftDetailPage({
           signups: {
             where: {
               status: {
-                in: ["CONFIRMED", "REGULAR_PENDING"],
+                in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
               },
             },
           },

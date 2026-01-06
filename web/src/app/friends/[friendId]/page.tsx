@@ -119,7 +119,7 @@ export default async function FriendProfilePage({
     prisma.signup.findMany({
       where: {
         userId: user.id,
-        status: { in: ["CONFIRMED", "PENDING"] },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
       },
       include: {
         shift: {
@@ -143,7 +143,7 @@ export default async function FriendProfilePage({
     prisma.signup.findMany({
       where: {
         userId: friendId,
-        status: { in: ["CONFIRMED", "PENDING"] },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
       },
       include: {
         shift: {

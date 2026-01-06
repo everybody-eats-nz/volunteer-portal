@@ -1,3 +1,39 @@
+## [0.91.13] - 2026-01-05
+
+### Changes
+- chore(deps): bump zod from 4.2.1 to 4.3.5 in /web ([#454](https://github.com/everybody-eats-nz/volunteer-portal/pull/454)) by @dependabot[bot]
+
+
+## [0.91.12] - 2026-01-05
+
+### Changes
+- chore(deps): bump @prisma/adapter-pg from 7.0.1 to 7.2.0 in /web ([#455](https://github.com/everybody-eats-nz/volunteer-portal/pull/455)) by @dependabot[bot]
+
+
+## [0.91.11] - 2026-01-05
+
+### Changes
+- chore(deps): bump better-sse from 0.15.1 to 0.16.1 in /web ([#458](https://github.com/everybody-eats-nz/volunteer-portal/pull/458)) by @dependabot[bot]
+
+
+## [0.91.10] - 2026-01-05
+
+### Changes
+- chore(deps): bump react-hook-form from 7.68.0 to 7.70.0 in /web ([#456](https://github.com/everybody-eats-nz/volunteer-portal/pull/456)) by @dependabot[bot]
+
+
+## [0.91.9] - 2026-01-05
+
+### Changes
+- chore(deps): bump next from 16.0.10 to 16.1.1 in /web ([#457](https://github.com/everybody-eats-nz/volunteer-portal/pull/457)) by @dependabot[bot]
+
+
+## [0.91.8] - 2026-01-04
+
+### Changes
+- fix: standardize shift availability logic across all pages ([#452](https://github.com/everybody-eats-nz/volunteer-portal/pull/452)) by @malinmalliyawadu
+
+
 ## [0.91.7] - 2026-01-04
 
 ### Changes

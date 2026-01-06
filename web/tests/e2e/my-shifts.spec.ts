@@ -293,11 +293,12 @@ test.describe("My Shifts Calendar Page", () => {
         const firstButton = availableButtons.first();
         await expect(firstButton).toBeVisible();
 
-        // Button should link to shifts page
+        // Button should link to shifts page with date parameter
         const parentLink = firstButton.locator("..").locator("a");
         if ((await parentLink.count()) > 0) {
           const href = await parentLink.getAttribute("href");
-          expect(href).toBe("/shifts");
+          // Should link to /shifts with a date query parameter
+          expect(href).toMatch(/^\/shifts\?date=\d{4}-\d{2}-\d{2}$/);
         }
       }
     });
