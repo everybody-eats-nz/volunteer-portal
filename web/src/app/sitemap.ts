@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getBaseUrl();
 
-  // Static public pages
+  // Static public pages that should be indexed
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -33,7 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Get unique locations from shift types
+  // Get unique locations from shift types for location-specific pages
+  // These help with local SEO (e.g., "volunteer Wellington")
   const locations = await prisma.shift.findMany({
     distinct: ["location"],
     where: {
@@ -52,7 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/shifts?location=${encodeURIComponent(item.location!)}`,
       lastModified: new Date(),
       changeFrequency: "daily" as const,
-      priority: 0.8,
+      priority: 0.7, // Lower priority than main shifts page
     }));
 
   return [...staticPages, ...locationPages];
