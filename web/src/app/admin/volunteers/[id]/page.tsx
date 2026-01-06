@@ -38,6 +38,7 @@ import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
+import { hearAboutUsOptions } from "@/lib/form-constants";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -226,16 +227,10 @@ export default async function AdminVolunteerPage({
     mobile: "Mobile/Outreach",
   };
 
-  const hearAboutLabels: Record<string, string> = {
-    facebook: "Facebook",
-    instagram: "Instagram",
-    website: "Website",
-    friend: "Friend/Word of mouth",
-    community_board: "Community board",
-    volunteer_website: "Volunteer website",
-    other: "Other",
-    not_specified: "Not specified",
-  };
+  // Convert hearAboutUsOptions to a label mapping
+  const hearAboutLabels = Object.fromEntries(
+    hearAboutUsOptions.map((option) => [option.value, option.label])
+  );
 
   return (
     <AdminPageWrapper
