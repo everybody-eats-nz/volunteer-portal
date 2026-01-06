@@ -1,3 +1,9 @@
+## [0.91.15] - 2026-01-06
+
+### Changes
+- fix: add canonical URLs to resolve Google Search Console indexing ([#460](https://github.com/everybody-eats-nz/volunteer-portal/pull/460)) by @malinmalliyawadu
+
+
 ## [0.91.14] - 2026-01-06
 
 ### Changes
