@@ -35,13 +35,20 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PasswordRequirements } from "@/components/password-requirements";
 
-// Re-export shared constants from central location
-export {
+// Import and re-export shared constants from central location
+import {
   daysOfWeek,
   pronounOptions,
   notificationOptions,
   hearAboutUsOptions,
 } from "@/lib/form-constants";
+
+export {
+  daysOfWeek,
+  pronounOptions,
+  notificationOptions,
+  hearAboutUsOptions,
+};
 
 export interface UserProfileFormData {
   // Basic account info (for registration only)
