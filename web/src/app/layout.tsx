@@ -48,6 +48,13 @@ export const metadata: Metadata = {
     email: false,
     telephone: false,
   },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.jpg", sizes: "any" },
+    ],
+    apple: "/favicon.jpg",
+  },
   openGraph: {
     type: "website",
     locale: "en_NZ",
@@ -102,9 +109,6 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link href="/favicon.jpg" rel="shortcut icon" type="image/x-icon" />
-      </head>
       <body
         className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
       >
