@@ -5,6 +5,8 @@ import {
   deleteTestUsers,
   createShift,
   deleteTestShifts,
+  getUserByEmail,
+  createSignup,
 } from "./helpers/test-helpers";
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
@@ -358,48 +360,45 @@ test.describe("Admin Shifts Page", () => {
 
     test.beforeEach(async ({ page }) => {
       // Create a test shift and signup for testing volunteer actions
-      const tomorrow = new Date();
+      // Use NZ timezone to match admin page filtering
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
 
       const shift = await createShift(page, {
         location: "Wellington",
-        start: new Date(tomorrow.setHours(10, 0)),
+        start: tomorrow,
         capacity: 2,
       });
       shiftId = shift.id;
       testShiftIds.push(shift.id);
 
-      // Create a signup through the API
-      await page.request.post("/api/shifts/signup", {
-        data: { shiftId: shift.id },
-      });
+      // Get the volunteer user and create a confirmed signup
+      const volunteer = await getUserByEmail(page, testEmails[1]);
+      if (!volunteer) {
+        throw new Error("Volunteer user not found");
+      }
 
-      // We'll get the signup ID from the DOM instead since signups endpoint doesn't exist
-      const tomorrowDate = new Date();
-      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-      const tomorrowStr = tomorrowDate.toISOString().split("T")[0];
+      const signup = await createSignup(page, {
+        userId: volunteer.id,
+        shiftId: shift.id,
+        status: "CONFIRMED",
+      });
+      signupId = signup.id;
+
+      // Use NZ timezone date string for navigation
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
-
-      // Extract signup ID from the DOM test ID (if any signups exist)
-      const firstCancelButton = page
-        .locator('[data-testid*="cancel-button"]')
-        .first();
-      const testId = await firstCancelButton.getAttribute("data-testid");
-      if (testId) {
-        // Extract signup ID from testid format like "shift-xxx-volunteer-xxx-cancel-button"
-        const matches = testId.match(/volunteer-([^-]+)-cancel-button/);
-        signupId = matches ? matches[1] : "";
-      }
     });
 
     test("should show cancel dialog for confirmed volunteers", async ({
       page,
     }) => {
-      const tomorrow = new Date();
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -445,9 +444,9 @@ test.describe("Admin Shifts Page", () => {
         data: { shiftId },
       });
 
-      const tomorrow = new Date();
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -497,9 +496,9 @@ test.describe("Admin Shifts Page", () => {
       // Back to admin view
       await loginAsAdmin(page);
 
-      const tomorrow = new Date();
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -527,9 +526,9 @@ test.describe("Admin Shifts Page", () => {
 
   test.describe("Profile Photos", () => {
     test("should display volunteer avatar components", async ({ page }) => {
-      const tomorrow = new Date();
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -562,9 +561,9 @@ test.describe("Admin Shifts Page", () => {
     });
 
     test("should link to volunteer profile page", async ({ page }) => {
-      const tomorrow = new Date();
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
@@ -582,9 +581,9 @@ test.describe("Admin Shifts Page", () => {
     });
 
     test("should display volunteer grade badges", async ({ page }) => {
-      const tomorrow = new Date();
+      const tomorrow = nowInNZT();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
 
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
