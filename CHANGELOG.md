@@ -1,3 +1,9 @@
+## [0.91.17] - 2026-01-06
+
+### Changes
+- fix: improve privacy in suggested friends by showing first name and last initial only ([#462](https://github.com/everybody-eats-nz/volunteer-portal/pull/462)) by @malinmalliyawadu
+
+
 ## [0.91.16] - 2026-01-06
 
 ### Changes
