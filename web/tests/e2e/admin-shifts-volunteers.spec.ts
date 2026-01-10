@@ -61,11 +61,25 @@ test.describe("Admin Shifts - Volunteer Management", () => {
     await loginAsAdmin(page);
 
     // Create test shift - use a date in the near future
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
+    // Calculate date 30 days from now
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+
+    // Get year, month, day in local timezone to construct date string
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const targetDateStr = `${year}-${month}-${day}`;
+
+    // Create a shift at 12:00 NZ timezone on this date
+    // NZ is typically UTC+12 (NZST) or UTC+13 (NZDT during summer)
+    // Using +13:00 to represent summer daylight time
+    const shiftStartISO = `${targetDateStr}T12:00:00+13:00`;
+    const shiftStart = new Date(shiftStartISO);
+
     const shift = await createShift(page, {
       location: "Wellington",
-      start: new Date(testDate.setHours(12, 0)),
+      start: shiftStart,
       capacity: 6,
     });
     testShiftIds.push(shift.id);
@@ -128,9 +142,13 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   test("should display all volunteer grades with correct labels", async ({
     page,
   }) => {
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    // Calculate test date consistently with the shift creation in beforeEach
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -160,9 +178,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   test("should display all volunteer statuses including waitlisted", async ({
     page,
   }) => {
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -182,9 +203,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   test("should show correct staffing status with confirmed volunteers only", async ({
     page,
   }) => {
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -199,9 +223,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   test("should display volunteer action buttons for each signup", async ({
     page,
   }) => {
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -215,9 +242,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   test("should link to volunteer profiles when clicking volunteer names", async ({
     page,
   }) => {
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -235,9 +265,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   });
 
   test("should show grade badges with correct colors", async ({ page }) => {
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -255,17 +288,26 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   });
 
   test("should handle shift with no volunteers correctly", async ({ page }) => {
-    // Create an empty shift
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 31); // One day after main test shift
+    // Create an empty shift one day after the main test shift
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 31);
+
+    // Get year, month, day in local timezone to construct date string
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
+
+    // Create a shift at 16:00 NZ timezone on this date
+    const shiftStartISO = `${testDateStr}T16:00:00+13:00`;
+    const shiftStart = new Date(shiftStartISO);
+
     const emptyShift = await createShift(page, {
       location: "Wellington",
-      start: new Date(testDate.setHours(16, 0)),
+      start: shiftStart,
       capacity: 3,
     });
     testShiftIds.push(emptyShift.id);
-
-    const testDateStr = testDate.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
@@ -282,9 +324,12 @@ test.describe("Admin Shifts - Volunteer Management", () => {
   }) => {
     await page.setViewportSize({ width: 375, height: 667 });
 
-    const testDate = new Date();
-    testDate.setDate(testDate.getDate() + 30);
-    const testDateStr = testDate.toISOString().split("T")[0];
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 30);
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const testDateStr = `${year}-${month}-${day}`;
 
     await page.goto(`/admin/shifts?date=${testDateStr}&location=Wellington`);
     await page.waitForLoadState("load");
