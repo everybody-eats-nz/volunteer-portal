@@ -1,3 +1,9 @@
+## [0.91.19] - 2026-01-10
+
+### Changes
+- chore(deps): bump preact from 10.27.0 to 10.28.2 in /web ([#463](https://github.com/everybody-eats-nz/volunteer-portal/pull/463)) by @dependabot[bot]
+
+
 ## [0.91.18] - 2026-01-10
 
 ### Changes
