@@ -1,3 +1,9 @@
+## [0.91.20] - 2026-01-10
+
+### Changes
+- Potential fix for code scanning alert no. 23: Server-side request forgery ([#466](https://github.com/everybody-eats-nz/volunteer-portal/pull/466)) by @malinmalliyawadu
+
+
 ## [0.91.19] - 2026-01-10
 
 ### Changes
