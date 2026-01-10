@@ -1,3 +1,9 @@
+## [0.91.18] - 2026-01-10
+
+### Changes
+- fix: resolve timezone mismatch in admin-shifts volunteer action tests ([#464](https://github.com/everybody-eats-nz/volunteer-portal/pull/464)) by @malinmalliyawadu
+
+
 ## [0.91.17] - 2026-01-06
 
 ### Changes
