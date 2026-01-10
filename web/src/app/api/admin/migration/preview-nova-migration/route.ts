@@ -8,6 +8,7 @@ import {
   NovaUserResource,
   NovaUserLegacy,
 } from "@/types/nova-migration";
+import { validateNovaBaseUrl } from "@/lib/nova-validation";
 
 interface PreviewRequest {
   novaConfig: {
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
         { error: "Missing required Nova configuration fields" },
         { status: 400 }
       );
+    }
+
+    const baseUrlError = validateNovaBaseUrl(novaConfig.baseUrl);
+    if (baseUrlError) {
+      return NextResponse.json({ error: baseUrlError }, { status: 400 });
     }
 
     try {

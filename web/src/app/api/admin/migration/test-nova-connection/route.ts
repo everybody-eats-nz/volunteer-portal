@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createNovaScraper, NovaAuthConfig } from "@/lib/laravel-nova-scraper";
+import { validateNovaBaseUrl } from "@/lib/nova-validation";
 
 interface TestConnectionRequest {
   novaConfig: {
@@ -27,6 +28,11 @@ export async function POST(request: NextRequest) {
         { error: "Missing required Nova configuration fields" },
         { status: 400 }
       );
+    }
+
+    const baseUrlError = validateNovaBaseUrl(novaConfig.baseUrl);
+    if (baseUrlError) {
+      return NextResponse.json({ error: baseUrlError }, { status: 400 });
     }
 
     try {
