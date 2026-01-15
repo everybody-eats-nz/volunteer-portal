@@ -15,7 +15,17 @@ const updateProfileSchema = z.object({
   lastName: z.string().optional(),
   email: z.string().email("Invalid email format").optional(),
   phone: z.string().optional(),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().optional().refine(
+    (val) => {
+      if (!val) return true; // Allow empty/null
+      const date = new Date(val);
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      // Date must be at least 1 year in the past
+      return !isNaN(date.getTime()) && date <= oneYearAgo;
+    },
+    { message: "Date of birth must be at least 1 year in the past" }
+  ),
   pronouns: z.string().optional(),
   profilePhotoUrl: z.string().nullable().optional(),
   emergencyContactName: z.string().optional(),
