@@ -49,10 +49,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [
-      { url: "/favicon.jpg", type: "image/x-icon" },
-      { url: "/favicon.jpg", sizes: "any" },
-    ],
+    icon: [{ url: "/favicon.jpg", type: "image/x-icon" }],
     apple: "/favicon.jpg",
   },
   openGraph: {
