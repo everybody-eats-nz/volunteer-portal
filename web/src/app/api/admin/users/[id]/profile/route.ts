@@ -10,9 +10,12 @@ const updateProfileSchema = z.object({
     (val) => {
       if (!val) return true;
       const date = new Date(val);
-      return !isNaN(date.getTime()) && date <= new Date();
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      // Date must be at least 1 year in the past
+      return !isNaN(date.getTime()) && date <= oneYearAgo;
     },
-    { message: "Please enter a valid date of birth in the past" }
+    { message: "Date of birth must be at least 1 year in the past" }
   ),
 });
 

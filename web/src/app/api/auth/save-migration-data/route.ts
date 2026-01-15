@@ -17,6 +17,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate dateOfBirth if provided
+    if (data.dateOfBirth) {
+      const date = new Date(data.dateOfBirth);
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+      if (isNaN(date.getTime()) || date > oneYearAgo) {
+        return NextResponse.json(
+          { error: "Date of birth must be at least 1 year in the past" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Find the migration user
     const migrationUser = await prisma.user.findFirst({
       where: {
