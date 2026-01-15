@@ -30,7 +30,17 @@ const registerSchema = z
     lastName: z.string().min(1, "Last name is required"),
     name: z.string().optional(), // Generated from firstName + lastName
     phone: z.string().optional(),
-    dateOfBirth: z.string().optional(),
+    dateOfBirth: z.string().optional().refine(
+      (val) => {
+        if (!val) return true; // Allow empty/null
+        const date = new Date(val);
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        // Date must be at least 1 year in the past
+        return !isNaN(date.getTime()) && date <= oneYearAgo;
+      },
+      { message: "Date of birth must be at least 1 year in the past" }
+    ),
     pronouns: z.string().nullable().optional(),
 
     // Emergency contact
