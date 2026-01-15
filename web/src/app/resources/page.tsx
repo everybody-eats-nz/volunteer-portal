@@ -5,14 +5,14 @@ import { ResourcesGrid } from "@/components/resources-grid";
 import { ResourcesSearch } from "@/components/resources-search";
 import { PageContainer } from "@/components/page-container";
 import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Resources",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+export const metadata: Metadata = buildPageMetadata({
+  title: "Resource Hub - Everybody Eats Volunteer Portal",
+  description:
+    "Access training materials, policies, forms, guides, and helpful resources for Everybody Eats volunteers. Find everything you need to make the most of your volunteer experience.",
+  path: "/resources",
+});
 
 interface ResourcesPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
