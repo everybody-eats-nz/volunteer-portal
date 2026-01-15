@@ -16,9 +16,58 @@ export class LaravelNovaScraper {
   private token: string | null = null;
   private csrfToken: string | null = null;
   private cookies: string[] = [];
+  // Normalized and validated base URL to prevent SSRF
+  private baseUrl: string;
 
   constructor(config: NovaAuthConfig) {
     this.config = config;
+
+    // Validate and normalize baseUrl to mitigate SSRF risks
+    if (!config.baseUrl) {
+      throw new Error("Nova baseUrl is required");
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(config.baseUrl);
+    } catch {
+      throw new Error("Invalid Nova baseUrl");
+    }
+
+    // Enforce allowed protocol
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new Error("Nova baseUrl must use http or https protocol");
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Disallow localhost and common loopback/metadata IPs to avoid SSRF into local services
+    const forbiddenHosts = new Set([
+      "localhost",
+      "127.0.0.1",
+      "::1",
+      "0.0.0.0",
+      "169.254.169.254",
+    ]);
+    if (forbiddenHosts.has(hostname)) {
+      throw new Error("Nova baseUrl may not point to a loopback or link-local address");
+    }
+
+    // Basic private-network detection for IPv4 addresses
+    const privateIpv4Patterns = [
+      /^10\./,
+      /^192\.168\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+    ];
+    if (privateIpv4Patterns.some((re) => re.test(hostname))) {
+      throw new Error("Nova baseUrl may not point to a private network address");
+    }
+
+    // Normalize: strip trailing slash for consistent URL joining
+    const normalizedBase =
+      parsed.origin + (parsed.pathname.endsWith("/") ? parsed.pathname.slice(0, -1) : parsed.pathname);
+
+    this.baseUrl = normalizedBase;
   }
 
   /**
@@ -236,7 +285,9 @@ export class LaravelNovaScraper {
       throw new Error("Not authenticated. Call authenticate() first.");
     }
 
-    const url = `${this.config.baseUrl}/nova-api${endpoint}`;
+    // Ensure endpoint is treated as a path segment and cannot override the base origin
+    const safeEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const url = new URL(`/nova-api${safeEndpoint}`, this.baseUrl).toString();
 
     const requestHeaders = {
       Accept: "application/json",

@@ -24,6 +24,7 @@ import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
 import { notifyAdminsMigrationComplete } from "@/lib/notification-helpers";
 import { randomBytes } from "crypto";
 import { checkForBot } from "@/lib/bot-protection";
+import { validateNovaBaseUrl } from "@/lib/nova-validation";
 
 // Types are now imported from @/types/nova-migration
 
@@ -89,6 +90,11 @@ export async function POST(request: NextRequest) {
         { error: "Missing required Nova configuration" },
         { status: 400 }
       );
+    }
+
+    const baseUrlError = validateNovaBaseUrl(novaConfig.baseUrl);
+    if (baseUrlError) {
+      return NextResponse.json({ error: baseUrlError }, { status: 400 });
     }
 
     const {

@@ -18,6 +18,7 @@ import {
   extractSignupDataFromNovaResource,
 } from "@/lib/historical-data-transformer";
 import { sendProgress as sendProgressUpdate } from "@/lib/sse-utils";
+import { validateNovaBaseUrl } from "@/lib/nova-validation";
 
 interface BatchImportHistoryRequest {
   userEmails: string[];
@@ -89,6 +90,11 @@ export async function POST(request: NextRequest) {
         { error: "Missing required Nova configuration" },
         { status: 400 }
       );
+    }
+
+    const baseUrlError = validateNovaBaseUrl(novaConfig.baseUrl);
+    if (baseUrlError) {
+      return NextResponse.json({ error: baseUrlError }, { status: 400 });
     }
 
     const { dryRun = false } = options;
