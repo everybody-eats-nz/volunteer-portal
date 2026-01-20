@@ -60,10 +60,10 @@ npm run prisma:seed
 
 ```bash
 # Copy the example environment file
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Then edit `.env.local` as needed. See the [Environment Variables](#-environment-variables) section below for detailed configuration.
+Then edit `.env` as needed. See the [Environment Variables](#-environment-variables) section below for detailed configuration.
 
 5. **🔒 Generate auth secret:**
 
