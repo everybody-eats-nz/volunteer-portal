@@ -309,6 +309,13 @@ h6 {
   color: var(--ee-fg);
   background: transparent;
 }
+.dark .badge-muted {
+  background: #374151;
+  color: #d1d5db;
+}
+.dark .badge-accent {
+  color: #fcd34d;
+}
 
 .muted-text {
   color: var(--ee-muted);

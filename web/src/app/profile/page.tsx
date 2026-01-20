@@ -9,6 +9,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { MotionCard } from "@/components/motion-card";
+import { ContentGrid } from "@/components/dashboard-animated";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import type { Metadata } from "next";
 
@@ -94,6 +95,14 @@ export default async function ProfilePage() {
 
   const availableDays = safeParseAvailability(userProfile?.availableDays);
   const availableLocations = safeParseAvailability(userProfile?.availableLocations);
+
+  // Check if profile is incomplete based on required fields
+  const isProfileIncomplete = !userProfile?.phone ||
+    !userProfile?.dateOfBirth ||
+    !userProfile?.emergencyContactName ||
+    !userProfile?.emergencyContactPhone ||
+    !userProfile?.volunteerAgreementAccepted ||
+    !userProfile?.healthSafetyPolicyAccepted;
 
   return (
     <PageContainer testid="profile-page">
@@ -183,9 +192,9 @@ export default async function ProfilePage() {
           </MotionCard>
 
           {/* Profile Details Grid */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <ContentGrid>
             {/* Personal Information */}
-            <MotionCard className="h-fit">
+            <MotionCard>
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
@@ -275,7 +284,7 @@ export default async function ProfilePage() {
             </MotionCard>
 
             {/* Emergency Contact & Availability */}
-            <MotionCard className="h-fit">
+            <MotionCard>
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
@@ -354,7 +363,7 @@ export default async function ProfilePage() {
             </MotionCard>
 
             {/* Availability Information */}
-            <MotionCard className="h-fit">
+            <MotionCard>
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
@@ -434,7 +443,7 @@ export default async function ProfilePage() {
             </MotionCard>
 
             {/* Notification Preferences */}
-            <MotionCard className="h-fit">
+            <MotionCard>
               <CardContent className="px-6">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
@@ -467,18 +476,15 @@ export default async function ProfilePage() {
                     <span className="text-sm font-medium text-muted-foreground">
                       Receive Notifications
                     </span>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={userProfile?.receiveShortageNotifications || false}
-                        readOnly
-                        data-testid="receive-notifications-toggle"
-                        className="rounded border-gray-300"
-                      />
-                      <span className="text-sm">
-                        {userProfile?.receiveShortageNotifications ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
+                    <Badge
+                      variant="outline"
+                      data-testid="receive-notifications-toggle"
+                      className={userProfile?.receiveShortageNotifications
+                        ? "text-green-600 border-green-200 dark:text-green-400 dark:border-green-800"
+                        : "text-muted-foreground border-border"}
+                    >
+                      {userProfile?.receiveShortageNotifications ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
 
                   {userProfile?.receiveShortageNotifications && (
@@ -534,9 +540,14 @@ export default async function ProfilePage() {
                       <span className="text-sm font-medium text-muted-foreground">
                         Newsletter Subscription
                       </span>
-                      <span className="text-sm">
+                      <Badge
+                        variant="outline"
+                        className={userProfile?.emailNewsletterSubscription
+                          ? "text-green-600 border-green-200 dark:text-green-400 dark:border-green-800"
+                          : "text-muted-foreground border-border"}
+                      >
                         {userProfile?.emailNewsletterSubscription ? 'Subscribed' : 'Not subscribed'}
-                      </span>
+                      </Badge>
                     </div>
 
                     {userProfile?.emailNewsletterSubscription && userProfile?.newsletterLists && userProfile.newsletterLists.length > 0 && (
@@ -577,7 +588,7 @@ export default async function ProfilePage() {
             </MotionCard>
 
             {/* Quick Actions */}
-            <MotionCard className="h-fit">
+            <MotionCard>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-lg flex items-center justify-center">
@@ -666,39 +677,41 @@ export default async function ProfilePage() {
                     </Link>
                   </Button>
 
-                  <div className="pt-4 border-t border-border">
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border border-primary/20 dark:border-primary/30">
-                      <div className="flex items-start gap-3">
-                        <svg
-                          className="w-5 h-5 text-primary mt-0.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <div>
-                          <p className="font-medium text-primary">
-                            Complete your profile!
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Add your emergency contact, availability, and
-                            preferences to get the most out of your volunteer
-                            experience.
-                          </p>
+                  {isProfileIncomplete && (
+                    <div className="pt-4 border-t border-border">
+                      <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border border-primary/20 dark:border-primary/30">
+                        <div className="flex items-start gap-3">
+                          <svg
+                            className="w-5 h-5 text-primary mt-0.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <div>
+                            <p className="font-medium text-primary">
+                              Complete your profile!
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Add your emergency contact, availability, and
+                              preferences to get the most out of your volunteer
+                              experience.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </MotionCard>
-          </div>
+          </ContentGrid>
         </div>
       ) : (
         <MotionCard>
