@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/login", "/register", "/shifts"],
+        allow: ["/", "/login", "/register", "/shifts", "/resources"],
         disallow: [
           "/api/",
           "/dashboard",
@@ -18,7 +18,6 @@ export default function robots(): MetadataRoute.Robots {
           "/achievements",
           "/friends",
           "/friends/*",
-          "/resources",
           "/admin",
           "/admin/*",
           "/group-bookings/*",
