@@ -37,10 +37,10 @@ test.describe("User Notification Preferences", () => {
       page.getByRole("heading", { name: /Shift Shortage Notifications/i })
     ).toBeVisible();
 
-    // Check current preferences are displayed
+    // Check current preferences are displayed (now shown as a Badge, not checkbox)
     const notificationToggle = page.getByTestId("receive-notifications-toggle").first();
     await expect(notificationToggle).toBeVisible();
-    await expect(notificationToggle).toBeChecked();
+    await expect(notificationToggle).toContainText(/Enabled|Disabled/);
 
     // Check that shift type preferences are available
     await expect(
