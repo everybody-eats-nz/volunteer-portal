@@ -21,7 +21,6 @@ import {
   Shield,
   Filter,
   ChevronLeft,
-  ChevronRight,
   Star,
   PauseCircle,
   CheckCircle,
@@ -42,6 +41,7 @@ import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
 import { hearAboutUsOptions } from "@/lib/form-constants";
+import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -74,13 +74,6 @@ export default async function AdminVolunteerPage({
   )
     ? (rawLocation as LocationOption)
     : undefined;
-
-  // Pagination settings
-  const ITEMS_PER_PAGE = 10;
-  const rawPage = Array.isArray(searchParamsResolved.page)
-    ? searchParamsResolved.page[0]
-    : searchParamsResolved.page;
-  const currentPage = Math.max(1, parseInt(rawPage || "1", 10) || 1);
 
   // Fetch volunteer profile data
   const volunteer = await prisma.user.findUnique({
@@ -154,8 +147,6 @@ export default async function AdminVolunteerPage({
             ? { shift: { location: selectedLocation } }
             : {}),
         },
-        skip: (currentPage - 1) * ITEMS_PER_PAGE,
-        take: ITEMS_PER_PAGE,
       },
       customLabels: {
         include: {
@@ -171,21 +162,6 @@ export default async function AdminVolunteerPage({
   if (!volunteer) {
     notFound();
   }
-
-  // Count total signups for pagination (with same filters)
-  const totalFilteredSignups = await prisma.signup.count({
-    where: {
-      userId: id,
-      NOT: {
-        AND: [
-          { status: "CANCELED" },
-          { OR: [{ previousStatus: null }, { previousStatus: "PENDING" }] },
-        ],
-      },
-      ...(selectedLocation ? { shift: { location: selectedLocation } } : {}),
-    },
-  });
-  const totalPages = Math.ceil(totalFilteredSignups / ITEMS_PER_PAGE);
 
   const volunteerInitials = volunteer.name
     ? volunteer.name
@@ -298,7 +274,7 @@ export default async function AdminVolunteerPage({
                       src={volunteer.profilePhotoUrl || ""}
                       alt={volunteer.name || "Volunteer"}
                     />
-                    <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                    <AvatarFallback className="text-xl font-bold bg-linear-to-br from-primary to-primary/80 text-primary-foreground">
                       {volunteerInitials}
                     </AvatarFallback>
                   </Avatar>
@@ -917,154 +893,11 @@ export default async function AdminVolunteerPage({
                 </div>
               </CardHeader>
               <CardContent>
-                {volunteer.signups.length === 0 ? (
-                  <div
-                    className="text-center py-8"
-                    data-testid="shift-history-empty-state"
-                  >
-                    <Clock className="h-12 w-12 text-muted-foreground/30 dark:text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {selectedLocation
-                        ? `No shift signups found for ${selectedLocation}`
-                        : "No shift signups yet"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3" data-testid="shift-history-list">
-                    {volunteer.signups.map(
-                      (signup: (typeof volunteer.signups)[0]) => (
-                        <div
-                          key={signup.id}
-                          className="flex items-center justify-between p-4 bg-muted/30 dark:bg-muted/20 rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">
-                                {signup.shift.shiftType.name}
-                              </h4>
-                              {signup.shift.location && (
-                                <Badge variant="outline">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {signup.shift.location}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatInNZT(
-                                  signup.shift.start,
-                                  "EEE dd MMM yyyy"
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatInNZT(signup.shift.start, "h:mma")} –{" "}
-                                {formatInNZT(signup.shift.end, "h:mma")}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                signup.status === "CONFIRMED"
-                                  ? "default"
-                                  : signup.status === "WAITLISTED"
-                                  ? "secondary"
-                                  : "outline"
-                              }
-                              className={cn(
-                                signup.status === "CONFIRMED" &&
-                                  "bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/30",
-                                signup.status === "PENDING" &&
-                                  "bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30",
-                                signup.status === "WAITLISTED" &&
-                                  "bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-950/30",
-                                signup.status === "CANCELED" &&
-                                  "bg-orange-100 dark:bg-orange-950/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/30",
-                                signup.status === "NO_SHOW" &&
-                                  "bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950/30"
-                              )}
-                            >
-                              {signup.status === "CONFIRMED" && "Confirmed"}
-                              {signup.status === "PENDING" && "Pending"}
-                              {signup.status === "WAITLISTED" && "Waitlisted"}
-                              {signup.status === "CANCELED" && "Canceled"}
-                              {signup.status === "NO_SHOW" && "No-show"}
-                            </Badge>
-                            {signup.shift.start < now && (
-                              <Badge
-                                variant="outline"
-                                className="text-muted-foreground"
-                              >
-                                Past
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    )}
-
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-between pt-4 border-t">
-                        <p className="text-sm text-muted-foreground">
-                          Page {currentPage} of {totalPages} •{" "}
-                          {totalFilteredSignups} shifts
-                          {selectedLocation && ` in ${selectedLocation}`}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            disabled={currentPage <= 1}
-                            className={
-                              currentPage <= 1
-                                ? "pointer-events-none opacity-50"
-                                : ""
-                            }
-                          >
-                            <Link
-                              href={`/admin/volunteers/${id}?${new URLSearchParams({
-                                ...(selectedLocation
-                                  ? { location: selectedLocation }
-                                  : {}),
-                                page: String(currentPage - 1),
-                              }).toString()}`}
-                            >
-                              <ChevronLeft className="h-4 w-4 mr-1" />
-                              Previous
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            disabled={currentPage >= totalPages}
-                            className={
-                              currentPage >= totalPages
-                                ? "pointer-events-none opacity-50"
-                                : ""
-                            }
-                          >
-                            <Link
-                              href={`/admin/volunteers/${id}?${new URLSearchParams({
-                                ...(selectedLocation
-                                  ? { location: selectedLocation }
-                                  : {}),
-                                page: String(currentPage + 1),
-                              }).toString()}`}
-                            >
-                              Next
-                              <ChevronRight className="h-4 w-4 ml-1" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <ShiftHistoryPaginated
+                  signups={volunteer.signups}
+                  volunteerId={volunteer.id}
+                  selectedLocation={selectedLocation}
+                />
               </CardContent>
             </Card>
           </div>
