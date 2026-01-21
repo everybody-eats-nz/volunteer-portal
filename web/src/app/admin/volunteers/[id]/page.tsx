@@ -21,6 +21,7 @@ import {
   Shield,
   Filter,
   ChevronLeft,
+  ChevronRight,
   Star,
   PauseCircle,
   CheckCircle,
@@ -73,6 +74,13 @@ export default async function AdminVolunteerPage({
   )
     ? (rawLocation as LocationOption)
     : undefined;
+
+  // Pagination settings
+  const ITEMS_PER_PAGE = 10;
+  const rawPage = Array.isArray(searchParamsResolved.page)
+    ? searchParamsResolved.page[0]
+    : searchParamsResolved.page;
+  const currentPage = Math.max(1, parseInt(rawPage || "1", 10) || 1);
 
   // Fetch volunteer profile data
   const volunteer = await prisma.user.findUnique({
@@ -146,6 +154,8 @@ export default async function AdminVolunteerPage({
             ? { shift: { location: selectedLocation } }
             : {}),
         },
+        skip: (currentPage - 1) * ITEMS_PER_PAGE,
+        take: ITEMS_PER_PAGE,
       },
       customLabels: {
         include: {
@@ -161,6 +171,21 @@ export default async function AdminVolunteerPage({
   if (!volunteer) {
     notFound();
   }
+
+  // Count total signups for pagination (with same filters)
+  const totalFilteredSignups = await prisma.signup.count({
+    where: {
+      userId: id,
+      NOT: {
+        AND: [
+          { status: "CANCELED" },
+          { OR: [{ previousStatus: null }, { previousStatus: "PENDING" }] },
+        ],
+      },
+      ...(selectedLocation ? { shift: { location: selectedLocation } } : {}),
+    },
+  });
+  const totalPages = Math.ceil(totalFilteredSignups / ITEMS_PER_PAGE);
 
   const volunteerInitials = volunteer.name
     ? volunteer.name
@@ -199,17 +224,17 @@ export default async function AdminVolunteerPage({
       signup.shift.start < now && signup.status === "CONFIRMED"
   ).length;
 
-  // Track confirmed cancellations (only matters for reporting)
-  const confirmedCancellations = volunteer.signups.filter(
-    (signup: (typeof volunteer.signups)[0]) =>
+  // Track confirmed cancellations (only matters for reporting) - use allSignups for accurate count
+  const confirmedCancellations = allSignups.filter(
+    (signup: (typeof allSignups)[0]) =>
       signup.status === "CANCELED" &&
       signup.canceledAt &&
       signup.previousStatus === "CONFIRMED"
   ).length;
 
-  // Track no-shows (manually set by admin)
-  const noShows = volunteer.signups.filter(
-    (signup: (typeof volunteer.signups)[0]) => signup.status === "NO_SHOW"
+  // Track no-shows (manually set by admin) - use allSignups for accurate count
+  const noShows = allSignups.filter(
+    (signup: (typeof allSignups)[0]) => signup.status === "NO_SHOW"
   ).length;
 
   const dayLabels: Record<string, string> = {
@@ -906,9 +931,8 @@ export default async function AdminVolunteerPage({
                   </div>
                 ) : (
                   <div className="space-y-3" data-testid="shift-history-list">
-                    {volunteer.signups
-                      .slice(0, 10)
-                      .map((signup: (typeof volunteer.signups)[0]) => (
+                    {volunteer.signups.map(
+                      (signup: (typeof volunteer.signups)[0]) => (
                         <div
                           key={signup.id}
                           className="flex items-center justify-between p-4 bg-muted/30 dark:bg-muted/20 rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
@@ -935,10 +959,8 @@ export default async function AdminVolunteerPage({
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {formatInNZT(
-                                  signup.shift.start,
-                                  "h:mma"
-                                )} – {formatInNZT(signup.shift.end, "h:mma")}
+                                {formatInNZT(signup.shift.start, "h:mma")} –{" "}
+                                {formatInNZT(signup.shift.end, "h:mma")}
                               </div>
                             </div>
                           </div>
@@ -980,14 +1002,65 @@ export default async function AdminVolunteerPage({
                             )}
                           </div>
                         </div>
-                      ))}
-                    {volunteer.signups.length > 10 && (
-                      <div className="text-center py-4 border-t">
+                      )
+                    )}
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between pt-4 border-t">
                         <p className="text-sm text-muted-foreground">
-                          Showing 10 most recent of {volunteer.signups.length}{" "}
-                          total shifts
+                          Page {currentPage} of {totalPages} •{" "}
+                          {totalFilteredSignups} shifts
                           {selectedLocation && ` in ${selectedLocation}`}
                         </p>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            disabled={currentPage <= 1}
+                            className={
+                              currentPage <= 1
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
+                          >
+                            <Link
+                              href={`/admin/volunteers/${id}?${new URLSearchParams({
+                                ...(selectedLocation
+                                  ? { location: selectedLocation }
+                                  : {}),
+                                page: String(currentPage - 1),
+                              }).toString()}`}
+                            >
+                              <ChevronLeft className="h-4 w-4 mr-1" />
+                              Previous
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            disabled={currentPage >= totalPages}
+                            className={
+                              currentPage >= totalPages
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                            }
+                          >
+                            <Link
+                              href={`/admin/volunteers/${id}?${new URLSearchParams({
+                                ...(selectedLocation
+                                  ? { location: selectedLocation }
+                                  : {}),
+                                page: String(currentPage + 1),
+                              }).toString()}`}
+                            >
+                              Next
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
