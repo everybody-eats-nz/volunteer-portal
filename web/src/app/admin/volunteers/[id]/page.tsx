@@ -264,53 +264,69 @@ export default async function AdminVolunteerPage({
           {/* Left Column - Profile Info */}
           <div className="lg:col-span-1 space-y-6">
             {/* Basic Information */}
-            <Card data-testid="basic-information-card">
-              <CardContent className="text-center">
-                <div className="flex justify-center mb-4">
-                  <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                    <AvatarImage
-                      src={volunteer.profilePhotoUrl || ""}
-                      alt={volunteer.name || "Volunteer"}
-                    />
-                    <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-                      {volunteerInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+            <Card
+              data-testid="basic-information-card"
+              className="overflow-hidden"
+            >
+              {/* Gradient Header */}
+              <div className="h-24 bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40 dark:from-primary/40 dark:via-primary/30 dark:to-primary/20" />
 
+              {/* Avatar - overlapping the header */}
+              <div className="flex justify-center -mt-12 mb-4">
+                <Avatar className="h-24 w-24 border-4 border-background shadow-xl ring-2 ring-primary/20">
+                  <AvatarImage
+                    src={volunteer.profilePhotoUrl || ""}
+                    alt={volunteer.name || "Volunteer"}
+                  />
+                  <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                    {volunteerInitials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+
+              <CardContent className="text-center pt-0">
+                {/* Name */}
                 <h2
-                  className="text-2xl font-bold mb-2"
+                  className="text-2xl font-bold mb-1"
                   data-testid="volunteer-name"
                 >
                   {volunteer.name || "Volunteer"}
                 </h2>
 
+                {/* Email */}
                 <div
-                  className="flex items-center justify-center gap-2 text-muted-foreground mb-4"
+                  className="flex items-center justify-center gap-2 text-muted-foreground mb-3"
                   data-testid="volunteer-email"
                 >
                   <Mail className="h-4 w-4" />
                   <span className="text-sm">{volunteer.email}</span>
                 </div>
 
-                {volunteer.pronouns && (
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Pronouns: {volunteer.pronouns}
-                  </p>
+                {/* Quick Info Row - Pronouns & Age */}
+                {(volunteer.pronouns || volunteer.dateOfBirth) && (
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    {volunteer.pronouns && (
+                      <span className="text-sm text-muted-foreground">
+                        {volunteer.pronouns}
+                      </span>
+                    )}
+                    {volunteer.pronouns && volunteer.dateOfBirth && (
+                      <span className="text-muted-foreground/40">•</span>
+                    )}
+                    {volunteer.dateOfBirth && (
+                      <span
+                        className="text-sm text-muted-foreground flex items-center gap-1"
+                        data-testid="volunteer-age"
+                      >
+                        <Cake className="h-3.5 w-3.5" />
+                        {calculateAge(volunteer.dateOfBirth)} years old
+                      </span>
+                    )}
+                  </div>
                 )}
 
-                {volunteer.dateOfBirth && (
-                  <Badge
-                    variant="secondary"
-                    className="mb-4"
-                    data-testid="volunteer-age"
-                  >
-                    <Cake className="h-3 w-3 mr-1" />
-                    {calculateAge(volunteer.dateOfBirth)} yrs
-                  </Badge>
-                )}
-
-                <div className="flex flex-wrap gap-2 justify-center mb-6">
+                {/* Role & Grade Badges */}
+                <div className="flex flex-wrap gap-2 justify-center mb-3">
                   <Badge variant="default" data-testid="user-role">
                     <User className="h-3 w-3 mr-1" />
                     {volunteer.role === "ADMIN" ? "Administrator" : "Volunteer"}
@@ -322,6 +338,10 @@ export default async function AdminVolunteerPage({
                         size="default"
                       />
                     )}
+                </div>
+
+                {/* Status Badges */}
+                <div className="flex flex-wrap gap-2 justify-center mb-6">
                   {volunteer.regularVolunteer && (
                     <Badge
                       variant="outline"
@@ -361,52 +381,61 @@ export default async function AdminVolunteerPage({
 
                 {/* Quick Stats */}
                 <div
-                  className="grid grid-cols-3 gap-4 pt-4 border-t"
+                  className="grid grid-cols-3 gap-3 pt-4 border-t"
                   data-testid="volunteer-stats"
                 >
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">{totalShifts}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Total Shifts
+                  <div className="p-3 rounded-lg bg-muted/50 dark:bg-muted/30">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
                     </div>
+                    <div className="text-2xl font-bold">{totalShifts}</div>
+                    <div className="text-xs text-muted-foreground">Total</div>
                   </div>
-                  <div className="text-center">
+                  <div className="p-3 rounded-lg bg-primary/5 dark:bg-primary/10">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Clock className="h-4 w-4 text-primary" />
+                    </div>
                     <div className="text-2xl font-bold text-primary">
                       {upcomingShifts}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Upcoming
-                    </div>
+                    <div className="text-xs text-muted-foreground">Upcoming</div>
                   </div>
-                  <div className="text-center">
+                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {completedShifts}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Completed
-                    </div>
+                    <div className="text-xs text-muted-foreground">Done</div>
                   </div>
-                  {confirmedCancellations > 0 && (
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        {confirmedCancellations}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Canceled
-                      </div>
-                    </div>
-                  )}
-                  {noShows > 0 && (
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                        {noShows}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        No-shows
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Secondary Stats - Only show if there are issues */}
+                {(confirmedCancellations > 0 || noShows > 0) && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    {confirmedCancellations > 0 && (
+                      <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30">
+                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                          {confirmedCancellations}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Canceled
+                        </div>
+                      </div>
+                    )}
+                    {noShows > 0 && (
+                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
+                        <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                          {noShows}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          No-shows
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
