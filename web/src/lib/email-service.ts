@@ -162,6 +162,19 @@ interface SendProfileCompletionParams {
   firstName: string;
 }
 
+interface SurveyNotificationEmailData {
+  firstName: string;
+  surveyTitle: string;
+  surveyLink: string;
+}
+
+interface SendSurveyNotificationParams {
+  email: string;
+  userName: string;
+  surveyTitle: string;
+  surveyUrl: string;
+}
+
 interface EmailAttachment {
   Content: string; // Base64 encoded content
   Name: string; // Filename
@@ -181,6 +194,7 @@ class EmailService {
   private parentalConsentApprovalSmartEmailID: string;
   private userInvitationSmartEmailID: string;
   private profileCompletionSmartEmailID: string;
+  private surveyNotificationSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -378,6 +392,26 @@ class EmailService {
       }
     } else {
       this.profileCompletionSmartEmailID = profileCompletionEmailId;
+    }
+
+    // Smart email ID for survey notifications
+    const surveyNotificationEmailId =
+      process.env.CAMPAIGN_MONITOR_SURVEY_NOTIFICATION_EMAIL_ID;
+    if (!surveyNotificationEmailId) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_SURVEY_NOTIFICATION_EMAIL_ID is not configured - survey notification emails will not be sent"
+        );
+        this.surveyNotificationSmartEmailID = "dummy-survey-notification-id";
+      } else {
+        // Survey emails are optional, so just warn in production
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_SURVEY_NOTIFICATION_EMAIL_ID is not configured - survey notification emails will not be sent"
+        );
+        this.surveyNotificationSmartEmailID = "dummy-survey-notification-id";
+      }
+    } else {
+      this.surveyNotificationSmartEmailID = surveyNotificationEmailId;
     }
   }
 
@@ -984,6 +1018,57 @@ class EmailService {
     }
   }
 
+  async sendSurveyNotification(
+    params: SendSurveyNotificationParams
+  ): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+
+    // Skip email sending if configuration is missing
+    if (
+      this.surveyNotificationSmartEmailID === "dummy-survey-notification-id"
+    ) {
+      console.log(
+        `[EMAIL SERVICE] Would send survey notification email to ${params.email} (skipped - no config)`
+      );
+      console.log(`[EMAIL SERVICE] Email data:`, {
+        firstName: params.userName.split(" ")[0],
+        surveyTitle: params.surveyTitle,
+        surveyLink: params.surveyUrl,
+      });
+      return Promise.resolve();
+    }
+
+    // Extract first name from user name
+    const firstName = params.userName.split(" ")[0] || params.userName;
+
+    try {
+      await this.sendSmartEmail(
+        this.surveyNotificationSmartEmailID,
+        `${params.userName} <${params.email}>`,
+        {
+          firstName: firstName,
+          surveyTitle: params.surveyTitle,
+          surveyLink: params.surveyUrl,
+        }
+      );
+      console.log(
+        "Survey notification email sent successfully to:",
+        params.email
+      );
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending survey notification email (development):",
+          err instanceof Error ? err.message : "Unknown error"
+        );
+        // Don't fail in development
+      } else {
+        console.error("Error sending survey notification email:", err);
+        throw err;
+      }
+    }
+  }
+
   /**
    * Get email template ID by type
    */
@@ -998,6 +1083,7 @@ class EmailService {
       | "parentalConsentApproval"
       | "userInvitation"
       | "profileCompletion"
+      | "surveyNotification"
       | "migration"
   ): { id: string; name: string } {
     const emailTemplates = {
@@ -1037,6 +1123,10 @@ class EmailService {
         id: this.profileCompletionSmartEmailID,
         name: "Profile Completion",
       },
+      surveyNotification: {
+        id: this.surveyNotificationSmartEmailID,
+        name: "Survey Notification",
+      },
       migration: { id: this.migrationSmartEmailID, name: "Migration Invite" },
     };
 
@@ -1057,6 +1147,7 @@ class EmailService {
       | "parentalConsentApproval"
       | "userInvitation"
       | "profileCompletion"
+      | "surveyNotification"
       | "migration"
   ): Promise<{
     success: boolean;
@@ -1149,6 +1240,16 @@ export function getEmailService(): EmailService {
   return emailServiceInstance;
 }
 
+/**
+ * Helper function to send survey notification email
+ */
+export async function sendSurveyNotification(
+  params: SendSurveyNotificationParams
+): Promise<void> {
+  const service = getEmailService();
+  return service.sendSurveyNotification(params);
+}
+
 export type {
   SendEmailParams,
   SendShiftCancellationParams,
@@ -1169,4 +1270,6 @@ export type {
   UserInvitationEmailData,
   SendProfileCompletionParams,
   ProfileCompletionEmailData,
+  SendSurveyNotificationParams,
+  SurveyNotificationEmailData,
 };

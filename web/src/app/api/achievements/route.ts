@@ -7,6 +7,7 @@ import {
   checkAndUnlockAchievements,
   calculateUserProgress,
 } from "@/lib/achievements";
+import { checkAndAssignSurveys } from "@/lib/survey-triggers";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -31,6 +32,12 @@ export async function GET(request: Request) {
 
     // Calculate achievements based on current history
     const newAchievements = await checkAndUnlockAchievements(user.id);
+
+    // Check and assign any triggered surveys
+    const newSurveys = await checkAndAssignSurveys(user.id);
+    if (newSurveys.length > 0) {
+      console.log(`[SURVEYS] Assigned ${newSurveys.length} survey(s) to user ${user.id}`);
+    }
 
     // Get user's current achievements and available ones
     const [userAchievements, availableAchievements, progress, shiftTypes] =
@@ -172,8 +179,12 @@ export async function POST() {
     // Check for new achievements
     const newAchievements = await checkAndUnlockAchievements(user.id);
 
+    // Check and assign any triggered surveys
+    const newSurveys = await checkAndAssignSurveys(user.id);
+
     return NextResponse.json({
       newAchievements,
+      newSurveys,
       success: true,
     });
   } catch (error) {

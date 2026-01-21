@@ -113,6 +113,10 @@ model User {
 
   // Passkey authentication
   passkeys Passkey[]
+
+  // Survey system
+  surveyAssignments SurveyAssignment[]
+  createdSurveys    Survey[]           @relation("SurveyCreator")
 }
 
 model Passkey {
@@ -443,6 +447,7 @@ enum NotificationType {
   SHIFT_CANCELLATION_MANAGER // Volunteer canceled shift - notify managers
   FLEXIBLE_PLACEMENT // Deprecated - kept for backwards compatibility
   UNDERAGE_USER_REGISTERED // Underage user registered - notify admins for parental consent
+  SURVEY_ASSIGNED // A new survey has been assigned to you
 }
 
 model RestaurantManager {
@@ -731,4 +736,79 @@ model NewsletterList {
 
   @@index([active])
   @@index([displayOrder])
+}
+
+// Survey system
+model Survey {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  questions   Json // Array of question objects
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdBy   String
+
+  // Milestone trigger configuration
+  triggerType  SurveyTriggerType
+  triggerValue Int // e.g., 5 shifts, 10 hours
+
+  creator     User               @relation("SurveyCreator", fields: [createdBy], references: [id])
+  assignments SurveyAssignment[]
+
+  @@index([isActive, triggerType])
+}
+
+model SurveyAssignment {
+  id          String                 @id @default(cuid())
+  surveyId    String
+  userId      String
+  status      SurveyAssignmentStatus @default(PENDING)
+  assignedAt  DateTime               @default(now())
+  completedAt DateTime?
+  dismissedAt DateTime?
+
+  survey   Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  response SurveyResponse?
+  token    SurveyToken?
+
+  @@unique([surveyId, userId])
+  @@index([userId, status])
+}
+
+model SurveyToken {
+  id           String   @id @default(cuid())
+  token        String   @unique
+  assignmentId String   @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  assignment SurveyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
+model SurveyResponse {
+  id           String   @id @default(cuid())
+  assignmentId String   @unique
+  answers      Json // Array of {questionId, value}
+  submittedAt  DateTime @default(now())
+
+  assignment SurveyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+}
+
+enum SurveyTriggerType {
+  SHIFTS_COMPLETED
+  HOURS_VOLUNTEERED
+  FIRST_SHIFT
+  MANUAL
+}
+
+enum SurveyAssignmentStatus {
+  PENDING // Not started, shows on dashboard
+  DISMISSED // Hidden from dashboard, token still works
+  COMPLETED // Response submitted
+  EXPIRED // Token expired without completion
 }
