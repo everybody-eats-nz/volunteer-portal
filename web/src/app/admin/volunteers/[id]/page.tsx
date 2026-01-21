@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { calculateAge } from "@/lib/utils";
 import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Calendar,
+  Cake,
   Clock,
   MapPin,
   Mail,
@@ -292,9 +294,20 @@ export default async function AdminVolunteerPage({
                 </div>
 
                 {volunteer.pronouns && (
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-3">
                     Pronouns: {volunteer.pronouns}
                   </p>
+                )}
+
+                {volunteer.dateOfBirth && (
+                  <Badge
+                    variant="secondary"
+                    className="mb-4"
+                    data-testid="volunteer-age"
+                  >
+                    <Cake className="h-3 w-3 mr-1" />
+                    {calculateAge(volunteer.dateOfBirth)} yrs
+                  </Badge>
                 )}
 
                 <div className="flex flex-wrap gap-2 justify-center mb-6">
