@@ -190,7 +190,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Update unread count if we dismissed a notification
       if (notification.count > 0) {
         const unreadCount = await getUnreadNotificationCount(assignmentUserId);
-        await updateUnreadCount(assignmentUserId, unreadCount);
+        updateUnreadCount(assignmentUserId, unreadCount).catch((error) => {
+          console.error("Error updating unread count:", error);
+        });
       }
     } catch (notificationError) {
       // Don't fail the submission if notification update fails

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { SurveyQuestionRenderer } from "./survey-question-renderer";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import type { SurveyQuestion, SurveyAnswer } from "@/types/survey";
 import { motion } from "motion/react";
 
@@ -125,9 +126,15 @@ export function SurveyForm({
               <h2 className="text-2xl font-semibold mb-2">
                 Thank you for your feedback!
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-6">
                 Your response has been submitted successfully.
               </p>
+              <Button asChild>
+                <Link href="/dashboard">
+                  Go to Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
