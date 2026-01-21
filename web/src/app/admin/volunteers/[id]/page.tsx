@@ -265,7 +265,7 @@ export default async function AdminVolunteerPage({
           <div className="lg:col-span-1 space-y-6">
             {/* Basic Information */}
             <Card data-testid="basic-information-card">
-              <CardContent className="text-center pt-6">
+              <CardContent className="text-center">
                 {/* Avatar */}
                 <div className="flex justify-center mb-4">
                   <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
