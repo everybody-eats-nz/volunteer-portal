@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
+import { calculateAge } from "@/lib/utils";
 import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Calendar,
+  Cake,
   Clock,
   MapPin,
   Mail,
@@ -39,6 +41,7 @@ import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
 import { hearAboutUsOptions } from "@/lib/form-constants";
+import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -197,17 +200,17 @@ export default async function AdminVolunteerPage({
       signup.shift.start < now && signup.status === "CONFIRMED"
   ).length;
 
-  // Track confirmed cancellations (only matters for reporting)
-  const confirmedCancellations = volunteer.signups.filter(
-    (signup: (typeof volunteer.signups)[0]) =>
+  // Track confirmed cancellations (only matters for reporting) - use allSignups for accurate count
+  const confirmedCancellations = allSignups.filter(
+    (signup: (typeof allSignups)[0]) =>
       signup.status === "CANCELED" &&
       signup.canceledAt &&
       signup.previousStatus === "CONFIRMED"
   ).length;
 
-  // Track no-shows (manually set by admin)
-  const noShows = volunteer.signups.filter(
-    (signup: (typeof volunteer.signups)[0]) => signup.status === "NO_SHOW"
+  // Track no-shows (manually set by admin) - use allSignups for accurate count
+  const noShows = allSignups.filter(
+    (signup: (typeof allSignups)[0]) => signup.status === "NO_SHOW"
   ).length;
 
   const dayLabels: Record<string, string> = {
@@ -264,40 +267,60 @@ export default async function AdminVolunteerPage({
             {/* Basic Information */}
             <Card data-testid="basic-information-card">
               <CardContent className="text-center">
+                {/* Avatar */}
                 <div className="flex justify-center mb-4">
                   <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
                     <AvatarImage
                       src={volunteer.profilePhotoUrl || ""}
                       alt={volunteer.name || "Volunteer"}
                     />
-                    <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                    <AvatarFallback className="text-xl font-bold bg-linear-to-br from-primary to-primary/80 text-primary-foreground">
                       {volunteerInitials}
                     </AvatarFallback>
                   </Avatar>
                 </div>
-
+                {/* Name */}
                 <h2
-                  className="text-2xl font-bold mb-2"
+                  className="text-2xl font-bold mb-1"
                   data-testid="volunteer-name"
                 >
                   {volunteer.name || "Volunteer"}
                 </h2>
 
+                {/* Email */}
                 <div
-                  className="flex items-center justify-center gap-2 text-muted-foreground mb-4"
+                  className="flex items-center justify-center gap-2 text-muted-foreground mb-3"
                   data-testid="volunteer-email"
                 >
                   <Mail className="h-4 w-4" />
                   <span className="text-sm">{volunteer.email}</span>
                 </div>
 
-                {volunteer.pronouns && (
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Pronouns: {volunteer.pronouns}
-                  </p>
+                {/* Quick Info Row - Pronouns & Age */}
+                {(volunteer.pronouns || volunteer.dateOfBirth) && (
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    {volunteer.pronouns && (
+                      <span className="text-sm text-muted-foreground">
+                        {volunteer.pronouns}
+                      </span>
+                    )}
+                    {volunteer.pronouns && volunteer.dateOfBirth && (
+                      <span className="text-muted-foreground/40">•</span>
+                    )}
+                    {volunteer.dateOfBirth && (
+                      <span
+                        className="text-sm text-muted-foreground flex items-center gap-1"
+                        data-testid="volunteer-age"
+                      >
+                        <Cake className="h-3.5 w-3.5" />
+                        {calculateAge(volunteer.dateOfBirth)} years old
+                      </span>
+                    )}
+                  </div>
                 )}
 
-                <div className="flex flex-wrap gap-2 justify-center mb-6">
+                {/* Role & Grade Badges */}
+                <div className="flex flex-wrap gap-2 justify-center mb-3">
                   <Badge variant="default" data-testid="user-role">
                     <User className="h-3 w-3 mr-1" />
                     {volunteer.role === "ADMIN" ? "Administrator" : "Volunteer"}
@@ -309,6 +332,10 @@ export default async function AdminVolunteerPage({
                         size="default"
                       />
                     )}
+                </div>
+
+                {/* Status Badges */}
+                <div className="flex flex-wrap gap-2 justify-center mb-6">
                   {volunteer.regularVolunteer && (
                     <Badge
                       variant="outline"
@@ -348,52 +375,61 @@ export default async function AdminVolunteerPage({
 
                 {/* Quick Stats */}
                 <div
-                  className="grid grid-cols-3 gap-4 pt-4 border-t"
+                  className="grid grid-cols-3 gap-3 pt-4 border-t"
                   data-testid="volunteer-stats"
                 >
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">{totalShifts}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Total Shifts
+                  <div className="p-3 rounded-lg bg-muted/50 dark:bg-muted/30">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
                     </div>
+                    <div className="text-2xl font-bold">{totalShifts}</div>
+                    <div className="text-xs text-muted-foreground">Total</div>
                   </div>
-                  <div className="text-center">
+                  <div className="p-3 rounded-lg bg-primary/5 dark:bg-primary/10">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <Clock className="h-4 w-4 text-primary" />
+                    </div>
                     <div className="text-2xl font-bold text-primary">
                       {upcomingShifts}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Upcoming
-                    </div>
+                    <div className="text-xs text-muted-foreground">Upcoming</div>
                   </div>
-                  <div className="text-center">
+                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <div className="flex items-center justify-center gap-1.5 mb-1">
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {completedShifts}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Completed
-                    </div>
+                    <div className="text-xs text-muted-foreground">Done</div>
                   </div>
-                  {confirmedCancellations > 0 && (
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                        {confirmedCancellations}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Canceled
-                      </div>
-                    </div>
-                  )}
-                  {noShows > 0 && (
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                        {noShows}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        No-shows
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Secondary Stats - Only show if there are issues */}
+                {(confirmedCancellations > 0 || noShows > 0) && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    {confirmedCancellations > 0 && (
+                      <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30">
+                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                          {confirmedCancellations}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Canceled
+                        </div>
+                      </div>
+                    )}
+                    {noShows > 0 && (
+                      <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
+                        <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                          {noShows}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          No-shows
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -857,106 +893,11 @@ export default async function AdminVolunteerPage({
                 </div>
               </CardHeader>
               <CardContent>
-                {volunteer.signups.length === 0 ? (
-                  <div
-                    className="text-center py-8"
-                    data-testid="shift-history-empty-state"
-                  >
-                    <Clock className="h-12 w-12 text-muted-foreground/30 dark:text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {selectedLocation
-                        ? `No shift signups found for ${selectedLocation}`
-                        : "No shift signups yet"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3" data-testid="shift-history-list">
-                    {volunteer.signups
-                      .slice(0, 10)
-                      .map((signup: (typeof volunteer.signups)[0]) => (
-                        <div
-                          key={signup.id}
-                          className="flex items-center justify-between p-4 bg-muted/30 dark:bg-muted/20 rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">
-                                {signup.shift.shiftType.name}
-                              </h4>
-                              {signup.shift.location && (
-                                <Badge variant="outline">
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {signup.shift.location}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatInNZT(
-                                  signup.shift.start,
-                                  "EEE dd MMM yyyy"
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatInNZT(
-                                  signup.shift.start,
-                                  "h:mma"
-                                )} – {formatInNZT(signup.shift.end, "h:mma")}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                signup.status === "CONFIRMED"
-                                  ? "default"
-                                  : signup.status === "WAITLISTED"
-                                  ? "secondary"
-                                  : "outline"
-                              }
-                              className={cn(
-                                signup.status === "CONFIRMED" &&
-                                  "bg-green-100 dark:bg-green-950/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/30",
-                                signup.status === "PENDING" &&
-                                  "bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30",
-                                signup.status === "WAITLISTED" &&
-                                  "bg-yellow-100 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-950/30",
-                                signup.status === "CANCELED" &&
-                                  "bg-orange-100 dark:bg-orange-950/30 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/30",
-                                signup.status === "NO_SHOW" &&
-                                  "bg-red-100 dark:bg-red-950/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-950/30"
-                              )}
-                            >
-                              {signup.status === "CONFIRMED" && "Confirmed"}
-                              {signup.status === "PENDING" && "Pending"}
-                              {signup.status === "WAITLISTED" && "Waitlisted"}
-                              {signup.status === "CANCELED" && "Canceled"}
-                              {signup.status === "NO_SHOW" && "No-show"}
-                            </Badge>
-                            {signup.shift.start < now && (
-                              <Badge
-                                variant="outline"
-                                className="text-muted-foreground"
-                              >
-                                Past
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    {volunteer.signups.length > 10 && (
-                      <div className="text-center py-4 border-t">
-                        <p className="text-sm text-muted-foreground">
-                          Showing 10 most recent of {volunteer.signups.length}{" "}
-                          total shifts
-                          {selectedLocation && ` in ${selectedLocation}`}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <ShiftHistoryPaginated
+                  signups={volunteer.signups}
+                  volunteerId={volunteer.id}
+                  selectedLocation={selectedLocation}
+                />
               </CardContent>
             </Card>
           </div>
