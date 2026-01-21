@@ -36,36 +36,37 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Get response counts for each survey
-    const surveysWithStats = await Promise.all(
-      surveys.map(async (survey) => {
-        const [pending, completed, dismissed, expired] = await Promise.all([
-          prisma.surveyAssignment.count({
-            where: { surveyId: survey.id, status: "PENDING" },
-          }),
-          prisma.surveyAssignment.count({
-            where: { surveyId: survey.id, status: "COMPLETED" },
-          }),
-          prisma.surveyAssignment.count({
-            where: { surveyId: survey.id, status: "DISMISSED" },
-          }),
-          prisma.surveyAssignment.count({
-            where: { surveyId: survey.id, status: "EXPIRED" },
-          }),
-        ]);
+    // Get all assignment stats in a single query using groupBy
+    const surveyIds = surveys.map((s) => s.id);
+    const assignmentStats = await prisma.surveyAssignment.groupBy({
+      by: ["surveyId", "status"],
+      where: { surveyId: { in: surveyIds } },
+      _count: { id: true },
+    });
 
-        return {
-          ...survey,
-          stats: {
-            totalAssignments: survey._count.assignments,
-            pending,
-            completed,
-            dismissed,
-            expired,
-          },
-        };
-      })
-    );
+    // Build a map of surveyId -> status -> count
+    const statsMap = new Map<string, Record<string, number>>();
+    for (const stat of assignmentStats) {
+      if (!statsMap.has(stat.surveyId)) {
+        statsMap.set(stat.surveyId, { PENDING: 0, COMPLETED: 0, DISMISSED: 0, EXPIRED: 0 });
+      }
+      statsMap.get(stat.surveyId)![stat.status] = stat._count.id;
+    }
+
+    // Combine surveys with their stats
+    const surveysWithStats = surveys.map((survey) => {
+      const stats = statsMap.get(survey.id) || { PENDING: 0, COMPLETED: 0, DISMISSED: 0, EXPIRED: 0 };
+      return {
+        ...survey,
+        stats: {
+          totalAssignments: survey._count.assignments,
+          pending: stats.PENDING,
+          completed: stats.COMPLETED,
+          dismissed: stats.DISMISSED,
+          expired: stats.EXPIRED,
+        },
+      };
+    });
 
     return NextResponse.json(surveysWithStats);
   } catch (error) {

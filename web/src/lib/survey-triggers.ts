@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { calculateUserProgress, type UserProgress } from "./achievements";
-import { createSurveyToken, getSurveyUrl } from "./survey-tokens";
+import { createSurveyToken, generateSurveyToken, getSurveyTokenExpiry, getSurveyUrl } from "./survey-tokens";
 import { createNotification } from "./notifications";
 import { sendSurveyNotification } from "./email-service";
 import type { SurveyTriggerType } from "@/generated/client";
@@ -185,9 +185,6 @@ export async function manuallyAssignSurvey(
   surveyId: string,
   userIds: string[]
 ): Promise<{ assigned: string[]; skipped: string[] }> {
-  const assigned: string[] = [];
-  const skipped: string[] = [];
-
   const survey = await prisma.survey.findUnique({
     where: { id: surveyId },
   });
@@ -196,66 +193,81 @@ export async function manuallyAssignSurvey(
     throw new Error("Survey not found or inactive");
   }
 
-  for (const userId of userIds) {
-    // Check if already assigned
-    const existing = await prisma.surveyAssignment.findUnique({
-      where: {
-        surveyId_userId: { surveyId, userId },
-      },
-    });
+  // Batch query: Get all existing assignments for these users
+  const existingAssignments = await prisma.surveyAssignment.findMany({
+    where: {
+      surveyId,
+      userId: { in: userIds },
+    },
+    select: { userId: true },
+  });
+  const alreadyAssignedUserIds = new Set(existingAssignments.map((a) => a.userId));
 
-    if (existing) {
-      skipped.push(userId);
-      continue;
-    }
+  // Filter to users who don't already have assignments
+  const eligibleUserIds = userIds.filter((id) => !alreadyAssignedUserIds.has(id));
 
-    // Get user details
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true, name: true },
-    });
+  // Batch query: Get user details for all eligible users
+  const users = await prisma.user.findMany({
+    where: { id: { in: eligibleUserIds } },
+    select: { id: true, email: true, name: true },
+  });
+  const userMap = new Map(users.map((u) => [u.id, u]));
 
-    if (!user) {
-      skipped.push(userId);
-      continue;
-    }
+  // Track results
+  const assigned: string[] = [];
+  const skipped = userIds.filter((id) => alreadyAssignedUserIds.has(id) || !userMap.has(id));
 
-    // Create assignment
-    const assignment = await prisma.surveyAssignment.create({
-      data: {
-        surveyId,
-        userId,
-        status: "PENDING",
-      },
-    });
+  // Create assignments, tokens, notifications, and send emails
+  // These need to be done per-user because tokens and notifications depend on assignment IDs
+  const eligibleUsers = eligibleUserIds.filter((id) => userMap.has(id));
 
-    // Create token
-    const token = await createSurveyToken(assignment.id);
-    const surveyUrl = getSurveyUrl(token.token);
+  // Use a transaction to create all assignments and tokens together
+  const assignmentsWithTokens = await prisma.$transaction(
+    eligibleUsers.map((userId) =>
+      prisma.surveyAssignment.create({
+        data: {
+          surveyId,
+          userId,
+          status: "PENDING",
+          token: {
+            create: {
+              token: generateSurveyToken(),
+              expiresAt: getSurveyTokenExpiry(),
+            },
+          },
+        },
+        include: {
+          token: true,
+        },
+      })
+    )
+  );
 
-    // Create notification
-    await createNotification({
-      userId,
+  // Send notifications and emails (these must be individual)
+  for (const assignment of assignmentsWithTokens) {
+    const user = userMap.get(assignment.userId)!;
+    const tokenRecord = assignment.token!;
+    const surveyUrl = getSurveyUrl(tokenRecord.token);
+
+    // Create notification (fire and forget to not block)
+    createNotification({
+      userId: assignment.userId,
       type: "SURVEY_ASSIGNED",
       title: "New Survey Available",
       message: `We'd love your feedback! Please complete the "${survey.title}" survey.`,
-      actionUrl: `/surveys/${token.token}`,
+      actionUrl: `/surveys/${tokenRecord.token}`,
       relatedId: assignment.id,
-    });
+    }).catch((err) => console.error("Failed to create notification:", err));
 
-    // Send email
-    try {
-      await sendSurveyNotification({
-        email: user.email,
-        userName: user.name || "Volunteer",
-        surveyTitle: survey.title,
-        surveyUrl,
-      });
-    } catch (emailError) {
-      console.error(`Failed to send survey email to ${user.email}:`, emailError);
-    }
+    // Send email (fire and forget)
+    sendSurveyNotification({
+      email: user.email,
+      userName: user.name || "Volunteer",
+      surveyTitle: survey.title,
+      surveyUrl,
+    }).catch((err) => console.error(`Failed to send survey email to ${user.email}:`, err));
 
-    assigned.push(userId);
+    assigned.push(assignment.userId);
   }
 
   return { assigned, skipped };
