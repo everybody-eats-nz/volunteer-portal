@@ -264,27 +264,20 @@ export default async function AdminVolunteerPage({
           {/* Left Column - Profile Info */}
           <div className="lg:col-span-1 space-y-6">
             {/* Basic Information */}
-            <Card
-              data-testid="basic-information-card"
-              className="overflow-hidden"
-            >
-              {/* Gradient Header */}
-              <div className="h-24 bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40 dark:from-primary/40 dark:via-primary/30 dark:to-primary/20" />
-
-              {/* Avatar - overlapping the header */}
-              <div className="flex justify-center -mt-12 mb-4">
-                <Avatar className="h-24 w-24 border-4 border-background shadow-xl ring-2 ring-primary/20">
-                  <AvatarImage
-                    src={volunteer.profilePhotoUrl || ""}
-                    alt={volunteer.name || "Volunteer"}
-                  />
-                  <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-                    {volunteerInitials}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-
-              <CardContent className="text-center pt-0">
+            <Card data-testid="basic-information-card">
+              <CardContent className="text-center pt-6">
+                {/* Avatar */}
+                <div className="flex justify-center mb-4">
+                  <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                    <AvatarImage
+                      src={volunteer.profilePhotoUrl || ""}
+                      alt={volunteer.name || "Volunteer"}
+                    />
+                    <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                      {volunteerInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
                 {/* Name */}
                 <h2
                   className="text-2xl font-bold mb-1"
