@@ -70,9 +70,25 @@ export async function autoLabelUnder16User(userId: string, dateOfBirth: Date | n
 
 /**
  * Automatically assigns the "New Volunteer" label to newly registered users
+ * who don't have any shift history (CONFIRMED or NO_SHOW signups)
  */
 export async function autoLabelNewVolunteer(userId: string) {
   try {
+    // Check if user has any shift history (CONFIRMED or NO_SHOW signups)
+    const shiftHistoryCount = await prisma.signup.count({
+      where: {
+        userId,
+        status: {
+          in: ["CONFIRMED", "NO_SHOW"],
+        },
+      },
+    });
+
+    if (shiftHistoryCount > 0) {
+      // User already has shift history, they're not a new volunteer
+      return;
+    }
+
     const newVolunteerLabel = await prisma.customLabel.findUnique({
       where: { name: "New Volunteer" },
     });
