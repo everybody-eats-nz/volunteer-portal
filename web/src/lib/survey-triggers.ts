@@ -6,15 +6,16 @@ import { sendSurveyNotification } from "./email-service";
 import type { SurveyTriggerType } from "@/generated/client";
 import { differenceInDays } from "date-fns";
 
-interface EvaluateTriggerResult {
+export interface EvaluateTriggerResult {
   triggered: boolean;
   reason?: string;
 }
 
 /**
  * Evaluate if a survey trigger condition is met for a user
+ * @internal Exported for testing
  */
-function evaluateTrigger(
+export function evaluateTrigger(
   triggerType: SurveyTriggerType,
   triggerValue: number,
   progress: UserProgress,
