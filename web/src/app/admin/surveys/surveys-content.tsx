@@ -70,6 +70,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
     questions: unknown[];
     triggerType: SurveyTriggerType;
     triggerValue: number;
+    triggerMaxValue?: number | null;
     isActive?: boolean;
   }) => {
     try {
@@ -124,6 +125,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
       questions?: unknown[];
       triggerType?: SurveyTriggerType;
       triggerValue?: number;
+      triggerMaxValue?: number | null;
       isActive?: boolean;
     }
   ) => {
@@ -295,8 +297,11 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                       )}
                       <Badge variant="outline">
                         {SURVEY_TRIGGER_DISPLAY[survey.triggerType]?.label}
-                        {survey.triggerType !== "MANUAL" &&
-                          ` (${survey.triggerValue})`}
+                        {survey.triggerType !== "MANUAL" && (
+                          survey.triggerMaxValue
+                            ? ` (${survey.triggerValue}-${survey.triggerMaxValue})`
+                            : ` (${survey.triggerValue}+)`
+                        )}
                       </Badge>
                     </div>
                     {survey.description && (

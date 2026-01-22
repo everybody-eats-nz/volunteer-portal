@@ -750,8 +750,9 @@ model Survey {
   createdBy   String
 
   // Milestone trigger configuration
-  triggerType  SurveyTriggerType
-  triggerValue Int // e.g., 5 shifts, 10 hours
+  triggerType     SurveyTriggerType
+  triggerValue    Int  // Minimum threshold (e.g., 10 shifts)
+  triggerMaxValue Int? // Maximum threshold (e.g., 25 shifts) - if null, no upper limit
 
   creator     User               @relation("SurveyCreator", fields: [createdBy], references: [id])
   assignments SurveyAssignment[]

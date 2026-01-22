@@ -18,40 +18,61 @@ export interface EvaluateTriggerResult {
 export function evaluateTrigger(
   triggerType: SurveyTriggerType,
   triggerValue: number,
+  triggerMaxValue: number | null,
   progress: UserProgress,
   userCreatedAt: Date,
   firstShiftDate: Date | null
 ): EvaluateTriggerResult {
   switch (triggerType) {
-    case "SHIFTS_COMPLETED":
-      if (progress.shifts_completed >= triggerValue) {
+    case "SHIFTS_COMPLETED": {
+      const value = progress.shifts_completed;
+      const meetsMin = value >= triggerValue;
+      const meetsMax = triggerMaxValue === null || value <= triggerMaxValue;
+      if (meetsMin && meetsMax) {
+        const rangeStr = triggerMaxValue !== null
+          ? `${triggerValue}-${triggerMaxValue}`
+          : `${triggerValue}+`;
         return {
           triggered: true,
-          reason: `Completed ${progress.shifts_completed} shifts (target: ${triggerValue})`,
+          reason: `Completed ${value} shifts (target: ${rangeStr})`,
         };
       }
       return { triggered: false };
+    }
 
-    case "HOURS_VOLUNTEERED":
-      if (progress.hours_volunteered >= triggerValue) {
+    case "HOURS_VOLUNTEERED": {
+      const value = progress.hours_volunteered;
+      const meetsMin = value >= triggerValue;
+      const meetsMax = triggerMaxValue === null || value <= triggerMaxValue;
+      if (meetsMin && meetsMax) {
+        const rangeStr = triggerMaxValue !== null
+          ? `${triggerValue}-${triggerMaxValue}`
+          : `${triggerValue}+`;
         return {
           triggered: true,
-          reason: `Volunteered ${progress.hours_volunteered} hours (target: ${triggerValue})`,
+          reason: `Volunteered ${value} hours (target: ${rangeStr})`,
         };
       }
       return { triggered: false };
+    }
 
-    case "FIRST_SHIFT":
+    case "FIRST_SHIFT": {
       if (firstShiftDate) {
         const daysSinceFirstShift = differenceInDays(new Date(), firstShiftDate);
-        if (daysSinceFirstShift >= triggerValue) {
+        const meetsMin = daysSinceFirstShift >= triggerValue;
+        const meetsMax = triggerMaxValue === null || daysSinceFirstShift <= triggerMaxValue;
+        if (meetsMin && meetsMax) {
+          const rangeStr = triggerMaxValue !== null
+            ? `${triggerValue}-${triggerMaxValue}`
+            : `${triggerValue}+`;
           return {
             triggered: true,
-            reason: `${daysSinceFirstShift} days since first shift (target: ${triggerValue})`,
+            reason: `${daysSinceFirstShift} days since first shift (target: ${rangeStr})`,
           };
         }
       }
       return { triggered: false };
+    }
 
     case "MANUAL":
       // Manual surveys are never automatically triggered
@@ -124,6 +145,7 @@ export async function checkAndAssignSurveys(userId: string): Promise<string[]> {
       const result = evaluateTrigger(
         survey.triggerType,
         survey.triggerValue,
+        survey.triggerMaxValue,
         progress,
         user.createdAt,
         firstShiftDate

@@ -84,6 +84,7 @@ export interface CreateSurveyInput {
   questions: SurveyQuestion[];
   triggerType: SurveyTriggerType;
   triggerValue: number;
+  triggerMaxValue?: number | null; // Maximum threshold (optional)
   isActive?: boolean;
 }
 
@@ -100,28 +101,32 @@ export interface SubmitSurveyInput {
 // Trigger type display info
 export const SURVEY_TRIGGER_DISPLAY: Record<
   SurveyTriggerType,
-  { label: string; valueLabel: string; description: string }
+  { label: string; valueLabel: string; maxValueLabel: string; description: string }
 > = {
   SHIFTS_COMPLETED: {
     label: "Shifts Completed",
-    valueLabel: "Number of shifts",
+    valueLabel: "Minimum shifts",
+    maxValueLabel: "Maximum shifts",
     description: "Triggers when volunteer completes specified number of shifts",
   },
   HOURS_VOLUNTEERED: {
     label: "Hours Volunteered",
-    valueLabel: "Number of hours",
+    valueLabel: "Minimum hours",
+    maxValueLabel: "Maximum hours",
     description:
       "Triggers when volunteer reaches specified number of volunteer hours",
   },
   FIRST_SHIFT: {
     label: "First Shift",
-    valueLabel: "Days after",
+    valueLabel: "Min days after",
+    maxValueLabel: "Max days after",
     description:
       "Triggers specified number of days after volunteer completes their first shift",
   },
   MANUAL: {
     label: "Manual Assignment",
     valueLabel: "Not applicable",
+    maxValueLabel: "Not applicable",
     description: "Survey is manually assigned by administrators",
   },
 };

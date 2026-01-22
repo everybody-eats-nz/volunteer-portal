@@ -118,6 +118,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate triggerMaxValue if provided
+    if (body.triggerMaxValue !== undefined && body.triggerMaxValue !== null) {
+      if (body.triggerMaxValue < 0) {
+        return NextResponse.json(
+          { error: "Maximum threshold cannot be negative" },
+          { status: 400 }
+        );
+      }
+      if (body.triggerMaxValue < body.triggerValue) {
+        return NextResponse.json(
+          { error: "Maximum threshold must be greater than or equal to minimum threshold" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Validate questions
     for (const question of body.questions) {
       if (!question.id || !question.text || !question.type) {
@@ -172,6 +188,7 @@ export async function POST(request: NextRequest) {
         questions: body.questions as unknown as object[],
         triggerType: body.triggerType as SurveyTriggerType,
         triggerValue: body.triggerValue ?? 0,
+        triggerMaxValue: body.triggerMaxValue ?? null,
         isActive: body.isActive ?? true,
         createdBy: user.id,
       },

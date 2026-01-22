@@ -101,6 +101,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       questions?: object[];
       triggerType?: SurveyTriggerType;
       triggerValue?: number;
+      triggerMaxValue?: number | null;
       isActive?: boolean;
     } = {};
 
@@ -167,6 +168,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (body.triggerValue !== undefined) {
       updateData.triggerValue = body.triggerValue;
+    }
+
+    // Handle triggerMaxValue - can be set, cleared (null), or left unchanged
+    if ("triggerMaxValue" in body) {
+      const maxValue = body.triggerMaxValue;
+      const minValue = body.triggerValue ?? existingSurvey.triggerValue;
+
+      if (maxValue !== null && maxValue !== undefined) {
+        if (maxValue < 0) {
+          return NextResponse.json(
+            { error: "Maximum threshold cannot be negative" },
+            { status: 400 }
+          );
+        }
+        if (maxValue < minValue) {
+          return NextResponse.json(
+            { error: "Maximum threshold must be greater than or equal to minimum threshold" },
+            { status: 400 }
+          );
+        }
+      }
+      updateData.triggerMaxValue = maxValue ?? null;
     }
 
     if (body.isActive !== undefined) {

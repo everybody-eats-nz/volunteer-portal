@@ -33,13 +33,14 @@ import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 interface SurveyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  survey: Survey | null;
+  survey: (Survey & { triggerMaxValue?: number | null }) | null;
   onSave: (data: {
     title: string;
     description?: string;
     questions: SurveyQuestion[];
     triggerType: SurveyTriggerType;
     triggerValue: number;
+    triggerMaxValue?: number | null;
     isActive?: boolean;
   }) => Promise<void>;
 }
@@ -60,6 +61,7 @@ export function SurveyDialog({
   const [description, setDescription] = useState("");
   const [triggerType, setTriggerType] = useState<SurveyTriggerType>("SHIFTS_COMPLETED");
   const [triggerValue, setTriggerValue] = useState(5);
+  const [triggerMaxValue, setTriggerMaxValue] = useState<number | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [saving, setSaving] = useState(false);
@@ -72,6 +74,7 @@ export function SurveyDialog({
       setDescription(survey.description || "");
       setTriggerType(survey.triggerType);
       setTriggerValue(survey.triggerValue);
+      setTriggerMaxValue(survey.triggerMaxValue ?? null);
       setIsActive(survey.isActive);
       setQuestions(survey.questions as unknown as SurveyQuestion[]);
     } else {
@@ -79,6 +82,7 @@ export function SurveyDialog({
       setDescription("");
       setTriggerType("SHIFTS_COMPLETED");
       setTriggerValue(5);
+      setTriggerMaxValue(null);
       setIsActive(true);
       setQuestions([{ ...DEFAULT_QUESTION, id: uuidv4() }]);
     }
@@ -130,6 +134,10 @@ export function SurveyDialog({
       newErrors.triggerValue = "Trigger value must be greater than 0";
     }
 
+    if (triggerMaxValue !== null && triggerMaxValue < triggerValue) {
+      newErrors.triggerMaxValue = "Maximum must be greater than or equal to minimum";
+    }
+
     if (questions.length === 0) {
       newErrors.questions = "At least one question is required";
     }
@@ -163,6 +171,7 @@ export function SurveyDialog({
         questions,
         triggerType,
         triggerValue,
+        triggerMaxValue,
         isActive,
       });
     } finally {
@@ -209,32 +218,32 @@ export function SurveyDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Trigger Type</Label>
-                <Select
-                  value={triggerType}
-                  onValueChange={(v) => setTriggerType(v as SurveyTriggerType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(SURVEY_TRIGGER_DISPLAY) as SurveyTriggerType[]).map(
-                      (type) => (
-                        <SelectItem key={type} value={type}>
-                          {SURVEY_TRIGGER_DISPLAY[type].label}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  {SURVEY_TRIGGER_DISPLAY[triggerType].description}
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label>Trigger Type</Label>
+              <Select
+                value={triggerType}
+                onValueChange={(v) => setTriggerType(v as SurveyTriggerType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(SURVEY_TRIGGER_DISPLAY) as SurveyTriggerType[]).map(
+                    (type) => (
+                      <SelectItem key={type} value={type}>
+                        {SURVEY_TRIGGER_DISPLAY[type].label}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {SURVEY_TRIGGER_DISPLAY[triggerType].description}
+              </p>
+            </div>
 
-              {triggerType !== "MANUAL" && (
+            {triggerType !== "MANUAL" && (
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="triggerValue">
                     {SURVEY_TRIGGER_DISPLAY[triggerType].valueLabel}{" "}
@@ -252,8 +261,33 @@ export function SurveyDialog({
                     <p className="text-sm text-red-500">{errors.triggerValue}</p>
                   )}
                 </div>
-              )}
-            </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="triggerMaxValue">
+                    {SURVEY_TRIGGER_DISPLAY[triggerType].maxValueLabel}{" "}
+                    <span className="text-muted-foreground text-xs">(optional)</span>
+                  </Label>
+                  <Input
+                    id="triggerMaxValue"
+                    type="number"
+                    min={triggerValue}
+                    value={triggerMaxValue ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTriggerMaxValue(val === "" ? null : parseInt(val) || null);
+                    }}
+                    placeholder="No limit"
+                    className={errors.triggerMaxValue ? "border-red-500" : ""}
+                  />
+                  {errors.triggerMaxValue && (
+                    <p className="text-sm text-red-500">{errors.triggerMaxValue}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty for no upper limit
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Switch
