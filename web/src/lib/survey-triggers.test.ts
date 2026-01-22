@@ -258,7 +258,8 @@ describe("survey-triggers", () => {
     describe("unknown trigger type", () => {
       it("should not trigger for unknown types", () => {
         const result = evaluateTrigger(
-          "UNKNOWN_TYPE" as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          "UNKNOWN_TYPE" as unknown as any,
           0,
           null,
           mockProgress,
