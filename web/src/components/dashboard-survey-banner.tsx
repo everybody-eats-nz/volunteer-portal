@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, X } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface PendingSurvey {
@@ -104,6 +104,15 @@ export function DashboardSurveyBanner() {
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button
+                size="sm"
+                variant="ghost"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                onClick={() => handleDismiss(survey.id)}
+                disabled={dismissing === survey.id}
+              >
+                Don&apos;t ask again
+              </Button>
+              <Button
                 asChild
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -115,17 +124,6 @@ export function DashboardSurveyBanner() {
                   <ClipboardList className="h-4 w-4" />
                   Take Survey
                 </Link>
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30 p-2"
-                onClick={() => handleDismiss(survey.id)}
-                disabled={dismissing === survey.id}
-                title="Dismiss (you can still access via email link)"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Dismiss</span>
               </Button>
             </div>
           </div>
