@@ -123,13 +123,30 @@ export function ShiftsCalendar({
         totalCapacity - totalConfirmed - totalPending
       );
 
-      // Collect all friend signups for this day
-      const allFriendSignups = dayShifts.reduce((acc, shift) => {
+      // Collect all friend signups for this day, de-duplicated by user ID
+      // If a user is signed up for multiple shifts, they only appear once
+      // Prioritize showing them as a friend if any signup marks them as such
+      const signupsByUserId = new Map<
+        string,
+        NonNullable<(typeof dayShifts)[0]["friendSignups"]>[0]
+      >();
+      dayShifts.forEach((shift) => {
         if (shift.friendSignups) {
-          acc.push(...shift.friendSignups);
+          shift.friendSignups.forEach((signup) => {
+            const existing = signupsByUserId.get(signup.user.id);
+            if (!existing) {
+              signupsByUserId.set(signup.user.id, signup);
+            } else if (signup.isFriend && !existing.isFriend) {
+              // If this signup marks the user as a friend, prefer it
+              signupsByUserId.set(signup.user.id, signup);
+            }
+          });
         }
-        return acc;
-      }, [] as NonNullable<(typeof dayShifts)[0]["friendSignups"]>);
+      });
+      // Sort to show friends first
+      const allFriendSignups = Array.from(signupsByUserId.values()).sort(
+        (a, b) => (b.isFriend ? 1 : 0) - (a.isFriend ? 1 : 0)
+      );
 
       return {
         date,
@@ -390,8 +407,8 @@ export function ShiftsCalendar({
                                 </div>
                               </div>
 
-                              {/* Friend avatars at bottom - fixed position - hidden on mobile */}
-                              {dayShifts.allFriendSignups.length > 0 && (
+                              {/* Volunteer avatars at bottom - fixed position - hidden on mobile */}
+                              {dayShifts.totalConfirmed > 0 && (
                                 <div className="hidden sm:flex absolute bottom-2 left-0 right-0 justify-center">
                                   <AvatarList
                                     users={dayShifts.allFriendSignups.map(
@@ -399,6 +416,7 @@ export function ShiftsCalendar({
                                     )}
                                     maxDisplay={2}
                                     size="sm"
+                                    totalCount={dayShifts.totalConfirmed}
                                     enableLinks={(user) => {
                                       const signup = dayShifts.allFriendSignups.find(
                                         (s) => s.user.id === user.id
