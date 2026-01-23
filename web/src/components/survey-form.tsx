@@ -111,6 +111,7 @@ export function SurveyForm({
       }
 
       setSubmitStatus("success");
+      window.scrollTo({ top: 0, behavior: "instant" });
       onSuccess?.();
     } catch (err) {
       setSubmitStatus("error");
@@ -134,9 +135,8 @@ export function SurveyForm({
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="max-w-2xl mx-auto"
       >
-        <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="h-2 bg-gradient-to-r from-green-400 to-emerald-500" />
-          <CardContent className="pt-8 pb-10">
+        <Card className="overflow-hidden">
+          <CardContent className="py-8">
             <div className="text-center">
               <motion.div
                 initial={{ scale: 0 }}
