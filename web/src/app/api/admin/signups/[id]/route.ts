@@ -10,6 +10,7 @@ import {
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { LOCATION_ADDRESSES } from "@/lib/locations";
+import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
 
 export async function PATCH(
   req: Request,
@@ -159,6 +160,18 @@ export async function PATCH(
         where: { id: signupId },
         data: { status: "CONFIRMED" },
       });
+
+      // Auto-cancel other pending signups for this user on the same day (silently, no notifications)
+      try {
+        await autoCancelOtherPendingSignupsForDay(
+          signup.user.id,
+          signup.shiftId,
+          signup.shift.start
+        );
+      } catch (autoCancelError) {
+        console.error("Error auto-canceling other signups:", autoCancelError);
+        // Don't fail the approval if auto-cancel fails
+      }
 
       // Send confirmation email to volunteer (fire-and-forget with timeout)
       const emailService = getEmailService();
@@ -379,6 +392,18 @@ export async function PATCH(
         where: { id: signupId },
         data: { status: "CONFIRMED" },
       });
+
+      // Auto-cancel other pending signups for this user on the same day (silently, no notifications)
+      try {
+        await autoCancelOtherPendingSignupsForDay(
+          signup.user.id,
+          signup.shiftId,
+          signup.shift.start
+        );
+      } catch (autoCancelError) {
+        console.error("Error auto-canceling other signups:", autoCancelError);
+        // Don't fail the confirmation if auto-cancel fails
+      }
 
       // Send confirmation email to volunteer (fire-and-forget with timeout)
       const confirmEmailService = getEmailService();

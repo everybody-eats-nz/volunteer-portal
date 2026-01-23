@@ -8,6 +8,7 @@ import {
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
+import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
 
 interface UserWithStats {
   id: string;
@@ -239,6 +240,17 @@ export async function processAutoApproval(
         ruleId: evaluationResult.ruleId,
       },
     });
+
+    // Auto-cancel other pending signups for this user on the same day (silently, no notifications)
+    try {
+      const shift = await prisma.shift.findUniqueOrThrow({
+        where: { id: shiftId },
+      });
+      await autoCancelOtherPendingSignupsForDay(userId, shiftId, shift.start);
+    } catch (autoCancelError) {
+      console.error("Error auto-canceling other signups:", autoCancelError);
+      // Don't fail the auto-approval if auto-cancel fails
+    }
 
     // Send confirmation notification and email
     try {

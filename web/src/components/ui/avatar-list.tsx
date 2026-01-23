@@ -25,6 +25,8 @@ interface AvatarListProps {
   className?: string;
   maxDisplay?: number;
   enableLinks?: boolean | ((user: AvatarUser) => boolean);
+  /** Total count of all users (including those not in users array due to privacy). When provided, the "+X more" badge shows totalCount - displayed avatars instead of users.length - displayed */
+  totalCount?: number;
 }
 
 export function AvatarList({
@@ -33,6 +35,7 @@ export function AvatarList({
   className,
   maxDisplay = 5,
   enableLinks = true,
+  totalCount,
 }: AvatarListProps) {
   const sizeClasses = {
     sm: "size-8",
@@ -47,7 +50,10 @@ export function AvatarList({
   };
 
   const displayUsers = users.slice(0, maxDisplay);
-  const remainingCount = users.length - maxDisplay;
+  // Use totalCount if provided (for showing all volunteers including those hidden by privacy)
+  // Otherwise fall back to counting visible users in the array
+  const effectiveTotal = totalCount ?? users.length;
+  const remainingCount = effectiveTotal - displayUsers.length;
 
   const getDisplayName = (user: AvatarUser) => {
     return (
@@ -140,7 +146,7 @@ export function AvatarList({
               <div
                 className={cn(
                   "group relative z-0 flex scale-100 items-center transition-all duration-200 ease-in-out hover:z-10 hover:scale-110",
-                  marginClasses[size]
+                  displayUsers.length > 0 && marginClasses[size]
                 )}
                 style={{ zIndex: 0 }}
               >
@@ -160,7 +166,7 @@ export function AvatarList({
                         size === "lg" && "text-sm"
                       )}
                     >
-                      +{remainingCount}
+                      {displayUsers.length > 0 ? `+${remainingCount}` : remainingCount}
                     </span>
                   </div>
                 </div>
@@ -168,7 +174,9 @@ export function AvatarList({
             </TooltipTrigger>
             <TooltipContent>
               <p>
-                {remainingCount} more volunteer{remainingCount !== 1 ? "s" : ""}
+                {displayUsers.length > 0
+                  ? `${remainingCount} more volunteer${remainingCount !== 1 ? "s" : ""}`
+                  : `${remainingCount} volunteer${remainingCount !== 1 ? "s" : ""}`}
               </p>
             </TooltipContent>
           </Tooltip>
