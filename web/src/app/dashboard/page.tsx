@@ -14,6 +14,7 @@ import { DashboardContentSkeleton } from "@/components/dashboard-content-skeleto
 import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
 import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
+import { DashboardSurveyBanner } from "@/components/dashboard-survey-banner";
 import { AchievementTracker } from "@/components/achievement-tracker";
 import type { Metadata } from "next";
 
@@ -46,6 +47,11 @@ export default async function DashboardPage() {
       {/* Profile completion banner - shows if profile incomplete */}
       <Suspense fallback={null}>
         <DashboardProfileCompletionBanner />
+      </Suspense>
+
+      {/* Survey banner - shows if user has pending surveys */}
+      <Suspense fallback={null}>
+        <DashboardSurveyBanner />
       </Suspense>
 
       {/* Stats Overview - streams in when ready */}

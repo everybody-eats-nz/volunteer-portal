@@ -67,10 +67,10 @@ export default async function AdminDashboardPage({
     totalShifts,
     upcomingShifts,
     pastShifts,
-    _totalSignups, // Not displayed - we show time-based stats instead
-    _confirmedSignups, // Not displayed - we show time-based stats instead
+    , // _totalSignups - Not displayed, we show time-based stats instead
+    , // _confirmedSignups - Not displayed, we show time-based stats instead
     pendingSignups,
-    _waitlistedSignups, // Not displayed - we show time-based stats instead
+    , // _waitlistedSignups - Not displayed, we show time-based stats instead
     signupsLast7Days,
     signupsLast30Days,
     adminPasskeyCount,
