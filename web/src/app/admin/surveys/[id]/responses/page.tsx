@@ -9,9 +9,13 @@ import type { SurveyQuestion } from "@/types/survey";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ location?: string }>;
 }
 
-export default async function SurveyResponsesPage({ params }: PageProps) {
+export default async function SurveyResponsesPage({
+  params,
+  searchParams,
+}: PageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== "ADMIN") {
@@ -19,23 +23,44 @@ export default async function SurveyResponsesPage({ params }: PageProps) {
   }
 
   const { id } = await params;
+  const { location } = await searchParams;
 
+  // Fetch available locations for the filter
+  const locations = await prisma.location.findMany({
+    where: { isActive: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+  const locationOptions = locations.map((l) => l.name);
+
+  // Fetch survey with all assignments
   const survey = await prisma.survey.findUnique({
     where: { id },
     include: {
       assignments: {
-        where: { status: "COMPLETED" },
+        where: {
+          // Filter by user's available locations if a location is selected
+          ...(location && {
+            user: {
+              availableLocations: {
+                contains: location,
+                mode: "insensitive",
+              },
+            },
+          }),
+        },
         include: {
           user: {
             select: {
               id: true,
               name: true,
               email: true,
+              availableLocations: true,
             },
           },
           response: true,
         },
-        orderBy: { completedAt: "desc" },
+        orderBy: { assignedAt: "desc" },
       },
     },
   });
@@ -44,11 +69,16 @@ export default async function SurveyResponsesPage({ params }: PageProps) {
     notFound();
   }
 
+  // Separate completed assignments for stats calculation
+  const completedAssignments = survey.assignments.filter(
+    (a) => a.status === "COMPLETED"
+  );
+
   // Calculate stats for each question
   const questions = survey.questions as unknown as SurveyQuestion[];
 
   const questionStats = questions.map((question) => {
-    const responses = survey.assignments
+    const responses = completedAssignments
       .filter((a) => a.response)
       .map((a) => {
         const answers = a.response!.answers as Array<{
@@ -132,11 +162,14 @@ export default async function SurveyResponsesPage({ params }: PageProps) {
             description: survey.description,
             questions: questions,
           }}
-          totalResponses={survey.assignments.length}
+          totalResponses={completedAssignments.length}
           questionStats={questionStats}
-          responses={survey.assignments.map((a) => ({
+          responses={completedAssignments.map((a) => ({
             id: a.id,
-            user: a.user,
+            user: {
+              ...a.user,
+              availableLocations: a.user.availableLocations,
+            },
             completedAt: a.completedAt,
             answers: a.response?.answers as
               | Array<{
@@ -145,6 +178,21 @@ export default async function SurveyResponsesPage({ params }: PageProps) {
                 }>
               | undefined,
           }))}
+          assignments={survey.assignments.map((a) => ({
+            id: a.id,
+            status: a.status,
+            assignedAt: a.assignedAt,
+            completedAt: a.completedAt,
+            dismissedAt: a.dismissedAt,
+            user: {
+              id: a.user.id,
+              name: a.user.name,
+              email: a.user.email,
+              availableLocations: a.user.availableLocations,
+            },
+          }))}
+          locations={locationOptions}
+          selectedLocation={location}
         />
       </PageContainer>
     </AdminPageWrapper>
