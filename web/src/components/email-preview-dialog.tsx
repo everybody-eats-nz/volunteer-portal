@@ -36,7 +36,8 @@ type EmailType =
   | "parentalConsentApproval"
   | "userInvitation"
   | "profileCompletion"
-  | "migration";
+  | "migration"
+  | "surveyNotification";
 
 interface EmailPreviewDialogProps {
   emailType: EmailType;

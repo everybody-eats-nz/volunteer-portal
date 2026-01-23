@@ -1,3 +1,9 @@
+## [0.92.0] - 2026-01-23
+
+### Changes
+- Feature: Custom Survey System for Volunteer Milestones ([#499](https://github.com/everybody-eats-nz/volunteer-portal/pull/499)) by @malinmalliyawadu
+
+
 ## [0.91.21] - 2026-01-11
 
 ### Changes

@@ -16,6 +16,7 @@ import {
   MapPin,
   Trophy,
   BarChart3,
+  ClipboardList,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -163,6 +164,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Manage Campaign Monitor lists",
         commandKey: "newsletter-lists",
       },
+      {
+        title: "Surveys",
+        href: "/admin/surveys",
+        icon: ClipboardList,
+        description: "Create and manage feedback surveys",
+        commandKey: "surveys",
+      },
     ],
   },
   {
@@ -216,7 +224,7 @@ export const publicNavItems: AdminNavItem[] = [
     description: "Opens in new tab",
     opensInNewTab: true,
     commandKey: "public-resources",
-  },
+  }
 ];
 
 // Helper function to get icon color for command palette
