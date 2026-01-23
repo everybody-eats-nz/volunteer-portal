@@ -224,18 +224,6 @@ export function SurveyForm({
                   transition={{ delay: index * 0.05 }}
                   className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                      {index + 1}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      of {questions.length}
-                    </span>
-                    {answers.get(question.id)?.value !== undefined &&
-                      answers.get(question.id)?.value !== "" && (
-                        <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />
-                      )}
-                  </div>
                   <SurveyQuestionRenderer
                     question={question}
                     answer={answers.get(question.id)}
