@@ -1,3 +1,15 @@
+## [0.93.1] - 2026-01-26
+
+### Changes
+- Fix mobile calendar layout ([#518](https://github.com/everybody-eats-nz/volunteer-portal/pull/518)) by @malinmalliyawadu
+
+
+## [0.93.0] - 2026-01-26
+
+### Changes
+- feat: add filtering and stats for survey results ([#504](https://github.com/everybody-eats-nz/volunteer-portal/pull/504)) by @malinmalliyawadu
+
+
 ## [0.92.2] - 2026-01-26
 
 ### Changes

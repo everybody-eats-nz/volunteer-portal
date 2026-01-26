@@ -287,7 +287,7 @@ export default async function ShiftsCalendarPage({
   // If no explicit location choice has been made, show location selection screen
   if (!hasExplicitLocationChoice) {
     return (
-      <PageContainer testid="shifts-browse-page">
+      <PageContainer testid="shifts-location-selection">
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8">
           <div className="space-y-4">
             <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">

@@ -204,24 +204,24 @@ export function ShiftsCalendar({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       {/* Calendar Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-            <Calendar className="w-5 h-5" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg flex-shrink-0">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-2xl font-bold">
               {format(currentMonth, "MMMM yyyy")}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground hidden sm:block">
               Click on any date to view and sign up for shifts
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -297,23 +297,24 @@ export function ShiftsCalendar({
                 </div>
               )}
 
-              <CardContent className="p-6">
+              <CardContent className="p-2 sm:p-6">
                 {/* Days of week header */}
-                <div className="grid grid-cols-7 gap-2 mb-4">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-4">
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                    (day) => (
+                    (day, i) => (
                       <div
                         key={day}
-                        className="text-center text-sm font-medium text-muted-foreground py-2"
+                        className="text-center text-[10px] sm:text-sm font-medium text-muted-foreground py-1 sm:py-2"
                       >
-                        {day}
+                        <span className="sm:hidden">{["S", "M", "T", "W", "T", "F", "S"][i]}</span>
+                        <span className="hidden sm:inline">{day}</span>
                       </div>
                     )
                   )}
                 </div>
 
                 {/* Calendar grid */}
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1 sm:gap-2">
                   {locationDayShifts.map((dayShifts, index) => {
                     const status = getDayStatus(dayShifts);
                     const isCurrentMonth = isSameMonth(
