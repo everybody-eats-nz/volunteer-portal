@@ -11,7 +11,7 @@ import {
   isSameMonth,
   startOfDay,
 } from "date-fns";
-import { formatInNZT, toUTC, toNZT } from "@/lib/timezone";
+import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -363,10 +363,7 @@ export default async function MyShiftsPage({
     let isEstimated = false;
 
     if (isPastShift && shift.shift.location) {
-      // Convert to NZ timezone first, then get start of day in NZ
-      const shiftDateNZT = toNZT(shift.shift.start);
-      const startOfDayNZT = startOfDay(shiftDateNZT);
-      const startOfDayUTC = toUTC(startOfDayNZT);
+      const startOfDayUTC = getStartOfDayUTC(shift.shift.start);
 
       // First try to get actual meals served
       mealsServedData = await prisma.mealsServed.findUnique({

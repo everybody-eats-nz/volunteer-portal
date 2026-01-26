@@ -1,12 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { formatInNZT, toUTC } from "@/lib/timezone";
+import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MotionContentCard } from "@/components/motion-content-card";
 import { CheckCircle, Clock, Utensils } from "lucide-react";
 import Link from "next/link";
-import { startOfDay } from "date-fns";
 
 interface DashboardRecentActivityProps {
   userId: string;
@@ -31,8 +30,7 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
   const mealsServedPromises = recentShifts.map(async (signup) => {
     if (!signup.shift.location) return { actual: null, default: null };
 
-    const shiftDate = startOfDay(signup.shift.start);
-    const shiftDateUTC = toUTC(shiftDate);
+    const shiftDateUTC = getStartOfDayUTC(signup.shift.start);
 
     // Get actual meals served
     const actualMeals = await prisma.mealsServed.findUnique({

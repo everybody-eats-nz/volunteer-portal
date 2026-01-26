@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { tz, TZDate } from "@date-fns/tz";
 
 const NZ_TIMEZONE = "Pacific/Auckland";
@@ -97,6 +97,34 @@ export function parseISOInNZT(dateString: string) {
  */
 export function toUTC(tzDate: Date): Date {
   return new Date(tzDate.getTime());
+}
+
+/**
+ * Get the start of day in NZ timezone and return as UTC Date
+ * This is the correct way to query for date-based records (like MealsServed)
+ * that are stored normalized to NZ timezone.
+ *
+ * @param date - The date to convert
+ * @returns UTC Date object representing start of day in NZ timezone
+ *
+ * @example
+ * // A shift at 6pm on Jan 15 NZT (which is Jan 15 5am UTC)
+ * const shiftDate = new Date('2024-01-15T05:00:00Z');
+ * const startOfDayUTC = getStartOfDayUTC(shiftDate);
+ * // Returns the UTC timestamp for midnight Jan 15 NZT (Jan 14 11:00 UTC)
+ */
+export function getStartOfDayUTC(date: Date | string): Date {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  // Validate date
+  if (isNaN(dateObj.getTime())) {
+    throw new Error(`Invalid date provided: ${date}`);
+  }
+
+  // Convert to NZ timezone, get start of day in NZ, then convert to UTC
+  const nzDate = nzTimezone(dateObj);
+  const startOfDayNZT = startOfDay(nzDate);
+  return new Date(startOfDayNZT.getTime());
 }
 
 /**
