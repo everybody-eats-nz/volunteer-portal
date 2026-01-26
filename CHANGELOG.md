@@ -1,3 +1,15 @@
+## [0.92.2] - 2026-01-26
+
+### Changes
+- chore(deps): bump posthog-js from 1.330.0 to 1.335.2 in /web ([#510](https://github.com/everybody-eats-nz/volunteer-portal/pull/510)) by @dependabot[bot]
+
+
+## [0.92.1] - 2026-01-26
+
+### Changes
+- chore(deps): bump react-day-picker from 9.12.0 to 9.13.0 in /web ([#512](https://github.com/everybody-eats-nz/volunteer-portal/pull/512)) by @dependabot[bot]
+
+
 ## [0.92.0] - 2026-01-23
 
 ### Changes

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { differenceInHours, startOfDay } from "date-fns";
+import { differenceInHours } from "date-fns";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MotionContentCard } from "@/components/motion-content-card";
 import { CheckCircle } from "lucide-react";
-import { toUTC, toNZT } from "@/lib/timezone";
+import { getStartOfDayUTC } from "@/lib/timezone";
 
 interface DashboardImpactStatsProps {
   userId: string;
@@ -51,16 +51,13 @@ export async function DashboardImpactStats({
   // Group shifts by date and location to get unique days
   const uniqueDays = new Map<string, { date: Date; location: string }>();
   completedShifts.forEach((signup) => {
-    const shiftDate = signup.shift.start;
     const location = signup.shift.location || "Unknown";
-    // Convert to NZ timezone first, then get start of day in NZ
-    const shiftDateNZT = toNZT(shiftDate);
-    const startOfDayNZT = startOfDay(shiftDateNZT);
-    const dateKey = `${startOfDayNZT.toISOString()}-${location}`;
+    const startOfDayUTC = getStartOfDayUTC(signup.shift.start);
+    const dateKey = `${startOfDayUTC.toISOString()}-${location}`;
 
     if (!uniqueDays.has(dateKey)) {
       uniqueDays.set(dateKey, {
-        date: startOfDayNZT,
+        date: startOfDayUTC,
         location,
       });
     }
@@ -70,7 +67,7 @@ export async function DashboardImpactStats({
   const mealsServedRecords = await prisma.mealsServed.findMany({
     where: {
       OR: Array.from(uniqueDays.values()).map(({ date, location }) => ({
-        date: toUTC(date),
+        date,
         location,
       })),
     },
@@ -90,7 +87,7 @@ export async function DashboardImpactStats({
     new Set(
       Array.from(uniqueDays.values())
         .filter(({ date, location }) => {
-          const dateKey = `${toUTC(date).toISOString()}-${location}`;
+          const dateKey = `${date.toISOString()}-${location}`;
           return !actualMealsMap.has(dateKey);
         })
         .map(({ location }) => location)
@@ -122,7 +119,7 @@ export async function DashboardImpactStats({
   let daysWithEstimatedData = 0;
 
   Array.from(uniqueDays.values()).forEach(({ date, location }) => {
-    const dateKey = `${toUTC(date).toISOString()}-${location}`;
+    const dateKey = `${date.toISOString()}-${location}`;
 
     if (actualMealsMap.has(dateKey)) {
       const meals = actualMealsMap.get(dateKey);
