@@ -4,14 +4,12 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  isSameDay,
   differenceInHours,
   startOfWeek,
   endOfWeek,
   isSameMonth,
-  startOfDay,
 } from "date-fns";
-import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
+import { formatInNZT, getStartOfDayUTC, isSameDayInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -118,6 +116,8 @@ export default async function MyShiftsPage({
 
   const params = await searchParams;
   const now = new Date();
+  // Get start of today in NZ timezone for proper date comparisons
+  const startOfTodayNZ = getStartOfDayUTC(now);
 
   // Parse month/year for calendar navigation
   const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -860,8 +860,8 @@ export default async function MyShiftsPage({
               const dayShifts = shiftsByDate.get(dateKey) || [];
               const availableShifts = availableShiftsByDate.get(dateKey) || [];
               const isCurrentMonth = isSameMonth(day, viewMonth);
-              const isToday = isSameDay(day, now);
-              const isPast = day < now && !isToday;
+              const isToday = isSameDayInNZT(day, now);
+              const isPast = day < startOfTodayNZ;
               const shift = dayShifts[0]; // Since only 1 shift per day is allowed
               const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
@@ -1000,8 +1000,8 @@ export default async function MyShiftsPage({
               const dayShifts = shiftsByDate.get(dateKey) || [];
               const availableShifts = availableShiftsByDate.get(dateKey) || [];
               const isCurrentMonth = isSameMonth(day, viewMonth);
-              const isToday = isSameDay(day, now);
-              const isPast = day < now && !isToday;
+              const isToday = isSameDayInNZT(day, now);
+              const isPast = day < startOfTodayNZ;
               const shift = dayShifts[0];
 
               // Skip days without shifts or available shifts unless it's today, and skip non-current month days
@@ -1162,7 +1162,7 @@ export default async function MyShiftsPage({
               const dateKey = format(day, "yyyy-MM-dd");
               const dayShifts = shiftsByDate.get(dateKey) || [];
               const availableShifts = availableShiftsByDate.get(dateKey) || [];
-              const isToday = isSameDay(day, now);
+              const isToday = isSameDayInNZT(day, now);
               return (
                 dayShifts.length === 0 &&
                 availableShifts.length === 0 &&
