@@ -1,3 +1,9 @@
+## [0.94.0] - 2026-01-26
+
+### Changes
+- feat: add select all rows option in shift shortage notifications ([#519](https://github.com/everybody-eats-nz/volunteer-portal/pull/519)) by @malinmalliyawadu
+
+
 ## [0.93.1] - 2026-01-26
 
 ### Changes
