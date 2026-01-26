@@ -2584,6 +2584,317 @@ async function main() {
 
   console.log(`✅ Seeded ${createdLabelsCount} custom labels`);
 
+  // Seed surveys with responses
+  console.log("📋 Seeding surveys and responses...");
+
+  // Get volunteers for survey assignments
+  const volunteersForSurveys = await prisma.user.findMany({
+    where: { role: "VOLUNTEER" },
+    take: 20,
+  });
+
+  // Survey 1: Volunteer Experience Survey (NPS-style)
+  const experienceSurvey = await prisma.survey.upsert({
+    where: { id: "survey-volunteer-experience" },
+    update: {},
+    create: {
+      id: "survey-volunteer-experience",
+      title: "Volunteer Experience Survey",
+      description:
+        "Help us improve by sharing your experience volunteering with Everybody Eats.",
+      isActive: true,
+      triggerType: "SHIFTS_COMPLETED",
+      triggerValue: 5,
+      triggerMaxValue: null,
+      createdBy: adminUser?.id || "",
+      questions: [
+        {
+          id: "q1-nps",
+          type: "rating_scale",
+          text: "How likely are you to recommend volunteering at Everybody Eats to a friend?",
+          required: true,
+          minValue: 0,
+          maxValue: 10,
+          minLabel: "Not at all likely",
+          maxLabel: "Extremely likely",
+        },
+        {
+          id: "q2-satisfaction",
+          type: "multiple_choice_single",
+          text: "Overall, how satisfied are you with your volunteer experience?",
+          required: true,
+          options: [
+            "Very satisfied",
+            "Satisfied",
+            "Neutral",
+            "Dissatisfied",
+            "Very dissatisfied",
+          ],
+        },
+        {
+          id: "q3-communication",
+          type: "rating_scale",
+          text: "How would you rate the communication from our team?",
+          required: true,
+          minValue: 1,
+          maxValue: 5,
+          minLabel: "Poor",
+          maxLabel: "Excellent",
+        },
+        {
+          id: "q4-improvements",
+          type: "text_long",
+          text: "What could we do to improve your volunteer experience?",
+          required: false,
+          placeholder: "Share your suggestions...",
+          maxLength: 1000,
+        },
+        {
+          id: "q5-recommend-location",
+          type: "yes_no",
+          text: "Would you recommend your current location to other volunteers?",
+          required: true,
+        },
+      ],
+    },
+  });
+
+  // Survey 2: First Shift Feedback
+  const firstShiftSurvey = await prisma.survey.upsert({
+    where: { id: "survey-first-shift" },
+    update: {},
+    create: {
+      id: "survey-first-shift",
+      title: "First Shift Feedback",
+      description: "We'd love to hear about your first volunteering experience!",
+      isActive: true,
+      triggerType: "FIRST_SHIFT",
+      triggerValue: 1,
+      triggerMaxValue: 7,
+      createdBy: adminUser?.id || "",
+      questions: [
+        {
+          id: "q1-welcome",
+          type: "rating_scale",
+          text: "How welcome did you feel during your first shift?",
+          required: true,
+          minValue: 1,
+          maxValue: 5,
+          minLabel: "Not welcome at all",
+          maxLabel: "Very welcome",
+        },
+        {
+          id: "q2-training",
+          type: "multiple_choice_single",
+          text: "Did you feel adequately prepared for your shift?",
+          required: true,
+          options: [
+            "Yes, completely prepared",
+            "Mostly prepared",
+            "Somewhat prepared",
+            "Not very prepared",
+            "Not prepared at all",
+          ],
+        },
+        {
+          id: "q3-highlights",
+          type: "text_short",
+          text: "What was the highlight of your first shift?",
+          required: false,
+          placeholder: "Share a memorable moment...",
+          maxLength: 200,
+        },
+        {
+          id: "q4-return",
+          type: "yes_no",
+          text: "Do you plan to volunteer again?",
+          required: true,
+        },
+      ],
+    },
+  });
+
+  // Survey 3: Skills Assessment (Manual assignment)
+  const skillsSurvey = await prisma.survey.upsert({
+    where: { id: "survey-skills-assessment" },
+    update: {},
+    create: {
+      id: "survey-skills-assessment",
+      title: "Skills Assessment Survey",
+      description:
+        "Help us understand your skills to assign you to the best roles.",
+      isActive: true,
+      triggerType: "MANUAL",
+      triggerValue: 0,
+      createdBy: adminUser?.id || "",
+      questions: [
+        {
+          id: "q1-kitchen-exp",
+          type: "multiple_choice_single",
+          text: "What is your level of kitchen experience?",
+          required: true,
+          options: [
+            "Professional chef/cook",
+            "Home cooking enthusiast",
+            "Basic cooking skills",
+            "Beginner - eager to learn",
+            "No cooking experience",
+          ],
+        },
+        {
+          id: "q2-skills",
+          type: "multiple_choice_multi",
+          text: "Which skills do you bring to volunteering?",
+          required: true,
+          options: [
+            "Food preparation",
+            "Cooking",
+            "Serving/hospitality",
+            "Cleaning/dishwashing",
+            "Photography/social media",
+            "Event coordination",
+            "Team leadership",
+            "First aid",
+          ],
+        },
+        {
+          id: "q3-preferred-role",
+          type: "multiple_choice_single",
+          text: "What role do you prefer?",
+          required: true,
+          options: [
+            "Kitchen prep",
+            "Cooking/chef assistance",
+            "Front of house/serving",
+            "Cleanup crew",
+            "Flexible - any role",
+          ],
+        },
+        {
+          id: "q4-certifications",
+          type: "text_short",
+          text: "Do you have any food safety certifications? If yes, please list them.",
+          required: false,
+          placeholder: "e.g., Food Handler Certificate",
+        },
+      ],
+    },
+  });
+
+  // Create survey assignments and responses
+  const experienceResponses = [
+    // Wellington volunteers
+    { nps: 10, satisfaction: "Very satisfied", communication: 5, improvements: "Everything is great! Love the team.", recommend: true, location: "Wellington" },
+    { nps: 9, satisfaction: "Very satisfied", communication: 4, improvements: "More parking would be helpful.", recommend: true, location: "Wellington" },
+    { nps: 8, satisfaction: "Satisfied", communication: 4, improvements: "Would love more evening shifts available.", recommend: true, location: "Wellington" },
+    { nps: 9, satisfaction: "Very satisfied", communication: 5, improvements: "", recommend: true, location: "Wellington" },
+    { nps: 7, satisfaction: "Satisfied", communication: 3, improvements: "Better shift scheduling system would help.", recommend: true, location: "Wellington" },
+    // Glen Innes volunteers
+    { nps: 10, satisfaction: "Very satisfied", communication: 5, improvements: "The community here is amazing!", recommend: true, location: "Glen Innes" },
+    { nps: 8, satisfaction: "Satisfied", communication: 4, improvements: "More training for new volunteers.", recommend: true, location: "Glen Innes" },
+    { nps: 6, satisfaction: "Neutral", communication: 3, improvements: "Location is a bit hard to get to without a car.", recommend: false, location: "Glen Innes" },
+    { nps: 9, satisfaction: "Very satisfied", communication: 5, improvements: "Love it here!", recommend: true, location: "Glen Innes" },
+    // Onehunga volunteers
+    { nps: 10, satisfaction: "Very satisfied", communication: 5, improvements: "Perfect volunteer experience.", recommend: true, location: "Onehunga" },
+    { nps: 8, satisfaction: "Satisfied", communication: 4, improvements: "More variety in tasks would be nice.", recommend: true, location: "Onehunga" },
+    { nps: 9, satisfaction: "Very satisfied", communication: 4, improvements: "", recommend: true, location: "Onehunga" },
+  ];
+
+  let assignmentCount = 0;
+  for (let i = 0; i < Math.min(experienceResponses.length, volunteersForSurveys.length); i++) {
+    const volunteer = volunteersForSurveys[i];
+    const response = experienceResponses[i];
+
+    // Update volunteer's available locations to match their survey response
+    await prisma.user.update({
+      where: { id: volunteer.id },
+      data: { availableLocations: response.location },
+    });
+
+    const assignment = await prisma.surveyAssignment.create({
+      data: {
+        surveyId: experienceSurvey.id,
+        userId: volunteer.id,
+        status: "COMPLETED",
+        assignedAt: subDays(new Date(), 30 - i),
+        completedAt: subDays(new Date(), 28 - i),
+      },
+    });
+
+    await prisma.surveyResponse.create({
+      data: {
+        assignmentId: assignment.id,
+        submittedAt: subDays(new Date(), 28 - i),
+        answers: [
+          { questionId: "q1-nps", value: response.nps },
+          { questionId: "q2-satisfaction", value: response.satisfaction },
+          { questionId: "q3-communication", value: response.communication },
+          { questionId: "q4-improvements", value: response.improvements },
+          { questionId: "q5-recommend-location", value: response.recommend },
+        ],
+      },
+    });
+
+    assignmentCount++;
+  }
+
+  // Add some first shift survey responses
+  const firstShiftResponses = [
+    { welcome: 5, training: "Yes, completely prepared", highlight: "Meeting such welcoming people!", returnVolunteer: true },
+    { welcome: 4, training: "Mostly prepared", highlight: "Seeing the smiles on guests' faces.", returnVolunteer: true },
+    { welcome: 5, training: "Yes, completely prepared", highlight: "Learning new cooking techniques.", returnVolunteer: true },
+    { welcome: 4, training: "Somewhat prepared", highlight: "Working as part of a team.", returnVolunteer: true },
+    { welcome: 3, training: "Somewhat prepared", highlight: "The food was delicious!", returnVolunteer: true },
+  ];
+
+  for (let i = 0; i < Math.min(firstShiftResponses.length, volunteersForSurveys.length - 12); i++) {
+    const volunteer = volunteersForSurveys[i + 12];
+    const response = firstShiftResponses[i];
+
+    const assignment = await prisma.surveyAssignment.create({
+      data: {
+        surveyId: firstShiftSurvey.id,
+        userId: volunteer.id,
+        status: "COMPLETED",
+        assignedAt: subDays(new Date(), 14 - i),
+        completedAt: subDays(new Date(), 13 - i),
+      },
+    });
+
+    await prisma.surveyResponse.create({
+      data: {
+        assignmentId: assignment.id,
+        submittedAt: subDays(new Date(), 13 - i),
+        answers: [
+          { questionId: "q1-welcome", value: response.welcome },
+          { questionId: "q2-training", value: response.training },
+          { questionId: "q3-highlights", value: response.highlight },
+          { questionId: "q4-return", value: response.returnVolunteer },
+        ],
+      },
+    });
+
+    assignmentCount++;
+  }
+
+  // Add some pending survey assignments
+  for (let i = 17; i < Math.min(20, volunteersForSurveys.length); i++) {
+    const volunteer = volunteersForSurveys[i];
+
+    await prisma.surveyAssignment.create({
+      data: {
+        surveyId: skillsSurvey.id,
+        userId: volunteer.id,
+        status: "PENDING",
+        assignedAt: subDays(new Date(), 3),
+      },
+    });
+
+    assignmentCount++;
+  }
+
+  console.log(`✅ Seeded 3 surveys with ${assignmentCount} assignments`);
+
   await downloadAndConvertProfileImages();
 }
 

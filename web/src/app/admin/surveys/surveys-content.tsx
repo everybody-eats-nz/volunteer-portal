@@ -15,6 +15,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Plus,
   Edit,
   Trash2,
@@ -331,56 +336,74 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      variant={survey.triggerType === "MANUAL" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => openAssignDialog(survey)}
-                      title="Assign to Users"
-                      data-testid={`assign-survey-${survey.id}`}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      {survey.triggerType === "MANUAL" && (
-                        <span className="ml-1">Assign</span>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      title="View Responses"
-                    >
-                      <Link href={`/admin/surveys/${survey.id}/responses`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleActive(survey)}
-                      title={survey.isActive ? "Deactivate" : "Activate"}
-                    >
-                      {survey.isActive ? (
-                        <ToggleRight className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4 text-slate-400" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(survey)}
-                      title="Edit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDeleteDialog(survey)}
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={survey.triggerType === "MANUAL" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => openAssignDialog(survey)}
+                          data-testid={`assign-survey-${survey.id}`}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          {survey.triggerType === "MANUAL" && (
+                            <span className="ml-1">Assign</span>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Assign to Users</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/admin/surveys/${survey.id}/responses`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>View Responses</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleActive(survey)}
+                        >
+                          {survey.isActive ? (
+                            <ToggleRight className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4 text-slate-400" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {survey.isActive ? "Deactivate" : "Activate"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(survey)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDeleteDialog(survey)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </CardContent>
