@@ -1,3 +1,9 @@
+## [0.95.0] - 2026-01-28
+
+### Changes
+- Add cancel option for past shifts and use proper tooltips ([#526](https://github.com/everybody-eats-nz/volunteer-portal/pull/526)) by @malinmalliyawadu
+
+
 ## [0.94.1] - 2026-01-28
 
 ### Changes
