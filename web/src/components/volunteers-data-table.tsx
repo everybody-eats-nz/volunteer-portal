@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
 import { type VolunteerGrade } from "@/generated/client";
@@ -59,6 +60,7 @@ interface VolunteersDataTableProps {
   onVolunteerToggle: (volunteerId: string) => void;
   onSelectAll: () => void;
   onBatchToggle?: (volunteerIds: string[], shouldSelect: boolean) => void;
+  onSelectAllRows?: () => void;
 }
 
 export const columns: ColumnDef<Volunteer>[] = [
@@ -202,6 +204,7 @@ export function VolunteersDataTable({
   selectedVolunteers,
   onVolunteerToggle,
   onBatchToggle,
+  onSelectAllRows,
 }: VolunteersDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -317,6 +320,50 @@ export function VolunteersDataTable({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Select all rows banner - shows when all page rows are selected but there are more */}
+      {onSelectAllRows &&
+        table.getIsAllPageRowsSelected() &&
+        table.getFilteredRowModel().rows.length >
+          table.getRowModel().rows.length && (
+          <Alert className="mb-4" data-testid="select-all-banner">
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                All {table.getRowModel().rows.length} volunteers on this page
+                are selected.
+              </span>
+              {selectedVolunteers.size ===
+              table.getFilteredRowModel().rows.length ? (
+                <Button
+                  variant="link"
+                  className="p-0 h-auto font-medium"
+                  onClick={() => {
+                    if (onBatchToggle) {
+                      onBatchToggle(
+                        volunteers.map((v) => v.id),
+                        false
+                      );
+                    }
+                  }}
+                  data-testid="clear-selection-button"
+                >
+                  Clear selection
+                </Button>
+              ) : (
+                <Button
+                  variant="link"
+                  className="p-0 h-auto font-medium"
+                  onClick={onSelectAllRows}
+                  data-testid="select-all-rows-button"
+                >
+                  Select all {table.getFilteredRowModel().rows.length}{" "}
+                  volunteers
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>

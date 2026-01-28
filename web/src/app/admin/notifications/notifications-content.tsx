@@ -682,6 +682,7 @@ export function NotificationsContent({
               onVolunteerToggle={handleVolunteerToggle}
               onSelectAll={handleSelectAll}
               onBatchToggle={handleBatchToggle}
+              onSelectAllRows={handleSelectAll}
             />
           </CardContent>
         </Card>
