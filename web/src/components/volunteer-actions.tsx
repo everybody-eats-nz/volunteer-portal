@@ -304,6 +304,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     variant="outline"
                     className="h-6 px-2 text-xs bg-amber-100 dark:bg-amber-900/60 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/60"
                     disabled={loading === "cancel"}
+                    title="Cancel this shift"
                     data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
                   >
                     {loading === "cancel" ? (
@@ -367,6 +368,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     variant="outline"
                     className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
                     disabled={loading === "move"}
+                    title="Move to different shift"
                     data-testid={testIdPrefix ? `${testIdPrefix}-move-button` : `volunteer-move-${signupId}`}
                   >
                     {loading === "move" ? (
@@ -450,6 +452,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     variant="outline"
                     className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
                     disabled={loading === "cancel"}
+                    title="Cancel this shift"
                     data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
                   >
                     {loading === "cancel" ? (
@@ -671,6 +674,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                   variant="outline"
                   className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
                   disabled={loading === "move"}
+                  title="Move to different shift"
                   data-testid={testIdPrefix ? `${testIdPrefix}-move-button` : `volunteer-move-${signupId}`}
                 >
                   {loading === "move" ? (
