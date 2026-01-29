@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getEmailService } from "@/lib/email-service";
+import { isSameDayInNZT } from "@/lib/timezone";
 import type {
   User,
   Shift,
@@ -94,6 +95,13 @@ export class NotificationService {
         timeZone: "Pacific/Auckland",
       }).format(new Date());
 
+      // Detect same-day cancellation (shift is today in NZ timezone)
+      const isSameDayCancellation = isSameDayInNZT(new Date(), shift.start);
+
+      console.log(
+        `[NOTIFICATION] Same-day cancellation: ${isSameDayCancellation}`
+      );
+
       // Send notifications to all managers
       const notificationPromises = managers.map(async (manager) => {
         try {
@@ -118,6 +126,7 @@ export class NotificationService {
               cancellationTime,
               remainingVolunteers,
               shiftCapacity: shift.capacity,
+              isSameDayCancellation,
             });
             console.log(
               `[NOTIFICATION] Email sent successfully to manager: ${manager.user.email}`
@@ -145,6 +154,7 @@ export class NotificationService {
             shift,
             volunteer,
             remainingVolunteers,
+            isSameDayCancellation,
           });
 
           console.log(
@@ -192,11 +202,13 @@ export class NotificationService {
     shift,
     volunteer,
     remainingVolunteers,
+    isSameDayCancellation,
   }: {
     userId: string;
     shift: ShiftWithDetails;
     volunteer: User;
     remainingVolunteers: number;
+    isSameDayCancellation: boolean;
   }): Promise<void> {
     const volunteerName =
       volunteer.firstName && volunteer.lastName
@@ -216,8 +228,11 @@ export class NotificationService {
       timeZone: "Pacific/Auckland",
     }).format(shift.start);
 
-    const title = "Volunteer Canceled Shift";
-    const message = `${volunteerName} canceled their ${shift.shiftType.name} shift on ${shiftDate} at ${shiftTime} (${shift.location}). ${remainingVolunteers}/${shift.capacity} volunteers remaining.`;
+    const title = isSameDayCancellation
+      ? "SAME-DAY Cancellation"
+      : "Volunteer Canceled Shift";
+    const sameDayPrefix = isSameDayCancellation ? "[SAME-DAY] " : "";
+    const message = `${sameDayPrefix}${volunteerName} canceled their ${shift.shiftType.name} shift on ${shiftDate} at ${shiftTime} (${shift.location}). ${remainingVolunteers}/${shift.capacity} volunteers remaining.`;
 
     console.log(
       `[NOTIFICATION] Creating notification for user ${userId}: ${title}`
