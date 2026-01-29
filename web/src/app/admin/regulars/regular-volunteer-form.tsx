@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -89,6 +90,7 @@ export function RegularVolunteerForm({
     frequency: "WEEKLY",
     availableDays: [] as string[],
     notes: "",
+    addToExistingShifts: true,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -138,7 +140,14 @@ export function RegularVolunteerForm({
         throw new Error(errorMessage + errorDetails);
       }
 
-      toast.success("Regular volunteer created successfully");
+      const result = await response.json();
+      const signupsCreated = result.signupsCreated || 0;
+
+      if (signupsCreated > 0) {
+        toast.success(`Regular volunteer created and signed up for ${signupsCreated} existing shift${signupsCreated === 1 ? '' : 's'}`);
+      } else {
+        toast.success("Regular volunteer created successfully");
+      }
 
       // Reset form
       setFormData({
@@ -148,6 +157,7 @@ export function RegularVolunteerForm({
         frequency: "WEEKLY",
         availableDays: [],
         notes: "",
+        addToExistingShifts: true,
       });
 
       setIsOpen(false);
@@ -322,6 +332,31 @@ export function RegularVolunteerForm({
                     setFormData((prev) => ({ ...prev, notes: e.target.value }))
                   }
                 />
+              </div>
+
+              {/* Add to Existing Shifts */}
+              <div className="flex items-start space-x-3 p-4 rounded-lg border bg-muted/50">
+                <Checkbox
+                  id="addToExistingShifts"
+                  checked={formData.addToExistingShifts}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      addToExistingShifts: checked === true,
+                    }))
+                  }
+                />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="addToExistingShifts"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Add to existing future shifts
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically sign up this volunteer for matching future shifts that already exist in the system.
+                  </p>
+                </div>
               </div>
 
               {/* Action Buttons */}
