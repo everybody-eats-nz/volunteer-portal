@@ -36,7 +36,7 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { action, sendEmail } = body; // "approve", "reject", "cancel", "confirm", "mark_present", or "mark_absent"
+    const { action, sendEmail, skipNotification } = body; // "approve", "reject", "cancel", "confirm", "mark_present", or "mark_absent"
 
     if (
       ![
@@ -322,67 +322,72 @@ export async function PATCH(
         data: { status: "CANCELED" },
       });
 
-      // Send cancellation email to volunteer (fire-and-forget with timeout)
-      const emailService = getEmailService();
-      const cancelShiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
-      const cancelShiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
-        signup.shift.end,
-        "h:mm a"
-      )}`;
-      const cancelFullAddress = signup.shift.location
-        ? LOCATION_ADDRESSES[
-            signup.shift.location as keyof typeof LOCATION_ADDRESSES
-          ] || signup.shift.location
-        : "TBD";
+      // Skip notifications for past shifts (when skipNotification is true)
+      if (!skipNotification) {
+        // Send cancellation email to volunteer (fire-and-forget with timeout)
+        const emailService = getEmailService();
+        const cancelShiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
+        const cancelShiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
+          signup.shift.end,
+          "h:mm a"
+        )}`;
+        const cancelFullAddress = signup.shift.location
+          ? LOCATION_ADDRESSES[
+              signup.shift.location as keyof typeof LOCATION_ADDRESSES
+            ] || signup.shift.location
+          : "TBD";
 
-      Promise.race([
-        emailService.sendVolunteerCancellationNotification({
-          to: signup.user.email!,
-          volunteerName:
-            signup.user.name ||
-            `${signup.user.firstName || ""} ${
-              signup.user.lastName || ""
-            }`.trim(),
-          shiftName: signup.shift.shiftType.name,
-          shiftDate: cancelShiftDate,
-          shiftTime: cancelShiftTime,
-          location: cancelFullAddress,
-        }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Email send timeout")), 10000)
-        ),
-      ]).catch((emailError) => {
-        console.error("Error sending cancellation email:", emailError);
-        // Don't fail the API call if email fails
-      });
+        Promise.race([
+          emailService.sendVolunteerCancellationNotification({
+            to: signup.user.email!,
+            volunteerName:
+              signup.user.name ||
+              `${signup.user.firstName || ""} ${
+                signup.user.lastName || ""
+              }`.trim(),
+            shiftName: signup.shift.shiftType.name,
+            shiftDate: cancelShiftDate,
+            shiftTime: cancelShiftTime,
+            location: cancelFullAddress,
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Email send timeout")), 10000)
+          ),
+        ]).catch((emailError) => {
+          console.error("Error sending cancellation email:", emailError);
+          // Don't fail the API call if email fails
+        });
 
-      // Create in-app notification
-      try {
-        const shiftDate = new Intl.DateTimeFormat("en-NZ", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          timeZone: "Pacific/Auckland",
-        }).format(signup.shift.start);
+        // Create in-app notification
+        try {
+          const shiftDate = new Intl.DateTimeFormat("en-NZ", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: "Pacific/Auckland",
+          }).format(signup.shift.start);
 
-        await createShiftCanceledNotification(
-          signup.user.id,
-          signup.shift.shiftType.name,
-          shiftDate,
-          signup.shift.id
-        );
-      } catch (notificationError) {
-        console.error(
-          "Error creating cancellation notification:",
-          notificationError
-        );
-        // Don't fail the API call if notification fails
+          await createShiftCanceledNotification(
+            signup.user.id,
+            signup.shift.shiftType.name,
+            shiftDate,
+            signup.shift.id
+          );
+        } catch (notificationError) {
+          console.error(
+            "Error creating cancellation notification:",
+            notificationError
+          );
+          // Don't fail the API call if notification fails
+        }
       }
 
       return NextResponse.json({
         ...updatedSignup,
-        message: "Signup cancelled and volunteer notified",
+        message: skipNotification
+          ? "Signup cancelled (no notification sent for past shift)"
+          : "Signup cancelled and volunteer notified",
       });
     }
 
