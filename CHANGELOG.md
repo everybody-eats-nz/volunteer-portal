@@ -1,3 +1,9 @@
+## [0.96.0] - 2026-01-29
+
+### Changes
+- feat: add option to sign up new regulars for existing future shifts ([#527](https://github.com/everybody-eats-nz/volunteer-portal/pull/527)) by @malinmalliyawadu
+
+
 ## [0.95.0] - 2026-01-28
 
 ### Changes
