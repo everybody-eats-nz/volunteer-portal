@@ -18,6 +18,7 @@ interface ShiftCancellationEmailData {
   cancellationTime: string;
   remainingVolunteers: string;
   shiftCapacity: string;
+  isSameDayCancellation: string;
 }
 
 interface SendShiftCancellationParams {
@@ -32,6 +33,7 @@ interface SendShiftCancellationParams {
   cancellationTime: string;
   remainingVolunteers: number;
   shiftCapacity: number;
+  isSameDayCancellation: boolean;
 }
 
 interface ShiftShortageEmailData {
@@ -186,6 +188,7 @@ class EmailService {
   private readonly baseUrl = "https://api.createsend.com/api/v3.3";
   private migrationSmartEmailID: string;
   private shiftCancellationAdminSmartEmailID: string;
+  private shiftCancellationAdminSameDaySmartEmailID: string;
   private shiftShortageSmartEmailID: string;
   private shiftConfirmationSmartEmailID: string;
   private volunteerCancellationSmartEmailID: string;
@@ -246,6 +249,28 @@ class EmailService {
     } else {
       this.shiftCancellationAdminSmartEmailID =
         adminNotificationCancellationEmailId;
+    }
+
+    // Smart email ID for same-day shift cancellation notifications (urgent)
+    const sameDayCancellationEmailId =
+      process.env.CAMPAIGN_MONITOR_SHIFT_ADMIN_SAME_DAY_CANCELLATION_EMAIL_ID;
+    if (!sameDayCancellationEmailId) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_SHIFT_ADMIN_SAME_DAY_CANCELLATION_EMAIL_ID is not configured - same-day cancellation emails will use regular template"
+        );
+        this.shiftCancellationAdminSameDaySmartEmailID =
+          "dummy-same-day-cancellation-id";
+      } else {
+        // Fall back to regular cancellation email in production if not configured
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_SHIFT_ADMIN_SAME_DAY_CANCELLATION_EMAIL_ID is not configured - using regular cancellation template"
+        );
+        this.shiftCancellationAdminSameDaySmartEmailID =
+          adminNotificationCancellationEmailId || "dummy-same-day-cancellation-id";
+      }
+    } else {
+      this.shiftCancellationAdminSameDaySmartEmailID = sameDayCancellationEmailId;
     }
 
     // Smart email ID for shift shortage notifications
@@ -509,20 +534,30 @@ class EmailService {
   ): Promise<void> {
     const isDevelopment = process.env.NODE_ENV === "development";
 
+    // Select template based on whether this is a same-day cancellation
+    const templateId = params.isSameDayCancellation
+      ? this.shiftCancellationAdminSameDaySmartEmailID
+      : this.shiftCancellationAdminSmartEmailID;
+
+    const templateType = params.isSameDayCancellation
+      ? "same-day cancellation"
+      : "cancellation";
+
     // In development, skip email sending if configuration is missing
     if (
       isDevelopment &&
-      this.shiftCancellationAdminSmartEmailID === "dummy-cancellation-id"
+      (templateId === "dummy-cancellation-id" ||
+        templateId === "dummy-same-day-cancellation-id")
     ) {
       console.log(
-        `[EMAIL SERVICE] Would send cancellation email to ${params.to} (skipped in dev - no config)`
+        `[EMAIL SERVICE] Would send ${templateType} email to ${params.to} (skipped in dev - no config)`
       );
       return Promise.resolve();
     }
 
     try {
       await this.sendSmartEmail(
-        this.shiftCancellationAdminSmartEmailID,
+        templateId,
         `${params.managerName} <${params.to}>`,
         {
           managerName: params.managerName,
@@ -535,9 +570,12 @@ class EmailService {
           cancellationTime: params.cancellationTime,
           remainingVolunteers: params.remainingVolunteers.toString(),
           shiftCapacity: params.shiftCapacity.toString(),
+          isSameDayCancellation: params.isSameDayCancellation ? "true" : "false",
         }
       );
-      console.log("Shift cancellation email sent successfully to:", params.to);
+      console.log(
+        `Shift ${templateType} email sent successfully to: ${params.to}`
+      );
     } catch (err) {
       if (isDevelopment) {
         console.warn(
@@ -1076,6 +1114,7 @@ class EmailService {
     emailType:
       | "shortage"
       | "cancellation"
+      | "sameDayCancellation"
       | "confirmation"
       | "volunteerCancellation"
       | "volunteerNotNeeded"
@@ -1094,6 +1133,10 @@ class EmailService {
       cancellation: {
         id: this.shiftCancellationAdminSmartEmailID,
         name: "Shift Cancellation (Admin)",
+      },
+      sameDayCancellation: {
+        id: this.shiftCancellationAdminSameDaySmartEmailID,
+        name: "Same-Day Shift Cancellation (Admin)",
       },
       confirmation: {
         id: this.shiftConfirmationSmartEmailID,
@@ -1140,6 +1183,7 @@ class EmailService {
     emailType:
       | "shortage"
       | "cancellation"
+      | "sameDayCancellation"
       | "confirmation"
       | "volunteerCancellation"
       | "volunteerNotNeeded"
