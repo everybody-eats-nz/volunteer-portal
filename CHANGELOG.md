@@ -1,3 +1,9 @@
+## [0.97.0] - 2026-01-29
+
+### Changes
+- feat: highlight same-day cancellations in manager notifications ([#529](https://github.com/everybody-eats-nz/volunteer-portal/pull/529)) by @malinmalliyawadu
+
+
 ## [0.96.0] - 2026-01-29
 
 ### Changes
