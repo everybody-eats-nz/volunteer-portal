@@ -1,3 +1,9 @@
+## [0.99.1] - 2026-01-30
+
+### Changes
+- fix: resolve double counting in friendship statistics page ([#532](https://github.com/everybody-eats-nz/volunteer-portal/pull/532)) by @malinmalliyawadu
+
+
 ## [0.99.0] - 2026-01-30
 
 ### Changes
