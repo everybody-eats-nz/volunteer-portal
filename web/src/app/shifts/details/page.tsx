@@ -543,21 +543,22 @@ export default async function ShiftDetailsPage({
             }
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Calendar
+            <span className="hidden sm:inline">Back to Calendar</span>
+            <span className="sm:hidden">Back</span>
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button variant="outline" size="sm" asChild data-testid="prev-day-button">
             <Link href={buildNavUrl(previousDateParam)}>
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              {formatInNZT(previousDate, "EEE, MMM d")}
+              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">{formatInNZT(previousDate, "EEE, MMM d")}</span>
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild data-testid="next-day-button">
             <Link href={buildNavUrl(nextDateParam)}>
-              {formatInNZT(nextDate, "EEE, MMM d")}
-              <ChevronRight className="ml-1 h-4 w-4" />
+              <span className="hidden sm:inline">{formatInNZT(nextDate, "EEE, MMM d")}</span>
+              <ChevronRight className="h-4 w-4 sm:ml-1" />
             </Link>
           </Button>
         </div>
