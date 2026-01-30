@@ -32,27 +32,13 @@ export default async function FriendsStatsPage() {
   // Get comprehensive friends data and stats
   const [friendsData, friendsShiftStats] = await Promise.all([
     // Friends with their basic info and recent activity
+    // Query only where userId matches to avoid double counting from bidirectional records
     prisma.friendship.findMany({
       where: {
-        AND: [
-          {
-            OR: [{ userId: user.id }, { friendId: user.id }],
-          },
-          { status: "ACCEPTED" },
-        ],
+        userId: user.id,
+        status: "ACCEPTED",
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            profilePhotoUrl: true,
-            friendVisibility: true,
-          },
-        },
         friend: {
           select: {
             id: true,
@@ -125,13 +111,11 @@ export default async function FriendsStatsPage() {
 
   // Process friends data to get the friend objects
   const friends = friendsData.map((friendship) => {
-    const friend =
-      friendship.userId === user.id ? friendship.friend : friendship.user;
     const friendshipDate = friendship.createdAt;
     const daysSinceFriendship = differenceInDays(new Date(), friendshipDate);
 
     return {
-      ...friend,
+      ...friendship.friend,
       friendshipDate,
       daysSinceFriendship,
     };
