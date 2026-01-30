@@ -1,3 +1,9 @@
+## [0.98.0] - 2026-01-30
+
+### Changes
+- Add previous/next day navigation to shift details page ([#530](https://github.com/everybody-eats-nz/volunteer-portal/pull/530)) by @malinmalliyawadu
+
+
 ## [0.97.0] - 2026-01-29
 
 ### Changes

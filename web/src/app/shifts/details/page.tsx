@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay, addDays, subDays } from "date-fns";
 import { formatInNZT, toUTC, parseISOInNZT, toNZT } from "@/lib/timezone";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
@@ -18,6 +18,8 @@ import {
   Users,
   UserCheck,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { GroupBookingDialogWrapper } from "@/components/group-booking-dialog-wrapper";
 import { PageContainer } from "@/components/page-container";
@@ -512,10 +514,26 @@ export default async function ShiftDetailsPage({
 
   const sortedLocations = Array.from(shiftsByLocationAndTime.keys()).sort();
 
+  // Calculate previous and next dates for navigation
+  const previousDate = subDays(selectedDate, 1);
+  const nextDate = addDays(selectedDate, 1);
+  const previousDateParam = formatInNZT(previousDate, "yyyy-MM-dd");
+  const nextDateParam = formatInNZT(nextDate, "yyyy-MM-dd");
+
+  // Build navigation URLs preserving location filter
+  const buildNavUrl = (dateStr: string) => {
+    const params = new URLSearchParams();
+    params.set("date", dateStr);
+    if (selectedLocation) {
+      params.set("location", selectedLocation);
+    }
+    return `/shifts/details?${params.toString()}`;
+  };
+
   return (
     <PageContainer testid="shifts-details-page">
-      {/* Back button */}
-      <div className="mb-6">
+      {/* Navigation row: Back button + Day navigation */}
+      <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link
             href={
@@ -528,6 +546,21 @@ export default async function ShiftDetailsPage({
             Back to Calendar
           </Link>
         </Button>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild data-testid="prev-day-button">
+            <Link href={buildNavUrl(previousDateParam)}>
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              {formatInNZT(previousDate, "EEE, MMM d")}
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild data-testid="next-day-button">
+            <Link href={buildNavUrl(nextDateParam)}>
+              {formatInNZT(nextDate, "EEE, MMM d")}
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <PageHeader
