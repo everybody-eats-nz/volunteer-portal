@@ -1,3 +1,9 @@
+## [0.100.0] - 2026-01-30
+
+### Changes
+- feat: add ability to delete all shifts in a day ([#533](https://github.com/everybody-eats-nz/volunteer-portal/pull/533)) by @malinmalliyawadu
+
+
 ## [0.99.1] - 2026-01-30
 
 ### Changes
