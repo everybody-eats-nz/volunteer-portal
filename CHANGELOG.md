@@ -1,3 +1,9 @@
+## [0.99.0] - 2026-01-30
+
+### Changes
+- feat: improve shift details page and dashboard next shift card ([#531](https://github.com/everybody-eats-nz/volunteer-portal/pull/531)) by @malinmalliyawadu
+
+
 ## [0.98.0] - 2026-01-30
 
 ### Changes
