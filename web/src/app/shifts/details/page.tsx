@@ -532,8 +532,8 @@ export default async function ShiftDetailsPage({
 
   return (
     <PageContainer testid="shifts-details-page">
-      {/* Back button */}
-      <div className="mb-6">
+      {/* Navigation row: Back button + Day navigation */}
+      <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" size="sm" asChild>
           <Link
             href={
@@ -546,22 +546,21 @@ export default async function ShiftDetailsPage({
             Back to Calendar
           </Link>
         </Button>
-      </div>
 
-      {/* Day Navigation */}
-      <div className="flex items-center justify-between mb-6">
-        <Button variant="outline" size="sm" asChild data-testid="prev-day-button">
-          <Link href={buildNavUrl(previousDateParam)}>
-            <ChevronLeft className="mr-1 h-4 w-4" />
-            {formatInNZT(previousDate, "EEE, MMM d")}
-          </Link>
-        </Button>
-        <Button variant="outline" size="sm" asChild data-testid="next-day-button">
-          <Link href={buildNavUrl(nextDateParam)}>
-            {formatInNZT(nextDate, "EEE, MMM d")}
-            <ChevronRight className="ml-1 h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild data-testid="prev-day-button">
+            <Link href={buildNavUrl(previousDateParam)}>
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              {formatInNZT(previousDate, "EEE, MMM d")}
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild data-testid="next-day-button">
+            <Link href={buildNavUrl(nextDateParam)}>
+              {formatInNZT(nextDate, "EEE, MMM d")}
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <PageHeader
