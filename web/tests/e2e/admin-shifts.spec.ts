@@ -414,20 +414,20 @@ test.describe("Admin Shifts Page", () => {
         .first();
       await cancelButton.click();
 
-      // Check dialog content
+      // Check dialog content (use first() to avoid strict mode violation)
       await expect(
-        page.locator('[data-testid*="cancel-dialog-title"]')
+        page.locator('[data-testid*="cancel-dialog-title"]').first()
       ).toContainText("Cancel Volunteer Shift");
       await expect(
-        page.locator('[data-testid*="cancel-dialog-description"]')
+        page.locator('[data-testid*="cancel-dialog-description"]').first()
       ).toContainText("They will be notified by email");
 
       // Check dialog has both Cancel and Confirm buttons
       await expect(
-        page.locator('[data-testid*="cancel-dialog-cancel"]')
+        page.locator('[data-testid*="cancel-dialog-cancel"]').first()
       ).toBeVisible();
       await expect(
-        page.locator('[data-testid*="cancel-dialog-confirm"]')
+        page.locator('[data-testid*="cancel-dialog-confirm"]').first()
       ).toBeVisible();
     });
 
@@ -462,15 +462,15 @@ test.describe("Admin Shifts Page", () => {
           .first();
         await confirmButton.click();
 
-        // Check that the confirm dialog appears
+        // Check that the confirm dialog appears (use first() to avoid strict mode violation)
         await expect(
-          page.locator('[data-testid*="confirm-dialog"]')
+          page.locator('[data-testid*="confirm-dialog"]').first()
         ).toBeVisible();
         await expect(
-          page.locator('[data-testid*="confirm-dialog-title"]')
+          page.locator('[data-testid*="confirm-dialog-title"]').first()
         ).toContainText("Confirm Waitlisted Volunteer");
         await expect(
-          page.locator('[data-testid*="confirm-dialog-description"]')
+          page.locator('[data-testid*="confirm-dialog-description"]').first()
         ).toContainText("over the shift capacity");
       }
     });
@@ -510,15 +510,15 @@ test.describe("Admin Shifts Page", () => {
       if (await rejectButton.isVisible()) {
         await rejectButton.click();
 
-        // Check that the reject dialog appears
+        // Check that the reject dialog appears (use first() to avoid strict mode violation)
         await expect(
-          page.locator('[data-testid*="reject-dialog"]')
+          page.locator('[data-testid*="reject-dialog"]').first()
         ).toBeVisible();
         await expect(
-          page.locator('[data-testid*="reject-dialog-title"]')
+          page.locator('[data-testid*="reject-dialog-title"]').first()
         ).toContainText("Reject Volunteer Signup");
         await expect(
-          page.locator('[data-testid*="reject-dialog-description"]')
+          page.locator('[data-testid*="reject-dialog-description"]').first()
         ).toContainText("cannot be undone");
       }
     });

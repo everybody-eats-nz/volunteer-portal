@@ -20,6 +20,7 @@ import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
 import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
 import { LocationOption, DEFAULT_LOCATION, LOCATIONS } from "@/lib/locations";
 import { MealsServedInput } from "@/components/meals-served-input";
+import { DeleteAllShiftsButton } from "@/components/delete-all-shifts-button";
 
 interface AdminShiftsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -287,6 +288,16 @@ export default async function AdminShiftsPage({
             </AlertDescription>
           </Alert>
         )}
+        {params.bulkDeleted && (
+          <Alert className="mb-6 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+            <AlertDescription
+              data-testid="shifts-bulk-deleted-message"
+              className="text-red-800 dark:text-red-200"
+            >
+              {params.bulkDeleted} shift{Number(params.bulkDeleted) !== 1 ? "s" : ""} deleted successfully!
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Modern Toolbar */}
         <div className="mb-8 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
@@ -324,6 +335,25 @@ export default async function AdminShiftsPage({
                 Today
               </Link>
             </Button>
+            {shifts.length > 0 && (
+              <DeleteAllShiftsButton
+                shiftCount={shifts.length}
+                volunteerCount={shifts.reduce(
+                  (sum, s) =>
+                    sum +
+                    s.signups.filter(
+                      (signup) =>
+                        signup.status !== "CANCELED" &&
+                        signup.status !== "NO_SHOW"
+                    ).length,
+                  0
+                )}
+                shiftTypes={shifts.map((s) => s.shiftType.name)}
+                date={formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")}
+                dateString={dateString}
+                location={selectedLocation}
+              />
+            )}
           </div>
         </div>
 
