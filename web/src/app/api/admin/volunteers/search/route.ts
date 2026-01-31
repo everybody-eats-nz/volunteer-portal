@@ -57,7 +57,7 @@ export async function GET(req: Request) {
             },
           },
         ],
-        role: "VOLUNTEER", // Only show volunteers, not admins
+        // Include both volunteers and admins so admins can also be assigned to shifts
       },
       select: {
         id: true,

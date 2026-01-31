@@ -111,6 +111,7 @@ export default async function ShiftDetailPage({
               lastName: true,
               email: true,
               friendVisibility: true,
+              profilePhotoUrl: true,
             },
           },
         },
@@ -152,9 +153,9 @@ export default async function ShiftDetailPage({
         friendId: true,
       }
     });
-    
+
     // Extract friend IDs (excluding current user)
-    userFriendIds = friendships.flatMap(f => 
+    userFriendIds = friendships.flatMap(f =>
       f.userId === userId ? [f.friendId] : [f.userId]
     );
   }
@@ -416,7 +417,7 @@ export default async function ShiftDetailPage({
                   firstName: signup.user.firstName,
                   lastName: signup.user.lastName,
                   email: signup.user.email,
-                  profilePhotoUrl: null,
+                  profilePhotoUrl: signup.user.profilePhotoUrl,
                 }))}
                 maxDisplay={8}
                 totalCount={friendSignups.length + otherVolunteersCount}
