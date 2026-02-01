@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.100.0",
+  "version": "0.100.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -31,7 +31,7 @@
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
-    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
@@ -75,7 +75,7 @@
     "next-themes": "^0.4.6",
     "node-fetch": "^3.3.2",
     "posthog-js": "^1.335.2",
-    "posthog-node": "^5.23.0",
+    "posthog-node": "^5.24.7",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",

@@ -1,3 +1,15 @@
+## [0.100.2] - 2026-02-01
+
+### Changes
+- chore(deps): bump posthog-node from 5.23.0 to 5.24.7 in /web ([#541](https://github.com/everybody-eats-nz/volunteer-portal/pull/541)) by @dependabot[bot]
+
+
+## [0.100.1] - 2026-02-01
+
+### Changes
+- chore(deps): bump @prisma/adapter-pg from 7.2.0 to 7.3.0 in /web ([#542](https://github.com/everybody-eats-nz/volunteer-portal/pull/542)) by @dependabot[bot]
+
+
 ## [0.100.0] - 2026-01-30
 
 ### Changes
