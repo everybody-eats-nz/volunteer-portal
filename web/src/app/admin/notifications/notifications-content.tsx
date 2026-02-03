@@ -173,7 +173,7 @@ export function NotificationsContent({
 
   const fetchVolunteers = async () => {
     try {
-      const response = await fetch("/api/admin/volunteers?includeStats=true");
+      const response = await fetch("/api/admin/volunteers?includeStats=true&includeAdmins=true");
       if (!response.ok) throw new Error("Failed to fetch volunteers");
       const data = await response.json();
       setVolunteers(data);
