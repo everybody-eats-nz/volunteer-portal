@@ -42,6 +42,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatInNZT } from "@/lib/timezone";
 import { EditRegularVolunteerDialog } from "./edit-regular-volunteer-dialog";
+import { LocationFilterTabs } from "@/components/location-filter-tabs";
+import { LocationOption } from "@/lib/locations";
 
 type RegularVolunteer = {
   id: string;
@@ -81,10 +83,12 @@ export function RegularsTable({
   regulars,
   shiftTypes,
   locations,
+  selectedLocation,
 }: {
   regulars: RegularVolunteer[];
   shiftTypes: ShiftType[];
-  locations: readonly string[];
+  locations: readonly LocationOption[];
+  selectedLocation?: LocationOption;
 }) {
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -184,10 +188,19 @@ export function RegularsTable({
     <>
       <div className="bg-card dark:bg-card/50 backdrop-blur-sm rounded-lg shadow-sm border dark:border-zinc-800">
         <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold">Regular Volunteers</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage volunteers with recurring shift assignments
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">Regular Volunteers</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage volunteers with recurring shift assignments
+              </p>
+            </div>
+            <LocationFilterTabs
+              locations={locations}
+              selectedLocation={selectedLocation}
+              basePath="/admin/regulars"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
