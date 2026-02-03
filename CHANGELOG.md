@@ -1,3 +1,9 @@
+## [0.101.0] - 2026-02-03
+
+### Changes
+- Add location filtering to regular volunteers admin page ([#546](https://github.com/everybody-eats-nz/volunteer-portal/pull/546)) by @malinmalliyawadu
+
+
 ## [0.100.3] - 2026-02-01
 
 ### Changes
