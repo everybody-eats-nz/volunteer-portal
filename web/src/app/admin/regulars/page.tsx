@@ -9,17 +9,36 @@ import Link from "next/link";
 import { StarIcon, PauseIcon, CalendarIcon } from "lucide-react";
 import { RegularsTable } from "./regulars-table";
 import { RegularVolunteerForm } from "./regular-volunteer-form";
-import { LOCATIONS } from "@/lib/locations";
+import { LOCATIONS, LocationOption } from "@/lib/locations";
 
-export default async function RegularVolunteersPage() {
+interface RegularVolunteersPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function RegularVolunteersPage({
+  searchParams,
+}: RegularVolunteersPageProps) {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
 
   if (!session?.user) redirect("/login?callbackUrl=/admin/regulars");
   if (role !== "ADMIN") redirect("/dashboard");
 
-  // Fetch all regular volunteers with their details
+  const params = await searchParams;
+
+  // Normalize and validate selected location
+  const rawLocation = Array.isArray(params.location)
+    ? params.location[0]
+    : params.location;
+  const selectedLocation: LocationOption | undefined = LOCATIONS.includes(
+    (rawLocation as LocationOption) ?? ("" as LocationOption)
+  )
+    ? (rawLocation as LocationOption)
+    : undefined;
+
+  // Fetch regular volunteers with their details (filtered by location if specified)
   const regulars = await prisma.regularVolunteer.findMany({
+    where: selectedLocation ? { location: selectedLocation } : undefined,
     include: {
       user: {
         select: {
@@ -169,6 +188,7 @@ export default async function RegularVolunteersPage() {
           regulars={regulars}
           shiftTypes={shiftTypes}
           locations={LOCATIONS}
+          selectedLocation={selectedLocation}
         />
       </PageContainer>
     </AdminPageWrapper>
