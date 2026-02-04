@@ -124,6 +124,34 @@ export async function POST(request: Request) {
     const successCount = allResults.filter(r => r.success).length;
     const totalEmailsSent = shifts.length * volunteers.length;
 
+    // Log all notification attempts to history
+    const logEntries = allResults.map((result) => {
+      const shift = shifts.find((s) => s.id === result.shiftId);
+      const volunteer = volunteers.find((v) => v.email === result.email);
+
+      return {
+        sentBy: session.user.id,
+        shiftId: result.shiftId || "",
+        shiftTypeName: shift?.shiftType.name || "Unknown",
+        shiftDate: shift?.start || new Date(),
+        shiftLocation: shift?.location || "Unknown",
+        recipientId: volunteer?.id || "",
+        recipientEmail: result.email,
+        recipientName: volunteer?.firstName && volunteer?.lastName
+          ? `${volunteer.firstName} ${volunteer.lastName}`
+          : volunteer?.name || result.email,
+        success: result.success,
+        errorMessage: result.error || null,
+      };
+    });
+
+    // Batch insert all log entries
+    if (logEntries.length > 0) {
+      await prisma.shortageNotificationLog.createMany({
+        data: logEntries,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       sentCount: successCount,

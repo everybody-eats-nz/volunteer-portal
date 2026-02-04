@@ -33,7 +33,7 @@ import {
 } from "@/components/volunteers-data-table";
 import { formatInNZT } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { Send, Save, Check } from "lucide-react";
+import { Send, Save, Check, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
@@ -63,6 +63,30 @@ interface NotificationGroup {
 interface ShiftType {
   id: string;
   name: string;
+}
+
+interface NotificationBatch {
+  batchKey: string;
+  sentAt: string;
+  sentBy: string;
+  sentByName: string;
+  shifts: Array<{
+    shiftId: string;
+    shiftTypeName: string;
+    shiftDate: string;
+    shiftLocation: string;
+  }>;
+  recipients: Array<{
+    id: string;
+    recipientId: string;
+    recipientEmail: string;
+    recipientName: string;
+    success: boolean;
+    errorMessage: string | null;
+  }>;
+  successCount: number;
+  failureCount: number;
+  totalCount: number;
 }
 
 interface NotificationsContentProps {
@@ -159,6 +183,11 @@ export function NotificationsContent({
   const [groupName, setGroupName] = useState<string>("");
   const [groupDescription, setGroupDescription] = useState<string>("");
 
+  // Notification history
+  const [notificationHistory, setNotificationHistory] = useState<NotificationBatch[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
+
   const fetchShifts = async () => {
     try {
       const response = await fetch("/api/admin/shifts/shortages");
@@ -191,6 +220,21 @@ export function NotificationsContent({
       setNotificationGroups(data);
     } catch (error) {
       console.error("Error fetching notification groups:", error);
+    }
+  };
+
+  const fetchNotificationHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch("/api/admin/notifications/history?limit=100");
+      if (!response.ok) throw new Error("Failed to fetch notification history");
+      const data = await response.json();
+      setNotificationHistory(data.batches);
+    } catch (error) {
+      console.error("Error fetching notification history:", error);
+      toast.error("Failed to load notification history");
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
@@ -327,6 +371,7 @@ export function NotificationsContent({
     fetchShifts();
     fetchVolunteers();
     fetchNotificationGroups();
+    fetchNotificationHistory();
   }, []);
 
   // Apply filters when they change
@@ -505,6 +550,9 @@ export function NotificationsContent({
       // Reset selection
       setSelectedVolunteers(new Set());
       setSelectedShifts(new Set());
+
+      // Refresh notification history
+      fetchNotificationHistory();
     } catch (error) {
       console.error("Error sending notifications:", error);
       toast.error("Failed to send notifications");
@@ -1001,15 +1049,137 @@ export function NotificationsContent({
       <TabsContent value="history" className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Notification History</CardTitle>
-            <CardDescription>
-              View previously sent shortage notifications
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Notification History</CardTitle>
+                <CardDescription>
+                  View previously sent shortage notifications
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchNotificationHistory}
+                disabled={isLoadingHistory}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isLoadingHistory && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-center text-muted-foreground py-8">
-              Notification history will appear here
-            </p>
+            {isLoadingHistory ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                Loading history...
+              </div>
+            ) : notificationHistory.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No notifications have been sent yet
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {notificationHistory.map((batch) => (
+                  <div
+                    key={batch.batchKey}
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <button
+                      className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
+                      onClick={() =>
+                        setExpandedBatch(
+                          expandedBatch === batch.batchKey ? null : batch.batchKey
+                        )
+                      }
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">
+                            {formatInNZT(new Date(batch.sentAt), "MMM d, yyyy 'at' h:mm a")}
+                          </span>
+                          <Badge variant="outline">
+                            {batch.shifts.length} shift{batch.shifts.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Sent by {batch.sentByName} to {batch.totalCount} recipient
+                          {batch.totalCount !== 1 ? "s" : ""}
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-sm">
+                          {batch.successCount > 0 && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                              {batch.successCount} sent
+                            </span>
+                          )}
+                          {batch.failureCount > 0 && (
+                            <span className="flex items-center gap-1 text-red-600">
+                              <XCircle className="h-4 w-4" />
+                              {batch.failureCount} failed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {expandedBatch === batch.batchKey ? "▲" : "▼"}
+                      </div>
+                    </button>
+
+                    {expandedBatch === batch.batchKey && (
+                      <div className="border-t bg-muted/30 p-4 space-y-4">
+                        {/* Shifts */}
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Shifts</h4>
+                          <div className="space-y-1">
+                            {batch.shifts.map((shift) => (
+                              <div
+                                key={shift.shiftId}
+                                className="text-sm flex items-center gap-2"
+                              >
+                                <Badge variant="secondary">{shift.shiftTypeName}</Badge>
+                                <span className="text-muted-foreground">
+                                  {formatInNZT(new Date(shift.shiftDate), "EEE, MMM d")} at {shift.shiftLocation}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Recipients */}
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Recipients</h4>
+                          <div className="max-h-[200px] overflow-y-auto space-y-1">
+                            {batch.recipients.map((recipient) => (
+                              <div
+                                key={recipient.id}
+                                className="text-sm flex items-center justify-between py-1"
+                              >
+                                <div className="flex items-center gap-2">
+                                  {recipient.success ? (
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                  )}
+                                  <span>{recipient.recipientName}</span>
+                                  <span className="text-muted-foreground">
+                                    ({recipient.recipientEmail})
+                                  </span>
+                                </div>
+                                {recipient.errorMessage && (
+                                  <span className="text-red-600 text-xs">
+                                    {recipient.errorMessage}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
