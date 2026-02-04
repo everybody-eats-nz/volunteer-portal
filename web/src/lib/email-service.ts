@@ -36,10 +36,16 @@ interface SendShiftCancellationParams {
   isSameDayCancellation: boolean;
 }
 
-interface ShiftShortageEmailData extends Record<string, string> {
+interface ShiftShortageEmailData {
   firstName: string;
   shiftCount: string;
-  shiftList: string; // Pre-rendered plain text list of shifts
+  shifts: Array<{
+    shiftName: string;
+    shiftDate: string;
+    shiftTime: string;
+    location: string;
+    signupLink: string;
+  }>;
   shiftsPageLink: string;
 }
 
@@ -603,21 +609,25 @@ class EmailService {
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
 
-    // Build list of shifts with <br> tags for email rendering
-    const shiftList = params.shifts
-      .map((shift, index) => {
-        const signupLink = `${getBaseUrl()}/shifts/${shift.shiftId}`;
-        return `${index + 1}. ${shift.shiftName}<br>` +
-          `&nbsp;&nbsp;&nbsp;${shift.shiftDate}<br>` +
-          `&nbsp;&nbsp;&nbsp;${shift.shiftTime}<br>` +
-          `&nbsp;&nbsp;&nbsp;${shift.location}<br>` +
-          `&nbsp;&nbsp;&nbsp;Sign up: ${signupLink}`;
-      })
-      .join("<br><br>");
+    // Build shifts array for Liquid template
+    const shifts = params.shifts.map((shift) => ({
+      shiftName: shift.shiftName,
+      shiftDate: shift.shiftDate,
+      shiftTime: shift.shiftTime,
+      location: shift.location,
+      signupLink: `${getBaseUrl()}/shifts/${shift.shiftId}`,
+    }));
 
     // Build shifts page link with date and location from first shift
     const firstShift = params.shifts[0];
     const shiftsPageLink = `${getBaseUrl()}/shifts/details?date=${firstShift.shiftDateISO}&location=${encodeURIComponent(firstShift.location)}`;
+
+    const emailData: ShiftShortageEmailData = {
+      firstName,
+      shiftCount: String(params.shifts.length),
+      shifts,
+      shiftsPageLink,
+    };
 
     // In development, skip email sending if configuration is missing
     if (
@@ -627,27 +637,15 @@ class EmailService {
       console.log(
         `[EMAIL SERVICE] Would send shortage email to ${params.to} (skipped in dev - no config)`
       );
-      console.log(`[EMAIL SERVICE] Email data:`, {
-        firstName,
-        shiftCount: String(params.shifts.length),
-        shiftList,
-        shiftsPageLink,
-      });
+      console.log(`[EMAIL SERVICE] Email data:`, emailData);
       return Promise.resolve();
     }
-
-    const emailData: ShiftShortageEmailData = {
-      firstName,
-      shiftCount: String(params.shifts.length),
-      shiftList,
-      shiftsPageLink,
-    };
 
     try {
       await this.sendSmartEmail(
         this.shiftShortageSmartEmailID,
         `${params.volunteerName} <${params.to}>`,
-        emailData
+        emailData as unknown as Record<string, string>
       );
       console.log("Shift shortage email sent successfully to:", params.to);
       console.log("Email data sent:", {
