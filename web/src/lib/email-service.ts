@@ -46,7 +46,7 @@ interface ShiftShortageEmailData {
     emoji: string;
     shiftName: string;
     shiftTime: string;
-    signupLink: string;
+    shiftId: string;
     spotsNeeded: string;
   }>;
   shiftsPageLink: string;
@@ -618,7 +618,7 @@ class EmailService {
       emoji: getShiftTheme(shift.shiftName).emoji,
       shiftName: shift.shiftName,
       shiftTime: shift.shiftTime,
-      signupLink: `${getBaseUrl()}/shifts/${shift.shiftId}`,
+      shiftId: shift.shiftId,
       spotsNeeded: String(shift.neededVolunteers),
     }));
 
