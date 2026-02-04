@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
       if (!batchMap.has(batchKey)) {
         // Get shifts from the first log entry (they're all the same for the batch)
-        const shifts = log.shifts as ShiftData[];
+        const shifts = log.shifts as unknown as ShiftData[];
         batchMap.set(batchKey, {
           sentAt: log.sentAt,
           sentBy: log.sentBy,
