@@ -39,12 +39,13 @@ interface SendShiftCancellationParams {
 interface ShiftShortageEmailData {
   firstName: string;
   shiftCount: string;
+  shiftDate: string;
+  location: string;
   shifts: Array<{
     shiftName: string;
-    shiftDate: string;
     shiftTime: string;
-    location: string;
     signupLink: string;
+    spotsNeeded: string;
   }>;
   shiftsPageLink: string;
 }
@@ -610,21 +611,22 @@ class EmailService {
       params.volunteerName.split(" ")[0] || params.volunteerName;
 
     // Build shifts array for Liquid template
+    const firstShift = params.shifts[0];
     const shifts = params.shifts.map((shift) => ({
       shiftName: shift.shiftName,
-      shiftDate: shift.shiftDate,
       shiftTime: shift.shiftTime,
-      location: shift.location,
       signupLink: `${getBaseUrl()}/shifts/${shift.shiftId}`,
+      spotsNeeded: String(shift.neededVolunteers),
     }));
 
     // Build shifts page link with date and location from first shift
-    const firstShift = params.shifts[0];
     const shiftsPageLink = `${getBaseUrl()}/shifts/details?date=${firstShift.shiftDateISO}&location=${encodeURIComponent(firstShift.location)}`;
 
     const emailData: ShiftShortageEmailData = {
       firstName,
       shiftCount: String(params.shifts.length),
+      shiftDate: firstShift.shiftDate,
+      location: firstShift.location,
       shifts,
       shiftsPageLink,
     };
