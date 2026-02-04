@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocationPreferenceState } from "@/hooks/use-location-preference";
 import {
@@ -26,12 +26,14 @@ import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ShiftCalendar } from "@/components/shift-calendar";
 import {
   VolunteersDataTable,
   type Volunteer,
 } from "@/components/volunteers-data-table";
 import { formatInNZT } from "@/lib/timezone";
-import { Send, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Send, Save, Check, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
@@ -63,6 +65,30 @@ interface ShiftType {
   name: string;
 }
 
+interface NotificationBatch {
+  batchKey: string;
+  sentAt: string;
+  sentBy: string;
+  sentByName: string;
+  shifts: Array<{
+    shiftId: string;
+    shiftTypeName: string;
+    shiftDate: string;
+    shiftLocation: string;
+  }>;
+  recipients: Array<{
+    id: string;
+    recipientId: string;
+    recipientEmail: string;
+    recipientName: string;
+    success: boolean;
+    errorMessage: string | null;
+  }>;
+  successCount: number;
+  failureCount: number;
+  totalCount: number;
+}
+
 interface NotificationsContentProps {
   shiftTypes: ShiftType[];
   locations: readonly string[];
@@ -75,7 +101,14 @@ export function NotificationsContent({
   const searchParams = useSearchParams();
   const { getLocationPreference, setLocationPreference } =
     useLocationPreferenceState();
-  const [selectedShift, setSelectedShift] = useState<string>("");
+
+  // Multi-shift selection
+  const [selectedShifts, setSelectedShifts] = useState<Set<string>>(new Set());
+  const [filterShiftDate, setFilterShiftDate] = useState<Date | undefined>(
+    undefined
+  );
+  const [filterShiftLocation, setFilterShiftLocation] = useState<string>("all");
+
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [filteredVolunteers, setFilteredVolunteers] = useState<Volunteer[]>([]);
@@ -100,10 +133,19 @@ export function NotificationsContent({
   const [filterNotificationsEnabled, setFilterNotificationsEnabled] =
     useState<boolean>(true);
 
-  // Check for URL parameters to pre-select shift type and location
+  // Check for URL parameters to pre-select date, shift type and location
   useEffect(() => {
+    const dateParam = searchParams.get("date");
     const shiftTypeParam = searchParams.get("shiftType");
     const locationParam = searchParams.get("location");
+
+    if (dateParam) {
+      // Parse the date string (yyyy-MM-dd format)
+      const parsedDate = new Date(dateParam + "T00:00:00");
+      if (!isNaN(parsedDate.getTime())) {
+        setFilterShiftDate(parsedDate);
+      }
+    }
 
     if (shiftTypeParam && shiftTypes.some((st) => st.id === shiftTypeParam)) {
       setFilterShiftType(shiftTypeParam);
@@ -111,6 +153,7 @@ export function NotificationsContent({
 
     if (locationParam && locations.includes(locationParam)) {
       setFilterLocation(locationParam);
+      setFilterShiftLocation(locationParam);
     }
   }, [searchParams, shiftTypes, locations]);
 
@@ -124,23 +167,14 @@ export function NotificationsContent({
   // Auto-select specific shift once shifts are loaded
   useEffect(() => {
     const shiftIdParam = searchParams.get("shiftId");
-    const shiftTypeParam = searchParams.get("shiftType");
 
     if (shifts.length > 0 && shiftIdParam) {
       const targetShift = shifts.find((shift) => shift.id === shiftIdParam);
       if (targetShift) {
-        setSelectedShift(shiftIdParam);
-      } else {
-        // If the specific shift isn't in shortage list, but we have shifts of the same type,
-        // let's select the first one of that type
-        if (shiftTypeParam) {
-          const firstMatchingTypeShift = shifts.find(
-            (shift) => shift.shiftType.id === shiftTypeParam
-          );
-          if (firstMatchingTypeShift) {
-            setSelectedShift(firstMatchingTypeShift.id);
-          }
-        }
+        setSelectedShifts(new Set([shiftIdParam]));
+        // Set the date filter to the shift's date
+        setFilterShiftDate(new Date(targetShift.start));
+        setFilterShiftLocation(targetShift.location || "all");
       }
     }
   }, [shifts, searchParams]);
@@ -148,6 +182,11 @@ export function NotificationsContent({
   // Group saving
   const [groupName, setGroupName] = useState<string>("");
   const [groupDescription, setGroupDescription] = useState<string>("");
+
+  // Notification history
+  const [notificationHistory, setNotificationHistory] = useState<NotificationBatch[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
 
   const fetchShifts = async () => {
     try {
@@ -163,7 +202,7 @@ export function NotificationsContent({
 
   const fetchVolunteers = async () => {
     try {
-      const response = await fetch("/api/admin/volunteers?includeStats=true");
+      const response = await fetch("/api/admin/volunteers?includeStats=true&includeAdmins=true");
       if (!response.ok) throw new Error("Failed to fetch volunteers");
       const data = await response.json();
       setVolunteers(data);
@@ -183,6 +222,84 @@ export function NotificationsContent({
       console.error("Error fetching notification groups:", error);
     }
   };
+
+  const fetchNotificationHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch("/api/admin/notifications/history?limit=100");
+      if (!response.ok) throw new Error("Failed to fetch notification history");
+      const data = await response.json();
+      setNotificationHistory(data.batches);
+    } catch (error) {
+      console.error("Error fetching notification history:", error);
+      toast.error("Failed to load notification history");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Filter shifts based on date and location
+  const filteredShifts = useMemo(() => {
+    return shifts.filter((shift) => {
+      // Filter by date - compare as formatted strings in NZT to avoid timezone issues
+      if (filterShiftDate) {
+        const shiftDateStr = formatInNZT(new Date(shift.start), "yyyy-MM-dd");
+        const filterDateStr = formatInNZT(filterShiftDate, "yyyy-MM-dd");
+        if (shiftDateStr !== filterDateStr) {
+          return false;
+        }
+      }
+
+      // Filter by location
+      if (filterShiftLocation !== "all" && shift.location !== filterShiftLocation) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [shifts, filterShiftDate, filterShiftLocation]);
+
+  // Build shift summaries for the calendar component
+  const shiftSummaries = useMemo(() => {
+    const summariesMap = new Map<
+      string,
+      {
+        count: number;
+        totalCapacity: number;
+        totalConfirmed: number;
+        locations: string[];
+      }
+    >();
+
+    shifts.forEach((shift) => {
+      const dateKey = formatInNZT(new Date(shift.start), "yyyy-MM-dd");
+      const location = shift.location || "Unknown";
+
+      if (!summariesMap.has(dateKey)) {
+        summariesMap.set(dateKey, {
+          count: 0,
+          totalCapacity: 0,
+          totalConfirmed: 0,
+          // Include "all" so calendar shows dots when no location is selected
+          locations: ["all"],
+        });
+      }
+
+      const summary = summariesMap.get(dateKey)!;
+      summary.count++;
+      summary.totalCapacity += shift.capacity;
+      summary.totalConfirmed += shift._count.signups;
+
+      if (!summary.locations.includes(location)) {
+        summary.locations.push(location);
+      }
+    });
+
+    return Array.from(summariesMap.entries()).map(([date, data]) => ({
+      date,
+      ...data,
+    }));
+  }, [shifts]);
 
   const applyFilters = useCallback(() => {
     let filtered = [...volunteers];
@@ -204,27 +321,30 @@ export function NotificationsContent({
     }
 
     // Filter by shift type preference
-    // excludedShortageNotificationTypes now stores EXCLUDED types (what they DON'T want)
-    // Empty array means they want notifications for ALL shift types
-    // Non-empty array contains the types they DON'T want notifications for
     if (filterShiftType !== "all") {
       filtered = filtered.filter(
         (v) =>
           Array.isArray(v.excludedShortageNotificationTypes) &&
-          !v.excludedShortageNotificationTypes.includes(filterShiftType) // They want it if it's NOT in the excluded list
+          !v.excludedShortageNotificationTypes.includes(filterShiftType)
       );
     }
 
-    // Filter by availability for selected shift
-    if (filterAvailability && selectedShift) {
-      const shift = shifts.find((s) => s.id === selectedShift);
-      if (shift) {
-        const shiftDay = formatInNZT(new Date(shift.start), "EEEE");
-        filtered = filtered.filter(
-          (v) =>
-            Array.isArray(v.availableDays) && v.availableDays.includes(shiftDay)
-        );
-      }
+    // Filter by availability for selected shifts
+    if (filterAvailability && selectedShifts.size > 0) {
+      // Get all days from selected shifts
+      const selectedShiftDays = new Set<string>();
+      selectedShifts.forEach((shiftId) => {
+        const shift = shifts.find((s) => s.id === shiftId);
+        if (shift) {
+          selectedShiftDays.add(formatInNZT(new Date(shift.start), "EEEE"));
+        }
+      });
+
+      filtered = filtered.filter(
+        (v) =>
+          Array.isArray(v.availableDays) &&
+          [...selectedShiftDays].some((day) => v.availableDays?.includes(day))
+      );
     }
 
     // Filter by minimum shifts completed
@@ -241,7 +361,7 @@ export function NotificationsContent({
     filterLocation,
     filterShiftType,
     filterAvailability,
-    selectedShift,
+    selectedShifts,
     shifts,
     filterMinShifts,
   ]);
@@ -251,6 +371,7 @@ export function NotificationsContent({
     fetchShifts();
     fetchVolunteers();
     fetchNotificationGroups();
+    fetchNotificationHistory();
   }, []);
 
   // Apply filters when they change
@@ -264,7 +385,7 @@ export function NotificationsContent({
     filterAvailability,
     filterMinShifts,
     filterNotificationsEnabled,
-    selectedShift,
+    selectedShifts,
   ]);
 
   const handleSelectAll = () => {
@@ -295,6 +416,30 @@ export function NotificationsContent({
       }
     });
     setSelectedVolunteers(newSelection);
+  };
+
+  const handleShiftToggle = (shiftId: string) => {
+    const newSelection = new Set(selectedShifts);
+    if (newSelection.has(shiftId)) {
+      newSelection.delete(shiftId);
+    } else {
+      newSelection.add(shiftId);
+    }
+    setSelectedShifts(newSelection);
+  };
+
+  const handleSelectAllShifts = () => {
+    if (selectedShifts.size === filteredShifts.length) {
+      setSelectedShifts(new Set());
+    } else {
+      setSelectedShifts(new Set(filteredShifts.map((s) => s.id)));
+    }
+  };
+
+  const handleCalendarDateSelect = (date: Date) => {
+    setFilterShiftDate(date);
+    // Clear shift selection when date changes
+    setSelectedShifts(new Set());
   };
 
   const handleLoadGroup = async () => {
@@ -373,8 +518,8 @@ export function NotificationsContent({
   };
 
   const handleSendNotifications = async () => {
-    if (!selectedShift) {
-      toast.error("Please select a shift");
+    if (selectedShifts.size === 0) {
+      toast.error("Please select at least one shift");
       return;
     }
 
@@ -383,16 +528,13 @@ export function NotificationsContent({
       return;
     }
 
-    const shift = shifts.find((s) => s.id === selectedShift);
-    if (!shift) return;
-
     setIsSending(true);
     try {
       const response = await fetch("/api/admin/notifications/send-shortage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          shiftId: selectedShift,
+          shiftIds: Array.from(selectedShifts),
           volunteerIds: Array.from(selectedVolunteers),
           groupId: selectedGroup || undefined,
         }),
@@ -401,10 +543,16 @@ export function NotificationsContent({
       if (!response.ok) throw new Error("Failed to send notifications");
 
       const result = await response.json();
-      toast.success(`Successfully sent ${result.sentCount} notifications`);
+      toast.success(
+        `Successfully sent ${result.sentCount} emails for ${result.shiftsCount} shift(s) to ${result.volunteersCount} volunteer(s)`
+      );
 
       // Reset selection
       setSelectedVolunteers(new Set());
+      setSelectedShifts(new Set());
+
+      // Refresh notification history
+      fetchNotificationHistory();
     } catch (error) {
       console.error("Error sending notifications:", error);
       toast.error("Failed to send notifications");
@@ -441,83 +589,152 @@ export function NotificationsContent({
         {/* Shift Selection */}
         <Card data-testid="shift-filter-section">
           <CardHeader>
-            <CardTitle>Select Shift with Shortage</CardTitle>
+            <CardTitle>Select Shifts with Shortage</CardTitle>
             <CardDescription>
-              Choose the shift that needs more volunteers
+              Choose the date and location to filter shifts, then select the
+              shifts that need volunteers
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Select value={selectedShift} onValueChange={setSelectedShift}>
-              <SelectTrigger data-testid="shift-select">
-                <SelectValue placeholder="Select a shift" />
-              </SelectTrigger>
-              <SelectContent>
-                {shifts.map((shift) => {
-                  const { shortage } = getShiftShortageInfo(shift);
-                  return (
-                    <SelectItem key={shift.id} value={shift.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>
-                          {shift.shiftType.name} -{" "}
-                          {formatInNZT(new Date(shift.start), "MMM d, h:mm a")}
-                        </span>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Badge
-                            variant={shortage > 5 ? "destructive" : "secondary"}
-                          >
-                            {shortage} needed
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {shift.location}
-                          </span>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          <CardContent className="space-y-4">
+            {/* Date and Location Filters */}
+            <div className="flex flex-wrap gap-4 items-end">
+              <div>
+                <Label className="mb-2 block">Date</Label>
+                <ShiftCalendar
+                  selectedDate={filterShiftDate || new Date()}
+                  selectedLocation={filterShiftLocation}
+                  shiftSummaries={shiftSummaries}
+                  onDateSelect={handleCalendarDateSelect}
+                />
+              </div>
 
-            {selectedShift && (
-              <div className="mt-4 p-4 bg-muted rounded-lg">
-                {(() => {
-                  const shift = shifts.find((s) => s.id === selectedShift);
-                  if (!shift) return null;
-                  const { shortage, percentFilled } =
-                    getShiftShortageInfo(shift);
-                  return (
-                    <>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">
-                          {shift.shiftType.name}
-                        </span>
-                        <Badge
-                          variant={shortage > 5 ? "destructive" : "secondary"}
-                        >
-                          {shortage} volunteers needed
-                        </Badge>
+              <div className="flex-1 min-w-[200px]">
+                <Label>Location</Label>
+                <Select
+                  value={filterShiftLocation}
+                  onValueChange={(value) => {
+                    setFilterShiftLocation(value);
+                    // Clear shift selection when location changes
+                    setSelectedShifts(new Set());
+                  }}
+                >
+                  <SelectTrigger data-testid="shift-location-filter" className="h-11">
+                    <SelectValue placeholder="Select a location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Select a location</SelectItem>
+                    {locations.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Shift List */}
+            {filterShiftDate && filterShiftLocation !== "all" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>
+                  Shifts{" "}
+                  {filteredShifts.length > 0 && `(${filteredShifts.length})`}
+                </Label>
+                {filteredShifts.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAllShifts}
+                    data-testid="shift-select-all-button"
+                  >
+                    {selectedShifts.size === filteredShifts.length
+                      ? "Deselect All"
+                      : "Select All"}
+                  </Button>
+                )}
+              </div>
+
+              {filteredShifts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No shifts with shortages found for this date and location
+                </div>
+              ) : (
+                <div className="border rounded-md divide-y max-h-[300px] overflow-y-auto">
+                  {filteredShifts.map((shift) => {
+                    const { shortage, percentFilled } =
+                      getShiftShortageInfo(shift);
+                    const isSelected = selectedShifts.has(shift.id);
+                    return (
+                      <div
+                        key={shift.id}
+                        className={cn(
+                          "flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors",
+                          isSelected && "bg-muted"
+                        )}
+                        onClick={() => handleShiftToggle(shift.id)}
+                        data-testid={`shift-checkbox-${shift.id}`}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleShiftToggle(shift.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">
+                              {shift.shiftType.name}
+                            </span>
+                            <Badge
+                              variant={
+                                shortage > 5 ? "destructive" : "secondary"
+                              }
+                            >
+                              {shortage} needed
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatInNZT(new Date(shift.start), "h:mm a")} -{" "}
+                            {formatInNZT(new Date(shift.end), "h:mm a")} •{" "}
+                            {shift.location} • {shift._count.signups}/
+                            {shift.capacity} ({percentFilled.toFixed(0)}%)
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        )}
                       </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>
-                          Date:{" "}
-                          {formatInNZT(
-                            new Date(shift.start),
-                            "EEEE, MMMM d, yyyy"
-                          )}
-                        </p>
-                        <p>
-                          Time: {formatInNZT(new Date(shift.start), "h:mm a")} -{" "}
-                          {formatInNZT(new Date(shift.end), "h:mm a")}
-                        </p>
-                        <p>Location: {shift.location}</p>
-                        <p>
-                          Current: {shift._count.signups} / {shift.capacity} (
-                          {percentFilled.toFixed(0)}% filled)
-                        </p>
-                      </div>
-                    </>
-                  );
-                })()}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Selected Shifts Summary */}
+              {selectedShifts.size > 0 && (
+                <div
+                  className="p-3 bg-muted rounded-md"
+                  data-testid="selected-shifts-count"
+                >
+                  <span className="font-medium">
+                    {selectedShifts.size} shift(s) selected
+                  </span>
+                  <span className="text-muted-foreground ml-2">
+                    ({Array.from(selectedShifts)
+                      .map((id) => {
+                        const shift = shifts.find((s) => s.id === id);
+                        return shift?.shiftType.name;
+                      })
+                      .filter(Boolean)
+                      .join(", ")})
+                  </span>
+                </div>
+              )}
+            </div>
+            )}
+
+            {/* Prompt to select date and location */}
+            {(!filterShiftDate || filterShiftLocation === "all") && (
+              <div className="text-center py-8 text-muted-foreground border rounded-md">
+                Please select a date and location to view available shifts
               </div>
             )}
           </CardContent>
@@ -595,11 +812,11 @@ export function NotificationsContent({
                   onCheckedChange={(checked) =>
                     setFilterAvailability(checked as boolean)
                   }
-                  disabled={!selectedShift}
+                  disabled={selectedShifts.size === 0}
                   data-testid="availability-filter"
                 />
                 <Label htmlFor="availability" className="cursor-pointer">
-                  Available on shift day
+                  Available on shift day(s)
                 </Label>
               </div>
 
@@ -691,17 +908,13 @@ export function NotificationsContent({
         <div className="flex justify-between items-center">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Ready to send to {selectedVolunteers.size} volunteers
+              Ready to send to {selectedVolunteers.size} volunteers for{" "}
+              {selectedShifts.size} shift(s)
             </p>
-            {selectedShift && (
+            {selectedShifts.size > 0 && (
               <p className="text-xs text-muted-foreground">
-                For shift on{" "}
-                {formatInNZT(
-                  new Date(
-                    shifts.find((s) => s.id === selectedShift)?.start || ""
-                  ),
-                  "MMM d, h:mm a"
-                )}
+                Total emails: {selectedVolunteers.size * selectedShifts.size}{" "}
+                (one email per shift per volunteer)
               </p>
             )}
           </div>
@@ -716,7 +929,9 @@ export function NotificationsContent({
               size="lg"
               onClick={handleSendNotifications}
               disabled={
-                !selectedShift || selectedVolunteers.size === 0 || isSending
+                selectedShifts.size === 0 ||
+                selectedVolunteers.size === 0 ||
+                isSending
               }
             >
               {isSending ? (
@@ -834,15 +1049,137 @@ export function NotificationsContent({
       <TabsContent value="history" className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Notification History</CardTitle>
-            <CardDescription>
-              View previously sent shortage notifications
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Notification History</CardTitle>
+                <CardDescription>
+                  View previously sent shortage notifications
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchNotificationHistory}
+                disabled={isLoadingHistory}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isLoadingHistory && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-center text-muted-foreground py-8">
-              Notification history will appear here
-            </p>
+            {isLoadingHistory ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                Loading history...
+              </div>
+            ) : notificationHistory.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No notifications have been sent yet
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {notificationHistory.map((batch) => (
+                  <div
+                    key={batch.batchKey}
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <button
+                      className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
+                      onClick={() =>
+                        setExpandedBatch(
+                          expandedBatch === batch.batchKey ? null : batch.batchKey
+                        )
+                      }
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium">
+                            {formatInNZT(new Date(batch.sentAt), "MMM d, yyyy 'at' h:mm a")}
+                          </span>
+                          <Badge variant="outline">
+                            {batch.shifts.length} shift{batch.shifts.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Sent by {batch.sentByName} to {batch.totalCount} recipient
+                          {batch.totalCount !== 1 ? "s" : ""}
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-sm">
+                          {batch.successCount > 0 && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-4 w-4" />
+                              {batch.successCount} sent
+                            </span>
+                          )}
+                          {batch.failureCount > 0 && (
+                            <span className="flex items-center gap-1 text-red-600">
+                              <XCircle className="h-4 w-4" />
+                              {batch.failureCount} failed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {expandedBatch === batch.batchKey ? "▲" : "▼"}
+                      </div>
+                    </button>
+
+                    {expandedBatch === batch.batchKey && (
+                      <div className="border-t bg-muted/30 p-4 space-y-4">
+                        {/* Shifts */}
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Shifts</h4>
+                          <div className="space-y-1">
+                            {batch.shifts.map((shift) => (
+                              <div
+                                key={shift.shiftId}
+                                className="text-sm flex items-center gap-2"
+                              >
+                                <Badge variant="secondary">{shift.shiftTypeName}</Badge>
+                                <span className="text-muted-foreground">
+                                  {formatInNZT(new Date(shift.shiftDate), "EEE, MMM d")} at {shift.shiftLocation}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Recipients */}
+                        <div>
+                          <h4 className="font-medium text-sm mb-2">Recipients</h4>
+                          <div className="max-h-[200px] overflow-y-auto space-y-1">
+                            {batch.recipients.map((recipient) => (
+                              <div
+                                key={recipient.id}
+                                className="text-sm flex items-center justify-between py-1"
+                              >
+                                <div className="flex items-center gap-2">
+                                  {recipient.success ? (
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                  )}
+                                  <span>{recipient.recipientName}</span>
+                                  <span className="text-muted-foreground">
+                                    ({recipient.recipientEmail})
+                                  </span>
+                                </div>
+                                {recipient.errorMessage && (
+                                  <span className="text-red-600 text-xs">
+                                    {recipient.errorMessage}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>

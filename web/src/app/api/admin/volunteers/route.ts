@@ -13,11 +13,12 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const includeStats = searchParams.get("includeStats") === "true";
+  const includeAdmins = searchParams.get("includeAdmins") === "true";
 
   try {
     const volunteers = await prisma.user.findMany({
       where: {
-        role: "VOLUNTEER",
+        role: includeAdmins ? { in: ["VOLUNTEER", "ADMIN"] } : "VOLUNTEER",
         signups: {
           some: {
             status: "CONFIRMED",

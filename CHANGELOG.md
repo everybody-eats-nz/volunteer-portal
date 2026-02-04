@@ -1,3 +1,9 @@
+## [0.102.0] - 2026-02-04
+
+### Changes
+- feat: multi-shift shortage email selection ([#548](https://github.com/everybody-eats-nz/volunteer-portal/pull/548)) by @malinmalliyawadu
+
+
 ## [0.101.0] - 2026-02-03
 
 ### Changes

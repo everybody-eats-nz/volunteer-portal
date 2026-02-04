@@ -57,7 +57,6 @@ import { Button } from "@/components/ui/button";
 import {
   Clock,
   Users,
-  Mail,
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
@@ -624,25 +623,6 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                     {!isCompleted && (
                     <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
                       <div className="flex flex-col gap-2">
-                        {/* Shortage Email Button */}
-                        {(staffingStatus.text === "Critical" || staffingStatus.text === "Understaffed") && (
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="w-full bg-orange-50 dark:bg-orange-900/60 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-800/60"
-                            data-testid={`send-shortage-email-${shift.id}`}
-                          >
-                            <Link
-                              href={`/admin/notifications?shiftId=${shift.id}&shiftType=${shift.shiftType.id}&location=${shift.location}`}
-                              className="flex items-center gap-2 justify-center"
-                            >
-                              <Mail className="h-4 w-4" />
-                              Send Shortage Email
-                            </Link>
-                          </Button>
-                        )}
-
                         {/* Assign Volunteer Button */}
                         <AssignVolunteerDialog
                           shift={{
