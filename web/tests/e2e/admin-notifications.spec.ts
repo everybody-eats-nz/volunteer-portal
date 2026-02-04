@@ -77,8 +77,8 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     await expect(page.getByTestId("shift-filter-section")).toBeVisible();
     await expect(page.getByTestId("volunteer-filter-section")).toBeVisible();
 
-    // Check shift selection dropdown
-    await expect(page.getByTestId("shift-select")).toBeVisible();
+    // Check shift location filter dropdown (new UI uses date + location instead of single shift select)
+    await expect(page.getByTestId("shift-location-filter")).toBeVisible();
 
     // Check basic volunteer filters
     await expect(page.getByTestId("location-filter")).toBeVisible();
@@ -90,11 +90,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   }) => {
     await page.goto("/admin/notifications");
 
-    // Select a shift first
-    await page.getByTestId("shift-select").click();
-    await page.getByRole("option").first().click();
-
-    // Check volunteer count is displayed
+    // Volunteer count is always visible (filters apply to volunteers, not dependent on shift selection)
     await expect(page.getByTestId("volunteer-count")).toBeVisible();
     await expect(page.getByTestId("volunteer-count")).toContainText(
       "volunteers match filters"
@@ -104,11 +100,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   test("should toggle notifications filter", async ({ page }) => {
     await page.goto("/admin/notifications");
 
-    // Select a shift first
-    await page.getByTestId("shift-select").click();
-    await page.getByRole("option").first().click();
-
-    // Check notifications filter toggle exists
+    // Notification filter toggle is always visible (not dependent on shift selection)
     await expect(page.getByTestId("notification-filter-toggle")).toBeVisible();
 
     // Toggle it
@@ -118,14 +110,25 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   test("should show availability filter for selected shift", async ({
     page,
   }) => {
-    await page.goto("/admin/notifications");
+    // Calculate the date 7 days from now (when the test shift was created)
+    const shiftDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const dateStr = shiftDate.toISOString().split("T")[0]; // yyyy-MM-dd format
 
-    // Availability filter should be disabled initially
+    // Navigate with URL params to pre-select date and location
+    await page.goto(
+      `/admin/notifications?date=${dateStr}&location=Wellington`
+    );
+
+    // Wait for shifts to load
+    await page.waitForSelector('[data-testid^="shift-checkbox-"]', {
+      timeout: 10000,
+    });
+
+    // Availability filter should be disabled initially (no shifts selected yet)
     await expect(page.getByTestId("availability-filter")).toBeDisabled();
 
     // Select a shift
-    await page.getByTestId("shift-select").click();
-    await page.getByRole("option").first().click();
+    await page.locator('[data-testid^="shift-checkbox-"]').first().click();
 
     // Availability filter should now be enabled
     await expect(page.getByTestId("availability-filter")).toBeEnabled();

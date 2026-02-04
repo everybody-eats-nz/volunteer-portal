@@ -813,3 +813,30 @@ enum SurveyAssignmentStatus {
   COMPLETED // Response submitted
   EXPIRED // Token expired without completion
 }
+
+// Shortage notification history
+model ShortageNotificationLog {
+  id        String   @id @default(cuid())
+  sentAt    DateTime @default(now())
+  sentBy    String // Admin who sent the notification
+
+  // Shift details (denormalized for history)
+  shiftId       String
+  shiftTypeName String
+  shiftDate     DateTime
+  shiftLocation String
+
+  // Recipient details (denormalized for history)
+  recipientId    String
+  recipientEmail String
+  recipientName  String
+
+  // Status
+  success      Boolean
+  errorMessage String?
+
+  @@index([sentAt])
+  @@index([sentBy])
+  @@index([shiftId])
+  @@index([recipientId])
+}
