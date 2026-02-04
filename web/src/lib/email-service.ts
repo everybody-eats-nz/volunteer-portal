@@ -603,17 +603,17 @@ class EmailService {
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
 
-    // Build plain text list of shifts (Campaign Monitor doesn't support HTML in variables)
+    // Build list of shifts with <br> tags for email rendering
     const shiftList = params.shifts
       .map((shift, index) => {
         const signupLink = `${getBaseUrl()}/shifts/${shift.shiftId}`;
-        return `${index + 1}. ${shift.shiftName}
-   ${shift.shiftDate}
-   ${shift.shiftTime}
-   ${shift.location}
-   Sign up: ${signupLink}`;
+        return `${index + 1}. ${shift.shiftName}<br>` +
+          `&nbsp;&nbsp;&nbsp;${shift.shiftDate}<br>` +
+          `&nbsp;&nbsp;&nbsp;${shift.shiftTime}<br>` +
+          `&nbsp;&nbsp;&nbsp;${shift.location}<br>` +
+          `&nbsp;&nbsp;&nbsp;Sign up: ${signupLink}`;
       })
-      .join("\n\n");
+      .join("<br><br>");
 
     // Build shifts page link with date and location from first shift
     const firstShift = params.shifts[0];
