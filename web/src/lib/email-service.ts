@@ -36,7 +36,7 @@ interface SendShiftCancellationParams {
   isSameDayCancellation: boolean;
 }
 
-interface ShiftShortageEmailData {
+interface ShiftShortageEmailData extends Record<string, string> {
   firstName: string;
   shiftCount: string;
   shiftList: string; // Pre-rendered plain text list of shifts
