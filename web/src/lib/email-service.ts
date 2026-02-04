@@ -40,7 +40,7 @@ interface ShiftShortageEmailData {
   firstName: string;
   shiftCount: string;
   shiftList: string; // Pre-rendered plain text list of shifts
-  loginLink: string;
+  shiftsPageLink: string;
 }
 
 interface ShiftForShortageEmail {
@@ -626,7 +626,7 @@ class EmailService {
         firstName,
         shiftCount: String(params.shifts.length),
         shiftList,
-        loginLink: `${getBaseUrl()}/login`,
+        shiftsPageLink: `${getBaseUrl()}/shifts`,
       });
       return Promise.resolve();
     }
@@ -635,7 +635,7 @@ class EmailService {
       firstName,
       shiftCount: String(params.shifts.length),
       shiftList,
-      loginLink: `${getBaseUrl()}/login`,
+      shiftsPageLink: `${getBaseUrl()}/shifts`,
     };
 
     try {
