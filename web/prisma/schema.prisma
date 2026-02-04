@@ -552,6 +552,7 @@ model AutoAcceptRule {
   minAccountAgeDays          Int? // Days since registration
   maxDaysInAdvance           Int? // Only auto-accept if shift is X+ days away
   requireShiftTypeExperience Boolean         @default(false) // Must have done this shift type before
+  minVolunteerAge            Int? // Minimum volunteer age in years
 
   // Logic configuration
   criteriaLogic CriteriaLogic @default(AND) // AND or OR logic for criteria

@@ -44,6 +44,7 @@ interface AutoAcceptRule {
   minAttendanceRate: number | null;
   minAccountAgeDays: number | null;
   maxDaysInAdvance: number | null;
+  minVolunteerAge: number | null;
   requireShiftTypeExperience: boolean;
   criteriaLogic: "AND" | "OR";
   stopOnMatch: boolean;
@@ -190,6 +191,9 @@ export default function AutoAcceptRulesClient({
     }
     if (rule.maxDaysInAdvance !== null) {
       criteria.push(`Max ${rule.maxDaysInAdvance} days ahead`);
+    }
+    if (rule.minVolunteerAge !== null) {
+      criteria.push(`Min Age: ${rule.minVolunteerAge} years`);
     }
     if (rule.requireShiftTypeExperience) {
       criteria.push("Shift type experience required");
