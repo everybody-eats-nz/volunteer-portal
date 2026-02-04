@@ -1,3 +1,9 @@
+## [0.103.0] - 2026-02-04
+
+### Changes
+- feat: add minimum volunteer age criterion to auto-accept rules ([#550](https://github.com/everybody-eats-nz/volunteer-portal/pull/550)) by @malinmalliyawadu
+
+
 ## [0.102.0] - 2026-02-04
 
 ### Changes
