@@ -38,22 +38,24 @@ interface SendShiftCancellationParams {
 
 interface ShiftShortageEmailData {
   firstName: string;
-  shiftType: string;
-  shiftDate: string;
-  restarauntLocation: string;
-  linkToEvent: string;
+  shiftCount: string;
+  shiftList: string; // Pre-rendered HTML list of shifts
 }
 
-interface SendShiftShortageParams {
-  to: string;
-  volunteerName: string;
+interface ShiftForShortageEmail {
+  shiftId: string;
   shiftName: string;
   shiftDate: string;
   shiftTime: string;
   location: string;
   currentVolunteers: number;
   neededVolunteers: number;
-  shiftId: string;
+}
+
+interface SendShiftShortageParams {
+  to: string;
+  volunteerName: string;
+  shifts: ShiftForShortageEmail[];
 }
 
 interface ShiftConfirmationEmailData {
@@ -595,6 +597,27 @@ class EmailService {
   ): Promise<void> {
     const isDevelopment = process.env.NODE_ENV === "development";
 
+    // Extract first name from volunteer name
+    const firstName =
+      params.volunteerName.split(" ")[0] || params.volunteerName;
+
+    // Build the pre-rendered HTML list of shifts
+    const shiftListHtml = params.shifts
+      .map((shift) => {
+        const signupLink = `${getBaseUrl()}/shifts/${shift.shiftId}`;
+        return `<tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <strong>${shift.shiftName}</strong><br>
+            <span style="color: #6b7280;">${shift.shiftDate} at ${shift.shiftTime}</span><br>
+            <span style="color: #6b7280;">${shift.location}</span><br>
+            <a href="${signupLink}" style="color: #16a34a; text-decoration: underline;">Sign up for this shift</a>
+          </td>
+        </tr>`;
+      })
+      .join("");
+
+    const shiftList = `<table style="width: 100%; border-collapse: collapse;">${shiftListHtml}</table>`;
+
     // In development, skip email sending if configuration is missing
     if (
       isDevelopment &&
@@ -604,27 +627,17 @@ class EmailService {
         `[EMAIL SERVICE] Would send shortage email to ${params.to} (skipped in dev - no config)`
       );
       console.log(`[EMAIL SERVICE] Email data:`, {
-        firstName: params.volunteerName.split(" ")[0],
-        shiftType: params.shiftName,
-        shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
-        restarauntLocation: params.location,
-        linkToEvent: `${getBaseUrl()}/shifts/${params.shiftId}`,
+        firstName,
+        shiftCount: String(params.shifts.length),
+        shiftList,
       });
       return Promise.resolve();
     }
 
-    const signupLink = `${getBaseUrl()}/shifts/${params.shiftId}`;
-
-    // Extract first name from volunteer name
-    const firstName =
-      params.volunteerName.split(" ")[0] || params.volunteerName;
-
-    const emailData = {
-      firstName: firstName,
-      shiftType: params.shiftName,
-      shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
-      restarauntLocation: params.location,
-      linkToEvent: signupLink,
+    const emailData: ShiftShortageEmailData = {
+      firstName,
+      shiftCount: String(params.shifts.length),
+      shiftList,
     };
 
     try {
@@ -634,7 +647,11 @@ class EmailService {
         emailData
       );
       console.log("Shift shortage email sent successfully to:", params.to);
-      console.log("Email data sent:", emailData);
+      console.log("Email data sent:", {
+        firstName,
+        shiftCount: params.shifts.length,
+        shiftsIncluded: params.shifts.map((s) => s.shiftName),
+      });
     } catch (err) {
       if (isDevelopment) {
         console.warn(
@@ -1300,6 +1317,7 @@ export type {
   ShiftCancellationEmailData,
   SendShiftShortageParams,
   ShiftShortageEmailData,
+  ShiftForShortageEmail,
   SendShiftConfirmationParams,
   ShiftConfirmationEmailData,
   SendVolunteerCancellationParams,
