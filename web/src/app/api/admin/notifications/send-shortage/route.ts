@@ -125,41 +125,31 @@ export async function POST(request: Request) {
 
     const successCount = allResults.filter((r) => r.success).length;
 
-    // Log notification attempts to history (one entry per shift per recipient)
-    const logEntries: Array<{
-      sentBy: string;
-      shiftId: string;
-      shiftTypeName: string;
-      shiftDate: Date;
-      shiftLocation: string;
-      recipientId: string;
-      recipientEmail: string;
-      recipientName: string;
-      success: boolean;
-      errorMessage: string | null;
-    }> = [];
+    // Build shifts data for logging
+    const shiftsData = shifts.map((shift) => ({
+      shiftId: shift.id,
+      shiftTypeName: shift.shiftType.name,
+      shiftDate: shift.start.toISOString(),
+      shiftLocation: shift.location || "Unknown",
+    }));
 
-    for (const result of allResults) {
+    // Log notification attempts to history (one entry per recipient)
+    const logEntries = allResults.map((result) => {
       const volunteer = volunteers.find((v) => v.email === result.email);
       const volunteerName = volunteer?.firstName && volunteer?.lastName
         ? `${volunteer.firstName} ${volunteer.lastName}`
         : volunteer?.name || result.email;
 
-      for (const shift of shifts) {
-        logEntries.push({
-          sentBy: session.user.id,
-          shiftId: shift.id,
-          shiftTypeName: shift.shiftType.name,
-          shiftDate: shift.start,
-          shiftLocation: shift.location || "Unknown",
-          recipientId: result.recipientId,
-          recipientEmail: result.email,
-          recipientName: volunteerName,
-          success: result.success,
-          errorMessage: result.error || null,
-        });
-      }
-    }
+      return {
+        sentBy: session.user.id,
+        shifts: shiftsData,
+        recipientId: result.recipientId,
+        recipientEmail: result.email,
+        recipientName: volunteerName,
+        success: result.success,
+        errorMessage: result.error || null,
+      };
+    });
 
     // Batch insert all log entries
     if (logEntries.length > 0) {

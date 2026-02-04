@@ -3,6 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
+interface ShiftData {
+  shiftId: string;
+  shiftTypeName: string;
+  shiftDate: string;
+  shiftLocation: string;
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -26,12 +33,7 @@ export async function GET(request: Request) {
     const batchMap = new Map<string, {
       sentAt: Date;
       sentBy: string;
-      shifts: Map<string, {
-        shiftId: string;
-        shiftTypeName: string;
-        shiftDate: Date;
-        shiftLocation: string;
-      }>;
+      shifts: ShiftData[];
       recipients: Array<{
         id: string;
         recipientId: string;
@@ -49,10 +51,12 @@ export async function GET(request: Request) {
       const batchKey = `${Math.floor(log.sentAt.getTime() / 1000)}-${log.sentBy}`;
 
       if (!batchMap.has(batchKey)) {
+        // Get shifts from the first log entry (they're all the same for the batch)
+        const shifts = log.shifts as ShiftData[];
         batchMap.set(batchKey, {
           sentAt: log.sentAt,
           sentBy: log.sentBy,
-          shifts: new Map(),
+          shifts,
           recipients: [],
           successCount: 0,
           failureCount: 0,
@@ -60,16 +64,6 @@ export async function GET(request: Request) {
       }
 
       const batch = batchMap.get(batchKey)!;
-
-      // Add shift info (deduplicated)
-      if (!batch.shifts.has(log.shiftId)) {
-        batch.shifts.set(log.shiftId, {
-          shiftId: log.shiftId,
-          shiftTypeName: log.shiftTypeName,
-          shiftDate: log.shiftDate,
-          shiftLocation: log.shiftLocation,
-        });
-      }
 
       // Add recipient info
       batch.recipients.push({
@@ -93,7 +87,7 @@ export async function GET(request: Request) {
       batchKey: key,
       sentAt: batch.sentAt,
       sentBy: batch.sentBy,
-      shifts: Array.from(batch.shifts.values()),
+      shifts: batch.shifts,
       recipients: batch.recipients,
       successCount: batch.successCount,
       failureCount: batch.failureCount,

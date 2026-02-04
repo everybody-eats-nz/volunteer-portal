@@ -820,11 +820,8 @@ model ShortageNotificationLog {
   sentAt    DateTime @default(now())
   sentBy    String // Admin who sent the notification
 
-  // Shift details (denormalized for history)
-  shiftId       String
-  shiftTypeName String
-  shiftDate     DateTime
-  shiftLocation String
+  // Shift details (denormalized for history) - stored as JSON array
+  shifts Json // Array of { shiftId, shiftTypeName, shiftDate, shiftLocation }
 
   // Recipient details (denormalized for history)
   recipientId    String
@@ -837,6 +834,5 @@ model ShortageNotificationLog {
 
   @@index([sentAt])
   @@index([sentBy])
-  @@index([shiftId])
   @@index([recipientId])
 }
