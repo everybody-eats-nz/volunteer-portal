@@ -39,7 +39,8 @@ interface SendShiftCancellationParams {
 interface ShiftShortageEmailData {
   firstName: string;
   shiftCount: string;
-  shiftList: string; // Pre-rendered HTML list of shifts
+  shiftList: string; // Pre-rendered plain text list of shifts
+  loginLink: string;
 }
 
 interface ShiftForShortageEmail {
@@ -625,6 +626,7 @@ class EmailService {
         firstName,
         shiftCount: String(params.shifts.length),
         shiftList,
+        loginLink: `${getBaseUrl()}/login`,
       });
       return Promise.resolve();
     }
@@ -633,6 +635,7 @@ class EmailService {
       firstName,
       shiftCount: String(params.shifts.length),
       shiftList,
+      loginLink: `${getBaseUrl()}/login`,
     };
 
     try {
