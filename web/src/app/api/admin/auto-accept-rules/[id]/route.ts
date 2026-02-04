@@ -19,6 +19,7 @@ const updateRuleSchema = z.object({
   minAccountAgeDays: z.number().int().min(0).optional().nullable(),
   maxDaysInAdvance: z.number().int().min(0).optional().nullable(),
   requireShiftTypeExperience: z.boolean().optional(),
+  minVolunteerAge: z.number().int().min(0).optional().nullable(),
   criteriaLogic: z.enum(["AND", "OR"]).optional(),
   stopOnMatch: z.boolean().optional(),
 });
