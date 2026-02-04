@@ -9,8 +9,9 @@ import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
+import { calculateAge } from "@/lib/utils";
 
-interface UserWithStats {
+export interface UserWithStats {
   id: string;
   email: string;
   name: string | null;
@@ -20,6 +21,7 @@ interface UserWithStats {
   canceledShifts: number;
   attendanceRate: number;
   hasShiftTypeExperience: boolean;
+  age: number | null;
 }
 
 interface EvaluationResult {
@@ -92,11 +94,12 @@ async function getUserWithStats(
     canceledShifts,
     attendanceRate,
     hasShiftTypeExperience,
+    age: user.dateOfBirth ? calculateAge(user.dateOfBirth) : null,
   };
 }
 
 // Evaluate a single rule against user stats
-function evaluateRule(
+export function evaluateRule(
   rule: AutoAcceptRule,
   user: UserWithStats,
   shift: Shift & { shiftType: ShiftType }
@@ -143,6 +146,16 @@ function evaluateRule(
   // Check shift type experience
   if (rule.requireShiftTypeExperience) {
     criteria.push(user.hasShiftTypeExperience);
+  }
+
+  // Check minimum volunteer age
+  if (rule.minVolunteerAge !== null && rule.minVolunteerAge !== undefined) {
+    // If user has no date of birth, they cannot pass the age criterion
+    if (user.age === null) {
+      criteria.push(false);
+    } else {
+      criteria.push(user.age >= rule.minVolunteerAge);
+    }
   }
 
   // If no criteria are set, the rule doesn't apply
