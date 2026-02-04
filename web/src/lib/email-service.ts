@@ -601,22 +601,17 @@ class EmailService {
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
 
-    // Build the pre-rendered HTML list of shifts
-    const shiftListHtml = params.shifts
-      .map((shift) => {
+    // Build plain text list of shifts (Campaign Monitor doesn't support HTML in variables)
+    const shiftList = params.shifts
+      .map((shift, index) => {
         const signupLink = `${getBaseUrl()}/shifts/${shift.shiftId}`;
-        return `<tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <strong>${shift.shiftName}</strong><br>
-            <span style="color: #6b7280;">${shift.shiftDate} at ${shift.shiftTime}</span><br>
-            <span style="color: #6b7280;">${shift.location}</span><br>
-            <a href="${signupLink}" style="color: #16a34a; text-decoration: underline;">Sign up for this shift</a>
-          </td>
-        </tr>`;
+        return `${index + 1}. ${shift.shiftName}
+   ${shift.shiftDate}
+   ${shift.shiftTime}
+   ${shift.location}
+   Sign up: ${signupLink}`;
       })
-      .join("");
-
-    const shiftList = `<table style="width: 100%; border-collapse: collapse;">${shiftListHtml}</table>`;
+      .join("\n\n");
 
     // In development, skip email sending if configuration is missing
     if (
