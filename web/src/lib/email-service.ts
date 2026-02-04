@@ -1,5 +1,6 @@
 import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getBaseUrl } from "./utils";
+import { getShiftTheme } from "./shift-themes";
 
 interface SendEmailParams {
   to: string;
@@ -42,6 +43,7 @@ interface ShiftShortageEmailData {
   shiftDate: string;
   location: string;
   shifts: Array<{
+    emoji: string;
     shiftName: string;
     shiftTime: string;
     signupLink: string;
@@ -613,6 +615,7 @@ class EmailService {
     // Build shifts array for Liquid template
     const firstShift = params.shifts[0];
     const shifts = params.shifts.map((shift) => ({
+      emoji: getShiftTheme(shift.shiftName).emoji,
       shiftName: shift.shiftName,
       shiftTime: shift.shiftTime,
       signupLink: `${getBaseUrl()}/shifts/${shift.shiftId}`,
