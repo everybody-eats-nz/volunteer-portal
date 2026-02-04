@@ -83,6 +83,7 @@ export async function POST(request: Request) {
         shiftId: shift.id,
         shiftName: shift.shiftType.name,
         shiftDate: formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy"),
+        shiftDateISO: formatInNZT(new Date(shift.start), "yyyy-MM-dd"),
         shiftTime: `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(new Date(shift.end), "h:mm a")}`,
         location: shift.location || "TBD",
         currentVolunteers,

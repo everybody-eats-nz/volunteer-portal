@@ -46,7 +46,8 @@ interface ShiftShortageEmailData {
 interface ShiftForShortageEmail {
   shiftId: string;
   shiftName: string;
-  shiftDate: string;
+  shiftDate: string; // Formatted date for display (e.g., "Saturday, February 8, 2026")
+  shiftDateISO: string; // ISO date for URL (e.g., "2026-02-08")
   shiftTime: string;
   location: string;
   currentVolunteers: number;
@@ -614,6 +615,10 @@ class EmailService {
       })
       .join("\n\n");
 
+    // Build shifts page link with date and location from first shift
+    const firstShift = params.shifts[0];
+    const shiftsPageLink = `${getBaseUrl()}/shifts/details?date=${firstShift.shiftDateISO}&location=${encodeURIComponent(firstShift.location)}`;
+
     // In development, skip email sending if configuration is missing
     if (
       isDevelopment &&
@@ -626,7 +631,7 @@ class EmailService {
         firstName,
         shiftCount: String(params.shifts.length),
         shiftList,
-        shiftsPageLink: `${getBaseUrl()}/shifts`,
+        shiftsPageLink,
       });
       return Promise.resolve();
     }
@@ -635,7 +640,7 @@ class EmailService {
       firstName,
       shiftCount: String(params.shifts.length),
       shiftList,
-      shiftsPageLink: `${getBaseUrl()}/shifts`,
+      shiftsPageLink,
     };
 
     try {
