@@ -20,6 +20,43 @@ export class MergeError extends Error {
   }
 }
 
+/**
+ * Helper function to count duplicates between target and source items.
+ * Returns the count of items that exist in both sets based on the key selector.
+ */
+function countDuplicates<T>(
+  targetItems: T[],
+  sourceItems: T[],
+  keySelector: (item: T) => string
+): number {
+  const targetKeys = new Set(targetItems.map(keySelector));
+  return sourceItems.filter((item) => targetKeys.has(keySelector(item))).length;
+}
+
+/**
+ * Helper function to partition source items into transfers and duplicates.
+ * Returns items to transfer (not in target) and items to skip (already in target).
+ */
+function partitionByDuplicates<T extends { id: string }>(
+  targetItems: { key: string }[],
+  sourceItems: T[],
+  keySelector: (item: T) => string
+): { toTransfer: T[]; toSkip: T[] } {
+  const targetKeys = new Set(targetItems.map((t) => t.key));
+  const toTransfer: T[] = [];
+  const toSkip: T[] = [];
+
+  for (const item of sourceItems) {
+    if (targetKeys.has(keySelector(item))) {
+      toSkip.push(item);
+    } else {
+      toTransfer.push(item);
+    }
+  }
+
+  return { toTransfer, toSkip };
+}
+
 export interface MergeStats {
   signups: { transferred: number; skipped: number };
   achievements: { transferred: number; skipped: number };
