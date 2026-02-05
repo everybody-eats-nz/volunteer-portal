@@ -1,5 +1,25 @@
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Custom error class for merge operations with specific error codes
+ */
+export class MergeError extends Error {
+  constructor(
+    message: string,
+    public code:
+      | "SAME_USER"
+      | "TARGET_NOT_FOUND"
+      | "SOURCE_NOT_FOUND"
+      | "ADMIN_NOT_FOUND"
+      | "ADMIN_NOT_AUTHORIZED"
+      | "USER_DELETED_DURING_MERGE"
+      | "TRANSACTION_FAILED"
+  ) {
+    super(message);
+    this.name = "MergeError";
+  }
+}
+
 export interface MergeStats {
   signups: { transferred: number; skipped: number };
   achievements: { transferred: number; skipped: number };
@@ -430,12 +450,13 @@ export async function executeUserMerge(
   sourceId: string,
   adminId: string
 ): Promise<MergeResult> {
+  // Validate IDs are not the same
   if (targetId === sourceId) {
-    throw new Error("Cannot merge a user with themselves");
+    throw new MergeError("Cannot merge a user with themselves", "SAME_USER");
   }
 
-  // Pre-flight checks
-  const [targetUser, sourceUser] = await Promise.all([
+  // Pre-flight validation: verify all users exist and admin has permission
+  const [targetUser, sourceUser, adminUser] = await Promise.all([
     prisma.user.findUnique({
       where: { id: targetId },
       select: { id: true, email: true, name: true },
@@ -444,13 +465,35 @@ export async function executeUserMerge(
       where: { id: sourceId },
       select: { id: true, email: true, name: true },
     }),
+    prisma.user.findUnique({
+      where: { id: adminId },
+      select: { id: true, role: true },
+    }),
   ]);
 
   if (!targetUser) {
-    throw new Error("Target user not found");
+    throw new MergeError(
+      `Target user with ID ${targetId} not found`,
+      "TARGET_NOT_FOUND"
+    );
   }
   if (!sourceUser) {
-    throw new Error("Source user not found");
+    throw new MergeError(
+      `Source user with ID ${sourceId} not found`,
+      "SOURCE_NOT_FOUND"
+    );
+  }
+  if (!adminUser) {
+    throw new MergeError(
+      `Admin user with ID ${adminId} not found`,
+      "ADMIN_NOT_FOUND"
+    );
+  }
+  if (adminUser.role !== "ADMIN") {
+    throw new MergeError(
+      "Only admins can perform user merges",
+      "ADMIN_NOT_AUTHORIZED"
+    );
   }
 
   const stats: MergeStats = {
@@ -475,9 +518,23 @@ export async function executeUserMerge(
     passkeys: { transferred: 0, skipped: 0 },
   };
 
-  await prisma.$transaction(
-    async (tx) => {
-      // 1. Transfer Signups (skip duplicates based on [userId, shiftId])
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        // Re-validate users exist inside transaction to prevent race conditions
+        const [txTargetUser, txSourceUser] = await Promise.all([
+          tx.user.findUnique({ where: { id: targetId }, select: { id: true } }),
+          tx.user.findUnique({ where: { id: sourceId }, select: { id: true } }),
+        ]);
+
+        if (!txTargetUser || !txSourceUser) {
+          throw new MergeError(
+            "One or both users were deleted during the merge operation",
+            "USER_DELETED_DURING_MERGE"
+          );
+        }
+
+        // 1. Transfer Signups (skip duplicates based on [userId, shiftId])
       const targetSignups = await tx.signup.findMany({
         where: { userId: targetId },
         select: { shiftId: true },
@@ -869,11 +926,53 @@ export async function executeUserMerge(
       await tx.user.delete({
         where: { id: sourceId },
       });
-    },
-    {
-      timeout: 60000, // 60 second timeout for complex merge operations
+      },
+      {
+        timeout: 60000, // 60 second timeout for complex merge operations
+        isolationLevel: "Serializable", // Ensure data consistency
+      }
+    );
+  } catch (error) {
+    // Re-throw MergeErrors as-is
+    if (error instanceof MergeError) {
+      throw error;
     }
-  );
+
+    // Handle Prisma-specific errors
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+
+      if (message.includes("foreign key constraint")) {
+        throw new MergeError(
+          "Cannot complete merge: some data references could not be transferred. " +
+            "This may be due to database constraints. Please try again or contact support.",
+          "TRANSACTION_FAILED"
+        );
+      }
+
+      if (message.includes("unique constraint")) {
+        throw new MergeError(
+          "Cannot complete merge: duplicate data conflict detected. " +
+            "Please refresh and try again.",
+          "TRANSACTION_FAILED"
+        );
+      }
+
+      if (message.includes("timeout") || message.includes("timed out")) {
+        throw new MergeError(
+          "Merge operation timed out. The users may have too much data to merge. " +
+            "Please contact support for assistance.",
+          "TRANSACTION_FAILED"
+        );
+      }
+    }
+
+    // Generic transaction failure
+    throw new MergeError(
+      `Merge transaction failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      "TRANSACTION_FAILED"
+    );
+  }
 
   return {
     success: true,

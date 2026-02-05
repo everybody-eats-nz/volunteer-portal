@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { executeUserMerge } from "@/lib/user-merge";
+import { executeUserMerge, MergeError } from "@/lib/user-merge";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -82,6 +82,25 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("User merge error:", error);
+
+    // Handle MergeError with specific status codes
+    if (error instanceof MergeError) {
+      const statusMap: Record<MergeError["code"], number> = {
+        SAME_USER: 400,
+        TARGET_NOT_FOUND: 404,
+        SOURCE_NOT_FOUND: 404,
+        ADMIN_NOT_FOUND: 401,
+        ADMIN_NOT_AUTHORIZED: 403,
+        USER_DELETED_DURING_MERGE: 409, // Conflict
+        TRANSACTION_FAILED: 500,
+      };
+
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: statusMap[error.code] }
+      );
+    }
+
     const message =
       error instanceof Error ? error.message : "Failed to merge users";
     return NextResponse.json({ error: message }, { status: 500 });
