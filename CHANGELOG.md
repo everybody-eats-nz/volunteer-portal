@@ -1,3 +1,9 @@
+## [0.104.0] - 2026-02-05
+
+### Changes
+- feat: add user merge functionality for admin ([#552](https://github.com/everybody-eats-nz/volunteer-portal/pull/552)) by @malinmalliyawadu
+
+
 ## [0.103.0] - 2026-02-04
 
 ### Changes

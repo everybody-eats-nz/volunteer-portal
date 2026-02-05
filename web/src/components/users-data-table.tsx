@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Trash2,
   MoreHorizontal,
+  GitMerge,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,6 +44,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type VolunteerGrade } from "@/generated/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
+import { MergeUserDialog } from "@/components/merge-user-dialog";
 import { TableSkeleton } from "@/components/loading-skeleton";
 
 export interface User {
@@ -292,6 +294,16 @@ export const columns: ColumnDef<User>[] = [
                   View Details
                 </Link>
               </DropdownMenuItem>
+              <MergeUserDialog user={user}>
+                <DropdownMenuItem
+                  className="flex items-center gap-2"
+                  onSelect={(e) => e.preventDefault()}
+                  data-testid={`merge-user-${user.id}`}
+                >
+                  <GitMerge className="h-4 w-4" />
+                  Merge with...
+                </DropdownMenuItem>
+              </MergeUserDialog>
               <DeleteUserDialog user={user}>
                 <DropdownMenuItem
                   className="flex items-center gap-2 text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20"
