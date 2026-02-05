@@ -57,6 +57,7 @@ const ruleFormSchema = z.object({
   maxDaysInAdvance: z
     .union([z.number().int().min(0), z.literal("")])
     .optional(),
+  minVolunteerAge: z.union([z.number().int().min(0), z.literal("")]).optional(),
   requireShiftTypeExperience: z.boolean(),
   criteriaLogic: z.enum(["AND", "OR"]),
   stopOnMatch: z.boolean(),
@@ -81,6 +82,7 @@ interface RuleFormDialogProps {
     minAttendanceRate: number | null;
     minAccountAgeDays: number | null;
     maxDaysInAdvance: number | null;
+    minVolunteerAge: number | null;
     requireShiftTypeExperience: boolean;
     criteriaLogic: "AND" | "OR";
     stopOnMatch: boolean;
@@ -117,6 +119,7 @@ export function RuleFormDialog({
       minAttendanceRate: "" as number | "",
       minAccountAgeDays: "" as number | "",
       maxDaysInAdvance: "" as number | "",
+      minVolunteerAge: "" as number | "",
       requireShiftTypeExperience: false,
       criteriaLogic: "AND" as const,
       stopOnMatch: true,
@@ -142,6 +145,7 @@ export function RuleFormDialog({
           minAttendanceRate: rule.minAttendanceRate ?? "",
           minAccountAgeDays: rule.minAccountAgeDays ?? "",
           maxDaysInAdvance: rule.maxDaysInAdvance ?? "",
+          minVolunteerAge: rule.minVolunteerAge ?? "",
           requireShiftTypeExperience: rule.requireShiftTypeExperience,
           criteriaLogic: rule.criteriaLogic,
           stopOnMatch: rule.stopOnMatch,
@@ -160,6 +164,7 @@ export function RuleFormDialog({
           minAttendanceRate: "" as number | "",
           minAccountAgeDays: "" as number | "",
           maxDaysInAdvance: "" as number | "",
+          minVolunteerAge: "" as number | "",
           requireShiftTypeExperience: false,
           criteriaLogic: "AND" as const,
           stopOnMatch: true,
@@ -219,6 +224,12 @@ export function RuleFormDialog({
             ? null
             : typeof values.maxDaysInAdvance === "number"
             ? values.maxDaysInAdvance
+            : null,
+        minVolunteerAge:
+          values.minVolunteerAge === ""
+            ? null
+            : typeof values.minVolunteerAge === "number"
+            ? values.minVolunteerAge
             : null,
       };
 
@@ -514,6 +525,28 @@ export function RuleFormDialog({
                       </FormControl>
                       <FormDescription>
                         Only auto-approve if shift is within X days
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="minVolunteerAge"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Minimum Volunteer Age (years)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 18"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Volunteer must be at least this age
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

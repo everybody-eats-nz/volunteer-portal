@@ -101,8 +101,32 @@ export function DashboardSurveyBanner() {
               <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
                 We&apos;d love to hear your feedback!
               </p>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3 sm:hidden">
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Link
+                    href={`/surveys/${survey.token}`}
+                    className="flex items-center justify-center gap-1"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Take Survey
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                  onClick={() => handleDismiss(survey.id)}
+                  disabled={dismissing === survey.id}
+                >
+                  Don&apos;t ask again
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
               <Button
                 size="sm"
                 variant="ghost"

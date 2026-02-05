@@ -1,5 +1,6 @@
 import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getBaseUrl } from "./utils";
+import { getShiftTheme } from "./shift-themes";
 
 interface SendEmailParams {
   to: string;
@@ -38,22 +39,34 @@ interface SendShiftCancellationParams {
 
 interface ShiftShortageEmailData {
   firstName: string;
-  shiftType: string;
+  shiftCount: string;
   shiftDate: string;
-  restarauntLocation: string;
-  linkToEvent: string;
+  location: string;
+  shifts: Array<{
+    emoji: string;
+    shiftName: string;
+    shiftTime: string;
+    signupLink: string;
+    spotsNeeded: string;
+  }>;
+  shiftsPageLink: string;
+}
+
+interface ShiftForShortageEmail {
+  shiftId: string;
+  shiftName: string;
+  shiftDate: string; // Formatted date for display (e.g., "Saturday, February 8, 2026")
+  shiftDateISO: string; // ISO date for URL (e.g., "2026-02-08")
+  shiftTime: string;
+  location: string;
+  currentVolunteers: number;
+  neededVolunteers: number;
 }
 
 interface SendShiftShortageParams {
   to: string;
   volunteerName: string;
-  shiftName: string;
-  shiftDate: string;
-  shiftTime: string;
-  location: string;
-  currentVolunteers: number;
-  neededVolunteers: number;
-  shiftId: string;
+  shifts: ShiftForShortageEmail[];
 }
 
 interface ShiftConfirmationEmailData {
@@ -595,6 +608,32 @@ class EmailService {
   ): Promise<void> {
     const isDevelopment = process.env.NODE_ENV === "development";
 
+    // Extract first name from volunteer name
+    const firstName =
+      params.volunteerName.split(" ")[0] || params.volunteerName;
+
+    // Build shifts array for Liquid template
+    const firstShift = params.shifts[0];
+    const shifts = params.shifts.map((shift) => ({
+      emoji: getShiftTheme(shift.shiftName).emoji,
+      shiftName: shift.shiftName,
+      shiftTime: shift.shiftTime,
+      signupLink: `${getBaseUrl()}/shifts/${shift.shiftId}`,
+      spotsNeeded: String(shift.neededVolunteers),
+    }));
+
+    // Build shifts page link with date and location from first shift
+    const shiftsPageLink = `${getBaseUrl()}/shifts/details?date=${firstShift.shiftDateISO}&location=${encodeURIComponent(firstShift.location)}`;
+
+    const emailData: ShiftShortageEmailData = {
+      firstName,
+      shiftCount: String(params.shifts.length),
+      shiftDate: firstShift.shiftDate,
+      location: firstShift.location,
+      shifts,
+      shiftsPageLink,
+    };
+
     // In development, skip email sending if configuration is missing
     if (
       isDevelopment &&
@@ -603,38 +642,22 @@ class EmailService {
       console.log(
         `[EMAIL SERVICE] Would send shortage email to ${params.to} (skipped in dev - no config)`
       );
-      console.log(`[EMAIL SERVICE] Email data:`, {
-        firstName: params.volunteerName.split(" ")[0],
-        shiftType: params.shiftName,
-        shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
-        restarauntLocation: params.location,
-        linkToEvent: `${getBaseUrl()}/shifts/${params.shiftId}`,
-      });
+      console.log(`[EMAIL SERVICE] Email data:`, emailData);
       return Promise.resolve();
     }
-
-    const signupLink = `${getBaseUrl()}/shifts/${params.shiftId}`;
-
-    // Extract first name from volunteer name
-    const firstName =
-      params.volunteerName.split(" ")[0] || params.volunteerName;
-
-    const emailData = {
-      firstName: firstName,
-      shiftType: params.shiftName,
-      shiftDate: `${params.shiftDate} at ${params.shiftTime}`,
-      restarauntLocation: params.location,
-      linkToEvent: signupLink,
-    };
 
     try {
       await this.sendSmartEmail(
         this.shiftShortageSmartEmailID,
         `${params.volunteerName} <${params.to}>`,
-        emailData
+        emailData as unknown as Record<string, string>
       );
       console.log("Shift shortage email sent successfully to:", params.to);
-      console.log("Email data sent:", emailData);
+      console.log("Email data sent:", {
+        firstName,
+        shiftCount: params.shifts.length,
+        shiftsIncluded: params.shifts.map((s) => s.shiftName),
+      });
     } catch (err) {
       if (isDevelopment) {
         console.warn(
@@ -1300,6 +1323,7 @@ export type {
   ShiftCancellationEmailData,
   SendShiftShortageParams,
   ShiftShortageEmailData,
+  ShiftForShortageEmail,
   SendShiftConfirmationParams,
   ShiftConfirmationEmailData,
   SendVolunteerCancellationParams,

@@ -14,11 +14,19 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { shiftId, volunteerIds } = body;
+    const { shiftIds, volunteerIds } = body;
 
-    // Fetch shift details
-    const shift = await prisma.shift.findUnique({
-      where: { id: shiftId },
+    // Validate that shiftIds is an array
+    if (!Array.isArray(shiftIds) || shiftIds.length === 0) {
+      return NextResponse.json(
+        { error: "At least one shift must be selected" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch all selected shifts
+    const shifts = await prisma.shift.findMany({
+      where: { id: { in: shiftIds } },
       include: {
         shiftType: true,
         _count: {
@@ -33,11 +41,12 @@ export async function POST(request: Request) {
           },
         },
       },
+      orderBy: { start: "asc" },
     });
 
-    if (!shift) {
+    if (shifts.length === 0) {
       return NextResponse.json(
-        { error: "Shift not found" },
+        { error: "No shifts found" },
         { status: 404 }
       );
     }
@@ -66,16 +75,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate shortage info
-    const currentVolunteers = shift._count.signups;
-    const neededVolunteers = shift.capacity - currentVolunteers;
-    const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
-    const shiftTime = `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(new Date(shift.end), "h:mm a")}`;
+    // Build shift data for emails
+    const shiftsForEmail = shifts.map((shift) => {
+      const currentVolunteers = shift._count.signups;
+      const neededVolunteers = shift.capacity - currentVolunteers;
+      return {
+        shiftId: shift.id,
+        shiftName: shift.shiftType.name,
+        shiftDate: formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy"),
+        shiftDateISO: formatInNZT(new Date(shift.start), "yyyy-MM-dd"),
+        shiftTime: `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(new Date(shift.end), "h:mm a")}`,
+        location: shift.location || "TBD",
+        currentVolunteers,
+        neededVolunteers,
+      };
+    });
 
-    // Send emails via Campaign Monitor
+    // Send one email per volunteer with all shifts
     const emailService = getEmailService();
+    const allResults: Array<{ success: boolean; recipientId: string; email: string; error?: string }> = [];
+
     const emailPromises = volunteers.map(async (volunteer) => {
-      // Build volunteer name for email - this will be used to extract firstName in the email service
       const volunteerName = volunteer.firstName && volunteer.lastName
         ? `${volunteer.firstName} ${volunteer.lastName}`
         : volunteer.name || volunteer.email;
@@ -84,32 +104,67 @@ export async function POST(request: Request) {
         await emailService.sendShiftShortageNotification({
           to: volunteer.email,
           volunteerName,
-          shiftName: shift.shiftType.name,
-          shiftDate,
-          shiftTime,
-          location: shift.location || "TBD",
-          currentVolunteers,
-          neededVolunteers,
-          shiftId: shift.id,
+          shifts: shiftsForEmail,
         });
 
-        return { success: true, email: volunteer.email };
+        return { success: true, recipientId: volunteer.id, email: volunteer.email };
       } catch (error) {
         console.error(`Failed to send email to ${volunteer.email}:`, error);
-        return { success: false, email: volunteer.email, error: (error as Error).message };
+        return { success: false, recipientId: volunteer.id, email: volunteer.email, error: (error as Error).message };
       }
     });
 
     const results = await Promise.allSettled(emailPromises);
-    const successCount = results.filter(
-      r => r.status === "fulfilled" && r.value.success
-    ).length;
+    results.forEach((r) => {
+      if (r.status === "fulfilled") {
+        allResults.push(r.value);
+      } else {
+        allResults.push({ success: false, recipientId: "", email: "unknown", error: "Promise rejected" });
+      }
+    });
+
+    const successCount = allResults.filter((r) => r.success).length;
+
+    // Build shifts data for logging
+    const shiftsData = shifts.map((shift) => ({
+      shiftId: shift.id,
+      shiftTypeName: shift.shiftType.name,
+      shiftDate: shift.start.toISOString(),
+      shiftLocation: shift.location || "Unknown",
+    }));
+
+    // Log notification attempts to history (one entry per recipient)
+    const logEntries = allResults.map((result) => {
+      const volunteer = volunteers.find((v) => v.email === result.email);
+      const volunteerName = volunteer?.firstName && volunteer?.lastName
+        ? `${volunteer.firstName} ${volunteer.lastName}`
+        : volunteer?.name || result.email;
+
+      return {
+        sentBy: session.user.id,
+        shifts: shiftsData,
+        recipientId: result.recipientId,
+        recipientEmail: result.email,
+        recipientName: volunteerName,
+        success: result.success,
+        errorMessage: result.error || null,
+      };
+    });
+
+    // Batch insert all log entries
+    if (logEntries.length > 0) {
+      await prisma.shortageNotificationLog.createMany({
+        data: logEntries,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       sentCount: successCount,
       totalCount: volunteers.length,
-      results: results.map(r => r.status === "fulfilled" ? r.value : { success: false }),
+      shiftsCount: shifts.length,
+      volunteersCount: volunteers.length,
+      results: allResults,
     });
   } catch (error) {
     console.error("Error sending shortage notifications:", error);

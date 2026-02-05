@@ -19,6 +19,7 @@ const ruleSchema = z.object({
   minAccountAgeDays: z.number().int().min(0).optional().nullable(),
   maxDaysInAdvance: z.number().int().min(0).optional().nullable(),
   requireShiftTypeExperience: z.boolean().default(false),
+  minVolunteerAge: z.number().int().min(0).optional().nullable(),
   criteriaLogic: z.enum(["AND", "OR"]).default("AND"),
   stopOnMatch: z.boolean().default(true),
 });
@@ -123,13 +124,14 @@ export async function POST(req: Request) {
     }
 
     // Ensure at least one criterion is set
-    const hasCriteria = 
+    const hasCriteria =
       validatedData.minVolunteerGrade !== null ||
       validatedData.minCompletedShifts !== null ||
       validatedData.minAttendanceRate !== null ||
       validatedData.minAccountAgeDays !== null ||
       validatedData.maxDaysInAdvance !== null ||
-      validatedData.requireShiftTypeExperience;
+      validatedData.requireShiftTypeExperience ||
+      validatedData.minVolunteerAge !== null;
 
     if (!hasCriteria) {
       return NextResponse.json(

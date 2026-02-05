@@ -11,7 +11,7 @@ import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, Mail } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageContainer } from "@/components/page-container";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -163,6 +163,13 @@ export default async function AdminShiftsPage({
   });
 
   const shifts = allShifts;
+
+  // Check if any shifts are understaffed (less than 50% confirmed)
+  const hasUnderstaffedShifts = shifts.some((shift) => {
+    const confirmed = shift.signups.filter((s) => s.status === "CONFIRMED").length;
+    const percentage = (confirmed / shift.capacity) * 100;
+    return percentage < 50;
+  });
 
   // Get shift data for the calendar with location, capacity, and confirmed counts
   // Include past shifts for attendance tracking - show last 30 days + future shifts
@@ -316,12 +323,12 @@ export default async function AdminShiftsPage({
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-2 w-full lg:w-auto">
+          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
             <Button
               asChild
               variant={isToday ? "default" : "outline"}
               size="sm"
-              className={`flex-1 lg:flex-none h-11 ${
+              className={`h-11 ${
                 !isToday
                   ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
                   : ""
@@ -335,6 +342,22 @@ export default async function AdminShiftsPage({
                 Today
               </Link>
             </Button>
+            {hasUnderstaffedShifts && (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-11 bg-orange-50 dark:bg-orange-900/60 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-800/60"
+                data-testid="send-shortage-email-button"
+              >
+                <Link
+                  href={`/admin/notifications?date=${dateString}&location=${selectedLocation}`}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Shortage Email
+                </Link>
+              </Button>
+            )}
             {shifts.length > 0 && (
               <DeleteAllShiftsButton
                 shiftCount={shifts.length}
