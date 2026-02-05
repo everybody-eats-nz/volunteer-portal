@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback, useReducer } from "react";
 import { GitMerge, AlertTriangle, ArrowRight, Check, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -39,6 +39,109 @@ interface SearchUser {
 
 type Step = "search" | "preview" | "confirm";
 
+// State management with useReducer
+interface MergeDialogState {
+  isOpen: boolean;
+  step: Step;
+  searchQuery: string;
+  searchResults: SearchUser[];
+  isSearching: boolean;
+  selectedSourceUser: SearchUser | null;
+  preview: MergePreview | null;
+  isLoadingPreview: boolean;
+  previewError: string;
+  confirmEmail: string;
+  isMerging: boolean;
+  mergeError: string;
+  mergeSuccess: boolean;
+}
+
+type MergeDialogAction =
+  | { type: "OPEN_DIALOG" }
+  | { type: "CLOSE_DIALOG" }
+  | { type: "SET_STEP"; step: Step }
+  | { type: "SET_SEARCH_QUERY"; query: string }
+  | { type: "SET_SEARCH_RESULTS"; results: SearchUser[] }
+  | { type: "SET_IS_SEARCHING"; isSearching: boolean }
+  | { type: "SELECT_SOURCE_USER"; user: SearchUser }
+  | { type: "CLEAR_SOURCE_USER" }
+  | { type: "START_LOADING_PREVIEW" }
+  | { type: "SET_PREVIEW"; preview: MergePreview }
+  | { type: "SET_PREVIEW_ERROR"; error: string }
+  | { type: "SET_CONFIRM_EMAIL"; email: string }
+  | { type: "START_MERGE" }
+  | { type: "MERGE_SUCCESS" }
+  | { type: "MERGE_ERROR"; error: string }
+  | { type: "RESET" };
+
+const initialState: MergeDialogState = {
+  isOpen: false,
+  step: "search",
+  searchQuery: "",
+  searchResults: [],
+  isSearching: false,
+  selectedSourceUser: null,
+  preview: null,
+  isLoadingPreview: false,
+  previewError: "",
+  confirmEmail: "",
+  isMerging: false,
+  mergeError: "",
+  mergeSuccess: false,
+};
+
+function mergeDialogReducer(
+  state: MergeDialogState,
+  action: MergeDialogAction
+): MergeDialogState {
+  switch (action.type) {
+    case "OPEN_DIALOG":
+      return { ...initialState, isOpen: true };
+    case "CLOSE_DIALOG":
+      return state.isMerging ? state : initialState;
+    case "SET_STEP":
+      return { ...state, step: action.step };
+    case "SET_SEARCH_QUERY":
+      return { ...state, searchQuery: action.query };
+    case "SET_SEARCH_RESULTS":
+      return { ...state, searchResults: action.results, isSearching: false };
+    case "SET_IS_SEARCHING":
+      return { ...state, isSearching: action.isSearching };
+    case "SELECT_SOURCE_USER":
+      return {
+        ...state,
+        selectedSourceUser: action.user,
+        searchQuery: "",
+        searchResults: [],
+      };
+    case "CLEAR_SOURCE_USER":
+      return { ...state, selectedSourceUser: null };
+    case "START_LOADING_PREVIEW":
+      return { ...state, isLoadingPreview: true, previewError: "" };
+    case "SET_PREVIEW":
+      return {
+        ...state,
+        preview: action.preview,
+        isLoadingPreview: false,
+        step: "preview",
+      };
+    case "SET_PREVIEW_ERROR":
+      return { ...state, previewError: action.error, isLoadingPreview: false };
+    case "SET_CONFIRM_EMAIL":
+      return { ...state, confirmEmail: action.email };
+    case "START_MERGE":
+      return { ...state, isMerging: true, mergeError: "" };
+    case "MERGE_SUCCESS":
+      return { ...state, isMerging: false, mergeSuccess: true };
+    case "MERGE_ERROR":
+      return { ...state, isMerging: false, mergeError: action.error };
+    case "RESET":
+      return initialState;
+    default:
+      return state;
+  }
+}
+
 function getDisplayName(user: {
   name: string | null;
   firstName: string | null;
@@ -74,54 +177,39 @@ function getInitials(user: {
 
 export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const [step, setStep] = useState<Step>("search");
+  const [state, dispatch] = useReducer(mergeDialogReducer, initialState);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedSourceUser, setSelectedSourceUser] = useState<SearchUser | null>(null);
-
-  // Preview state
-  const [preview, setPreview] = useState<MergePreview | null>(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [previewError, setPreviewError] = useState("");
-
-  // Confirm state
-  const [confirmEmail, setConfirmEmail] = useState("");
-  const [isMerging, setIsMerging] = useState(false);
-  const [mergeError, setMergeError] = useState("");
-  const [mergeSuccess, setMergeSuccess] = useState(false);
+  const {
+    isOpen,
+    step,
+    searchQuery,
+    searchResults,
+    isSearching,
+    selectedSourceUser,
+    preview,
+    isLoadingPreview,
+    previewError,
+    confirmEmail,
+    isMerging,
+    mergeError,
+    mergeSuccess,
+  } = state;
 
   const targetUser = user;
 
-  // Reset state when dialog closes
+  // Handle dialog open/close
   const handleOpenChange = useCallback((open: boolean) => {
-    if (!isMerging) {
-      setIsOpen(open);
-      if (!open) {
-        setStep("search");
-        setSearchQuery("");
-        setSearchResults([]);
-        setSelectedSourceUser(null);
-        setPreview(null);
-        setPreviewError("");
-        setConfirmEmail("");
-        setMergeError("");
-        setMergeSuccess(false);
-      }
-    }
-  }, [isMerging]);
+    dispatch({ type: open ? "OPEN_DIALOG" : "CLOSE_DIALOG" });
+  }, []);
 
   // Debounced search for source user
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
+      dispatch({ type: "SET_SEARCH_RESULTS", results: [] });
       return;
     }
 
-    setIsSearching(true);
+    dispatch({ type: "SET_IS_SEARCHING", isSearching: true });
     const timeoutId = setTimeout(async () => {
       try {
         const response = await fetch(
@@ -133,15 +221,13 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
           const filtered = (data.volunteers || []).filter(
             (v: SearchUser) => v.id !== targetUser.id
           );
-          setSearchResults(filtered);
+          dispatch({ type: "SET_SEARCH_RESULTS", results: filtered });
         } else {
-          setSearchResults([]);
+          dispatch({ type: "SET_SEARCH_RESULTS", results: [] });
         }
       } catch (error) {
         console.error("Search error:", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
+        dispatch({ type: "SET_SEARCH_RESULTS", results: [] });
       }
     }, 300);
 
@@ -152,8 +238,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
   const loadPreview = useCallback(async () => {
     if (!selectedSourceUser) return;
 
-    setIsLoadingPreview(true);
-    setPreviewError("");
+    dispatch({ type: "START_LOADING_PREVIEW" });
 
     try {
       const response = await fetch(
@@ -162,17 +247,17 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
 
       if (response.ok) {
         const data = await response.json();
-        setPreview(data);
-        setStep("preview");
+        dispatch({ type: "SET_PREVIEW", preview: data });
       } else {
         const errorData = await response.json();
-        setPreviewError(errorData.error || "Failed to load merge preview");
+        dispatch({
+          type: "SET_PREVIEW_ERROR",
+          error: errorData.error || "Failed to load merge preview",
+        });
       }
     } catch (error) {
       console.error("Preview error:", error);
-      setPreviewError("Failed to load merge preview");
-    } finally {
-      setIsLoadingPreview(false);
+      dispatch({ type: "SET_PREVIEW_ERROR", error: "Failed to load merge preview" });
     }
   }, [selectedSourceUser, targetUser.id]);
 
@@ -180,8 +265,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
   const handleMerge = async () => {
     if (!selectedSourceUser || !confirmEmail.trim()) return;
 
-    setIsMerging(true);
-    setMergeError("");
+    dispatch({ type: "START_MERGE" });
 
     try {
       const response = await fetch("/api/admin/users/merge", {
@@ -195,20 +279,21 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
       });
 
       if (response.ok) {
-        setMergeSuccess(true);
+        dispatch({ type: "MERGE_SUCCESS" });
         setTimeout(() => {
-          setIsOpen(false);
+          dispatch({ type: "CLOSE_DIALOG" });
           router.refresh();
         }, 2000);
       } else {
         const errorData = await response.json();
-        setMergeError(errorData.error || "Failed to merge users");
+        dispatch({
+          type: "MERGE_ERROR",
+          error: errorData.error || "Failed to merge users",
+        });
       }
     } catch (error) {
       console.error("Merge error:", error);
-      setMergeError("Failed to merge users. Please try again.");
-    } finally {
-      setIsMerging(false);
+      dispatch({ type: "MERGE_ERROR", error: "Failed to merge users. Please try again." });
     }
   };
 
@@ -276,7 +361,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                     id="source-search"
                     placeholder="Search by name or email..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => dispatch({ type: "SET_SEARCH_QUERY", query: e.target.value })}
                     className="pl-9"
                     data-testid="merge-search-input"
                     autoComplete="off"
@@ -310,7 +395,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedSourceUser(null)}
+                    onClick={() => dispatch({ type: "CLEAR_SOURCE_USER" })}
                     data-testid="clear-source-user"
                   >
                     Clear
@@ -337,11 +422,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                         <button
                           key={result.id}
                           className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
-                          onClick={() => {
-                            setSelectedSourceUser(result);
-                            setSearchQuery("");
-                            setSearchResults([]);
-                          }}
+                          onClick={() => dispatch({ type: "SELECT_SOURCE_USER", user: result })}
                           data-testid={`merge-search-result-${result.id}`}
                         >
                           <Avatar className="h-8 w-8">
@@ -560,7 +641,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                   type="email"
                   placeholder={preview.sourceUser.email}
                   value={confirmEmail}
-                  onChange={(e) => setConfirmEmail(e.target.value)}
+                  onChange={(e) => dispatch({ type: "SET_CONFIRM_EMAIL", email: e.target.value })}
                   className="font-mono text-sm"
                   disabled={isMerging}
                   data-testid="merge-confirm-email-input"
@@ -590,7 +671,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
             <>
               <Button
                 variant="outline"
-                onClick={() => setIsOpen(false)}
+                onClick={() => dispatch({ type: "CLOSE_DIALOG" })}
                 data-testid="merge-cancel-button"
               >
                 Cancel
@@ -616,13 +697,13 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
             <>
               <Button
                 variant="outline"
-                onClick={() => setStep("search")}
+                onClick={() => dispatch({ type: "SET_STEP", step: "search" })}
                 data-testid="merge-back-button"
               >
                 Back
               </Button>
               <Button
-                onClick={() => setStep("confirm")}
+                onClick={() => dispatch({ type: "SET_STEP", step: "confirm" })}
                 data-testid="merge-continue-button"
               >
                 Continue
@@ -634,7 +715,7 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
             <>
               <Button
                 variant="outline"
-                onClick={() => setStep("preview")}
+                onClick={() => dispatch({ type: "SET_STEP", step: "preview" })}
                 disabled={isMerging}
                 data-testid="merge-back-button"
               >

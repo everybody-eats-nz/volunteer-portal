@@ -242,52 +242,58 @@ export async function getMergePreview(
     throw new Error("Source user not found");
   }
 
-  // Get target's shift IDs for conflict detection
-  const targetSignups = await prisma.signup.findMany({
-    where: { userId: targetId },
-    select: { shiftId: true },
-  });
-  const targetShiftIds = new Set(targetSignups.map((s) => s.shiftId));
+  // Fetch all data needed for conflict detection in parallel
+  const [
+    targetSignups,
+    sourceSignups,
+    targetAchievements,
+    sourceAchievements,
+    targetFriendships,
+    sourceFriendships,
+    targetCustomLabels,
+    sourceCustomLabels,
+    targetSurveyAssignments,
+    sourceSurveyAssignments,
+    targetGroupBookings,
+    sourceGroupBookings,
+    targetNotificationGroupMembers,
+    sourceNotificationGroupMembers,
+    targetFriendRequests,
+    sourceFriendRequests,
+  ] = await Promise.all([
+    prisma.signup.findMany({ where: { userId: targetId }, select: { shiftId: true } }),
+    prisma.signup.findMany({ where: { userId: sourceId }, select: { shiftId: true } }),
+    prisma.userAchievement.findMany({ where: { userId: targetId }, select: { achievementId: true } }),
+    prisma.userAchievement.findMany({ where: { userId: sourceId }, select: { achievementId: true } }),
+    prisma.friendship.findMany({ where: { userId: targetId }, select: { friendId: true } }),
+    prisma.friendship.findMany({ where: { userId: sourceId }, select: { friendId: true } }),
+    prisma.userCustomLabel.findMany({ where: { userId: targetId }, select: { labelId: true } }),
+    prisma.userCustomLabel.findMany({ where: { userId: sourceId }, select: { labelId: true } }),
+    prisma.surveyAssignment.findMany({ where: { userId: targetId }, select: { surveyId: true } }),
+    prisma.surveyAssignment.findMany({ where: { userId: sourceId }, select: { surveyId: true } }),
+    prisma.groupBooking.findMany({ where: { leaderId: targetId }, select: { shiftId: true } }),
+    prisma.groupBooking.findMany({ where: { leaderId: sourceId }, select: { shiftId: true } }),
+    prisma.notificationGroupMember.findMany({ where: { userId: targetId }, select: { groupId: true } }),
+    prisma.notificationGroupMember.findMany({ where: { userId: sourceId }, select: { groupId: true } }),
+    prisma.friendRequest.findMany({ where: { fromUserId: targetId }, select: { toEmail: true } }),
+    prisma.friendRequest.findMany({ where: { fromUserId: sourceId }, select: { toEmail: true } }),
+  ]);
 
-  // Count source signups that would be duplicates
-  const sourceSignups = await prisma.signup.findMany({
-    where: { userId: sourceId },
-    select: { shiftId: true },
-  });
-  const duplicateSignups = sourceSignups.filter((s) =>
-    targetShiftIds.has(s.shiftId)
-  ).length;
-
-  // Get target's achievement IDs for conflict detection
-  const targetAchievements = await prisma.userAchievement.findMany({
-    where: { userId: targetId },
-    select: { achievementId: true },
-  });
-  const targetAchievementIds = new Set(
-    targetAchievements.map((a) => a.achievementId)
+  // Count duplicates using helper function
+  const duplicateSignups = countDuplicates(targetSignups, sourceSignups, (s) => s.shiftId);
+  const duplicateAchievements = countDuplicates(targetAchievements, sourceAchievements, (a) => a.achievementId);
+  const duplicateCustomLabels = countDuplicates(targetCustomLabels, sourceCustomLabels, (l) => l.labelId);
+  const duplicateSurveyAssignments = countDuplicates(targetSurveyAssignments, sourceSurveyAssignments, (s) => s.surveyId);
+  const duplicateGroupBookings = countDuplicates(targetGroupBookings, sourceGroupBookings, (g) => g.shiftId);
+  const duplicateNotificationGroupMembers = countDuplicates(
+    targetNotificationGroupMembers,
+    sourceNotificationGroupMembers,
+    (m) => m.groupId
   );
+  const duplicateFriendRequests = countDuplicates(targetFriendRequests, sourceFriendRequests, (r) => r.toEmail);
 
-  // Count source achievements that would be duplicates
-  const sourceAchievements = await prisma.userAchievement.findMany({
-    where: { userId: sourceId },
-    select: { achievementId: true },
-  });
-  const duplicateAchievements = sourceAchievements.filter((a) =>
-    targetAchievementIds.has(a.achievementId)
-  ).length;
-
-  // Get target's friend IDs for conflict detection (friendships are bidirectional)
-  const targetFriendships = await prisma.friendship.findMany({
-    where: { userId: targetId },
-    select: { friendId: true },
-  });
+  // Friendships have special logic: also count self-references
   const targetFriendIds = new Set(targetFriendships.map((f) => f.friendId));
-
-  // Count source friendships that would be duplicates or self-friendships
-  const sourceFriendships = await prisma.friendship.findMany({
-    where: { userId: sourceId },
-    select: { friendId: true },
-  });
   const duplicateFriendships = sourceFriendships.filter(
     (f) =>
       targetFriendIds.has(f.friendId) ||
@@ -296,96 +302,6 @@ export async function getMergePreview(
   ).length;
   const selfFriendships = sourceFriendships.filter(
     (f) => f.friendId === targetId || f.friendId === sourceId
-  ).length;
-
-  // Get target's custom label IDs for conflict detection
-  const targetCustomLabels = await prisma.userCustomLabel.findMany({
-    where: { userId: targetId },
-    select: { labelId: true },
-  });
-  const targetLabelIds = new Set(targetCustomLabels.map((l) => l.labelId));
-
-  // Count source custom labels that would be duplicates
-  const sourceCustomLabels = await prisma.userCustomLabel.findMany({
-    where: { userId: sourceId },
-    select: { labelId: true },
-  });
-  const duplicateCustomLabels = sourceCustomLabels.filter((l) =>
-    targetLabelIds.has(l.labelId)
-  ).length;
-
-  // Get target's survey assignment IDs for conflict detection
-  const targetSurveyAssignments = await prisma.surveyAssignment.findMany({
-    where: { userId: targetId },
-    select: { surveyId: true },
-  });
-  const targetSurveyIds = new Set(
-    targetSurveyAssignments.map((s) => s.surveyId)
-  );
-
-  // Count source survey assignments that would be duplicates
-  const sourceSurveyAssignments = await prisma.surveyAssignment.findMany({
-    where: { userId: sourceId },
-    select: { surveyId: true },
-  });
-  const duplicateSurveyAssignments = sourceSurveyAssignments.filter((s) =>
-    targetSurveyIds.has(s.surveyId)
-  ).length;
-
-  // Get target's group booking keys for conflict detection
-  const targetGroupBookings = await prisma.groupBooking.findMany({
-    where: { leaderId: targetId },
-    select: { shiftId: true },
-  });
-  const targetGroupBookingShiftIds = new Set(
-    targetGroupBookings.map((g) => g.shiftId)
-  );
-
-  // Count source group bookings that would be duplicates
-  const sourceGroupBookings = await prisma.groupBooking.findMany({
-    where: { leaderId: sourceId },
-    select: { shiftId: true },
-  });
-  const duplicateGroupBookings = sourceGroupBookings.filter((g) =>
-    targetGroupBookingShiftIds.has(g.shiftId)
-  ).length;
-
-  // Get target's notification group memberships for conflict detection
-  const targetNotificationGroupMembers =
-    await prisma.notificationGroupMember.findMany({
-      where: { userId: targetId },
-      select: { groupId: true },
-    });
-  const targetNotificationGroupIds = new Set(
-    targetNotificationGroupMembers.map((m) => m.groupId)
-  );
-
-  // Count source notification group memberships that would be duplicates
-  const sourceNotificationGroupMembers =
-    await prisma.notificationGroupMember.findMany({
-      where: { userId: sourceId },
-      select: { groupId: true },
-    });
-  const duplicateNotificationGroupMembers = sourceNotificationGroupMembers.filter(
-    (m) => targetNotificationGroupIds.has(m.groupId)
-  ).length;
-
-  // Get target's friend request keys for conflict detection
-  const targetFriendRequests = await prisma.friendRequest.findMany({
-    where: { fromUserId: targetId },
-    select: { toEmail: true },
-  });
-  const targetFriendRequestEmails = new Set(
-    targetFriendRequests.map((r) => r.toEmail)
-  );
-
-  // Count source friend requests that would be duplicates
-  const sourceFriendRequests = await prisma.friendRequest.findMany({
-    where: { fromUserId: sourceId },
-    select: { toEmail: true },
-  });
-  const duplicateFriendRequests = sourceFriendRequests.filter((r) =>
-    targetFriendRequestEmails.has(r.toEmail)
   ).length;
 
   return {
