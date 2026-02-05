@@ -57,7 +57,7 @@ export function DeleteAllShiftsButton({
       <Button
         variant="outline"
         size="sm"
-        className="flex-1 lg:flex-none h-11 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/40 border-red-300 dark:border-red-700"
+        className="h-11 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/40 border-red-300 dark:border-red-700"
         data-testid="delete-all-shifts-button"
       >
         <Trash2 className="h-4 w-4 mr-2" />
