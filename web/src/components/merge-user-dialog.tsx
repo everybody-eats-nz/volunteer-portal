@@ -572,13 +572,18 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                       </span>
                     </div>
                   )}
-                  {preview.estimatedStats.regularVolunteer && (
+                  {preview.estimatedStats.regularVolunteers.toTransfer > 0 && (
                     <div className="flex justify-between col-span-2">
                       <span className="text-muted-foreground">
-                        Regular Volunteer status
+                        Regular Volunteer schedules
                       </span>
-                      <span className="font-medium text-green-600">
-                        Will transfer
+                      <span className="font-medium">
+                        {preview.estimatedStats.regularVolunteers.toTransfer}
+                        {preview.estimatedStats.regularVolunteers.toSkip > 0 && (
+                          <span className="text-amber-600 ml-1">
+                            (+{preview.estimatedStats.regularVolunteers.toSkip} skip)
+                          </span>
+                        )}
                       </span>
                     </div>
                   )}
@@ -588,7 +593,8 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
               {/* Conflict warnings */}
               {(preview.conflicts.duplicateSignups > 0 ||
                 preview.conflicts.duplicateAchievements > 0 ||
-                preview.conflicts.duplicateFriendships > 0) && (
+                preview.conflicts.duplicateFriendships > 0 ||
+                preview.conflicts.duplicateRegularVolunteers > 0) && (
                 <InfoBox
                   title="Duplicates will be skipped"
                   variant="amber"
@@ -609,6 +615,11 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                     {preview.conflicts.duplicateFriendships > 0 && (
                       <li>
                         {preview.conflicts.duplicateFriendships} friendship(s) (duplicates or self-refs)
+                      </li>
+                    )}
+                    {preview.conflicts.duplicateRegularVolunteers > 0 && (
+                      <li>
+                        {preview.conflicts.duplicateRegularVolunteers} regular schedule(s) for same shift type
                       </li>
                     )}
                   </ul>

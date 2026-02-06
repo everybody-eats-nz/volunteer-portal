@@ -76,15 +76,23 @@ export function EditRegularVolunteerDialog({
   open,
   onOpenChange,
   locations,
+  otherShiftTypeIds = [],
 }: {
   regular: RegularVolunteer;
   shiftTypes: ShiftType[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   locations: readonly string[];
+  otherShiftTypeIds?: string[]; // Shift type IDs this user is already regular for (excluding current)
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  // Filter out shift types that the user is already regular for (excluding current)
+  const unavailableShiftTypeIds = new Set(otherShiftTypeIds);
+  const availableShiftTypes = shiftTypes.filter(
+    (st) => st.id === regular.shiftType.id || !unavailableShiftTypeIds.has(st.id)
+  );
 
   const [formData, setFormData] = useState({
     shiftTypeId: regular.shiftType.id,
@@ -207,13 +215,21 @@ export function EditRegularVolunteerDialog({
                     <SelectValue placeholder="Select shift type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {shiftTypes.map((t) => (
+                    {availableShiftTypes.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {otherShiftTypeIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Already regular for: {shiftTypes
+                      .filter((st) => unavailableShiftTypeIds.has(st.id))
+                      .map((st) => st.name)
+                      .join(", ")}
+                  </p>
+                )}
               </div>
 
               {/* Location */}

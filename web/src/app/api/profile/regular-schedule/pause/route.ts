@@ -6,6 +6,7 @@ import { z } from "zod";
 
 // Validation schema for pausing/resuming
 const pauseScheduleSchema = z.object({
+  regularVolunteerId: z.string(), // Required to identify which schedule to pause/resume
   isPaused: z.boolean(),
   pausedUntil: z.string().nullable().optional(),
   reason: z.string().optional(),
@@ -22,15 +23,22 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const validated = pauseScheduleSchema.parse(body);
 
-    // Check if user has a regular volunteer record
+    // Check if the regular volunteer record exists and belongs to the user
     const existing = await prisma.regularVolunteer.findUnique({
-      where: { userId: session.user?.id },
+      where: { id: validated.regularVolunteerId },
     });
 
     if (!existing) {
       return NextResponse.json(
-        { error: "You are not registered as a regular volunteer" },
+        { error: "Regular volunteer schedule not found" },
         { status: 404 }
+      );
+    }
+
+    if (existing.userId !== session.user?.id) {
+      return NextResponse.json(
+        { error: "You can only update your own regular schedules" },
+        { status: 403 }
       );
     }
 
@@ -54,14 +62,14 @@ export async function PATCH(req: NextRequest) {
     }
 
     const updated = await prisma.regularVolunteer.update({
-      where: { userId: session.user?.id },
+      where: { id: validated.regularVolunteerId },
       data: updateData,
       include: {
         shiftType: true,
       },
     });
 
-    // If pausing, cancel any pending regular signups
+    // If pausing, cancel any pending regular signups for this specific schedule
     if (validated.isPaused) {
       const pendingSignups = await prisma.regularSignup.findMany({
         where: {

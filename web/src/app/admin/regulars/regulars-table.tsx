@@ -95,6 +95,23 @@ export function RegularsTable({
   const [toggleId, setToggleId] = useState<string | null>(null);
   const [editRegular, setEditRegular] = useState<RegularVolunteer | null>(null);
 
+  // Group regulars by userId to know each user's other shift types
+  const regularsByUserId = regulars.reduce((acc, regular) => {
+    if (!acc[regular.userId]) {
+      acc[regular.userId] = [];
+    }
+    acc[regular.userId].push(regular);
+    return acc;
+  }, {} as Record<string, RegularVolunteer[]>);
+
+  // Get other shift type IDs for a given regular (excluding itself)
+  const getOtherShiftTypeIds = (regular: RegularVolunteer): string[] => {
+    const userRegulars = regularsByUserId[regular.userId] || [];
+    return userRegulars
+      .filter((r) => r.id !== regular.id)
+      .map((r) => r.shiftType.id);
+  };
+
   const handleToggle = async (id: string, currentStatus: boolean) => {
     try {
       const response = await fetch(`/api/admin/regulars/${id}/toggle`, {
@@ -431,6 +448,7 @@ export function RegularsTable({
             }
           }}
           locations={locations}
+          otherShiftTypeIds={getOtherShiftTypeIds(editRegular)}
         />
       )}
     </>

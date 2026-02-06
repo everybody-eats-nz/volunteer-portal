@@ -103,7 +103,7 @@ export default async function AdminVolunteerPage({
       role: true,
       volunteerGrade: true,
       createdAt: true,
-      regularVolunteer: {
+      regularVolunteers: {
         include: {
           shiftType: true,
           autoSignups: {
@@ -119,6 +119,9 @@ export default async function AdminVolunteerPage({
               },
             },
           },
+        },
+        orderBy: {
+          createdAt: "asc",
         },
       },
       signups: {
@@ -336,21 +339,23 @@ export default async function AdminVolunteerPage({
 
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2 justify-center mb-6">
-                  {volunteer.regularVolunteer && (
+                  {volunteer.regularVolunteers.length > 0 && (
                     <Badge
                       variant="outline"
                       className={
-                        volunteer.regularVolunteer.isActive &&
-                        !volunteer.regularVolunteer.isPausedByUser
+                        volunteer.regularVolunteers.some(
+                          (r) => r.isActive && !r.isPausedByUser
+                        )
                           ? "border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
                           : "border-gray-500/20 text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/20"
                       }
                     >
                       <Star className="h-3 w-3 mr-1" />
-                      {volunteer.regularVolunteer.isActive &&
-                      !volunteer.regularVolunteer.isPausedByUser
-                        ? "Active Regular"
-                        : volunteer.regularVolunteer.isPausedByUser
+                      {volunteer.regularVolunteers.some(
+                        (r) => r.isActive && !r.isPausedByUser
+                      )
+                        ? `${volunteer.regularVolunteers.filter((r) => r.isActive && !r.isPausedByUser).length} Active Regular${volunteer.regularVolunteers.filter((r) => r.isActive && !r.isPausedByUser).length > 1 ? "s" : ""}`
+                        : volunteer.regularVolunteers.some((r) => r.isPausedByUser)
                         ? "Regular (Paused)"
                         : "Regular (Inactive)"}
                     </Badge>
@@ -597,138 +602,158 @@ export default async function AdminVolunteerPage({
           {/* Right Column - Detailed Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Regular Volunteer Configuration */}
-            {volunteer.regularVolunteer && (
+            {volunteer.regularVolunteers.length > 0 && (
               <Card data-testid="regular-volunteer-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Star className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                     Regular Volunteer Configuration
+                    {volunteer.regularVolunteers.length > 1 && (
+                      <Badge variant="outline" className="ml-2 text-xs">
+                        {volunteer.regularVolunteers.length} schedules
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
-                      <label className="text-sm font-medium">Shift Type</label>
-                      <p className="text-sm text-muted-foreground">
-                        {volunteer.regularVolunteer.shiftType.name}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
-                      <label className="text-sm font-medium">Location</label>
-                      <p className="text-sm text-muted-foreground">
-                        {volunteer.regularVolunteer.location}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
-                      <label className="text-sm font-medium">Frequency</label>
-                      <p className="text-sm text-muted-foreground">
-                        {volunteer.regularVolunteer.frequency === "WEEKLY"
-                          ? "Weekly"
-                          : volunteer.regularVolunteer.frequency ===
-                            "FORTNIGHTLY"
-                          ? "Fortnightly"
-                          : volunteer.regularVolunteer.frequency === "MONTHLY"
-                          ? "Monthly"
-                          : volunteer.regularVolunteer.frequency}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
-                      <label className="text-sm font-medium">Status</label>
-                      <div className="flex items-center gap-2">
-                        {volunteer.regularVolunteer.isActive ? (
-                          volunteer.regularVolunteer.isPausedByUser ? (
-                            <>
-                              <PauseCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                              <span className="text-sm text-yellow-600 dark:text-yellow-400">
-                                Paused
-                              </span>
-                              {volunteer.regularVolunteer.pausedUntil && (
-                                <span className="text-xs text-muted-foreground">
-                                  until{" "}
-                                  {format(
-                                    volunteer.regularVolunteer.pausedUntil,
-                                    "dd MMM yyyy"
-                                  )}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                              <span className="text-sm text-green-600 dark:text-green-400">
-                                Active
-                              </span>
-                            </>
-                          )
-                        ) : (
-                          <>
-                            <PauseCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              Inactive
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Available Days
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {volunteer.regularVolunteer.availableDays.map(
-                        (day: string) => (
+                <CardContent className="space-y-6">
+                  {volunteer.regularVolunteers.map((regularVolunteer, index) => (
+                    <div
+                      key={regularVolunteer.id}
+                      className={cn(
+                        "space-y-4",
+                        index > 0 && "pt-6 border-t"
+                      )}
+                    >
+                      {volunteer.regularVolunteers.length > 1 && (
+                        <div className="flex items-center gap-2 mb-2">
                           <Badge
-                            key={day}
                             variant="outline"
                             className="border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
                           >
-                            {day}
+                            {regularVolunteer.shiftType.name}
                           </Badge>
-                        )
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
+                          <label className="text-sm font-medium">Shift Type</label>
+                          <p className="text-sm text-muted-foreground">
+                            {regularVolunteer.shiftType.name}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
+                          <label className="text-sm font-medium">Location</label>
+                          <p className="text-sm text-muted-foreground">
+                            {regularVolunteer.location}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
+                          <label className="text-sm font-medium">Frequency</label>
+                          <p className="text-sm text-muted-foreground">
+                            {regularVolunteer.frequency === "WEEKLY"
+                              ? "Weekly"
+                              : regularVolunteer.frequency === "FORTNIGHTLY"
+                              ? "Fortnightly"
+                              : regularVolunteer.frequency === "MONTHLY"
+                              ? "Monthly"
+                              : regularVolunteer.frequency}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-muted/50 dark:bg-muted/30 rounded-lg space-y-1">
+                          <label className="text-sm font-medium">Status</label>
+                          <div className="flex items-center gap-2">
+                            {regularVolunteer.isActive ? (
+                              regularVolunteer.isPausedByUser ? (
+                                <>
+                                  <PauseCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                                  <span className="text-sm text-yellow-600 dark:text-yellow-400">
+                                    Paused
+                                  </span>
+                                  {regularVolunteer.pausedUntil && (
+                                    <span className="text-xs text-muted-foreground">
+                                      until{" "}
+                                      {format(
+                                        regularVolunteer.pausedUntil,
+                                        "dd MMM yyyy"
+                                      )}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                  <span className="text-sm text-green-600 dark:text-green-400">
+                                    Active
+                                  </span>
+                                </>
+                              )
+                            ) : (
+                              <>
+                                <PauseCircle className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  Inactive
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                          Available Days
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {regularVolunteer.availableDays.map((day: string) => (
+                            <Badge
+                              key={day}
+                              variant="outline"
+                              className="border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
+                            >
+                              {day}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      {regularVolunteer.notes && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Admin Notes</label>
+                          <p className="text-sm text-muted-foreground bg-muted/50 dark:bg-muted/30 p-3 rounded-lg">
+                            {regularVolunteer.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {regularVolunteer.autoSignups.length > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Recent Auto-Signups
+                          </label>
+                          <div className="space-y-2">
+                            {regularVolunteer.autoSignups.map((autoSignup) => (
+                              <div
+                                key={autoSignup.id}
+                                className="text-sm p-2 bg-muted/30 dark:bg-muted/20 rounded flex items-center justify-between"
+                              >
+                                <span>
+                                  {formatInNZT(
+                                    autoSignup.signup.shift.start,
+                                    "EEE dd MMM yyyy, h:mma"
+                                  )}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {autoSignup.signup.status === "REGULAR_PENDING"
+                                    ? "Auto-Applied"
+                                    : autoSignup.signup.status}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  {volunteer.regularVolunteer.notes && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Admin Notes</label>
-                      <p className="text-sm text-muted-foreground bg-muted/50 dark:bg-muted/30 p-3 rounded-lg">
-                        {volunteer.regularVolunteer.notes}
-                      </p>
-                    </div>
-                  )}
-
-                  {volunteer.regularVolunteer.autoSignups.length > 0 && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Recent Auto-Signups
-                      </label>
-                      <div className="space-y-2">
-                        {volunteer.regularVolunteer.autoSignups.map(
-                          (autoSignup) => (
-                            <div
-                              key={autoSignup.id}
-                              className="text-sm p-2 bg-muted/30 dark:bg-muted/20 rounded flex items-center justify-between"
-                            >
-                              <span>
-                                {formatInNZT(
-                                  autoSignup.signup.shift.start,
-                                  "EEE dd MMM yyyy, h:mma"
-                                )}
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                {autoSignup.signup.status === "REGULAR_PENDING"
-                                  ? "Auto-Applied"
-                                  : autoSignup.signup.status}
-                              </Badge>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </CardContent>
               </Card>
             )}

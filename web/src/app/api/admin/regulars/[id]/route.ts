@@ -115,6 +115,25 @@ export async function PUT(
       );
     }
 
+    // Check if changing shift type would create a duplicate
+    if (validated.shiftTypeId !== undefined && validated.shiftTypeId !== existing.shiftTypeId) {
+      const duplicate = await prisma.regularVolunteer.findUnique({
+        where: {
+          userId_shiftTypeId: {
+            userId: existing.userId,
+            shiftTypeId: validated.shiftTypeId,
+          },
+        },
+      });
+
+      if (duplicate) {
+        return NextResponse.json(
+          { error: "User is already a regular volunteer for this shift type" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Prepare update data
     const updateData: Record<string, unknown> = {
       lastModifiedBy: session?.user?.id,

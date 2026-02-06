@@ -91,8 +91,8 @@ model User {
   // Restaurant Manager
   restaurantManager RestaurantManager?
 
-  // Regular volunteer relation
-  regularVolunteer RegularVolunteer?
+  // Regular volunteer relations (one per shift type)
+  regularVolunteers RegularVolunteer[]
 
   notificationGroupMembers NotificationGroupMember[]
 
@@ -464,7 +464,7 @@ model RestaurantManager {
 
 model RegularVolunteer {
   id             String    @id @default(cuid())
-  userId         String    @unique
+  userId         String
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   shiftTypeId    String
   shiftType      ShiftType @relation(fields: [shiftTypeId], references: [id])
@@ -484,6 +484,7 @@ model RegularVolunteer {
   // Track auto-generated signups
   autoSignups RegularSignup[]
 
+  @@unique([userId, shiftTypeId]) // One regular record per user per shift type
   @@index([userId, isActive])
   @@index([shiftTypeId, location, isActive])
 }
