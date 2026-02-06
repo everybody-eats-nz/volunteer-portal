@@ -14,13 +14,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -47,6 +40,18 @@ type RegularVolunteer = {
     id: string;
     name: string;
   };
+  autoSignups?: {
+    id: string;
+    signup: {
+      id: string;
+      status: string;
+      shift: {
+        id: string;
+        start: Date;
+        end: Date;
+      };
+    };
+  }[];
 };
 
 const FREQUENCIES = [
@@ -102,6 +107,7 @@ export function RegularScheduleManager({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          regularVolunteerId: regularVolunteer.id,
           frequency: editForm.frequency,
           availableDays: editForm.availableDays,
           volunteerNotes: editForm.volunteerNotes || null,
@@ -134,6 +140,7 @@ export function RegularScheduleManager({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          regularVolunteerId: regularVolunteer.id,
           isPaused: !resume,
           pausedUntil: resume ? null : pauseForm.pausedUntil || null,
           reason: resume ? "Resumed by volunteer" : pauseForm.reason,
@@ -175,61 +182,50 @@ export function RegularScheduleManager({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <EditIcon className="h-5 w-5" />
-            Manage Schedule
-          </CardTitle>
-          <CardDescription>
-            Update your regular volunteer schedule settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
+      <div>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => setEditDialogOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <EditIcon className="h-4 w-4" />
+            Edit Schedule
+          </Button>
+
+          {regularVolunteer.isPausedByUser ? (
             <Button
-              onClick={() => setEditDialogOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
+              onClick={() => handlePause(true)}
+              disabled={loading}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
             >
-              <EditIcon className="h-4 w-4" />
-              Edit Schedule
+              <PlayIcon className="h-4 w-4" />
+              {loading ? "Resuming..." : "Resume Schedule"}
             </Button>
-
-            {regularVolunteer.isPausedByUser ? (
-              <Button
-                onClick={() => handlePause(true)}
-                disabled={loading}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              >
-                <PlayIcon className="h-4 w-4" />
-                {loading ? "Resuming..." : "Resume Schedule"}
-              </Button>
-            ) : (
-              <Button
-                onClick={() => setPauseDialogOpen(true)}
-                variant="outline"
-                className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-              >
-                <PauseIcon className="h-4 w-4" />
-                Pause Schedule
-              </Button>
-            )}
-          </div>
-
-          {regularVolunteer.isPausedByUser && regularVolunteer.pausedUntil && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-yellow-600" />
-                <span className="text-sm font-medium text-yellow-800">
-                  Paused until{" "}
-                  {format(regularVolunteer.pausedUntil, "MMMM d, yyyy")}
-                </span>
-              </div>
-            </div>
+          ) : (
+            <Button
+              onClick={() => setPauseDialogOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+            >
+              <PauseIcon className="h-4 w-4" />
+              Pause Schedule
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {regularVolunteer.isPausedByUser && regularVolunteer.pausedUntil && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm font-medium text-yellow-800">
+                Paused until{" "}
+                {format(regularVolunteer.pausedUntil, "MMMM d, yyyy")}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

@@ -15,26 +15,58 @@ export async function GET(req: NextRequest) {
 
     const searchParams = req.nextUrl.searchParams;
     const weeks = parseInt(searchParams.get("weeks") || "4");
+    const regularVolunteerId = searchParams.get("regularVolunteerId");
 
-    // Get user's regular volunteer record
-    const regular = await prisma.regularVolunteer.findUnique({
-      where: { userId: session.user?.id },
-      include: {
-        shiftType: true,
-      },
-    });
+    // Get user's regular volunteer record(s)
+    let regular;
+    if (regularVolunteerId) {
+      // Preview for a specific schedule
+      regular = await prisma.regularVolunteer.findUnique({
+        where: { id: regularVolunteerId },
+        include: {
+          shiftType: true,
+        },
+      });
 
-    if (!regular) {
-      return NextResponse.json(
-        { error: "You are not registered as a regular volunteer" },
-        { status: 404 }
-      );
+      if (!regular) {
+        return NextResponse.json(
+          { error: "Regular volunteer schedule not found" },
+          { status: 404 }
+        );
+      }
+
+      if (regular.userId !== session.user?.id) {
+        return NextResponse.json(
+          { error: "You can only preview your own regular schedules" },
+          { status: 403 }
+        );
+      }
+    } else {
+      // For backwards compatibility, get first active schedule
+      regular = await prisma.regularVolunteer.findFirst({
+        where: {
+          userId: session.user?.id,
+          isActive: true,
+          isPausedByUser: false,
+        },
+        include: {
+          shiftType: true,
+        },
+      });
+
+      if (!regular) {
+        return NextResponse.json(
+          { error: "You are not registered as a regular volunteer or all schedules are paused" },
+          { status: 404 }
+        );
+      }
     }
 
     if (!regular.isActive || regular.isPausedByUser) {
       return NextResponse.json({
         message: "Regular schedule is currently inactive or paused",
         shifts: [],
+        regular,
       });
     }
 

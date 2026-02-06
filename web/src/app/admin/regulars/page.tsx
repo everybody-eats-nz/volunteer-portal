@@ -75,11 +75,10 @@ export default async function RegularVolunteersPage({
     },
   });
 
-  // Get all volunteers for the form
+  // Get all volunteers for the form (now allows multiple regulars per volunteer)
   const volunteers = await prisma.user.findMany({
     where: {
       role: "VOLUNTEER",
-      regularVolunteer: null, // Only show volunteers who aren't already regulars
     },
     select: {
       id: true,
@@ -87,6 +86,11 @@ export default async function RegularVolunteersPage({
       firstName: true,
       lastName: true,
       email: true,
+      regularVolunteers: {
+        select: {
+          shiftTypeId: true,
+        },
+      },
     },
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });

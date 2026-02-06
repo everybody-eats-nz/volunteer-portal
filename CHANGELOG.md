@@ -1,3 +1,9 @@
+## [0.105.0] - 2026-02-06
+
+### Changes
+- feat: allow multiple shift types per regular volunteer ([#553](https://github.com/everybody-eats-nz/volunteer-portal/pull/553)) by @malinmalliyawadu
+
+
 ## [0.104.1] - 2026-02-05
 
 ### Changes

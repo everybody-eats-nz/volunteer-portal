@@ -27,8 +27,8 @@ export default async function RegularSchedulePage() {
     redirect("/login?callbackUrl=/profile/regular-schedule");
   }
 
-  // Get user's regular volunteer record
-  const regularVolunteer = await prisma.regularVolunteer.findUnique({
+  // Get user's regular volunteer records (one per shift type)
+  const regularVolunteers = await prisma.regularVolunteer.findMany({
     where: { userId: session.user.id },
     include: {
       shiftType: true,
@@ -44,10 +44,13 @@ export default async function RegularSchedulePage() {
         },
       },
     },
+    orderBy: { createdAt: "asc" },
   });
 
-  const getStatusInfo = (regular: typeof regularVolunteer) => {
-    if (!regular?.isActive) {
+  type RegularVolunteerType = (typeof regularVolunteers)[0];
+
+  const getStatusInfo = (regular: RegularVolunteerType) => {
+    if (!regular.isActive) {
       return {
         status: "inactive",
         label: "Inactive",
@@ -79,7 +82,11 @@ export default async function RegularSchedulePage() {
     };
   };
 
-  const statusInfo = regularVolunteer ? getStatusInfo(regularVolunteer) : null;
+  // Calculate overall status summary
+  const activeCount = regularVolunteers.filter(
+    (r) => r.isActive && !r.isPausedByUser
+  ).length;
+  const pausedCount = regularVolunteers.filter((r) => r.isPausedByUser).length;
 
   const formatDays = (days: string[]) => {
     const shortDays = days.map((day) => day.substring(0, 3));
@@ -129,7 +136,7 @@ export default async function RegularSchedulePage() {
         }
       />
 
-      {!regularVolunteer ? (
+      {regularVolunteers.length === 0 ? (
         /* No Regular Status */
         <Card className="text-center py-12">
           <CardContent>
@@ -162,119 +169,134 @@ export default async function RegularSchedulePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-lg ${statusInfo?.bgColor}`}>
-                    <StarIcon className={`h-6 w-6 ${statusInfo?.color}`} />
+                  <div className="p-3 rounded-lg bg-yellow-50">
+                    <StarIcon className="h-6 w-6 text-yellow-600" />
                   </div>
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       Regular Volunteer Status
+                      <Badge variant="success">{activeCount} Active</Badge>
+                      {pausedCount > 0 && (
+                        <Badge variant="warning">{pausedCount} Paused</Badge>
+                      )}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {regularVolunteers.length === 1
+                        ? "You have 1 regular schedule"
+                        : `You have ${regularVolunteers.length} regular schedules`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Individual Schedule Cards */}
+          {regularVolunteers.map((regularVolunteer) => {
+            const statusInfo = getStatusInfo(regularVolunteer);
+            return (
+              <Card key={regularVolunteer.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <CalendarIcon className="h-5 w-5" />
+                      {regularVolunteer.shiftType.name}
                       <Badge
                         variant={
-                          statusInfo?.status === "active"
+                          statusInfo.status === "active"
                             ? "success"
-                            : statusInfo?.status === "paused"
+                            : statusInfo.status === "paused"
                             ? "warning"
                             : "secondary"
                         }
                       >
-                        {statusInfo?.label}
+                        {statusInfo.label}
                       </Badge>
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {statusInfo?.description}
-                    </p>
+                    {statusInfo.status === "active" && (
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-green-600">
+                          {regularVolunteer.autoSignups.length} auto-signups
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Since {format(regularVolunteer.createdAt, "MMM yyyy")}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-                {statusInfo?.status === "active" && (
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-green-600">
-                      {regularVolunteer.autoSignups.length} auto-signups
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Since {format(regularVolunteer.createdAt, "MMM yyyy")}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardHeader>
-          </Card>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <SettingsIcon className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Shift Type</div>
+                          <div className="text-sm text-muted-foreground">
+                            {regularVolunteer.shiftType.name}
+                          </div>
+                        </div>
+                      </div>
 
-          {/* Current Schedule */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                Current Schedule
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <SettingsIcon className="h-4 w-4 text-blue-600" />
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-50 rounded-lg">
+                          <MapPinIcon className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Location</div>
+                          <div className="text-sm text-muted-foreground">
+                            {regularVolunteer.location}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-medium">Shift Type</div>
-                      <div className="text-sm text-muted-foreground">
-                        {regularVolunteer.shiftType.name}
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-50 rounded-lg">
+                          <ClockIcon className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Frequency</div>
+                          <div className="text-sm text-muted-foreground">
+                            {getFrequencyLabel(regularVolunteer.frequency)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-50 rounded-lg">
+                          <CalendarIcon className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Available Days</div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatDays(regularVolunteer.availableDays)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-50 rounded-lg">
-                      <MapPinIcon className="h-4 w-4 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Location</div>
+                  {regularVolunteer.volunteerNotes && (
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                      <div className="font-medium mb-2">Your Notes</div>
                       <div className="text-sm text-muted-foreground">
-                        {regularVolunteer.location}
+                        {regularVolunteer.volunteerNotes}
                       </div>
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-50 rounded-lg">
-                      <ClockIcon className="h-4 w-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Frequency</div>
-                      <div className="text-sm text-muted-foreground">
-                        {getFrequencyLabel(regularVolunteer.frequency)}
-                      </div>
-                    </div>
+                  {/* Schedule Management for this schedule */}
+                  <div className="mt-6 pt-6 border-t">
+                    <RegularScheduleManager regularVolunteer={regularVolunteer} />
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-50 rounded-lg">
-                      <CalendarIcon className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Available Days</div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatDays(regularVolunteer.availableDays)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {regularVolunteer.volunteerNotes && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <div className="font-medium mb-2">Your Notes</div>
-                  <div className="text-sm text-muted-foreground">
-                    {regularVolunteer.volunteerNotes}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Schedule Management */}
-          <RegularScheduleManager regularVolunteer={regularVolunteer} />
+                </CardContent>
+              </Card>
+            );
+          })}
 
           {/* Upcoming Regular Shifts */}
           <UpcomingRegularShifts />
