@@ -66,7 +66,7 @@ export interface MergeStats {
   friendRequests: { transferred: number; skipped: number };
   notifications: { transferred: number; skipped: number };
   restaurantManager: { transferred: boolean; kept: boolean };
-  regularVolunteer: { transferred: boolean; kept: boolean };
+  regularVolunteers: { transferred: number; skipped: number };
   notificationGroupMembers: { transferred: number; skipped: number };
   autoAcceptRules: { transferred: number; skipped: number };
   autoApprovals: { transferred: number; skipped: number };
@@ -114,6 +114,7 @@ export interface MergePreview {
     duplicateGroupBookings: number;
     duplicateNotificationGroupMembers: number;
     duplicateFriendRequests: number;
+    duplicateRegularVolunteers: number;
   };
   estimatedStats: {
     signups: { toTransfer: number; toSkip: number };
@@ -134,7 +135,7 @@ export interface MergePreview {
     surveys: number;
     passkeys: number;
     restaurantManager: boolean;
-    regularVolunteer: boolean;
+    regularVolunteers: { toTransfer: number; toSkip: number };
   };
 }
 
@@ -174,7 +175,7 @@ export async function getMergePreview(
         profilePhotoUrl: true,
         role: true,
         restaurantManager: { select: { id: true } },
-        regularVolunteer: { select: { id: true } },
+        regularVolunteers: { select: { id: true, shiftTypeId: true } },
         _count: {
           select: {
             signups: true,
@@ -209,7 +210,7 @@ export async function getMergePreview(
         profilePhotoUrl: true,
         role: true,
         restaurantManager: { select: { id: true } },
-        regularVolunteer: { select: { id: true } },
+        regularVolunteers: { select: { id: true, shiftTypeId: true } },
         _count: {
           select: {
             signups: true,
@@ -304,6 +305,14 @@ export async function getMergePreview(
     (f) => f.friendId === targetId || f.friendId === sourceId
   ).length;
 
+  // Regular volunteers: count duplicates based on shiftTypeId
+  const targetRegularShiftTypeIds = new Set(
+    targetUser.regularVolunteers.map((r) => r.shiftTypeId)
+  );
+  const duplicateRegularVolunteers = sourceUser.regularVolunteers.filter((r) =>
+    targetRegularShiftTypeIds.has(r.shiftTypeId)
+  ).length;
+
   return {
     targetUser: {
       id: targetUser.id,
@@ -339,6 +348,7 @@ export async function getMergePreview(
       duplicateGroupBookings,
       duplicateNotificationGroupMembers,
       duplicateFriendRequests,
+      duplicateRegularVolunteers,
     },
     estimatedStats: {
       signups: {
@@ -388,8 +398,11 @@ export async function getMergePreview(
       passkeys: sourceUser._count.passkeys,
       restaurantManager:
         !targetUser.restaurantManager && !!sourceUser.restaurantManager,
-      regularVolunteer:
-        !targetUser.regularVolunteer && !!sourceUser.regularVolunteer,
+      regularVolunteers: {
+        toTransfer:
+          sourceUser.regularVolunteers.length - duplicateRegularVolunteers,
+        toSkip: duplicateRegularVolunteers,
+      },
     },
   };
 }
@@ -458,7 +471,7 @@ export async function executeUserMerge(
     friendRequests: { transferred: 0, skipped: 0 },
     notifications: { transferred: 0, skipped: 0 },
     restaurantManager: { transferred: false, kept: false },
-    regularVolunteer: { transferred: false, kept: false },
+    regularVolunteers: { transferred: 0, skipped: 0 },
     notificationGroupMembers: { transferred: 0, skipped: 0 },
     autoAcceptRules: { transferred: 0, skipped: 0 },
     autoApprovals: { transferred: 0, skipped: 0 },
@@ -702,27 +715,32 @@ export async function executeUserMerge(
         stats.restaurantManager.transferred = true;
       }
 
-      // 9. RegularVolunteer (keep target's if exists, otherwise transfer)
-      const targetRegularVolunteer = await tx.regularVolunteer.findUnique({
+      // 9. RegularVolunteers (skip duplicates based on [userId, shiftTypeId])
+      const targetRegularVolunteers = await tx.regularVolunteer.findMany({
         where: { userId: targetId },
+        select: { shiftTypeId: true },
       });
-      const sourceRegularVolunteer = await tx.regularVolunteer.findUnique({
+      const targetRegularShiftTypeIds = new Set(
+        targetRegularVolunteers.map((r) => r.shiftTypeId)
+      );
+
+      const sourceRegularVolunteers = await tx.regularVolunteer.findMany({
         where: { userId: sourceId },
+        select: { id: true, shiftTypeId: true },
       });
 
-      if (targetRegularVolunteer) {
-        stats.regularVolunteer.kept = true;
-        if (sourceRegularVolunteer) {
-          await tx.regularVolunteer.delete({
-            where: { userId: sourceId },
+      for (const regular of sourceRegularVolunteers) {
+        if (targetRegularShiftTypeIds.has(regular.shiftTypeId)) {
+          // Delete duplicate - target already has a regular for this shift type
+          await tx.regularVolunteer.delete({ where: { id: regular.id } });
+          stats.regularVolunteers.skipped++;
+        } else {
+          await tx.regularVolunteer.update({
+            where: { id: regular.id },
+            data: { userId: targetId },
           });
+          stats.regularVolunteers.transferred++;
         }
-      } else if (sourceRegularVolunteer) {
-        await tx.regularVolunteer.update({
-          where: { userId: sourceId },
-          data: { userId: targetId },
-        });
-        stats.regularVolunteer.transferred = true;
       }
 
       // 10. NotificationGroupMembers (skip duplicates based on [groupId, userId])
@@ -1012,10 +1030,10 @@ function createAuditNote(
     lines.push("- Restaurant Manager status kept (target already had one)");
   }
 
-  if (stats.regularVolunteer.transferred) {
-    lines.push("- Regular Volunteer status transferred");
-  } else if (stats.regularVolunteer.kept) {
-    lines.push("- Regular Volunteer status kept (target already had one)");
+  if (stats.regularVolunteers.transferred > 0 || stats.regularVolunteers.skipped > 0) {
+    lines.push(
+      `- Regular Volunteers: ${stats.regularVolunteers.transferred} transferred${stats.regularVolunteers.skipped > 0 ? ` (${stats.regularVolunteers.skipped} duplicates skipped)` : ""}`
+    );
   }
 
   return lines.join("\n");

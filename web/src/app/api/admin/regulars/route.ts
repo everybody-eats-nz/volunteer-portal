@@ -129,16 +129,19 @@ export async function POST(req: NextRequest) {
     console.log("Creating regular volunteer with data:", body);
     const validated = createRegularVolunteerSchema.parse(body);
 
-    // Check if user already has a regular volunteer record
+    // Check if user already has a regular volunteer record for this shift type
     const existing = await prisma.regularVolunteer.findUnique({
       where: {
-        userId: validated.userId,
+        userId_shiftTypeId: {
+          userId: validated.userId,
+          shiftTypeId: validated.shiftTypeId,
+        },
       },
     });
 
     if (existing) {
       return NextResponse.json(
-        { error: "User is already a regular volunteer" },
+        { error: "User is already a regular volunteer for this shift type" },
         { status: 400 }
       );
     }

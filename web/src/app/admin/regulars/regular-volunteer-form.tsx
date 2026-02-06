@@ -35,6 +35,9 @@ type Volunteer = {
   firstName: string | null;
   lastName: string | null;
   email: string;
+  regularVolunteers: {
+    shiftTypeId: string;
+  }[];
 };
 
 type ShiftType = {
@@ -92,6 +95,17 @@ export function RegularVolunteerForm({
     notes: "",
     addToExistingShifts: true,
   });
+
+  // Get the selected volunteer's existing regular shift types
+  const selectedVolunteer = volunteers.find((v) => v.id === formData.userId);
+  const existingShiftTypeIds = new Set(
+    selectedVolunteer?.regularVolunteers.map((r) => r.shiftTypeId) || []
+  );
+
+  // Filter available shift types for the selected volunteer
+  const availableShiftTypes = shiftTypes.filter(
+    (st) => !existingShiftTypeIds.has(st.id)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +234,8 @@ export function RegularVolunteerForm({
                     options={volunteerOptions}
                     value={formData.userId}
                     onValueChange={(value) => {
-                      setFormData((prev) => ({ ...prev, userId: value }));
+                      // Reset shiftTypeId when volunteer changes to avoid invalid selections
+                      setFormData((prev) => ({ ...prev, userId: value, shiftTypeId: "" }));
                     }}
                     placeholder="Select a volunteer..."
                     searchPlaceholder="Search volunteers..."
@@ -231,23 +246,37 @@ export function RegularVolunteerForm({
                 {/* Shift Type */}
                 <div className="space-y-2">
                   <Label htmlFor="shiftTypeId">Shift Type *</Label>
-                  <Select
-                    value={formData.shiftTypeId}
-                    onValueChange={(value) => {
-                      setFormData((prev) => ({ ...prev, shiftTypeId: value }));
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select shift type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {shiftTypes.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {formData.userId && availableShiftTypes.length === 0 ? (
+                    <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                      This volunteer is already regular for all shift types.
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.shiftTypeId}
+                      onValueChange={(value) => {
+                        setFormData((prev) => ({ ...prev, shiftTypeId: value }));
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select shift type..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableShiftTypes.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {formData.userId && existingShiftTypeIds.size > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Already regular for: {shiftTypes
+                        .filter((st) => existingShiftTypeIds.has(st.id))
+                        .map((st) => st.name)
+                        .join(", ")}
+                    </p>
+                  )}
                 </div>
 
                 {/* Location */}
