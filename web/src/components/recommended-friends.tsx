@@ -13,21 +13,11 @@ import { sendFriendRequestByUserId } from "@/lib/friends-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { MotionSpinner } from "@/components/motion-spinner";
-
-interface RecommendedFriend {
-  id: string;
-  name: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  profilePhotoUrl: string | null;
-  sharedShiftsCount: number;
-  recentSharedShifts: Array<{
-    id: string;
-    start: Date;
-    shiftTypeName: string;
-    location: string | null;
-  }>;
-}
+import {
+  type RecommendedFriend,
+  getRecommendedFriendDisplayName,
+  getRecommendedFriendInitials,
+} from "@/lib/friends-utils";
 
 export function RecommendedFriends() {
   const router = useRouter();
@@ -133,27 +123,8 @@ export function RecommendedFriends() {
           animate="visible"
         >
           {recommendedFriends.map((friend) => {
-            // Privacy-focused: show first name + last initial only
-            let displayName = "Volunteer";
-            if (friend.firstName && friend.lastName) {
-              displayName = `${friend.firstName} ${friend.lastName[0]}.`;
-            } else if (friend.firstName) {
-              displayName = friend.firstName;
-            } else if (friend.name) {
-              // If only 'name' field exists, try to extract first name
-              const nameParts = friend.name.split(" ");
-              if (nameParts.length > 1) {
-                displayName = `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`;
-              } else {
-                displayName = friend.name;
-              }
-            }
-
-            const initials = (
-              friend.firstName?.[0] ||
-              friend.name?.[0] ||
-              "V"
-            ).toUpperCase();
+            const displayName = getRecommendedFriendDisplayName(friend);
+            const initials = getRecommendedFriendInitials(friend);
 
             return (
               <motion.div key={friend.id} variants={staggerItem}>

@@ -51,12 +51,21 @@ function useMasonry(itemCount: number, columnCount: number) {
       // Reset heights for each column
       const columnHeights = new Array(columnCount).fill(0);
 
-      items.forEach((item, index) => {
+      let placedCount = 0;
+      items.forEach((item) => {
+        // Skip empty items (e.g. Suspense wrappers that resolved to null)
+        if (item.offsetHeight === 0) {
+          item.style.position = "absolute";
+          item.style.width = "0";
+          item.style.overflow = "hidden";
+          return;
+        }
+
         // Determine which column to place this item in
         let columnIndex: number;
-        if (index < columnCount) {
+        if (placedCount < columnCount) {
           // First row items go directly into their column
-          columnIndex = index;
+          columnIndex = placedCount;
         } else {
           // Find the shortest column
           columnIndex = columnHeights.indexOf(Math.min(...columnHeights));
@@ -74,6 +83,7 @@ function useMasonry(itemCount: number, columnCount: number) {
         item.style.width = `calc(${100 / columnCount}% - ${gap / 2}px)`;
 
         columnHeights[columnIndex] += item.offsetHeight + gap;
+        placedCount++;
       });
 
       // Set container height to the tallest column (remove trailing gap)
