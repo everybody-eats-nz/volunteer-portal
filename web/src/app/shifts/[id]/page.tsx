@@ -8,13 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
-import { ShiftSignupDialog } from "@/components/shift-signup-dialog";
 import { CancelSignupButton } from "../mine/cancel-signup-button";
 import { PageContainer } from "@/components/page-container";
 import {
   Clock,
   MapPin,
-  Users,
   UserCheck,
   ArrowLeft,
   AlertCircle,
@@ -25,6 +23,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
+import { ShiftSignupButton } from "@/components/shift-signup-button";
+import { getShiftTheme } from "@/lib/shift-themes";
 
 // Shift type theming configuration (same as shifts page)
 const SHIFT_THEMES = {
@@ -230,6 +230,11 @@ export default async function ShiftDetailPage({
 
   const hasIncompleteProfile = missingFields.length > 0;
 
+  // Action button state
+  const isLoggedOut = !session;
+  const isAlreadySignedUp = !!userSignup;
+  const canSignUp = !!session && !isPastShift && !isAlreadySignedUp && !needsParentalConsent && !hasIncompleteProfile;
+
   // Format date and time
   const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
   const shiftTime = `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(
@@ -245,7 +250,7 @@ export default async function ShiftDetailPage({
     <PageContainer>
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/shifts">
+          <Link href={`/shifts/details?date=${formatInNZT(new Date(shift.start), "yyyy-MM-dd")}${shift.location ? `&location=${encodeURIComponent(shift.location)}` : ""}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Shifts
           </Link>
@@ -287,10 +292,6 @@ export default async function ShiftDetailPage({
                   <MapPin className="h-3.5 w-3.5" />
                   {shift.location || "TBD"}
                 </Badge>
-                <Badge variant="secondary" className="gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  {confirmedCount}/{shift.capacity} volunteers
-                </Badge>
               </div>
             </div>
 
@@ -313,18 +314,12 @@ export default async function ShiftDetailPage({
 
         <CardContent className="space-y-6">
           {/* Signup Status - shown prominently at top if signed up */}
-          {session && !isPastShift && userSignup && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800/50">
-              <div className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <span className="font-medium text-green-700 dark:text-green-300">
-                  You&apos;re signed up for this shift!
-                </span>
-              </div>
-              <CancelSignupButton
-                shiftId={id}
-                shiftName={shift.shiftType.name}
-              />
+          {isAlreadySignedUp && !isPastShift && (
+            <div className="flex items-center gap-2 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800/50">
+              <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <span className="font-medium text-green-700 dark:text-green-300">
+                You&apos;re signed up for this shift!
+              </span>
             </div>
           )}
 
@@ -336,6 +331,65 @@ export default async function ShiftDetailPage({
                 <strong>Volunteers needed!</strong> We still need {spotsRemaining} more volunteers for this shift.
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {isLoggedOut && (
+              <div className="w-full">
+                <Alert>
+                  <AlertDescription>
+                    Please <Link href={`/login?callbackUrl=/shifts/${id}`} className="font-medium underline">sign in</Link> to sign up for this shift.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
+            {isPastShift && !isLoggedOut && (
+              <Button disabled variant="secondary" className="w-full sm:w-auto">
+                Shift has ended
+              </Button>
+            )}
+
+            {isAlreadySignedUp && !isPastShift && (
+              <CancelSignupButton
+                shiftId={id}
+                shiftName={shift.shiftType.name}
+              />
+            )}
+
+            {!canSignUp && !isLoggedOut && !isPastShift && !isAlreadySignedUp && needsParentalConsent && (
+              <div className="w-full space-y-2">
+                <Button disabled variant="secondary" className="w-full sm:w-auto">
+                  Parental Consent Required
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Please download the consent form from your dashboard, have your parent/guardian sign it, and email it to <strong>volunteers@everybodyeats.nz</strong> for approval.
+                </p>
+              </div>
+            )}
+
+            {!canSignUp && !isLoggedOut && !isPastShift && !isAlreadySignedUp && !needsParentalConsent && hasIncompleteProfile && (
+              <div className="w-full space-y-2">
+                <Button disabled variant="secondary" className="w-full sm:w-auto">
+                  Complete Profile Required
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Please complete your profile to sign up for shifts.
+                </p>
+              </div>
+            )}
+
+            {canSignUp && (
+              <ShiftSignupButton theme={getShiftTheme(shift.shiftType.name)} isFull={isWaitlist} shift={shift} confirmedCount={confirmedCount} currentUserId={userId} concurrentShifts={concurrentShifts} />
+            )}
+          </div>
+
+          {/* Profile Completion / Parental Consent Banner */}
+          {session && (needsParentalConsent || hasIncompleteProfile) && (
+            <div className="py-2">
+              <DashboardProfileCompletionBanner />
+            </div>
           )}
 
           {/* Shift Details */}
@@ -487,71 +541,6 @@ export default async function ShiftDetailPage({
             </div>
           )}
 
-          {/* Profile Completion / Parental Consent Banner */}
-          {session && (needsParentalConsent || hasIncompleteProfile) && (
-            <div className="py-2">
-              <DashboardProfileCompletionBanner />
-            </div>
-          )}
-
-          {/* Action Buttons - only show if not already signed up */}
-          {!userSignup && (
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            {!session ? (
-              // Not logged in - show login prompt
-              <div className="w-full">
-                <Alert>
-                  <AlertDescription>
-                    Please <Link href={`/login?callbackUrl=/shifts/${id}`} className="font-medium underline">sign in</Link> to sign up for this shift.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            ) : isPastShift ? (
-              // Shift is in the past
-              <Button disabled variant="secondary" className="w-full sm:w-auto">
-                Shift has ended
-              </Button>
-            ) : needsParentalConsent ? (
-              // Needs parental consent - show disabled button with message
-              <div className="w-full space-y-2">
-                <Button disabled variant="secondary" className="w-full sm:w-auto">
-                  Parental Consent Required
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Please download the consent form from your dashboard, have your parent/guardian sign it, and email it to <strong>volunteers@everybodyeats.nz</strong> for approval.
-                </p>
-              </div>
-            ) : hasIncompleteProfile ? (
-              // Profile incomplete - show disabled button with message
-              <div className="w-full space-y-2">
-                <Button disabled variant="secondary" className="w-full sm:w-auto">
-                  Complete Profile Required
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Please complete your profile to sign up for shifts.
-                </p>
-              </div>
-            ) : (
-              // Not signed up - show signup options
-              <>
-                <ShiftSignupDialog
-                  shift={shift}
-                  confirmedCount={confirmedCount}
-                  isWaitlist={isWaitlist}
-                  currentUserId={userId}
-                  concurrentShifts={concurrentShifts}
-                >
-                  <Button
-                    variant={isWaitlist ? "secondary" : "default"}
-                    className="w-full sm:w-auto"
-                  >
-                    {isWaitlist ? "Join Waitlist" : "Sign Up"}
-                  </Button>
-                </ShiftSignupDialog>
-              </>
-            )}
-          </div>
-          )}
         </CardContent>
       </Card>
     </PageContainer>

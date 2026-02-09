@@ -33,30 +33,6 @@ function countDuplicates<T>(
   return sourceItems.filter((item) => targetKeys.has(keySelector(item))).length;
 }
 
-/**
- * Helper function to partition source items into transfers and duplicates.
- * Returns items to transfer (not in target) and items to skip (already in target).
- */
-function partitionByDuplicates<T extends { id: string }>(
-  targetItems: { key: string }[],
-  sourceItems: T[],
-  keySelector: (item: T) => string
-): { toTransfer: T[]; toSkip: T[] } {
-  const targetKeys = new Set(targetItems.map((t) => t.key));
-  const toTransfer: T[] = [];
-  const toSkip: T[] = [];
-
-  for (const item of sourceItems) {
-    if (targetKeys.has(keySelector(item))) {
-      toSkip.push(item);
-    } else {
-      toTransfer.push(item);
-    }
-  }
-
-  return { toTransfer, toSkip };
-}
-
 export interface MergeStats {
   signups: { transferred: number; skipped: number };
   achievements: { transferred: number; skipped: number };
