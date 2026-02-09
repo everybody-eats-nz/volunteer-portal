@@ -15,6 +15,7 @@ import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
 import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
 import { DashboardSurveyBanner } from "@/components/dashboard-survey-banner";
+import { DashboardSuggestedFriends } from "@/components/dashboard-suggested-friends";
 import { AchievementTracker } from "@/components/achievement-tracker";
 import type { Metadata } from "next";
 
@@ -63,6 +64,11 @@ export default async function DashboardPage() {
         {/* Next Shift - streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
           <DashboardNextShift userId={userId} />
+        </Suspense>
+
+        {/* Suggested Friends - only renders if there are suggestions */}
+        <Suspense fallback={null}>
+          <DashboardSuggestedFriends />
         </Suspense>
 
         {/* Achievements - streams in when ready */}
