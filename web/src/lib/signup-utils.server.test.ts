@@ -1,13 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { autoCancelOtherPendingSignupsForDay } from "./signup-utils.server";
 import { prisma } from "./prisma";
+import { SignupStatus } from "@/generated/client";
 
 // Type for mock signup data with shift relation
 type MockSignupWithShift = {
   id: string;
   userId: string;
   shiftId: string;
-  status: string;
+  status: SignupStatus;
+  groupBookingId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  canceledAt: Date | null;
+  previousStatus: string | null;
+  cancellationReason: string | null;
+  isFlexiblePlacement: boolean;
+  originalShiftId: string | null;
+  placedAt: Date | null;
+  placementNotes: string | null;
+  backupForShiftIds: string[];
+  note: string | null;
   shift: {
     id: string;
     start: Date;
@@ -48,7 +61,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-1",
         userId,
         shiftId: "shift-1",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-1",
           start: new Date("2025-01-15T09:00:00+13:00"), // 9 AM - should be canceled
@@ -59,7 +84,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-2",
         userId,
         shiftId: "shift-2",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-2",
           start: new Date("2025-01-15T17:00:00+13:00"), // 5 PM - should NOT be canceled (PM shift)
@@ -70,7 +107,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-3",
         userId,
         shiftId: "shift-3",
-        status: "WAITLISTED",
+        status: SignupStatus.WAITLISTED,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-3",
           start: new Date("2025-01-15T14:30:00+13:00"), // 2:30 PM - should be canceled (still AM)
@@ -109,7 +158,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-1",
         userId,
         shiftId: "shift-1",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-1",
           start: new Date("2025-01-15T09:00:00+13:00"), // 9 AM - should NOT be canceled (AM shift)
@@ -120,7 +181,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-2",
         userId,
         shiftId: "shift-2",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-2",
           start: new Date("2025-01-15T15:00:00+13:00"), // 3 PM - should NOT be canceled (AM shift)
@@ -131,7 +204,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-3",
         userId,
         shiftId: "shift-3",
-        status: "REGULAR_PENDING",
+        status: SignupStatus.REGULAR_PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-3",
           start: new Date("2025-01-15T18:30:00+13:00"), // 6:30 PM - should be canceled (PM shift)
@@ -170,7 +255,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-1",
         userId,
         shiftId: "shift-1",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-1",
           start: new Date("2025-01-15T15:59:00+13:00"), // 3:59 PM - should NOT be canceled (AM)
@@ -181,7 +278,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-2",
         userId,
         shiftId: "shift-2",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-2",
           start: new Date("2025-01-15T16:01:00+13:00"), // 4:01 PM - should be canceled (PM)
@@ -192,7 +301,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-3",
         userId,
         shiftId: "shift-3",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-3",
           start: new Date("2025-01-15T12:00:00+13:00"), // Noon - should NOT be canceled (AM)
@@ -231,7 +352,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-1",
         userId,
         shiftId: "shift-1",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-1",
           start: new Date("2025-01-16T09:00:00+13:00"), // Next day, same time - should NOT be canceled
@@ -242,7 +375,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-2",
         userId,
         shiftId: "shift-2",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-2",
           start: new Date("2025-01-14T09:00:00+13:00"), // Previous day, same time - should NOT be canceled
@@ -309,7 +454,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-1",
         userId,
         shiftId: "shift-1",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-1",
           start: new Date("2025-01-15T10:00:00+13:00"), // 10 AM - should be canceled (AM)
@@ -320,7 +477,19 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         id: "signup-2",
         userId,
         shiftId: "shift-2",
-        status: "PENDING",
+        status: SignupStatus.PENDING,
+        groupBookingId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        canceledAt: null,
+        previousStatus: null,
+        cancellationReason: null,
+        isFlexiblePlacement: false,
+        originalShiftId: null,
+        placedAt: null,
+        placementNotes: null,
+        backupForShiftIds: [],
+        note: null,
         shift: {
           id: "shift-2",
           start: new Date("2025-01-15T17:00:00+13:00"), // 5 PM - should NOT be canceled (PM)
