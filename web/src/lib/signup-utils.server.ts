@@ -4,14 +4,17 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 
 /**
  * Auto-cancels other pending/waitlisted signups for the same user on the same day
- * when a shift is confirmed. Does NOT send notifications.
+ * and same period (AM/PM) when a shift is confirmed. Does NOT send notifications.
+ *
+ * Uses the same AM/PM threshold as concurrent shifts: before 4pm is AM, 4pm+ is PM.
  *
  * @param userId - The user whose other signups should be canceled
  * @param confirmedShiftId - The shift that was just confirmed (excluded from cancellation)
- * @param confirmedShiftStart - The start time of the confirmed shift (used for same-day check)
+ * @param confirmedShiftStart - The start time of the confirmed shift (used for same-day and period check)
  * @returns The number of signups that were auto-canceled
  */
 export async function autoCancelOtherPendingSignupsForDay(
@@ -19,13 +22,10 @@ export async function autoCancelOtherPendingSignupsForDay(
   confirmedShiftId: string,
   confirmedShiftStart: Date
 ): Promise<number> {
-  // Get the NZ calendar date of the confirmed shift
-  const confirmedNZDate = new Intl.DateTimeFormat("en-NZ", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Pacific/Auckland",
-  }).format(confirmedShiftStart);
+  // Get the NZ calendar date and period (AM/PM) of the confirmed shift
+  const confirmedNZDate = getShiftDate(confirmedShiftStart);
+  const confirmedIsAM = isAMShift(confirmedShiftStart);
+  const confirmedPeriod = confirmedIsAM ? "AM" : "PM";
 
   // Find all other pending/waitlisted signups for this user
   const otherSignups = await prisma.signup.findMany({
@@ -47,15 +47,13 @@ export async function autoCancelOtherPendingSignupsForDay(
     },
   });
 
-  // Filter to only signups on the same NZ calendar day
+  // Filter to only signups on the same NZ calendar day AND same period (AM/PM)
   const signupsToCancel = otherSignups.filter((signup) => {
-    const signupNZDate = new Intl.DateTimeFormat("en-NZ", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "Pacific/Auckland",
-    }).format(signup.shift.start);
-    return signupNZDate === confirmedNZDate;
+    const signupNZDate = getShiftDate(signup.shift.start);
+    const signupIsAM = isAMShift(signup.shift.start);
+
+    // Only cancel if both the date AND period match
+    return signupNZDate === confirmedNZDate && signupIsAM === confirmedIsAM;
   });
 
   if (signupsToCancel.length === 0) {
@@ -73,12 +71,12 @@ export async function autoCancelOtherPendingSignupsForDay(
       status: "CANCELED",
       canceledAt: new Date(),
       previousStatus: "PENDING", // Note: updateMany doesn't support per-record values
-      cancellationReason: "Auto-canceled: Another shift was confirmed for this day",
+      cancellationReason: `Auto-canceled: Another ${confirmedPeriod} shift was confirmed for this day`,
     },
   });
 
   console.log(
-    `Auto-canceled ${signupsToCancel.length} pending signup(s) for user ${userId} on ${confirmedNZDate}`
+    `Auto-canceled ${signupsToCancel.length} pending ${confirmedPeriod} signup(s) for user ${userId} on ${confirmedNZDate}`
   );
 
   return signupsToCancel.length;
