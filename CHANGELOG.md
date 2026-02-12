@@ -1,3 +1,9 @@
+## [0.106.0] - 2026-02-09
+
+### Changes
+- feat: show suggested friends on dashboard ([#560](https://github.com/everybody-eats-nz/volunteer-portal/pull/560)) by @malinmalliyawadu
+
+
 ## [0.105.0] - 2026-02-06
 
 ### Changes

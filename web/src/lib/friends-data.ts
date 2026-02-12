@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { cache } from "react";
+import { subMonths } from "date-fns";
+import type { RecommendedFriend } from "@/lib/friends-utils";
 
 export interface Friend {
   friendshipId: string;
@@ -168,6 +170,153 @@ export const getFriendsData = cache(async (): Promise<FriendsData | null> => {
       pendingRequests: [],
       sentRequests: [],
     };
+  }
+});
+
+const SHARED_SHIFTS_THRESHOLD = 3;
+const MONTHS_TO_LOOK_BACK = 3;
+
+// Fetch recommended friends based on shared shifts
+export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]> => {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  try {
+    const cutoffDate = subMonths(new Date(), MONTHS_TO_LOOK_BACK);
+
+    const userShifts = await prisma.signup.findMany({
+      where: {
+        userId: user.id,
+        status: "CONFIRMED",
+        shift: { start: { gte: cutoffDate } },
+      },
+      select: { shiftId: true },
+    });
+
+    const userShiftIds = userShifts.map((signup) => signup.shiftId);
+
+    if (userShiftIds.length === 0) {
+      return [];
+    }
+
+    const existingFriends = await prisma.friendship.findMany({
+      where: {
+        OR: [{ userId: user.id }, { friendId: user.id }],
+        status: "ACCEPTED",
+      },
+      select: { userId: true, friendId: true },
+    });
+
+    const friendIds = existingFriends.map((f) =>
+      f.userId === user.id ? f.friendId : f.userId
+    );
+
+    const pendingRequests = await prisma.friendRequest.findMany({
+      where: {
+        OR: [
+          { fromUserId: user.id, status: "PENDING" },
+          { toEmail: user.email, status: "PENDING" },
+        ],
+        expiresAt: { gt: new Date() },
+      },
+      include: { fromUser: { select: { id: true } } },
+    });
+
+    const pendingUserIds = pendingRequests.map((req) =>
+      req.fromUserId === user.id ? req.toEmail : req.fromUser.id
+    );
+
+    const sharedSignups = await prisma.signup.findMany({
+      where: {
+        shiftId: { in: userShiftIds },
+        userId: { not: user.id },
+        status: "CONFIRMED",
+        user: {
+          allowFriendSuggestions: true,
+          id: { notIn: friendIds },
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profilePhotoUrl: true,
+          },
+        },
+        shift: {
+          select: {
+            id: true,
+            start: true,
+            shiftType: { select: { name: true } },
+            location: true,
+          },
+        },
+      },
+    });
+
+    const userShiftCounts = new Map<
+      string,
+      {
+        user: (typeof sharedSignups)[0]["user"];
+        shifts: (typeof sharedSignups)[0]["shift"][];
+      }
+    >();
+
+    sharedSignups.forEach((signup) => {
+      const userId = signup.user.id;
+
+      if (
+        pendingUserIds.includes(userId) ||
+        pendingUserIds.includes(signup.user.email)
+      ) {
+        return;
+      }
+
+      if (!userShiftCounts.has(userId)) {
+        userShiftCounts.set(userId, { user: signup.user, shifts: [] });
+      }
+
+      userShiftCounts.get(userId)!.shifts.push(signup.shift);
+    });
+
+    return Array.from(userShiftCounts.entries())
+      .filter(([, data]) => data.shifts.length >= SHARED_SHIFTS_THRESHOLD)
+      .map(([, data]) => ({
+        id: data.user.id,
+        name: data.user.name,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        profilePhotoUrl: data.user.profilePhotoUrl,
+        sharedShiftsCount: data.shifts.length,
+        recentSharedShifts: data.shifts
+          .sort((a, b) => b.start.getTime() - a.start.getTime())
+          .slice(0, 3)
+          .map((shift) => ({
+            id: shift.id,
+            start: shift.start.toISOString(),
+            shiftTypeName: shift.shiftType.name,
+            location: shift.location,
+          })),
+      }))
+      .sort((a, b) => b.sharedShiftsCount - a.sharedShiftsCount);
+  } catch (error) {
+    console.error("Error fetching recommended friends:", error);
+    return [];
   }
 });
 
