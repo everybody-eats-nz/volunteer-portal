@@ -299,14 +299,12 @@ function VolunteerStatusGroups({
   statusOrder,
   groupedSignups,
   shift,
-  isCompleted,
   shiftIdToTypeName,
   triggerLayoutUpdate,
 }: {
   statusOrder: Array<{ status: string; label: string; icon: typeof CheckCircle2; color: string }>;
   groupedSignups: Record<string, Shift["signups"]>;
   shift: Shift;
-  isCompleted: boolean;
   shiftIdToTypeName: Map<string, string>;
   triggerLayoutUpdate: () => void;
 }) {
@@ -377,7 +375,7 @@ function VolunteerStatusGroups({
                       </Avatar>
                     </Link>
                     <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-center flex-wrap gap-2 mb-2">
+                      <div className="flex items-center flex-wrap gap-2 mb-1">
                         <Link
                           href={`/admin/volunteers/${signup.user.id}`}
                           className="text-sm font-semibold text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
@@ -443,7 +441,7 @@ function VolunteerStatusGroups({
                           </span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between gap-3 mt-2">
+                      <div className="flex items-center justify-between gap-3 mt-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <div
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
@@ -644,7 +642,6 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             statusOrder={statusOrder}
                             groupedSignups={groupedSignups}
                             shift={shift}
-                            isCompleted={isCompleted}
                             shiftIdToTypeName={shiftIdToTypeName}
                             triggerLayoutUpdate={triggerLayoutUpdate}
                           />
