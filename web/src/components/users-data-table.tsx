@@ -143,7 +143,13 @@ export const columns: ColumnDef<User>[] = [
               data-testid={`user-email-${user.id}`}
             >
               <Mail className="h-3 w-3" />
-              {user.email}
+              <a
+                href={`mailto:${user.email}`}
+                className="hover:text-foreground hover:underline transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {user.email}
+              </a>
             </div>
           </div>
         </div>
@@ -191,7 +197,13 @@ export const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const phone = row.getValue("phone") as string | null;
       return phone ? (
-        <span className="text-sm font-medium">{phone}</span>
+        <a
+          href={`tel:${phone}`}
+          className="text-sm font-medium hover:text-foreground hover:underline transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {phone}
+        </a>
       ) : (
         <span className="text-xs text-muted-foreground">No phone</span>
       );

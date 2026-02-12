@@ -21,6 +21,17 @@ export function DashboardProfileCompletionBanner() {
   const { data: session } = useSession();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [consentFormUrl, setConsentFormUrl] = useState("/parental-consent-form.pdf");
+
+  // Fetch the parental consent form URL from settings
+  useEffect(() => {
+    fetch("/api/site-settings?key=PARENTAL_CONSENT_FORM_URL")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.value) setConsentFormUrl(data.value);
+      })
+      .catch((err) => console.error("Failed to fetch consent form URL:", err));
+  }, []);
 
   useEffect(() => {
     if (!session?.user?.id) {
@@ -109,7 +120,7 @@ export function DashboardProfileCompletionBanner() {
                   variant="outline"
                   className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
                   onClick={() =>
-                    window.open("/parental-consent-form.pdf", "_blank")
+                    window.open(consentFormUrl, "_blank")
                   }
                 >
                   <FileText className="h-4 w-4 mr-1" />
