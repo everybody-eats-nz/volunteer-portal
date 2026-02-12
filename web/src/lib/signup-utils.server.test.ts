@@ -2,6 +2,24 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { autoCancelOtherPendingSignupsForDay } from "./signup-utils.server";
 import { prisma } from "./prisma";
 
+// Type for mock signup data with shift relation
+type MockSignupWithShift = {
+  id: string;
+  userId: string;
+  shiftId: string;
+  status: string;
+  shift: {
+    id: string;
+    start: Date;
+    shiftType: { name: string };
+  };
+};
+
+// Type for Prisma updateMany result
+type PrismaUpdateResult = {
+  count: number;
+};
+
 // Mock the prisma client
 vi.mock("./prisma", () => ({
   prisma: {
@@ -61,8 +79,8 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
       },
     ];
 
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as any);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 2 } as any);
+    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
+    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 2 } as PrismaUpdateResult);
 
     const result = await autoCancelOtherPendingSignupsForDay(
       userId,
@@ -122,8 +140,8 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
       },
     ];
 
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as any);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as any);
+    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
+    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as PrismaUpdateResult);
 
     const result = await autoCancelOtherPendingSignupsForDay(
       userId,
@@ -183,8 +201,8 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
       },
     ];
 
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as any);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as any);
+    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
+    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as PrismaUpdateResult);
 
     const result = await autoCancelOtherPendingSignupsForDay(
       userId,
@@ -233,7 +251,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
       },
     ];
 
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as any);
+    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
 
     const result = await autoCancelOtherPendingSignupsForDay(
       userId,
@@ -311,8 +329,8 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
       },
     ];
 
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as any);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as any);
+    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
+    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as PrismaUpdateResult);
 
     const result = await autoCancelOtherPendingSignupsForDay(
       userId,
