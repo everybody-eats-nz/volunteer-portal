@@ -90,7 +90,16 @@ export function AdminEditableField({
     return (
       <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg group">
         <div className="flex-1 space-y-1">
-          <p className="text-sm text-muted-foreground">{displayValue}</p>
+          {fieldName === "email" && currentValue ? (
+            <a
+              href={`mailto:${currentValue}`}
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+            >
+              {displayValue}
+            </a>
+          ) : (
+            <p className="text-sm text-muted-foreground">{displayValue}</p>
+          )}
         </div>
         <Button
           variant="ghost"

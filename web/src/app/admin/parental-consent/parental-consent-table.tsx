@@ -172,7 +172,12 @@ export function ParentalConsentTable() {
                                 </Link>
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {user.email}
+                                <a
+                                  href={`mailto:${user.email}`}
+                                  className="hover:text-foreground hover:underline transition-colors"
+                                >
+                                  {user.email}
+                                </a>
                               </div>
                             </div>
                             {!user.profileCompleted && (
@@ -189,12 +194,22 @@ export function ParentalConsentTable() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-1 text-sm">
                               <Mail className="h-3 w-3" />
-                              {user.email}
+                              <a
+                                href={`mailto:${user.email}`}
+                                className="hover:text-foreground hover:underline transition-colors"
+                              >
+                                {user.email}
+                              </a>
                             </div>
                             {user.phone && (
                               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                 <Phone className="h-3 w-3" />
-                                {user.phone}
+                                <a
+                                  href={`tel:${user.phone}`}
+                                  className="hover:text-foreground hover:underline transition-colors"
+                                >
+                                  {user.phone}
+                                </a>
                               </div>
                             )}
                           </div>
@@ -208,7 +223,12 @@ export function ParentalConsentTable() {
                               {user.emergencyContactPhone && (
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                   <Phone className="h-3 w-3" />
-                                  {user.emergencyContactPhone}
+                                  <a
+                                    href={`tel:${user.emergencyContactPhone}`}
+                                    className="hover:text-foreground hover:underline transition-colors"
+                                  >
+                                    {user.emergencyContactPhone}
+                                  </a>
                                 </div>
                               )}
                             </div>
