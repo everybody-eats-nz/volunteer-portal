@@ -108,6 +108,22 @@ async function main() {
 
   console.log("✅ Restaurant locations created");
 
+  // Create site settings
+  console.log("Creating site settings...");
+
+  await prisma.siteSetting.upsert({
+    where: { key: "PARENTAL_CONSENT_FORM_URL" },
+    update: {},
+    create: {
+      key: "PARENTAL_CONSENT_FORM_URL",
+      value: "/parental-consent-form.pdf",
+      description: "URL for parental consent form PDF that parents must complete for volunteers under 16",
+      category: "DOCUMENTS",
+    },
+  });
+
+  console.log("✅ Site settings created");
+
   // Create essential shift types
   console.log("Creating shift types...");
 

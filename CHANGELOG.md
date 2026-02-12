@@ -1,3 +1,9 @@
+## [0.107.0] - 2026-02-12
+
+### Changes
+- feat: add SiteSetting model and implement parental consent form URL c… ([#568](https://github.com/everybody-eats-nz/volunteer-portal/pull/568)) by @malinmalliyawadu
+
+
 ## [0.106.0] - 2026-02-09
 
 ### Changes
