@@ -185,7 +185,7 @@ function getGradeInfo(grade: string | null | undefined, completedShifts: number)
   }
 
   // Map the shared grade info to component's icon and color format
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, typeof Award> = {
     "🩷": Award,    // PINK - Shift Leader
     "🟡": Star,     // YELLOW - Experienced
     "🟢": Shield,   // GREEN - Standard

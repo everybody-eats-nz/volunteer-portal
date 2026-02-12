@@ -76,7 +76,8 @@ export async function GET(request: Request) {
       }
 
       // Remove signups from the response, only keep completedShifts count
-      const { signups, ...volunteerWithoutSignups } = volunteer as any;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { signups: _signups, ...volunteerWithoutSignups } = volunteer;
 
       return {
         ...volunteerWithoutSignups,
