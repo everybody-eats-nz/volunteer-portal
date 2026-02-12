@@ -158,6 +158,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "resources",
       },
       {
+        title: "Site Settings",
+        href: "/admin/site-settings",
+        icon: Settings,
+        description: "Configure site-wide settings and URLs",
+        commandKey: "site-settings",
+      },
+      {
         title: "Newsletter Lists",
         href: "/admin/newsletter-lists",
         icon: Mail,
@@ -255,6 +262,7 @@ export const getIconColor = (
 
     // Resources
     "Resource Hub": "text-blue-500",
+    "Site Settings": "text-slate-600",
 
     // User Migration
     "Bulk Migration": "text-blue-600",
