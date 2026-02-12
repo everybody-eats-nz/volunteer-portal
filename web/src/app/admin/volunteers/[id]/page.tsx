@@ -296,7 +296,12 @@ export default async function AdminVolunteerPage({
                   data-testid="volunteer-email"
                 >
                   <Mail className="h-4 w-4" />
-                  <span className="text-sm">{volunteer.email}</span>
+                  <a
+                    href={`mailto:${volunteer.email}`}
+                    className="text-sm hover:text-foreground hover:underline transition-colors"
+                  >
+                    {volunteer.email}
+                  </a>
                 </div>
 
                 {/* Quick Info Row - Pronouns & Age */}
@@ -592,7 +597,16 @@ export default async function AdminVolunteerPage({
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Phone</label>
                   <p className="text-sm text-muted-foreground">
-                    {volunteer.emergencyContactPhone || "Not provided"}
+                    {volunteer.emergencyContactPhone ? (
+                      <a
+                        href={`tel:${volunteer.emergencyContactPhone}`}
+                        className="hover:text-foreground hover:underline transition-colors"
+                      >
+                        {volunteer.emergencyContactPhone}
+                      </a>
+                    ) : (
+                      "Not provided"
+                    )}
                   </p>
                 </div>
               </CardContent>
