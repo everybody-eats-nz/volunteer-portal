@@ -58,7 +58,16 @@ export function AdminContactInfoSection({
             </label>
             <div className="flex items-center gap-3 p-3 bg-muted/50 dark:bg-muted/30 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                {phone || "Not provided"}
+                {phone ? (
+                  <a
+                    href={`tel:${phone}`}
+                    className="hover:text-foreground hover:underline transition-colors"
+                  >
+                    {phone}
+                  </a>
+                ) : (
+                  "Not provided"
+                )}
               </p>
             </div>
           </div>
