@@ -21,8 +21,9 @@ export const supabase = createClient(url, key);
 // Admin client for server-side operations (file deletion, etc.)
 export const getSupabaseAdmin = () => {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
+  if (!isBuildTime && !serviceRoleKey) {
     throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
   }
-  return createClient(supabaseUrl, serviceRoleKey);
+  const adminKey = serviceRoleKey || "dummy-service-role-key-for-build";
+  return createClient(url, adminKey);
 };
