@@ -3,6 +3,8 @@
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { useEffect, useRef, useState, createContext, useContext } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getDisplayGradeInfo } from "@/lib/volunteer-grades";
+import type { VolunteerGrade } from "@/generated/client";
 
 // Enhanced stagger container with day-level transition handling
 const enhancedStaggerContainer: Variants = {
@@ -112,6 +114,11 @@ interface Shift {
       volunteerGrade: string | null;
       profilePhotoUrl: string | null;
       dateOfBirth: Date | null;
+      signups?: Array<{
+        shift: {
+          end: Date;
+        };
+      }>;
       adminNotes: Array<{
         id: string;
         content: string;
@@ -161,29 +168,44 @@ function getStaffingStatus(confirmed: number, capacity: number) {
   return { color: "bg-red-500", text: "Critical", icon: AlertTriangle };
 }
 
-function getGradeInfo(grade: string | null | undefined) {
-  switch (grade) {
-    case "PINK":
-      return {
-        color: "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-200 border border-pink-200 dark:border-pink-700",
-        icon: Award,
-        label: "Shift Leader",
-      };
-    case "YELLOW":
-      return {
-        color: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700",
-        icon: Star,
-        label: "Experienced",
-      };
-    case "GREEN":
-      return {
-        color: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-700",
-        icon: Shield,
-        label: "Standard",
-      };
-    default:
-      return { color: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-700", icon: null, label: "New" };
+function getGradeInfo(grade: string | null | undefined, completedShifts: number) {
+  // Use the shared display logic
+  const displayInfo = getDisplayGradeInfo(
+    (grade as VolunteerGrade) || "GREEN",
+    completedShifts
+  );
+
+  // Map to the format expected by this component
+  if (!displayInfo) {
+    return {
+      color: "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700",
+      icon: null,
+      label: "No grade",
+    };
   }
+
+  // Map the shared grade info to component's icon and color format
+  const iconMap: Record<string, any> = {
+    "🩷": Award,    // PINK - Shift Leader
+    "🟡": Star,     // YELLOW - Experienced
+    "🟢": Shield,   // GREEN - Standard
+    "✨": Star,     // NEW_VOLUNTEER - New volunteer
+    "🌟": Star,     // FIRST_SHIFT - First shift
+  };
+
+  const colorMap: Record<string, string> = {
+    "Shift Leader": "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-200 border border-pink-200 dark:border-pink-700",
+    "Experienced": "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700",
+    "Standard": "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-700",
+    "New volunteer": "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-700",
+    "First shift": "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-700",
+  };
+
+  return {
+    color: colorMap[displayInfo.label] || "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700",
+    icon: iconMap[displayInfo.icon] || Shield,
+    label: displayInfo.label,
+  };
 }
 
 // Masonry layout hook
@@ -391,8 +413,13 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                           className="space-y-3"
                         >
                           {shift.signups.map((signup) => {
+                            const now = new Date();
+                            const completedShifts = signup.user.signups
+                              ? signup.user.signups.filter(s => s.shift.end < now).length
+                              : 0;
                             const gradeInfo = getGradeInfo(
-                              signup.user.volunteerGrade
+                              signup.user.volunteerGrade,
+                              completedShifts
                             );
                             const GradeIcon = gradeInfo.icon;
                             return (

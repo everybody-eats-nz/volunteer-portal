@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { type VolunteerGrade } from "@/generated/client";
-import { getVolunteerGradeInfo } from "@/lib/volunteer-grades";
+import { getDisplayGradeInfo } from "@/lib/volunteer-grades";
 
 interface VolunteerGradeBadgeProps {
   grade: VolunteerGrade;
+  completedShifts: number;
   size?: "sm" | "default" | "lg";
   showIcon?: boolean;
   className?: string;
@@ -12,11 +13,17 @@ interface VolunteerGradeBadgeProps {
 
 export function VolunteerGradeBadge({
   grade,
+  completedShifts,
   size = "default",
   showIcon = true,
   className,
 }: VolunteerGradeBadgeProps) {
-  const info = getVolunteerGradeInfo(grade);
+  const info = getDisplayGradeInfo(grade, completedShifts);
+
+  // Don't render anything if no badge should be shown (0 shifts)
+  if (!info) {
+    return null;
+  }
 
   const sizeClasses = {
     sm: "text-xs px-1.5 py-0.5",

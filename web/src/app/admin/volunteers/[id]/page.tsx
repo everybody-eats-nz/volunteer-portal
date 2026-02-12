@@ -32,6 +32,7 @@ import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { VolunteerGradeToggle } from "@/components/volunteer-grade-toggle";
 import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
+import { getDisplayGradeInfo } from "@/lib/volunteer-grades";
 import { UserRoleToggle } from "@/components/user-role-toggle";
 import { AdminNotesManager } from "@/components/admin-notes-manager";
 import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager";
@@ -337,6 +338,7 @@ export default async function AdminVolunteerPage({
                     volunteer.volunteerGrade && (
                       <VolunteerGradeBadge
                         grade={volunteer.volunteerGrade as VolunteerGrade}
+                        completedShifts={completedShifts}
                         size="default"
                       />
                     )}
@@ -511,6 +513,7 @@ export default async function AdminVolunteerPage({
                     <div className="flex items-center gap-3">
                       <VolunteerGradeBadge
                         grade={volunteer.volunteerGrade}
+                        completedShifts={completedShifts}
                         size="default"
                       />
                       <VolunteerGradeToggle
@@ -520,12 +523,7 @@ export default async function AdminVolunteerPage({
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {volunteer.volunteerGrade === "GREEN" &&
-                        "Standard volunteer with basic access"}
-                      {volunteer.volunteerGrade === "YELLOW" &&
-                        "Experienced volunteer with additional privileges"}
-                      {volunteer.volunteerGrade === "PINK" &&
-                        "Shift leader with team management capabilities"}
+                      {getDisplayGradeInfo(volunteer.volunteerGrade, completedShifts)?.description || "No grade assigned"}
                     </p>
                   </div>
                 )}
