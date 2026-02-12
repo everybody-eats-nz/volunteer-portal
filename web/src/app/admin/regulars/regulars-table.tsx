@@ -254,7 +254,12 @@ export function RegularsTable({
                             {regular.user.firstName} {regular.user.lastName}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {regular.user.email}
+                            <a
+                              href={`mailto:${regular.user.email}`}
+                              className="hover:text-foreground hover:underline transition-colors"
+                            >
+                              {regular.user.email}
+                            </a>
                           </div>
                         </div>
                       </div>
