@@ -1,3 +1,9 @@
+## [0.108.3] - 2026-02-13
+
+### Changes
+- fix: improve suggested friends state management and pending requests ([#572](https://github.com/everybody-eats-nz/volunteer-portal/pull/572)) by @malinmalliyawadu
+
+
 ## [0.108.2] - 2026-02-13
 
 ### Changes
