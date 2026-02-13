@@ -11,6 +11,7 @@ import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { LOCATION_ADDRESSES } from "@/lib/locations";
 import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
+import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
 export async function PATCH(
   req: Request,
@@ -173,6 +174,12 @@ export async function PATCH(
         // Don't fail the approval if auto-cancel fails
       }
 
+      // Check if this is the volunteer's first confirmed shift
+      const isFirstShift = await isFirstConfirmedShift(
+        signup.user.id,
+        signup.shift.id
+      );
+
       // Send confirmation email to volunteer (fire-and-forget with timeout)
       const emailService = getEmailService();
       const shiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
@@ -201,6 +208,7 @@ export async function PATCH(
           shiftId: signup.shift.id,
           shiftStart: signup.shift.start,
           shiftEnd: signup.shift.end,
+          isFirstShift: isFirstShift,
         }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Email send timeout")), 10000)
@@ -410,6 +418,12 @@ export async function PATCH(
         // Don't fail the confirmation if auto-cancel fails
       }
 
+      // Check if this is the volunteer's first confirmed shift
+      const isFirstShiftForConfirm = await isFirstConfirmedShift(
+        signup.user.id,
+        signup.shift.id
+      );
+
       // Send confirmation email to volunteer (fire-and-forget with timeout)
       const confirmEmailService = getEmailService();
       const confirmShiftDate = formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy");
@@ -438,6 +452,7 @@ export async function PATCH(
           shiftId: signup.shift.id,
           shiftStart: signup.shift.start,
           shiftEnd: signup.shift.end,
+          isFirstShift: isFirstShiftForConfirm,
         }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Email send timeout")), 10000)
