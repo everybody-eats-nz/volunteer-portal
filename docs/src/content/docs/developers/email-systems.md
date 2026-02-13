@@ -32,6 +32,7 @@ CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID="migration-template-id"
 CAMPAIGN_MONITOR_SHIFT_ADMIN_CANCELLATION_EMAIL_ID="admin-cancellation-template-id"
 CAMPAIGN_MONITOR_SHIFT_SHORTAGE_EMAIL_ID="shortage-template-id"
 CAMPAIGN_MONITOR_SHIFT_CONFIRMATION_EMAIL_ID="confirmation-template-id"
+CAMPAIGN_MONITOR_FIRST_SHIFT_CONFIRMATION_EMAIL_ID="first-shift-confirmation-template-id"
 CAMPAIGN_MONITOR_VOLUNTEER_CANCELLATION_EMAIL_ID="volunteer-cancellation-template-id"
 CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID="email-verification-template-id"
 CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID="parental-consent-template-id"
@@ -79,7 +80,26 @@ Sent when a volunteer successfully signs up for a shift.
 - `addToCalendarIcsLink` - ICS file download link
 - `locationMapLink` - Google Maps link to location
 
-### 3. Shift Cancellation - Manager (`CAMPAIGN_MONITOR_SHIFT_ADMIN_CANCELLATION_EMAIL_ID`)
+### 3. First Shift Confirmation (`CAMPAIGN_MONITOR_FIRST_SHIFT_CONFIRMATION_EMAIL_ID`)
+
+Sent when a volunteer successfully signs up for their very first shift. This special email can include welcome messages, additional instructions, or resources for first-time volunteers.
+
+**Data Fields:**
+
+- `firstName` - Volunteer's first name
+- `role` - Shift role/type name
+- `shiftDate` - Formatted date (e.g., "Monday, January 15, 2024")
+- `shiftTime` - Time range (e.g., "6:00 PM - 9:00 PM")
+- `location` - Restaurant/venue location
+- `linkToShift` - Direct link to shift details
+- `addToGoogleCalendarLink` - Google Calendar add link
+- `addToOutlookCalendarLink` - Outlook Calendar add link
+- `addToCalendarIcsLink` - ICS file download link
+- `locationMapLink` - Google Maps link to location
+
+**Note:** If this template is not configured, the system will automatically fall back to the regular shift confirmation template.
+
+### 4. Shift Cancellation - Manager (`CAMPAIGN_MONITOR_SHIFT_ADMIN_CANCELLATION_EMAIL_ID`)
 
 Sent to restaurant managers when a volunteer cancels their shift.
 
@@ -96,7 +116,7 @@ Sent to restaurant managers when a volunteer cancels their shift.
 - `remainingVolunteers` - Number of volunteers still assigned
 - `shiftCapacity` - Total capacity needed for the shift
 
-### 4. Volunteer Cancellation (`CAMPAIGN_MONITOR_VOLUNTEER_CANCELLATION_EMAIL_ID`)
+### 5. Volunteer Cancellation (`CAMPAIGN_MONITOR_VOLUNTEER_CANCELLATION_EMAIL_ID`)
 
 Sent to volunteers confirming their shift cancellation.
 
@@ -109,7 +129,7 @@ Sent to volunteers confirming their shift cancellation.
 - `location` - Restaurant location
 - `browseShiftsLink` - Link to browse available shifts
 
-### 5. Shift Shortage (`CAMPAIGN_MONITOR_SHIFT_SHORTAGE_EMAIL_ID`)
+### 6. Shift Shortage (`CAMPAIGN_MONITOR_SHIFT_SHORTAGE_EMAIL_ID`)
 
 Sent to eligible volunteers when a shift needs more volunteers.
 
@@ -121,7 +141,7 @@ Sent to eligible volunteers when a shift needs more volunteers.
 - `restarauntLocation` - Restaurant location
 - `linkToEvent` - Direct link to the shift signup
 
-### 6. Email Verification (`CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID`)
+### 7. Email Verification (`CAMPAIGN_MONITOR_EMAIL_VERIFICATION_ID`)
 
 Sent to new users to verify their email address.
 
@@ -130,7 +150,7 @@ Sent to new users to verify their email address.
 - `firstName` - User's first name
 - `verificationLink` - Link to verify email address
 
-### 7. Parental Consent Approval (`CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID`)
+### 8. Parental Consent Approval (`CAMPAIGN_MONITOR_PARENTAL_CONSENT_APPROVAL_EMAIL_ID`)
 
 Sent when parental consent is approved for underage volunteers.
 
@@ -139,7 +159,7 @@ Sent when parental consent is approved for underage volunteers.
 - `firstName` - Volunteer's first name
 - `linkToDashboard` - Link to volunteer dashboard
 
-### 8. User Invitation (`CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID`)
+### 9. User Invitation (`CAMPAIGN_MONITOR_USER_INVITATION_EMAIL_ID`)
 
 Sent when administrators invite new users to join the volunteer portal.
 
@@ -156,8 +176,12 @@ Sent when administrators invite new users to join the volunteer portal.
 
 ```typescript
 import { getEmailService } from "@/lib/email-service";
+import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
 const emailService = getEmailService();
+
+// Check if this is the volunteer's first confirmed shift
+const isFirstShift = await isFirstConfirmedShift(volunteer.id, shift.id);
 
 await emailService.sendShiftConfirmationNotification({
   to: volunteer.email,
@@ -169,6 +193,7 @@ await emailService.sendShiftConfirmationNotification({
   shiftId: shift.id,
   shiftStart: shift.start,
   shiftEnd: shift.end,
+  isFirstShift: isFirstShift, // Use special first shift template if true
 });
 ```
 
