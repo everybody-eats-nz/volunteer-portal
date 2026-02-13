@@ -11,6 +11,8 @@ export interface RecommendedFriend {
     shiftTypeName: string;
     location: string | null;
   }>;
+  isPendingRequest?: boolean;
+  requestId?: string;
 }
 
 export function getRecommendedFriendDisplayName(
