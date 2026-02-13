@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
-import { AnalyticsClient } from "./analytics-client";
+import { RestaurantAnalyticsClient } from "./restaurant-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
 
 export default async function AnalyticsPage({
@@ -23,7 +23,7 @@ export default async function AnalyticsPage({
 
   const params = await searchParams;
 
-  // Calculate default dates outside of component render
+  // Calculate default dates - last 30 days
   const now = new Date();
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -32,17 +32,24 @@ export default async function AnalyticsPage({
     location: (params.location as string) || "all",
     startDate: (params.startDate as string) || thirtyDaysAgo.toISOString(),
     endDate: (params.endDate as string) || now.toISOString(),
-    volunteerGrade: params.volunteerGrade as string | undefined,
-    shiftTypeId: params.shiftTypeId as string | undefined,
   };
+
+  // Transform LOCATIONS array to the format expected by the component
+  const locationOptions = LOCATIONS.map((loc) => ({
+    value: loc,
+    label: loc,
+  }));
 
   return (
     <AdminPageWrapper
-      title="Analytics Dashboard (Beta)"
-      description="Comprehensive insights into volunteer engagement and operations. This feature is in beta - your feedback is welcome!"
+      title="Restaurant Analytics"
+      description="Key statistics and metrics for restaurant operations across all locations"
     >
-      <PageContainer testid="analytics-page">
-        <AnalyticsClient initialFilters={initialFilters} locations={LOCATIONS} />
+      <PageContainer testid="restaurant-analytics-page">
+        <RestaurantAnalyticsClient
+          initialFilters={initialFilters}
+          locations={locationOptions}
+        />
       </PageContainer>
     </AdminPageWrapper>
   );
