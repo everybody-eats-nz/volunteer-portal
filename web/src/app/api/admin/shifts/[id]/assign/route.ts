@@ -6,6 +6,7 @@ import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { LOCATION_ADDRESSES } from "@/lib/locations";
+import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
 export async function POST(
   req: Request,
@@ -193,6 +194,9 @@ export async function POST(
 
     // Send confirmation email if status is CONFIRMED (fire-and-forget with timeout)
     if (status === "CONFIRMED") {
+      // Check if this is the volunteer's first confirmed shift
+      const isFirstShift = await isFirstConfirmedShift(volunteer.id, shift.id);
+
       const emailService = getEmailService();
       const shiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
       const shiftTime = `${formatInNZT(shift.start, "h:mm a")} - ${formatInNZT(
@@ -217,6 +221,7 @@ export async function POST(
           shiftId: shift.id,
           shiftStart: shift.start,
           shiftEnd: shift.end,
+          isFirstShift: isFirstShift,
         }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Email send timeout")), 10000)

@@ -10,6 +10,7 @@ import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
 import { calculateAge } from "@/lib/utils";
+import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
 export interface UserWithStats {
   id: string;
@@ -299,6 +300,9 @@ export async function processAutoApproval(
         shiftId
       );
 
+      // Check if this is the volunteer's first confirmed shift
+      const isFirstShift = await isFirstConfirmedShift(userId, shiftId);
+
       // Send email confirmation (fire-and-forget with timeout to prevent blocking)
       const emailService = getEmailService();
       const formattedShiftDate = formatInNZT(shift.start, "EEEE, MMMM d, yyyy");
@@ -321,6 +325,7 @@ export async function processAutoApproval(
           shiftId: shiftId,
           shiftStart: shift.start,
           shiftEnd: shift.end,
+          isFirstShift: isFirstShift,
         }),
         // Timeout after 10 seconds
         new Promise((_, reject) =>
@@ -329,7 +334,7 @@ export async function processAutoApproval(
       ])
         .then(() => {
           console.log(
-            "Auto-approval confirmation email sent successfully to:",
+            `Auto-approval ${isFirstShift ? "first shift " : ""}confirmation email sent successfully to:`,
             user.email
           );
         })

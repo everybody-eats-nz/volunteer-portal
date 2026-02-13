@@ -92,6 +92,7 @@ interface SendShiftConfirmationParams {
   shiftId: string;
   shiftStart?: Date;
   shiftEnd?: Date;
+  isFirstShift?: boolean;
 }
 
 interface VolunteerCancellationEmailData {
@@ -211,6 +212,7 @@ class EmailService {
   private userInvitationSmartEmailID: string;
   private profileCompletionSmartEmailID: string;
   private surveyNotificationSmartEmailID: string;
+  private firstShiftConfirmationSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -450,6 +452,29 @@ class EmailService {
       }
     } else {
       this.surveyNotificationSmartEmailID = surveyNotificationEmailId;
+    }
+
+    // Smart email ID for first shift confirmation notifications
+    const firstShiftConfirmationEmailId =
+      process.env.CAMPAIGN_MONITOR_FIRST_SHIFT_CONFIRMATION_EMAIL_ID;
+    if (!firstShiftConfirmationEmailId) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_FIRST_SHIFT_CONFIRMATION_EMAIL_ID is not configured - first shift confirmation emails will use regular confirmation template"
+        );
+        // Fall back to regular confirmation template
+        this.firstShiftConfirmationSmartEmailID =
+          this.shiftConfirmationSmartEmailID;
+      } else {
+        // In production, fall back to regular confirmation template if not configured
+        console.warn(
+          "[EMAIL SERVICE] CAMPAIGN_MONITOR_FIRST_SHIFT_CONFIRMATION_EMAIL_ID is not configured - using regular confirmation template"
+        );
+        this.firstShiftConfirmationSmartEmailID =
+          this.shiftConfirmationSmartEmailID;
+      }
+    } else {
+      this.firstShiftConfirmationSmartEmailID = firstShiftConfirmationEmailId;
     }
   }
 
@@ -692,13 +717,20 @@ class EmailService {
   ): Promise<void> {
     const isDevelopment = process.env.NODE_ENV === "development";
 
+    // Select template based on whether this is the volunteer's first shift
+    const templateId = params.isFirstShift
+      ? this.firstShiftConfirmationSmartEmailID
+      : this.shiftConfirmationSmartEmailID;
+
+    const templateType = params.isFirstShift ? "first shift" : "shift";
+
     // In development, skip email sending if configuration is missing
     if (
       isDevelopment &&
       this.shiftConfirmationSmartEmailID === "dummy-confirmation-id"
     ) {
       console.log(
-        `[EMAIL SERVICE] Would send shift confirmation email to ${params.to} (skipped in dev - no config)`
+        `[EMAIL SERVICE] Would send ${templateType} confirmation email to ${params.to} (skipped in dev - no config)`
       );
       return Promise.resolve();
     }
@@ -746,7 +778,7 @@ class EmailService {
 
     try {
       await this.sendSmartEmail(
-        this.shiftConfirmationSmartEmailID,
+        templateId,
         `${params.volunteerName} <${params.to}>`,
         {
           firstName: firstName,
@@ -762,16 +794,22 @@ class EmailService {
         },
         attachments.length > 0 ? attachments : undefined
       );
-      console.log("Shift confirmation email sent successfully to:", params.to);
+      console.log(
+        `${params.isFirstShift ? "First shift" : "Shift"} confirmation email sent successfully to:`,
+        params.to
+      );
     } catch (err) {
       if (isDevelopment) {
         console.warn(
-          "[EMAIL SERVICE] Error sending shift confirmation email (development):",
+          `[EMAIL SERVICE] Error sending ${templateType} confirmation email (development):`,
           err instanceof Error ? err.message : "Unknown error"
         );
         // Don't fail in development
       } else {
-        console.error("Error sending shift confirmation email:", err);
+        console.error(
+          `Error sending ${templateType} confirmation email:`,
+          err
+        );
         throw err;
       }
     }
@@ -1139,6 +1177,7 @@ class EmailService {
       | "cancellation"
       | "sameDayCancellation"
       | "confirmation"
+      | "firstShiftConfirmation"
       | "volunteerCancellation"
       | "volunteerNotNeeded"
       | "emailVerification"
@@ -1164,6 +1203,10 @@ class EmailService {
       confirmation: {
         id: this.shiftConfirmationSmartEmailID,
         name: "Shift Confirmation",
+      },
+      firstShiftConfirmation: {
+        id: this.firstShiftConfirmationSmartEmailID,
+        name: "First Shift Confirmation",
       },
       volunteerCancellation: {
         id: this.volunteerCancellationSmartEmailID,
@@ -1208,6 +1251,7 @@ class EmailService {
       | "cancellation"
       | "sameDayCancellation"
       | "confirmation"
+      | "firstShiftConfirmation"
       | "volunteerCancellation"
       | "volunteerNotNeeded"
       | "emailVerification"
