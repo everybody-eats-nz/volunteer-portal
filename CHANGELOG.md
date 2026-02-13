@@ -1,3 +1,9 @@
+## [0.108.1] - 2026-02-13
+
+### Changes
+- chore(deps-dev): bump @types/uuid from 10.0.0 to 11.0.0 in /web ([#557](https://github.com/everybody-eats-nz/volunteer-portal/pull/557)) by @dependabot[bot]
+
+
 ## [0.108.0] - 2026-02-13
 
 ### Changes
