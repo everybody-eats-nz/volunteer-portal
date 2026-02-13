@@ -222,20 +222,38 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
       f.userId === user.id ? f.friendId : f.userId
     );
 
-    const pendingRequests = await prisma.friendRequest.findMany({
+    // Get sent friend requests (to exclude from suggestions)
+    const sentRequests = await prisma.friendRequest.findMany({
       where: {
-        OR: [
-          { fromUserId: user.id, status: "PENDING" },
-          { toEmail: user.email, status: "PENDING" },
-        ],
+        fromUserId: user.id,
+        status: "PENDING",
         expiresAt: { gt: new Date() },
       },
-      include: { fromUser: { select: { id: true } } },
+      select: { toEmail: true },
     });
 
-    const pendingUserIds = pendingRequests.map((req) =>
-      req.fromUserId === user.id ? req.toEmail : req.fromUser.id
-    );
+    const sentRequestEmails = sentRequests.map((req) => req.toEmail);
+
+    // Get received friend requests (to include in suggestions)
+    const receivedRequests = await prisma.friendRequest.findMany({
+      where: {
+        toEmail: user.email,
+        status: "PENDING",
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        fromUser: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profilePhotoUrl: true,
+          },
+        },
+      },
+    });
 
     const sharedSignups = await prisma.signup.findMany({
       where: {
@@ -280,10 +298,8 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
     sharedSignups.forEach((signup) => {
       const userId = signup.user.id;
 
-      if (
-        pendingUserIds.includes(userId) ||
-        pendingUserIds.includes(signup.user.email)
-      ) {
+      // Only exclude users we've sent requests to, not users who sent requests to us
+      if (sentRequestEmails.includes(signup.user.email)) {
         return;
       }
 
@@ -294,8 +310,37 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
       userShiftCounts.get(userId)!.shifts.push(signup.shift);
     });
 
-    return Array.from(userShiftCounts.entries())
-      .filter(([, data]) => data.shifts.length >= SHARED_SHIFTS_THRESHOLD)
+    // Map received friend requests to RecommendedFriend format
+    const friendRequestSuggestions: RecommendedFriend[] = receivedRequests.map((req) => {
+      const userShifts = userShiftCounts.get(req.fromUser.id);
+      return {
+        id: req.fromUser.id,
+        name: req.fromUser.name,
+        firstName: req.fromUser.firstName,
+        lastName: req.fromUser.lastName,
+        profilePhotoUrl: req.fromUser.profilePhotoUrl,
+        sharedShiftsCount: userShifts?.shifts.length || 0,
+        recentSharedShifts: userShifts?.shifts
+          .sort((a, b) => b.start.getTime() - a.start.getTime())
+          .slice(0, 3)
+          .map((shift) => ({
+            id: shift.id,
+            start: shift.start.toISOString(),
+            shiftTypeName: shift.shiftType.name,
+            location: shift.location,
+          })) || [],
+        isPendingRequest: true,
+        requestId: req.id,
+      };
+    });
+
+    // Get shared-shift based suggestions (exclude users who sent friend requests)
+    const receivedRequestUserIds = receivedRequests.map((req) => req.fromUser.id);
+    const sharedShiftSuggestions: RecommendedFriend[] = Array.from(userShiftCounts.entries())
+      .filter(([userId, data]) =>
+        data.shifts.length >= SHARED_SHIFTS_THRESHOLD &&
+        !receivedRequestUserIds.includes(userId)
+      )
       .map(([, data]) => ({
         id: data.user.id,
         name: data.user.name,
@@ -312,8 +357,12 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
             shiftTypeName: shift.shiftType.name,
             location: shift.location,
           })),
+        isPendingRequest: false,
       }))
       .sort((a, b) => b.sharedShiftsCount - a.sharedShiftsCount);
+
+    // Combine friend requests (prioritized) with shared-shift suggestions
+    return [...friendRequestSuggestions, ...sharedShiftSuggestions];
   } catch (error) {
     console.error("Error fetching recommended friends:", error);
     return [];
