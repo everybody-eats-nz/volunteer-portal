@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
+import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
 // POST /api/admin/volunteer-movement - Move a volunteer from one shift to another
 export async function POST(request: Request) {
@@ -207,6 +208,12 @@ export async function POST(request: Request) {
     // If volunteer was pending, send them a confirmation email
     if (wasPending && result.user.email) {
       try {
+        // Check if this is the volunteer's first confirmed shift
+        const isFirstShift = await isFirstConfirmedShift(
+          result.user.id,
+          targetShiftId
+        );
+
         const volunteerName = `${result.user.firstName} ${result.user.lastName}`;
         const shiftDate = formatInNZT(targetShift.start, "EEEE, MMMM d, yyyy");
         const shiftTime = `${formatInNZT(targetShift.start, "h:mm a")} - ${formatInNZT(targetShift.end, "h:mm a")}`;
@@ -222,6 +229,7 @@ export async function POST(request: Request) {
           shiftId: targetShiftId,
           shiftStart: targetShift.start,
           shiftEnd: targetShift.end,
+          isFirstShift: isFirstShift,
         });
       } catch (emailError) {
         console.error("Error sending confirmation email:", emailError);
