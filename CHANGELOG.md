@@ -1,3 +1,9 @@
+## [0.108.0] - 2026-02-13
+
+### Changes
+- feat: add dynamic volunteer grade labels based on completed shifts ([#569](https://github.com/everybody-eats-nz/volunteer-portal/pull/569)) by @malinmalliyawadu
+
+
 ## [0.107.1] - 2026-02-12
 
 ### Changes
