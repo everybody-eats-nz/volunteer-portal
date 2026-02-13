@@ -97,6 +97,18 @@ export default async function AdminShiftsPage({
               volunteerGrade: true,
               profilePhotoUrl: true,
               dateOfBirth: true,
+              signups: {
+                where: {
+                  status: "CONFIRMED",
+                },
+                select: {
+                  shift: {
+                    select: {
+                      end: true,
+                    },
+                  },
+                },
+              },
               adminNotes: {
                 where: {
                   isArchived: false,

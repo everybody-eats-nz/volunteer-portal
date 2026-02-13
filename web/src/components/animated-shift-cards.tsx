@@ -3,6 +3,8 @@
 import { motion, AnimatePresence, Variants } from "motion/react";
 import { useEffect, useRef, useState, createContext, useContext } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getDisplayGradeInfo } from "@/lib/volunteer-grades";
+import type { VolunteerGrade } from "@/generated/client";
 
 // Enhanced stagger container with day-level transition handling
 const enhancedStaggerContainer: Variants = {
@@ -85,7 +87,7 @@ const LayoutUpdateContext = createContext<(() => void) | null>(null);
 
 export const useLayoutUpdate = () => {
   const updateLayout = useContext(LayoutUpdateContext);
-  return updateLayout || (() => {});
+  return updateLayout || (() => { });
 };
 
 interface Shift {
@@ -112,6 +114,11 @@ interface Shift {
       volunteerGrade: string | null;
       profilePhotoUrl: string | null;
       dateOfBirth: Date | null;
+      signups?: Array<{
+        shift: {
+          end: Date;
+        };
+      }>;
       adminNotes: Array<{
         id: string;
         content: string;
@@ -161,29 +168,44 @@ function getStaffingStatus(confirmed: number, capacity: number) {
   return { color: "bg-red-500", text: "Critical", icon: AlertTriangle };
 }
 
-function getGradeInfo(grade: string | null | undefined) {
-  switch (grade) {
-    case "PINK":
-      return {
-        color: "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-200 border border-pink-200 dark:border-pink-700",
-        icon: Award,
-        label: "Shift Leader",
-      };
-    case "YELLOW":
-      return {
-        color: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700",
-        icon: Star,
-        label: "Experienced",
-      };
-    case "GREEN":
-      return {
-        color: "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-700",
-        icon: Shield,
-        label: "Standard",
-      };
-    default:
-      return { color: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-700", icon: null, label: "New" };
+function getGradeInfo(grade: string | null | undefined, completedShifts: number) {
+  // Use the shared display logic
+  const displayInfo = getDisplayGradeInfo(
+    (grade as VolunteerGrade) || "GREEN",
+    completedShifts
+  );
+
+  // Map to the format expected by this component
+  if (!displayInfo) {
+    return {
+      color: "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700",
+      icon: null,
+      label: "No grade",
+    };
   }
+
+  // Map the shared grade info to component's icon and color format
+  const iconMap: Record<string, typeof Award> = {
+    "🩷": Award,    // PINK - Shift Leader
+    "🟡": Star,     // YELLOW - Experienced
+    "🟢": Shield,   // GREEN - Standard
+    "✨": Star,     // NEW_VOLUNTEER - New volunteer
+    "🌟": Star,     // FIRST_SHIFT - First shift
+  };
+
+  const colorMap: Record<string, string> = {
+    "Shift Leader": "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-200 border border-pink-200 dark:border-pink-700",
+    "Experienced": "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700",
+    "Standard": "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-700",
+    "New volunteer": "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-700",
+    "First shift": "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-700",
+  };
+
+  return {
+    color: colorMap[displayInfo.label] || "bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700",
+    icon: iconMap[displayInfo.icon] || Shield,
+    label: displayInfo.label,
+  };
 }
 
 // Masonry layout hook
@@ -208,9 +230,8 @@ function useMasonry(itemCount: number, columnCount: number, shifts: Shift[]) {
           item.style.position = "absolute";
           item.style.left = `${(index * 100) / columnCount}%`;
           item.style.top = "0px";
-          item.style.width = `calc(${100 / columnCount}% - ${
-            ((columnCount - 1) * gap) / columnCount
-          }px)`;
+          item.style.width = `calc(${100 / columnCount}% - ${((columnCount - 1) * gap) / columnCount
+            }px)`;
           columnHeights[index] = item.offsetHeight + gap;
         } else {
           // Find shortest column
@@ -221,9 +242,8 @@ function useMasonry(itemCount: number, columnCount: number, shifts: Shift[]) {
           item.style.position = "absolute";
           item.style.left = `${(shortestColumn * 100) / columnCount}%`;
           item.style.top = `${columnHeights[shortestColumn]}px`;
-          item.style.width = `calc(${100 / columnCount}% - ${
-            ((columnCount - 1) * gap) / columnCount
-          }px)`;
+          item.style.width = `calc(${100 / columnCount}% - ${((columnCount - 1) * gap) / columnCount
+            }px)`;
 
           columnHeights[shortestColumn] += item.offsetHeight + gap;
         }
@@ -272,6 +292,216 @@ function useMasonry(itemCount: number, columnCount: number, shifts: Shift[]) {
   };
 
   return { containerRef, triggerLayoutUpdate };
+}
+
+// Volunteer Status Groups Component
+function VolunteerStatusGroups({
+  statusOrder,
+  groupedSignups,
+  shift,
+  shiftIdToTypeName,
+  triggerLayoutUpdate,
+}: {
+  statusOrder: Array<{ status: string; label: string; icon: typeof CheckCircle2; color: string }>;
+  groupedSignups: Record<string, Shift["signups"]>;
+  shift: Shift;
+  shiftIdToTypeName: Map<string, string>;
+  triggerLayoutUpdate: () => void;
+}) {
+  return (
+    <div
+      data-testid={`volunteers-${shift.id}`}
+      className="space-y-4"
+    >
+      {statusOrder.map(({ status, label, icon: StatusIcon, color }) => {
+        const signupsForStatus = groupedSignups[status] || [];
+        if (signupsForStatus.length === 0) return null;
+
+        return (
+          <div key={status} className="space-y-2">
+            {/* Status Header */}
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${color}`}>
+              <StatusIcon className="h-4 w-4" />
+              <span className="text-sm font-semibold">{label}</span>
+              <span className="text-xs opacity-75">({signupsForStatus.length})</span>
+            </div>
+
+            {/* Volunteers in this status group */}
+            <div className="space-y-2">
+              {signupsForStatus.map((signup) => {
+                const now = new Date();
+                const completedShifts = signup.user.signups
+                  ? signup.user.signups.filter(s => s.shift.end < now).length
+                  : 0;
+                const gradeInfo = getGradeInfo(
+                  signup.user.volunteerGrade,
+                  completedShifts
+                );
+                const GradeIcon = gradeInfo.icon;
+                return (
+                  <div
+                    key={signup.id}
+                    className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-w-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
+                  >
+                    <Link
+                      href={`/admin/volunteers/${signup.user.id}`}
+                      className="flex-shrink-0"
+                      data-testid={`volunteer-avatar-link-${signup.id}`}
+                    >
+                      <Avatar
+                        className="h-12 w-12 border-2 border-white dark:border-slate-700 shadow-md hover:scale-105 transition-transform ring-2 ring-slate-100 dark:ring-slate-800"
+                        data-testid={`volunteer-avatar-${signup.id}`}
+                      >
+                        <AvatarImage
+                          src={
+                            signup.user.profilePhotoUrl || undefined
+                          }
+                          alt={
+                            signup.user.name ||
+                            `${signup.user.firstName} ${signup.user.lastName}` ||
+                            "Volunteer"
+                          }
+                          data-testid={`volunteer-avatar-image-${signup.id}`}
+                        />
+                        <AvatarFallback
+                          className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-bold text-xs"
+                          data-testid={`volunteer-avatar-fallback-${signup.id}`}
+                        >
+                          {(signup.user.name ||
+                            signup.user
+                              .firstName)?.[0]?.toUpperCase() ||
+                            "V"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div className="flex-1 min-w-0 pt-0.5">
+                      <div className="flex items-center flex-wrap gap-2 mb-1">
+                        <Link
+                          href={`/admin/volunteers/${signup.user.id}`}
+                          className="text-sm font-semibold text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                          data-testid={`volunteer-name-link-${signup.id}`}
+                        >
+                          {signup.user.name ||
+                            `${signup.user.firstName || ""} ${signup.user.lastName || ""
+                              }`.trim() ||
+                            "Volunteer"}
+                        </Link>
+                        {signup.user.adminNotes.length > 0 && (
+                          <AdminNotesDialog
+                            volunteerId={signup.user.id}
+                            volunteerName={
+                              signup.user.name ||
+                              `${signup.user.firstName || ""} ${signup.user.lastName || ""
+                                }`.trim() ||
+                              "Volunteer"
+                            }
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 px-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                                data-testid={`admin-notes-button-${signup.id}`}
+                              >
+                                <Info className="h-3.5 w-3.5 mr-0.5" />
+                                <span className="text-xs">
+                                  {signup.user.adminNotes.length > 1
+                                    ? `${signup.user.adminNotes.length} notes`
+                                    : "Note"}
+                                </span>
+                              </Button>
+                            }
+                          />
+                        )}
+                        {(() => {
+                          const age = signup.user.dateOfBirth ? calculateAge(signup.user.dateOfBirth) : null;
+                          return age !== null && age < 16 ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 px-1.5 py-0.5"
+                              data-testid={`volunteer-age-${signup.id}`}
+                            >
+                              {age}yr
+                            </Badge>
+                          ) : null;
+                        })()}
+                      </div>
+                      {signup.note && (
+                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
+                          <span className="font-semibold text-blue-700 dark:text-blue-300">Note: </span>
+                          {signup.note}
+                        </div>
+                      )}
+                      {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
+                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-amber-50/50 dark:bg-amber-900/20 border-l-2 border-amber-400 dark:border-amber-600 rounded">
+                          <span className="font-semibold text-amber-700 dark:text-amber-300">🤝 Backup options: </span>
+                          <span className="text-amber-600 dark:text-amber-400">
+                            {signup.backupForShiftIds
+                              .map((shiftId) => shiftIdToTypeName.get(shiftId) || 'Unknown')
+                              .join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between gap-3 mt-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
+                            data-testid={`volunteer-grade-${signup.id}`}
+                          >
+                            {GradeIcon && (
+                              <GradeIcon className="h-3 w-3" />
+                            )}
+                            {gradeInfo.label}
+                          </div>
+                          {signup.user.customLabels.map(
+                            (userLabel) => (
+                              <CustomLabelBadge
+                                key={userLabel.label.id}
+                                label={{
+                                  ...userLabel.label,
+                                  isActive: true,
+                                  createdAt: new Date(),
+                                  updatedAt: new Date(),
+                                }}
+                                size="sm"
+                                className="flex-shrink-0"
+                                data-testid={`volunteer-label-${signup.id}-${userLabel.label.id}`}
+                              />
+                            )
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          <VolunteerActions
+                            signupId={signup.id}
+                            currentStatus={signup.status}
+                            onUpdate={triggerLayoutUpdate}
+                            testIdPrefix={`shift-${shift.id}-volunteer-${signup.id}`}
+                            currentShift={{
+                              id: shift.id,
+                              start: shift.start,
+                              end: shift.end,
+                              location: shift.location,
+                              shiftType: {
+                                name: shift.shiftType.name,
+                              },
+                            }}
+                            volunteerName={
+                              signup.user.name ||
+                              `${signup.user.firstName} ${signup.user.lastName}`
+                            }
+                            backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftCardsProps) {
@@ -370,7 +600,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                     </div>
 
 
-                    {/* Volunteers List */}
+                    {/* Volunteers List - Grouped by Status */}
                     <div
                       data-testid={`volunteer-list-${shift.id}`}
                       className="px-4 py-3"
@@ -385,335 +615,135 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             No volunteers yet
                           </p>
                         </div>
-                      ) : (
-                        <div
-                          data-testid={`volunteers-${shift.id}`}
-                          className="space-y-3"
-                        >
-                          {shift.signups.map((signup) => {
-                            const gradeInfo = getGradeInfo(
-                              signup.user.volunteerGrade
-                            );
-                            const GradeIcon = gradeInfo.icon;
-                            return (
-                              <div
-                                key={signup.id}
-                                className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl min-w-0 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
-                              >
-                                <Link
-                                  href={`/admin/volunteers/${signup.user.id}`}
-                                  className="flex-shrink-0"
-                                  data-testid={`volunteer-avatar-link-${signup.id}`}
-                                >
-                                  <Avatar
-                                    className="h-12 w-12 border-2 border-white dark:border-slate-700 shadow-md hover:scale-105 transition-transform ring-2 ring-slate-100 dark:ring-slate-800"
-                                    data-testid={`volunteer-avatar-${signup.id}`}
-                                  >
-                                    <AvatarImage
-                                      src={
-                                        signup.user.profilePhotoUrl || undefined
-                                      }
-                                      alt={
-                                        signup.user.name ||
-                                        `${signup.user.firstName} ${signup.user.lastName}` ||
-                                        "Volunteer"
-                                      }
-                                      data-testid={`volunteer-avatar-image-${signup.id}`}
-                                    />
-                                    <AvatarFallback
-                                      className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-bold text-xs"
-                                      data-testid={`volunteer-avatar-fallback-${signup.id}`}
-                                    >
-                                      {(signup.user.name ||
-                                        signup.user
-                                          .firstName)?.[0]?.toUpperCase() ||
-                                        "V"}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                </Link>
-                                <div className="flex-1 min-w-0 pt-0.5">
-                                  <div className="flex items-center flex-wrap gap-2 mb-2">
-                                    <Link
-                                      href={`/admin/volunteers/${signup.user.id}`}
-                                      className="text-sm font-semibold text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
-                                      data-testid={`volunteer-name-link-${signup.id}`}
-                                    >
-                                      {signup.user.name ||
-                                        `${signup.user.firstName || ""} ${
-                                          signup.user.lastName || ""
-                                        }`.trim() ||
-                                        "Volunteer"}
-                                    </Link>
-                                    {signup.status === "CONFIRMED" && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200 border-green-300 dark:border-green-700 px-1.5 py-0.5 flex items-center gap-0.5"
-                                        data-testid={`volunteer-confirmed-${signup.id}`}
-                                      >
-                                        <CheckCircle2 className="h-3 w-3" />
-                                        {isCompleted ? "Attended" : "Confirmed"}
-                                      </Badge>
-                                    )}
-                                    {signup.status === "PENDING" && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 border-orange-300 dark:border-orange-700 px-1.5 py-0.5 flex items-center gap-0.5"
-                                        data-testid={`volunteer-pending-${signup.id}`}
-                                      >
-                                        <Clock className="h-3 w-3" />
-                                        Pending
-                                      </Badge>
-                                    )}
-                                    {signup.status === "REGULAR_PENDING" && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-200 border-orange-300 dark:border-orange-700 px-1.5 py-0.5 flex items-center gap-0.5"
-                                        data-testid={`volunteer-regular-pending-${signup.id}`}
-                                      >
-                                        <Clock className="h-3 w-3" />
-                                        Pending
-                                      </Badge>
-                                    )}
-                                    {signup.status === "WAITLISTED" && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 border-purple-300 dark:border-purple-700 px-1.5 py-0.5 flex items-center gap-0.5"
-                                        data-testid={`volunteer-waitlisted-${signup.id}`}
-                                      >
-                                        <AlertCircle className="h-3 w-3" />
-                                        Waitlisted
-                                      </Badge>
-                                    )}
-                                    {signup.status === "NO_SHOW" && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 border-red-300 dark:border-red-700 px-1.5 py-0.5 flex items-center gap-0.5"
-                                        data-testid={`volunteer-no-show-${signup.id}`}
-                                      >
-                                        <UserX className="h-3 w-3" />
-                                        No Show
-                                      </Badge>
-                                    )}
-                                    {signup.status === "CANCELED" && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 px-1.5 py-0.5 flex items-center gap-0.5"
-                                        data-testid={`volunteer-canceled-${signup.id}`}
-                                      >
-                                        <X className="h-3 w-3" />
-                                        Canceled
-                                      </Badge>
-                                    )}
-                                    {signup.user.adminNotes.length > 0 && (
-                                      <AdminNotesDialog
-                                        volunteerId={signup.user.id}
-                                        volunteerName={
-                                          signup.user.name ||
-                                          `${signup.user.firstName || ""} ${
-                                            signup.user.lastName || ""
-                                          }`.trim() ||
-                                          "Volunteer"
-                                        }
-                                        trigger={
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-5 px-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                                            data-testid={`admin-notes-button-${signup.id}`}
-                                          >
-                                            <Info className="h-3.5 w-3.5 mr-0.5" />
-                                            <span className="text-xs">
-                                              {signup.user.adminNotes.length > 1
-                                                ? `${signup.user.adminNotes.length} notes`
-                                                : "Note"}
-                                            </span>
-                                          </Button>
-                                        }
-                                      />
-                                    )}
-                                    {(() => {
-                                      const age = signup.user.dateOfBirth ? calculateAge(signup.user.dateOfBirth) : null;
-                                      return age !== null && age < 16 ? (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 px-1.5 py-0.5"
-                                          data-testid={`volunteer-age-${signup.id}`}
-                                        >
-                                          {age}yr
-                                        </Badge>
-                                      ) : null;
-                                    })()}
-                                  </div>
-                                  {signup.note && (
-                                    <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
-                                      <span className="font-semibold text-blue-700 dark:text-blue-300">Note: </span>
-                                      {signup.note}
-                                    </div>
-                                  )}
-                                  {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
-                                    <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-amber-50/50 dark:bg-amber-900/20 border-l-2 border-amber-400 dark:border-amber-600 rounded">
-                                      <span className="font-semibold text-amber-700 dark:text-amber-300">🤝 Backup options: </span>
-                                      <span className="text-amber-600 dark:text-amber-400">
-                                        {signup.backupForShiftIds
-                                          .map((shiftId) => shiftIdToTypeName.get(shiftId) || 'Unknown')
-                                          .join(', ')}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="flex items-center justify-between gap-3 mt-2">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <div
-                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
-                                        data-testid={`volunteer-grade-${signup.id}`}
-                                      >
-                                        {GradeIcon && (
-                                          <GradeIcon className="h-3 w-3" />
-                                        )}
-                                        {gradeInfo.label}
-                                      </div>
-                                      {signup.user.customLabels.map(
-                                        (userLabel) => (
-                                          <CustomLabelBadge
-                                            key={userLabel.label.id}
-                                            label={{
-                                              ...userLabel.label,
-                                              isActive: true,
-                                              createdAt: new Date(),
-                                              updatedAt: new Date(),
-                                            }}
-                                            size="sm"
-                                            className="flex-shrink-0"
-                                            data-testid={`volunteer-label-${signup.id}-${userLabel.label.id}`}
-                                          />
-                                        )
-                                      )}
-                                    </div>
-                                    <div className="flex-shrink-0">
-                                      <VolunteerActions
-                                        signupId={signup.id}
-                                        currentStatus={signup.status}
-                                        onUpdate={triggerLayoutUpdate}
-                                        testIdPrefix={`shift-${shift.id}-volunteer-${signup.id}`}
-                                        currentShift={{
-                                          id: shift.id,
-                                          start: shift.start,
-                                          end: shift.end,
-                                          location: shift.location,
-                                          shiftType: {
-                                            name: shift.shiftType.name,
-                                          },
-                                        }}
-                                        volunteerName={
-                                          signup.user.name ||
-                                          `${signup.user.firstName} ${signup.user.lastName}`
-                                        }
-                                        backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      ) : (() => {
+                        // Group signups by status
+                        const groupedSignups = shift.signups.reduce((acc, signup) => {
+                          const status = signup.status;
+                          if (!acc[status]) {
+                            acc[status] = [];
+                          }
+                          acc[status].push(signup);
+                          return acc;
+                        }, {} as Record<string, typeof shift.signups>);
+
+                        // Define status order and display info
+                        const statusOrder = [
+                          { status: "PENDING", label: "Pending", icon: Clock, color: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100" },
+                          { status: "REGULAR_PENDING", label: "Pending", icon: Clock, color: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100" },
+                          { status: "CONFIRMED", label: isCompleted ? "Attended" : "Confirmed", icon: CheckCircle2, color: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100" },
+                          { status: "WAITLISTED", label: "Waitlisted", icon: AlertCircle, color: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-100" },
+                          { status: "NO_SHOW", label: "No Show", icon: UserX, color: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100" },
+                          { status: "CANCELED", label: "Canceled", icon: X, color: "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" },
+                        ];
+
+                        return (
+                          <VolunteerStatusGroups
+                            key={shift.id}
+                            statusOrder={statusOrder}
+                            groupedSignups={groupedSignups}
+                            shift={shift}
+                            shiftIdToTypeName={shiftIdToTypeName}
+                            triggerLayoutUpdate={triggerLayoutUpdate}
+                          />
+                        );
+                      })()}
                     </div>
 
                     {/* Action Buttons Footer */}
                     {!isCompleted && (
-                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
-                      <div className="flex flex-col gap-2">
-                        {/* Assign Volunteer Button */}
-                        <AssignVolunteerDialog
-                          shift={{
-                            id: shift.id,
-                            start: shift.start,
-                            end: shift.end,
-                            location: shift.location,
-                            capacity: shift.capacity,
-                            shiftType: shift.shiftType,
-                          }}
-                          confirmedCount={confirmed}
-                        >
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full bg-green-50 dark:bg-green-900/60 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800/60 border-green-300 dark:border-green-700"
-                            data-testid={`assign-volunteer-button-${shift.id}`}
+                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
+                        <div className="flex flex-col gap-2">
+                          {/* Assign Volunteer Button */}
+                          <AssignVolunteerDialog
+                            shift={{
+                              id: shift.id,
+                              start: shift.start,
+                              end: shift.end,
+                              location: shift.location,
+                              capacity: shift.capacity,
+                              shiftType: shift.shiftType,
+                            }}
+                            confirmedCount={confirmed}
                           >
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Assign Volunteer
-                          </Button>
-                        </AssignVolunteerDialog>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full bg-green-50 dark:bg-green-900/60 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800/60 border-green-300 dark:border-green-700"
+                              data-testid={`assign-volunteer-button-${shift.id}`}
+                            >
+                              <UserPlus className="h-4 w-4 mr-2" />
+                              Assign Volunteer
+                            </Button>
+                          </AssignVolunteerDialog>
 
-                        {/* Edit & Delete Buttons */}
-                        <div className="flex gap-2">
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800/60 border-blue-300 dark:border-blue-700"
-                        data-testid={`edit-shift-button-${shift.id}`}
-                      >
-                        <Link
-                          href={`/admin/shifts/${shift.id}/edit`}
-                          className="flex items-center gap-2 justify-center"
-                        >
-                          <Edit className="h-4 w-4" />
-                          Edit
-                        </Link>
-                      </Button>
+                          {/* Edit & Delete Buttons */}
+                          <div className="flex gap-2">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 bg-blue-50 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800/60 border-blue-300 dark:border-blue-700"
+                              data-testid={`edit-shift-button-${shift.id}`}
+                            >
+                              <Link
+                                href={`/admin/shifts/${shift.id}/edit`}
+                                className="flex items-center gap-2 justify-center"
+                              >
+                                <Edit className="h-4 w-4" />
+                                Edit
+                              </Link>
+                            </Button>
 
-                      <DeleteShiftDialog
-                        shiftId={shift.id}
-                        shiftName={shift.shiftType.name}
-                        shiftDate={formatInNZT(
-                          shift.start,
-                          "EEEE, MMMM d, yyyy"
-                        )}
-                        hasSignups={shift.signups.length > 0}
-                        signupCount={
-                          shift.signups.filter(
-                            (signup) =>
-                              signup.status !== "CANCELED" &&
-                              signup.status !== "NO_SHOW"
-                          ).length
-                        }
-                        onDelete={async () => {
-                          const response = await fetch(
-                            `/api/admin/shifts/${shift.id}`,
-                            {
-                              method: "DELETE",
-                            }
-                          );
+                            <DeleteShiftDialog
+                              shiftId={shift.id}
+                              shiftName={shift.shiftType.name}
+                              shiftDate={formatInNZT(
+                                shift.start,
+                                "EEEE, MMMM d, yyyy"
+                              )}
+                              hasSignups={shift.signups.length > 0}
+                              signupCount={
+                                shift.signups.filter(
+                                  (signup) =>
+                                    signup.status !== "CANCELED" &&
+                                    signup.status !== "NO_SHOW"
+                                ).length
+                              }
+                              onDelete={async () => {
+                                const response = await fetch(
+                                  `/api/admin/shifts/${shift.id}`,
+                                  {
+                                    method: "DELETE",
+                                  }
+                                );
 
-                          if (!response.ok) {
-                            throw new Error("Failed to delete shift");
-                          }
+                                if (!response.ok) {
+                                  throw new Error("Failed to delete shift");
+                                }
 
-                          // Preserve current date and location filters when redirecting
-                          const currentParams = new URLSearchParams(window.location.search);
-                          const date = currentParams.get('date') || '';
-                          const location = currentParams.get('location') || '';
-                          const params = new URLSearchParams({ deleted: '1' });
-                          if (date) params.set('date', date);
-                          if (location) params.set('location', location);
-                          window.location.href = `/admin/shifts?${params.toString()}`;
-                        }}
-                      >
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 bg-red-50 dark:bg-red-900/60 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/60 border-red-300 dark:border-red-700"
-                          data-testid={`delete-shift-button-${shift.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
-                      </DeleteShiftDialog>
+                                // Preserve current date and location filters when redirecting
+                                const currentParams = new URLSearchParams(window.location.search);
+                                const date = currentParams.get('date') || '';
+                                const location = currentParams.get('location') || '';
+                                const params = new URLSearchParams({ deleted: '1' });
+                                if (date) params.set('date', date);
+                                if (location) params.set('location', location);
+                                window.location.href = `/admin/shifts?${params.toString()}`;
+                              }}
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 bg-red-50 dark:bg-red-900/60 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/60 border-red-300 dark:border-red-700"
+                                data-testid={`delete-shift-button-${shift.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
+                            </DeleteShiftDialog>
+                          </div>
                         </div>
                       </div>
-                    </div>
                     )}
                   </CardContent>
                 </Card>

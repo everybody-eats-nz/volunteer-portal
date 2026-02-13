@@ -54,11 +54,63 @@ test.describe("Admin Shifts - Volunteer Management", () => {
       firstName: "New",
       lastName: "Volunteer",
       name: "New Volunteer",
-      // No volunteerGrade = new volunteer
+      volunteerGrade: "GREEN", // Give a grade so they can be marked as completed shifts
     });
 
     // Login as admin FIRST (required for creating shifts via API)
     await loginAsAdmin(page);
+
+    // Get user IDs before creating past shifts
+    const pinkVolunteer = await getUserByEmail(page, testEmails[1]);
+    const yellowVolunteer = await getUserByEmail(page, testEmails[2]);
+    const greenVolunteer = await getUserByEmail(page, testEmails[3]);
+    const newVolunteer = await getUserByEmail(page, testEmails[4]);
+
+    if (
+      !pinkVolunteer ||
+      !yellowVolunteer ||
+      !greenVolunteer ||
+      !newVolunteer
+    ) {
+      throw new Error("Failed to retrieve test volunteer users");
+    }
+
+    // Create past completed shifts for volunteers to show their actual grades
+    // Volunteers need 6+ completed shifts to show their database grade instead of "New volunteer" badge
+    for (let i = 0; i < 7; i++) {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - (30 + i)); // 30+ days ago
+      const pastShift = await createShift(page, {
+        location: "Wellington",
+        start: pastDate,
+        capacity: 10,
+      });
+      testShiftIds.push(pastShift.id);
+
+      // Create confirmed signups for volunteers with grades (not the new one)
+      const pinkSignup = await createSignup(page, {
+        userId: pinkVolunteer.id,
+        shiftId: pastShift.id,
+        status: "CONFIRMED",
+      });
+      testSignupIds.push(pinkSignup.id);
+
+      const yellowSignup = await createSignup(page, {
+        userId: yellowVolunteer.id,
+        shiftId: pastShift.id,
+        status: "CONFIRMED",
+      });
+      testSignupIds.push(yellowSignup.id);
+
+      const greenSignup = await createSignup(page, {
+        userId: greenVolunteer.id,
+        shiftId: pastShift.id,
+        status: "CONFIRMED",
+      });
+      testSignupIds.push(greenSignup.id);
+    }
+
+    // New volunteer gets 0 completed shifts to show "First shift" badge
 
     // Create test shift - use a date in the near future
     // Calculate date 30 days from now
@@ -84,22 +136,7 @@ test.describe("Admin Shifts - Volunteer Management", () => {
     });
     testShiftIds.push(shift.id);
 
-    // Get user IDs for creating signups
-    const pinkVolunteer = await getUserByEmail(page, testEmails[1]);
-    const yellowVolunteer = await getUserByEmail(page, testEmails[2]);
-    const greenVolunteer = await getUserByEmail(page, testEmails[3]);
-    const newVolunteer = await getUserByEmail(page, testEmails[4]);
-
-    if (
-      !pinkVolunteer ||
-      !yellowVolunteer ||
-      !greenVolunteer ||
-      !newVolunteer
-    ) {
-      throw new Error("Failed to retrieve test volunteer users");
-    }
-
-    // Create signups with different statuses
+    // Create signups with different statuses for the main test shift
     const confirmedSignup = await createSignup(page, {
       userId: pinkVolunteer.id,
       shiftId: shift.id,
@@ -169,10 +206,10 @@ test.describe("Admin Shifts - Volunteer Management", () => {
     await expect(page.getByText("New Volunteer").first()).toBeVisible();
 
     // Check individual volunteer grade labels are present
-    await expect(page.getByText("Shift Leader").first()).toBeVisible(); // PINK
-    await expect(page.getByText("Experienced").first()).toBeVisible(); // YELLOW
-    await expect(page.getByText("Standard").first()).toBeVisible(); // GREEN
-    await expect(page.getByText("New").first()).toBeVisible(); // No grade
+    await expect(page.getByText("Shift Leader").first()).toBeVisible(); // PINK (6+ completed shifts)
+    await expect(page.getByText("Experienced").first()).toBeVisible(); // YELLOW (6+ completed shifts)
+    await expect(page.getByText("Standard").first()).toBeVisible(); // GREEN (6+ completed shifts)
+    await expect(page.getByText("First shift").first()).toBeVisible(); // New volunteer (0 completed shifts)
   });
 
   test("should display all volunteer statuses including waitlisted", async ({
@@ -276,10 +313,10 @@ test.describe("Admin Shifts - Volunteer Management", () => {
     await page.waitForLoadState("load");
 
     // Check that grade labels are displayed (colors are applied via Tailwind classes)
-    await expect(page.getByText("Shift Leader").first()).toBeVisible(); // PINK grade
-    await expect(page.getByText("Experienced").first()).toBeVisible(); // YELLOW grade
-    await expect(page.getByText("Standard").first()).toBeVisible(); // GREEN grade
-    await expect(page.getByText("New").first()).toBeVisible(); // NEW (no grade)
+    await expect(page.getByText("Shift Leader").first()).toBeVisible(); // PINK grade (6+ completed shifts)
+    await expect(page.getByText("Experienced").first()).toBeVisible(); // YELLOW grade (6+ completed shifts)
+    await expect(page.getByText("Standard").first()).toBeVisible(); // GREEN grade (6+ completed shifts)
+    await expect(page.getByText("First shift").first()).toBeVisible(); // New volunteer (0 completed shifts)
 
     // Check that status badges are displayed
     await expect(page.getByText("Confirmed").first()).toBeVisible(); // CONFIRMED status

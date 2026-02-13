@@ -1,3 +1,9 @@
+## [0.107.1] - 2026-02-12
+
+### Changes
+- Fix auto-cancellation to only cancel conflicting AM/PM shifts ([#567](https://github.com/everybody-eats-nz/volunteer-portal/pull/567)) by @malinmalliyawadu
+
+
 ## [0.107.0] - 2026-02-12
 
 ### Changes

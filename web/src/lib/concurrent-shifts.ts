@@ -5,7 +5,7 @@ import { formatInNZT, toNZT } from "@/lib/timezone";
  * Helper to determine if a shift is AM or PM (in NZ timezone)
  * Before 4pm (16:00) is considered "AM"
  */
-function isAMShift(shiftStart: Date): boolean {
+export function isAMShift(shiftStart: Date): boolean {
   const nzTime = toNZT(shiftStart);
   const hour = nzTime.getHours();
   return hour < 16;
@@ -14,7 +14,7 @@ function isAMShift(shiftStart: Date): boolean {
 /**
  * Helper to get shift date in NZ timezone (YYYY-MM-DD format)
  */
-function getShiftDate(shiftStart: Date): string {
+export function getShiftDate(shiftStart: Date): string {
   return formatInNZT(shiftStart, "yyyy-MM-dd");
 }
 
