@@ -42,6 +42,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { type VolunteerGrade } from "@/generated/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
 import { MergeUserDialog } from "@/components/merge-user-dialog";
@@ -399,6 +406,13 @@ export function UsersDataTable({
     router.push(`?${searchParams.toString()}`);
   };
 
+  const handlePageSizeChange = (newPageSize: string) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set("pageSize", newPageSize);
+    searchParams.set("page", "1"); // Reset to page 1 when changing page size
+    router.push(`?${searchParams.toString()}`);
+  };
+
   return (
     <div className="w-full" data-testid="users-datatable">
       <div className="rounded-md border dark:border-zinc-800 shadow-sm dark:shadow-lg dark:shadow-zinc-900/20 bg-card">
@@ -465,16 +479,41 @@ export function UsersDataTable({
       </div>
 
       <div className="flex items-center justify-between space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {totalCount > 0 ? (
-            <>
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
-              user(s)
-            </>
-          ) : (
-            "No users found"
-          )}
+        <div className="flex-1 flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            {totalCount > 0 ? (
+              <>
+                Showing {(currentPage - 1) * pageSize + 1} to{" "}
+                {Math.min(currentPage * pageSize, totalCount)} of {totalCount}{" "}
+                user(s)
+              </>
+            ) : (
+              "No users found"
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              Items per page:
+            </span>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger
+                className="h-8 w-[70px]"
+                size="sm"
+                data-testid="page-size-selector"
+              >
+                <SelectValue placeholder={pageSize.toString()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <p className="text-sm text-muted-foreground">
