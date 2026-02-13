@@ -130,9 +130,9 @@ test.describe("Admin Attendance Tracking", () => {
       if ((await gradeBadges.count()) > 0) {
         await expect(gradeBadges.first()).toBeVisible();
 
-        // Should contain grade text
+        // Should contain grade text - can be static grades or dynamic labels based on completed shifts
         const badgeText = await gradeBadges.first().textContent();
-        expect(badgeText).toMatch(/(Standard|Experienced|Shift Leader)/);
+        expect(badgeText).toMatch(/(Standard|Experienced|Shift Leader|First shift|New volunteer)/);
       }
     });
 

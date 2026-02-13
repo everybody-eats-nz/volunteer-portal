@@ -49,6 +49,7 @@ export interface Volunteer {
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
   volunteerGrade?: VolunteerGrade;
+  completedShifts?: number;
   _count?: {
     signups: number;
   };
@@ -120,9 +121,10 @@ export const columns: ColumnDef<Volunteer>[] = [
       const grade = row.getValue("volunteerGrade") as
         | VolunteerGrade
         | undefined;
+      const completedShifts = row.original.completedShifts ?? 0;
       if (!grade) return null;
 
-      return <VolunteerGradeBadge grade={grade} size="sm" />;
+      return <VolunteerGradeBadge grade={grade} completedShifts={completedShifts} size="sm" />;
     },
   },
   {

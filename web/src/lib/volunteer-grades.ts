@@ -32,6 +32,24 @@ export const VOLUNTEER_GRADE_INFO: Record<VolunteerGrade, VolunteerGradeInfo> =
     },
   } as const;
 
+// First Shift badge info for volunteers with 0 completed shifts
+export const FIRST_SHIFT_BADGE: VolunteerGradeInfo = {
+  label: "First shift",
+  color:
+    "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/30",
+  description: "Completing their very first shift",
+  icon: "🌟",
+};
+
+// New Volunteer badge info for volunteers with 1-5 completed shifts
+export const NEW_VOLUNTEER_BADGE: VolunteerGradeInfo = {
+  label: "New volunteer",
+  color:
+    "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30",
+  description: "New volunteer completing their first shifts",
+  icon: "✨",
+};
+
 export const VOLUNTEER_GRADE_OPTIONS = Object.entries(VOLUNTEER_GRADE_INFO).map(
   ([grade, info]) => ({
     value: grade as VolunteerGrade,
@@ -45,5 +63,29 @@ export const VOLUNTEER_GRADE_OPTIONS = Object.entries(VOLUNTEER_GRADE_INFO).map(
 export function getVolunteerGradeInfo(
   grade: VolunteerGrade
 ): VolunteerGradeInfo {
+  return VOLUNTEER_GRADE_INFO[grade];
+}
+
+/**
+ * Get the display grade info for a volunteer based on their completed shifts.
+ * - 0 shifts: "First shift" badge
+ * - 1-5 shifts: "New volunteer" badge (overrides database grade)
+ * - 6+ shifts: Actual volunteer grade (GREEN, YELLOW, PINK)
+ */
+export function getDisplayGradeInfo(
+  grade: VolunteerGrade,
+  completedShifts: number
+): VolunteerGradeInfo | null {
+  // Show "First shift" badge for volunteers completing their very first shift
+  if (completedShifts === 0) {
+    return FIRST_SHIFT_BADGE;
+  }
+
+  // Override with "New volunteer" badge for volunteers with 1-5 completed shifts
+  if (completedShifts >= 1 && completedShifts <= 5) {
+    return NEW_VOLUNTEER_BADGE;
+  }
+
+  // For 6+ shifts, show actual database grade
   return VOLUNTEER_GRADE_INFO[grade];
 }

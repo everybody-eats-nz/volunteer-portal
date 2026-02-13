@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { autoLabelUnder16User, autoLabelNewVolunteer } from "@/lib/auto-label-utils";
+import { autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
 import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
 import { getEmailService } from "@/lib/email-service";
@@ -362,14 +362,6 @@ export async function PUT(req: Request) {
           where: { id: user.id },
           data: { profileCompleted: true },
         });
-
-        // Auto-label as new volunteer (OAuth users don't go through regular registration flow)
-        try {
-          await autoLabelNewVolunteer(user.id);
-        } catch (labelError) {
-          console.error("Failed to auto-label new volunteer:", labelError);
-          // Don't fail the profile update if labeling fails
-        }
 
         // Send welcome email
         try {

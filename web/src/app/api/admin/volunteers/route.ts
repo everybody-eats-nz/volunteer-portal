@@ -46,6 +46,18 @@ export async function GET(request: Request) {
               },
             },
           },
+          signups: {
+            where: {
+              status: "CONFIRMED",
+            },
+            include: {
+              shift: {
+                select: {
+                  end: true,
+                },
+              },
+            },
+          },
         }),
       },
       orderBy: {
@@ -53,12 +65,27 @@ export async function GET(request: Request) {
       },
     });
 
-    // Parse JSON fields safely (handles both JSON arrays and plain text from migration)
-    const volunteersWithParsedFields = volunteers.map(volunteer => ({
-      ...volunteer,
-      availableDays: safeParseAvailability(volunteer.availableDays),
-      availableLocations: safeParseAvailability(volunteer.availableLocations),
-    }));
+    // Parse JSON fields safely and calculate completed shifts
+    const now = new Date();
+    const volunteersWithParsedFields = volunteers.map(volunteer => {
+      // Calculate completed shifts if stats are included
+      let completedShifts = 0;
+      if (includeStats && 'signups' in volunteer && volunteer.signups) {
+        completedShifts = (volunteer.signups as unknown as Array<{ shift: { end: Date } }>)
+          .filter(signup => signup.shift.end < now).length;
+      }
+
+      // Remove signups from the response, only keep completedShifts count
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { signups: _signups, ...volunteerWithoutSignups } = volunteer;
+
+      return {
+        ...volunteerWithoutSignups,
+        availableDays: safeParseAvailability(volunteer.availableDays),
+        availableLocations: safeParseAvailability(volunteer.availableLocations),
+        ...(includeStats && { completedShifts }),
+      };
+    });
 
     return NextResponse.json(volunteersWithParsedFields);
   } catch (error) {

@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
         if (!value.startsWith("/")) {
           urlSchema.parse(value);
         }
-      } catch (error) {
+      } catch {
         return NextResponse.json(
           { error: "Invalid URL format. Must be a valid URL or start with /" },
           { status: 400 }
