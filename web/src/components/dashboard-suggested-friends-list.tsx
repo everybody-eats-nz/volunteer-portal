@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -32,15 +32,17 @@ export function DashboardSuggestedFriendsList({
   const [acceptingRequest, setAcceptingRequest] = useState<Set<string>>(new Set());
   const [decliningRequest, setDecliningRequest] = useState<Set<string>>(new Set());
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
-  const [visibleFriends, setVisibleFriends] = useState<RecommendedFriend[]>([]);
-  const [displayFriends, setDisplayFriends] = useState<RecommendedFriend[]>([]);
 
-  // Update visibleFriends and displayFriends when friends or hiddenIds change
-  useEffect(() => {
-    const visible = friends.filter((f) => !hiddenIds.has(f.id));
-    setVisibleFriends(visible);
-    setDisplayFriends(visible);
-  }, [friends, hiddenIds]);
+  // Compute visible and display friends from hiddenIds
+  const visibleFriends = useMemo(
+    () => friends.filter((f) => !hiddenIds.has(f.id)),
+    [friends, hiddenIds]
+  );
+
+  const displayFriends = useMemo(
+    () => visibleFriends.slice(0, 3),
+    [visibleFriends]
+  );
 
   const handleSendRequest = async (userId: string, displayName: string) => {
     setSendingRequest((prev) => new Set(prev).add(userId));
@@ -53,17 +55,8 @@ export function DashboardSuggestedFriendsList({
       } else {
         toast.success(`Friend request sent to ${displayName}`);
 
-        // Update hiddenIds
-        setHiddenIds((prev) => {
-          const newHiddenIds = new Set(prev).add(userId);
-
-          // Update visibleFriends and displayFriends immediately
-          const visible = friends.filter((f) => !newHiddenIds.has(f.id));
-          setVisibleFriends(visible);
-          setDisplayFriends(visible);
-
-          return newHiddenIds;
-        });
+        // Hide this friend from the list
+        setHiddenIds((prev) => new Set(prev).add(userId));
 
         router.refresh();
       }
@@ -89,17 +82,8 @@ export function DashboardSuggestedFriendsList({
       } else {
         toast.success(`You are now friends with ${displayName}`);
 
-        // Update hiddenIds
-        setHiddenIds((prev) => {
-          const newHiddenIds = new Set(prev).add(userId);
-
-          // Update visibleFriends and displayFriends immediately
-          const visible = friends.filter((f) => !newHiddenIds.has(f.id));
-          setVisibleFriends(visible);
-          setDisplayFriends(visible);
-
-          return newHiddenIds;
-        });
+        // Hide this friend from the list
+        setHiddenIds((prev) => new Set(prev).add(userId));
 
         router.refresh();
       }
@@ -125,17 +109,8 @@ export function DashboardSuggestedFriendsList({
       } else {
         toast.success(`Declined friend request from ${displayName}`);
 
-        // Update hiddenIds
-        setHiddenIds((prev) => {
-          const newHiddenIds = new Set(prev).add(userId);
-
-          // Update visibleFriends and displayFriends immediately
-          const visible = friends.filter((f) => !newHiddenIds.has(f.id));
-          setVisibleFriends(visible);
-          setDisplayFriends(visible);
-
-          return newHiddenIds;
-        });
+        // Hide this friend from the list
+        setHiddenIds((prev) => new Set(prev).add(userId));
 
         router.refresh();
       }
@@ -247,7 +222,7 @@ export function DashboardSuggestedFriendsList({
                         <Button
                           size="sm"
                           variant="default"
-                          onClick={() => handleAcceptRequest(friend.requestId!, displayName, friend.id)}
+                          onClick={() => handleAcceptRequest(friend.requestId, displayName, friend.id)}
                           disabled={acceptingRequest.has(friend.id) || decliningRequest.has(friend.id)}
                           className="flex-shrink-0"
                         >
@@ -266,7 +241,7 @@ export function DashboardSuggestedFriendsList({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDeclineRequest(friend.requestId!, displayName, friend.id)}
+                          onClick={() => handleDeclineRequest(friend.requestId, displayName, friend.id)}
                           disabled={acceptingRequest.has(friend.id) || decliningRequest.has(friend.id)}
                           className="flex-shrink-0"
                         >
