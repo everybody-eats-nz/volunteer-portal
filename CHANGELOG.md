@@ -1,3 +1,9 @@
+## [0.109.0] - 2026-02-13
+
+### Changes
+- feat: Add first shift email template support ([#571](https://github.com/everybody-eats-nz/volunteer-portal/pull/571)) by @malinmalliyawadu
+
+
 ## [0.108.0] - 2026-02-13
 
 ### Changes
