@@ -445,6 +445,12 @@ export default async function AdminVolunteerPage({
               </CardContent>
             </Card>
 
+            {/* Custom Labels */}
+            <UserCustomLabelsManager
+              userId={volunteer.id}
+              currentLabels={volunteer.customLabels}
+            />
+
             {/* Admin Actions */}
             <Card data-testid="admin-actions-card">
               <CardHeader>
@@ -556,12 +562,6 @@ export default async function AdminVolunteerPage({
                 <AdminNotesManager volunteerId={volunteer.id} />
               </CardContent>
             </Card>
-
-            {/* Custom Labels */}
-            <UserCustomLabelsManager
-              userId={volunteer.id}
-              currentLabels={volunteer.customLabels}
-            />
 
             {/* Contact Information */}
             <AdminContactInfoSection
