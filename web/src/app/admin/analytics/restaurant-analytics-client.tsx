@@ -140,6 +140,7 @@ export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) 
 
   useEffect(() => {
     fetchMealsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleApplyFilters = () => {
@@ -157,12 +158,6 @@ export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) 
 
   const handleManualDateChange = () => {
     setDatePreset("custom");
-  };
-
-  // Calculate percentage of total for each location
-  const getPercentage = (locationTotal: number) => {
-    if (!mealsData?.grandTotal) return 0;
-    return ((locationTotal / mealsData.grandTotal) * 100).toFixed(1);
   };
 
   return (
@@ -368,9 +363,9 @@ export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) 
                   return `${weekday} ${date.getMonth() + 1}/${date.getDate()}`;
                 });
 
-                const chartOptions: any = {
+                const chartOptions = {
                   chart: {
-                    type: "line",
+                    type: "line" as const,
                     height: 400,
                     toolbar: {
                       show: false,
@@ -389,7 +384,7 @@ export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) 
                   },
                   stroke: {
                     width: [...Array(locations.length).fill(0), 3],
-                    curve: "smooth",
+                    curve: "smooth" as const,
                   },
                   colors: [...colors.slice(0, locations.length), "#000000"],
                   xaxis: {
@@ -432,12 +427,12 @@ export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) 
                     },
                   },
                   legend: {
-                    position: "top",
-                    horizontalAlign: "left",
+                    position: "top" as const,
+                    horizontalAlign: "left" as const,
                     fontFamily: "var(--font-libre-franklin), sans-serif",
                   },
                   theme: {
-                    mode: "light",
+                    mode: "light" as const,
                   },
                   grid: {
                     borderColor: "#e5e7eb",

@@ -31,16 +31,13 @@ export async function GET(request: NextRequest) {
       Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     // Build where clause
-    const where: any = {
+    const where = {
       date: {
         gte: start,
         lte: end,
       },
+      ...(location && location !== "all" ? { location } : {}),
     };
-
-    if (location && location !== "all") {
-      where.location = location;
-    }
 
     // Fetch location defaults
     const locations = await prisma.location.findMany({
