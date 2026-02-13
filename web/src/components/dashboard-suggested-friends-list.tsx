@@ -222,7 +222,7 @@ export function DashboardSuggestedFriendsList({
                         <Button
                           size="sm"
                           variant="default"
-                          onClick={() => handleAcceptRequest(friend.requestId, displayName, friend.id)}
+                          onClick={() => handleAcceptRequest(friend.requestId!, displayName, friend.id)}
                           disabled={acceptingRequest.has(friend.id) || decliningRequest.has(friend.id)}
                           className="flex-shrink-0"
                         >
@@ -241,7 +241,7 @@ export function DashboardSuggestedFriendsList({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDeclineRequest(friend.requestId, displayName, friend.id)}
+                          onClick={() => handleDeclineRequest(friend.requestId!, displayName, friend.id)}
                           disabled={acceptingRequest.has(friend.id) || decliningRequest.has(friend.id)}
                           className="flex-shrink-0"
                         >
