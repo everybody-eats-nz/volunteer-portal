@@ -7,6 +7,7 @@ import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { LOCATION_ADDRESSES } from "@/lib/locations";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
+import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 
 export async function POST(
   req: Request,
@@ -116,18 +117,17 @@ export async function POST(
     const confirmedCount = shift.signups.length;
     const isOverCapacity = confirmedCount >= shift.capacity;
 
-    // Check if volunteer already has a confirmed signup for the same day (in NZ timezone)
-    const shiftNZDate = new Intl.DateTimeFormat("en-NZ", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "Pacific/Auckland",
-    }).format(shift.start);
+    // Check if volunteer already has a confirmed or pending signup for the same date and period (AM/PM)
+    // Get the date and period (AM/PM) for this shift
+    const shiftDate = getShiftDate(shift.start);
+    const shiftIsAM = isAMShift(shift.start);
 
-    const confirmedSignups = await prisma.signup.findMany({
+    const existingSignups = await prisma.signup.findMany({
       where: {
         userId: volunteer.id,
-        status: "CONFIRMED",
+        status: {
+          in: ["CONFIRMED", "PENDING"],
+        },
       },
       include: {
         shift: {
@@ -138,29 +138,27 @@ export async function POST(
       },
     });
 
-    const existingDailySignup = confirmedSignups.find((signup) => {
-      const signupNZDate = new Intl.DateTimeFormat("en-NZ", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        timeZone: "Pacific/Auckland",
-      }).format(signup.shift.start);
-      return signupNZDate === shiftNZDate;
+    // Check if any of them are on the same date and same period (AM/PM)
+    const conflictingSignup = existingSignups.find((signup) => {
+      const signupDate = getShiftDate(signup.shift.start);
+      const signupIsAM = isAMShift(signup.shift.start);
+      return signupDate === shiftDate && signupIsAM === shiftIsAM;
     });
 
-    if (existingDailySignup && status === "CONFIRMED") {
+    if (conflictingSignup && status === "CONFIRMED") {
       const existingShiftTime = new Intl.DateTimeFormat("en-NZ", {
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
         timeZone: "Pacific/Auckland",
-      }).format(existingDailySignup.shift.start);
+      }).format(conflictingSignup.shift.start);
 
-      const location = existingDailySignup.shift.location;
+      const location = conflictingSignup.shift.location;
+      const period = shiftIsAM ? "AM" : "PM";
 
       return NextResponse.json(
         {
-          error: `This volunteer already has a confirmed shift on this day: ${existingDailySignup.shift.shiftType.name} at ${location}, ${existingShiftTime}. Volunteers can only be assigned to one shift per day.`,
+          error: `This volunteer already has a confirmed ${period} shift on this day: ${conflictingSignup.shift.shiftType.name} at ${location}, ${existingShiftTime}. Volunteers can only be assigned to one AM shift and one PM shift per day.`,
         },
         { status: 400 }
       );
