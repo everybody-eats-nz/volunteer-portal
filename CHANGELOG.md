@@ -1,3 +1,9 @@
+## [0.108.4] - 2026-02-15
+
+### Changes
+- Fix: Allow volunteers to sign up for both AM and PM shifts on same day ([#582](https://github.com/everybody-eats-nz/volunteer-portal/pull/582)) by @malinmalliyawadu
+
+
 ## [0.108.3] - 2026-02-13
 
 ### Changes
