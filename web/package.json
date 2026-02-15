@@ -52,7 +52,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
-    "@supabase/supabase-js": "^2.90.1",
+    "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-table": "^8.21.3",
     "@types/jsdom": "^27.0.0",
     "@types/node-fetch": "^2.6.13",
