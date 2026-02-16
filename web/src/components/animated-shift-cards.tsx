@@ -650,33 +650,33 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                     </div>
 
                     {/* Action Buttons Footer */}
-                    {!isCompleted && (
-                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
-                        <div className="flex flex-col gap-2">
-                          {/* Assign Volunteer Button */}
-                          <AssignVolunteerDialog
-                            shift={{
-                              id: shift.id,
-                              start: shift.start,
-                              end: shift.end,
-                              location: shift.location,
-                              capacity: shift.capacity,
-                              shiftType: shift.shiftType,
-                            }}
-                            confirmedCount={confirmed}
+                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex flex-col gap-2">
+                        {/* Assign Volunteer Button - Always visible for past/present/future shifts */}
+                        <AssignVolunteerDialog
+                          shift={{
+                            id: shift.id,
+                            start: shift.start,
+                            end: shift.end,
+                            location: shift.location,
+                            capacity: shift.capacity,
+                            shiftType: shift.shiftType,
+                          }}
+                          confirmedCount={confirmed}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full bg-green-50 dark:bg-green-900/60 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800/60 border-green-300 dark:border-green-700"
+                            data-testid={`assign-volunteer-button-${shift.id}`}
                           >
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full bg-green-50 dark:bg-green-900/60 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800/60 border-green-300 dark:border-green-700"
-                              data-testid={`assign-volunteer-button-${shift.id}`}
-                            >
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Assign Volunteer
-                            </Button>
-                          </AssignVolunteerDialog>
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            {isCompleted ? "Assign to Past Shift" : "Assign Volunteer"}
+                          </Button>
+                        </AssignVolunteerDialog>
 
-                          {/* Edit & Delete Buttons */}
+                        {/* Edit & Delete Buttons - Only for future shifts */}
+                        {!isCompleted && (
                           <div className="flex gap-2">
                             <Button
                               asChild
@@ -742,9 +742,9 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                               </Button>
                             </DeleteShiftDialog>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
