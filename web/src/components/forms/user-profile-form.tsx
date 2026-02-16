@@ -629,7 +629,7 @@ export function EmergencyContactStep({
 
       <div className="space-y-2">
         <Label htmlFor="emergencyContactPhone" className="text-sm font-medium">
-          Emergency Contact Mobile
+          Emergency Contact Phone
         </Label>
         <Input
           id="emergencyContactPhone"
