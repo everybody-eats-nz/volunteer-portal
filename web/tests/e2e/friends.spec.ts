@@ -117,6 +117,8 @@ test.describe("Friends System", () => {
     await expect(page.locator("text=Allow friend requests")).toBeVisible();
   });
 
+  // Note: This test was re-enabled and passes, but may be flaky
+  // If it fails, it's likely a timing issue with dialog animations
   test("should change privacy settings", async ({ page }) => {
     // Navigate to friends page
     await page.goto("/friends");
