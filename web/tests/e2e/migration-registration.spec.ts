@@ -109,7 +109,7 @@ async function createExpiredTokenUser(page: Page) {
   return { user, token, email };
 }
 
-test.describe.skip("Migration Registration Flow", () => {
+test.describe("Migration Registration Flow", () => {
   // Note: Cleanup is handled by individual tests or test fixtures
 
   test.describe("Token Validation", () => {

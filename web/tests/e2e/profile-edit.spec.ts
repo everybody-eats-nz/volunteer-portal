@@ -248,7 +248,7 @@ test.describe("Profile Edit Page", () => {
       await expect(contactPhoneField).toBeVisible();
     });
 
-    test.skip("should allow editing emergency contact information", async ({
+    test("should allow editing emergency contact information", async ({
       page,
     }) => {
       // Navigate to emergency contact section
