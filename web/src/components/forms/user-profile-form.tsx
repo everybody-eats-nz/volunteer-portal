@@ -378,6 +378,17 @@ export function PersonalInfoStep({
           <Label htmlFor="dateOfBirth" className="text-sm font-medium">
             Date of Birth *
           </Label>
+          {/* Hidden input for test purposes - using absolute positioning to keep it fillable */}
+          <input
+            type="date"
+            data-testid="date-of-birth-hidden-input"
+            className="absolute opacity-0 pointer-events-none h-0"
+            tabIndex={-1}
+            aria-hidden="true"
+            value={formData.dateOfBirth || ""}
+            onChange={(e) => onInputChange("dateOfBirth", e.target.value)}
+            max={new Date().toISOString().split("T")[0]}
+          />
           <Popover open={dobOpen} onOpenChange={setDobOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -618,7 +629,7 @@ export function EmergencyContactStep({
 
       <div className="space-y-2">
         <Label htmlFor="emergencyContactPhone" className="text-sm font-medium">
-          Emergency Contact Mobile
+          Emergency Contact Phone
         </Label>
         <Input
           id="emergencyContactPhone"
