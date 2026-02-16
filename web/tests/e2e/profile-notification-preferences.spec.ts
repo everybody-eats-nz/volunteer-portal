@@ -48,6 +48,9 @@ test.describe("User Notification Preferences", () => {
     ).toBeVisible();
   });
 
+  // SKIPPED: Test fails checking checkbox state after save
+  // Issue: Need to properly handle shadcn/ui Checkbox state verification
+  // TODO: Fix checkbox state assertion to work with component updates
   test.skip("should edit notification preferences", async ({ page }) => {
     await login(page, volunteerEmail, "Test123456");
     await page.goto("/profile");
@@ -74,10 +77,11 @@ test.describe("User Notification Preferences", () => {
 
     // Navigate back to profile
     await page.goto("/profile");
+    await page.waitForLoadState("load");
 
-    // Verify changes persisted
+    // Verify changes persisted - shadcn/ui Checkbox uses data-state attribute
     const notificationToggle = page.getByTestId("receive-notifications-toggle");
-    await expect(notificationToggle).not.toBeChecked();
+    await expect(notificationToggle).toHaveAttribute("data-state", "unchecked");
   });
 
   test("should load and display shift types", async ({ page }) => {

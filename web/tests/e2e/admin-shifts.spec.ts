@@ -594,9 +594,9 @@ test.describe("Admin Shifts Page", () => {
       if ((await gradeBadges.count()) > 0) {
         await expect(gradeBadges.first()).toBeVisible();
 
-        // Should contain grade text like "New", "Standard", "Experienced", etc.
+        // Should contain grade text like "First shift", "New volunteer", "Standard", etc.
         const badgeText = await gradeBadges.first().textContent();
-        expect(badgeText).toMatch(/(New|Standard|Experienced|Shift Leader)/);
+        expect(badgeText).toMatch(/(First shift|New volunteer|Standard|Experienced|Shift Leader)/);
       }
     });
   });
