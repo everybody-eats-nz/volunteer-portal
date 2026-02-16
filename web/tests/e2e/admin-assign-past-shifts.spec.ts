@@ -67,6 +67,7 @@ test.describe("Admin - Assign Volunteers to Past Shifts", () => {
     });
     pastShift = {
       ...createdPastShift,
+      start: new Date(pastShiftStartISO),
       dateStr: pastDateStr,
     };
     testShiftIds.push(pastShift.id);
@@ -87,6 +88,7 @@ test.describe("Admin - Assign Volunteers to Past Shifts", () => {
     });
     futureShift = {
       ...createdFutureShift,
+      start: new Date(futureShiftStartISO),
       dateStr: futureDateStr,
     };
     testShiftIds.push(futureShift.id);
