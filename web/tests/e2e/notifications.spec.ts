@@ -276,7 +276,7 @@ test.describe("Notification System", () => {
     }
   });
 
-  test.skip("should close dropdown when notification is clicked", async ({
+  test("should close dropdown when notification is clicked", async ({
     page,
   }) => {
     const bellButton = page.getByTestId("notification-bell-button");
@@ -292,6 +292,9 @@ test.describe("Notification System", () => {
 
     if (await firstNotification.isVisible()) {
       await firstNotification.click();
+
+      // Wait a moment for the dropdown to close
+      await page.waitForTimeout(500);
 
       // Dropdown should close
       await expect(page.getByTestId("notification-dropdown")).not.toBeVisible();
