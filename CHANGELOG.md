@@ -1,3 +1,9 @@
+## [0.108.7] - 2026-02-16
+
+### Changes
+- test: fix parental consent e2e tests ([#585](https://github.com/everybody-eats-nz/volunteer-portal/pull/585)) by @malinmalliyawadu
+
+
 ## [0.108.6] - 2026-02-16
 
 ### Changes
