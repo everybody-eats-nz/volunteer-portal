@@ -1,3 +1,9 @@
+## [0.108.8] - 2026-02-17
+
+### Changes
+- test: fix and unskip 6 e2e tests, improve test reliability ([#586](https://github.com/everybody-eats-nz/volunteer-portal/pull/586)) by @malinmalliyawadu
+
+
 ## [0.108.7] - 2026-02-16
 
 ### Changes
