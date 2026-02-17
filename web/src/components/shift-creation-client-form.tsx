@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useFormStatus } from "react-dom";
 import { ShiftFormManager, type ShiftTemplate } from "./shift-form-manager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlusIcon, FileTextIcon } from "lucide-react";
+import { PlusIcon, FileTextIcon, Loader2 } from "lucide-react";
 
 interface ShiftType {
   id: string;
@@ -20,6 +21,31 @@ interface ShiftCreationClientFormProps {
   initialTemplates: Record<string, ShiftTemplate>;
   locations: readonly string[];
   createShiftTypeAction: (formData: FormData) => Promise<void>;
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button
+      type="submit"
+      size="lg"
+      data-testid="create-shift-button"
+      disabled={pending}
+    >
+      {pending ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          Creating shift...
+        </>
+      ) : (
+        <>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          Create Shift
+        </>
+      )}
+    </Button>
+  );
 }
 
 export function ShiftCreationClientForm({ 
@@ -163,10 +189,7 @@ export function ShiftCreationClientForm({
 
       {/* Submit Button */}
       <div className="flex justify-end">
-        <Button type="submit" size="lg" data-testid="create-shift-button">
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Create Shift
-        </Button>
+        <SubmitButton />
       </div>
     </>
   );
