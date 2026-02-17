@@ -89,15 +89,7 @@ export async function validateSurveyToken(
     return { valid: false, message: "Invalid survey token" };
   }
 
-  // Check if token has expired (only if expiresAt is set)
-  if (surveyToken.expiresAt && surveyToken.expiresAt < new Date()) {
-    // Update assignment status to expired
-    await prisma.surveyAssignment.update({
-      where: { id: surveyToken.assignmentId },
-      data: { status: "EXPIRED" },
-    });
-    return { valid: false, message: "Survey token has expired" };
-  }
+  // Note: Expiry check removed - tokens never expire
 
   // Check if token was already used
   if (surveyToken.usedAt) {
