@@ -1,3 +1,9 @@
+## [0.108.9] - 2026-02-17
+
+### Changes
+- Fix: Optimize bulk shift creation to prevent timeout ([#587](https://github.com/everybody-eats-nz/volunteer-portal/pull/587)) by @malinmalliyawadu
+
+
 ## [0.108.8] - 2026-02-17
 
 ### Changes
