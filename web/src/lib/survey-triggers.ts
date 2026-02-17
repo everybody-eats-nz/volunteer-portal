@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { calculateUserProgress, type UserProgress } from "./achievements";
-import { createSurveyToken, generateSurveyToken, getSurveyTokenExpiry, getSurveyUrl } from "./survey-tokens";
+import { createSurveyToken, generateSurveyToken, getSurveyUrl } from "./survey-tokens";
 import { createNotification } from "./notifications";
 import { sendSurveyNotification } from "./email-service";
 import type { SurveyTriggerType } from "@/generated/client";
@@ -255,7 +255,7 @@ export async function manuallyAssignSurvey(
           token: {
             create: {
               token: generateSurveyToken(),
-              expiresAt: getSurveyTokenExpiry(),
+              // expiresAt omitted - tokens never expire
             },
           },
         },

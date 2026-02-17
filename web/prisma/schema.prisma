@@ -793,12 +793,12 @@ model SurveyAssignment {
 }
 
 model SurveyToken {
-  id           String   @id @default(cuid())
-  token        String   @unique
-  assignmentId String   @unique
-  expiresAt    DateTime
+  id           String    @id @default(cuid())
+  token        String    @unique
+  assignmentId String    @unique
+  expiresAt    DateTime? // Optional - tokens never expire by default
   usedAt       DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   assignment SurveyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 

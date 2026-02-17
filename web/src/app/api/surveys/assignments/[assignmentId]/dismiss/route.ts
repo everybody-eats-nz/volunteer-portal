@@ -31,13 +31,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Find the assignment
     const assignment = await prisma.surveyAssignment.findUnique({
       where: { id: assignmentId },
-      include: {
-        token: {
-          select: {
-            expiresAt: true,
-          },
-        },
-      },
     });
 
     if (!assignment) {
@@ -60,19 +53,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check if token is expired
-    if (assignment.token && assignment.token.expiresAt < new Date()) {
-      // Update to expired instead
-      await prisma.surveyAssignment.update({
-        where: { id: assignmentId },
-        data: { status: "EXPIRED" },
-      });
-
-      return NextResponse.json(
-        { error: "Survey has expired and cannot be dismissed" },
-        { status: 410 }
-      );
-    }
+    // Note: Expiry check removed - tokens never expire
 
     // Dismiss the survey
     await prisma.surveyAssignment.update({
