@@ -118,6 +118,9 @@ test.describe("Friends System", () => {
   });
 
   test("should change privacy settings", async ({ page }) => {
+    // Set larger viewport to ensure dialog fits without scrolling
+    await page.setViewportSize({ width: 1280, height: 1024 });
+
     // Navigate to friends page
     await page.goto("/friends");
     await page.waitForLoadState("load");
@@ -145,13 +148,10 @@ test.describe("Friends System", () => {
     await allowRequestsLabel.click();
     await page.waitForTimeout(200); // Wait for state change
 
-    // Save settings - scroll button into view first
+    // Save settings
     const saveButton = page.locator('button:has-text("Save Settings")');
     await expect(saveButton).toBeVisible({ timeout: 5000 });
     await expect(saveButton).toBeEnabled();
-
-    // Scroll button into view before clicking (dialog may be scrollable)
-    await saveButton.scrollIntoViewIfNeeded();
     await saveButton.click();
 
     // Wait for save to complete and dialog to close
