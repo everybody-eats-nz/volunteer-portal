@@ -27,6 +27,7 @@ import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
 import { LOCATIONS } from "@/lib/locations";
 import { createShiftRecord } from "@/lib/services/shift-service";
+import { BulkShiftSubmitButton } from "@/components/shift-creation-submit-buttons";
 
 // Templates are now stored in the database and fetched dynamically
 
@@ -871,24 +872,7 @@ export default async function NewShiftPage() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="order-2 sm:order-1"
-                    >
-                      <Link href="/admin/shifts">Cancel</Link>
-                    </Button>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="order-1 sm:order-2 bg-primary hover:bg-primary/90"
-                    >
-                      <CalendarDaysIcon className="h-4 w-4 mr-2" />
-                      Create Schedule
-                    </Button>
-                  </div>
+                  <BulkShiftSubmitButton />
                 </form>
               </CardContent>
             </Card>
