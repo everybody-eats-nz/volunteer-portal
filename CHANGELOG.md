@@ -1,3 +1,9 @@
+## [0.108.10] - 2026-02-17
+
+### Changes
+- feat: add loading states to shift creation buttons ([#588](https://github.com/everybody-eats-nz/volunteer-portal/pull/588)) by @malinmalliyawadu
+
+
 ## [0.108.9] - 2026-02-17
 
 ### Changes
