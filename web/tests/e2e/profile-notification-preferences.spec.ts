@@ -48,10 +48,7 @@ test.describe("User Notification Preferences", () => {
     ).toBeVisible();
   });
 
-  // SKIPPED: Test fails checking checkbox state after save
-  // Issue: Need to properly handle shadcn/ui Checkbox state verification
-  // TODO: Fix checkbox state assertion to work with component updates
-  test.skip("should edit notification preferences", async ({ page }) => {
+  test("should edit notification preferences", async ({ page }) => {
     await login(page, volunteerEmail, "Test123456");
     await page.goto("/profile");
 
@@ -79,9 +76,10 @@ test.describe("User Notification Preferences", () => {
     await page.goto("/profile");
     await page.waitForLoadState("load");
 
-    // Verify changes persisted - shadcn/ui Checkbox uses data-state attribute
-    const notificationToggle = page.getByTestId("receive-notifications-toggle");
-    await expect(notificationToggle).toHaveAttribute("data-state", "unchecked");
+    // Verify changes persisted - on profile page it shows as a Badge with "Disabled" text
+    const notificationToggle = page.getByTestId("receive-notifications-toggle").first();
+    await expect(notificationToggle).toBeVisible();
+    await expect(notificationToggle).toContainText("Disabled");
   });
 
   test("should load and display shift types", async ({ page }) => {
@@ -150,22 +148,8 @@ test.describe("User Notification Preferences", () => {
     await expect(page.getByText("Profile saved successfully!")).toBeVisible();
   });
 
-  test.skip('should select all shift types when "All" is selected', async ({
-    page,
-  }) => {
-    // Skip this test as "All shift types" checkbox doesn't exist in current implementation
-  });
-
-  test.skip("should display warning when opting out of notifications", async ({
-    page,
-  }) => {
-    // Skip this test as warning message is not implemented
-  });
-
-  test.skip("should handle concurrent edits gracefully", async ({
-    page,
-    context,
-  }) => {
-    // Skip this test for now - concurrent edit handling not implemented
-  });
+  // NOTE: The following tests are skipped as the features are not implemented:
+  // - "All shift types" checkbox doesn't exist in current implementation
+  // - Warning message when opting out of notifications is not implemented
+  // - Concurrent edit handling is not implemented
 });

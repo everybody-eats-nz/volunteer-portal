@@ -242,31 +242,35 @@ test.describe("Profile Edit Page", () => {
       await expect(contactPhoneField).toBeVisible();
     });
 
-    // SKIPPED: Test times out finding emergency contact phone field
-    // Issue: The tab switch may not properly show all fields, needs investigation
-    // TODO: Fix tab navigation and field visibility in emergency contact section
-    test.skip("should allow editing emergency contact information", async ({
+    test("should allow editing emergency contact information", async ({
       page,
     }) => {
       // Navigate to emergency contact section
       const emergencyTab = page.getByTestId("emergency-tab-button");
       await emergencyTab.click();
 
+      // Wait for section to load
+      await page.waitForTimeout(500);
+
       // Wait for emergency contact fields to be visible
       const contactNameField = page.getByTestId("emergency-contact-name-input");
       await expect(contactNameField).toBeVisible({ timeout: 10000 });
+
+      // Fill in name
       await contactNameField.clear();
       await contactNameField.fill("John Doe");
       await expect(contactNameField).toHaveValue("John Doe");
 
       // Fill in relationship
       const relationshipField = page.getByTestId("emergency-contact-relationship-input");
+      await expect(relationshipField).toBeVisible();
       await relationshipField.clear();
       await relationshipField.fill("Brother");
       await expect(relationshipField).toHaveValue("Brother");
 
       // Fill in emergency contact phone
       const contactPhoneField = page.getByTestId("emergency-contact-phone-input");
+      await expect(contactPhoneField).toBeVisible();
       await contactPhoneField.clear();
       await contactPhoneField.fill("+64 21 987 6543");
       await expect(contactPhoneField).toHaveValue("+64 21 987 6543");
