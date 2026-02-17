@@ -1,3 +1,21 @@
+## [0.108.10] - 2026-02-17
+
+### Changes
+- feat: add loading states to shift creation buttons ([#588](https://github.com/everybody-eats-nz/volunteer-portal/pull/588)) by @malinmalliyawadu
+
+
+## [0.108.9] - 2026-02-17
+
+### Changes
+- Fix: Optimize bulk shift creation to prevent timeout ([#587](https://github.com/everybody-eats-nz/volunteer-portal/pull/587)) by @malinmalliyawadu
+
+
+## [0.108.8] - 2026-02-17
+
+### Changes
+- test: fix and unskip 6 e2e tests, improve test reliability ([#586](https://github.com/everybody-eats-nz/volunteer-portal/pull/586)) by @malinmalliyawadu
+
+
 ## [0.108.7] - 2026-02-16
 
 ### Changes

@@ -413,7 +413,7 @@ test.describe("My Shifts Calendar Page", () => {
       }
     });
 
-    test.skip("should display friend details in shift dialog", async ({
+    test("should display friend details in shift dialog", async ({
       page,
     }) => {
       const calendar = page.getByTestId("calendar-grid");
