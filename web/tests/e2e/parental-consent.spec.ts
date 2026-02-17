@@ -102,10 +102,16 @@ async function registerUnderageUser(
   // Wait for Create Account button to be enabled and click it
   const createAccountButton = page.getByRole("button", { name: /create account/i });
   await createAccountButton.waitFor({ state: "visible" });
-  await createAccountButton.click();
 
-  // Wait for redirect to login page or dashboard
-  await page.waitForURL(/\/(login|dashboard)/);
+  // Ensure button is enabled before clicking
+  await expect(createAccountButton).toBeEnabled();
+
+  // Click and wait for navigation to start
+  await Promise.all([
+    page.waitForURL(/\/(login|dashboard)/, { timeout: 30000 }),
+    createAccountButton.click(),
+  ]);
+
   await waitForPageLoad(page);
 }
 
@@ -200,8 +206,9 @@ test.describe("Parental Consent System", () => {
       expect(download.suggestedFilename()).toBe("parental-consent-form.pdf");
     });
 
-    // SKIPPED: Registration completes but times out waiting for redirect
-    // TODO: Investigate why registration redirect is slow/inconsistent
+    // SKIPPED: Registration form submission not completing - needs investigation
+    // Issue: Form stays on final step and doesn't redirect after Create Account click
+    // TODO: Debug form validation or submission handler
     test.skip("should allow underage users to complete registration despite parental consent requirement", async ({
       page,
     }) => {
@@ -213,8 +220,11 @@ test.describe("Parental Consent System", () => {
       );
 
       // Should successfully complete registration and be redirected to login page
-      await expect(page).toHaveURL(/\/login/);
-      await expect(page.getByText(/sign in to your volunteer account/i)).toBeVisible();
+      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+
+      // Verify we're on the login page with the expected content
+      const loginHeading = page.getByRole("heading", { name: /sign in/i });
+      await expect(loginHeading).toBeVisible({ timeout: 10000 });
     });
   });
 
