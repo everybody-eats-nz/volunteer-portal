@@ -1,3 +1,9 @@
+## [0.108.11] - 2026-02-17
+
+### Changes
+- chore(deps): bump apexcharts from 5.3.6 to 5.4.0 in /web ([#581](https://github.com/everybody-eats-nz/volunteer-portal/pull/581)) by @dependabot[bot]
+
+
 ## [0.108.10] - 2026-02-17
 
 ### Changes
