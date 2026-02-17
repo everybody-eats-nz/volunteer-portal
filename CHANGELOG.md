@@ -1,3 +1,9 @@
+## [0.108.12] - 2026-02-17
+
+### Changes
+- chore(deps): bump tailwind-merge from 3.4.0 to 3.4.1 in /web in the production-dependencies group ([#579](https://github.com/everybody-eats-nz/volunteer-portal/pull/579)) by @dependabot[bot]
+
+
 ## [0.108.11] - 2026-02-17
 
 ### Changes
