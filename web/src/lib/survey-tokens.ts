@@ -2,9 +2,6 @@ import { randomBytes } from "crypto";
 import { prisma } from "./prisma";
 import type { SurveyAssignment, SurveyToken } from "@/generated/client";
 
-// Token expiry in days
-const SURVEY_TOKEN_EXPIRY_DAYS = 7;
-
 /**
  * Generate a secure survey token
  */
@@ -13,28 +10,19 @@ export function generateSurveyToken(): string {
 }
 
 /**
- * Get survey token expiry time (7 days from now)
- */
-export function getSurveyTokenExpiry(): Date {
-  const expiry = new Date();
-  expiry.setDate(expiry.getDate() + SURVEY_TOKEN_EXPIRY_DAYS);
-  return expiry;
-}
-
-/**
  * Create and save a survey token for an assignment
+ * Tokens never expire by default (expiresAt is null)
  */
 export async function createSurveyToken(
   assignmentId: string
 ): Promise<SurveyToken> {
   const token = generateSurveyToken();
-  const expiresAt = getSurveyTokenExpiry();
 
   const surveyToken = await prisma.surveyToken.create({
     data: {
       token,
       assignmentId,
-      expiresAt,
+      // expiresAt is omitted (null) - tokens never expire
     },
   });
 
@@ -101,8 +89,8 @@ export async function validateSurveyToken(
     return { valid: false, message: "Invalid survey token" };
   }
 
-  // Check if token has expired
-  if (surveyToken.expiresAt < new Date()) {
+  // Check if token has expired (only if expiresAt is set)
+  if (surveyToken.expiresAt && surveyToken.expiresAt < new Date()) {
     // Update assignment status to expired
     await prisma.surveyAssignment.update({
       where: { id: surveyToken.assignmentId },
