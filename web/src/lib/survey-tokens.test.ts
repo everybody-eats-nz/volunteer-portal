@@ -1,9 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  generateSurveyToken,
-  getSurveyTokenExpiry,
-  getSurveyUrl,
-} from "./survey-tokens";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { generateSurveyToken, getSurveyUrl } from "./survey-tokens";
 
 describe("survey-tokens", () => {
   describe("generateSurveyToken", () => {
@@ -20,35 +16,6 @@ describe("survey-tokens", () => {
       }
       expect(tokens.size).toBe(100);
     });
-  });
-
-  describe("getSurveyTokenExpiry", () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    it("should return a date 7 days in the future", () => {
-      const now = new Date("2026-01-22T10:00:00Z");
-      vi.setSystemTime(now);
-
-      const expiry = getSurveyTokenExpiry();
-
-      expect(expiry.getDate()).toBe(now.getDate() + 7);
-      expect(expiry.getMonth()).toBe(now.getMonth());
-    });
-
-    it("should handle month boundaries correctly", () => {
-      const now = new Date("2026-01-28T10:00:00Z");
-      vi.setSystemTime(now);
-
-      const expiry = getSurveyTokenExpiry();
-
-      // January 28 + 7 days = February 4
-      expect(expiry.getDate()).toBe(4);
-      expect(expiry.getMonth()).toBe(1); // February (0-indexed)
-    });
-
-    vi.useRealTimers();
   });
 
   describe("getSurveyUrl", () => {

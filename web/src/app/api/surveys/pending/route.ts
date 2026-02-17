@@ -46,29 +46,16 @@ export async function GET() {
       orderBy: { assignedAt: "desc" },
     });
 
-    // Filter out expired tokens and update their status
-    const now = new Date();
-    const validAssignments = [];
-
-    for (const assignment of assignments) {
-      if (assignment.token && assignment.token.expiresAt < now) {
-        // Token has expired, update status
-        await prisma.surveyAssignment.update({
-          where: { id: assignment.id },
-          data: { status: "EXPIRED" },
-        });
-      } else {
-        validAssignments.push({
-          id: assignment.id,
-          status: assignment.status,
-          assignedAt: assignment.assignedAt,
-          dismissedAt: assignment.dismissedAt,
-          survey: assignment.survey,
-          token: assignment.token?.token,
-          expiresAt: assignment.token?.expiresAt,
-        });
-      }
-    }
+    // Note: Expiry check removed - tokens never expire
+    const validAssignments = assignments.map((assignment) => ({
+      id: assignment.id,
+      status: assignment.status,
+      assignedAt: assignment.assignedAt,
+      dismissedAt: assignment.dismissedAt,
+      survey: assignment.survey,
+      token: assignment.token?.token,
+      expiresAt: assignment.token?.expiresAt,
+    }));
 
     return NextResponse.json(validAssignments);
   } catch (error) {

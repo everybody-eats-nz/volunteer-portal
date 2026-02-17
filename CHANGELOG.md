@@ -1,3 +1,57 @@
+## [0.108.12] - 2026-02-17
+
+### Changes
+- chore(deps): bump tailwind-merge from 3.4.0 to 3.4.1 in /web in the production-dependencies group ([#579](https://github.com/everybody-eats-nz/volunteer-portal/pull/579)) by @dependabot[bot]
+
+
+## [0.108.11] - 2026-02-17
+
+### Changes
+- chore(deps): bump apexcharts from 5.3.6 to 5.4.0 in /web ([#581](https://github.com/everybody-eats-nz/volunteer-portal/pull/581)) by @dependabot[bot]
+
+
+## [0.108.10] - 2026-02-17
+
+### Changes
+- feat: add loading states to shift creation buttons ([#588](https://github.com/everybody-eats-nz/volunteer-portal/pull/588)) by @malinmalliyawadu
+
+
+## [0.108.9] - 2026-02-17
+
+### Changes
+- Fix: Optimize bulk shift creation to prevent timeout ([#587](https://github.com/everybody-eats-nz/volunteer-portal/pull/587)) by @malinmalliyawadu
+
+
+## [0.108.8] - 2026-02-17
+
+### Changes
+- test: fix and unskip 6 e2e tests, improve test reliability ([#586](https://github.com/everybody-eats-nz/volunteer-portal/pull/586)) by @malinmalliyawadu
+
+
+## [0.108.7] - 2026-02-16
+
+### Changes
+- test: fix parental consent e2e tests ([#585](https://github.com/everybody-eats-nz/volunteer-portal/pull/585)) by @malinmalliyawadu
+
+
+## [0.108.6] - 2026-02-16
+
+### Changes
+- Fix all skipped tests (#124) ([#584](https://github.com/everybody-eats-nz/volunteer-portal/pull/584)) by @malinmalliyawadu
+
+
+## [0.108.5] - 2026-02-15
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 2 updates ([#577](https://github.com/everybody-eats-nz/volunteer-portal/pull/577)) by @dependabot[bot]
+
+
+## [0.108.4] - 2026-02-15
+
+### Changes
+- Fix: Allow volunteers to sign up for both AM and PM shifts on same day ([#582](https://github.com/everybody-eats-nz/volunteer-portal/pull/582)) by @malinmalliyawadu
+
+
 ## [0.108.3] - 2026-02-13
 
 ### Changes

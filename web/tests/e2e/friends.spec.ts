@@ -117,28 +117,47 @@ test.describe("Friends System", () => {
     await expect(page.locator("text=Allow friend requests")).toBeVisible();
   });
 
-  test.skip("should change privacy settings", async ({ page }) => {
+  test("should change privacy settings", async ({ page }) => {
+    // Set larger viewport to ensure dialog fits without scrolling
+    await page.setViewportSize({ width: 1280, height: 1024 });
+
     // Navigate to friends page
     await page.goto("/friends");
+    await page.waitForLoadState("load");
 
-    // Open privacy settings
-    await page.click('[data-testid="privacy-settings-button"]');
+    // Open privacy settings - wait for button to be ready
+    const privacyButton = page.getByTestId("privacy-settings-button");
+    await expect(privacyButton).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(500); // Wait for page to settle
+    await privacyButton.click();
 
-    // Wait for dialog to open
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    // Wait for dialog to open with animation complete
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(1000); // Wait for dialog animation to complete
 
     // Change visibility to public (click the label since RadioGroupItem is a custom component)
-    await page.click('label[for="public"]');
+    const publicLabel = page.locator('label[for="public"]');
+    await expect(publicLabel).toBeVisible({ timeout: 5000 });
+    await publicLabel.click();
+    await page.waitForTimeout(200); // Wait for state change
 
     // Uncheck allow friend requests (click the label since Checkbox is a custom component)
-    await page.click('label[for="allowRequests"]');
+    const allowRequestsLabel = page.locator('label[for="allowRequests"]');
+    await expect(allowRequestsLabel).toBeVisible({ timeout: 5000 });
+    await allowRequestsLabel.click();
+    await page.waitForTimeout(200); // Wait for state change
 
     // Save settings
-    await page.click('button:has-text("Save Settings")');
+    const saveButton = page.locator('button:has-text("Save Settings")');
+    await expect(saveButton).toBeVisible({ timeout: 5000 });
+    await expect(saveButton).toBeEnabled();
+    await saveButton.click();
 
-    // Dialog should close after successful save
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible({
-      timeout: 10000,
+    // Wait for save to complete and dialog to close
+    await page.waitForTimeout(2000); // Increased wait for API call
+    await expect(dialog).not.toBeVisible({
+      timeout: 15000,
     });
   });
 
@@ -161,27 +180,10 @@ test.describe("Friends System", () => {
     await expect(friendsTab).toHaveAttribute("data-state", "active");
   });
 
-  test("should search friends when friends exist", async ({ page }) => {
-    // This test would require pre-seeded data or API mocking
-    // Skipping for now as it requires test data setup
-    test.skip();
-  });
-
-  test("should accept friend request", async ({ page }) => {
-    // This test would require pre-seeded friend requests
-    // Skipping for now as it requires test data setup
-    test.skip();
-  });
-
-  test("should decline friend request", async ({ page }) => {
-    // This test would require pre-seeded friend requests
-    // Skipping for now as it requires test data setup
-    test.skip();
-  });
-
-  test("should remove friend", async ({ page }) => {
-    // This test would require pre-seeded friends
-    // Skipping for now as it requires test data setup
-    test.skip();
-  });
+  // NOTE: The following tests require pre-seeded data or dynamic test data creation
+  // They are skipped until test data infrastructure is in place:
+  // - "should search friends when friends exist" - requires existing friendships
+  // - "should accept friend request" - requires pending friend requests
+  // - "should decline friend request" - requires pending friend requests
+  // - "should remove friend" - requires existing friendships
 });
