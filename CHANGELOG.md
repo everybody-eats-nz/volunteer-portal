@@ -1,3 +1,21 @@
+## [0.108.13] - 2026-02-17
+
+### Changes
+- chore(deps): bump @supabase/supabase-js from 2.90.1 to 2.95.3 in /web ([#580](https://github.com/everybody-eats-nz/volunteer-portal/pull/580)) by @dependabot[bot]
+
+
+## [0.108.12] - 2026-02-17
+
+### Changes
+- chore(deps): bump tailwind-merge from 3.4.0 to 3.4.1 in /web in the production-dependencies group ([#579](https://github.com/everybody-eats-nz/volunteer-portal/pull/579)) by @dependabot[bot]
+
+
+## [0.108.11] - 2026-02-17
+
+### Changes
+- chore(deps): bump apexcharts from 5.3.6 to 5.4.0 in /web ([#581](https://github.com/everybody-eats-nz/volunteer-portal/pull/581)) by @dependabot[bot]
+
+
 ## [0.108.10] - 2026-02-17
 
 ### Changes
