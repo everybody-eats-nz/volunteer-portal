@@ -220,6 +220,7 @@ export default async function AdminDashboardPage({
   type ShiftWithSignups = {
     id: string;
     capacity: number;
+    placeholderCount: number;
     shiftType: { name: string };
     signups: Array<{ status: string }>;
   };
@@ -227,7 +228,7 @@ export default async function AdminDashboardPage({
   // Filter shifts that need attention (less than 50% capacity filled)
   const lowSignupShifts = shiftsNeedingAttention.filter(
     (shift: ShiftWithSignups) => {
-      const confirmedCount = shift.signups.length;
+      const confirmedCount = shift.signups.length + shift.placeholderCount;
       const fillRate = shift.capacity > 0 ? confirmedCount / shift.capacity : 0;
       return fillRate < 0.5;
     }
@@ -498,7 +499,7 @@ export default async function AdminDashboardPage({
                   {lowSignupShifts
                     .slice(0, 2)
                     .map((shift: ShiftWithSignups) => {
-                      const confirmedCount = shift.signups.length;
+                      const confirmedCount = shift.signups.length + shift.placeholderCount;
                       const fillRate =
                         shift.capacity > 0
                           ? (confirmedCount / shift.capacity) * 100
