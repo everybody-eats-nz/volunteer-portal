@@ -473,6 +473,7 @@ model RegularVolunteer {
   availableDays  String[] // Array of day names: ["Monday", "Wednesday", "Friday"]
   isActive       Boolean   @default(true)
   isPausedByUser Boolean   @default(false) // User-controlled pause
+  autoApprove    Boolean   @default(false) // Auto-confirm signups without admin review
   pausedUntil    DateTime? // Optional pause end date
   notes          String? // Admin notes about this regular assignment
   volunteerNotes String? // Volunteer's own notes/preferences
@@ -712,11 +713,11 @@ model Location {
 // Site-wide configurable settings
 model SiteSetting {
   key         String   @id // e.g., "PARENTAL_CONSENT_FORM_URL"
-  value       String   // The actual value (URL, text, etc.)
-  description String?  // Human-readable description for admin UI
+  value       String // The actual value (URL, text, etc.)
+  description String? // Human-readable description for admin UI
   category    String   @default("GENERAL") // For grouping: GENERAL, DOCUMENTS, etc.
   updatedAt   DateTime @updatedAt
-  updatedBy   String?  // Admin user ID who last updated
+  updatedBy   String? // Admin user ID who last updated
 
   @@index([category])
 }
@@ -754,18 +755,18 @@ model NewsletterList {
 
 // Survey system
 model Survey {
-  id          String            @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   questions   Json // Array of question objects
-  isActive    Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   createdBy   String
 
   // Milestone trigger configuration
   triggerType     SurveyTriggerType
-  triggerValue    Int  // Minimum threshold (e.g., 10 shifts)
+  triggerValue    Int // Minimum threshold (e.g., 10 shifts)
   triggerMaxValue Int? // Maximum threshold (e.g., 25 shifts) - if null, no upper limit
 
   creator     User               @relation("SurveyCreator", fields: [createdBy], references: [id])
@@ -830,9 +831,9 @@ enum SurveyAssignmentStatus {
 
 // Shortage notification history
 model ShortageNotificationLog {
-  id        String   @id @default(cuid())
-  sentAt    DateTime @default(now())
-  sentBy    String // Admin who sent the notification
+  id     String   @id @default(cuid())
+  sentAt DateTime @default(now())
+  sentBy String // Admin who sent the notification
 
   // Shift details (denormalized for history) - stored as JSON array
   shifts Json // Array of { shiftId, shiftTypeName, shiftDate, shiftLocation }
