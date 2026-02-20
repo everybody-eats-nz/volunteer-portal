@@ -43,6 +43,7 @@ import { AdminContactInfoSection } from "@/components/admin-contact-info-section
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
 import { hearAboutUsOptions } from "@/lib/form-constants";
 import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
+import { ShiftCountAdjustment } from "@/components/shift-count-adjustment";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -103,6 +104,10 @@ export default async function AdminVolunteerPage({
       healthSafetyPolicyAccepted: true,
       role: true,
       volunteerGrade: true,
+      completedShiftAdjustment: true,
+      completedShiftAdjustmentNote: true,
+      completedShiftAdjustmentBy: true,
+      completedShiftAdjustmentAt: true,
       createdAt: true,
       regularVolunteers: {
         include: {
@@ -199,10 +204,12 @@ export default async function AdminVolunteerPage({
     (signup: (typeof allSignups)[0]) =>
       signup.shift.start >= now && signup.status === "CONFIRMED"
   ).length;
-  const completedShifts = allSignups.filter(
+  const completedShiftsRaw = allSignups.filter(
     (signup: (typeof allSignups)[0]) =>
       signup.shift.start < now && signup.status === "CONFIRMED"
   ).length;
+  const completedShifts =
+    completedShiftsRaw + (volunteer.completedShiftAdjustment || 0);
 
   // Track confirmed cancellations (only matters for reporting) - use allSignups for accurate count
   const confirmedCancellations = allSignups.filter(
@@ -413,7 +420,15 @@ export default async function AdminVolunteerPage({
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                       {completedShifts}
                     </div>
-                    <div className="text-xs text-muted-foreground">Done</div>
+                    <div className="text-xs text-muted-foreground">
+                      Done
+                      {volunteer.completedShiftAdjustment !== 0 && (
+                        <span className="text-blue-600 dark:text-blue-400 ml-1">
+                          ({volunteer.completedShiftAdjustment > 0 ? "+" : ""}
+                          {volunteer.completedShiftAdjustment})
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -549,6 +564,15 @@ export default async function AdminVolunteerPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Shift Count Adjustment */}
+            <ShiftCountAdjustment
+              userId={volunteer.id}
+              currentAdjustment={volunteer.completedShiftAdjustment}
+              currentNote={volunteer.completedShiftAdjustmentNote}
+              adjustedBy={volunteer.completedShiftAdjustmentBy}
+              adjustedAt={volunteer.completedShiftAdjustmentAt}
+            />
 
             {/* Admin Notes */}
             <Card data-testid="admin-notes-card">

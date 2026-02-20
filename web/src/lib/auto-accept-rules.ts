@@ -57,13 +57,16 @@ async function getUserWithStats(
         },
       },
     },
+    // Also select the shift adjustment field
   });
 
   // Calculate statistics
   const now = new Date();
-  const completedShifts = user.signups.filter(
+  const completedShiftsRaw = user.signups.filter(
     (s) => s.status === "CONFIRMED" && s.shift.end < now
   ).length;
+  const completedShifts =
+    completedShiftsRaw + (user.completedShiftAdjustment || 0);
 
   const canceledShifts = user.signups.filter(
     (s) =>

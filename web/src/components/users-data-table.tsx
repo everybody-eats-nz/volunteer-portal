@@ -64,6 +64,7 @@ export interface User {
   profilePhotoUrl: string | null;
   role: "ADMIN" | "VOLUNTEER";
   volunteerGrade: VolunteerGrade;
+  completedShiftAdjustment: number;
   createdAt: Date;
   _count: {
     signups: number;
@@ -240,13 +241,20 @@ export const columns: ColumnDef<User>[] = [
     },
     cell: ({ row }) => {
       const count = row.original._count?.signups || 0;
+      const adjustment = row.original.completedShiftAdjustment || 0;
+      const total = count + adjustment;
       const user = row.original;
       return (
         <div
           className="text-sm font-medium text-center"
           data-testid={`user-shifts-count-${user.id}`}
         >
-          {count}
+          {total}
+          {adjustment !== 0 && (
+            <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">
+              ({adjustment > 0 ? "+" : ""}{adjustment})
+            </span>
+          )}
         </div>
       );
     },

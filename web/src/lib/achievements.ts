@@ -319,10 +319,10 @@ export async function calculateUserProgress(
     orderBy: { shift: { start: "asc" } },
   });
 
-  // Get user's registration date
+  // Get user's registration date and shift adjustment
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { createdAt: true },
+    select: { createdAt: true, completedShiftAdjustment: true },
   });
 
   if (!user) {
@@ -339,7 +339,8 @@ export async function calculateUserProgress(
   }
 
   // Calculate metrics
-  const totalShifts = completedShifts.length;
+  const totalShifts =
+    completedShifts.length + (user.completedShiftAdjustment || 0);
   const totalHours = completedShifts.reduce(
     (total: number, signup: (typeof completedShifts)[0]) =>
       total + differenceInHours(signup.shift.end, signup.shift.start),
