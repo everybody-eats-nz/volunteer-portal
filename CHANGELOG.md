@@ -1,3 +1,9 @@
+## [0.110.0] - 2026-02-20
+
+### Changes
+- Add bulk survey assignment for admins ([#599](https://github.com/everybody-eats-nz/volunteer-portal/pull/599)) by @malinmalliyawadu
+
+
 ## [0.109.0] - 2026-02-20
 
 ### Changes
