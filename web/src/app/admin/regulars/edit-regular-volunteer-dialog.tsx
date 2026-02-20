@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ type RegularVolunteer = {
   availableDays: string[];
   isActive: boolean;
   isPausedByUser: boolean;
+  autoApprove: boolean;
   pausedUntil: Date | null;
   notes: string | null;
   volunteerNotes: string | null;
@@ -101,6 +103,7 @@ export function EditRegularVolunteerDialog({
     availableDays: regular.availableDays,
     notes: regular.notes || "",
     isActive: regular.isActive,
+    autoApprove: regular.autoApprove,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -348,6 +351,31 @@ export function EditRegularVolunteerDialog({
                   setFormData((prev) => ({ ...prev, notes: e.target.value }))
                 }
               />
+            </div>
+
+            {/* Auto-Approve */}
+            <div className="flex items-start space-x-3 p-4 rounded-lg border bg-muted/50">
+              <Switch
+                id="editAutoApprove"
+                checked={formData.autoApprove}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    autoApprove: checked === true,
+                  }))
+                }
+              />
+              <div className="space-y-1">
+                <Label
+                  htmlFor="editAutoApprove"
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Auto-approve signups
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically confirm signups for this volunteer without requiring admin review.
+                </p>
+              </div>
             </div>
 
             {/* Action Buttons */}

@@ -25,6 +25,7 @@ const createRegularVolunteerSchema = z.object({
   ),
   notes: z.string().optional(),
   addToExistingShifts: z.boolean().optional().default(false),
+  autoApprove: z.boolean().optional().default(false),
 });
 
 // GET /api/admin/regulars - List all regular volunteers
@@ -176,6 +177,7 @@ export async function POST(req: NextRequest) {
         frequency: validated.frequency,
         availableDays: validated.availableDays,
         notes: validated.notes,
+        autoApprove: validated.autoApprove,
         createdBy: session?.user?.id,
         lastModifiedBy: session?.user?.id,
       },
@@ -280,7 +282,7 @@ export async function POST(req: NextRequest) {
             id: signupId,
             userId: validated.userId,
             shiftId: shift.id,
-            status: "REGULAR_PENDING" as const,
+            status: (regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING") as "CONFIRMED" | "REGULAR_PENDING",
             createdAt: new Date(),
             updatedAt: new Date(),
           });

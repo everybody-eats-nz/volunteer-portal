@@ -25,6 +25,7 @@ const updateRegularVolunteerSchema = z.object({
     .optional(),
   notes: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+  autoApprove: z.boolean().optional(),
 });
 
 // GET /api/admin/regulars/[id] - Get a specific regular volunteer
@@ -157,6 +158,9 @@ export async function PUT(
     }
     if (validated.isActive !== undefined) {
       updateData.isActive = validated.isActive;
+    }
+    if (validated.autoApprove !== undefined) {
+      updateData.autoApprove = validated.autoApprove;
     }
 
     // Update the regular volunteer
