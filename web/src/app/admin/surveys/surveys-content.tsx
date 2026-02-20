@@ -344,19 +344,21 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openBulkAssignDialog(survey)}
-                          data-testid={`bulk-assign-survey-${survey.id}`}
-                        >
-                          <Users className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Bulk Assign</TooltipContent>
-                    </Tooltip>
+                    {survey.triggerType !== "MANUAL" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openBulkAssignDialog(survey)}
+                            data-testid={`bulk-assign-survey-${survey.id}`}
+                          >
+                            <Users className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Bulk Assign</TooltipContent>
+                      </Tooltip>
+                    )}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
