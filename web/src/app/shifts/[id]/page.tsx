@@ -207,7 +207,7 @@ export default async function ShiftDetailPage({
   // Fetch concurrent shifts for backup options
   const concurrentShifts = await getConcurrentShifts(id);
 
-  const confirmedCount = shift._count.signups;
+  const confirmedCount = shift._count.signups + shift.placeholderCount;
   const isWaitlist = confirmedCount >= shift.capacity;
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
   const theme = SHIFT_THEMES[shift.shiftType.name as keyof typeof SHIFT_THEMES] || DEFAULT_THEME;

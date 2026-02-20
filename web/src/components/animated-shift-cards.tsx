@@ -80,6 +80,8 @@ import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
 import { calculateAge } from "@/lib/utils";
 import { AssignVolunteerDialog } from "@/components/assign-volunteer-dialog";
+import { PlaceholderCountControl } from "@/components/placeholder-count-control";
+import { getEffectiveConfirmedCount } from "@/lib/placeholder-utils";
 
 
 // Layout update context for triggering masonry recalculation
@@ -97,6 +99,7 @@ interface Shift {
   location: string | null;
   capacity: number;
   notes: string | null;
+  placeholderCount: number;
   shiftType: {
     id: string;
     name: string;
@@ -539,9 +542,10 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
       >
         <AnimatePresence mode="popLayout">
           {shifts.map((shift) => {
-            const confirmed = shift.signups.filter(
+            const confirmedSignups = shift.signups.filter(
               (s) => s.status === "CONFIRMED"
             ).length;
+            const confirmed = getEffectiveConfirmedCount(confirmedSignups, shift.placeholderCount);
             const isCompleted = isShiftCompleted(shift.end);
             const staffingStatus = isCompleted
               ? { color: "bg-slate-400 dark:bg-slate-600", text: "Completed", icon: CheckCircle2 }
@@ -588,7 +592,9 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             data-testid={`shift-capacity-${shift.id}`}
                             className={`${staffingStatus.color} text-white text-base px-3 py-1.5 font-bold shadow-sm`}
                           >
-                            {confirmed}/{shift.capacity}
+                            {shift.placeholderCount > 0
+                              ? `${confirmedSignups}+${shift.placeholderCount}/${shift.capacity}`
+                              : `${confirmed}/${shift.capacity}`}
                           </Badge>
                           {!isCompleted && (
                             <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
@@ -652,6 +658,11 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                     {/* Action Buttons Footer */}
                     <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
                       <div className="flex flex-col gap-2">
+                        {/* Placeholder (Walk-in) Count Control */}
+                        <PlaceholderCountControl
+                          shiftId={shift.id}
+                          initialCount={shift.placeholderCount}
+                        />
                         {/* Assign Volunteer Button - Always visible for past/present/future shifts */}
                         <AssignVolunteerDialog
                           shift={{

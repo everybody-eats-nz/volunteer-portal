@@ -196,12 +196,13 @@ model Shift {
   end           DateTime
   location      String?
   capacity      Int
-  notes         String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  shiftType     ShiftType      @relation(fields: [shiftTypeId], references: [id])
-  signups       Signup[]
-  groupBookings GroupBooking[]
+  notes            String?
+  placeholderCount Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  shiftType        ShiftType      @relation(fields: [shiftTypeId], references: [id])
+  signups          Signup[]
+  groupBookings    GroupBooking[]
 }
 
 model Signup {
