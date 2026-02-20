@@ -180,7 +180,7 @@ export default async function NewShiftPage() {
               id: signupId,
               userId: regular.userId,
               shiftId: shift.id,
-              status: "REGULAR_PENDING" as const,
+              status: (regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING") as "CONFIRMED" | "REGULAR_PENDING",
               createdAt: new Date(),
               updatedAt: new Date(),
             });
@@ -438,7 +438,7 @@ export default async function NewShiftPage() {
         id: string;
         userId: string;
         shiftId: string;
-        status: "REGULAR_PENDING";
+        status: "REGULAR_PENDING" | "CONFIRMED";
         createdAt: Date;
         updatedAt: Date;
       }> = [];
@@ -492,7 +492,7 @@ export default async function NewShiftPage() {
               id: signupId,
               userId: regular.userId,
               shiftId: shift.id,
-              status: "REGULAR_PENDING" as const,
+              status: regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING",
               createdAt: new Date(),
               updatedAt: new Date(),
             });

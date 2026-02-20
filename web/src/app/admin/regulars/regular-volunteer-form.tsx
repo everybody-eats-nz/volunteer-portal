@@ -14,6 +14,7 @@ import {
 import { Combobox } from "@/components/ui/combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -94,6 +95,7 @@ export function RegularVolunteerForm({
     availableDays: [] as string[],
     notes: "",
     addToExistingShifts: true,
+    autoApprove: false,
   });
 
   // Get the selected volunteer's existing regular shift types
@@ -172,6 +174,7 @@ export function RegularVolunteerForm({
         availableDays: [],
         notes: "",
         addToExistingShifts: true,
+        autoApprove: false,
       });
 
       setIsOpen(false);
@@ -384,6 +387,31 @@ export function RegularVolunteerForm({
                   </Label>
                   <p className="text-sm text-muted-foreground">
                     Automatically sign up this volunteer for matching future shifts that already exist in the system.
+                  </p>
+                </div>
+              </div>
+
+              {/* Auto-Approve */}
+              <div className="flex items-start space-x-3 p-4 rounded-lg border bg-muted/50">
+                <Switch
+                  id="autoApprove"
+                  checked={formData.autoApprove}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      autoApprove: checked === true,
+                    }))
+                  }
+                />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="autoApprove"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    Auto-approve signups
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically confirm signups for this volunteer without requiring admin review.
                   </p>
                 </div>
               </div>
