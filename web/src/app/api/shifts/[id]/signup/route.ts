@@ -86,7 +86,7 @@ export async function POST(
   if (!shift)
     return NextResponse.json({ error: "Shift not found" }, { status: 404 });
 
-  let confirmedCount = 0;
+  let confirmedCount = shift.placeholderCount;
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
   }

@@ -10,6 +10,7 @@ interface Shift {
   location: string | null;
   capacity: number;
   notes: string | null;
+  placeholderCount: number;
   shiftType: {
     id: string;
     name: string;
