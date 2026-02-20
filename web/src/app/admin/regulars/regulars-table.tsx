@@ -53,6 +53,7 @@ type RegularVolunteer = {
   availableDays: string[];
   isActive: boolean;
   isPausedByUser: boolean;
+  autoApprove: boolean;
   pausedUntil: Date | null;
   notes: string | null;
   volunteerNotes: string | null;
@@ -290,13 +291,20 @@ export function RegularsTable({
                     </TableCell>
 
                     <TableCell>
-                      {getStatusBadge(regular)}
-                      {regular.pausedUntil && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Until{" "}
-                          {formatInNZT(new Date(regular.pausedUntil), "MMM d")}
-                        </div>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {getStatusBadge(regular)}
+                        {regular.autoApprove && (
+                          <Badge variant="outline" className="text-xs w-fit">
+                            Auto-approve
+                          </Badge>
+                        )}
+                        {regular.pausedUntil && (
+                          <div className="text-xs text-muted-foreground">
+                            Until{" "}
+                            {formatInNZT(new Date(regular.pausedUntil), "MMM d")}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell>
