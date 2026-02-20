@@ -10,7 +10,7 @@ export async function DashboardStats({ userId }: DashboardStatsProps) {
   const now = new Date();
 
   // Get comprehensive user statistics
-  const [completedShifts, upcomingShifts, pendingShifts, monthlyShifts] =
+  const [completedShifts, upcomingShifts, pendingShifts, monthlyShifts, user] =
     await Promise.all([
       // Completed shifts (past shifts with CONFIRMED status)
       prisma.signup.findMany({
@@ -53,6 +53,12 @@ export async function DashboardStats({ userId }: DashboardStatsProps) {
           },
         },
       }),
+
+      // Get user's shift count adjustment
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { completedShiftAdjustment: true },
+      }),
     ]);
 
   // Calculate total hours volunteered
@@ -61,12 +67,15 @@ export async function DashboardStats({ userId }: DashboardStatsProps) {
     return total + hours;
   }, 0);
 
+  const shiftAdjustment = user?.completedShiftAdjustment || 0;
+  const adjustedCompletedShifts = completedShifts.length + shiftAdjustment;
+
   return (
     <AnimatedStatsGrid
       stats={[
         {
           title: "Shifts Completed",
-          value: completedShifts.length,
+          value: adjustedCompletedShifts,
           iconType: "checkCircle",
           variant: "green",
         },
