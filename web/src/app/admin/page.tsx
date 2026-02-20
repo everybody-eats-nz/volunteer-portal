@@ -216,23 +216,12 @@ export default async function AdminDashboardPage({
 
   const [monthlyShifts, monthlySignups, newUsersThisMonth] = monthlyStats;
 
-  // Define types for better type safety
-  type ShiftWithSignups = {
-    id: string;
-    capacity: number;
-    placeholderCount: number;
-    shiftType: { name: string };
-    signups: Array<{ status: string }>;
-  };
-
   // Filter shifts that need attention (less than 50% capacity filled)
-  const lowSignupShifts = shiftsNeedingAttention.filter(
-    (shift: ShiftWithSignups) => {
-      const confirmedCount = shift.signups.length + shift.placeholderCount;
-      const fillRate = shift.capacity > 0 ? confirmedCount / shift.capacity : 0;
-      return fillRate < 0.5;
-    }
-  );
+  const lowSignupShifts = shiftsNeedingAttention.filter((shift) => {
+    const confirmedCount = shift.signups.length + shift.placeholderCount;
+    const fillRate = shift.capacity > 0 ? confirmedCount / shift.capacity : 0;
+    return fillRate < 0.5;
+  });
 
   return (
     <AdminPageWrapper
@@ -498,7 +487,7 @@ export default async function AdminDashboardPage({
                   </p>
                   {lowSignupShifts
                     .slice(0, 2)
-                    .map((shift: ShiftWithSignups) => {
+                    .map((shift) => {
                       const confirmedCount = shift.signups.length + shift.placeholderCount;
                       const fillRate =
                         shift.capacity > 0

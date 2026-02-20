@@ -3,7 +3,7 @@ import { calculateUserProgress, type UserProgress } from "./achievements";
 import { createSurveyToken, generateSurveyToken, getSurveyUrl } from "./survey-tokens";
 import { createNotification } from "./notifications";
 import { sendSurveyNotification } from "./email-service";
-import type { SurveyTriggerType } from "@/generated/client";
+import { Prisma, type SurveyTriggerType } from "@/generated/client";
 import { differenceInDays } from "date-fns";
 
 export interface EvaluateTriggerResult {
@@ -294,4 +294,132 @@ export async function manuallyAssignSurvey(
   }
 
   return { assigned, skipped };
+}
+
+export interface BulkEligibilityResult {
+  eligibleUserIds: string[];
+  totalEligible: number;
+  alreadyAssigned: number;
+  sampleUsers: { id: string; name: string | null; email: string }[];
+}
+
+/**
+ * Find all users eligible for a survey using efficient bulk DB queries.
+ * Unlike per-user `calculateUserProgress`, this uses aggregate queries
+ * to find all matching users at once.
+ */
+export async function findEligibleUsersForSurvey(
+  surveyId: string
+): Promise<BulkEligibilityResult> {
+  const survey = await prisma.survey.findUnique({
+    where: { id: surveyId },
+  });
+
+  if (!survey) {
+    throw new Error("Survey not found");
+  }
+
+  // Get users already assigned to this survey
+  const existingAssignments = await prisma.surveyAssignment.findMany({
+    where: { surveyId },
+    select: { userId: true },
+  });
+  const alreadyAssignedIds = new Set(existingAssignments.map((a) => a.userId));
+
+  let candidateUserIds: string[];
+
+  switch (survey.triggerType) {
+    case "SHIFTS_COMPLETED": {
+      // Users with completed shift count in range [triggerValue, triggerMaxValue]
+      const maxCondition = survey.triggerMaxValue !== null
+        ? Prisma.sql`AND COUNT(DISTINCT s.id) <= ${survey.triggerMaxValue}`
+        : Prisma.empty;
+
+      const rows = await prisma.$queryRaw<Array<{ userId: string }>>`
+        SELECT s."userId"
+        FROM "Signup" s
+        JOIN "Shift" sh ON sh.id = s."shiftId"
+        WHERE s.status = 'CONFIRMED'
+          AND sh."end" < NOW()
+        GROUP BY s."userId"
+        HAVING COUNT(DISTINCT s.id) >= ${survey.triggerValue}
+          ${maxCondition}
+      `;
+      candidateUserIds = rows.map((r) => r.userId);
+      break;
+    }
+
+    case "HOURS_VOLUNTEERED": {
+      // Users with total hours in range [triggerValue, triggerMaxValue]
+      const maxCondition = survey.triggerMaxValue !== null
+        ? Prisma.sql`AND SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600) <= ${survey.triggerMaxValue}`
+        : Prisma.empty;
+
+      const rows = await prisma.$queryRaw<Array<{ userId: string }>>`
+        SELECT s."userId"
+        FROM "Signup" s
+        JOIN "Shift" sh ON sh.id = s."shiftId"
+        WHERE s.status = 'CONFIRMED'
+          AND sh."end" < NOW()
+        GROUP BY s."userId"
+        HAVING SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600) >= ${survey.triggerValue}
+          ${maxCondition}
+      `;
+      candidateUserIds = rows.map((r) => r.userId);
+      break;
+    }
+
+    case "FIRST_SHIFT": {
+      // Users whose first completed shift was [triggerValue, triggerMaxValue] days ago
+      const maxCondition = survey.triggerMaxValue !== null
+        ? Prisma.sql`AND EXTRACT(EPOCH FROM (NOW() - MIN(sh.start))) / 86400 <= ${survey.triggerMaxValue}`
+        : Prisma.empty;
+
+      const rows = await prisma.$queryRaw<Array<{ userId: string }>>`
+        SELECT s."userId"
+        FROM "Signup" s
+        JOIN "Shift" sh ON sh.id = s."shiftId"
+        WHERE s.status = 'CONFIRMED'
+          AND sh."end" < NOW()
+        GROUP BY s."userId"
+        HAVING EXTRACT(EPOCH FROM (NOW() - MIN(sh.start))) / 86400 >= ${survey.triggerValue}
+          ${maxCondition}
+      `;
+      candidateUserIds = rows.map((r) => r.userId);
+      break;
+    }
+
+    case "MANUAL": {
+      // All VOLUNTEER-role users
+      const rows = await prisma.user.findMany({
+        where: { role: "VOLUNTEER" },
+        select: { id: true },
+      });
+      candidateUserIds = rows.map((r) => r.id);
+      break;
+    }
+
+    default:
+      candidateUserIds = [];
+  }
+
+  // Exclude already-assigned users
+  const eligibleUserIds = candidateUserIds.filter(
+    (id) => !alreadyAssignedIds.has(id)
+  );
+
+  // Fetch sample users for preview (up to 10)
+  const sampleUsers = eligibleUserIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: eligibleUserIds.slice(0, 10) } },
+        select: { id: true, name: true, email: true },
+      })
+    : [];
+
+  return {
+    eligibleUserIds,
+    totalEligible: eligibleUserIds.length,
+    alreadyAssigned: alreadyAssignedIds.size,
+    sampleUsers,
+  };
 }
