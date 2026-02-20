@@ -1,3 +1,9 @@
+## [0.110.1] - 2026-02-20
+
+### Changes
+- Hide bulk assign button for manual surveys ([#600](https://github.com/everybody-eats-nz/volunteer-portal/pull/600)) by @malinmalliyawadu
+
+
 ## [0.110.0] - 2026-02-20
 
 ### Changes
