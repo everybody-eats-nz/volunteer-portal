@@ -74,7 +74,7 @@ function getConcurrentShiftsFromList(
     .map((shift) => {
       const confirmedCount = shift.signups.filter(
         (s) => s.status === "CONFIRMED" || s.status === "PENDING" || s.status === "REGULAR_PENDING"
-      ).length;
+      ).length + (shift.placeholderCount || 0);
       return {
         id: shift.id,
         shiftTypeName: shift.shiftType.name,
@@ -91,6 +91,7 @@ interface ShiftWithRelations {
   location: string | null;
   capacity: number;
   notes: string | null;
+  placeholderCount: number;
   shiftType: {
     id: string;
     name: string;
@@ -145,7 +146,7 @@ function ShiftCard({
   const concurrentShifts = getConcurrentShiftsFromList(shift, allShifts);
 
   // Calculate signup counts - only count non-canceled signups
-  let confirmedCount = 0;
+  let confirmedCount = shift.placeholderCount || 0;
   let pendingCount = 0;
 
   for (const signup of shift.signups) {

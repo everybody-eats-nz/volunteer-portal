@@ -39,11 +39,14 @@ export async function GET() {
 
     // Filter to only show shifts with shortages (admin can decide what constitutes a shortage)
     // We'll show all shifts and let the admin decide based on the numbers
-    const shiftsWithInfo = upcomingShifts.map(shift => ({
-      ...shift,
-      shortage: shift.capacity - shift._count.signups,
-      percentFilled: (shift._count.signups / shift.capacity) * 100,
-    }));
+    const shiftsWithInfo = upcomingShifts.map(shift => {
+      const effectiveConfirmed = shift._count.signups + shift.placeholderCount;
+      return {
+        ...shift,
+        shortage: shift.capacity - effectiveConfirmed,
+        percentFilled: (effectiveConfirmed / shift.capacity) * 100,
+      };
+    });
 
     return NextResponse.json(shiftsWithInfo);
   } catch (error) {

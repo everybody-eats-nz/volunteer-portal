@@ -275,7 +275,7 @@ export default async function ShiftsCalendarPage({
     end: shift.end,
     location: shift.location,
     capacity: shift.capacity,
-    confirmedCount: shift._count.signups, // This includes CONFIRMED, PENDING, and REGULAR_PENDING
+    confirmedCount: shift._count.signups + shift.placeholderCount, // Includes CONFIRMED, PENDING, REGULAR_PENDING + placeholders
     pendingCount: 0, // For calendar view, we simplify by putting all counts in confirmedCount
     shiftType: {
       name: shift.shiftType.name,
