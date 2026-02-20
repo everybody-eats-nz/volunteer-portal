@@ -128,16 +128,24 @@ export async function GET(
       take: 20, // Limit to most recent 20 achievements
     });
 
-    // Calculate total shifts completed
-    const totalShifts = await prisma.signup.count({
-      where: {
-        userId: friendId,
-        status: "CONFIRMED",
-        shift: {
-          end: { lt: new Date() },
+    // Calculate total shifts completed (including manual adjustment)
+    const [totalShiftsRaw, friendUser] = await Promise.all([
+      prisma.signup.count({
+        where: {
+          userId: friendId,
+          status: "CONFIRMED",
+          shift: {
+            end: { lt: new Date() },
+          },
         },
-      },
-    });
+      }),
+      prisma.user.findUnique({
+        where: { id: friendId },
+        select: { completedShiftAdjustment: true },
+      }),
+    ]);
+    const totalShifts =
+      totalShiftsRaw + (friendUser?.completedShiftAdjustment || 0);
 
     // Calculate total hours (estimate based on average shift length)
     const completedShifts = await prisma.signup.findMany({

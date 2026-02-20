@@ -58,6 +58,12 @@ model User {
   passwordResetToken          String?   @unique // Token for password reset
   passwordResetTokenExpiresAt DateTime? // When password reset token expires
 
+  // Manual shift count adjustment (for migrated data gaps)
+  completedShiftAdjustment     Int       @default(0)
+  completedShiftAdjustmentNote String?
+  completedShiftAdjustmentBy   String?
+  completedShiftAdjustmentAt   DateTime?
+
   // Migration invitation tracking
   isMigrated                Boolean   @default(false)
   migrationInvitationSent   Boolean   @default(false)

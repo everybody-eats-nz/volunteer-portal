@@ -87,6 +87,7 @@ export default async function AdminUsersPage({
       profilePhotoUrl: true;
       role: true;
       volunteerGrade: true;
+      completedShiftAdjustment: true;
       createdAt: true;
       _count: {
         select: {
@@ -148,16 +149,16 @@ export default async function AdminUsersPage({
       countWhereCondition = Prisma.sql`WHERE u.role = ${roleFilter}::text`;
     }
 
-    // Query to get user IDs sorted by completed signup count
+    // Query to get user IDs sorted by completed signup count (including manual adjustment)
     const userIdsWithCount = await prisma.$queryRaw<
       Array<{ id: string; signup_count: bigint }>
     >`
       SELECT
         u.id,
-        COUNT(DISTINCT s.id) FILTER (
+        (COUNT(DISTINCT s.id) FILTER (
           WHERE s.status = 'CONFIRMED'
           AND sh.end < ${now}
-        ) as signup_count
+        ) + COALESCE(u."completedShiftAdjustment", 0)) as signup_count
       FROM "User" u
       LEFT JOIN "Signup" s ON u.id = s."userId"
       LEFT JOIN "Shift" sh ON s."shiftId" = sh.id
@@ -193,6 +194,7 @@ export default async function AdminUsersPage({
           profilePhotoUrl: true,
           role: true,
           volunteerGrade: true,
+          completedShiftAdjustment: true,
           createdAt: true,
           _count: {
             select: {
@@ -257,6 +259,7 @@ export default async function AdminUsersPage({
         profilePhotoUrl: true,
         role: true,
         volunteerGrade: true,
+        completedShiftAdjustment: true,
         createdAt: true,
         _count: {
           select: {

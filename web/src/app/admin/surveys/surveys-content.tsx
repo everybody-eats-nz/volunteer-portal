@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { SurveyDialog } from "./survey-dialog";
 import { AssignSurveyDialog } from "./assign-survey-dialog";
+import { BulkAssignSurveyDialog } from "./bulk-assign-survey-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SURVEY_TRIGGER_DISPLAY } from "@/types/survey";
 import type { Survey, SurveyTriggerType } from "@/generated/client";
@@ -67,6 +68,8 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
   const [surveyToDelete, setSurveyToDelete] = useState<SurveyWithStats | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [surveyToAssign, setSurveyToAssign] = useState<SurveyWithStats | null>(null);
+  const [bulkAssignDialogOpen, setBulkAssignDialogOpen] = useState(false);
+  const [surveyToBulkAssign, setSurveyToBulkAssign] = useState<SurveyWithStats | null>(null);
   const { toast } = useToast();
 
   const handleCreateSurvey = async (data: {
@@ -247,6 +250,11 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
     setAssignDialogOpen(true);
   };
 
+  const openBulkAssignDialog = (survey: SurveyWithStats) => {
+    setSurveyToBulkAssign(survey);
+    setBulkAssignDialogOpen(true);
+  };
+
   const handleAssignmentComplete = () => {
     // Refresh surveys to update assignment counts
     window.location.reload();
@@ -336,6 +344,19 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openBulkAssignDialog(survey)}
+                          data-testid={`bulk-assign-survey-${survey.id}`}
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Bulk Assign</TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -463,6 +484,18 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
           onOpenChange={(open) => {
             setAssignDialogOpen(open);
             if (!open) setSurveyToAssign(null);
+          }}
+          onAssigned={handleAssignmentComplete}
+        />
+      )}
+
+      {surveyToBulkAssign && (
+        <BulkAssignSurveyDialog
+          survey={surveyToBulkAssign}
+          open={bulkAssignDialogOpen}
+          onOpenChange={(open) => {
+            setBulkAssignDialogOpen(open);
+            if (!open) setSurveyToBulkAssign(null);
           }}
           onAssigned={handleAssignmentComplete}
         />
