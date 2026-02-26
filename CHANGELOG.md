@@ -1,3 +1,9 @@
+## [0.110.5] - 2026-02-26
+
+### Changes
+- chore(deps-dev): bump rollup from 4.56.0 to 4.59.0 in /web ([#614](https://github.com/everybody-eats-nz/volunteer-portal/pull/614)) by @dependabot[bot]
+
+
 ## [0.110.4] - 2026-02-26
 
 ### Changes
