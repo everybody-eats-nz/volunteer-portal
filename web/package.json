@@ -94,7 +94,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/eslintrc": "^3.3.4",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
@@ -108,7 +108,7 @@
     "csv-parse": "^6.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "prisma": "^7.4.1",
+    "prisma": "^7.4.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
