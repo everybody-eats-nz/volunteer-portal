@@ -206,16 +206,16 @@ test.describe("Parental Consent System", () => {
       expect(download.suggestedFilename()).toBe("parental-consent-form.pdf");
     });
 
-    // SKIPPED: Registration form submission not completing - needs investigation
-    // Issue: Form stays on final step and doesn't redirect after Create Account click
-    // TODO: Debug form validation or submission handler
-    test.skip("should allow underage users to complete registration despite parental consent requirement", async ({
+    test("should allow underage users to complete registration despite parental consent requirement", async ({
       page,
     }) => {
+      // Use dynamic email to avoid conflicts with previous test runs
+      const email = `complete.minor.${Date.now()}@example.com`;
+
       // Complete full registration flow for underage user
       await registerUnderageUser(
         page,
-        "complete.minor@example.com",
+        email,
         new Date().getFullYear() - 15
       );
 
@@ -353,9 +353,7 @@ test.describe("Parental Consent System", () => {
       ).toBeVisible();
     });
 
-    // SKIPPED: Expects specific seed data (Sophia Brown) which may not exist
-    // TODO: Either ensure seed data is consistent or make test data-agnostic
-    test.skip("should show underage users in parental consent table", async ({
+    test("should show underage users in parental consent table", async ({
       page,
     }) => {
       await loginAsAdmin(page);
@@ -365,15 +363,19 @@ test.describe("Parental Consent System", () => {
       await page.getByTestId("sidebar-parental-consent").click();
       await waitForPageLoad(page);
 
-      // Should show Sophia Brown (from seed data) in the table
-      await expect(page.getByText("Sophia Brown")).toBeVisible();
-      await expect(page.getByText("15 years")).toBeVisible();
-      await expect(
-        page.getByText("sophia.brown@gmail.com").first()
-      ).toBeVisible();
+      // Verify the pending table has at least one user row with name, age, and email
+      const pendingTable = page.locator("table").first();
+      const rows = pendingTable.locator("tbody tr");
+      await expect(rows.first()).toBeVisible({ timeout: 10000 });
+
+      // Each row should display user age in "N years" format
+      await expect(rows.first().getByText(/\d+ years/)).toBeVisible();
+
+      // Each row should have an email link
+      await expect(rows.first().locator("a[href^='mailto:']").first()).toBeVisible();
     });
 
-    // SKIPPED: Expects specific seed data (Sophia Brown) which may not exist
+    // SKIPPED: Write operation that modifies seed data and could affect other tests
     test.skip("should allow admin to approve parental consent", async ({
       page,
     }) => {
@@ -384,24 +386,23 @@ test.describe("Parental Consent System", () => {
       await page.getByTestId("sidebar-parental-consent").click();
       await waitForPageLoad(page);
 
-      // Find Sophia Brown's row and approve consent
+      // Find a pending user's approve button (text is "Approve" with CheckCircle icon)
       const approveButton = page
-        .getByRole("button", { name: "Approve Consent" })
+        .getByRole("button", { name: /Approve/i })
         .first();
       await approveButton.click();
 
-      // Confirm in dialog
-      await page.getByRole("button", { name: "Yes, approve consent" }).click();
+      // Confirm in dialog (button text is "Approve Consent")
+      await page.getByRole("button", { name: "Approve Consent" }).click();
       await waitForPageLoad(page);
 
-      // Should show success message or update status
+      // Should show success toast
       await expect(
-        page.getByText("Consent approved successfully")
+        page.getByText(/Parental consent approved for/)
       ).toBeVisible();
     });
 
-    // SKIPPED: Expects specific seed data (Jackson Smith) which may not exist
-    test.skip("should update user status after approval", async ({ page }) => {
+    test("should show approved users section", async ({ page }) => {
       await loginAsAdmin(page);
       await waitForPageLoad(page);
 
@@ -409,9 +410,15 @@ test.describe("Parental Consent System", () => {
       await page.getByTestId("sidebar-parental-consent").click();
       await waitForPageLoad(page);
 
-      // Check if Jackson Smith (approved user from seed data) shows as approved
-      await expect(page.getByText("Jackson Smith")).toBeVisible();
-      await expect(page.getByText("Approved")).toBeVisible();
+      // Approved section should be visible with at least one approved user from seed data
+      const approvedHeading = page.getByRole("heading", { name: /Approved/i });
+      await expect(approvedHeading).toBeVisible({ timeout: 10000 });
+
+      // Approved table should have at least one user row
+      const tables = page.locator("table");
+      const approvedTable = tables.nth(1); // Second table is the approved users table
+      const approvedRows = approvedTable.locator("tbody tr");
+      await expect(approvedRows.first()).toBeVisible();
     });
   });
 
