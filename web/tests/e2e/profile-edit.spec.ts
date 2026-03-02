@@ -355,11 +355,9 @@ test.describe("Profile Edit Page", () => {
   });
 
   test.describe("Authentication and Access Control", () => {
-    test.skip("should require authentication to access profile edit page", async ({
+    test("should require authentication to access profile edit page", async ({
       context,
     }) => {
-      // Skip this test as the application may allow access to profile edit page
-      // This could be intentional UX where users can see the form but can't save without auth
       // Create a new context (fresh browser session) with no cookies/session
       const newContext = await context.browser()?.newContext();
       if (!newContext) throw new Error("Could not create new context");
