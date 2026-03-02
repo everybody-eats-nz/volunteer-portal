@@ -1,3 +1,39 @@
+## [0.110.6] - 2026-03-02
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 2 updates ([#621](https://github.com/everybody-eats-nz/volunteer-portal/pull/621)) by @dependabot[bot]
+
+
+## [0.110.5] - 2026-02-26
+
+### Changes
+- chore(deps-dev): bump rollup from 4.56.0 to 4.59.0 in /web ([#614](https://github.com/everybody-eats-nz/volunteer-portal/pull/614)) by @dependabot[bot]
+
+
+## [0.110.4] - 2026-02-26
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 3 updates ([#611](https://github.com/everybody-eats-nz/volunteer-portal/pull/611)) by @dependabot[bot]
+
+
+## [0.110.3] - 2026-02-26
+
+### Changes
+- chore(deps): bump @prisma/adapter-pg from 7.3.0 to 7.4.1 in /web ([#609](https://github.com/everybody-eats-nz/volunteer-portal/pull/609)) by @dependabot[bot]
+
+
+## [0.110.2] - 2026-02-24
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 4 updates ([#605](https://github.com/everybody-eats-nz/volunteer-portal/pull/605)) by @dependabot[bot]
+
+
+## [0.110.1] - 2026-02-20
+
+### Changes
+- Hide bulk assign button for manual surveys ([#600](https://github.com/everybody-eats-nz/volunteer-portal/pull/600)) by @malinmalliyawadu
+
+
 ## [0.110.0] - 2026-02-20
 
 ### Changes
