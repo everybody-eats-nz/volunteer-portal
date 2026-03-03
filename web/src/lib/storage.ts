@@ -1,23 +1,19 @@
 import { supabase, getSupabaseAdmin } from "./supabase";
+import {
+  ALLOWED_FILE_TYPES,
+  MAX_FILE_SIZE,
+  getFileExtension,
+} from "./storage-utils";
+
+export {
+  ALLOWED_FILE_TYPES,
+  MAX_FILE_SIZE,
+  getFileExtension,
+  formatFileSize,
+  extractFilePathFromUrl,
+} from "./storage-utils";
 
 export const STORAGE_BUCKET = "resource-hub";
-
-// Allowed file types
-export const ALLOWED_FILE_TYPES = {
-  PDF: ["application/pdf"],
-  IMAGE: ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"],
-  DOCUMENT: [
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  ],
-};
-
-// Max file size: 4MB (Vercel serverless function payload limit)
-export const MAX_FILE_SIZE = 4 * 1024 * 1024;
 
 /**
  * Upload a file to Supabase storage (uses service role for admin uploads)
@@ -105,13 +101,6 @@ export async function deleteFile(filePath: string): Promise<void> {
 }
 
 /**
- * Get file extension from filename
- */
-export function getFileExtension(filename: string): string {
-  return filename.split(".").pop()?.toLowerCase() || "";
-}
-
-/**
  * Validate file type based on resource type
  */
 export function validateFileType(
@@ -120,30 +109,4 @@ export function validateFileType(
 ): boolean {
   const allowedTypes = ALLOWED_FILE_TYPES[resourceType];
   return allowedTypes.includes(file.type);
-}
-
-/**
- * Format file size for display
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-}
-
-/**
- * Extract file path from Supabase URL
- */
-export function extractFilePathFromUrl(url: string): string | null {
-  try {
-    const urlObj = new URL(url);
-    const pathMatch = urlObj.pathname.match(
-      /\/storage\/v1\/object\/public\/[^/]+\/(.*)/
-    );
-    return pathMatch ? pathMatch[1] : null;
-  } catch {
-    return null;
-  }
 }

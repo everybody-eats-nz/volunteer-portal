@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formatFileSize } from "@/lib/storage";
+import { formatFileSize } from "@/lib/storage-utils";
 
 interface Resource {
   id: string;

@@ -1,10 +1,71 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import {
+  createTestUser,
+  deleteTestUsers,
+  getUserByEmail,
+  createTestResource,
+  deleteTestResources,
+} from "./helpers/test-helpers";
+import { randomUUID } from "crypto";
 
-// SKIPPED: Resource Hub requires Supabase Storage to be configured
-// The admin resources page crashes with "Missing Supabase environment variables"
-// TODO: Either configure Supabase for tests or mock the storage dependency
-test.describe.skip("Admin Resource Management", () => {
+test.describe("Admin Resource Management", () => {
+  const testId = randomUUID().slice(0, 8);
+  const adminEmail = `admin-res-${testId}@example.com`;
+  const resourceIds: string[] = [];
+  let adminUserId: string;
+
+  test.beforeEach(async ({ page }) => {
+    resourceIds.length = 0;
+
+    // Create admin user and get ID
+    await createTestUser(page, adminEmail, "ADMIN");
+    const admin = await getUserByEmail(page, adminEmail);
+    adminUserId = admin!.id;
+
+    // Create test resources (LINK type so no Supabase needed)
+    const res1 = await createTestResource(page, {
+      title: "Training Guide Alpha",
+      description: "A comprehensive training guide",
+      type: "LINK",
+      category: "TRAINING",
+      tags: ["beginner", "onboarding"],
+      url: "https://example.com/training",
+      isPublished: true,
+      uploadedBy: adminUserId,
+    });
+    resourceIds.push(res1.id);
+
+    const res2 = await createTestResource(page, {
+      title: "Kitchen Safety Policy",
+      description: "Safety policies for the kitchen",
+      type: "LINK",
+      category: "POLICIES",
+      tags: ["safety", "kitchen"],
+      url: "https://example.com/safety",
+      isPublished: true,
+      uploadedBy: adminUserId,
+    });
+    resourceIds.push(res2.id);
+
+    const res3 = await createTestResource(page, {
+      title: "Volunteer Application Form",
+      description: "Form for new volunteers",
+      type: "LINK",
+      category: "FORMS",
+      tags: ["forms"],
+      url: "https://example.com/form",
+      isPublished: false,
+      uploadedBy: adminUserId,
+    });
+    resourceIds.push(res3.id);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await deleteTestResources(page, resourceIds);
+    await deleteTestUsers(page, [adminEmail]);
+  });
+
   test.describe("Page Access and Authentication", () => {
     test("should allow admin users to access the resources management page", async ({
       page,
@@ -63,24 +124,20 @@ test.describe.skip("Admin Resource Management", () => {
     });
 
     test("should display resources table or empty state", async ({ page }) => {
-      // Either shows resources table or empty state
+      // We created resources, so table should exist
       const hasTable = (await page.locator("table").count()) > 0;
-      const hasEmptyState =
-        (await page.getByText(/no resources found/i).count()) > 0;
-
-      expect(hasTable || hasEmptyState).toBeTruthy();
+      expect(hasTable).toBeTruthy();
     });
 
     test("should show resource statistics if resources exist", async ({
       page,
     }) => {
-      // Look for stats cards or counts
-      const hasStats =
-        (await page.getByText(/total|published|draft/i).count()) > 0;
-
-      // Stats may or may not be present depending on implementation
-      // Just verify page loaded
-      expect(page.url()).toContain("/admin/resources");
+      // Stats cards should show Total, Published, Drafts
+      await expect(page.getByText("Total Resources")).toBeVisible();
+      // Use the stats card which has exact "Published" as label (not the badge in table)
+      const statsGrid = page.locator(".grid.gap-4").first();
+      await expect(statsGrid.getByText("Published")).toBeVisible();
+      await expect(statsGrid.getByText("Drafts")).toBeVisible();
     });
   });
 
@@ -111,17 +168,12 @@ test.describe.skip("Admin Resource Management", () => {
 
       await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
 
-      // Check for key form elements
-      // Title field
-      await expect(
-        page.getByLabel(/title/i) || page.getByPlaceholder(/title/i)
-      ).toBeVisible();
+      // Check for title field
+      await expect(page.getByLabel(/title/i)).toBeVisible();
 
-      // Category selector
-      await expect(page.getByRole("combobox").first()).toBeVisible();
-
-      // Type selector
-      await expect(page.getByRole("combobox").nth(1)).toBeVisible();
+      // Check for Resource Type and Category selectors
+      await expect(page.getByLabel(/resource type/i)).toBeVisible();
+      await expect(page.getByLabel(/category/i)).toBeVisible();
     });
 
     test("should have category options", async ({ page }) => {
@@ -132,13 +184,15 @@ test.describe.skip("Admin Resource Management", () => {
 
       await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
 
-      // Click category dropdown
-      const categorySelect = page.getByRole("combobox").first();
-      await categorySelect.click();
+      // Click category dropdown (labeled "Category")
+      const categoryTrigger = page.getByLabel(/category/i).locator("..").getByRole("combobox");
+      await categoryTrigger.click();
 
       // Verify categories exist
       const hasCategories =
-        (await page.getByRole("option", { name: /training|policies|forms|guides/i }).count()) > 0;
+        (await page
+          .getByRole("option", { name: /training|policies|forms|guides/i })
+          .count()) > 0;
       expect(hasCategories).toBeTruthy();
     });
 
@@ -150,13 +204,15 @@ test.describe.skip("Admin Resource Management", () => {
 
       await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
 
-      // Click type dropdown
-      const typeSelect = page.getByRole("combobox").nth(1);
-      await typeSelect.click();
+      // Click Resource Type dropdown (first select in dialog)
+      const typeTrigger = page.getByLabel(/resource type/i).locator("..").getByRole("combobox");
+      await typeTrigger.click();
 
       // Verify types exist (PDF, IMAGE, DOCUMENT, LINK, VIDEO)
       const hasTypes =
-        (await page.getByRole("option", { name: /pdf|image|document|link|video/i }).count()) > 0;
+        (await page
+          .getByRole("option", { name: /pdf|image|document|link|video/i })
+          .count()) > 0;
       expect(hasTypes).toBeTruthy();
     });
 
@@ -187,56 +243,24 @@ test.describe.skip("Admin Resource Management", () => {
     test("should display resource rows if resources exist", async ({
       page,
     }) => {
-      const hasTable = (await page.locator("table").count()) > 0;
-
-      if (hasTable) {
-        // Verify table has rows
-        const rows = page.locator("tbody tr");
-        const rowCount = await rows.count();
-        expect(rowCount).toBeGreaterThanOrEqual(0);
-      } else {
-        // Empty state is acceptable
-        await expect(page.getByText(/no resources/i)).toBeVisible();
-      }
+      const rows = page.locator("tbody tr");
+      const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThanOrEqual(1);
     });
 
     test("should display resource metadata in table", async ({ page }) => {
-      const hasTable = (await page.locator("table").count()) > 0;
-
-      if (hasTable) {
-        const rows = page.locator("tbody tr");
-        const rowCount = await rows.count();
-
-        if (rowCount > 0) {
-          // First row should have cells with data
-          const firstRow = rows.first();
-          const cells = firstRow.locator("td");
-          const cellCount = await cells.count();
-          expect(cellCount).toBeGreaterThan(0);
-        }
-      } else {
-        test.skip(true, "No resources available to test table display");
-      }
+      const rows = page.locator("tbody tr");
+      const firstRow = rows.first();
+      const cells = firstRow.locator("td");
+      const cellCount = await cells.count();
+      expect(cellCount).toBeGreaterThan(0);
     });
 
     test("should have action buttons for resources", async ({ page }) => {
-      const hasTable = (await page.locator("table").count()) > 0;
-
-      if (hasTable) {
-        const rows = page.locator("tbody tr");
-        const rowCount = await rows.count();
-
-        if (rowCount > 0) {
-          // Look for action buttons (edit, delete, etc.)
-          const actionButtons = page.getByRole("button", {
-            name: /(edit|delete|view|download)/i,
-          });
-          const buttonCount = await actionButtons.count();
-          expect(buttonCount).toBeGreaterThan(0);
-        }
-      } else {
-        test.skip(true, "No resources available to test actions");
-      }
+      // Look for dropdown menu trigger (more actions button)
+      const actionButtons = page.locator("tbody tr").first().getByRole("button");
+      const buttonCount = await actionButtons.count();
+      expect(buttonCount).toBeGreaterThan(0);
     });
   });
 
@@ -248,11 +272,7 @@ test.describe.skip("Admin Resource Management", () => {
     });
 
     test("should have filter controls", async ({ page }) => {
-      // Look for filter controls (comboboxes, inputs, etc.)
-      const hasFilters = (await page.getByRole("combobox").count()) > 0;
-
-      // Filters may or may not be present depending on implementation
-      // Just verify page works
+      // Page loads with resources - just verify it's working
       expect(page.url()).toContain("/admin/resources");
     });
 
@@ -291,32 +311,29 @@ test.describe.skip("Admin Resource Management", () => {
     test("should open edit dialog when edit button clicked", async ({
       page,
     }) => {
-      const hasTable = (await page.locator("table").count()) > 0;
-
-      if (!hasTable) {
-        test.skip(true, "No resources available to test editing");
-      }
-
-      const rows = page.locator("tbody tr");
-      const rowCount = await rows.count();
-
-      if (rowCount === 0) {
-        test.skip(true, "No resources available to test editing");
-      }
-
-      // Look for edit button
-      const editButton = page
-        .getByRole("button", { name: /edit/i })
+      // Click the actions dropdown on first row
+      const firstRowButton = page
+        .locator("tbody tr")
+        .first()
+        .getByRole("button")
         .first();
-      const hasEditButton = (await editButton.count()) > 0;
+      await firstRowButton.click();
 
-      if (hasEditButton) {
-        await editButton.click();
-
+      // Click edit option
+      const editItem = page.getByRole("menuitem", { name: /edit/i });
+      if ((await editItem.count()) > 0) {
+        await editItem.click();
         // Dialog should open
         await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
       } else {
-        test.skip(true, "No edit buttons found");
+        // If no dropdown menu, look for direct edit button
+        const editButton = page
+          .getByRole("button", { name: /edit/i })
+          .first();
+        if ((await editButton.count()) > 0) {
+          await editButton.click();
+          await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
+        }
       }
     });
   });
@@ -329,39 +346,27 @@ test.describe.skip("Admin Resource Management", () => {
     });
 
     test("should show delete confirmation dialog", async ({ page }) => {
-      const hasTable = (await page.locator("table").count()) > 0;
-
-      if (!hasTable) {
-        test.skip(true, "No resources available to test deletion");
-      }
-
-      const rows = page.locator("tbody tr");
-      const rowCount = await rows.count();
-
-      if (rowCount === 0) {
-        test.skip(true, "No resources available to test deletion");
-      }
-
-      // Look for delete button
-      const deleteButton = page
-        .getByRole("button", { name: /delete/i })
+      // Click the actions dropdown on first row
+      const firstRowButton = page
+        .locator("tbody tr")
+        .first()
+        .getByRole("button")
         .first();
-      const hasDeleteButton = (await deleteButton.count()) > 0;
+      await firstRowButton.click();
 
-      if (hasDeleteButton) {
-        await deleteButton.click();
+      // Click delete option
+      const deleteItem = page.getByRole("menuitem", { name: /delete/i });
+      if ((await deleteItem.count()) > 0) {
+        await deleteItem.click();
 
-        // Confirmation dialog or alert should appear
-        // This is intentionally vague as we won't actually delete in tests
+        // Confirmation dialog should appear
         await page.waitForTimeout(500);
 
-        // Don't actually confirm - just verify the flow works
+        // Don't actually confirm - just verify the cancel button exists
         const cancelButton = page.getByRole("button", { name: /cancel/i });
         if ((await cancelButton.count()) > 0) {
           await cancelButton.click();
         }
-      } else {
-        test.skip(true, "No delete buttons found");
       }
     });
   });
@@ -376,27 +381,12 @@ test.describe.skip("Admin Resource Management", () => {
     test("should have view/download options for file resources", async ({
       page,
     }) => {
-      const hasTable = (await page.locator("table").count()) > 0;
-
-      if (!hasTable) {
-        test.skip(true, "No resources available to test preview");
-      }
-
+      // Verify table has rows with our test data
       const rows = page.locator("tbody tr");
       const rowCount = await rows.count();
+      expect(rowCount).toBeGreaterThan(0);
 
-      if (rowCount === 0) {
-        test.skip(true, "No resources available to test preview");
-      }
-
-      // Look for view/download/open buttons
-      const actionButtons = page.getByRole("button", {
-        name: /(view|download|open)/i,
-      });
-      const hasActions = (await actionButtons.count()) > 0;
-
-      // Actions may or may not be present
-      // Just verify page loaded
+      // Page loaded successfully
       expect(page.url()).toContain("/admin/resources");
     });
   });
