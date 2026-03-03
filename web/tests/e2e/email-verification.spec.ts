@@ -174,7 +174,7 @@ test.describe("Email Verification System", () => {
   });
 
   test.describe("Resend Verification Functionality", () => {
-    test.skip("should validate email input", async ({ page }) => {
+    test("should validate email input", async ({ page }) => {
       await page.goto("/verify-email?token=invalid-token");
       await waitForPageLoad(page);
       await page.waitForTimeout(2000); // Wait for error state
@@ -187,19 +187,20 @@ test.describe("Email Verification System", () => {
       const emailInput = page.getByTestId("resend-email-input");
       await emailInput.clear();
       await emailInput.fill(""); // Double ensure it's empty
-      
+
       // Verify email field is actually empty
       await expect(emailInput).toHaveValue("");
 
       const resendButton = page.getByTestId("resend-button");
       await expect(resendButton).toBeVisible();
-      
+
       // Try to resend without email - button should be enabled
       await expect(resendButton).toBeEnabled();
       await resendButton.click();
-      
+
       // Wait for dialog to appear with longer timeout
-      const dialog = page.getByTestId("verification-dialog");
+      // Note: data-testid is on DialogContent, not the Dialog root (which is a context provider)
+      const dialog = page.getByTestId("dialog-content");
       await expect(dialog).toBeVisible({ timeout: 10000 });
 
       const dialogTitle = page.getByTestId("dialog-title");
@@ -213,13 +214,13 @@ test.describe("Email Verification System", () => {
       // Close dialog
       const okButton = page.getByTestId("dialog-ok-button");
       await okButton.click();
-      
+
       await expect(dialog).not.toBeVisible();
     });
 
-    test.skip("should handle successful resend", async ({ page }) => {
+    test("should handle successful resend", async ({ page }) => {
       const testEmail = generateTestEmail();
-      
+
       await page.goto("/verify-email?token=invalid-token");
       await waitForPageLoad(page);
       await page.waitForTimeout(2000); // Wait for error state
@@ -231,7 +232,7 @@ test.describe("Email Verification System", () => {
       // Fill email and resend
       const emailInput = page.getByTestId("resend-email-input");
       await emailInput.fill(testEmail);
-      
+
       // Verify email was filled
       await expect(emailInput).toHaveValue(testEmail);
 
@@ -240,7 +241,8 @@ test.describe("Email Verification System", () => {
       await resendButton.click();
 
       // Should show success dialog - wait longer for API call
-      const dialog = page.getByTestId("verification-dialog");
+      // Note: data-testid is on DialogContent, not the Dialog root (which is a context provider)
+      const dialog = page.getByTestId("dialog-content");
       await expect(dialog).toBeVisible({ timeout: 15000 });
 
       const successTitle = page.getByTestId("dialog-title");
