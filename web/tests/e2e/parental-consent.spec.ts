@@ -17,7 +17,9 @@ async function selectDateOfBirth(page: Page, birthYear: number) {
   const dateString = `${birthYear}-${month}-${day}`;
 
   // Use force: true since the input is visually hidden but functional
-  await page.getByTestId("date-of-birth-hidden-input").fill(dateString, { force: true });
+  await page
+    .getByTestId("date-of-birth-hidden-input")
+    .fill(dateString, { force: true });
   await waitForPageLoad(page);
 }
 
@@ -62,7 +64,9 @@ async function registerUnderageUser(
 
   // Step 4: Medical & Background
   // Leave medical conditions blank and skip to next
-  await page.getByRole("combobox", { name: /how did you hear about us/i }).click();
+  await page
+    .getByRole("combobox", { name: /how did you hear about us/i })
+    .click();
   await page.getByRole("option", { name: /friend/i }).click();
   await page.getByTestId("next-submit-button").click();
   await waitForPageLoad(page);
@@ -74,11 +78,13 @@ async function registerUnderageUser(
 
   // Step 6: Agreements - must click through dialogs to agree
   // Click text to open volunteer agreement dialog
-  await page.getByText(/I have read and agree with the Volunteer Agreement/).click();
+  await page
+    .getByText(/I have read and agree with the Volunteer Agreement/)
+    .click();
   await waitForPageLoad(page);
   // Scroll to bottom to enable the agree button
   await page.evaluate(() => {
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = document.querySelector(".overflow-y-auto");
     if (scrollContainer) {
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
@@ -87,11 +93,13 @@ async function registerUnderageUser(
   await waitForPageLoad(page);
 
   // Click text to open health & safety policy dialog
-  await page.getByText(/I have read and agree with the Health and Safety Policy/).click();
+  await page
+    .getByText(/I have read and agree with the Health and Safety Policy/)
+    .click();
   await waitForPageLoad(page);
   // Scroll to bottom to enable the agree button
   await page.evaluate(() => {
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = document.querySelector(".overflow-y-auto");
     if (scrollContainer) {
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
@@ -100,7 +108,9 @@ async function registerUnderageUser(
   await waitForPageLoad(page);
 
   // Wait for Create Account button to be enabled and click it
-  const createAccountButton = page.getByRole("button", { name: /create account/i });
+  const createAccountButton = page.getByRole("button", {
+    name: /create account/i,
+  });
   await createAccountButton.waitFor({ state: "visible" });
 
   // Ensure button is enabled before clicking
@@ -216,11 +226,7 @@ test.describe("Parental Consent System", () => {
       const email = `complete.minor.${Date.now()}@example.com`;
 
       // Complete full registration flow for underage user
-      await registerUnderageUser(
-        page,
-        email,
-        new Date().getFullYear() - 15
-      );
+      await registerUnderageUser(page, email, new Date().getFullYear() - 15);
 
       // Should successfully complete registration and be redirected to login page
       await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
@@ -241,7 +247,7 @@ test.describe("Parental Consent System", () => {
       // Should show parental consent banner
       await expect(page.getByTestId("parental-consent-banner")).toBeVisible();
       await expect(page.getByText("Parental consent required")).toBeVisible();
-      await expect(page.getByText("volunteers@everybodyeats.nz")).toBeVisible();
+      await expect(page.getByText("volunteer@everybodyeats.nz")).toBeVisible();
       await expect(page.getByText("Download Consent Form")).toBeVisible();
     });
 
@@ -280,7 +286,7 @@ test.describe("Parental Consent System", () => {
       // Should show parental consent restrictions
       await expect(page.getByTestId("parental-consent-banner")).toBeVisible();
       await expect(page.getByText("Parental Consent Required")).toBeVisible();
-      await expect(page.getByText("volunteers@everybodyeats.nz")).toBeVisible();
+      await expect(page.getByText("volunteer@everybodyeats.nz")).toBeVisible();
     });
 
     // SKIPPED: Requires implementing disabled shift signup buttons with parental consent message
@@ -348,7 +354,7 @@ test.describe("Parental Consent System", () => {
 
       // Should show parental consent management page
       await expect(page.getByText("Parental Consent Management")).toBeVisible();
-      await expect(page.getByText("volunteers@everybodyeats.nz")).toBeVisible();
+      await expect(page.getByText("volunteer@everybodyeats.nz")).toBeVisible();
 
       // Should show list of users requiring consent (use exact text match to avoid ambiguity)
       await expect(
@@ -375,7 +381,9 @@ test.describe("Parental Consent System", () => {
       await expect(rows.first().getByText(/\d+ years/)).toBeVisible();
 
       // Each row should have an email link
-      await expect(rows.first().locator("a[href^='mailto:']").first()).toBeVisible();
+      await expect(
+        rows.first().locator("a[href^='mailto:']").first()
+      ).toBeVisible();
     });
 
     // SKIPPED: Write operation that modifies seed data and could affect other tests
@@ -405,7 +413,9 @@ test.describe("Parental Consent System", () => {
       ).toBeVisible();
     });
 
-    test("should show approved users section when approved users exist", async ({ page }) => {
+    test("should show approved users section when approved users exist", async ({
+      page,
+    }) => {
       await loginAsAdmin(page);
       await waitForPageLoad(page);
 
@@ -417,7 +427,9 @@ test.describe("Parental Consent System", () => {
       await page.waitForLoadState("networkidle");
 
       // The approved section only renders when there are approved underage users
-      const approvedHeading = page.locator("h3").filter({ hasText: /^Approved \(/ });
+      const approvedHeading = page
+        .locator("h3")
+        .filter({ hasText: /^Approved \(/ });
       const isVisible = await approvedHeading.isVisible().catch(() => false);
 
       if (!isVisible) {

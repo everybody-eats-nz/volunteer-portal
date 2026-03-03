@@ -43,12 +43,7 @@ import {
   hearAboutUsOptions,
 } from "@/lib/form-constants";
 
-export {
-  daysOfWeek,
-  pronounOptions,
-  notificationOptions,
-  hearAboutUsOptions,
-};
+export { daysOfWeek, pronounOptions, notificationOptions, hearAboutUsOptions };
 
 export interface UserProfileFormData {
   // Basic account info (for registration only)
@@ -284,7 +279,9 @@ export function PersonalInfoStep({
     ? new Date(formData.dateOfBirth)
     : undefined;
   const [dobOpen, setDobOpen] = React.useState(false);
-  const [consentFormUrl, setConsentFormUrl] = useState("/parental-consent-form.pdf");
+  const [consentFormUrl, setConsentFormUrl] = useState(
+    "/parental-consent-form.pdf"
+  );
 
   // Fetch the parental consent form URL from settings
   useEffect(() => {
@@ -520,7 +517,7 @@ export function PersonalInfoStep({
                       </li>
                       <li>
                         Email the signed form to:{" "}
-                        <strong>volunteers@everybodyeats.nz</strong>
+                        <strong>volunteer@everybodyeats.nz</strong>
                       </li>
                       <li>
                         We&apos;ll approve your profile once we receive the
@@ -862,7 +859,12 @@ export function CommunicationStep({
   healthSafetyPolicyOpen: boolean;
   setHealthSafetyPolicyOpen: (open: boolean) => void;
   shiftTypes?: Array<{ id: string; name: string }>;
-  newsletterLists?: Array<{ id: string; name: string; campaignMonitorId: string; description: string | null }>;
+  newsletterLists?: Array<{
+    id: string;
+    name: string;
+    campaignMonitorId: string;
+    description: string | null;
+  }>;
 }) {
   return (
     <div className="space-y-6" data-testid="notification-preferences-form">
@@ -977,7 +979,8 @@ export function CommunicationStep({
             <div>
               <span>Subscribe to our newsletter</span>
               <p className="text-xs text-muted-foreground mt-1 font-normal">
-                Receive updates about events, volunteer opportunities, and organization news.
+                Receive updates about events, volunteer opportunities, and
+                organization news.
               </p>
             </div>
           </Label>
@@ -985,30 +988,41 @@ export function CommunicationStep({
 
         {formData.emailNewsletterSubscription && newsletterLists.length > 0 && (
           <div className="space-y-2 ml-6">
-            <Label className="text-sm font-medium">
-              Select newsletters
-            </Label>
+            <Label className="text-sm font-medium">Select newsletters</Label>
             <div className="space-y-2">
               {newsletterLists.map((list) => (
-                <Label key={list.id} className="flex items-center space-x-2 text-sm cursor-pointer">
+                <Label
+                  key={list.id}
+                  className="flex items-center space-x-2 text-sm cursor-pointer"
+                >
                   <Checkbox
-                    checked={formData.newsletterLists?.includes(list.campaignMonitorId) || false}
+                    checked={
+                      formData.newsletterLists?.includes(
+                        list.campaignMonitorId
+                      ) || false
+                    }
                     onCheckedChange={(checked) => {
                       const currentLists = formData.newsletterLists || [];
                       onInputChange(
                         "newsletterLists",
                         checked
                           ? [...currentLists, list.campaignMonitorId]
-                          : currentLists.filter(id => id !== list.campaignMonitorId)
+                          : currentLists.filter(
+                              (id) => id !== list.campaignMonitorId
+                            )
                       );
                     }}
                     disabled={loading}
-                    data-testid={`newsletter-${list.name.toLowerCase().replace(/\s+/g, '-')}-checkbox`}
+                    data-testid={`newsletter-${list.name
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")}-checkbox`}
                   />
                   <div>
                     <span>{list.name}</span>
                     {list.description && (
-                      <p className="text-xs text-muted-foreground">{list.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {list.description}
+                      </p>
                     )}
                   </div>
                 </Label>

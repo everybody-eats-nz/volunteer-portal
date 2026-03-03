@@ -21,7 +21,9 @@ export function DashboardProfileCompletionBanner() {
   const { data: session } = useSession();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [consentFormUrl, setConsentFormUrl] = useState("/parental-consent-form.pdf");
+  const [consentFormUrl, setConsentFormUrl] = useState(
+    "/parental-consent-form.pdf"
+  );
 
   // Fetch the parental consent form URL from settings
   useEffect(() => {
@@ -106,7 +108,7 @@ export function DashboardProfileCompletionBanner() {
                   </li>
                   <li>
                     Email the signed form to:{" "}
-                    <strong>volunteers@everybodyeats.nz</strong>
+                    <strong>volunteer@everybodyeats.nz</strong>
                   </li>
                   <li>
                     We&apos;ll approve your profile once we receive the form
@@ -119,9 +121,7 @@ export function DashboardProfileCompletionBanner() {
                   size="sm"
                   variant="outline"
                   className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
-                  onClick={() =>
-                    window.open(consentFormUrl, "_blank")
-                  }
+                  onClick={() => window.open(consentFormUrl, "_blank")}
                 >
                   <FileText className="h-4 w-4 mr-1" />
                   Download Consent Form

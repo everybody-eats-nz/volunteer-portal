@@ -71,19 +71,17 @@ export default async function AdminParentalConsentPage() {
                 {pendingApproval}
               </div>
             </div>
-            
+
             <div className="rounded-lg border bg-card text-card-foreground p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
-                <h3 className="tracking-tight text-sm font-medium">
-                  Approved
-                </h3>
+                <h3 className="tracking-tight text-sm font-medium">Approved</h3>
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-2xl font-bold text-green-600">
                 {approved}
               </div>
             </div>
-            
+
             <div className="rounded-lg border bg-card text-card-foreground p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <h3 className="tracking-tight text-sm font-medium">
@@ -91,9 +89,7 @@ export default async function AdminParentalConsentPage() {
                 </h3>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="text-2xl font-bold">
-                {totalUnder16}
-              </div>
+              <div className="text-2xl font-bold">{totalUnder16}</div>
             </div>
           </div>
 
@@ -107,10 +103,21 @@ export default async function AdminParentalConsentPage() {
                 </h4>
                 <div className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                   <ol className="list-decimal list-inside space-y-1">
-                    <li>Volunteers under 16 see a notice during registration to download the consent form</li>
-                    <li>They must print, complete, and email the signed form to volunteers@everybodyeats.nz</li>
-                    <li>When you receive the signed form, approve their consent below</li>
-                    <li>Once approved, they can access all volunteer features</li>
+                    <li>
+                      Volunteers under 16 see a notice during registration to
+                      download the consent form
+                    </li>
+                    <li>
+                      They must print, complete, and email the signed form to
+                      volunteer@everybodyeats.nz
+                    </li>
+                    <li>
+                      When you receive the signed form, approve their consent
+                      below
+                    </li>
+                    <li>
+                      Once approved, they can access all volunteer features
+                    </li>
                   </ol>
                 </div>
               </div>

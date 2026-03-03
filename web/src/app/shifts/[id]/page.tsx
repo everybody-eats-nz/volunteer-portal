@@ -87,7 +87,7 @@ export default async function ShiftDetailPage({
 }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-  
+
   // Allow viewing without login, but signup requires authentication
   const userId = session?.user?.id;
 
@@ -145,30 +145,34 @@ export default async function ShiftDetailPage({
       where: {
         OR: [
           { userId: userId, status: "ACCEPTED" },
-          { friendId: userId, status: "ACCEPTED" }
-        ]
+          { friendId: userId, status: "ACCEPTED" },
+        ],
       },
       select: {
         userId: true,
         friendId: true,
-      }
+      },
     });
 
     // Extract friend IDs (excluding current user)
-    userFriendIds = friendships.flatMap(f =>
+    userFriendIds = friendships.flatMap((f) =>
       f.userId === userId ? [f.friendId] : [f.userId]
     );
   }
 
   // Separate friends from other volunteers
-  const friendSignups = shift.signups.filter(signup =>
-    userId &&
-    signup.user.id !== userId &&
-    userFriendIds.includes(signup.user.id)
+  const friendSignups = shift.signups.filter(
+    (signup) =>
+      userId &&
+      signup.user.id !== userId &&
+      userFriendIds.includes(signup.user.id)
   );
 
   // Count other volunteers (not friends, not current user)
-  const otherVolunteersCount = shift._count.signups - friendSignups.length - (userId && shift.signups.some(s => s.user.id === userId) ? 1 : 0);
+  const otherVolunteersCount =
+    shift._count.signups -
+    friendSignups.length -
+    (userId && shift.signups.some((s) => s.user.id === userId) ? 1 : 0);
 
   // Check if the shift is in the past
   const isPastShift = new Date(shift.end) < new Date();
@@ -210,11 +214,14 @@ export default async function ShiftDetailPage({
   const confirmedCount = shift._count.signups + shift.placeholderCount;
   const isWaitlist = confirmedCount >= shift.capacity;
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
-  const theme = SHIFT_THEMES[shift.shiftType.name as keyof typeof SHIFT_THEMES] || DEFAULT_THEME;
+  const theme =
+    SHIFT_THEMES[shift.shiftType.name as keyof typeof SHIFT_THEMES] ||
+    DEFAULT_THEME;
 
   // Check if user needs parental consent approval
-  const needsParentalConsent = currentUser && 
-    currentUser.requiresParentalConsent && 
+  const needsParentalConsent =
+    currentUser &&
+    currentUser.requiresParentalConsent &&
     !currentUser.parentalConsentReceived;
 
   // Check if profile is incomplete
@@ -222,10 +229,14 @@ export default async function ShiftDetailPage({
   if (currentUser) {
     if (!currentUser.phone) missingFields.push("Mobile number");
     if (!currentUser.dateOfBirth) missingFields.push("Date of birth");
-    if (!currentUser.emergencyContactName) missingFields.push("Emergency contact name");
-    if (!currentUser.emergencyContactPhone) missingFields.push("Emergency contact phone");
-    if (!currentUser.volunteerAgreementAccepted) missingFields.push("Volunteer agreement");
-    if (!currentUser.healthSafetyPolicyAccepted) missingFields.push("Health & safety policy");
+    if (!currentUser.emergencyContactName)
+      missingFields.push("Emergency contact name");
+    if (!currentUser.emergencyContactPhone)
+      missingFields.push("Emergency contact phone");
+    if (!currentUser.volunteerAgreementAccepted)
+      missingFields.push("Volunteer agreement");
+    if (!currentUser.healthSafetyPolicyAccepted)
+      missingFields.push("Health & safety policy");
   }
 
   const hasIncompleteProfile = missingFields.length > 0;
@@ -233,14 +244,19 @@ export default async function ShiftDetailPage({
   // Action button state
   const isLoggedOut = !session;
   const isAlreadySignedUp = !!userSignup;
-  const canSignUp = !!session && !isPastShift && !isAlreadySignedUp && !needsParentalConsent && !hasIncompleteProfile;
+  const canSignUp =
+    !!session &&
+    !isPastShift &&
+    !isAlreadySignedUp &&
+    !needsParentalConsent &&
+    !hasIncompleteProfile;
 
   // Format date and time
   const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
-  const shiftTime = `${formatInNZT(new Date(shift.start), "h:mm a")} - ${formatInNZT(
-    new Date(shift.end),
+  const shiftTime = `${formatInNZT(
+    new Date(shift.start),
     "h:mm a"
-  )}`;
+  )} - ${formatInNZT(new Date(shift.end), "h:mm a")}`;
   const duration = Math.round(
     (new Date(shift.end).getTime() - new Date(shift.start).getTime()) /
       (1000 * 60 * 60)
@@ -250,7 +266,16 @@ export default async function ShiftDetailPage({
     <PageContainer>
       <div className="mb-6">
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/shifts/details?date=${formatInNZT(new Date(shift.start), "yyyy-MM-dd")}${shift.location ? `&location=${encodeURIComponent(shift.location)}` : ""}`}>
+          <Link
+            href={`/shifts/details?date=${formatInNZT(
+              new Date(shift.start),
+              "yyyy-MM-dd"
+            )}${
+              shift.location
+                ? `&location=${encodeURIComponent(shift.location)}`
+                : ""
+            }`}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Shifts
           </Link>
@@ -280,9 +305,7 @@ export default async function ShiftDetailPage({
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-3">
-              <CardTitle className="text-2xl">
-                {shiftDate}
-              </CardTitle>
+              <CardTitle className="text-2xl">{shiftDate}</CardTitle>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary" className="gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
@@ -300,7 +323,10 @@ export default async function ShiftDetailPage({
               {isPastShift ? (
                 <Badge variant="outline">Past Shift</Badge>
               ) : isWaitlist ? (
-                <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50">
+                <Badge
+                  variant="outline"
+                  className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50"
+                >
                   Waitlist Only
                 </Badge>
               ) : (
@@ -328,7 +354,8 @@ export default async function ShiftDetailPage({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Volunteers needed!</strong> We still need {spotsRemaining} more volunteers for this shift.
+                <strong>Volunteers needed!</strong> We still need{" "}
+                {spotsRemaining} more volunteers for this shift.
               </AlertDescription>
             </Alert>
           )}
@@ -339,7 +366,14 @@ export default async function ShiftDetailPage({
               <div className="w-full">
                 <Alert>
                   <AlertDescription>
-                    Please <Link href={`/login?callbackUrl=/shifts/${id}`} className="font-medium underline">sign in</Link> to sign up for this shift.
+                    Please{" "}
+                    <Link
+                      href={`/login?callbackUrl=/shifts/${id}`}
+                      className="font-medium underline"
+                    >
+                      sign in
+                    </Link>{" "}
+                    to sign up for this shift.
                   </AlertDescription>
                 </Alert>
               </div>
@@ -358,30 +392,56 @@ export default async function ShiftDetailPage({
               />
             )}
 
-            {!canSignUp && !isLoggedOut && !isPastShift && !isAlreadySignedUp && needsParentalConsent && (
-              <div className="w-full space-y-2">
-                <Button disabled variant="secondary" className="w-full sm:w-auto">
-                  Parental Consent Required
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Please download the consent form from your dashboard, have your parent/guardian sign it, and email it to <strong>volunteers@everybodyeats.nz</strong> for approval.
-                </p>
-              </div>
-            )}
+            {!canSignUp &&
+              !isLoggedOut &&
+              !isPastShift &&
+              !isAlreadySignedUp &&
+              needsParentalConsent && (
+                <div className="w-full space-y-2">
+                  <Button
+                    disabled
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                  >
+                    Parental Consent Required
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Please download the consent form from your dashboard, have
+                    your parent/guardian sign it, and email it to{" "}
+                    <strong>volunteer@everybodyeats.nz</strong> for approval.
+                  </p>
+                </div>
+              )}
 
-            {!canSignUp && !isLoggedOut && !isPastShift && !isAlreadySignedUp && !needsParentalConsent && hasIncompleteProfile && (
-              <div className="w-full space-y-2">
-                <Button disabled variant="secondary" className="w-full sm:w-auto">
-                  Complete Profile Required
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Please complete your profile to sign up for shifts.
-                </p>
-              </div>
-            )}
+            {!canSignUp &&
+              !isLoggedOut &&
+              !isPastShift &&
+              !isAlreadySignedUp &&
+              !needsParentalConsent &&
+              hasIncompleteProfile && (
+                <div className="w-full space-y-2">
+                  <Button
+                    disabled
+                    variant="secondary"
+                    className="w-full sm:w-auto"
+                  >
+                    Complete Profile Required
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Please complete your profile to sign up for shifts.
+                  </p>
+                </div>
+              )}
 
             {canSignUp && (
-              <ShiftSignupButton theme={getShiftTheme(shift.shiftType.name)} isFull={isWaitlist} shift={shift} confirmedCount={confirmedCount} currentUserId={userId} concurrentShifts={concurrentShifts} />
+              <ShiftSignupButton
+                theme={getShiftTheme(shift.shiftType.name)}
+                isFull={isWaitlist}
+                shift={shift}
+                confirmedCount={confirmedCount}
+                currentUserId={userId}
+                concurrentShifts={concurrentShifts}
+              />
             )}
           </div>
 
@@ -415,20 +475,27 @@ export default async function ShiftDetailPage({
                   <p className="font-medium">{shift.location}</p>
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `Everybody Eats ${LOCATION_ADDRESSES[shift.location as Location] || shift.location}`
+                      `Everybody Eats ${
+                        LOCATION_ADDRESSES[shift.location as Location] ||
+                        shift.location
+                      }`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
                   >
                     <MapPin className="h-3.5 w-3.5" />
-                    {LOCATION_ADDRESSES[shift.location as Location] || shift.location}
+                    {LOCATION_ADDRESSES[shift.location as Location] ||
+                      shift.location}
                   </a>
                 </div>
                 <Button variant="outline" size="sm" asChild>
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `Everybody Eats ${LOCATION_ADDRESSES[shift.location as Location] || shift.location}`
+                      `Everybody Eats ${
+                        LOCATION_ADDRESSES[shift.location as Location] ||
+                        shift.location
+                      }`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -446,7 +513,10 @@ export default async function ShiftDetailPage({
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                    `Everybody Eats ${LOCATION_ADDRESSES[shift.location as Location] || shift.location}`
+                    `Everybody Eats ${
+                      LOCATION_ADDRESSES[shift.location as Location] ||
+                      shift.location
+                    }`
                   )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                 />
               </div>
@@ -458,7 +528,9 @@ export default async function ShiftDetailPage({
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-muted-foreground">
                 {friendSignups.length > 0
-                  ? `${friendSignups.length} friend${friendSignups.length !== 1 ? "s" : ""} joining`
+                  ? `${friendSignups.length} friend${
+                      friendSignups.length !== 1 ? "s" : ""
+                    } joining`
                   : "Current Volunteers"}
               </h3>
               <AvatarList
@@ -526,10 +598,7 @@ export default async function ShiftDetailPage({
                         className="gap-1.5"
                         asChild
                       >
-                        <a
-                          href={urls.ics}
-                          download={`shift-${shift.id}.ics`}
-                        >
+                        <a href={urls.ics} download={`shift-${shift.id}.ics`}>
                           <CalendarPlus className="h-3.5 w-3.5" />
                           .ics
                         </a>
@@ -540,7 +609,6 @@ export default async function ShiftDetailPage({
               </div>
             </div>
           )}
-
         </CardContent>
       </Card>
     </PageContainer>
