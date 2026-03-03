@@ -594,15 +594,6 @@ test.describe("Survey Submission Flow", () => {
     });
   });
 
-  test.describe("Notification Integration", () => {
-    test.skip("should dismiss notification after survey completion", async ({
-      page,
-    }) => {
-      // TODO: This test requires verifying notification state changes across pages
-      // Complex to test in isolation - would need notification test APIs
-    });
-  });
-
   test.describe("Dashboard Survey Banner", () => {
     const testId = randomUUID().slice(0, 8);
     const adminEmail = `admin-survbanner-${testId}@example.com`;
@@ -910,17 +901,6 @@ test.describe("Survey Submission Flow", () => {
         .getByText(/required/i)
         .or(page.getByText(/please answer/i));
       expect(await errorText.count()).toBeGreaterThan(0);
-    });
-  });
-
-  test.describe("Animation and Transitions", () => {
-    // Animations are disabled in e2e via .e2e-testing class - keep skipped
-    test.skip("should animate form entry", async ({ page }) => {
-      // Animations disabled in e2e tests
-    });
-
-    test.skip("should animate thank you page transition", async ({ page }) => {
-      // Animations disabled in e2e tests
     });
   });
 });
