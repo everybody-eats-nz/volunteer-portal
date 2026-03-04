@@ -12,7 +12,12 @@ export function DashboardQuickActions() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Button asChild variant="outline" className="h-auto py-4">
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto py-4"
+            data-testid="browse-shifts-button"
+          >
             <Link href="/shifts" className="flex flex-col items-center gap-2">
               <svg
                 className="w-6 h-6 text-foreground dark:text-gray-300"

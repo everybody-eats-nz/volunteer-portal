@@ -8,12 +8,6 @@ test.describe("Notification System", () => {
     // Navigate to dashboard and wait for it to load
     await page.goto("/dashboard");
     await page.waitForLoadState("load");
-
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Login failed - skipping notification tests");
-    }
   });
 
   test("should display notification bell in header", async ({ page }) => {

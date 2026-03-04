@@ -308,23 +308,22 @@ test.describe("Public Resource Hub", () => {
       await page.goto("/resources");
       await page.waitForLoadState("load");
 
-      // Check if tags exist
-      const tagsSection = page.getByText(/filter by tags/i);
-      const hasTags = (await tagsSection.count()) > 0;
+      // Wait for resources to load (our beforeEach creates resources with tags)
+      await page.waitForTimeout(1000);
 
-      if (hasTags) {
-        // Click first tag badge after the "Filter by Tags" label
-        const tagBadges = page.locator(
-          'button[class*="badge"], span[class*="badge"]'
-        );
-        const tagCount = await tagBadges.count();
-        if (tagCount > 0) {
-          await tagBadges.first().click();
-          await page.waitForTimeout(500);
-          expect(page.url()).toContain("tags=");
-        }
-      } else {
-        test.skip(true, "No tags available to test filtering");
+      // Check if tags section exists - wait longer for it to render
+      const tagsSection = page.getByText(/filter by tags/i);
+      await expect(tagsSection).toBeVisible({ timeout: 10000 });
+
+      // Click first tag badge after the "Filter by Tags" label
+      const tagBadges = page.locator(
+        'button[class*="badge"], span[class*="badge"]'
+      );
+      const tagCount = await tagBadges.count();
+      if (tagCount > 0) {
+        await tagBadges.first().click();
+        await page.waitForTimeout(500);
+        expect(page.url()).toContain("tags=");
       }
     });
 
