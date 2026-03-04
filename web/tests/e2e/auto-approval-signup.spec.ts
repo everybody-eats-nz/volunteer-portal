@@ -1,5 +1,5 @@
 import { test, expect } from "./base";
-import { loginAsVolunteer } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import {
   createShift,
   deleteTestShifts,
@@ -11,6 +11,7 @@ test.describe("Auto-Approval Signup Flow", () => {
 
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
+    await loginAsAdmin(page);
     const kitchenShiftType = await getShiftTypeByName(
       page,
       "Kitchen Prep & Service"
@@ -35,6 +36,7 @@ test.describe("Auto-Approval Signup Flow", () => {
 
   test.afterAll(async ({ browser }) => {
     const page = await browser.newPage();
+    await loginAsAdmin(page);
     await deleteTestShifts(page, autoApprovalShiftIds);
     await page.close();
   });

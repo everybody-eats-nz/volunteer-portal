@@ -1,6 +1,6 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
-import { loginAsVolunteer } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import {
   createShift,
   deleteTestShifts,
@@ -690,6 +690,7 @@ test.describe("Shifts Browse Page", () => {
 
     test.beforeAll(async ({ browser }) => {
       const page = await browser.newPage();
+      await loginAsAdmin(page);
       const kitchenShiftType = await getShiftTypeByName(
         page,
         "Kitchen Prep & Service"
@@ -742,6 +743,7 @@ test.describe("Shifts Browse Page", () => {
 
     test.afterAll(async ({ browser }) => {
       const page = await browser.newPage();
+      await loginAsAdmin(page);
       await deleteTestShifts(page, validationShiftIds);
       await page.close();
     });
