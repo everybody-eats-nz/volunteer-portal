@@ -96,9 +96,7 @@ export async function getEngagementSummary(
           BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond}) as in_prior_period,
           BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}) as in_current_period,
           CASE
-            WHEN u."availableLocations" IS NOT NULL
-              AND u."availableLocations" != ''
-              AND u."availableLocations"::jsonb ? ${location || ''}
+            WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
             THEN TRUE
             ELSE FALSE
           END as has_preferred_location
@@ -289,9 +287,7 @@ export async function getEngagementVolunteers(params: {
         COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}), 0) as shifts_in_period,
         MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as last_shift_date,
         CASE
-          WHEN u."availableLocations" IS NOT NULL
-            AND u."availableLocations" != ''
-            AND u."availableLocations"::jsonb ? ${location || ''}
+          WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
           THEN TRUE
           ELSE FALSE
         END as has_preferred_location
