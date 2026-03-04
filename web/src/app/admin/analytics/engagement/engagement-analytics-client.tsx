@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import {
   RefreshCw,
   UserPlus,
   Activity,
+  Loader2,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -116,12 +117,15 @@ export function EngagementAnalyticsClient({
   tableSortOrder,
 }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
-    router.push(`/admin/analytics/engagement?${params}`);
+    startTransition(() => {
+      router.push(`/admin/analytics/engagement?${params}`);
+    });
   };
 
   const volunteersWithShifts =
@@ -170,7 +174,14 @@ export function EngagementAnalyticsClient({
                 </Select>
               </div>
             </div>
-            <Button onClick={handleApplyFilters} className="sm:w-auto w-full">
+            <Button
+              onClick={handleApplyFilters}
+              className="sm:w-auto w-full"
+              disabled={isPending}
+            >
+              {isPending && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
               Apply Filters
             </Button>
           </div>
@@ -182,7 +193,7 @@ export function EngagementAnalyticsClient({
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="space-y-6"
+        className={`space-y-6 transition-opacity ${isPending ? "opacity-50 pointer-events-none" : ""}`}
       >
         {/* Hero — Engagement Health */}
         <motion.div variants={staggerItem}>
