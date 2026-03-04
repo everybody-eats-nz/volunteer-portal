@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { AchievementDialog } from "./achievement-dialog";
-import { AchievementRecipientsDialog } from "./achievement-recipients-dialog";
+import {
+  AchievementRecipientsDialog,
+  useAchievementRecipients,
+} from "./achievement-recipients-dialog";
 import { type Achievement } from "@/generated/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +63,8 @@ export function AchievementsContent({
   const [recipientsDialogOpen, setRecipientsDialogOpen] = useState(false);
   const [recipientsAchievement, setRecipientsAchievement] =
     useState<AchievementWithCount | null>(null);
+  const { recipients, loading: recipientsLoading, error: recipientsError, fetchRecipients } =
+    useAchievementRecipients();
   const { toast } = useToast();
 
   const handleCreateAchievement = async (data: {
@@ -330,6 +335,7 @@ export function AchievementsContent({
                                   onClick={() => {
                                     setRecipientsAchievement(achievement);
                                     setRecipientsDialogOpen(true);
+                                    fetchRecipients(achievement.id);
                                   }}
                                   data-testid={`achievement-unlocked-${achievement.id}`}
                                 >
@@ -390,9 +396,11 @@ export function AchievementsContent({
       <AchievementRecipientsDialog
         open={recipientsDialogOpen}
         onOpenChange={setRecipientsDialogOpen}
-        achievementId={recipientsAchievement?.id ?? null}
         achievementName={recipientsAchievement?.name ?? ""}
         achievementIcon={recipientsAchievement?.icon ?? ""}
+        recipients={recipients}
+        loading={recipientsLoading}
+        error={recipientsError}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

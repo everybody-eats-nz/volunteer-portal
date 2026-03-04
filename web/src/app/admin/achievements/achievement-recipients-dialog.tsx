@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,44 +21,47 @@ interface Recipient {
 interface AchievementRecipientsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  achievementId: string | null;
   achievementName: string;
   achievementIcon: string;
+  recipients: Recipient[];
+  loading: boolean;
+  error: string | null;
+}
+
+export type { Recipient };
+
+export function useAchievementRecipients() {
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchRecipients = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/achievements/${id}/users`);
+      if (!response.ok) throw new Error("Failed to fetch recipients");
+      const data = await response.json();
+      setRecipients(data);
+    } catch {
+      setError("Failed to load recipients");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { recipients, loading, error, fetchRecipients };
 }
 
 export function AchievementRecipientsDialog({
   open,
   onOpenChange,
-  achievementId,
   achievementName,
   achievementIcon,
+  recipients,
+  loading,
+  error,
 }: AchievementRecipientsDialogProps) {
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (open && achievementId && loaded !== achievementId) {
-      setLoading(true);
-      setError(null);
-      fetch(`/api/admin/achievements/${achievementId}/users`)
-        .then((response) => {
-          if (!response.ok) throw new Error("Failed to fetch recipients");
-          return response.json();
-        })
-        .then((data) => {
-          setRecipients(data);
-          setLoaded(achievementId);
-        })
-        .catch(() => {
-          setError("Failed to load recipients");
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [open, achievementId, loaded]);
 
   const getInitials = (name: string | null) => {
     if (!name) return "?";
