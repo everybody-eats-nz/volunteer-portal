@@ -70,6 +70,7 @@ export async function getEngagementSummary(
   let inactiveCount = 0;
   let neverVolunteeredCount = 0;
   let newInPeriodCount = 0;
+  let skippedCount = 0;
 
   const monthlyActiveMap = new Map<string, Set<string>>();
 
@@ -80,18 +81,28 @@ export async function getEngagementSummary(
     monthlyActiveMap.set(key, new Set());
   }
 
+  const isLocationFiltered = location && location !== "all";
+
   for (const volunteer of volunteers) {
-    const completedSignups = volunteer.signups.filter((s) => {
-      const isPast = s.shift.end < now;
-      const matchesLocation =
-        !location || location === "all" || s.shift.location === location;
-      return isPast && matchesLocation;
-    });
+    const allCompletedSignups = volunteer.signups.filter(
+      (s) => s.shift.end < now
+    );
+
+    const completedSignups = isLocationFiltered
+      ? allCompletedSignups.filter((s) => s.shift.location === location)
+      : allCompletedSignups;
 
     const shiftsInPeriod = completedSignups.filter(
       (s) => s.shift.end >= periodStart
     );
     const totalCompleted = completedSignups.length;
+
+    // When filtering by location, skip volunteers with no shifts at this location
+    // They aren't relevant to this location's engagement metrics
+    if (isLocationFiltered && allCompletedSignups.length > 0 && totalCompleted === 0) {
+      skippedCount++;
+      continue;
+    }
 
     if (totalCompleted === 0) {
       neverVolunteeredCount++;
@@ -169,7 +180,7 @@ export async function getEngagementSummary(
       ? Math.round((retainedCount / priorActiveCount) * 100)
       : 0;
 
-  const totalVolunteers = volunteers.length;
+  const totalVolunteers = volunteers.length - skippedCount;
 
   return {
     summary: {
