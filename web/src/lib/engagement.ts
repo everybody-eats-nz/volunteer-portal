@@ -66,9 +66,6 @@ export async function getEngagementSummary(
   const excludeCond = isLocationFiltered
     ? Prisma.sql`total_shifts > 0`
     : Prisma.sql`TRUE`;
-  const neverCond = isLocationFiltered
-    ? Prisma.sql`FALSE`
-    : Prisma.sql`all_completed = 0`;
 
   const safeMonths = Math.max(months, 1);
 
@@ -105,7 +102,7 @@ export async function getEngagementSummary(
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period > 0 AND shifts_in_period::float / ${safeMonths} < 2)::bigint as "activeCount",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period::float / ${safeMonths} >= 2)::bigint as "highlyActiveCount",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period = 0)::bigint as "inactiveCount",
-        COUNT(*) FILTER (WHERE ${neverCond})::bigint as "neverVolunteeredCount",
+        COUNT(*) FILTER (WHERE all_completed = 0)::bigint as "neverVolunteeredCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE)::bigint as "priorActiveCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE AND in_current_period IS TRUE)::bigint as "retainedCount",
         COUNT(*) FILTER (WHERE shifts_in_period > 0 AND first_shift_date >= ${periodStart})::bigint as "newInPeriodCount"
@@ -130,7 +127,9 @@ export async function getEngagementSummary(
   const activeCount = Number(summary?.activeCount || 0);
   const highlyActiveCount = Number(summary?.highlyActiveCount || 0);
   const inactiveCount = Number(summary?.inactiveCount || 0);
-  const neverVolunteeredCount = Number(summary?.neverVolunteeredCount || 0);
+  const neverVolunteeredCount = isLocationFiltered
+    ? 0
+    : Number(summary?.neverVolunteeredCount || 0);
   const priorActiveCount = Number(summary?.priorActiveCount || 0);
   const retainedCount = Number(summary?.retainedCount || 0);
   const newInPeriodCount = Number(summary?.newInPeriodCount || 0);
