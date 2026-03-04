@@ -353,8 +353,8 @@ export function EngagementVolunteerTable({ months, location }: Props) {
   return (
     <div className="space-y-4">
       {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <form onSubmit={handleSearchSubmit} className="flex-1 flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <form onSubmit={handleSearchSubmit} className="flex-1 flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -365,7 +365,7 @@ export function EngagementVolunteerTable({ months, location }: Props) {
               data-testid="engagement-search"
             />
           </div>
-          <Button type="submit" variant="outline" size="sm">
+          <Button type="submit" variant="outline">
             Search
           </Button>
         </form>

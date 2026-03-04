@@ -168,13 +168,8 @@ export function EngagementAnalyticsClient({
         <CardContent className="py-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="months"
-                  className="text-xs text-muted-foreground"
-                >
-                  Time Period
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
                   <SelectTrigger id="months">
                     <SelectValue />
@@ -187,13 +182,8 @@ export function EngagementAnalyticsClient({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="location"
-                  className="text-xs text-muted-foreground"
-                >
-                  Location
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
                 <Select value={location} onValueChange={setLocation}>
                   <SelectTrigger id="location">
                     <SelectValue />
