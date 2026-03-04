@@ -1,5 +1,4 @@
 import { test, expect } from "./base";
-import { loginAsAdmin } from "./helpers/auth";
 import {
   createTestUser,
   deleteTestUsers,
@@ -133,7 +132,9 @@ test.describe("Public Resource Hub", () => {
       await expect(
         page.getByText("Training Guide For Volunteers").first()
       ).toBeVisible();
-      await expect(page.getByText("Kitchen Safety Standards").first()).toBeVisible();
+      await expect(
+        page.getByText("Kitchen Safety Standards").first()
+      ).toBeVisible();
     });
 
     test("should show tag badges with limit", async ({ page }) => {
@@ -160,14 +161,10 @@ test.describe("Public Resource Hub", () => {
       await page.waitForLoadState("load");
 
       // Verify search box exists
-      await expect(
-        page.getByPlaceholder(/search resources/i)
-      ).toBeVisible();
+      await expect(page.getByPlaceholder(/search resources/i)).toBeVisible();
 
       // Verify search button exists
-      await expect(
-        page.getByRole("button", { name: /search/i })
-      ).toBeVisible();
+      await expect(page.getByRole("button", { name: /search/i })).toBeVisible();
     });
 
     test("should filter by search query via URL parameter", async ({
@@ -450,9 +447,7 @@ test.describe("Public Resource Hub", () => {
       await page.waitForLoadState("load");
 
       // Find an action button on a card (e.g., Open Link)
-      const openButton = page
-        .getByRole("button", { name: /open/i })
-        .first();
+      const openButton = page.getByRole("button", { name: /open/i }).first();
 
       if ((await openButton.count()) > 0) {
         // Set up listener for new page
@@ -485,9 +480,7 @@ test.describe("Public Resource Hub", () => {
       ).toBeVisible();
 
       // Verify search interface is visible
-      await expect(
-        page.getByPlaceholder(/search resources/i)
-      ).toBeVisible();
+      await expect(page.getByPlaceholder(/search resources/i)).toBeVisible();
     });
 
     test("should display grid layout on desktop", async ({ page }) => {
@@ -521,9 +514,7 @@ test.describe("Public Resource Hub", () => {
       await expect(searchInput).toBeVisible();
 
       // Buttons should have accessible names
-      await expect(
-        page.getByRole("button", { name: /search/i })
-      ).toBeVisible();
+      await expect(page.getByRole("button", { name: /search/i })).toBeVisible();
     });
 
     test("should support keyboard navigation for search", async ({ page }) => {

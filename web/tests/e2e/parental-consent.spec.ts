@@ -1,10 +1,7 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
-import {
-  createTestUser,
-  deleteTestUsers,
-} from "./helpers/test-helpers";
+import { createTestUser, deleteTestUsers } from "./helpers/test-helpers";
 import { randomUUID } from "crypto";
 
 // Helper function to wait for page to load completely
@@ -25,108 +22,6 @@ async function selectDateOfBirth(page: Page, birthYear: number) {
   await page
     .getByTestId("date-of-birth-hidden-input")
     .fill(dateString, { force: true });
-  await waitForPageLoad(page);
-}
-
-// Helper function to register a new underage user
-async function registerUnderageUser(
-  page: Page,
-  email: string,
-  birthYear: number
-) {
-  await page.goto("/register");
-  await waitForPageLoad(page);
-
-  // Step 1: Account credentials
-  await page.getByTestId("email-input").fill(email);
-  await page.getByTestId("password-input").fill("Password123!");
-  await page.getByTestId("confirm-password-input").fill("Password123!");
-  await page.getByTestId("next-submit-button").click();
-  await waitForPageLoad(page);
-
-  // Step 2: Personal information with underage birth date
-  await page.getByRole("textbox", { name: /first name/i }).fill("Emma");
-  await page.getByRole("textbox", { name: /last name/i }).fill("Parker");
-  await page
-    .getByRole("textbox", { name: /mobile number/i })
-    .fill("(555) 123-4567");
-
-  // Set birth date to make user underage
-  await selectDateOfBirth(page, birthYear);
-
-  await page.getByTestId("next-submit-button").click();
-  await waitForPageLoad(page);
-
-  // Step 3: Emergency contact
-  await page
-    .getByRole("textbox", { name: /emergency contact name/i })
-    .fill("Sarah Parker");
-  await page
-    .getByRole("textbox", { name: /emergency contact phone/i })
-    .fill("(555) 987-6543");
-  await page.getByTestId("next-submit-button").click();
-  await waitForPageLoad(page);
-
-  // Step 4: Medical & Background
-  // Leave medical conditions blank and skip to next
-  await page
-    .getByRole("combobox", { name: /how did you hear about us/i })
-    .click();
-  await page.getByRole("option", { name: /friend/i }).click();
-  await page.getByTestId("next-submit-button").click();
-  await waitForPageLoad(page);
-
-  // Step 5: Availability
-  // Skip selecting days/locations for now, just proceed
-  await page.getByTestId("next-submit-button").click();
-  await waitForPageLoad(page);
-
-  // Step 6: Agreements - must click through dialogs to agree
-  // Click text to open volunteer agreement dialog
-  await page
-    .getByText(/I have read and agree with the Volunteer Agreement/)
-    .click();
-  await waitForPageLoad(page);
-  // Scroll to bottom to enable the agree button
-  await page.evaluate(() => {
-    const scrollContainer = document.querySelector(".overflow-y-auto");
-    if (scrollContainer) {
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-    }
-  });
-  await page.getByRole("button", { name: /i agree to these terms/i }).click();
-  await waitForPageLoad(page);
-
-  // Click text to open health & safety policy dialog
-  await page
-    .getByText(/I have read and agree with the Health and Safety Policy/)
-    .click();
-  await waitForPageLoad(page);
-  // Scroll to bottom to enable the agree button
-  await page.evaluate(() => {
-    const scrollContainer = document.querySelector(".overflow-y-auto");
-    if (scrollContainer) {
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-    }
-  });
-  await page.getByRole("button", { name: /i agree to these terms/i }).click();
-  await waitForPageLoad(page);
-
-  // Wait for Create Account button to be enabled and click it
-  const createAccountButton = page.getByRole("button", {
-    name: /create account/i,
-  });
-  await createAccountButton.waitFor({ state: "visible" });
-
-  // Ensure button is enabled before clicking
-  await expect(createAccountButton).toBeEnabled();
-
-  // Click and wait for navigation to start
-  await Promise.all([
-    page.waitForURL(/\/(login|dashboard)/, { timeout: 30000 }),
-    createAccountButton.click(),
-  ]);
-
   await waitForPageLoad(page);
 }
 
@@ -282,7 +177,9 @@ test.describe("Parental Consent System", () => {
           scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       });
-      await page.getByRole("button", { name: /i agree to these terms/i }).click();
+      await page
+        .getByRole("button", { name: /i agree to these terms/i })
+        .click();
       await waitForPageLoad(page);
 
       await page
@@ -295,7 +192,9 @@ test.describe("Parental Consent System", () => {
           scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       });
-      await page.getByRole("button", { name: /i agree to these terms/i }).click();
+      await page
+        .getByRole("button", { name: /i agree to these terms/i })
+        .click();
       await waitForPageLoad(page);
 
       // Wait for Create Account button to be enabled and click it
@@ -358,7 +257,9 @@ test.describe("Parental Consent System", () => {
       await waitForPageLoad(page);
 
       // Click on a calendar day with shifts to navigate to details page
-      const calendarDayLink = page.locator('a[href*="/shifts/details"]').first();
+      const calendarDayLink = page
+        .locator('a[href*="/shifts/details"]')
+        .first();
       await expect(calendarDayLink).toBeVisible();
       await calendarDayLink.click();
       await waitForPageLoad(page);
@@ -382,7 +283,9 @@ test.describe("Parental Consent System", () => {
       await waitForPageLoad(page);
 
       // Click on a calendar day with shifts to navigate to details page
-      const calendarDayLink = page.locator('a[href*="/shifts/details"]').first();
+      const calendarDayLink = page
+        .locator('a[href*="/shifts/details"]')
+        .first();
       await expect(calendarDayLink).toBeVisible();
       await calendarDayLink.click();
       await waitForPageLoad(page);
@@ -407,7 +310,9 @@ test.describe("Parental Consent System", () => {
       await waitForPageLoad(page);
 
       // Click on a calendar day with shifts to navigate to details page
-      const calendarDayLink = page.locator('a[href*="/shifts/details"]').first();
+      const calendarDayLink = page
+        .locator('a[href*="/shifts/details"]')
+        .first();
       await expect(calendarDayLink).toBeVisible();
       await calendarDayLink.click();
       await waitForPageLoad(page);
@@ -466,9 +371,7 @@ test.describe("Parental Consent System", () => {
       ).toBeVisible();
     });
 
-    test("should allow admin to approve parental consent", async ({
-      page,
-    }) => {
+    test("should allow admin to approve parental consent", async ({ page }) => {
       const testUnderageEmail = `underage-approve-${Date.now()}@example.com`;
 
       // Create test underage user with parental consent required but not received
