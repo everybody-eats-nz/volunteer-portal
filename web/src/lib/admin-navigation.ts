@@ -17,6 +17,7 @@ import {
   Trophy,
   BarChart3,
   ClipboardList,
+  Activity,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -50,8 +51,15 @@ export const adminNavCategories: AdminNavCategory[] = [
         title: "Analytics (Beta)",
         href: "/admin/analytics",
         icon: BarChart3,
-        description: "Volunteer engagement insights",
+        description: "Restaurant analytics and metrics",
         commandKey: "analytics",
+      },
+      {
+        title: "Volunteer Engagement",
+        href: "/admin/analytics/engagement",
+        icon: Activity,
+        description: "Volunteer activity and retention metrics",
+        commandKey: "engagement",
       },
     ],
   },
@@ -243,6 +251,7 @@ export const getIconColor = (
     // Overview
     Dashboard: "text-blue-600",
     "Analytics (Beta)": "text-purple-600",
+    "Volunteer Engagement": "text-emerald-600",
 
     // Volunteer Management
     "All Users": "text-purple-600",
