@@ -62,9 +62,13 @@ export async function getEngagementSummary(
   const trendLocationCond = isLocationFiltered
     ? Prisma.sql`AND sh.location = ${location}`
     : Prisma.empty;
+  // When location-filtered, only count volunteers with shifts at this location
   const excludeCond = isLocationFiltered
-    ? Prisma.sql`NOT (all_completed > 0 AND total_shifts = 0)`
+    ? Prisma.sql`total_shifts > 0`
     : Prisma.sql`TRUE`;
+  const neverCond = isLocationFiltered
+    ? Prisma.sql`FALSE`
+    : Prisma.sql`all_completed = 0`;
 
   const safeMonths = Math.max(months, 1);
 
@@ -101,7 +105,7 @@ export async function getEngagementSummary(
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period > 0 AND shifts_in_period::float / ${safeMonths} < 2)::bigint as "activeCount",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period::float / ${safeMonths} >= 2)::bigint as "highlyActiveCount",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period = 0)::bigint as "inactiveCount",
-        COUNT(*) FILTER (WHERE all_completed = 0)::bigint as "neverVolunteeredCount",
+        COUNT(*) FILTER (WHERE ${neverCond})::bigint as "neverVolunteeredCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE)::bigint as "priorActiveCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE AND in_current_period IS TRUE)::bigint as "retainedCount",
         COUNT(*) FILTER (WHERE shifts_in_period > 0 AND first_shift_date >= ${periodStart})::bigint as "newInPeriodCount"
@@ -242,8 +246,9 @@ export async function getEngagementVolunteers(params: {
       )`
     : Prisma.empty;
 
+  // When location-filtered, skip all volunteers with 0 shifts at this location
   const skipCond = isLocationFiltered
-    ? Prisma.sql`all_completed > 0 AND total_shifts = 0`
+    ? Prisma.sql`total_shifts = 0`
     : Prisma.sql`FALSE`;
 
   const statusCond =
