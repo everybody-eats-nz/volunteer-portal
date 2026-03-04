@@ -26,6 +26,9 @@ test.describe("General Volunteer Movement System", () => {
   let targetShiftId: string;
 
   test.beforeEach(async ({ page }) => {
+    // Authenticate as admin for API calls that require admin access
+    await loginAsAdmin(page);
+
     // Create test users
     await createTestUser(page, adminEmail, "ADMIN");
     await createTestUser(page, volunteerEmail, "VOLUNTEER");
@@ -79,6 +82,9 @@ test.describe("General Volunteer Movement System", () => {
   });
 
   test.afterEach(async ({ page }) => {
+    // Authenticate as admin for cleanup API calls
+    await loginAsAdmin(page);
+
     // Clean up notifications
     await deleteNotifications(page, { userId: volunteerUserId });
 

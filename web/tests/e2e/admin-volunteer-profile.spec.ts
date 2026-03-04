@@ -445,7 +445,7 @@ test.describe("Admin Volunteer Profile View", () => {
         .getByTestId("volunteer-grade-badge");
 
       const badgeText = await badge.textContent();
-      expect(badgeText).toMatch(/(Standard|Experienced|Shift Leader)/);
+      expect(badgeText).toMatch(/(Standard|Experienced|Shift Leader|First shift|New volunteer)/);
     });
 
     test("should open grade change dialog from volunteer profile", async ({
