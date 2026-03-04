@@ -62,10 +62,14 @@ export async function getEngagementSummary(
   const trendLocationCond = isLocationFiltered
     ? Prisma.sql`AND sh.location = ${location}`
     : Prisma.empty;
-  // When location-filtered, only count volunteers with shifts at this location
+  // When location-filtered, include volunteers with shifts at this location
+  // OR who selected this location in preferences (for "never volunteered")
   const excludeCond = isLocationFiltered
-    ? Prisma.sql`total_shifts > 0`
+    ? Prisma.sql`(total_shifts > 0 OR (all_completed = 0 AND has_preferred_location))`
     : Prisma.sql`TRUE`;
+  const neverCond = isLocationFiltered
+    ? Prisma.sql`all_completed = 0 AND has_preferred_location`
+    : Prisma.sql`all_completed = 0`;
 
   const safeMonths = Math.max(months, 1);
 
@@ -90,19 +94,26 @@ export async function getEngagementSummary(
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}), 0) as shifts_in_period,
           MIN(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as first_shift_date,
           BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond}) as in_prior_period,
-          BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}) as in_current_period
+          BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}) as in_current_period,
+          CASE
+            WHEN u."availableLocations" IS NOT NULL
+              AND u."availableLocations" != ''
+              AND u."availableLocations"::jsonb ? ${location || ''}
+            THEN TRUE
+            ELSE FALSE
+          END as has_preferred_location
         FROM "User" u
         LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
         LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
         WHERE u.role = 'VOLUNTEER'::"Role"
-        GROUP BY u.id
+        GROUP BY u.id, u."availableLocations"
       )
       SELECT
         COUNT(*) FILTER (WHERE ${excludeCond})::bigint as "totalVolunteers",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period > 0 AND shifts_in_period::float / ${safeMonths} < 2)::bigint as "activeCount",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period::float / ${safeMonths} >= 2)::bigint as "highlyActiveCount",
         COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_period = 0)::bigint as "inactiveCount",
-        COUNT(*) FILTER (WHERE all_completed = 0)::bigint as "neverVolunteeredCount",
+        COUNT(*) FILTER (WHERE ${neverCond})::bigint as "neverVolunteeredCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE)::bigint as "priorActiveCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE AND in_current_period IS TRUE)::bigint as "retainedCount",
         COUNT(*) FILTER (WHERE shifts_in_period > 0 AND first_shift_date >= ${periodStart})::bigint as "newInPeriodCount"
@@ -127,9 +138,7 @@ export async function getEngagementSummary(
   const activeCount = Number(summary?.activeCount || 0);
   const highlyActiveCount = Number(summary?.highlyActiveCount || 0);
   const inactiveCount = Number(summary?.inactiveCount || 0);
-  const neverVolunteeredCount = isLocationFiltered
-    ? 0
-    : Number(summary?.neverVolunteeredCount || 0);
+  const neverVolunteeredCount = Number(summary?.neverVolunteeredCount || 0);
   const priorActiveCount = Number(summary?.priorActiveCount || 0);
   const retainedCount = Number(summary?.retainedCount || 0);
   const newInPeriodCount = Number(summary?.newInPeriodCount || 0);
@@ -245,9 +254,10 @@ export async function getEngagementVolunteers(params: {
       )`
     : Prisma.empty;
 
-  // When location-filtered, skip all volunteers with 0 shifts at this location
+  // When location-filtered, skip volunteers with no association to this location
+  // (no shifts there AND didn't select it as a preferred location)
   const skipCond = isLocationFiltered
-    ? Prisma.sql`total_shifts = 0`
+    ? Prisma.sql`total_shifts = 0 AND NOT has_preferred_location`
     : Prisma.sql`FALSE`;
 
   const statusCond =
@@ -277,14 +287,22 @@ export async function getEngagementVolunteers(params: {
         COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now}), 0) as all_completed,
         COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond}), 0) as total_shifts,
         COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}), 0) as shifts_in_period,
-        MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as last_shift_date
+        MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as last_shift_date,
+        CASE
+          WHEN u."availableLocations" IS NOT NULL
+            AND u."availableLocations" != ''
+            AND u."availableLocations"::jsonb ? ${location || ''}
+          THEN TRUE
+          ELSE FALSE
+        END as has_preferred_location
       FROM "User" u
       LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
       LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
       WHERE u.role = 'VOLUNTEER'::"Role"
         ${searchCond}
       GROUP BY u.id, u.name, u."firstName", u."lastName", u.email,
-        u."profilePhotoUrl", u."volunteerGrade", u."createdAt"
+        u."profilePhotoUrl", u."volunteerGrade", u."createdAt",
+        u."availableLocations"
     ),
     volunteer_stats AS (
       SELECT *,
