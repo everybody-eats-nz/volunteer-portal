@@ -5,6 +5,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { EngagementAnalyticsClient } from "./engagement-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
+import { getEngagementSummary } from "@/lib/engagement";
 
 export default async function EngagementAnalyticsPage({
   searchParams,
@@ -23,10 +24,10 @@ export default async function EngagementAnalyticsPage({
 
   const params = await searchParams;
 
-  const initialFilters = {
-    months: (params.months as string) || "3",
-    location: (params.location as string) || "all",
-  };
+  const months = (params.months as string) || "3";
+  const location = (params.location as string) || "all";
+
+  const data = await getEngagementSummary(parseInt(months, 10), location);
 
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
@@ -40,7 +41,9 @@ export default async function EngagementAnalyticsPage({
     >
       <PageContainer testid="engagement-analytics-page">
         <EngagementAnalyticsClient
-          initialFilters={initialFilters}
+          data={data}
+          months={months}
+          location={location}
           locations={locationOptions}
         />
       </PageContainer>
