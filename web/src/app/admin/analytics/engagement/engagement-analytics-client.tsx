@@ -12,18 +12,24 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import {
   Users,
   TrendingUp,
-  Filter,
   Zap,
   UserCheck,
   UserMinus,
   UserX,
   RefreshCw,
   UserPlus,
+  Activity,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { EngagementVolunteerTable } from "./engagement-volunteer-table";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -57,7 +63,63 @@ interface Props {
   };
 }
 
-export function EngagementAnalyticsClient({ locations, initialFilters }: Props) {
+const MONTHS_LABELS: Record<string, string> = {
+  "1": "1 month",
+  "3": "3 months",
+  "6": "6 months",
+  "12": "12 months",
+};
+
+function EngagementRing({
+  value,
+  max,
+  color,
+  size = 52,
+  strokeWidth = 5,
+}: {
+  value: number;
+  max: number;
+  color: string;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = max > 0 ? Math.min(value / max, 1) : 0;
+  const offset = circumference * (1 - pct);
+
+  return (
+    <svg width={size} height={size} className="shrink-0 -rotate-90">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        className="text-muted/20"
+      />
+      <motion.circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference}
+        animate={{ strokeDashoffset: offset }}
+        transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function EngagementAnalyticsClient({
+  locations,
+  initialFilters,
+}: Props) {
   const [months, setMonths] = useState(initialFilters.months);
   const [location, setLocation] = useState(initialFilters.location);
   const [data, setData] = useState<EngagementData | null>(null);
@@ -88,376 +150,489 @@ export function EngagementAnalyticsClient({ locations, initialFilters }: Props) 
     fetchData();
   };
 
+  const volunteersWithShifts = data
+    ? data.summary.totalVolunteers - data.summary.neverVolunteeredCount
+    : 0;
+  const engagementRate = data
+    ? Math.round(
+        ((data.summary.activeCount + data.summary.highlyActiveCount) /
+          Math.max(volunteersWithShifts, 1)) *
+          100
+      )
+    : 0;
+
   return (
     <div className="space-y-6">
-      {/* Filters */}
+      {/* Filters — inline toolbar style */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="months">Time Period</Label>
-              <Select value={months} onValueChange={setMonths}>
-                <SelectTrigger id="months">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Last 1 month</SelectItem>
-                  <SelectItem value="3">Last 3 months</SelectItem>
-                  <SelectItem value="6">Last 6 months</SelectItem>
-                  <SelectItem value="12">Last 12 months</SelectItem>
-                </SelectContent>
-              </Select>
+        <CardContent className="py-4">
+          <div className="flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="months"
+                  className="text-xs text-muted-foreground"
+                >
+                  Time Period
+                </Label>
+                <Select value={months} onValueChange={setMonths}>
+                  <SelectTrigger id="months">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Last 1 month</SelectItem>
+                    <SelectItem value="3">Last 3 months</SelectItem>
+                    <SelectItem value="6">Last 6 months</SelectItem>
+                    <SelectItem value="12">Last 12 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="location"
+                  className="text-xs text-muted-foreground"
+                >
+                  Location
+                </Label>
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger id="location">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {locations.map((loc) => (
+                      <SelectItem key={loc.value} value={loc.value}>
+                        {loc.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger id="location">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc.value} value={loc.value}>
-                      {loc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
-              <Button onClick={handleApplyFilters} className="w-full">
-                Apply Filters
-              </Button>
-            </div>
+            <Button onClick={handleApplyFilters} className="sm:w-auto w-full">
+              Apply Filters
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Loading State */}
       {isLoading && (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Loading engagement data...
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="py-6">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-3 w-20 bg-muted rounded" />
+                  <div className="h-7 w-12 bg-muted rounded" />
+                  <div className="h-2 w-28 bg-muted rounded" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Content */}
       {!isLoading && data && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
           className="space-y-6"
         >
-          {/* Summary Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950/30 p-3">
-                    <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          {/* Hero — Engagement Health */}
+          <motion.div variants={staggerItem}>
+            <Card className="overflow-hidden">
+              <div className="flex flex-col md:flex-row">
+                {/* Left: engagement ring + rate */}
+                <div className="flex items-center gap-5 p-6">
+                  <div className="relative">
+                    <EngagementRing
+                      value={
+                        data.summary.activeCount +
+                        data.summary.highlyActiveCount
+                      }
+                      max={volunteersWithShifts}
+                      color="#10b981"
+                      size={72}
+                      strokeWidth={6}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Activity className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Highly Active</p>
-                    <p className="text-2xl font-bold">
-                      {data.summary.highlyActiveCount}
-                    </p>
-                    <p className="text-xs text-muted-foreground">2+ shifts/month avg</p>
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help pl-6">
+                        <p className="text-sm text-muted-foreground">
+                          Engagement Rate
+                        </p>
+                        <p className="text-3xl font-bold tracking-tight">
+                          {engagementRate}%
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Last {MONTHS_LABELS[months]}
+                        </p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="w-auto max-w-56">
+                      (Highly Active + Active) / Volunteers with shifts ={" "}
+                      {data.summary.highlyActiveCount +
+                        data.summary.activeCount}{" "}
+                      / {volunteersWithShifts}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-blue-100 dark:bg-blue-950/30 p-3">
-                    <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Active</p>
-                    <p className="text-2xl font-bold">{data.summary.activeCount}</p>
-                    <p className="text-xs text-muted-foreground">1+ shift in period</p>
-                  </div>
+                {/* Right: secondary metrics */}
+                <div className="flex-1 grid grid-cols-3 divide-x">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                        <Users className="h-4 w-4 text-muted-foreground mb-1" />
+                        <p className="text-2xl font-bold tracking-tight">
+                          {data.summary.totalVolunteers}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="w-auto max-w-56">
+                      All registered volunteers (excludes admins)
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                        <RefreshCw className="h-4 w-4 text-muted-foreground mb-1" />
+                        <p className="text-2xl font-bold tracking-tight">
+                          {data.summary.retentionRate}%
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Retention
+                        </p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="w-auto max-w-56">
+                      Of volunteers active in the prior period, the percentage
+                      who also volunteered in the current period
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                        <UserPlus className="h-4 w-4 text-muted-foreground mb-1" />
+                        <p className="text-2xl font-bold tracking-tight">
+                          {data.summary.newInPeriodCount}
+                        </p>
+                        <p className="text-xs text-muted-foreground">New</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="w-auto max-w-56">
+                      Volunteers who completed their first ever shift during the
+                      selected period
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-              </CardContent>
+              </div>
             </Card>
+          </motion.div>
 
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-amber-100 dark:bg-amber-950/30 p-3">
-                    <UserMinus className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Inactive</p>
-                    <p className="text-2xl font-bold">
-                      {data.summary.inactiveCount}
-                    </p>
-                    <p className="text-xs text-muted-foreground">No shifts in period</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-red-100 dark:bg-red-950/30 p-3">
-                    <UserX className="h-5 w-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Never Volunteered
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {data.summary.neverVolunteeredCount}
-                    </p>
-                    <p className="text-xs text-muted-foreground">0 completed shifts ever</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Secondary Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-purple-100 dark:bg-purple-950/30 p-3">
-                    <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Total Volunteers
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {data.summary.totalVolunteers}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-cyan-100 dark:bg-cyan-950/30 p-3">
-                    <RefreshCw className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Retention Rate</p>
-                    <p className="text-2xl font-bold">
-                      {data.summary.retentionRate}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center py-5">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-green-100 dark:bg-green-950/30 p-3">
-                    <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      New in Period
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {data.summary.newInPeriodCount}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Category Stat Cards */}
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            {[
+              {
+                label: "Highly Active",
+                value: data.summary.highlyActiveCount,
+                desc: "2+ shifts/month avg",
+                tooltip:
+                  "Volunteers averaging 2 or more completed shifts per month during the selected period",
+                icon: Zap,
+                color: "text-emerald-600 dark:text-emerald-400",
+                bg: "bg-emerald-50 dark:bg-emerald-950/20",
+                ring: "#10b981",
+              },
+              {
+                label: "Active",
+                value: data.summary.activeCount,
+                desc: "1+ shift in period",
+                tooltip:
+                  "Volunteers with at least 1 completed shift in the selected period (but fewer than 2/month avg)",
+                icon: UserCheck,
+                color: "text-blue-600 dark:text-blue-400",
+                bg: "bg-blue-50 dark:bg-blue-950/20",
+                ring: "#3b82f6",
+              },
+              {
+                label: "Inactive",
+                value: data.summary.inactiveCount,
+                desc: "No shifts in period",
+                tooltip:
+                  "Volunteers who have completed shifts before but none during the selected period",
+                icon: UserMinus,
+                color: "text-amber-600 dark:text-amber-400",
+                bg: "bg-amber-50 dark:bg-amber-950/20",
+                ring: "#f59e0b",
+              },
+              {
+                label: "Never Volunteered",
+                value: data.summary.neverVolunteeredCount,
+                desc: "0 completed shifts",
+                tooltip:
+                  "Registered volunteers who have never completed a shift",
+                icon: UserX,
+                color: "text-red-600 dark:text-red-400",
+                bg: "bg-red-50 dark:bg-red-950/20",
+                ring: "#ef4444",
+              },
+            ].map((stat) => (
+              <motion.div key={stat.label} variants={staggerItem}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className={`${stat.bg} border-0 cursor-help`}>
+                      <CardContent className="flex items-center gap-4 py-5">
+                        <EngagementRing
+                          value={stat.value}
+                          max={data.summary.totalVolunteers}
+                          color={stat.ring}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            {stat.label}
+                          </p>
+                          <p className="text-2xl font-bold tracking-tight">
+                            {stat.value}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {stat.desc}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-56">
+                    {stat.tooltip}
+                  </TooltipContent>
+                </Tooltip>
+              </motion.div>
+            ))}
+          </motion.div>
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Engagement Breakdown Donut */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Engagement Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {data.breakdown.some((b) => b.value > 0) ? (
-                  <Chart
-                    options={{
-                      chart: {
-                        type: "donut" as const,
-                        background: "transparent",
-                      },
-                      labels: data.breakdown.map((b) => b.label),
-                      colors: data.breakdown.map((b) => b.color),
-                      legend: {
-                        position: "bottom" as const,
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                      },
-                      dataLabels: {
-                        enabled: true,
-                        formatter: function (val: number) {
-                          return Math.round(val) + "%";
+            {/* Donut */}
+            <motion.div variants={staggerItem}>
+              <Card className="h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold">
+                    Engagement Breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.breakdown.some((b) => b.value > 0) ? (
+                    <Chart
+                      options={{
+                        chart: {
+                          type: "donut" as const,
+                          background: "transparent",
                         },
-                      },
-                      plotOptions: {
-                        pie: {
-                          donut: {
-                            size: "60%",
-                            labels: {
-                              show: true,
-                              total: {
+                        labels: data.breakdown.map((b) => b.label),
+                        colors: data.breakdown.map((b) => b.color),
+                        legend: {
+                          position: "bottom" as const,
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontSize: "12px",
+                          markers: { size: 6, offsetX: -2 },
+                          itemMargin: { horizontal: 8, vertical: 4 },
+                        },
+                        dataLabels: {
+                          enabled: true,
+                          formatter: function (val: number) {
+                            return Math.round(val) + "%";
+                          },
+                          style: {
+                            fontSize: "11px",
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontWeight: 600,
+                          },
+                          dropShadow: { enabled: false },
+                        },
+                        plotOptions: {
+                          pie: {
+                            donut: {
+                              size: "68%",
+                              labels: {
                                 show: true,
-                                label: "Total",
-                                fontFamily:
-                                  "var(--font-libre-franklin), sans-serif",
+                                name: {
+                                  fontSize: "13px",
+                                  fontFamily:
+                                    "var(--font-libre-franklin), sans-serif",
+                                  fontWeight: 500,
+                                  offsetY: -4,
+                                },
+                                value: {
+                                  fontSize: "22px",
+                                  fontFamily:
+                                    "var(--font-libre-franklin), sans-serif",
+                                  fontWeight: 700,
+                                  offsetY: 4,
+                                },
+                                total: {
+                                  show: true,
+                                  label: "Total",
+                                  fontFamily:
+                                    "var(--font-libre-franklin), sans-serif",
+                                  fontSize: "13px",
+                                  fontWeight: 500,
+                                },
                               },
                             },
                           },
                         },
-                      },
-                      theme: {
-                        mode: "light" as const,
-                      },
-                    }}
-                    series={data.breakdown.map((b) => b.value)}
-                    type="donut"
-                    height={320}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-[320px] text-muted-foreground">
-                    No data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                        stroke: { width: 2, colors: ["var(--card)"] },
+                        theme: { mode: "light" as const },
+                      }}
+                      series={data.breakdown.map((b) => b.value)}
+                      type="donut"
+                      height={320}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
+                      No data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
-            {/* Monthly Trend */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Monthly Active Volunteers
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {data.monthlyTrend.length > 0 ? (
-                  <Chart
-                    options={{
-                      chart: {
-                        type: "area" as const,
-                        toolbar: { show: false },
-                        background: "transparent",
-                      },
-                      xaxis: {
-                        categories: data.monthlyTrend.map((t) => {
-                          const [year, month] = t.month.split("-");
-                          const date = new Date(
-                            parseInt(year),
-                            parseInt(month) - 1
-                          );
-                          return date.toLocaleDateString("en-NZ", {
-                            month: "short",
-                            year: "2-digit",
-                          });
-                        }),
-                        labels: {
-                          style: {
-                            fontFamily: "var(--font-libre-franklin), sans-serif",
+            {/* Area chart — wider */}
+            <motion.div variants={staggerItem}>
+              <Card className="h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    Monthly Active Volunteers
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.monthlyTrend.length > 0 ? (
+                    <Chart
+                      options={{
+                        chart: {
+                          type: "area" as const,
+                          toolbar: { show: false },
+                          background: "transparent",
+                          sparkline: { enabled: false },
+                        },
+                        xaxis: {
+                          categories: data.monthlyTrend.map((t) => {
+                            const [year, month] = t.month.split("-");
+                            const date = new Date(
+                              parseInt(year),
+                              parseInt(month) - 1
+                            );
+                            return date.toLocaleDateString("en-NZ", {
+                              month: "short",
+                              year: "2-digit",
+                            });
+                          }),
+                          labels: {
+                            style: {
+                              fontFamily:
+                                "var(--font-libre-franklin), sans-serif",
+                              fontSize: "11px",
+                            },
+                          },
+                          axisBorder: { show: false },
+                          axisTicks: { show: false },
+                        },
+                        yaxis: {
+                          labels: {
+                            style: {
+                              fontFamily:
+                                "var(--font-libre-franklin), sans-serif",
+                              fontSize: "11px",
+                            },
+                          },
+                          min: 0,
+                        },
+                        colors: ["#3b82f6"],
+                        stroke: {
+                          curve: "smooth" as const,
+                          width: 2.5,
+                        },
+                        fill: {
+                          type: "gradient",
+                          gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.35,
+                            opacityTo: 0.02,
+                            stops: [0, 90, 100],
                           },
                         },
-                      },
-                      yaxis: {
-                        title: {
-                          text: "Active Volunteers",
-                          style: {
-                            fontFamily: "var(--font-libre-franklin), sans-serif",
-                            fontSize: "12px",
+                        dataLabels: { enabled: false },
+                        grid: {
+                          borderColor: "#e5e7eb",
+                          strokeDashArray: 4,
+                          xaxis: { lines: { show: false } },
+                        },
+                        tooltip: {
+                          y: {
+                            formatter: function (val: number) {
+                              return val + " volunteers";
+                            },
                           },
                         },
-                        labels: {
-                          style: {
-                            fontFamily: "var(--font-libre-franklin), sans-serif",
-                          },
+                        markers: {
+                          size: 4,
+                          strokeWidth: 2,
+                          strokeColors: "#fff",
+                          hover: { sizeOffset: 2 },
                         },
-                        min: 0,
-                      },
-                      colors: ["#3b82f6"],
-                      stroke: {
-                        curve: "smooth" as const,
-                        width: 3,
-                      },
-                      fill: {
-                        type: "gradient",
-                        gradient: {
-                          shadeIntensity: 1,
-                          opacityFrom: 0.4,
-                          opacityTo: 0.05,
+                        legend: { show: false },
+                        theme: { mode: "light" as const },
+                      }}
+                      series={[
+                        {
+                          name: "Active Volunteers",
+                          data: data.monthlyTrend.map(
+                            (t) => t.activeVolunteers
+                          ),
                         },
-                      },
-                      dataLabels: { enabled: false },
-                      grid: {
-                        borderColor: "#e5e7eb",
-                      },
-                      tooltip: {
-                        y: {
-                          formatter: function (val: number) {
-                            return val + " volunteers";
-                          },
-                        },
-                      },
-                      legend: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                      },
-                      theme: {
-                        mode: "light" as const,
-                      },
-                    }}
-                    series={[
-                      {
-                        name: "Active Volunteers",
-                        data: data.monthlyTrend.map((t) => t.activeVolunteers),
-                      },
-                    ]}
-                    type="area"
-                    height={320}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-[320px] text-muted-foreground">
-                    No trend data available
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ]}
+                      type="area"
+                      height={320}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
+                      No trend data available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           {/* Volunteer Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Volunteers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <EngagementVolunteerTable months={months} location={location} />
-            </CardContent>
-          </Card>
+          <motion.div variants={staggerItem}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  Volunteers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EngagementVolunteerTable months={months} location={location} />
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
       )}
     </div>
