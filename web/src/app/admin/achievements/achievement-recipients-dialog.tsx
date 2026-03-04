@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 interface Recipient {
   userId: string;
@@ -111,9 +112,10 @@ export function AchievementRecipientsDialog({
                 unlocked this achievement
               </p>
               {recipients.map((recipient) => (
-                <div
+                <Link
                   key={recipient.userId}
-                  className="flex items-center gap-3 rounded-lg border p-3"
+                  href={`/admin/volunteers/${recipient.userId}`}
+                  className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50 transition-colors"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage
@@ -135,7 +137,7 @@ export function AchievementRecipientsDialog({
                   <span className="text-xs text-slate-400 shrink-0">
                     {formatDate(recipient.unlockedAt)}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
