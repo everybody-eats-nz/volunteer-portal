@@ -379,9 +379,12 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(fohOption).toBeVisible();
     await fohOption.click();
 
+    // Wait for dropdown to close and dialog to settle
+    await page.waitForTimeout(500);
+
     // Click confirm move (button text is "Move Volunteer")
-    const confirmButton = page.locator('[data-testid$="-move-dialog-confirm"]').first();
-    await expect(confirmButton).toBeEnabled();
+    const confirmButton = page.getByRole("button", { name: /move volunteer/i });
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
     await confirmButton.click();
 
     // Wait for success
