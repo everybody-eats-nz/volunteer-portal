@@ -39,7 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatFileSize } from "@/lib/storage";
+import { formatFileSize } from "@/lib/storage-utils";
 import { EditResourceDialog } from "@/components/edit-resource-dialog";
 
 interface ResourceWithUploader extends Resource {

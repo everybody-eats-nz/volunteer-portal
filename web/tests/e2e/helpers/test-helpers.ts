@@ -240,3 +240,127 @@ export async function deleteNotifications(
 
   await page.request.delete(`/api/test/notifications?${params.toString()}`);
 }
+
+/**
+ * Create a test survey via test API endpoint
+ */
+export async function createTestSurvey(
+  page: Page,
+  data: {
+    title: string;
+    description?: string;
+    questions: Array<{
+      id: string;
+      type: string;
+      text: string;
+      required: boolean;
+      options?: string[];
+      minValue?: number;
+      maxValue?: number;
+      minLabel?: string;
+      maxLabel?: string;
+      placeholder?: string;
+    }>;
+    triggerType?: string;
+    triggerValue?: number;
+    triggerMaxValue?: number;
+    isActive?: boolean;
+    createdBy: string;
+  }
+): Promise<{ id: string }> {
+  const response = await page.request.post("/api/test/surveys", { data });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create test survey: ${response.status()} - ${errorText}`
+    );
+  }
+
+  return await response.json();
+}
+
+/**
+ * Assign a survey to a user (creates assignment + token, no email)
+ */
+export async function assignSurveyToUser(
+  page: Page,
+  data: {
+    surveyId: string;
+    userId: string;
+    status?: string;
+    expiresAt?: string;
+  }
+): Promise<{ assignmentId: string; token: string }> {
+  const response = await page.request.post("/api/test/surveys/assign", {
+    data,
+  });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to assign survey: ${response.status()} - ${errorText}`
+    );
+  }
+
+  return await response.json();
+}
+
+/**
+ * Delete test surveys via API
+ */
+export async function deleteTestSurveys(
+  page: Page,
+  surveyIds: string[]
+): Promise<void> {
+  for (const surveyId of surveyIds) {
+    await page.request.delete(
+      `/api/test/surveys?surveyId=${encodeURIComponent(surveyId)}`
+    );
+  }
+}
+
+/**
+ * Create a test resource via test API endpoint
+ */
+export async function createTestResource(
+  page: Page,
+  data: {
+    title: string;
+    description?: string;
+    type: string;
+    category: string;
+    tags?: string[];
+    url?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    isPublished?: boolean;
+    uploadedBy: string;
+  }
+): Promise<{ id: string }> {
+  const response = await page.request.post("/api/test/resources", { data });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create test resource: ${response.status()} - ${errorText}`
+    );
+  }
+
+  return await response.json();
+}
+
+/**
+ * Delete test resources via API
+ */
+export async function deleteTestResources(
+  page: Page,
+  resourceIds: string[]
+): Promise<void> {
+  for (const resourceId of resourceIds) {
+    await page.request.delete(
+      `/api/test/resources?resourceId=${encodeURIComponent(resourceId)}`
+    );
+  }
+}

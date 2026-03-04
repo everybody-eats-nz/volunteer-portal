@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MAX_FILE_SIZE, formatFileSize } from "@/lib/storage";
+import { MAX_FILE_SIZE, formatFileSize } from "@/lib/storage-utils";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
