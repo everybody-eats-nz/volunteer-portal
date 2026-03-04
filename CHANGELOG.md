@@ -1,3 +1,9 @@
+## [0.111.0] - 2026-03-04
+
+### Changes
+- feat: add volunteer engagement analytics page ([#627](https://github.com/everybody-eats-nz/volunteer-portal/pull/627)) by @malinmalliyawadu
+
+
 ## [0.110.6] - 2026-03-02
 
 ### Changes
