@@ -9,12 +9,6 @@ test.describe("Profile Edit Page", () => {
     await page.goto("/profile/edit");
     await page.waitForLoadState("domcontentloaded");
 
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Login failed - skipping profile edit tests");
-    }
-
     // Wait for the page to be ready
     await page.waitForTimeout(1000);
   });

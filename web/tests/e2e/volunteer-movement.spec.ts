@@ -1,4 +1,4 @@
-import { test } from "./base";
+import { test, expect } from "./base";
 import {
   createTestUser,
   deleteTestUsers,
@@ -8,8 +8,10 @@ import {
   createSignup,
   deleteSignupsByShiftIds,
   getShiftTypeByName,
+  createNotification,
   deleteNotifications,
 } from "./helpers/test-helpers";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { randomUUID } from "crypto";
 
 test.describe.configure({ mode: "serial" });
@@ -24,6 +26,9 @@ test.describe("General Volunteer Movement System", () => {
   let targetShiftId: string;
 
   test.beforeEach(async ({ page }) => {
+    // Authenticate as admin for API calls that require admin access
+    await loginAsAdmin(page);
+
     // Create test users
     await createTestUser(page, adminEmail, "ADMIN");
     await createTestUser(page, volunteerEmail, "VOLUNTEER");
@@ -77,6 +82,9 @@ test.describe("General Volunteer Movement System", () => {
   });
 
   test.afterEach(async ({ page }) => {
+    // Authenticate as admin for cleanup API calls
+    await loginAsAdmin(page);
+
     // Clean up notifications
     await deleteNotifications(page, { userId: volunteerUserId });
 
@@ -88,334 +96,322 @@ test.describe("General Volunteer Movement System", () => {
     await deleteTestShifts(page, testShiftIds);
   });
 
-  // test.describe.skip("Admin Volunteer Movement Interface", () => {
-  //   test.afterEach(async () => {
-  //     // Clean up any notifications created during the test to ensure isolation
-  //     await prisma.notification.deleteMany({
-  //       where: {
-  //         userId: volunteerUserId,
-  //         type: "SHIFT_CONFIRMED",
-  //       },
-  //     });
-  //   });
+  test.describe("Admin Volunteer Movement Interface", () => {
+    test.afterEach(async ({ page }) => {
+      // Clean up any notifications created during the test to ensure isolation
+      await deleteNotifications(page, {
+        userId: volunteerUserId,
+        type: "SHIFT_CONFIRMED",
+      });
+    });
 
-  //   test.skip("admin can see move button for confirmed volunteers", async ({
-  //     page,
-  //   }) => {
-  //     await loginAsAdmin(page);
-  //     await page.goto("/admin/shifts");
-  //     await page.waitForLoadState("load");
+    test("admin can see move button for confirmed volunteers", async ({
+      page,
+    }) => {
+      await loginAsAdmin(page);
+      await page.goto("/admin/shifts");
+      await page.waitForLoadState("load");
 
-  //     // Select Wellington location
-  //     await page.getByTestId("location-selector").click();
-  //     await page.getByRole("option", { name: "Wellington" }).click();
+      // Navigate directly to tomorrow's date in admin shifts
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(2000);
 
-  //     // Navigate directly to tomorrow's date in admin shifts
-  //     const tomorrow = new Date();
-  //     tomorrow.setDate(tomorrow.getDate() + 1);
-  //     const tomorrowStr = tomorrow.toISOString().split("T")[0];
-  //     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      // Find the shift card with our volunteer
+      const shiftCard = page
+        .locator('[data-testid^="shift-card-"]')
+        .filter({
+          hasText: "Test User",
+        })
+        .first();
 
-  //     // Find the shift card with our volunteer
-  //     const shiftCard = page
-  //       .locator('[data-testid^="shift-card-"]')
-  //       .filter({
-  //         hasText: "Test User",
-  //       })
-  //       .first();
+      await expect(shiftCard).toBeVisible();
 
-  //     await expect(shiftCard).toBeVisible();
+      // Should see confirmed status
+      await expect(shiftCard.getByText("Confirmed")).toBeVisible();
 
-  //     // Should see confirmed status
-  //     await expect(shiftCard.getByText("Confirmed")).toBeVisible();
+      // Should see the move button (blue arrow icon)
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible();
+      await expect(moveButton).toHaveAttribute(
+        "title",
+        "Move to different shift"
+      );
+    });
 
-  //     // Should see the move button (blue arrow icon)
-  //     const moveButton = shiftCard.locator(
-  //       'button[title="Move to different shift"]'
-  //     );
-  //     await expect(moveButton).toBeVisible();
-  //     await expect(moveButton).toHaveAttribute(
-  //       "title",
-  //       "Move to different shift"
-  //     );
-  //   });
+    test("admin can move volunteer to different shift", async ({
+      page,
+    }) => {
+      // Ensure volunteer is on source shift
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: sourceShiftId,
+        status: "CONFIRMED",
+      });
 
-  //   test.skip("admin can move volunteer to different shift", async ({
-  //     page,
-  //   }) => {
-  //     // Reset signup to original shift for this test
-  //     await prisma.signup.update({
-  //       where: { id: signupId },
-  //       data: {
-  //         shiftId: sourceShiftId,
-  //         originalShiftId: null,
-  //       },
-  //     });
+      await loginAsAdmin(page);
+      await page.goto("/admin/shifts");
+      await page.waitForLoadState("load");
 
-  //     await loginAsAdmin(page);
-  //     await page.goto("/admin/shifts");
-  //     await page.waitForLoadState("load");
+      // Navigate to tomorrow's date
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(2000);
 
-  //     // Select Wellington and tomorrow's date
-  //     await page.getByTestId("location-selector").click();
-  //     await page.getByRole("option", { name: "Wellington" }).click();
+      // Find and click the move button
+      const shiftCard = page
+        .locator('[data-testid^="shift-card-"]')
+        .filter({
+          hasText: "Test User",
+        })
+        .first();
 
-  //     const tomorrow = new Date();
-  //     tomorrow.setDate(tomorrow.getDate() + 1);
-  //     const tomorrowStr = tomorrow.toISOString().split("T")[0];
-  //     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await expect(shiftCard).toBeVisible();
 
-  //     // Find and click the move button
-  //     const shiftCard = page
-  //       .locator('[data-testid^="shift-card-"]')
-  //       .filter({
-  //         hasText: "Test User",
-  //       })
-  //       .first();
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible();
+      await expect(moveButton).toBeEnabled();
+      await moveButton.click();
 
-  //     await expect(shiftCard).toBeVisible();
+      // Wait a moment for dialog to open
+      await page.waitForTimeout(1000);
 
-  //     const moveButton = shiftCard.locator(
-  //       'button[title="Move to different shift"]'
-  //     );
-  //     await expect(moveButton).toBeVisible();
-  //     await expect(moveButton).toBeEnabled();
-  //     await moveButton.click();
+      // Dialog should open
+      await expect(page.getByText("to Different Shift")).toBeVisible();
+      await expect(page.getByText("Move this volunteer from")).toBeVisible();
 
-  //     // Wait a moment for dialog to open
-  //     await page.waitForTimeout(1000);
+      // Select target shift from dropdown
+      const dropdown = page.getByRole("combobox");
+      await dropdown.click();
 
-  //     // Dialog should open
-  //     await expect(page.getByText("to Different Shift")).toBeVisible();
-  //     await expect(page.getByText("Move this volunteer from")).toBeVisible();
+      // Should see available shifts with capacity info
+      const targetOption = page
+        .getByRole("option")
+        .filter({
+          hasText: "FOH Set-Up & Service",
+        })
+        .first();
+      await expect(targetOption).toBeVisible();
+      await expect(targetOption).toContainText("spots available");
+      await targetOption.click();
 
-  //     // Select target shift from dropdown
-  //     const dropdown = page.getByRole("combobox");
-  //     await dropdown.click();
+      // Add movement notes
+      const notesField = page.getByPlaceholder(
+        "Add any notes about this movement..."
+      );
+      await notesField.fill("Moved to FOH due to preference and experience");
 
-  //     // Should see available shifts with capacity info
-  //     const targetOption = page
-  //       .getByRole("option")
-  //       .filter({
-  //         hasText: "FOH Set-Up & Service",
-  //       })
-  //       .first();
-  //     await expect(targetOption).toBeVisible();
-  //     await expect(targetOption).toContainText("spots available");
-  //     await targetOption.click();
+      // Click move volunteer button
+      const moveVolunteerButton = page.getByRole("button", {
+        name: "Move Volunteer",
+      });
+      await expect(moveVolunteerButton).toBeEnabled();
+      await moveVolunteerButton.click();
 
-  //     // Add movement notes
-  //     const notesField = page.getByPlaceholder(
-  //       "Add any notes about this movement..."
-  //     );
-  //     await notesField.fill("Moved to FOH due to preference and experience");
+      // Wait for success - dialog should close or show success indication
+      await page.waitForTimeout(3000);
 
-  //     // Click move volunteer button
-  //     const moveVolunteerButton = page.getByRole("button", {
-  //       name: "Move Volunteer",
-  //     });
-  //     await expect(moveVolunteerButton).toBeEnabled();
-  //     await moveVolunteerButton.click();
+      // Verify via UI that volunteer now appears in target shift
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(2000);
 
-  //     // Wait for success - the dialog should close or show success indication
-  //     // Instead of waiting for dialog to close, wait for page changes that indicate success
-  //     await page.waitForTimeout(3000);
+      // Find the FOH shift card - volunteer should now be there
+      const fohShiftCard = page
+        .locator('[data-testid^="shift-card-"]')
+        .filter({
+          hasText: "FOH Set-Up & Service",
+        })
+        .first();
 
-  //     // Verify the signup was moved in database
-  //     const movedSignup = await prisma.signup.findUnique({
-  //       where: { id: signupId },
-  //     });
+      await expect(fohShiftCard).toBeVisible();
+      await expect(fohShiftCard.getByText("Test User")).toBeVisible();
+    });
 
-  //     expect(movedSignup?.shiftId).toBe(targetShiftId);
-  //     expect(movedSignup?.originalShiftId).toBe(sourceShiftId);
-  //     expect(movedSignup?.status).toBe("CONFIRMED");
-  //   });
+    test("volunteer now appears in target shift", async ({ page }) => {
+      // Move volunteer to target shift for this test
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: targetShiftId,
+        status: "CONFIRMED",
+      });
 
-  //   test("volunteer now appears in target shift", async ({ page }) => {
-  //     // This test verifies the result of the previous movement
-  //     // No need to manually update the database since the previous test should have moved the volunteer
+      await loginAsAdmin(page);
+      await page.goto("/admin/shifts");
+      await page.waitForLoadState("load");
 
-  //     await loginAsAdmin(page);
-  //     await page.goto("/admin/shifts");
-  //     await page.waitForLoadState("load");
+      // Navigate to tomorrow's date
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(2000);
 
-  //     // Select Wellington and tomorrow's date
-  //     await page.getByTestId("location-selector").click();
-  //     await page.getByRole("option", { name: "Wellington" }).click();
+      // Find the FOH shift card - volunteer should now be there
+      const fohShiftCard = page
+        .locator('[data-testid^="shift-card-"]')
+        .filter({
+          hasText: "FOH Set-Up & Service",
+        })
+        .first();
 
-  //     const tomorrow = new Date();
-  //     tomorrow.setDate(tomorrow.getDate() + 1);
-  //     const tomorrowStr = tomorrow.toISOString().split("T")[0];
-  //     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await expect(fohShiftCard).toBeVisible();
+      await expect(fohShiftCard.getByText("Test User")).toBeVisible();
+      await expect(fohShiftCard.getByText("Confirmed")).toBeVisible();
 
-  //     // Wait for page to load
-  //     await page.waitForTimeout(2000);
+      // Original shift should no longer have the volunteer
+      const originalShiftCard = page
+        .locator('[data-testid^="shift-card-"]')
+        .filter({
+          hasText: "Kitchen Prep & Service",
+        })
+        .first();
 
-  //     // Find the FOH shift card - volunteer should now be there
-  //     const fohShiftCard = page
-  //       .locator('[data-testid^="shift-card-"]')
-  //       .filter({
-  //         hasText: "FOH Set-Up & Service",
-  //       })
-  //       .first();
+      if (await originalShiftCard.isVisible()) {
+        await expect(
+          originalShiftCard.getByText("Test User")
+        ).not.toBeVisible();
+      }
+    });
 
-  //     await expect(fohShiftCard).toBeVisible();
-  //     await expect(fohShiftCard.getByText("Test User")).toBeVisible();
-  //     await expect(fohShiftCard.getByText("Confirmed")).toBeVisible();
+    test("volunteer receives notification about movement", async ({ page }) => {
+      // Move volunteer to target shift and create notification
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: targetShiftId,
+        status: "CONFIRMED",
+      });
 
-  //     // Original shift should no longer have the volunteer
-  //     const originalShiftCard = page
-  //       .locator('[data-testid^="shift-card-"]')
-  //       .filter({
-  //         hasText: "Kitchen Prep & Service",
-  //       })
-  //       .first();
+      // Create movement notification via test helper
+      await createNotification(page, {
+        userId: volunteerUserId,
+        type: "SHIFT_CONFIRMED",
+        title: "You've been moved to a different shift",
+        message:
+          "You've been moved from Kitchen Prep & Service to FOH Set-Up & Service",
+      });
 
-  //     if (await originalShiftCard.isVisible()) {
-  //       await expect(
-  //         originalShiftCard.getByText("Test User")
-  //       ).not.toBeVisible();
-  //     }
-  //   });
+      await loginAsVolunteer(page, volunteerEmail);
+      await page.goto("/dashboard");
+      await page.waitForLoadState("load");
 
-  //   test("volunteer receives notification about movement", async ({ page }) => {
-  //     // Ensure volunteer is moved and create notification for this test
-  //     await prisma.signup.update({
-  //       where: { id: signupId },
-  //       data: {
-  //         shiftId: targetShiftId,
-  //         originalShiftId: sourceShiftId,
-  //       },
-  //     });
+      // Check for movement notification
+      const notificationBell = page.getByTestId("notification-bell-button");
+      await expect(notificationBell).toBeVisible();
 
-  //     // Create movement notification
-  //     await prisma.notification.create({
-  //       data: {
-  //         userId: volunteerUserId,
-  //         type: "SHIFT_CONFIRMED",
-  //         title: "You've been moved to a different shift",
-  //         message:
-  //           "You've been moved from Kitchen Prep & Service to FOH Set-Up & Service",
-  //         isRead: false,
-  //       },
-  //     });
+      // Click to view notifications
+      await notificationBell.click();
 
-  //     await loginAsVolunteer(page, volunteerEmail);
-  //     await page.goto("/dashboard");
-  //     await page.waitForLoadState("load");
+      // Should see movement notification
+      await expect(
+        page.getByText("You've been moved to a different shift")
+      ).toBeVisible();
+      // Just check that some notification content is visible - be more flexible
+      await expect(
+        page.getByText(/FOH Set-Up|Set-Up & Service/).first()
+      ).toBeVisible();
+    });
 
-  //     // Check for movement notification
-  //     const notificationBell = page.getByTestId("notification-bell-button");
-  //     await expect(notificationBell).toBeVisible();
+    test("volunteer can see updated shift in My Shifts", async ({ page }) => {
+      // Move volunteer to target shift
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: targetShiftId,
+        status: "CONFIRMED",
+      });
 
-  //     // Click to view notifications
-  //     await notificationBell.click();
+      await loginAsVolunteer(page, volunteerEmail);
+      await page.goto("/shifts/mine");
+      await page.waitForLoadState("load");
 
-  //     // Should see movement notification
-  //     await expect(
-  //       page.getByText("You've been moved to a different shift")
-  //     ).toBeVisible();
-  //     // Just check that some notification content is visible - be more flexible
-  //     await expect(
-  //       page.getByText(/FOH Set-Up|Set-Up & Service/).first()
-  //     ).toBeVisible();
+      // Should see the new shift
+      await expect(
+        page.getByText("FOH Set-Up & Service").first()
+      ).toBeVisible();
+    });
+  });
 
-  //     // Verify notification exists in database
-  //     const notification = await prisma.notification.findFirst({
-  //       where: {
-  //         userId: volunteerUserId,
-  //         type: "SHIFT_CONFIRMED",
-  //         title: "You've been moved to a different shift",
-  //       },
-  //     });
+  test.describe("Movement History Tracking", () => {
+    test.afterEach(async ({ page }) => {
+      // Clean up any notifications created during the test to ensure isolation
+      await deleteNotifications(page, {
+        userId: volunteerUserId,
+        type: "SHIFT_CONFIRMED",
+      });
+    });
 
-  //     expect(notification).toBeTruthy();
-  //     expect(notification?.message).toContain("FOH Set-Up & Service");
-  //   });
+    test("admin can see volunteer placement after movement via UI", async ({
+      page,
+    }) => {
+      // Move volunteer to target shift
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: targetShiftId,
+        status: "CONFIRMED",
+      });
 
-  //   test("volunteer can see updated shift in My Shifts", async ({ page }) => {
-  //     // Ensure volunteer is moved to target shift for this test
-  //     await prisma.signup.update({
-  //       where: { id: signupId },
-  //       data: {
-  //         shiftId: targetShiftId,
-  //         originalShiftId: sourceShiftId,
-  //       },
-  //     });
+      await loginAsAdmin(page);
 
-  //     await loginAsVolunteer(page, volunteerEmail);
-  //     await page.goto("/shifts/mine");
-  //     await page.waitForLoadState("load");
+      // Navigate to admin shifts for tomorrow
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+      await page.waitForTimeout(2000);
 
-  //     // Should see the new shift
-  //     await expect(
-  //       page.getByText("FOH Set-Up & Service").first()
-  //     ).toBeVisible();
+      // Verify volunteer is in target shift
+      const fohShiftCard = page
+        .locator('[data-testid^="shift-card-"]')
+        .filter({
+          hasText: "FOH Set-Up & Service",
+        })
+        .first();
 
-  //     // Should not see the original shift
-  //     await expect(page.getByText("Kitchen Prep & Service")).not.toBeVisible();
-  //   });
-  // });
+      await expect(fohShiftCard).toBeVisible();
+      await expect(fohShiftCard.getByText("Test User")).toBeVisible();
+    });
 
-  // test.describe.skip("Movement History Tracking", () => {
-  //   test.afterEach(async () => {
-  //     // Clean up any notifications created during the test to ensure isolation
-  //     await prisma.notification.deleteMany({
-  //       where: {
-  //         userId: volunteerUserId,
-  //         type: "SHIFT_CONFIRMED",
-  //       },
-  //     });
-  //   });
+    test("movement notification is visible to volunteer", async ({ page }) => {
+      // Create movement notification
+      await createNotification(page, {
+        userId: volunteerUserId,
+        type: "SHIFT_CONFIRMED",
+        title: "You've been moved to a different shift",
+        message:
+          "You've been moved from Kitchen Prep & Service to FOH Set-Up & Service",
+      });
 
-  //   test("system tracks original shift ID when volunteer is moved", async ({}) => {
-  //     // Ensure volunteer is moved with proper tracking for this test
-  //     await prisma.signup.update({
-  //       where: { id: signupId },
-  //       data: {
-  //         shiftId: targetShiftId,
-  //         originalShiftId: sourceShiftId,
-  //       },
-  //     });
+      // Login as volunteer and check notifications
+      await loginAsVolunteer(page, volunteerEmail);
+      await page.goto("/dashboard");
+      await page.waitForLoadState("load");
 
-  //     // Verify the signup has tracking info from the movement
-  //     const signup = await prisma.signup.findUnique({
-  //       where: { id: signupId },
-  //     });
+      // Check notifications
+      const notificationBell = page.getByTestId("notification-bell-button");
+      await expect(notificationBell).toBeVisible();
+      await notificationBell.click();
 
-  //     expect(signup?.originalShiftId).toBe(sourceShiftId);
-  //     expect(signup?.shiftId).toBe(targetShiftId);
-  //   });
-
-  //   test("system maintains audit trail of movements", async ({}) => {
-  //     // Create movement notification for this test
-  //     await prisma.notification.create({
-  //       data: {
-  //         userId: volunteerUserId,
-  //         type: "SHIFT_CONFIRMED",
-  //         title: "You've been moved to a different shift",
-  //         message:
-  //           "You've been moved from Kitchen Prep & Service to FOH Set-Up & Service",
-  //         isRead: false,
-  //       },
-  //     });
-
-  //     // Check that notifications were created for movements
-  //     const notifications = await prisma.notification.findMany({
-  //       where: {
-  //         userId: volunteerUserId,
-  //         type: "SHIFT_CONFIRMED",
-  //       },
-  //       orderBy: { createdAt: "desc" },
-  //     });
-
-  //     expect(notifications.length).toBeGreaterThan(0);
-
-  //     const movementNotification = notifications.find(
-  //       (n) => n.title === "You've been moved to a different shift"
-  //     );
-
-  //     expect(movementNotification).toBeTruthy();
-  //   });
-  // });
+      const movementNotification = page.getByText(
+        "You've been moved to a different shift"
+      );
+      await expect(movementNotification).toBeVisible();
+    });
+  });
 });

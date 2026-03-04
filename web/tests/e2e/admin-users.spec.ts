@@ -1,5 +1,10 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import {
+  createTestUser,
+  deleteTestUsers,
+} from "./helpers/test-helpers";
+import { randomUUID } from "crypto";
 
 test.describe("Admin Users Management", () => {
   test.beforeEach(async ({ page }) => {
@@ -306,18 +311,39 @@ test.describe("Admin Users Management", () => {
       await expect(inviteDialog).not.toBeVisible();
     });
 
-    test.skip("should successfully invite a new user", async ({ page }) => {
-      // Skip this test as it would actually send an invitation email
-      // In a real scenario, this would test the actual invitation functionality
+    test("should successfully invite a new user", async ({ page }) => {
+      const inviteEmail = `invite-test-${randomUUID().slice(0, 8)}@example.com`;
+
       await page.goto("/admin/users");
 
-      // This test would:
-      // 1. Open invite dialog
-      // 2. Fill out all required fields
-      // 3. Submit the form
-      // 4. Verify success message
-      // 5. Verify dialog closes
-      // 6. Verify user list refreshes
+      const inviteButton = page.getByTestId("invite-user-button");
+      await inviteButton.click();
+
+      const inviteDialog = page.getByTestId("invite-user-dialog");
+      await expect(inviteDialog).toBeVisible();
+
+      // Fill out form
+      const emailInput = page.getByTestId("invite-email-input");
+      const firstNameInput = page.getByTestId("invite-first-name-input");
+      const lastNameInput = page.getByTestId("invite-last-name-input");
+
+      await emailInput.fill(inviteEmail);
+      await firstNameInput.fill("Invite");
+      await lastNameInput.fill("TestUser");
+
+      // Submit the form
+      const submitButton = page.getByTestId("invite-submit-button");
+      await submitButton.click();
+
+      // Should show success toast
+      const successToast = page.locator("[data-sonner-toast]").first();
+      await expect(successToast).toBeVisible({ timeout: 10000 });
+
+      // Dialog should close
+      await expect(inviteDialog).not.toBeVisible();
+
+      // Clean up the invited user
+      await deleteTestUsers(page, [inviteEmail]);
     });
   });
 
@@ -590,23 +616,75 @@ test.describe("Admin Users Management", () => {
       }
     });
 
-    test.skip("should successfully delete a user (skipped to avoid data loss)", async ({
-      page,
-    }) => {
-      // This test is skipped because it would actually delete a user
-      // In a real testing environment with test data, this would:
-      // 1. Create a test user specifically for deletion
-      // 2. Navigate to admin users page
-      // 3. Find the test user
-      // 4. Open delete dialog
-      // 5. Enter correct email confirmation
-      // 6. Confirm deletion
-      // 7. Verify user is removed from the list
-      // 8. Verify success message (if any)
+    test("should successfully delete a user", async ({ page }) => {
+      const deleteEmail = `delete-test-${randomUUID().slice(0, 8)}@example.com`;
+
+      // Create a dedicated test user for deletion
+      await createTestUser(page, deleteEmail, "VOLUNTEER", {
+        firstName: "Delete",
+        lastName: "TestUser",
+      });
 
       await page.goto("/admin/users");
+      await page.waitForLoadState("load");
 
-      // Implementation would go here for a proper test environment
+      // Search for the test user
+      const searchInput = page.getByTestId("search-input");
+      if (await searchInput.isVisible()) {
+        await searchInput.fill(deleteEmail);
+        await page.waitForTimeout(1000);
+      }
+
+      // Find the user row
+      const userRows = page.locator("[data-testid^='user-row-']");
+      const rowCount = await userRows.count();
+
+      let targetUserId: string | null = null;
+      for (let i = 0; i < rowCount; i++) {
+        const row = userRows.nth(i);
+        const rowText = await row.textContent();
+        if (rowText?.includes("Delete") && rowText?.includes("TestUser")) {
+          const testIdAttr = await row.getAttribute("data-testid");
+          targetUserId = testIdAttr?.replace("user-row-", "") || null;
+          break;
+        }
+      }
+
+      if (targetUserId) {
+        // Open actions dropdown
+        const actionsButton = page.getByTestId(
+          `user-actions-${targetUserId}`
+        );
+        await actionsButton.click();
+
+        // Click delete option
+        const deleteOption = page.getByTestId(
+          `delete-user-${targetUserId}`
+        );
+        await deleteOption.click();
+
+        // Delete dialog should appear
+        const deleteDialog = page.locator('[role="dialog"]').filter({
+          hasText: "Delete User",
+        });
+        await expect(deleteDialog).toBeVisible();
+
+        // Fill in email confirmation
+        const emailInput = page.getByTestId("delete-user-email-input");
+        await emailInput.fill(deleteEmail);
+
+        // Click confirm delete
+        const confirmButton = page.getByTestId(
+          "delete-user-confirm-button"
+        );
+        await confirmButton.click();
+
+        // Should show success (toast or dialog closes)
+        await expect(deleteDialog).not.toBeVisible({ timeout: 10000 });
+      } else {
+        // Cleanup in case user was created but not found in list
+        await deleteTestUsers(page, [deleteEmail]);
+      }
     });
 
     test("should prevent self-deletion", async ({ page }) => {

@@ -1,10 +1,11 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import {
   createTestUser,
   deleteTestUsers,
 } from "./helpers/test-helpers";
+import { randomUUID } from "crypto";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -131,24 +132,22 @@ async function registerUnderageUser(
 
 // Helper function to create and login as an underage user
 async function createAndLoginAsUnderageUser(page: Page) {
-  const userEmail = `underage.test.${Date.now()}@example.com`;
-  const password = "Password123!";
+  const userEmail = `underage.test.${randomUUID().slice(0, 8)}@example.com`;
 
-  // First register the underage user
-  await registerUnderageUser(page, userEmail, new Date().getFullYear() - 15);
+  // Create underage user via API (much faster than UI registration)
+  const fifteenYearsAgo = new Date();
+  fifteenYearsAgo.setFullYear(fifteenYearsAgo.getFullYear() - 15);
 
-  // After registration, user is redirected to login page - need to manually log in
-  await waitForPageLoad(page);
+  await createTestUser(page, userEmail, "VOLUNTEER", {
+    firstName: "Emma",
+    lastName: "Parker",
+    dateOfBirth: fifteenYearsAgo.toISOString(),
+    requiresParentalConsent: true,
+    parentalConsentReceived: false,
+  });
 
-  // Navigate to login page (might already be there)
-  await page.goto("/login");
-  await waitForPageLoad(page);
-
-  // Fill in login credentials
-  await page.getByLabel("Email address").fill(userEmail);
-  await page.getByLabel("Password").fill(password);
-  await page.getByTestId("login-submit-button").click();
-  await page.waitForURL("/dashboard");
+  // Login as the underage user
+  await loginAsVolunteer(page, userEmail);
   await waitForPageLoad(page);
 
   return userEmail;
@@ -348,46 +347,44 @@ test.describe("Parental Consent System", () => {
   });
 
   test.describe("Shift Access Restrictions", () => {
-    // SKIPPED: Requires implementing shift restrictions for underage users without parental consent
-    // Missing: browse-shifts-button on dashboard, parental consent banner on shift details page
-    test.skip("should prevent underage users from signing up for shifts without parental consent", async ({
+    test("should prevent underage users from signing up for shifts without parental consent", async ({
       page,
     }) => {
       await createAndLoginAsUnderageUser(page);
       await waitForPageLoad(page);
 
-      // Navigate to shifts page
-      await page.getByTestId("browse-shifts-button").click();
+      // Navigate directly to Wellington shifts calendar
+      await page.goto("/shifts?location=Wellington");
       await waitForPageLoad(page);
 
-      // Find an available shift and click on it
-      const shiftCard = page.getByTestId(/shift-card-/).first();
-      await shiftCard.click();
+      // Click on a calendar day with shifts to navigate to details page
+      const calendarDayLink = page.locator('a[href*="/shifts/details"]').first();
+      await expect(calendarDayLink).toBeVisible();
+      await calendarDayLink.click();
       await waitForPageLoad(page);
 
-      // Should show parental consent restrictions
-      await expect(page.getByTestId("parental-consent-banner")).toBeVisible();
-      await expect(page.getByText("Parental Consent Required")).toBeVisible();
-      await expect(page.getByText("volunteer@everybodyeats.nz")).toBeVisible();
+      // Should show disabled signup button with parental consent message
+      const disabledButton = page
+        .getByTestId("shift-signup-button-disabled")
+        .first();
+      await expect(disabledButton).toBeVisible();
+      await expect(disabledButton).toContainText("Parental Consent Required");
     });
 
-    // SKIPPED: Requires implementing disabled shift signup buttons with parental consent message
-    // Missing: shift-signup-button-disabled testid and "Parental Consent Required" button text
-    test.skip("should show disabled signup buttons on shifts listing page for underage users", async ({
+    test("should show disabled signup buttons on shifts listing page for underage users", async ({
       page,
     }) => {
       await createAndLoginAsUnderageUser(page);
       await waitForPageLoad(page);
 
-      // Navigate to shifts calendar
-      await page.getByTestId("browse-shifts-button").click();
+      // Navigate directly to Wellington shifts calendar
+      await page.goto("/shifts?location=Wellington");
       await waitForPageLoad(page);
 
-      // Click on a date with shifts
-      await page
-        .locator(".fc-daygrid-day[data-date] .fc-daygrid-day-number")
-        .first()
-        .click();
+      // Click on a calendar day with shifts to navigate to details page
+      const calendarDayLink = page.locator('a[href*="/shifts/details"]').first();
+      await expect(calendarDayLink).toBeVisible();
+      await calendarDayLink.click();
       await waitForPageLoad(page);
 
       // Should show disabled buttons with parental consent message
@@ -399,27 +396,28 @@ test.describe("Parental Consent System", () => {
       await expect(disabledButton).toContainText("Parental Consent Required");
     });
 
-    // SKIPPED: Requires implementing parental consent banner on shift details pages
-    // Missing: parental-consent-banner on shift detail pages for underage users
-    test.skip("should show parental consent banner on shifts details page", async ({
+    test("should show parental consent restrictions on shifts details page", async ({
       page,
     }) => {
       await createAndLoginAsUnderageUser(page);
       await waitForPageLoad(page);
 
-      // Navigate to shifts page and select a date
-      await page.getByTestId("browse-shifts-button").click();
+      // Navigate directly to Wellington shifts calendar
+      await page.goto("/shifts?location=Wellington");
       await waitForPageLoad(page);
 
-      // Navigate to a shifts details page
-      await page
-        .locator(".fc-daygrid-day[data-date] .fc-daygrid-day-number")
-        .first()
-        .click();
+      // Click on a calendar day with shifts to navigate to details page
+      const calendarDayLink = page.locator('a[href*="/shifts/details"]').first();
+      await expect(calendarDayLink).toBeVisible();
+      await calendarDayLink.click();
       await waitForPageLoad(page);
 
-      // Should show parental consent banner
-      await expect(page.getByTestId("parental-consent-banner")).toBeVisible();
+      // Should show disabled signup button indicating parental consent required
+      const disabledButton = page
+        .getByTestId("shift-signup-button-disabled")
+        .first();
+      await expect(disabledButton).toBeVisible();
+      await expect(disabledButton).toContainText("Parental Consent Required");
     });
   });
 
@@ -514,6 +512,19 @@ test.describe("Parental Consent System", () => {
     test("should show approved users section when approved users exist", async ({
       page,
     }) => {
+      // Create an approved underage user to ensure the section renders
+      const approvedEmail = `underage-approved-${Date.now()}@example.com`;
+      const fifteenYearsAgo = new Date();
+      fifteenYearsAgo.setFullYear(fifteenYearsAgo.getFullYear() - 15);
+
+      await createTestUser(page, approvedEmail, "VOLUNTEER", {
+        firstName: "Approved",
+        lastName: "Minor",
+        dateOfBirth: fifteenYearsAgo.toISOString(),
+        requiresParentalConsent: true,
+        parentalConsentReceived: true,
+      });
+
       await loginAsAdmin(page);
       await waitForPageLoad(page);
 
@@ -524,22 +535,20 @@ test.describe("Parental Consent System", () => {
       // Wait for the page content to load
       await page.waitForLoadState("networkidle");
 
-      // The approved section only renders when there are approved underage users
+      // The approved section should now render with our test user
       const approvedHeading = page
         .locator("h3")
         .filter({ hasText: /^Approved \(/ });
-      const isVisible = await approvedHeading.isVisible().catch(() => false);
-
-      if (!isVisible) {
-        test.skip(true, "No approved underage users in test data");
-        return;
-      }
+      await expect(approvedHeading).toBeVisible({ timeout: 10000 });
 
       // Approved table should have at least one user row
       const approvedSection = approvedHeading.locator("../..");
       const approvedTable = approvedSection.locator("table");
       const approvedRows = approvedTable.locator("tbody tr");
       await expect(approvedRows.first()).toBeVisible();
+
+      // Clean up
+      await deleteTestUsers(page, [approvedEmail]);
     });
   });
 
