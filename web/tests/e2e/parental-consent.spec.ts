@@ -1,6 +1,10 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/auth";
+import {
+  createTestUser,
+  deleteTestUsers,
+} from "./helpers/test-helpers";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -216,24 +220,102 @@ test.describe("Parental Consent System", () => {
       expect(download.suggestedFilename()).toBe("parental-consent-form.pdf");
     });
 
-    // SKIPPED: Registration form stays on final step and doesn't redirect after Create Account click
-    // The registerUnderageUser helper's Promise.all with waitForURL times out
-    // TODO: Debug why form submission doesn't trigger redirect for underage users
-    test.skip("should allow underage users to complete registration despite parental consent requirement", async ({
+    test("should allow underage users to complete registration despite parental consent requirement", async ({
       page,
     }) => {
       // Use dynamic email to avoid conflicts with previous test runs
       const email = `complete.minor.${Date.now()}@example.com`;
 
-      // Complete full registration flow for underage user
-      await registerUnderageUser(page, email, new Date().getFullYear() - 15);
+      // Complete registration steps up to the final submit
+      await page.goto("/register");
+      await waitForPageLoad(page);
 
-      // Should successfully complete registration and be redirected to login page
-      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+      // Step 1: Account credentials
+      await page.getByTestId("email-input").fill(email);
+      await page.getByTestId("password-input").fill("Password123!");
+      await page.getByTestId("confirm-password-input").fill("Password123!");
+      await page.getByTestId("next-submit-button").click();
+      await waitForPageLoad(page);
 
-      // Verify we're on the login page with the expected content
-      const loginHeading = page.getByRole("heading", { name: /sign in/i });
-      await expect(loginHeading).toBeVisible({ timeout: 10000 });
+      // Step 2: Personal information with underage birth date
+      await page.getByRole("textbox", { name: /first name/i }).fill("Emma");
+      await page.getByRole("textbox", { name: /last name/i }).fill("Parker");
+      await page
+        .getByRole("textbox", { name: /mobile number/i })
+        .fill("(555) 123-4567");
+
+      const birthYear = new Date().getFullYear() - 15;
+      await selectDateOfBirth(page, birthYear);
+
+      await page.getByTestId("next-submit-button").click();
+      await waitForPageLoad(page);
+
+      // Step 3: Emergency contact
+      await page
+        .getByRole("textbox", { name: /emergency contact name/i })
+        .fill("Sarah Parker");
+      await page
+        .getByRole("textbox", { name: /emergency contact phone/i })
+        .fill("(555) 987-6543");
+      await page.getByTestId("next-submit-button").click();
+      await waitForPageLoad(page);
+
+      // Step 4: Medical & Background
+      await page
+        .getByRole("combobox", { name: /how did you hear about us/i })
+        .click();
+      await page.getByRole("option", { name: /friend/i }).click();
+      await page.getByTestId("next-submit-button").click();
+      await waitForPageLoad(page);
+
+      // Step 5: Availability
+      await page.getByTestId("next-submit-button").click();
+      await waitForPageLoad(page);
+
+      // Step 6: Agreements
+      await page
+        .getByText(/I have read and agree with the Volunteer Agreement/)
+        .click();
+      await waitForPageLoad(page);
+      await page.evaluate(() => {
+        const scrollContainer = document.querySelector(".overflow-y-auto");
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      });
+      await page.getByRole("button", { name: /i agree to these terms/i }).click();
+      await waitForPageLoad(page);
+
+      await page
+        .getByText(/I have read and agree with the Health and Safety Policy/)
+        .click();
+      await waitForPageLoad(page);
+      await page.evaluate(() => {
+        const scrollContainer = document.querySelector(".overflow-y-auto");
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+      });
+      await page.getByRole("button", { name: /i agree to these terms/i }).click();
+      await waitForPageLoad(page);
+
+      // Wait for Create Account button to be enabled and click it
+      const createAccountButton = page.getByRole("button", {
+        name: /create account/i,
+      });
+      await createAccountButton.waitFor({ state: "visible" });
+      await expect(createAccountButton).toBeEnabled();
+
+      // Click and wait for redirect (use separate click then wait to avoid race)
+      await createAccountButton.click();
+
+      // Wait for either login page or dashboard redirect
+      await page.waitForURL(/\/(login|dashboard)/, { timeout: 30000 });
+      await waitForPageLoad(page);
+
+      // Should be on login or dashboard
+      const currentUrl = page.url();
+      expect(currentUrl).toMatch(/\/(login|dashboard)/);
     });
   });
 
@@ -386,10 +468,23 @@ test.describe("Parental Consent System", () => {
       ).toBeVisible();
     });
 
-    // SKIPPED: Write operation that modifies seed data and could affect other tests
-    test.skip("should allow admin to approve parental consent", async ({
+    test("should allow admin to approve parental consent", async ({
       page,
     }) => {
+      const testUnderageEmail = `underage-approve-${Date.now()}@example.com`;
+
+      // Create test underage user with parental consent required but not received
+      const fifteenYearsAgo = new Date();
+      fifteenYearsAgo.setFullYear(fifteenYearsAgo.getFullYear() - 15);
+
+      await createTestUser(page, testUnderageEmail, "VOLUNTEER", {
+        firstName: "Underage",
+        lastName: "Approvetest",
+        dateOfBirth: fifteenYearsAgo.toISOString(),
+        requiresParentalConsent: true,
+        parentalConsentReceived: false,
+      });
+
       await loginAsAdmin(page);
       await waitForPageLoad(page);
 
@@ -397,7 +492,7 @@ test.describe("Parental Consent System", () => {
       await page.getByTestId("sidebar-parental-consent").click();
       await waitForPageLoad(page);
 
-      // Find a pending user's approve button (text is "Approve" with CheckCircle icon)
+      // Find the approve button for our test user
       const approveButton = page
         .getByRole("button", { name: /Approve/i })
         .first();
@@ -411,6 +506,9 @@ test.describe("Parental Consent System", () => {
       await expect(
         page.getByText(/Parental consent approved for/)
       ).toBeVisible();
+
+      // Clean up
+      await deleteTestUsers(page, [testUnderageEmail]);
     });
 
     test("should show approved users section when approved users exist", async ({

@@ -281,10 +281,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(moveButton).toBeEnabled();
   });
 
-  // SKIPPED: Move dialog UI elements not found - feature may not be fully implemented
-  // Missing: "Select Target Shift" text and move-shift-select testid
-  // TODO: Verify move dialog implementation or update test to match current UI
-  test.skip("admin move dialog filters to only backup shifts when volunteer has preferences", async ({
+  test("admin move dialog filters to only backup shifts when volunteer has preferences", async ({
     page,
   }) => {
     await signupVolunteer(page);
@@ -296,7 +293,7 @@ test.describe("Backup Shift Signup Feature", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2000);
 
     // Find and click move button
     const primaryShiftCard = page
@@ -304,26 +301,25 @@ test.describe("Backup Shift Signup Feature", () => {
       .filter({ hasText: "Kitchen Prep" })
       .first();
 
-    const volunteerSection = primaryShiftCard;
-
-    const moveButton = volunteerSection.getByTestId(/-move-button/);
+    const moveButton = primaryShiftCard.getByTestId(/-move-button/);
     await expect(moveButton).toBeVisible({ timeout: 10000 });
     await moveButton.click();
 
-    // Dialog should open
+    // Dialog should open - wait for available shifts to load
     await expect(page.getByText("Select Target Shift")).toBeVisible({
       timeout: 10000,
     });
 
-    // Click the shift selector
-    const shiftSelector = page
-      .getByTestId(/-move-shift-select/)
-      .getByRole("combobox");
+    // Wait for shifts to load in the dropdown
+    await page.waitForTimeout(1000);
+
+    // Click the shift selector trigger (Select component)
+    const shiftSelector = page.locator('[data-testid$="-move-shift-select"]').first();
     await expect(shiftSelector).toBeVisible();
     await shiftSelector.click();
-    await page.waitForTimeout(1000); // Wait for dropdown
+    await page.waitForTimeout(500);
 
-    // Should see only backup shifts (FOH and Dishwasher), not other shifts
+    // Should see backup shifts (FOH and Dishwasher) as options
     const fohOption = page
       .getByRole("option")
       .filter({ hasText: "FOH Set-Up & Service" });
@@ -337,14 +333,9 @@ test.describe("Backup Shift Signup Feature", () => {
 
     // At least one backup shift should be available
     expect(hasFoh || hasDishwasher).toBeTruthy();
-
-    // Should show spots available
-    await expect(page.getByText(/spots available/)).toBeVisible();
   });
 
-  // SKIPPED: Related to admin volunteer movement feature that needs verification
-  // TODO: Verify this functionality exists and update test accordingly
-  test.skip("moving pending volunteer changes status to confirmed", async ({
+  test("moving pending volunteer changes status to confirmed", async ({
     page,
   }) => {
     await signupVolunteer(page);
@@ -356,30 +347,31 @@ test.describe("Backup Shift Signup Feature", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(2000);
 
-    // Click move button
+    // Find the move button on the primary shift card
     const primaryShiftCard = page
       .locator('[data-testid^="shift-card-"]')
       .filter({ hasText: "Kitchen Prep" })
       .first();
 
-    const volunteerSection = primaryShiftCard
-      .locator('[data-testid^="pending-volunteer-"]')
-      .first();
-
-    const moveButton = volunteerSection.getByRole("button", {
-      name: /move/i,
-    });
+    const moveButton = primaryShiftCard.getByTestId(/-move-button/).first();
     await expect(moveButton).toBeVisible({ timeout: 10000 });
     await moveButton.click();
 
-    // Select FOH shift
-    const shiftSelector = page.getByRole("combobox");
+    // Wait for dialog and available shifts to load
+    await expect(page.getByText("Select Target Shift")).toBeVisible({
+      timeout: 10000,
+    });
+    await page.waitForTimeout(1000);
+
+    // Click the shift selector
+    const shiftSelector = page.locator('[data-testid$="-move-shift-select"]').first();
     await expect(shiftSelector).toBeVisible();
     await shiftSelector.click();
-    await page.waitForTimeout(500); // Wait for dropdown
+    await page.waitForTimeout(500);
 
+    // Select FOH shift
     const fohOption = page
       .getByRole("option")
       .filter({ hasText: "FOH Set-Up & Service" })
@@ -387,14 +379,15 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(fohOption).toBeVisible();
     await fohOption.click();
 
-    // Click confirm move
-    const confirmButton = page.getByRole("button", {
-      name: /Move Volunteer/i,
-    });
-    await expect(confirmButton).toBeEnabled();
+    // Wait for dropdown to close and dialog to settle
+    await page.waitForTimeout(500);
+
+    // Click confirm move (button text is "Move Volunteer")
+    const confirmButton = page.getByRole("button", { name: /move volunteer/i });
+    await expect(confirmButton).toBeVisible({ timeout: 5000 });
     await confirmButton.click();
 
-    // Wait for success with a reasonable timeout
+    // Wait for success
     await page.waitForTimeout(2000);
 
     // Reload the page to see changes

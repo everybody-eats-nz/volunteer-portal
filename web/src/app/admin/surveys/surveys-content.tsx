@@ -377,7 +377,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="sm" asChild data-testid={`view-responses-${survey.id}`}>
                           <Link href={`/admin/surveys/${survey.id}/responses`}>
                             <Eye className="h-4 w-4" />
                           </Link>
@@ -391,6 +391,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => handleToggleActive(survey)}
+                          data-testid={`toggle-survey-${survey.id}`}
                         >
                           {survey.isActive ? (
                             <ToggleRight className="h-4 w-4 text-green-600" />
@@ -409,6 +410,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => openEditDialog(survey)}
+                          data-testid={`edit-survey-${survey.id}`}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -421,6 +423,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => openDeleteDialog(survey)}
+                          data-testid={`delete-survey-${survey.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
