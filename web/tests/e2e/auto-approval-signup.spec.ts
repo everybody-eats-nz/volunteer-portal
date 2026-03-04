@@ -1,7 +1,44 @@
 import { test, expect } from "./base";
 import { loginAsVolunteer } from "./helpers/auth";
+import {
+  createShift,
+  deleteTestShifts,
+  getShiftTypeByName,
+} from "./helpers/test-helpers";
 
 test.describe("Auto-Approval Signup Flow", () => {
+  const autoApprovalShiftIds: string[] = [];
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    const kitchenShiftType = await getShiftTypeByName(
+      page,
+      "Kitchen Prep & Service"
+    );
+
+    // Create shifts for tomorrow so they show up in the calendar
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+
+    const shift = await createShift(page, {
+      location: "Wellington",
+      start: tomorrow,
+      capacity: 5,
+      shiftTypeId: kitchenShiftType?.id,
+      notes: "Auto-approval test shift",
+    });
+    autoApprovalShiftIds.push(shift.id);
+
+    await page.close();
+  });
+
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await deleteTestShifts(page, autoApprovalShiftIds);
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
   });

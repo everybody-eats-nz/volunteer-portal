@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 
 test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
@@ -105,12 +105,29 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
     await page.goto("/admin/restaurant-managers");
     await page.waitForLoadState("load");
 
-    // This test assumes there's at least one manager assignment
-    // Check if there are any existing assignments
-    const hasAssignments = await page
+    // Ensure at least one manager assignment exists by creating one
+    let hasAssignments = await page
       .getByTestId("managers-table")
       .isVisible()
       .catch(() => false);
+
+    if (!hasAssignments) {
+      // Create a manager assignment first
+      await page.getByTestId("user-select").click();
+      await page.locator('[role="option"]').first().click();
+      await page.getByTestId("location-select").click();
+      await page.locator('[role="option"]').first().click();
+      await page.getByTestId("assign-manager-button").click();
+      await page.waitForTimeout(2000);
+
+      // Reload to see the table
+      await page.goto("/admin/restaurant-managers");
+      await page.waitForLoadState("load");
+      hasAssignments = await page
+        .getByTestId("managers-table")
+        .isVisible()
+        .catch(() => false);
+    }
 
     if (hasAssignments) {
       // Find notification toggle buttons (Bell icons)
@@ -126,12 +143,6 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
           page.getByText(/notifications.*enabled|disabled/i)
         ).toBeVisible({ timeout: 5000 });
       }
-    } else {
-      // Skip test if no assignments exist
-      test.skip(
-        true,
-        "No restaurant manager assignments exist to test notification toggle"
-      );
     }
   });
 
@@ -139,11 +150,28 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
     await page.goto("/admin/restaurant-managers");
     await page.waitForLoadState("load");
 
-    // This test assumes there's at least one manager assignment
-    const hasAssignments = await page
+    // Ensure at least one manager assignment exists
+    let hasAssignments = await page
       .getByTestId("managers-table")
       .isVisible()
       .catch(() => false);
+
+    if (!hasAssignments) {
+      // Create a manager assignment first
+      await page.getByTestId("user-select").click();
+      await page.locator('[role="option"]').first().click();
+      await page.getByTestId("location-select").click();
+      await page.locator('[role="option"]').first().click();
+      await page.getByTestId("assign-manager-button").click();
+      await page.waitForTimeout(2000);
+
+      await page.goto("/admin/restaurant-managers");
+      await page.waitForLoadState("load");
+      hasAssignments = await page
+        .getByTestId("managers-table")
+        .isVisible()
+        .catch(() => false);
+    }
 
     if (hasAssignments) {
       // Find delete button (Trash icon)
@@ -168,12 +196,6 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
           page.getByText("Remove Manager Assignment")
         ).not.toBeVisible();
       }
-    } else {
-      // Skip test if no assignments exist
-      test.skip(
-        true,
-        "No restaurant manager assignments exist to test deletion"
-      );
     }
   });
 

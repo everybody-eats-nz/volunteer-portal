@@ -1,6 +1,11 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsVolunteer } from "./helpers/auth";
+import {
+  createShift,
+  deleteTestShifts,
+  getShiftTypeByName,
+} from "./helpers/test-helpers";
 
 // Helper function to navigate to shifts with location selected
 async function navigateToShiftsWithLocation(
@@ -681,6 +686,66 @@ test.describe("Shifts Browse Page", () => {
   });
 
   test.describe("Daily Signup Validation", () => {
+    const validationShiftIds: string[] = [];
+
+    test.beforeAll(async ({ browser }) => {
+      const page = await browser.newPage();
+      const kitchenShiftType = await getShiftTypeByName(
+        page,
+        "Kitchen Prep & Service"
+      );
+      const fohShiftType = await getShiftTypeByName(
+        page,
+        "FOH Set-Up & Service"
+      );
+
+      // Create 2 shifts on the same day (tomorrow)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+
+      const shift1 = await createShift(page, {
+        location: "Wellington",
+        start: tomorrow,
+        capacity: 5,
+        shiftTypeId: kitchenShiftType?.id,
+        notes: "Daily validation test shift 1",
+      });
+      validationShiftIds.push(shift1.id);
+
+      const shift2Start = new Date(tomorrow);
+      shift2Start.setHours(14, 0, 0, 0);
+      const shift2 = await createShift(page, {
+        location: "Wellington",
+        start: shift2Start,
+        capacity: 5,
+        shiftTypeId: fohShiftType?.id,
+        notes: "Daily validation test shift 2",
+      });
+      validationShiftIds.push(shift2.id);
+
+      // Create a shift on a different day (day after tomorrow)
+      const dayAfter = new Date();
+      dayAfter.setDate(dayAfter.getDate() + 2);
+      dayAfter.setHours(10, 0, 0, 0);
+      const shift3 = await createShift(page, {
+        location: "Wellington",
+        start: dayAfter,
+        capacity: 5,
+        shiftTypeId: kitchenShiftType?.id,
+        notes: "Daily validation test shift 3 (different day)",
+      });
+      validationShiftIds.push(shift3.id);
+
+      await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+      const page = await browser.newPage();
+      await deleteTestShifts(page, validationShiftIds);
+      await page.close();
+    });
+
     test.beforeEach(async ({ page }) => {
       await loginAsVolunteer(page);
       await page.goto("/shifts?location=Wellington");

@@ -61,12 +61,6 @@ test.describe("My Shifts Calendar Page", () => {
     // Navigate to my shifts page
     await page.goto("/shifts/mine");
     await waitForPageLoad(page);
-
-    // Skip tests if login failed (we're still on login page)
-    const currentUrl = page.url();
-    if (currentUrl.includes("/login")) {
-      test.skip(true, "Login failed - skipping my shifts tests");
-    }
   });
 
   test.describe("Page Structure and Layout", () => {

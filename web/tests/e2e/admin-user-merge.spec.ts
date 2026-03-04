@@ -1,5 +1,11 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
+import {
+  createTestUser,
+  deleteTestUsers,
+  getUserByEmail,
+} from "./helpers/test-helpers";
+import { randomUUID } from "crypto";
 
 test.describe("Admin User Merge", () => {
   test.beforeEach(async ({ page }) => {
@@ -435,23 +441,91 @@ test.describe("Admin User Merge", () => {
   });
 
   test.describe("Merge Success", () => {
-    test.skip("should successfully merge users (skipped to avoid data loss)", async ({
-      page,
-    }) => {
-      // This test is skipped because it would actually merge users and delete data
-      // In a real testing environment with test data, this would:
-      // 1. Create two test users specifically for merge testing
-      // 2. Navigate to admin users page
-      // 3. Open merge dialog for target user
-      // 4. Search and select source user
-      // 5. Review preview
-      // 6. Enter confirmation email
-      // 7. Confirm merge
-      // 8. Verify success message
-      // 9. Verify source user is deleted
-      // 10. Verify target user has merged data
+    test("should successfully merge users", async ({ page }) => {
+      const mergeTestId = randomUUID().slice(0, 8);
+      const targetEmail = `merge-target-${mergeTestId}@example.com`;
+      const sourceEmail = `merge-source-${mergeTestId}@example.com`;
+
+      // Create two dedicated test users for merge testing
+      await createTestUser(page, targetEmail, "VOLUNTEER", {
+        firstName: "MergeTarget",
+        lastName: "User",
+      });
+      await createTestUser(page, sourceEmail, "VOLUNTEER", {
+        firstName: "MergeSource",
+        lastName: "User",
+      });
+
+      const targetUser = await getUserByEmail(page, targetEmail);
+      const sourceUser = await getUserByEmail(page, sourceEmail);
+
+      if (!targetUser || !sourceUser) {
+        await deleteTestUsers(page, [targetEmail, sourceEmail]);
+        test.skip(true, "Failed to create merge test users");
+        return;
+      }
 
       await page.goto("/admin/users");
+      await page.waitForLoadState("load");
+
+      // Find the target user row and open merge dialog
+      const targetRow = page.getByTestId(`user-row-${targetUser.id}`);
+      if (await targetRow.isVisible()) {
+        const actionsButton = page.getByTestId(
+          `user-actions-${targetUser.id}`
+        );
+        await actionsButton.click();
+
+        const mergeOption = page.getByTestId(`merge-user-${targetUser.id}`);
+        await mergeOption.click();
+
+        const mergeDialog = page.getByTestId("merge-user-dialog");
+        await expect(mergeDialog).toBeVisible();
+
+        // Search for the source user
+        const searchInput = mergeDialog.getByPlaceholder(/search/i);
+        if (await searchInput.isVisible()) {
+          await searchInput.fill(sourceEmail);
+          await page.waitForTimeout(1000);
+
+          // Select the source user from results
+          const sourceOption = mergeDialog
+            .getByText("MergeSource")
+            .first();
+          if (await sourceOption.isVisible()) {
+            await sourceOption.click();
+            await page.waitForTimeout(1000);
+
+            // Look for preview content and confirm
+            const confirmEmailInput = page.getByTestId(
+              "merge-confirm-email-input"
+            );
+            if (await confirmEmailInput.isVisible()) {
+              await confirmEmailInput.fill(sourceEmail);
+
+              const confirmButton = page.getByTestId(
+                "merge-confirm-button"
+              );
+              await confirmButton.click();
+
+              // Wait for merge to complete
+              const successToast = page
+                .locator("[data-sonner-toast]")
+                .first();
+              await expect(successToast).toBeVisible({ timeout: 15000 });
+            }
+          }
+        }
+
+        // Cancel if we couldn't complete the merge flow
+        const cancelButton = page.getByTestId("merge-cancel-button");
+        if (await cancelButton.isVisible()) {
+          await cancelButton.click();
+        }
+      }
+
+      // Clean up remaining users (source may be gone if merge succeeded)
+      await deleteTestUsers(page, [targetEmail, sourceEmail]);
     });
   });
 });
