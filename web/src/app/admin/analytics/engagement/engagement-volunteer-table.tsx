@@ -191,7 +191,7 @@ export function EngagementVolunteerTable({
 
   const navigate = (overrides: Record<string, string>) => {
     startTransition(() => {
-      router.push(buildUrl(overrides, currentParams));
+      router.push(buildUrl(overrides, currentParams), { scroll: false });
     });
   };
 
