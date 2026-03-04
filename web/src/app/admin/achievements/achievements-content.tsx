@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { AchievementDialog } from "./achievement-dialog";
+import { AchievementRecipientsDialog } from "./achievement-recipients-dialog";
 import { type Achievement } from "@/generated/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,9 @@ export function AchievementsContent({
     useState<AchievementWithCount | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [achievementToDelete, setAchievementToDelete] =
+    useState<AchievementWithCount | null>(null);
+  const [recipientsDialogOpen, setRecipientsDialogOpen] = useState(false);
+  const [recipientsAchievement, setRecipientsAchievement] =
     useState<AchievementWithCount | null>(null);
   const { toast } = useToast();
 
@@ -320,12 +324,20 @@ export function AchievementsContent({
                                 {achievement.description}
                               </p>
                               <div className="flex items-center gap-4 text-sm text-slate-500">
-                                <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-1 hover:text-slate-900 transition-colors cursor-pointer"
+                                  onClick={() => {
+                                    setRecipientsAchievement(achievement);
+                                    setRecipientsDialogOpen(true);
+                                  }}
+                                  data-testid={`achievement-unlocked-${achievement.id}`}
+                                >
                                   <Users className="h-4 w-4" />
-                                  <span>
+                                  <span className="underline decoration-dotted underline-offset-2">
                                     {achievement._count.users} unlocked
                                   </span>
-                                </div>
+                                </button>
                                 <div>
                                   <span className="font-medium">
                                     {achievement.points}
@@ -373,6 +385,14 @@ export function AchievementsContent({
             ? (data) => handleUpdateAchievement(editingAchievement.id, data)
             : handleCreateAchievement
         }
+      />
+
+      <AchievementRecipientsDialog
+        open={recipientsDialogOpen}
+        onOpenChange={setRecipientsDialogOpen}
+        achievementId={recipientsAchievement?.id ?? null}
+        achievementName={recipientsAchievement?.name ?? ""}
+        achievementIcon={recipientsAchievement?.icon ?? ""}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
