@@ -5,7 +5,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { EngagementAnalyticsClient } from "./engagement-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
-import { getEngagementSummary } from "@/lib/engagement";
+import { getEngagementSummary, getEngagementVolunteers } from "@/lib/engagement";
 
 export default async function EngagementAnalyticsPage({
   searchParams,
@@ -27,7 +27,29 @@ export default async function EngagementAnalyticsPage({
   const months = (params.months as string) || "3";
   const location = (params.location as string) || "all";
 
-  const data = await getEngagementSummary(parseInt(months, 10), location);
+  // Table params
+  const tablePage = parseInt((params.page as string) || "1", 10);
+  const tablePageSize = parseInt((params.pageSize as string) || "20", 10);
+  const tableSortBy = (params.sortBy as string) || "lastShiftDate";
+  const tableSortOrder = ((params.sortOrder as string) || "desc") as
+    | "asc"
+    | "desc";
+  const tableStatus = (params.status as string) || "";
+  const tableSearch = (params.search as string) || "";
+
+  const [data, volunteersData] = await Promise.all([
+    getEngagementSummary(parseInt(months, 10), location),
+    getEngagementVolunteers({
+      months: parseInt(months, 10),
+      location,
+      statusFilter: tableStatus || null,
+      page: tablePage,
+      pageSize: tablePageSize,
+      sortBy: tableSortBy,
+      sortOrder: tableSortOrder,
+      search: tableSearch,
+    }),
+  ]);
 
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
@@ -45,6 +67,11 @@ export default async function EngagementAnalyticsPage({
           months={months}
           location={location}
           locations={locationOptions}
+          volunteersData={volunteersData}
+          tableSearch={tableSearch}
+          tableStatus={tableStatus}
+          tableSortBy={tableSortBy}
+          tableSortOrder={tableSortOrder}
         />
       </PageContainer>
     </AdminPageWrapper>

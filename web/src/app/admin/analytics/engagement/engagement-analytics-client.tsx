@@ -32,7 +32,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { EngagementVolunteerTable } from "./engagement-volunteer-table";
-import type { EngagementSummaryData } from "@/lib/engagement";
+import type {
+  EngagementSummaryData,
+  EngagementVolunteersResult,
+} from "@/lib/engagement";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -41,6 +44,11 @@ interface Props {
   months: string;
   location: string;
   locations: Array<{ value: string; label: string }>;
+  volunteersData: EngagementVolunteersResult;
+  tableSearch: string;
+  tableStatus: string;
+  tableSortBy: string;
+  tableSortOrder: "asc" | "desc";
 }
 
 const MONTHS_LABELS: Record<string, string> = {
@@ -101,6 +109,11 @@ export function EngagementAnalyticsClient({
   months: initialMonths,
   location: initialLocation,
   locations,
+  volunteersData,
+  tableSearch,
+  tableStatus,
+  tableSortBy,
+  tableSortOrder,
 }: Props) {
   const router = useRouter();
   const [months, setMonths] = useState(initialMonths);
@@ -548,8 +561,13 @@ export function EngagementAnalyticsClient({
             </CardHeader>
             <CardContent>
               <EngagementVolunteerTable
+                data={volunteersData}
                 months={initialMonths}
                 location={initialLocation}
+                initialSearch={tableSearch}
+                initialStatus={tableStatus}
+                sortBy={tableSortBy}
+                sortOrder={tableSortOrder}
               />
             </CardContent>
           </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useTransition } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -8,7 +8,13 @@ import {
   useReactTable,
   SortingState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 
@@ -31,37 +37,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TableSkeleton } from "@/components/loading-skeleton";
 import {
   VOLUNTEER_GRADE_INFO,
   FIRST_SHIFT_BADGE,
   NEW_VOLUNTEER_BADGE,
 } from "@/lib/volunteer-grades";
 import { type VolunteerGrade } from "@/generated/client";
+import type {
+  EngagementVolunteerRow,
+  EngagementVolunteersResult,
+} from "@/lib/engagement";
 
 type EngagementStatus = "highly_active" | "active" | "inactive" | "never";
 
-interface VolunteerRow {
-  id: string;
-  name: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  email: string;
-  profilePhotoUrl: string | null;
-  volunteerGrade: VolunteerGrade;
-  createdAt: string;
-  lastShiftDate: string | null;
-  totalShifts: number;
-  shiftsInPeriod: number;
-  engagementStatus: EngagementStatus;
-}
-
 interface Props {
+  data: EngagementVolunteersResult;
   months: string;
   location: string;
+  initialSearch: string;
+  initialStatus: string;
+  sortBy: string;
+  sortOrder: "asc" | "desc";
 }
 
-const STATUS_LABELS: Record<EngagementStatus, { label: string; className: string }> = {
+const STATUS_LABELS: Record<
+  EngagementStatus,
+  { label: string; className: string }
+> = {
   highly_active: {
     label: "Highly Active",
     className:
@@ -84,7 +86,7 @@ const STATUS_LABELS: Record<EngagementStatus, { label: string; className: string
   },
 };
 
-function getDisplayName(v: VolunteerRow): string {
+function getDisplayName(v: EngagementVolunteerRow): string {
   if (v.name) return v.name;
   if (v.firstName || v.lastName) {
     return `${v.firstName || ""} ${v.lastName || ""}`.trim();
@@ -92,7 +94,7 @@ function getDisplayName(v: VolunteerRow): string {
   return v.email;
 }
 
-function getUserInitials(v: VolunteerRow): string {
+function getUserInitials(v: EngagementVolunteerRow): string {
   if (v.name) {
     return v.name
       .split(" ")
@@ -123,79 +125,106 @@ function getGradeBadge(grade: VolunteerGrade, totalShifts: number) {
   );
 }
 
-export function EngagementVolunteerTable({ months, location }: Props) {
-  const router = useRouter();
-  const [volunteers, setVolunteers] = useState<VolunteerRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "lastShiftDate", desc: true },
-  ]);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
+function buildUrl(
+  overrides: Record<string, string>,
+  currentParams: {
+    months: string;
+    location: string;
+    search: string;
+    status: string;
+    sortBy: string;
+    sortOrder: string;
+    page: number;
+    pageSize: number;
+  }
+) {
+  const params = new URLSearchParams();
+  const merged = {
+    months: currentParams.months,
+    location: currentParams.location,
+    search: currentParams.search,
+    status: currentParams.status,
+    sortBy: currentParams.sortBy,
+    sortOrder: currentParams.sortOrder,
+    page: String(currentParams.page),
+    pageSize: String(currentParams.pageSize),
+    ...overrides,
+  };
 
-  const fetchVolunteers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const sortBy = sorting[0]?.id || "lastShiftDate";
-      const sortOrder = sorting[0]?.desc ? "desc" : "asc";
-
-      const params = new URLSearchParams({
-        months,
-        location,
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-        sortBy,
-        sortOrder,
-        ...(statusFilter !== "all" ? { status: statusFilter } : {}),
-        ...(search ? { search } : {}),
-      });
-
-      const response = await fetch(
-        `/api/admin/analytics/engagement/volunteers?${params}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setVolunteers(data.volunteers);
-        setTotalCount(data.pagination.totalCount);
-        setTotalPages(data.pagination.totalPages);
-      }
-    } catch (error) {
-      console.error("Error fetching volunteers:", error);
-    } finally {
-      setIsLoading(false);
+  for (const [key, value] of Object.entries(merged)) {
+    if (value && value !== "all" && value !== "") {
+      params.set(key, value);
     }
-  }, [months, location, page, pageSize, sorting, statusFilter, search]);
+  }
 
-  useEffect(() => {
-    fetchVolunteers();
-  }, [fetchVolunteers]);
+  // Always include months (even default)
+  if (!params.has("months")) params.set("months", "3");
+
+  return `/admin/analytics/engagement?${params}`;
+}
+
+export function EngagementVolunteerTable({
+  data,
+  months,
+  location,
+  initialSearch,
+  initialStatus,
+  sortBy,
+  sortOrder,
+}: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [searchInput, setSearchInput] = useState(initialSearch);
+
+  const { volunteers, pagination } = data;
+
+  const currentParams = {
+    months,
+    location,
+    search: initialSearch,
+    status: initialStatus,
+    sortBy,
+    sortOrder,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+  };
+
+  const navigate = (overrides: Record<string, string>) => {
+    startTransition(() => {
+      router.push(buildUrl(overrides, currentParams));
+    });
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearch(searchInput);
-    setPage(1);
+    navigate({ search: searchInput, page: "1" });
   };
 
-  const columns: ColumnDef<VolunteerRow>[] = [
+  const handleSort = (columnId: string) => {
+    const isCurrentSort = sortBy === columnId;
+    const newOrder = isCurrentSort && sortOrder === "asc" ? "desc" : "asc";
+    navigate({ sortBy: columnId, sortOrder: newOrder, page: "1" });
+  };
+
+  const sorting: SortingState = sortBy
+    ? [{ id: sortBy, desc: sortOrder === "desc" }]
+    : [];
+
+  const columns: ColumnDef<EngagementVolunteerRow>[] = [
     {
       accessorKey: "user",
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted();
+      header: () => {
+        const isSorted = sortBy === "user";
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => handleSort("user")}
             className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             User
-            {isSorted === "asc" ? (
+            {isSorted && sortOrder === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
-            ) : isSorted === "desc" ? (
+            ) : isSorted && sortOrder === "desc" ? (
               <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
             ) : (
               <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -227,23 +256,26 @@ export function EngagementVolunteerTable({ months, location }: Props) {
       header: "Grade",
       cell: ({ row }) => {
         const v = row.original;
-        return getGradeBadge(v.volunteerGrade, v.totalShifts);
+        return getGradeBadge(
+          v.volunteerGrade as VolunteerGrade,
+          v.totalShifts
+        );
       },
     },
     {
       accessorKey: "lastShiftDate",
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted();
+      header: () => {
+        const isSorted = sortBy === "lastShiftDate";
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => handleSort("lastShiftDate")}
             className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             Last Shift
-            {isSorted === "asc" ? (
+            {isSorted && sortOrder === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
-            ) : isSorted === "desc" ? (
+            ) : isSorted && sortOrder === "desc" ? (
               <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
             ) : (
               <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -267,18 +299,18 @@ export function EngagementVolunteerTable({ months, location }: Props) {
     },
     {
       accessorKey: "totalShifts",
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted();
+      header: () => {
+        const isSorted = sortBy === "totalShifts";
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => handleSort("totalShifts")}
             className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             Total
-            {isSorted === "asc" ? (
+            {isSorted && sortOrder === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
-            ) : isSorted === "desc" ? (
+            ) : isSorted && sortOrder === "desc" ? (
               <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
             ) : (
               <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -294,18 +326,18 @@ export function EngagementVolunteerTable({ months, location }: Props) {
     },
     {
       accessorKey: "shiftsInPeriod",
-      header: ({ column }) => {
-        const isSorted = column.getIsSorted();
+      header: () => {
+        const isSorted = sortBy === "shiftsInPeriod";
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => handleSort("shiftsInPeriod")}
             className="p-0 h-auto font-medium hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             In Period
-            {isSorted === "asc" ? (
+            {isSorted && sortOrder === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
-            ) : isSorted === "desc" ? (
+            ) : isSorted && sortOrder === "desc" ? (
               <ArrowDown className="ml-2 h-4 w-4 text-blue-600 dark:text-blue-400" />
             ) : (
               <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -337,24 +369,21 @@ export function EngagementVolunteerTable({ months, location }: Props) {
   const table = useReactTable({
     data: volunteers,
     columns,
-    onSortingChange: (updater) => {
-      const newSorting =
-        typeof updater === "function" ? updater(sorting) : updater;
-      setSorting(newSorting);
-      setPage(1);
-    },
     getCoreRowModel: getCoreRowModel(),
     state: { sorting },
     manualPagination: true,
     manualSorting: true,
-    pageCount: totalPages,
+    pageCount: pagination.totalPages,
   });
 
   return (
     <div className="space-y-4">
       {/* Search and Filter Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <form onSubmit={handleSearchSubmit} className="flex-1 flex items-center gap-2">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex-1 flex items-center gap-2"
+        >
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -371,13 +400,15 @@ export function EngagementVolunteerTable({ months, location }: Props) {
         </form>
 
         <Select
-          value={statusFilter}
+          value={initialStatus || "all"}
           onValueChange={(val) => {
-            setStatusFilter(val);
-            setPage(1);
+            navigate({ status: val === "all" ? "" : val, page: "1" });
           }}
         >
-          <SelectTrigger className="w-[180px]" data-testid="engagement-status-filter">
+          <SelectTrigger
+            className="w-[180px]"
+            data-testid="engagement-status-filter"
+          >
             <SelectValue placeholder="All statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -390,74 +421,77 @@ export function EngagementVolunteerTable({ months, location }: Props) {
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border dark:border-zinc-800 shadow-sm bg-card">
-        {isLoading ? (
-          <div className="p-4">
-            <TableSkeleton rows={pageSize > 10 ? 10 : pageSize} />
+      {/* Table with loading overlay */}
+      <div className="relative rounded-md border dark:border-zinc-800 shadow-sm bg-card">
+        {isPending && (
+          <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10 rounded-md">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="px-4 py-3">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
+        )}
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="px-4 py-3">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
+                  onClick={() =>
+                    router.push(`/admin/volunteers/${row.original.id}`)
+                  }
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="px-4 py-3">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 cursor-pointer"
-                    onClick={() =>
-                      router.push(`/admin/volunteers/${row.original.id}`)
-                    }
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-4 py-3">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No volunteers found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No volunteers found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between space-x-2">
         <div className="flex-1 flex items-center gap-4">
           <div className="text-sm text-muted-foreground">
-            {totalCount > 0 ? (
+            {pagination.totalCount > 0 ? (
               <>
-                Showing {(page - 1) * pageSize + 1} to{" "}
-                {Math.min(page * pageSize, totalCount)} of {totalCount}{" "}
-                volunteer(s)
+                Showing{" "}
+                {(pagination.page - 1) * pagination.pageSize + 1} to{" "}
+                {Math.min(
+                  pagination.page * pagination.pageSize,
+                  pagination.totalCount
+                )}{" "}
+                of {pagination.totalCount} volunteer(s)
               </>
             ) : (
               "No volunteers found"
@@ -468,10 +502,9 @@ export function EngagementVolunteerTable({ months, location }: Props) {
               Per page:
             </span>
             <Select
-              value={pageSize.toString()}
+              value={pagination.pageSize.toString()}
               onValueChange={(val) => {
-                setPageSize(parseInt(val, 10));
-                setPage(1);
+                navigate({ pageSize: val, page: "1" });
               }}
             >
               <SelectTrigger className="h-8 w-[70px]" size="sm">
@@ -487,21 +520,25 @@ export function EngagementVolunteerTable({ months, location }: Props) {
         </div>
         <div className="flex items-center space-x-2">
           <p className="text-sm text-muted-foreground">
-            Page {page} of {totalPages || 1}
+            Page {pagination.page} of {pagination.totalPages || 1}
           </p>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(page - 1)}
-            disabled={page <= 1}
+            onClick={() =>
+              navigate({ page: String(pagination.page - 1) })
+            }
+            disabled={pagination.page <= 1 || isPending}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(page + 1)}
-            disabled={page >= totalPages}
+            onClick={() =>
+              navigate({ page: String(pagination.page + 1) })
+            }
+            disabled={pagination.page >= pagination.totalPages || isPending}
           >
             Next
           </Button>
