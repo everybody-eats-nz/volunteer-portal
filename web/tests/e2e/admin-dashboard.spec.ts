@@ -395,18 +395,20 @@ test.describe("Admin Dashboard Page", () => {
       const filterLabel = page.getByTestId("location-filter-label");
       await expect(filterLabel).toBeVisible();
 
-      // Check for "All" tab
-      const allTab = page.getByTestId("location-filter-all");
-      await expect(allTab).toBeVisible();
+      // Check for dropdown trigger
+      const dropdown = page.getByTestId("location-filter-all");
+      await expect(dropdown).toBeVisible();
 
-      // Check for location tabs (Wellington, Glen Innes, Onehunga)
-      const locationTabs = [
+      // Open dropdown and check location options
+      await dropdown.click();
+      const locationItems = [
+        page.getByTestId("location-filter-all-option"),
         page.getByTestId("location-filter-wellington"),
         page.getByTestId("location-filter-glen-innes"),
         page.getByTestId("location-filter-onehunga"),
       ];
-      for (const tab of locationTabs) {
-        await expect(tab).toBeVisible();
+      for (const item of locationItems) {
+        await expect(item).toBeVisible();
       }
     });
 
@@ -417,9 +419,9 @@ test.describe("Admin Dashboard Page", () => {
         .nth(1)
         .textContent();
 
-      // Click on Wellington location filter
-      const wellingtonTab = page.getByTestId("location-filter-wellington");
-      await wellingtonTab.click();
+      // Open dropdown and click Wellington
+      await page.getByTestId("location-filter-all").click();
+      await page.getByTestId("location-filter-wellington").click();
 
       // Wait for page to load with filter
       await page.waitForLoadState("load");
@@ -439,16 +441,16 @@ test.describe("Admin Dashboard Page", () => {
       page,
     }) => {
       // First filter by a location
-      const wellingtonTab = page.getByTestId("location-filter-wellington");
-      await wellingtonTab.click();
+      await page.getByTestId("location-filter-all").click();
+      await page.getByTestId("location-filter-wellington").click();
       await page.waitForLoadState("load");
 
       // Verify we're on Wellington filter
       await expect(page).toHaveURL(/location=Wellington/);
 
-      // Then click All to remove filter
-      const allTab = page.getByTestId("location-filter-all");
-      await allTab.click();
+      // Then open dropdown and click All locations to remove filter
+      await page.getByTestId("location-filter-all").click();
+      await page.getByTestId("location-filter-all-option").click();
 
       // Wait for navigation to complete
       await page.waitForURL("/admin", { timeout: 5000 });
@@ -546,9 +548,9 @@ test.describe("Admin Dashboard Page", () => {
       });
       await expect(adminHeading).toBeVisible();
 
-      // Check location filter tabs are still accessible
-      const wellingtonTab = page.getByTestId("location-filter-wellington");
-      await expect(wellingtonTab).toBeVisible();
+      // Check location filter dropdown is still accessible
+      const locationDropdown = page.getByTestId("location-filter-all");
+      await expect(locationDropdown).toBeVisible();
 
       // Test a navigation action
       const manageUsersButton = page.getByTestId(
