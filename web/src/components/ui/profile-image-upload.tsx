@@ -184,11 +184,17 @@ export function ProfileImageUpload({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
+      // Validate file type - check MIME type and fall back to extension
+      // for formats like HEIC/HEIF that may not have a MIME type on some devices
+      const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"];
+      const hasValidMime = file.type.startsWith("image/");
+      const hasValidExtension = validExtensions.some((ext) =>
+        file.name.toLowerCase().endsWith(ext)
+      );
+      if (!hasValidMime && !hasValidExtension) {
         toast?.({
           title: "Invalid file type",
-          description: "Please select an image file",
+          description: "Please select an image file (JPG, PNG, HEIC, WebP)",
           variant: "destructive",
         });
         return;
@@ -526,7 +532,7 @@ export function ProfileImageUpload({
           />
 
           <p className="text-xs text-muted-foreground">
-            JPG, PNG up to 4MB. Square crop recommended.
+            JPG, PNG, HEIC, WebP up to 4MB. Square crop recommended.
           </p>
         </div>
       </div>
