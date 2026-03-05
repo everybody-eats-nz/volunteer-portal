@@ -1,3 +1,9 @@
+## [0.112.2] - 2026-03-05
+
+### Changes
+- fix: convert HEIC/HEIF photos to JPEG for iPhone profile uploads ([#633](https://github.com/everybody-eats-nz/volunteer-portal/pull/633)) by @malinmalliyawadu
+
+
 ## [0.112.1] - 2026-03-05
 
 ### Changes
