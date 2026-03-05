@@ -291,7 +291,11 @@ export function ProfileImageUpload({
   }, [currentImage]);
 
   const handleUploadNewFromDialog = useCallback(() => {
-    // Trigger file input while keeping dialog open
+    // Reset file input value so iOS re-opens the picker and onChange fires
+    // even if the user selects the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     fileInputRef.current?.click();
   }, []);
 
