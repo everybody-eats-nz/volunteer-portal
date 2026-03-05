@@ -10,12 +10,12 @@ import ReactCrop, {
 import heic2any from "heic2any";
 import { Button } from "@/components/ui/button";
 import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "@/components/ui/responsive-dialog";
+  MotionDialog,
+  MotionDialogContent,
+  MotionDialogDescription,
+  MotionDialogHeader,
+  MotionDialogTitle,
+} from "@/components/motion-dialog";
 import { Camera, Upload, X, Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -423,18 +423,18 @@ export function ProfileImageUpload({
           </Button>
 
           {/* Crop and Rotate Dialog */}
-          <ResponsiveDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <ResponsiveDialogContent className="max-w-2xl" data-testid="crop-dialog">
-              <ResponsiveDialogHeader>
-                <ResponsiveDialogTitle>
+          <MotionDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <MotionDialogContent className="max-w-2xl" data-testid="crop-dialog">
+              <MotionDialogHeader>
+                <MotionDialogTitle>
                   {currentImage ? "Edit Profile Photo" : "Upload Profile Photo"}
-                </ResponsiveDialogTitle>
-                <ResponsiveDialogDescription>
+                </MotionDialogTitle>
+                <MotionDialogDescription>
                   {currentImage
                     ? "Adjust the crop area and rotation, or upload a new photo."
                     : "Upload a photo and adjust the crop area to frame it perfectly."}
-                </ResponsiveDialogDescription>
-              </ResponsiveDialogHeader>
+                </MotionDialogDescription>
+              </MotionDialogHeader>
 
               <div className="space-y-6">
                 {/* Image Preview Area */}
@@ -554,8 +554,8 @@ export function ProfileImageUpload({
                   </Button>
                 </div>
               </div>
-            </ResponsiveDialogContent>
-          </ResponsiveDialog>
+            </MotionDialogContent>
+          </MotionDialog>
 
           {/* Hidden file input */}
           <input
