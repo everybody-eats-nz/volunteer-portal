@@ -215,51 +215,49 @@ export function ProfileImageUpload({
       setIsLoadingImage(true);
 
       try {
-        // Web-native formats that browsers can display directly
-        const webNativeMimes = [
-          "image/jpeg",
-          "image/png",
-          "image/gif",
-          "image/webp",
-          "image/svg+xml",
-        ];
-        const isWebNative = webNativeMimes.includes(file.type);
+        // Read the file as a data URL
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-        let fileToRead: Blob = file;
+        // Test if the browser can actually render this image
+        const canRender = await new Promise<boolean>((resolve) => {
+          const img = new window.Image();
+          img.onload = () => resolve(img.naturalWidth > 0);
+          img.onerror = () => resolve(false);
+          img.src = dataUrl;
+        });
 
-        if (!isWebNative) {
-          // For HEIC/HEIF or any non-web-native format (including files
-          // where iOS reports an empty/unknown MIME type), convert to JPEG.
-          try {
-            const convertedBlob = await heic2any({
-              blob: file,
-              toType: "image/jpeg",
-              quality: 0.85,
-            });
-            fileToRead = Array.isArray(convertedBlob)
-              ? convertedBlob[0]
-              : convertedBlob;
-          } catch {
-            // heic2any throws if the file isn't actually HEIC — that's fine,
-            // fall through and try to display the original file as-is.
-          }
-        }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          setImageSrc(reader.result as string);
+        if (canRender) {
+          setImageSrc(dataUrl);
           setIsLoadingImage(false);
           setIsDialogOpen(true);
-        };
-        reader.onerror = () => {
-          setIsLoadingImage(false);
-          toast?.({
-            title: "Error loading image",
-            description: "Please try again with a different image",
-            variant: "destructive",
-          });
-        };
-        reader.readAsDataURL(fileToRead);
+          return;
+        }
+
+        // Browser can't render it — try converting with heic2any
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.85,
+        });
+        const jpeg = Array.isArray(convertedBlob)
+          ? convertedBlob[0]
+          : convertedBlob;
+
+        const convertedUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(jpeg);
+        });
+
+        setImageSrc(convertedUrl);
+        setIsLoadingImage(false);
+        setIsDialogOpen(true);
       } catch (error) {
         console.error("Error processing image:", error);
         setIsLoadingImage(false);
