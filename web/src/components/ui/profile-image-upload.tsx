@@ -10,12 +10,12 @@ import ReactCrop, {
 import heic2any from "heic2any";
 import { Button } from "@/components/ui/button";
 import {
-  ResponsiveDialog,
-  ResponsiveDialogContent,
-  ResponsiveDialogDescription,
-  ResponsiveDialogHeader,
-  ResponsiveDialogTitle,
-} from "@/components/ui/responsive-dialog";
+  MotionDialog,
+  MotionDialogContent,
+  MotionDialogDescription,
+  MotionDialogHeader,
+  MotionDialogTitle,
+} from "@/components/motion-dialog";
 import { Camera, Upload, X, Loader2, RotateCcw, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -185,23 +185,9 @@ export function ProfileImageUpload({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Validate file type - check MIME type and fall back to extension
-      // for formats like HEIC/HEIF that may not have a MIME type on some devices
-      const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"];
-      const hasValidMime = file.type.startsWith("image/");
-      const hasValidExtension = validExtensions.some((ext) =>
-        file.name.toLowerCase().endsWith(ext)
-      );
-      if (!hasValidMime && !hasValidExtension) {
-        toast?.({
-          title: "Invalid file type",
-          description: "Please select an image file (JPG, PNG, HEIC, WebP)",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate file size (max 4MB)
+      // The file input has accept="image/*" so the OS already filters to images.
+      // We only validate file size here — iOS can provide files with empty MIME
+      // types or non-standard filenames, so strict type checks cause silent failures.
       if (file.size > 4 * 1024 * 1024) {
         toast?.({
           title: "File too large",
@@ -213,45 +199,45 @@ export function ProfileImageUpload({
 
       setSelectedFile(file);
       setIsLoadingImage(true);
+      // Open dialog immediately so the user sees the loading state
+      setIsDialogOpen(true);
 
       try {
-        // Convert HEIC/HEIF files to JPEG so browsers can display them
-        const isHeic =
-          file.type === "image/heic" ||
-          file.type === "image/heif" ||
-          file.name.toLowerCase().endsWith(".heic") ||
-          file.name.toLowerCase().endsWith(".heif");
+        // Use an object URL first — lightweight reference, no full file read.
+        // This works for formats the browser can natively render.
+        const objectUrl = URL.createObjectURL(file);
 
-        let fileToRead: Blob = file;
-        if (isHeic) {
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: "image/jpeg",
-            quality: 0.85,
-          });
-          fileToRead = Array.isArray(convertedBlob)
-            ? convertedBlob[0]
-            : convertedBlob;
+        const canRender = await new Promise<boolean>((resolve) => {
+          const img = new window.Image();
+          img.onload = () => resolve(img.naturalWidth > 0);
+          img.onerror = () => resolve(false);
+          img.src = objectUrl;
+        });
+
+        if (canRender) {
+          setImageSrc(objectUrl);
+          setIsLoadingImage(false);
+          return;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-          setImageSrc(reader.result as string);
-          setIsLoadingImage(false);
-          setIsDialogOpen(true);
-        };
-        reader.onerror = () => {
-          setIsLoadingImage(false);
-          toast?.({
-            title: "Error loading image",
-            description: "Please try again with a different image",
-            variant: "destructive",
-          });
-        };
-        reader.readAsDataURL(fileToRead);
+        // Browser can't render it (likely HEIC) — convert with heic2any
+        URL.revokeObjectURL(objectUrl);
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.85,
+        });
+        const jpeg = Array.isArray(convertedBlob)
+          ? convertedBlob[0]
+          : convertedBlob;
+        const convertedUrl = URL.createObjectURL(jpeg);
+
+        setImageSrc(convertedUrl);
+        setIsLoadingImage(false);
       } catch (error) {
         console.error("Error processing image:", error);
         setIsLoadingImage(false);
+        setImageSrc("");
         toast?.({
           title: "Error processing image",
           description:
@@ -291,7 +277,11 @@ export function ProfileImageUpload({
   }, [currentImage]);
 
   const handleUploadNewFromDialog = useCallback(() => {
-    // Trigger file input while keeping dialog open
+    // Reset file input value so iOS re-opens the picker and onChange fires
+    // even if the user selects the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     fileInputRef.current?.click();
   }, []);
 
@@ -308,6 +298,10 @@ export function ProfileImageUpload({
       onImageChange(croppedImageUrl);
       setImageKey((prev) => prev + 1); // Force re-render
       setIsDialogOpen(false);
+      // Revoke object URL if one was used for the preview
+      if (imageSrc.startsWith("blob:")) {
+        URL.revokeObjectURL(imageSrc);
+      }
       setImageSrc("");
       setSelectedFile(null);
       setRotation(0);
@@ -334,6 +328,9 @@ export function ProfileImageUpload({
 
   const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);
+    if (imageSrc.startsWith("blob:")) {
+      URL.revokeObjectURL(imageSrc);
+    }
     setImageSrc("");
     setSelectedFile(null);
     setCrop(undefined);
@@ -345,7 +342,7 @@ export function ProfileImageUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, []);
+  }, [imageSrc]);
 
   return (
     <div className="space-y-3" data-testid="profile-image-upload">
@@ -419,22 +416,30 @@ export function ProfileImageUpload({
           </Button>
 
           {/* Crop and Rotate Dialog */}
-          <ResponsiveDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <ResponsiveDialogContent className="max-w-2xl" data-testid="crop-dialog">
-              <ResponsiveDialogHeader>
-                <ResponsiveDialogTitle>
+          <MotionDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <MotionDialogContent className="max-w-2xl" data-testid="crop-dialog">
+              <MotionDialogHeader>
+                <MotionDialogTitle>
                   {currentImage ? "Edit Profile Photo" : "Upload Profile Photo"}
-                </ResponsiveDialogTitle>
-                <ResponsiveDialogDescription>
+                </MotionDialogTitle>
+                <MotionDialogDescription>
                   {currentImage
                     ? "Adjust the crop area and rotation, or upload a new photo."
                     : "Upload a photo and adjust the crop area to frame it perfectly."}
-                </ResponsiveDialogDescription>
-              </ResponsiveDialogHeader>
+                </MotionDialogDescription>
+              </MotionDialogHeader>
 
               <div className="space-y-6">
+                {/* Loading indicator visible inside the dialog */}
+                {isLoadingImage && (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Processing image...</p>
+                  </div>
+                )}
+
                 {/* Image Preview Area */}
-                {imageSrc && (
+                {imageSrc && !isLoadingImage && (
                   <div className="space-y-3">
                     <div className="rounded-lg border bg-muted/20 p-4">
                       <div className="flex justify-center overflow-auto max-h-[450px]">
@@ -550,8 +555,8 @@ export function ProfileImageUpload({
                   </Button>
                 </div>
               </div>
-            </ResponsiveDialogContent>
-          </ResponsiveDialog>
+            </MotionDialogContent>
+          </MotionDialog>
 
           {/* Hidden file input */}
           <input
