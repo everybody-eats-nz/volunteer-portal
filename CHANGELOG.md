@@ -1,3 +1,9 @@
+## [0.112.1] - 2026-03-05
+
+### Changes
+- feat: support HEIC/HEIF image uploads for iPhone profile photos ([#630](https://github.com/everybody-eats-nz/volunteer-portal/pull/630)) by @malinmalliyawadu
+
+
 ## [0.112.0] - 2026-03-04
 
 ### Changes
