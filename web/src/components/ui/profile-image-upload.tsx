@@ -215,23 +215,34 @@ export function ProfileImageUpload({
       setIsLoadingImage(true);
 
       try {
-        // Convert HEIC/HEIF files to JPEG so browsers can display them
-        const isHeic =
-          file.type === "image/heic" ||
-          file.type === "image/heif" ||
-          file.name.toLowerCase().endsWith(".heic") ||
-          file.name.toLowerCase().endsWith(".heif");
+        // Web-native formats that browsers can display directly
+        const webNativeMimes = [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "image/svg+xml",
+        ];
+        const isWebNative = webNativeMimes.includes(file.type);
 
         let fileToRead: Blob = file;
-        if (isHeic) {
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: "image/jpeg",
-            quality: 0.85,
-          });
-          fileToRead = Array.isArray(convertedBlob)
-            ? convertedBlob[0]
-            : convertedBlob;
+
+        if (!isWebNative) {
+          // For HEIC/HEIF or any non-web-native format (including files
+          // where iOS reports an empty/unknown MIME type), convert to JPEG.
+          try {
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: "image/jpeg",
+              quality: 0.85,
+            });
+            fileToRead = Array.isArray(convertedBlob)
+              ? convertedBlob[0]
+              : convertedBlob;
+          } catch {
+            // heic2any throws if the file isn't actually HEIC — that's fine,
+            // fall through and try to display the original file as-is.
+          }
         }
 
         const reader = new FileReader();
