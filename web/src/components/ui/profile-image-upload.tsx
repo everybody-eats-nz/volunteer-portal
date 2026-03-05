@@ -185,23 +185,9 @@ export function ProfileImageUpload({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      // Validate file type - check MIME type and fall back to extension
-      // for formats like HEIC/HEIF that may not have a MIME type on some devices
-      const validExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"];
-      const hasValidMime = file.type.startsWith("image/");
-      const hasValidExtension = validExtensions.some((ext) =>
-        file.name.toLowerCase().endsWith(ext)
-      );
-      if (!hasValidMime && !hasValidExtension) {
-        toast?.({
-          title: "Invalid file type",
-          description: "Please select an image file (JPG, PNG, HEIC, WebP)",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate file size (max 4MB)
+      // The file input has accept="image/*" so the OS already filters to images.
+      // We only validate file size here — iOS can provide files with empty MIME
+      // types or non-standard filenames, so strict type checks cause silent failures.
       if (file.size > 4 * 1024 * 1024) {
         toast?.({
           title: "File too large",
@@ -213,32 +199,29 @@ export function ProfileImageUpload({
 
       setSelectedFile(file);
       setIsLoadingImage(true);
+      // Open dialog immediately so the user sees the loading state
+      setIsDialogOpen(true);
 
       try {
-        // Read the file as a data URL
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+        // Use an object URL first — lightweight reference, no full file read.
+        // This works for formats the browser can natively render.
+        const objectUrl = URL.createObjectURL(file);
 
-        // Test if the browser can actually render this image
         const canRender = await new Promise<boolean>((resolve) => {
           const img = new window.Image();
           img.onload = () => resolve(img.naturalWidth > 0);
           img.onerror = () => resolve(false);
-          img.src = dataUrl;
+          img.src = objectUrl;
         });
 
         if (canRender) {
-          setImageSrc(dataUrl);
+          setImageSrc(objectUrl);
           setIsLoadingImage(false);
-          setIsDialogOpen(true);
           return;
         }
 
-        // Browser can't render it — try converting with heic2any
+        // Browser can't render it (likely HEIC) — convert with heic2any
+        URL.revokeObjectURL(objectUrl);
         const convertedBlob = await heic2any({
           blob: file,
           toType: "image/jpeg",
@@ -247,20 +230,14 @@ export function ProfileImageUpload({
         const jpeg = Array.isArray(convertedBlob)
           ? convertedBlob[0]
           : convertedBlob;
-
-        const convertedUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(jpeg);
-        });
+        const convertedUrl = URL.createObjectURL(jpeg);
 
         setImageSrc(convertedUrl);
         setIsLoadingImage(false);
-        setIsDialogOpen(true);
       } catch (error) {
         console.error("Error processing image:", error);
         setIsLoadingImage(false);
+        setImageSrc("");
         toast?.({
           title: "Error processing image",
           description:
@@ -321,6 +298,10 @@ export function ProfileImageUpload({
       onImageChange(croppedImageUrl);
       setImageKey((prev) => prev + 1); // Force re-render
       setIsDialogOpen(false);
+      // Revoke object URL if one was used for the preview
+      if (imageSrc.startsWith("blob:")) {
+        URL.revokeObjectURL(imageSrc);
+      }
       setImageSrc("");
       setSelectedFile(null);
       setRotation(0);
@@ -347,6 +328,9 @@ export function ProfileImageUpload({
 
   const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);
+    if (imageSrc.startsWith("blob:")) {
+      URL.revokeObjectURL(imageSrc);
+    }
     setImageSrc("");
     setSelectedFile(null);
     setCrop(undefined);
@@ -358,7 +342,7 @@ export function ProfileImageUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }, []);
+  }, [imageSrc]);
 
   return (
     <div className="space-y-3" data-testid="profile-image-upload">
@@ -446,8 +430,16 @@ export function ProfileImageUpload({
               </MotionDialogHeader>
 
               <div className="space-y-6">
+                {/* Loading indicator visible inside the dialog */}
+                {isLoadingImage && (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Processing image...</p>
+                  </div>
+                )}
+
                 {/* Image Preview Area */}
-                {imageSrc && (
+                {imageSrc && !isLoadingImage && (
                   <div className="space-y-3">
                     <div className="rounded-lg border bg-muted/20 p-4">
                       <div className="flex justify-center overflow-auto max-h-[450px]">
