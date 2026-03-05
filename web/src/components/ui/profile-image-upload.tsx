@@ -7,6 +7,7 @@ import ReactCrop, {
   centerCrop,
   makeAspectCrop,
 } from "react-image-crop";
+import heic2any from "heic2any";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveDialog,
@@ -180,7 +181,7 @@ export function ProfileImageUpload({
   };
 
   const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -212,21 +213,52 @@ export function ProfileImageUpload({
 
       setSelectedFile(file);
       setIsLoadingImage(true);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageSrc(reader.result as string);
-        setIsLoadingImage(false);
-        setIsDialogOpen(true);
-      };
-      reader.onerror = () => {
+
+      try {
+        // Convert HEIC/HEIF files to JPEG so browsers can display them
+        const isHeic =
+          file.type === "image/heic" ||
+          file.type === "image/heif" ||
+          file.name.toLowerCase().endsWith(".heic") ||
+          file.name.toLowerCase().endsWith(".heif");
+
+        let fileToRead: Blob = file;
+        if (isHeic) {
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.85,
+          });
+          fileToRead = Array.isArray(convertedBlob)
+            ? convertedBlob[0]
+            : convertedBlob;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          setImageSrc(reader.result as string);
+          setIsLoadingImage(false);
+          setIsDialogOpen(true);
+        };
+        reader.onerror = () => {
+          setIsLoadingImage(false);
+          toast?.({
+            title: "Error loading image",
+            description: "Please try again with a different image",
+            variant: "destructive",
+          });
+        };
+        reader.readAsDataURL(fileToRead);
+      } catch (error) {
+        console.error("Error processing image:", error);
         setIsLoadingImage(false);
         toast?.({
-          title: "Error loading image",
-          description: "Please try again with a different image",
+          title: "Error processing image",
+          description:
+            "Could not process this image format. Please try converting it to JPG first.",
           variant: "destructive",
         });
-      };
-      reader.readAsDataURL(file);
+      }
     },
     [toast]
   );
