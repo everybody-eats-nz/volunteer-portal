@@ -212,7 +212,7 @@ export function SurveyForm({
           )}
         </CardHeader>
 
-        <CardContent className="pt-4">
+        <CardContent className="pt-4 px-3 sm:px-6">
           <div className="space-y-6">
             <AnimatePresence mode="sync">
               {questions.map((question, index) => (
@@ -222,7 +222,7 @@ export function SurveyForm({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="rounded-xl border bg-card p-5 shadow-sm hover:shadow-md transition-shadow"
+                  className="rounded-xl border bg-card p-3 sm:p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <SurveyQuestionRenderer
                     question={question}
@@ -247,7 +247,7 @@ export function SurveyForm({
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t px-6 py-5">
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t px-3 sm:px-6 py-4 sm:py-5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Progress value={progressPercent} className="w-24 h-2" />
             <span>{progressPercent}% complete</span>
