@@ -387,9 +387,13 @@ export function ResponsesContent({
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">
+                            <Link
+                              href={`/admin/users/${response.user.id}`}
+                              className="font-medium hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {response.user.name || "Unknown"}
-                            </div>
+                            </Link>
                             <div className="text-sm text-muted-foreground">
                               {response.user.email}
                             </div>
@@ -467,9 +471,12 @@ export function ResponsesContent({
                       <TableRow key={assignment.id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">
+                            <Link
+                              href={`/admin/users/${assignment.user.id}`}
+                              className="font-medium hover:underline"
+                            >
                               {assignment.user.name || "Unknown"}
-                            </div>
+                            </Link>
                             <div className="text-sm text-muted-foreground">
                               {assignment.user.email}
                             </div>
