@@ -138,6 +138,8 @@ export function SurveyQuestionRenderer({
         const ratings = Array.from({ length: max - min + 1 }, (_, i) => min + i);
         const currentRating = typeof value === "number" ? value : undefined;
         const isNPS = max === 10 && min === 0; // NPS-style (0-10)
+        const ratingCount = ratings.length;
+        const isLargeScale = ratingCount > 6;
 
         return (
           <div className="space-y-3">
@@ -148,10 +150,7 @@ export function SurveyQuestionRenderer({
             <RadioGroup
               value={currentRating?.toString()}
               onValueChange={(val) => handleChange(parseInt(val))}
-              className={cn(
-                "flex gap-1",
-                isNPS ? "justify-between" : "justify-center gap-2"
-              )}
+              className="flex flex-wrap justify-center gap-1.5 sm:gap-2"
             >
               {ratings.map((rating) => {
                 const isSelected = currentRating === rating;
@@ -177,7 +176,10 @@ export function SurveyQuestionRenderer({
                     <div
                       className={cn(
                         "flex items-center justify-center rounded-lg font-semibold transition-all",
-                        isNPS ? "h-10 w-8 sm:w-10 text-sm" : "h-12 w-12 text-base",
+                        isLargeScale
+                          ? "h-10 w-10 sm:h-12 sm:w-12 text-sm sm:text-base"
+                          : "h-12 w-12 text-base",
+                        isNPS && "h-9 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm",
                         isSelected
                           ? cn(getNPSColor(), "text-white shadow-md scale-110")
                           : cn(
