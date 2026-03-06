@@ -1,3 +1,15 @@
+## [0.112.6] - 2026-03-06
+
+### Changes
+- fix: link to volunteer profiles ([#641](https://github.com/everybody-eats-nz/volunteer-portal/pull/641)) by @malinmalliyawadu
+
+
+## [0.112.5] - 2026-03-06
+
+### Changes
+- feat: add profile links on survey response page ([#640](https://github.com/everybody-eats-nz/volunteer-portal/pull/640)) by @malinmalliyawadu
+
+
 ## [0.112.4] - 2026-03-06
 
 ### Changes

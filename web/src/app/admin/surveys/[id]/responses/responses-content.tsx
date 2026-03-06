@@ -276,253 +276,260 @@ export function ResponsesContent({
           </TabsTrigger>
         </TabsList>
 
-          <TabsContent value="summary" className="space-y-4 mt-4">
-            {questionStats.map((stats) => (
-              <Card key={stats.questionId}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-medium">
-                    {stats.questionText}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {stats.totalResponses} response
-                    {stats.totalResponses !== 1 ? "s" : ""}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {/* Rating scale average */}
-                  {stats.questionType === "rating_scale" && stats.average && (
-                    <div className="mb-4">
-                      <div className="text-3xl font-bold text-primary">
-                        {stats.average.toFixed(1)}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Average rating
-                      </p>
+        <TabsContent value="summary" className="space-y-4 mt-4">
+          {questionStats.map((stats) => (
+            <Card key={stats.questionId}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  {stats.questionText}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {stats.totalResponses} response
+                  {stats.totalResponses !== 1 ? "s" : ""}
+                </p>
+              </CardHeader>
+              <CardContent>
+                {/* Rating scale average */}
+                {stats.questionType === "rating_scale" && stats.average && (
+                  <div className="mb-4">
+                    <div className="text-3xl font-bold text-primary">
+                      {stats.average.toFixed(1)}
                     </div>
-                  )}
+                    <p className="text-sm text-muted-foreground">
+                      Average rating
+                    </p>
+                  </div>
+                )}
 
-                  {/* Distribution for choice/rating questions */}
-                  {stats.distribution && (
-                    <div className="space-y-2">
-                      {Object.entries(stats.distribution)
-                        .sort(([a], [b]) => {
-                          // Sort numerically for ratings, alphabetically otherwise
-                          const numA = Number(a);
-                          const numB = Number(b);
-                          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-                          return a.localeCompare(b);
-                        })
-                        .map(([key, count]) => {
-                          const percentage = Math.round(
-                            (count / stats.totalResponses) * 100
-                          );
-                          return (
-                            <div key={key} className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>{key}</span>
-                                <span className="text-muted-foreground">
-                                  {count} ({percentage}%)
-                                </span>
-                              </div>
-                              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-primary rounded-full transition-all"
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
+                {/* Distribution for choice/rating questions */}
+                {stats.distribution && (
+                  <div className="space-y-2">
+                    {Object.entries(stats.distribution)
+                      .sort(([a], [b]) => {
+                        // Sort numerically for ratings, alphabetically otherwise
+                        const numA = Number(a);
+                        const numB = Number(b);
+                        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                        return a.localeCompare(b);
+                      })
+                      .map(([key, count]) => {
+                        const percentage = Math.round(
+                          (count / stats.totalResponses) * 100
+                        );
+                        return (
+                          <div key={key} className="space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span>{key}</span>
+                              <span className="text-muted-foreground">
+                                {count} ({percentage}%)
+                              </span>
                             </div>
-                          );
-                        })}
-                    </div>
-                  )}
-
-                  {/* Text responses */}
-                  {stats.textResponses && stats.textResponses.length > 0 && (
-                    <div className="space-y-2">
-                      {stats.textResponses.slice(0, 10).map((text, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3 bg-muted rounded-lg text-sm"
-                        >
-                          &ldquo;{text}&rdquo;
-                        </div>
-                      ))}
-                      {stats.textResponses.length > 10 && (
-                        <p className="text-sm text-muted-foreground">
-                          And {stats.textResponses.length - 10} more responses...
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="individual" className="mt-4">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]"></TableHead>
-                    <TableHead>Volunteer</TableHead>
-                    <TableHead>Completed</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {responses.map((response) => (
-                    <>
-                      <TableRow
-                        key={response.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => toggleResponse(response.id)}
-                      >
-                        <TableCell>
-                          {expandedResponses.has(response.id) ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {response.user.name || "Unknown"}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {response.user.email}
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {response.completedAt
-                            ? formatDistanceToNow(
-                                new Date(response.completedAt),
-                                { addSuffix: true }
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            View Details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                      {expandedResponses.has(response.id) && response.answers && (
-                        <TableRow key={`${response.id}-details`}>
-                          <TableCell colSpan={4} className="bg-muted/30">
-                            <div className="p-4 space-y-4">
-                              {survey.questions.map((question) => {
-                                const answer = response.answers?.find(
-                                  (a) => a.questionId === question.id
-                                );
-                                return (
-                                  <div key={question.id}>
-                                    <div className="text-sm font-medium mb-1">
-                                      {question.text}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {formatValue(answer?.value)}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+                        );
+                      })}
+                  </div>
+                )}
 
-          <TabsContent value="assignments" className="mt-4">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Volunteer</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Assigned</TableHead>
-                    <TableHead>Updated</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {assignments.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center py-8 text-muted-foreground"
+                {/* Text responses */}
+                {stats.textResponses && stats.textResponses.length > 0 && (
+                  <div className="space-y-2">
+                    {stats.textResponses.slice(0, 10).map((text, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 bg-muted rounded-lg text-sm"
                       >
-                        No assignments yet. Use the &quot;Assign Survey&quot;
-                        button to assign this survey to volunteers.
+                        &ldquo;{text}&rdquo;
+                      </div>
+                    ))}
+                    {stats.textResponses.length > 10 && (
+                      <p className="text-sm text-muted-foreground">
+                        And {stats.textResponses.length - 10} more responses...
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="individual" className="mt-4">
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead>Volunteer</TableHead>
+                  <TableHead>Completed</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {responses.map((response) => (
+                  <>
+                    <TableRow
+                      key={response.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => toggleResponse(response.id)}
+                    >
+                      <TableCell>
+                        {expandedResponses.has(response.id) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <Link
+                            href={`/admin/volunteers/${response.user.id}`}
+                            className="font-medium hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {response.user.name || "Unknown"}
+                          </Link>
+                          <div className="text-sm text-muted-foreground">
+                            {response.user.email}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {response.completedAt
+                          ? formatDistanceToNow(
+                              new Date(response.completedAt),
+                              { addSuffix: true }
+                            )
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          View Details
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    assignments.map((assignment) => (
-                      <TableRow key={assignment.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {assignment.user.name || "Unknown"}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {assignment.user.email}
-                            </div>
+                    {expandedResponses.has(response.id) && response.answers && (
+                      <TableRow key={`${response.id}-details`}>
+                        <TableCell colSpan={4} className="bg-muted/30">
+                          <div className="p-4 space-y-4">
+                            {survey.questions.map((question) => {
+                              const answer = response.answers?.find(
+                                (a) => a.questionId === question.id
+                              );
+                              return (
+                                <div key={question.id}>
+                                  <div className="text-sm font-medium mb-1">
+                                    {question.text}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {formatValue(answer?.value)}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {assignment.user.availableLocations || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              assignment.status === "COMPLETED"
-                                ? "default"
-                                : assignment.status === "PENDING"
-                                  ? "secondary"
-                                  : assignment.status === "DISMISSED"
-                                    ? "outline"
-                                    : "destructive"
-                            }
-                          >
-                            {assignment.status.toLowerCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(assignment.assignedAt), {
-                            addSuffix: true,
-                          })}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {assignment.status === "COMPLETED" &&
-                          assignment.completedAt
-                            ? formatDistanceToNow(
-                                new Date(assignment.completedAt),
-                                { addSuffix: true }
-                              )
-                            : assignment.status === "DISMISSED" &&
-                                assignment.dismissedAt
-                              ? formatDistanceToNow(
-                                  new Date(assignment.dismissedAt),
-                                  { addSuffix: true }
-                                )
-                              : "-"}
-                        </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    )}
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="assignments" className="mt-4">
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Volunteer</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Assigned</TableHead>
+                  <TableHead>Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignments.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-8 text-muted-foreground"
+                    >
+                      No assignments yet. Use the &quot;Assign Survey&quot;
+                      button to assign this survey to volunteers.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  assignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell>
+                        <div>
+                          <Link
+                            href={`/admin/volunteers/${assignment.user.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {assignment.user.name || "Unknown"}
+                          </Link>
+                          <div className="text-sm text-muted-foreground">
+                            {assignment.user.email}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {assignment.user.availableLocations || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            assignment.status === "COMPLETED"
+                              ? "default"
+                              : assignment.status === "PENDING"
+                              ? "secondary"
+                              : assignment.status === "DISMISSED"
+                              ? "outline"
+                              : "destructive"
+                          }
+                        >
+                          {assignment.status.toLowerCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(assignment.assignedAt), {
+                          addSuffix: true,
+                        })}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {assignment.status === "COMPLETED" &&
+                        assignment.completedAt
+                          ? formatDistanceToNow(
+                              new Date(assignment.completedAt),
+                              { addSuffix: true }
+                            )
+                          : assignment.status === "DISMISSED" &&
+                            assignment.dismissedAt
+                          ? formatDistanceToNow(
+                              new Date(assignment.dismissedAt),
+                              { addSuffix: true }
+                            )
+                          : "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
