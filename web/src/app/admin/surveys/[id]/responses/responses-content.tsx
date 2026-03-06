@@ -415,8 +415,8 @@ export function ResponsesContent({
                     </TableRow>
                     {expandedResponses.has(response.id) && response.answers && (
                       <TableRow key={`${response.id}-details`}>
-                        <TableCell colSpan={4} className="bg-muted/30">
-                          <div className="p-4 space-y-4">
+                        <TableCell colSpan={4} className="bg-muted/30 whitespace-normal">
+                          <div className="p-4 space-y-4 break-words">
                             {survey.questions.map((question) => {
                               const answer = response.answers?.find(
                                 (a) => a.questionId === question.id
