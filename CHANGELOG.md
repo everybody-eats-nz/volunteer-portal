@@ -1,3 +1,9 @@
+## [0.112.3] - 2026-03-05
+
+### Changes
+- refactor: replace location filter tabs with dropdown ([#635](https://github.com/everybody-eats-nz/volunteer-portal/pull/635)) by @malinmalliyawadu
+
+
 ## [0.112.2] - 2026-03-05
 
 ### Changes
