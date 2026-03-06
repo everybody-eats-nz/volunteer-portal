@@ -1,3 +1,9 @@
+## [0.112.4] - 2026-03-06
+
+### Changes
+- fix: survey rating scale overflow on mobile ([#636](https://github.com/everybody-eats-nz/volunteer-portal/pull/636)) by @malinmalliyawadu
+
+
 ## [0.112.3] - 2026-03-05
 
 ### Changes

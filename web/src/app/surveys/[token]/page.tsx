@@ -78,7 +78,7 @@ export default async function SurveyPage({ params }: PageProps) {
   const questions = survey.questions as SurveyQuestion[];
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <div className="min-h-screen bg-background py-6 sm:py-8 px-3 sm:px-4">
       <div className="max-w-4xl mx-auto">
         <SurveyForm
           token={token}
