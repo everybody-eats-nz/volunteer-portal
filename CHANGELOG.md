@@ -1,3 +1,9 @@
+## [0.113.0] - 2026-03-07
+
+### Changes
+- feat: add CSV export for survey responses ([#643](https://github.com/everybody-eats-nz/volunteer-portal/pull/643)) by @malinmalliyawadu
+
+
 ## [0.112.6] - 2026-03-06
 
 ### Changes
