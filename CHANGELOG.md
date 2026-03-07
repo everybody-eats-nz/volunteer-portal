@@ -1,3 +1,9 @@
+## [0.112.8] - 2026-03-07
+
+### Changes
+- fix: use location dropdown in shift history ([#642](https://github.com/everybody-eats-nz/volunteer-portal/pull/642)) by @malinmalliyawadu
+
+
 ## [0.112.7] - 2026-03-07
 
 ### Changes
