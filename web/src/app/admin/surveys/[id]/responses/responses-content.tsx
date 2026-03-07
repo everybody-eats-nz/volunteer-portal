@@ -32,6 +32,7 @@ import {
   Clock,
   XCircle,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -148,6 +149,45 @@ export function ResponsesContent({
     return String(value);
   };
 
+  const exportCsv = () => {
+    const escapeCsv = (value: string) => {
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const headers = [
+      "Volunteer Name",
+      "Email",
+      "Completed At",
+      ...survey.questions.map((q) => q.text),
+    ];
+
+    const rows = responses.map((response) => [
+      response.user.name || "Unknown",
+      response.user.email,
+      response.completedAt
+        ? new Date(response.completedAt).toISOString()
+        : "-",
+      ...survey.questions.map((question) => {
+        const answer = response.answers?.find(
+          (a) => a.questionId === question.id
+        );
+        return formatValue(answer?.value);
+      }),
+    ]);
+
+    const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${survey.title.replace(/[^a-zA-Z0-9]/g, "-")}-responses.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -171,31 +211,45 @@ export function ResponsesContent({
           </p>
         </div>
 
-        {/* Location Filter */}
-        {locations.length > 0 && (
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <Select
-              value={selectedLocation || "all"}
-              onValueChange={handleLocationChange}
-            >
-              <SelectTrigger
-                className="w-[180px]"
-                data-testid="survey-location-filter"
+        <div className="flex items-center gap-2">
+          {/* Location Filter */}
+          {locations.length > 0 && (
+            <>
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <Select
+                value={selectedLocation || "all"}
+                onValueChange={handleLocationChange}
               >
-                <SelectValue placeholder="Filter by location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                {locations.map((loc) => (
-                  <SelectItem key={loc} value={loc}>
-                    {loc}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+                <SelectTrigger
+                  className="w-[180px]"
+                  data-testid="survey-location-filter"
+                >
+                  <SelectValue placeholder="Filter by location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc} value={loc}>
+                      {loc}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
+
+          {totalResponses > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              data-testid="survey-export-csv"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
