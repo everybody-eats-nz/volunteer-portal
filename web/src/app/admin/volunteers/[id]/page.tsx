@@ -19,7 +19,6 @@ import {
   User,
   Heart,
   Shield,
-  Filter,
   ChevronLeft,
   Star,
   PauseCircle,
@@ -43,6 +42,7 @@ import { AdminContactInfoSection } from "@/components/admin-contact-info-section
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
 import { hearAboutUsOptions } from "@/lib/form-constants";
 import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
+import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { ShiftCountAdjustment } from "@/components/shift-count-adjustment";
 
 interface AdminVolunteerPageProps {
@@ -911,46 +911,12 @@ export default async function AdminVolunteerPage({
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                     <CardTitle>Shift History</CardTitle>
-                    {selectedLocation && (
-                      <Badge
-                        variant="outline"
-                        className="border-indigo-500/20 text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20"
-                      >
-                        <Filter className="h-3 w-3 mr-1" />
-                        {selectedLocation}
-                      </Badge>
-                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {/* Location Filter Buttons */}
-                    <div className="flex items-center gap-1 bg-muted dark:bg-muted/50 rounded-lg p-1">
-                      <Link
-                        href={`/admin/volunteers/${id}`}
-                        className={cn(
-                          "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                          !selectedLocation
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        All
-                      </Link>
-                      {LOCATIONS.map((location) => (
-                        <Link
-                          key={location}
-                          href={`/admin/volunteers/${id}?location=${location}`}
-                          className={cn(
-                            "px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                            selectedLocation === location
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          {location}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
+                  <LocationFilterTabs
+                    locations={LOCATIONS}
+                    selectedLocation={selectedLocation as LocationOption | undefined}
+                    basePath={`/admin/volunteers/${id}`}
+                  />
                 </div>
               </CardHeader>
               <CardContent>
