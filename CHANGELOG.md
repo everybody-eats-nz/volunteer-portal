@@ -1,3 +1,9 @@
+## [0.112.7] - 2026-03-07
+
+### Changes
+- chore(deps): bump dompurify from 3.3.1 to 3.3.2 in /web ([#637](https://github.com/everybody-eats-nz/volunteer-portal/pull/637)) by @dependabot[bot]
+
+
 ## [0.112.6] - 2026-03-06
 
 ### Changes
