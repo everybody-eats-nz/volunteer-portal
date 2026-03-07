@@ -272,23 +272,9 @@ test.describe("Admin Volunteer Profile View", () => {
       const shiftHistoryCard = page.getByTestId("shift-history-card");
       await expect(shiftHistoryCard).toBeVisible();
 
-      // Check location filter buttons within the shift history card to avoid conflict with sidebar
-      const allFilterButton = shiftHistoryCard.getByRole("link", {
-        name: "All",
-      });
-      await expect(allFilterButton).toBeVisible();
-
-      // Check specific location filter buttons
-      const wellingtonFilter = page.getByRole("link", { name: "Wellington" });
-      await expect(wellingtonFilter).toBeVisible();
-
-      const glenInnesFilter = page.getByRole("link", {
-        name: "Glen Innes",
-      });
-      await expect(glenInnesFilter).toBeVisible();
-
-      const onehungaFilter = page.getByRole("link", { name: "Onehunga" });
-      await expect(onehungaFilter).toBeVisible();
+      // Check location filter dropdown within the shift history card
+      const locationFilter = shiftHistoryCard.getByTestId("location-filter-all");
+      await expect(locationFilter).toBeVisible();
     });
 
     test("should display shift history entries when available", async ({
@@ -333,9 +319,13 @@ test.describe("Admin Volunteer Profile View", () => {
       await page.goto(`/admin/volunteers/${volunteerId}`);
       await waitForPageLoad(page);
 
-      // Click Wellington filter
-      const wellingtonFilter = page.getByRole("link", { name: "Wellington" });
-      await wellingtonFilter.click();
+      // Open location filter dropdown and select Wellington
+      const shiftHistoryCard = page.getByTestId("shift-history-card");
+      const locationDropdown = shiftHistoryCard.getByTestId("location-filter-all");
+      await locationDropdown.click();
+
+      const wellingtonOption = page.getByTestId("location-filter-wellington");
+      await wellingtonOption.click();
       await waitForPageLoad(page);
 
       // URL should include location parameter
@@ -343,19 +333,12 @@ test.describe("Admin Volunteer Profile View", () => {
         new RegExp(`/admin/volunteers/${volunteerId}\\?location=Wellington`)
       );
 
-      // Filter badge should be visible
-      const filterBadge = page
-        .getByText("Wellington")
-        .locator(".badge, [class*='badge']")
-        .first();
-      if (await filterBadge.isVisible()) {
-        await expect(filterBadge).toBeVisible();
-      }
+      // Open dropdown again and select "All locations" to clear filter
+      const locationDropdownAgain = shiftHistoryCard.getByTestId("location-filter-all");
+      await locationDropdownAgain.click();
 
-      // Click "All" filter to clear - scope to shift history card to avoid sidebar conflict
-      const shiftHistoryCard = page.getByTestId("shift-history-card");
-      const allFilter = shiftHistoryCard.getByRole("link", { name: "All" });
-      await allFilter.click();
+      const allOption = page.getByTestId("location-filter-all-option");
+      await allOption.click();
       await waitForPageLoad(page);
 
       // URL should not include location parameter
