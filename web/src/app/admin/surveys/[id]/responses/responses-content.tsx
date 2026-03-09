@@ -341,7 +341,7 @@ export function ResponsesContent({
                 onValueChange={handleLocationChange}
               >
                 <SelectTrigger
-                  className="w-[180px]"
+                  className="w-auto h-9 text-sm"
                   data-testid="survey-location-filter"
                 >
                   <SelectValue placeholder="Filter by location" />
