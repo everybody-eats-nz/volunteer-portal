@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +26,9 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   MapPin,
   Users,
   CheckCircle2,
@@ -38,6 +41,54 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import type { SurveyQuestion } from "@/types/survey";
 import { formatDistanceToNow } from "date-fns";
+import { safeParseAvailability } from "@/lib/parse-availability";
+
+type SortDirection = "asc" | "desc";
+type SortConfig<T extends string> = { key: T; direction: SortDirection } | null;
+
+function SortableHeader<T extends string>({
+  label,
+  sortKey,
+  sortConfig,
+  onSort,
+  className,
+}: {
+  label: string;
+  sortKey: T;
+  sortConfig: SortConfig<T>;
+  onSort: (key: T) => void;
+  className?: string;
+}) {
+  const isActive = sortConfig?.key === sortKey;
+  const Icon = isActive
+    ? sortConfig.direction === "asc"
+      ? ArrowUp
+      : ArrowDown
+    : ArrowUpDown;
+
+  return (
+    <TableHead className={className}>
+      <button
+        className="flex items-center gap-1 hover:text-foreground transition-colors -ml-1 px-1 py-0.5 rounded"
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        <Icon className={`h-3 w-3 ${isActive ? "text-foreground" : "text-muted-foreground/50"}`} />
+      </button>
+    </TableHead>
+  );
+}
+
+function toggleSort<T extends string>(
+  current: SortConfig<T>,
+  key: T
+): SortConfig<T> {
+  if (current?.key === key) {
+    if (current.direction === "asc") return { key, direction: "desc" };
+    return null; // third click clears sort
+  }
+  return { key, direction: "asc" };
+}
 
 interface QuestionStats {
   questionId: string;
@@ -56,6 +107,7 @@ interface ResponseData {
     name: string | null;
     email: string;
     availableLocations?: string | null;
+    createdAt: Date | string;
   };
   completedAt: Date | null;
   answers?: Array<{
@@ -75,6 +127,7 @@ interface AssignmentData {
     name: string | null;
     email: string;
     availableLocations?: string | null;
+    createdAt: Date | string;
   };
 }
 
@@ -107,6 +160,73 @@ export function ResponsesContent({
   const [expandedResponses, setExpandedResponses] = useState<Set<string>>(
     new Set()
   );
+
+  type ResponseSortKey = "name" | "location" | "member" | "completed";
+  type AssignmentSortKey = "name" | "location" | "member" | "status" | "assigned" | "updated";
+
+  const [responseSortConfig, setResponseSortConfig] =
+    useState<SortConfig<ResponseSortKey>>(null);
+  const [assignmentSortConfig, setAssignmentSortConfig] =
+    useState<SortConfig<AssignmentSortKey>>(null);
+
+  const sortedResponses = useMemo(() => {
+    if (!responseSortConfig) return responses;
+    const { key, direction } = responseSortConfig;
+    const sorted = [...responses].sort((a, b) => {
+      let cmp = 0;
+      if (key === "name") {
+        cmp = (a.user.name || "").localeCompare(b.user.name || "");
+      } else if (key === "location") {
+        cmp = (a.user.availableLocations || "").localeCompare(
+          b.user.availableLocations || ""
+        );
+      } else if (key === "member") {
+        cmp =
+          new Date(a.user.createdAt).getTime() -
+          new Date(b.user.createdAt).getTime();
+      } else if (key === "completed") {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        cmp = dateA - dateB;
+      }
+      return direction === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [responses, responseSortConfig]);
+
+  const sortedAssignments = useMemo(() => {
+    if (!assignmentSortConfig) return assignments;
+    const { key, direction } = assignmentSortConfig;
+    const sorted = [...assignments].sort((a, b) => {
+      let cmp = 0;
+      if (key === "name") {
+        cmp = (a.user.name || "").localeCompare(b.user.name || "");
+      } else if (key === "location") {
+        cmp = (a.user.availableLocations || "").localeCompare(
+          b.user.availableLocations || ""
+        );
+      } else if (key === "member") {
+        cmp =
+          new Date(a.user.createdAt).getTime() -
+          new Date(b.user.createdAt).getTime();
+      } else if (key === "status") {
+        cmp = a.status.localeCompare(b.status);
+      } else if (key === "assigned") {
+        cmp =
+          new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime();
+      } else if (key === "updated") {
+        const getUpdateTime = (item: AssignmentData) =>
+          item.completedAt
+            ? new Date(item.completedAt).getTime()
+            : item.dismissedAt
+            ? new Date(item.dismissedAt).getTime()
+            : 0;
+        cmp = getUpdateTime(a) - getUpdateTime(b);
+      }
+      return direction === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [assignments, assignmentSortConfig]);
 
   const handleLocationChange = (value: string) => {
     const params = new URLSearchParams();
@@ -221,7 +341,7 @@ export function ResponsesContent({
                 onValueChange={handleLocationChange}
               >
                 <SelectTrigger
-                  className="w-[180px]"
+                  className="w-auto h-9 text-sm"
                   data-testid="survey-location-filter"
                 >
                   <SelectValue placeholder="Filter by location" />
@@ -315,17 +435,17 @@ export function ResponsesContent({
       )}
 
       <Tabs defaultValue={totalResponses > 0 ? "summary" : "assignments"}>
-        <TabsList>
-          <TabsTrigger value="summary" disabled={totalResponses === 0}>
-            <BarChart3 className="h-4 w-4 mr-2" />
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="summary" disabled={totalResponses === 0} className="flex-1 sm:flex-initial">
+            <BarChart3 className="h-4 w-4 mr-2 hidden sm:block" />
             Summary
           </TabsTrigger>
-          <TabsTrigger value="individual" disabled={totalResponses === 0}>
-            <List className="h-4 w-4 mr-2" />
+          <TabsTrigger value="individual" disabled={totalResponses === 0} className="flex-1 sm:flex-initial">
+            <List className="h-4 w-4 mr-2 hidden sm:block" />
             Responses ({totalResponses})
           </TabsTrigger>
-          <TabsTrigger value="assignments">
-            <Users className="h-4 w-4 mr-2" />
+          <TabsTrigger value="assignments" className="flex-1 sm:flex-initial">
+            <Users className="h-4 w-4 mr-2 hidden sm:block" />
             Assignments ({assignments.length})
           </TabsTrigger>
         </TabsList>
@@ -414,18 +534,47 @@ export function ResponsesContent({
         </TabsContent>
 
         <TabsContent value="individual" className="mt-4">
-          <Card>
+          <Card className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>Volunteer</TableHead>
-                  <TableHead>Completed</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <SortableHeader
+                    label="Volunteer"
+                    sortKey="name"
+                    sortConfig={responseSortConfig}
+                    onSort={(key) =>
+                      setResponseSortConfig(toggleSort(responseSortConfig, key))
+                    }
+                  />
+                  <SortableHeader
+                    label="Location"
+                    sortKey="location"
+                    sortConfig={responseSortConfig}
+                    onSort={(key) =>
+                      setResponseSortConfig(toggleSort(responseSortConfig, key))
+                    }
+                  />
+                  <SortableHeader
+                    label="Member For"
+                    sortKey="member"
+                    sortConfig={responseSortConfig}
+                    onSort={(key) =>
+                      setResponseSortConfig(toggleSort(responseSortConfig, key))
+                    }
+                  />
+                  <SortableHeader
+                    label="Completed"
+                    sortKey="completed"
+                    sortConfig={responseSortConfig}
+                    onSort={(key) =>
+                      setResponseSortConfig(toggleSort(responseSortConfig, key))
+                    }
+                  />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {responses.map((response) => (
+                {sortedResponses.map((response) => (
                   <>
                     <TableRow
                       key={response.id}
@@ -454,6 +603,16 @@ export function ResponsesContent({
                         </div>
                       </TableCell>
                       <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {safeParseAvailability(response.user.availableLocations).join(", ") || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(response.user.createdAt))}
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         {response.completedAt
                           ? formatDistanceToNow(
                               new Date(response.completedAt),
@@ -461,15 +620,10 @@ export function ResponsesContent({
                             )
                           : "-"}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
-                      </TableCell>
                     </TableRow>
                     {expandedResponses.has(response.id) && response.answers && (
                       <TableRow key={`${response.id}-details`}>
-                        <TableCell colSpan={4} className="bg-muted/30 whitespace-normal">
+                        <TableCell colSpan={5} className="bg-muted/30 whitespace-normal">
                           <div className="p-4 space-y-4 break-words">
                             {survey.questions.map((question) => {
                               const answer = response.answers?.find(
@@ -498,22 +652,77 @@ export function ResponsesContent({
         </TabsContent>
 
         <TabsContent value="assignments" className="mt-4">
-          <Card>
+          <Card className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Volunteer</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Assigned</TableHead>
-                  <TableHead>Updated</TableHead>
+                  <SortableHeader
+                    label="Volunteer"
+                    sortKey="name"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
+                  <SortableHeader
+                    label="Location"
+                    sortKey="location"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
+                  <SortableHeader
+                    label="Member For"
+                    sortKey="member"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
+                  <SortableHeader
+                    label="Status"
+                    sortKey="status"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
+                  <SortableHeader
+                    label="Assigned"
+                    sortKey="assigned"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
+                  <SortableHeader
+                    label="Updated"
+                    sortKey="updated"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {assignments.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No assignments yet. Use the &quot;Assign Survey&quot;
@@ -521,7 +730,7 @@ export function ResponsesContent({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  assignments.map((assignment) => (
+                  sortedAssignments.map((assignment) => (
                     <TableRow key={assignment.id}>
                       <TableCell>
                         <div>
@@ -538,7 +747,12 @@ export function ResponsesContent({
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
-                          {assignment.user.availableLocations || "-"}
+                          {safeParseAvailability(assignment.user.availableLocations).join(", ") || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(assignment.user.createdAt))}
                         </span>
                       </TableCell>
                       <TableCell>
