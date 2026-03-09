@@ -56,6 +56,7 @@ export default async function SurveyResponsesPage({
               name: true,
               email: true,
               availableLocations: true,
+              createdAt: true,
             },
           },
           response: true,
@@ -168,7 +169,6 @@ export default async function SurveyResponsesPage({
             id: a.id,
             user: {
               ...a.user,
-              availableLocations: a.user.availableLocations,
             },
             completedAt: a.completedAt,
             answers: a.response?.answers as
@@ -189,6 +189,7 @@ export default async function SurveyResponsesPage({
               name: a.user.name,
               email: a.user.email,
               availableLocations: a.user.availableLocations,
+              createdAt: a.user.createdAt,
             },
           }))}
           locations={locationOptions}

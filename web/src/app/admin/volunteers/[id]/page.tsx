@@ -44,6 +44,7 @@ import { hearAboutUsOptions } from "@/lib/form-constants";
 import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { ShiftCountAdjustment } from "@/components/shift-count-adjustment";
+import { VolunteerSurveyHistory } from "@/components/volunteer-survey-history";
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -160,6 +161,27 @@ export default async function AdminVolunteerPage({
       customLabels: {
         include: {
           label: true,
+        },
+        orderBy: {
+          assignedAt: "desc",
+        },
+      },
+      surveyAssignments: {
+        include: {
+          survey: {
+            select: {
+              id: true,
+              title: true,
+              questions: true,
+            },
+          },
+          response: {
+            select: {
+              id: true,
+              answers: true,
+              submittedAt: true,
+            },
+          },
         },
         orderBy: {
           assignedAt: "desc",
@@ -903,6 +925,15 @@ export default async function AdminVolunteerPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Survey History */}
+            {volunteer.surveyAssignments.length > 0 && (
+              <VolunteerSurveyHistory
+                assignments={JSON.parse(
+                  JSON.stringify(volunteer.surveyAssignments)
+                )}
+              />
+            )}
 
             {/* Shift History with Location Filter */}
             <Card data-testid="shift-history-card">
