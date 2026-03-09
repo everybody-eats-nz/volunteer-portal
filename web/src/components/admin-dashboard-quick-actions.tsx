@@ -52,6 +52,13 @@ const actions = [
     testId: "dashboard-analytics-button",
   },
   {
+    label: "Restaurant Managers",
+    description: "Manage restaurant managers",
+    href: "/admin/restaurant-managers",
+    icon: Users,
+    testId: "restaurant-managers-button",
+  },
+  {
     label: "Public Shifts",
     description: "View the public shifts page",
     href: "/shifts",

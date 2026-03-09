@@ -16,6 +16,7 @@ import {
   type UpcomingShiftData,
 } from "@/components/admin-dashboard-upcoming-shifts";
 import { AdminDashboardQuickActions } from "@/components/admin-dashboard-quick-actions";
+import { AdminDashboardWeekSummary } from "@/components/admin-dashboard-week-summary";
 import {
   AdminDashboardRecentActivity,
   type ActivityItem,
@@ -63,6 +64,15 @@ export default async function AdminDashboardPage({
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+  // Start of current week (Monday)
+  const startOfWeek = new Date(now);
+  const dayOfWeek = startOfWeek.getDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  startOfWeek.setDate(startOfWeek.getDate() - daysFromMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+
   const locationFilter = selectedLocation
     ? { location: selectedLocation }
     : {};
@@ -84,6 +94,7 @@ export default async function AdminDashboardPage({
     recentSurveyResponses,
     recentFriendships,
     recentAchievements,
+    weeklyStats,
   ] = await Promise.all([
     // User counts
     prisma.user.count(),
@@ -263,9 +274,72 @@ export default async function AdminDashboardPage({
         achievement: { select: { name: true, icon: true } },
       },
     }),
+
+    // This week stats
+    Promise.all([
+      // Shifts this week
+      prisma.shift.count({
+        where: {
+          start: { gte: startOfWeek, lt: endOfWeek },
+          ...locationFilter,
+        },
+      }),
+      // Confirmed signups this week
+      prisma.signup.count({
+        where: {
+          status: "CONFIRMED",
+          shift: {
+            start: { gte: startOfWeek, lt: endOfWeek },
+            ...locationFilter,
+          },
+        },
+      }),
+      // New users this week
+      prisma.user.count({
+        where: {
+          createdAt: { gte: startOfWeek, lt: endOfWeek },
+        },
+      }),
+      // Meals served this week
+      prisma.mealsServed.aggregate({
+        _sum: { mealsServed: true },
+        where: {
+          date: { gte: startOfWeek, lt: endOfWeek },
+          ...(selectedLocation ? { location: selectedLocation } : {}),
+        },
+      }),
+      // Hours volunteered this week (sum of shift durations * confirmed volunteers)
+      prisma.shift.findMany({
+        where: {
+          start: { gte: startOfWeek, lt: endOfWeek },
+          ...locationFilter,
+        },
+        select: {
+          start: true,
+          end: true,
+          placeholderCount: true,
+          _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
+        },
+      }),
+    ]),
   ]);
 
   const [monthlyShifts, monthlySignups, newUsersThisMonth] = monthlyStats;
+  const [
+    weekShifts,
+    weekSignups,
+    weekNewUsers,
+    weekMealsAgg,
+    weekShiftDetails,
+  ] = weeklyStats;
+  const weekMeals = weekMealsAgg._sum.mealsServed ?? 0;
+  const weekVolunteerHours = weekShiftDetails.reduce((total, shift) => {
+    const hours =
+      (new Date(shift.end).getTime() - new Date(shift.start).getTime()) /
+      (1000 * 60 * 60);
+    const volunteers = shift._count.signups + shift.placeholderCount;
+    return total + hours * volunteers;
+  }, 0);
 
   // Compute low fill rate shifts (< 50% capacity)
   const lowFillShifts = upcomingShiftsData
@@ -423,12 +497,21 @@ export default async function AdminDashboardPage({
           newUsersThisMonth={newUsersThisMonth}
         />
 
-        {/* Attention Required */}
-        <AdminDashboardAttention
-          pendingSignups={pendingSignups}
-          lowFillShifts={lowFillShifts}
-          pendingParentalConsent={pendingParentalConsent}
-        />
+        {/* Attention Required + This Week */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AdminDashboardAttention
+            pendingSignups={pendingSignups}
+            lowFillShifts={lowFillShifts}
+            pendingParentalConsent={pendingParentalConsent}
+          />
+          <AdminDashboardWeekSummary
+            weekShifts={weekShifts}
+            weekSignups={weekSignups}
+            weekVolunteerHours={weekVolunteerHours}
+            weekMeals={weekMeals}
+            weekNewUsers={weekNewUsers}
+          />
+        </div>
 
         {/* Upcoming Shifts + Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
