@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getBaseUrl } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -28,8 +29,10 @@ export async function GET(request: NextRequest) {
     capacity: number;
     remaining: number;
     shiftType: { id: string; name: string };
+    url: string;
   };
 
+  const baseUrl = getBaseUrl();
   const result: ShiftItem[] = [];
   for (const s of shifts) {
     let confirmedCount = 0;
@@ -46,6 +49,7 @@ export async function GET(request: NextRequest) {
       capacity: s.capacity,
       remaining: Math.max(0, s.capacity - confirmedCount),
       shiftType: { id: s.shiftType.id, name: s.shiftType.name },
+      url: `${baseUrl}/shifts/${s.id}`,
     });
   }
 
