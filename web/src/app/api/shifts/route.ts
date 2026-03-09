@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     remaining: number;
     shiftType: { id: string; name: string };
     url: string;
+    image: string;
   };
 
   const baseUrl = getBaseUrl();
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
       remaining: Math.max(0, s.capacity - confirmedCount),
       shiftType: { id: s.shiftType.id, name: s.shiftType.name },
       url: `${baseUrl}/shifts/${s.id}`,
+      image: `${baseUrl}/og-image.png`,
     });
   }
 
