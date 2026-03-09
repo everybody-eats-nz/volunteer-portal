@@ -262,14 +262,14 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Surveys</h2>
           <p className="text-slate-600 mt-1">
             Create and manage volunteer feedback surveys
           </p>
         </div>
-        <Button onClick={openCreateDialog} data-testid="create-survey-button">
+        <Button onClick={openCreateDialog} data-testid="create-survey-button" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Create Survey
         </Button>
@@ -301,9 +301,9 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
               className={!survey.isActive ? "opacity-60" : ""}
             >
               <CardContent className="py-4">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold text-lg">{survey.title}</h3>
                       {!survey.isActive && (
                         <Badge variant="secondary">Inactive</Badge>
@@ -322,7 +322,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                         {survey.description}
                       </p>
                     )}
-                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
                       <span className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
                         {survey.stats.totalAssignments} assigned
@@ -343,7 +343,7 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
                       Created by {survey.creator.name || survey.creator.email}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex flex-wrap items-center gap-2">
                     {survey.triggerType !== "MANUAL" && (
                       <Tooltip>
                         <TooltipTrigger asChild>
