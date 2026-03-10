@@ -27,6 +27,7 @@ import {
   Activity,
   Loader2,
   CalendarDays,
+  Info,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -34,6 +35,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { EngagementVolunteerTable } from "./engagement-volunteer-table";
 import type {
   EngagementSummaryData,
@@ -431,8 +440,49 @@ export function EngagementAnalyticsClient({
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
                     Engagement Breakdown
+                    <Dialog>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DialogTrigger asChild>
+                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">More info</TooltipContent>
+                      </Tooltip>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Engagement Breakdown</DialogTitle>
+                          <DialogDescription>
+                            How volunteer activity levels are calculated
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex gap-3">
+                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                            <p><span className="font-medium">Highly Active</span> &mdash; Averaging 2 or more completed shifts per month during the selected period.</p>
+                          </div>
+                          <div className="flex gap-3">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                            <p><span className="font-medium">Active</span> &mdash; At least 1 completed shift in the period, but fewer than 2 per month on average.</p>
+                          </div>
+                          <div className="flex gap-3">
+                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                            <p><span className="font-medium">Inactive</span> &mdash; Has completed shifts before but none during the selected period.</p>
+                          </div>
+                          <div className="flex gap-3">
+                            <span className="inline-block w-2 h-2 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                            <p><span className="font-medium">Never Volunteered</span> &mdash; Registered but has never completed a shift.</p>
+                          </div>
+                          <p className="text-muted-foreground pt-1">
+                            Switch to &ldquo;By Shift Type&rdquo; to see which roles retain the most volunteers. The dot marker shows the prior period total for comparison.
+                          </p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </CardTitle>
                   <div className="flex items-center rounded-md border text-sm">
                     <button
@@ -728,6 +778,31 @@ export function EngagementAnalyticsClient({
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-blue-500" />
                     Active Volunteers
+                    <Dialog>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DialogTrigger asChild>
+                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">More info</TooltipContent>
+                      </Tooltip>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Active Volunteers Trend</DialogTitle>
+                          <DialogDescription>
+                            How this chart tracks volunteer activity over time
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3 text-sm">
+                          <p>Shows the number of unique volunteers who completed at least one shift in each time period over the last 12 months.</p>
+                          <p><span className="font-medium">Monthly view</span> shows the peak weekly count per calendar month. <span className="font-medium">Weekly view</span> shows the exact count per week for more granular detail.</p>
+                          <p>The <span className="font-medium">dashed line</span> overlays the same period from the previous year, making it easy to spot year-over-year growth or decline.</p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </CardTitle>
                   <div className="flex items-center rounded-md border text-sm">
                     <button
@@ -872,9 +947,41 @@ export function EngagementAnalyticsClient({
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <CalendarDays className="h-4 w-4 text-emerald-500" />
                     Monthly Retention
+                    <Dialog>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DialogTrigger asChild>
+                            <button className="text-muted-foreground hover:text-foreground transition-colors">
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">More info</TooltipContent>
+                      </Tooltip>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Monthly Retention Heatmap</DialogTitle>
+                          <DialogDescription>
+                            How cohort retention is measured
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3 text-sm">
+                          <p>Each row represents a <span className="font-medium">cohort</span> of volunteers grouped by the month they completed their first ever shift. The number in brackets is the cohort size.</p>
+                          <p><span className="font-medium">&ldquo;Start&rdquo;</span> is always 100% &mdash; it&rsquo;s the month they joined. Each subsequent column (Month 1, Month 2, etc.) shows what percentage of that cohort completed at least one shift in that month.</p>
+                          <p>Volunteers can skip months and return later, so a later month can sometimes be higher than an earlier one. This highlights re-engagement patterns.</p>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-emerald-500" /> 81–100%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-green-500" /> 61–80%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-yellow-500" /> 41–60%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-orange-500" /> 21–40%</span>
+                            <span className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-red-500" /> 1–20%</span>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    Last 12 cohorts
+                    Grouped by first shift month
                   </p>
                 </div>
               </CardHeader>
