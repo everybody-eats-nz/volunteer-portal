@@ -10,7 +10,10 @@ const LOCATION_PREFERENCE_KEY = "admin-location-preference";
  * Hook to persist and restore location filter preferences across admin pages
  * Saves the selected location to localStorage and auto-restores it on page load
  */
-export function useLocationPreference(currentLocation?: LocationOption) {
+export function useLocationPreference(
+  currentLocation?: LocationOption,
+  options?: { skipRestore?: boolean }
+) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -20,6 +23,8 @@ export function useLocationPreference(currentLocation?: LocationOption) {
   // Auto-restore location preference on mount if no location is in URL
   // This MUST run before the save effect
   useEffect(() => {
+    if (options?.skipRestore) return;
+
     const locationParam = searchParams.get("location");
 
     // Only auto-restore if there's no location in the URL and we haven't restored yet
@@ -34,7 +39,7 @@ export function useLocationPreference(currentLocation?: LocationOption) {
         router.replace(`${pathname}?${params.toString()}`);
       }
     }
-  }, [searchParams, pathname, router]);
+  }, [searchParams, pathname, router, options?.skipRestore]);
 
   // Save location preference when it changes (but not on initial mount)
   useEffect(() => {
