@@ -139,20 +139,17 @@ export function EngagementAnalyticsClient({
       100
   );
 
-  // Period boundary annotation (start of the selected time period)
-  const monthsNum = parseInt(initialMonths) || 3;
-  const trendCategories = data.monthlyTrend.map((t) => {
+  // Split 24-month trend into current year (last 12) and previous year (first 12)
+  const prevYearData = data.monthlyTrend.slice(0, 12);
+  const currYearData = data.monthlyTrend.slice(12);
+  const trendCategories = currYearData.map((t) => {
     const [year, month] = t.month.split("-");
     return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString(
       "en-NZ",
       { month: "short", year: "2-digit" }
     );
   });
-  const periodBoundaryIndex = 12 - monthsNum;
-  const periodBoundaryLabel =
-    periodBoundaryIndex > 0 && periodBoundaryIndex < trendCategories.length
-      ? trendCategories[periodBoundaryIndex]
-      : undefined;
+  const hasPrevYearData = prevYearData.some((t) => t.activeVolunteers > 0);
 
   return (
     <div className="space-y-6">
@@ -481,14 +478,13 @@ export function EngagementAnalyticsClient({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {data.monthlyTrend.length > 0 ? (
+                {currYearData.length > 0 ? (
                   <Chart
                     options={{
                       chart: {
-                        type: "area" as const,
+                        type: "line" as const,
                         toolbar: { show: false },
                         background: "transparent",
-                        sparkline: { enabled: false },
                       },
                       xaxis: {
                         categories: trendCategories,
@@ -512,10 +508,11 @@ export function EngagementAnalyticsClient({
                         },
                         min: 0,
                       },
-                      colors: ["#3b82f6"],
+                      colors: ["#3b82f6", "#94a3b8"],
                       stroke: {
                         curve: "smooth" as const,
-                        width: 2.5,
+                        width: [2.5, 1.5],
+                        dashArray: [0, 5],
                       },
                       fill: {
                         type: "gradient",
@@ -533,59 +530,49 @@ export function EngagementAnalyticsClient({
                         xaxis: { lines: { show: false } },
                       },
                       tooltip: {
+                        shared: true,
                         y: {
                           formatter: function (val: number) {
+                            if (val == null) return "";
                             return val + " volunteers";
                           },
                         },
                       },
                       markers: {
-                        size: 4,
+                        size: [4, 3],
                         strokeWidth: 2,
                         strokeColors: "#fff",
                         hover: { sizeOffset: 2 },
                       },
-                      legend: { show: false },
-                      annotations: {
-                        xaxis: [
-                          ...(periodBoundaryLabel
-                            ? [
-                                {
-                                  x: periodBoundaryLabel,
-                                  borderColor: "#cbd5e1",
-                                  strokeDashArray: 4,
-                                  label: {
-                                    text: "Selected period",
-                                    orientation: "horizontal" as const,
-                                    borderWidth: 0,
-                                    style: {
-                                      fontSize: "10px",
-                                      fontFamily:
-                                        "var(--font-libre-franklin), sans-serif",
-                                      color: "#64748b",
-                                      background: "transparent",
-                                      padding: {
-                                        left: 4,
-                                        right: 4,
-                                        top: 2,
-                                        bottom: 2,
-                                      },
-                                    },
-                                  },
-                                },
-                              ]
-                            : []),
-                        ],
+                      legend: {
+                        show: hasPrevYearData,
+                        position: "top" as const,
+                        fontSize: "12px",
+                        fontFamily:
+                          "var(--font-libre-franklin), sans-serif",
+                        markers: { size: 6, offsetX: -2 },
                       },
                       theme: { mode: chartThemeMode },
                     }}
                     series={[
                       {
-                        name: "Active Volunteers",
-                        data: data.monthlyTrend.map(
+                        name: "This Year",
+                        type: "area",
+                        data: currYearData.map(
                           (t) => t.activeVolunteers
                         ),
                       },
+                      ...(hasPrevYearData
+                        ? [
+                            {
+                              name: "Previous Year",
+                              type: "line",
+                              data: prevYearData.map(
+                                (t) => t.activeVolunteers
+                              ),
+                            },
+                          ]
+                        : []),
                     ]}
                     type="area"
                     height={320}

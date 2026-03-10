@@ -53,7 +53,7 @@ export async function getEngagementSummary(
   const priorStart = new Date(periodStart);
   priorStart.setMonth(priorStart.getMonth() - months);
   const trendStart = new Date(now);
-  trendStart.setMonth(trendStart.getMonth() - 12);
+  trendStart.setMonth(trendStart.getMonth() - 24);
 
   const isLocationFiltered = !!location && location !== "all";
   const locationCond = isLocationFiltered
@@ -147,12 +147,12 @@ export async function getEngagementSummary(
       ? Math.round((retainedCount / priorActiveCount) * 100)
       : 0;
 
-  // Fill in monthly trend with all 12 months (including months with 0 activity)
+  // Fill in monthly trend with 24 months (including months with 0 activity)
   const trendMap = new Map(
     trendResult.map((r) => [r.month, Number(r.activeVolunteers)])
   );
   const monthlyTrend = [];
-  for (let i = 11; i >= 0; i--) {
+  for (let i = 23; i >= 0; i--) {
     const d = new Date(now);
     d.setMonth(d.getMonth() - i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
