@@ -467,7 +467,6 @@ export function EngagementAnalyticsClient({
                           chart: {
                             type: "donut" as const,
                             background: "transparent",
-                            title: { text: "" },
                           },
                           labels: data.breakdown.map((b) => b.label),
                           colors: data.breakdown.map((b) => b.color),
@@ -577,7 +576,6 @@ export function EngagementAnalyticsClient({
                       chart: {
                         type: "bar" as const,
                         stacked: true,
-                        title: { text: "" },
                         toolbar: { show: false },
                         background: "transparent",
                       },
@@ -762,7 +760,6 @@ export function EngagementAnalyticsClient({
                       chart: {
                         type: "area" as const,
                         toolbar: { show: false },
-                        title: { text: "" },
                         background: "transparent",
                       },
                       xaxis: {
@@ -887,7 +884,6 @@ export function EngagementAnalyticsClient({
                     chart: {
                       type: "heatmap" as const,
                       toolbar: { show: false },
-                      title: { text: "" },
                       background: "transparent",
                     },
                     plotOptions: {

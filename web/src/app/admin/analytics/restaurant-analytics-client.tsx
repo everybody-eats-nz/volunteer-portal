@@ -367,7 +367,6 @@ export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) 
                   chart: {
                     type: "line" as const,
                     height: 400,
-                    title: { text: "" },
                     toolbar: {
                       show: false,
                     },

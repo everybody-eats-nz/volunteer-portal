@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hide default "Chart" tooltip from ApexCharts SVG title */
+.apexcharts-canvas > svg > title {
+  display: none;
+}
+
 /* Custom label color safelist for dynamic generation */
 @layer utilities {
   /* Ensure all possible custom label dark mode colors are included */
