@@ -947,6 +947,7 @@ export default async function AdminVolunteerPage({
                     locations={LOCATIONS}
                     selectedLocation={selectedLocation as LocationOption | undefined}
                     basePath={`/admin/volunteers/${id}`}
+                    disableAutoRestore
                   />
                 </div>
               </CardHeader>

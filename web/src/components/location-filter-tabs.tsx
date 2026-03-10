@@ -15,17 +15,20 @@ interface LocationFilterTabsProps {
   locations: readonly LocationOption[];
   selectedLocation?: LocationOption;
   basePath: string;
+  /** If true, don't auto-restore saved location preference on mount */
+  disableAutoRestore?: boolean;
 }
 
 export function LocationFilterTabs({
   locations,
   selectedLocation,
   basePath,
+  disableAutoRestore,
 }: LocationFilterTabsProps) {
   const router = useRouter();
 
-  // Auto-restore location preference on mount
-  useLocationPreference(selectedLocation);
+  // Auto-restore location preference on mount (unless disabled)
+  useLocationPreference(selectedLocation, { skipRestore: disableAutoRestore });
 
   const handleLocationChange = (value: string) => {
     if (value === "all") {
