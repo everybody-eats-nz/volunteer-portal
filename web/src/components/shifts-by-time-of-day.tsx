@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatedShiftCardsWrapper } from "@/components/animated-shift-cards-wrapper";
 import { toNZT, formatInNZT } from "@/lib/timezone";
 
@@ -61,6 +63,32 @@ interface ShiftsByTimeOfDayProps {
 }
 
 export function ShiftsByTimeOfDay({ shifts, shiftIdToTypeName }: ShiftsByTimeOfDayProps) {
+  const searchParams = useSearchParams();
+  const highlightShiftId = searchParams.get("shiftId");
+
+  // Scroll to and highlight the target shift card
+  useEffect(() => {
+    if (!highlightShiftId) return;
+
+    // Small delay to let animations finish rendering
+    const timer = setTimeout(() => {
+      const el = document.querySelector(
+        `[data-testid="shift-card-${highlightShiftId}"]`
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+        // Remove highlight after a few seconds
+        const cleanup = setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "ring-offset-2");
+        }, 3000);
+        return () => clearTimeout(cleanup);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [highlightShiftId]);
+
   // Helper function to determine if a shift is AM or PM (in NZ timezone)
   const isAMShift = (shift: Shift) => {
     const nzTime = toNZT(shift.start);
