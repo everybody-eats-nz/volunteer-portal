@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -117,9 +118,11 @@ export function EngagementAnalyticsClient({
   tableSortOrder,
 }: Props) {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   const [isPending, startTransition] = useTransition();
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
+  const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as "dark" | "light";
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
@@ -135,6 +138,21 @@ export function EngagementAnalyticsClient({
       Math.max(volunteersWithShifts, 1)) *
       100
   );
+
+  // Period boundary annotation (start of the selected time period)
+  const monthsNum = parseInt(initialMonths) || 3;
+  const trendCategories = data.monthlyTrend.map((t) => {
+    const [year, month] = t.month.split("-");
+    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString(
+      "en-NZ",
+      { month: "short", year: "2-digit" }
+    );
+  });
+  const periodBoundaryIndex = 12 - monthsNum;
+  const periodBoundaryLabel =
+    periodBoundaryIndex > 0 && periodBoundaryIndex < trendCategories.length
+      ? trendCategories[periodBoundaryIndex]
+      : undefined;
 
   return (
     <div className="space-y-6">
@@ -438,7 +456,7 @@ export function EngagementAnalyticsClient({
                         },
                       },
                       stroke: { width: 2, colors: ["var(--card)"] },
-                      theme: { mode: "light" as const },
+                      theme: { mode: chartThemeMode },
                     }}
                     series={data.breakdown.map((b) => b.value)}
                     type="donut"
@@ -453,7 +471,7 @@ export function EngagementAnalyticsClient({
             </Card>
           </motion.div>
 
-          {/* Area chart */}
+          {/* Monthly Active Trend */}
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
@@ -473,17 +491,7 @@ export function EngagementAnalyticsClient({
                         sparkline: { enabled: false },
                       },
                       xaxis: {
-                        categories: data.monthlyTrend.map((t) => {
-                          const [year, month] = t.month.split("-");
-                          const date = new Date(
-                            parseInt(year),
-                            parseInt(month) - 1
-                          );
-                          return date.toLocaleDateString("en-NZ", {
-                            month: "short",
-                            year: "2-digit",
-                          });
-                        }),
+                        categories: trendCategories,
                         labels: {
                           style: {
                             fontFamily:
@@ -538,7 +546,38 @@ export function EngagementAnalyticsClient({
                         hover: { sizeOffset: 2 },
                       },
                       legend: { show: false },
-                      theme: { mode: "light" as const },
+                      annotations: {
+                        xaxis: [
+                          ...(periodBoundaryLabel
+                            ? [
+                                {
+                                  x: periodBoundaryLabel,
+                                  borderColor: "#cbd5e1",
+                                  strokeDashArray: 4,
+                                  label: {
+                                    text: "Selected period",
+                                    orientation: "horizontal" as const,
+                                    borderWidth: 0,
+                                    style: {
+                                      fontSize: "10px",
+                                      fontFamily:
+                                        "var(--font-libre-franklin), sans-serif",
+                                      color: "#64748b",
+                                      background: "transparent",
+                                      padding: {
+                                        left: 4,
+                                        right: 4,
+                                        top: 2,
+                                        bottom: 2,
+                                      },
+                                    },
+                                  },
+                                },
+                              ]
+                            : []),
+                        ],
+                      },
+                      theme: { mode: chartThemeMode },
                     }}
                     series={[
                       {
