@@ -119,7 +119,7 @@ export async function getEngagementSummary(
     `,
     prisma.$queryRaw<Array<{ month: string; activeVolunteers: bigint }>>`
       SELECT
-        to_char(date_trunc('month', sh."end"), 'YYYY-MM') as month,
+        to_char(date_trunc('week', sh."end"), 'YYYY-MM-DD') as month,
         COUNT(DISTINCT sg."userId")::bigint as "activeVolunteers"
       FROM "Signup" sg
       JOIN "Shift" sh ON sh.id = sg."shiftId"
@@ -127,7 +127,7 @@ export async function getEngagementSummary(
         AND sh."end" < ${now}
         AND sh."end" >= ${trendStart}
         ${trendLocationCond}
-      GROUP BY date_trunc('month', sh."end")
+      GROUP BY date_trunc('week', sh."end")
       ORDER BY month
     `,
   ]);
@@ -147,15 +147,21 @@ export async function getEngagementSummary(
       ? Math.round((retainedCount / priorActiveCount) * 100)
       : 0;
 
-  // Fill in monthly trend with 24 months (including months with 0 activity)
+  // Fill in weekly trend with 104 weeks (including weeks with 0 activity)
   const trendMap = new Map(
     trendResult.map((r) => [r.month, Number(r.activeVolunteers)])
   );
+  const currentMonday = new Date(now);
+  const dayOfWeek = currentMonday.getDay();
+  currentMonday.setDate(
+    currentMonday.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+  );
+  currentMonday.setHours(0, 0, 0, 0);
   const monthlyTrend = [];
-  for (let i = 23; i >= 0; i--) {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  for (let i = 103; i >= 0; i--) {
+    const d = new Date(currentMonday);
+    d.setDate(d.getDate() - i * 7);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     monthlyTrend.push({
       month: key,
       activeVolunteers: trendMap.get(key) || 0,

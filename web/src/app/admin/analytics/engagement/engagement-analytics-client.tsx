@@ -122,6 +122,7 @@ export function EngagementAnalyticsClient({
   const [isPending, startTransition] = useTransition();
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
+  const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as "dark" | "light";
 
   const handleApplyFilters = () => {
@@ -139,17 +140,52 @@ export function EngagementAnalyticsClient({
       100
   );
 
-  // Split 24-month trend into current year (last 12) and previous year (first 12)
-  const prevYearData = data.monthlyTrend.slice(0, 12);
-  const currYearData = data.monthlyTrend.slice(12);
-  const trendCategories = currYearData.map((t) => {
-    const [year, month] = t.month.split("-");
-    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString(
-      "en-NZ",
-      { month: "short", year: "2-digit" }
-    );
-  });
-  const hasPrevYearData = prevYearData.some((t) => t.activeVolunteers > 0);
+  // Weekly view: split 104 weeks into current (last 52) and previous (first 52)
+  const prevWeekData = data.monthlyTrend.slice(0, 52);
+  const currWeekData = data.monthlyTrend.slice(52);
+
+  // Monthly view: roll up weekly data into months
+  function rollUpToMonthly(
+    weekData: typeof data.monthlyTrend
+  ): Array<{ month: string; activeVolunteers: number }> {
+    const monthMap = new Map<string, Set<string>>();
+    // We need to track unique volunteer IDs per month, but we only have counts.
+    // Use max-per-week as a reasonable rollup (distinct volunteers active in any week).
+    const monthMaxMap = new Map<string, number>();
+    for (const w of weekData) {
+      const d = new Date(w.month + "T00:00:00");
+      const key = d.toLocaleDateString("en-NZ", {
+        month: "short",
+        year: "2-digit",
+      });
+      monthMaxMap.set(
+        key,
+        Math.max(monthMaxMap.get(key) || 0, w.activeVolunteers)
+      );
+    }
+    return Array.from(monthMaxMap.entries()).map(([month, val]) => ({
+      month,
+      activeVolunteers: val,
+    }));
+  }
+
+  const currMonthData = rollUpToMonthly(currWeekData);
+  const prevMonthData = rollUpToMonthly(prevWeekData);
+
+  // Pick data based on toggle
+  const isWeekly = trendView === "weekly";
+  const currTrendData = isWeekly ? currWeekData : currMonthData;
+  const prevTrendData = isWeekly ? prevWeekData : prevMonthData;
+  const trendCategories = isWeekly
+    ? currWeekData.map((t) => {
+        const d = new Date(t.month + "T00:00:00");
+        return d.toLocaleDateString("en-NZ", {
+          day: "numeric",
+          month: "short",
+        });
+      })
+    : currMonthData.map((t) => t.month);
+  const hasPrevYearData = prevTrendData.some((t) => t.activeVolunteers > 0);
 
   return (
     <div className="space-y-6">
@@ -468,17 +504,41 @@ export function EngagementAnalyticsClient({
             </Card>
           </motion.div>
 
-          {/* Monthly Active Trend */}
+          {/* Active Volunteers Trend */}
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
-                  Monthly Active Volunteers
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    Active Volunteers
+                  </CardTitle>
+                  <div className="flex items-center rounded-md border text-sm">
+                    <button
+                      onClick={() => setTrendView("monthly")}
+                      className={`px-3 py-1 rounded-l-md transition-colors ${
+                        trendView === "monthly"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setTrendView("weekly")}
+                      className={`px-3 py-1 rounded-r-md transition-colors ${
+                        trendView === "weekly"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Weekly
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {currYearData.length > 0 ? (
+                {currTrendData.length > 0 ? (
                   <Chart
                     options={{
                       chart: {
@@ -488,7 +548,9 @@ export function EngagementAnalyticsClient({
                       },
                       xaxis: {
                         categories: trendCategories,
+                        tickAmount: 12,
                         labels: {
+                          hideOverlappingLabels: true,
                           style: {
                             fontFamily:
                               "var(--font-libre-franklin), sans-serif",
@@ -539,10 +601,10 @@ export function EngagementAnalyticsClient({
                         },
                       },
                       markers: {
-                        size: [4, 3],
+                        size: isWeekly ? 0 : [4, 3],
                         strokeWidth: 2,
                         strokeColors: "#fff",
-                        hover: { sizeOffset: 2 },
+                        hover: { sizeOffset: 4 },
                       },
                       legend: {
                         show: hasPrevYearData,
@@ -557,7 +619,7 @@ export function EngagementAnalyticsClient({
                     series={[
                       {
                         name: "This Year",
-                        data: currYearData.map(
+                        data: currTrendData.map(
                           (t) => t.activeVolunteers
                         ),
                       },
@@ -565,7 +627,7 @@ export function EngagementAnalyticsClient({
                         ? [
                             {
                               name: "Previous Year",
-                              data: prevYearData.map(
+                              data: prevTrendData.map(
                                 (t) => t.activeVolunteers
                               ),
                             },
