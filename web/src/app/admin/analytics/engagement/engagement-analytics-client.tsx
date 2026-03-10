@@ -482,7 +482,7 @@ export function EngagementAnalyticsClient({
                   <Chart
                     options={{
                       chart: {
-                        type: "line" as const,
+                        type: "area" as const,
                         toolbar: { show: false },
                         background: "transparent",
                       },
@@ -508,10 +508,10 @@ export function EngagementAnalyticsClient({
                         },
                         min: 0,
                       },
-                      colors: ["#3b82f6", "#94a3b8"],
+                      colors: ["#3b82f6", "#64748b"],
                       stroke: {
                         curve: "smooth" as const,
-                        width: [2.5, 1.5],
+                        width: [2.5, 2],
                         dashArray: [0, 5],
                       },
                       fill: {
@@ -557,7 +557,6 @@ export function EngagementAnalyticsClient({
                     series={[
                       {
                         name: "This Year",
-                        type: "area",
                         data: currYearData.map(
                           (t) => t.activeVolunteers
                         ),
@@ -566,7 +565,6 @@ export function EngagementAnalyticsClient({
                         ? [
                             {
                               name: "Previous Year",
-                              type: "line",
                               data: prevYearData.map(
                                 (t) => t.activeVolunteers
                               ),
