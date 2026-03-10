@@ -37,12 +37,14 @@ import { EngagementVolunteerTable } from "./engagement-volunteer-table";
 import type {
   EngagementSummaryData,
   EngagementVolunteersResult,
+  ShiftTypeEngagement,
 } from "@/lib/engagement";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface Props {
   data: EngagementSummaryData;
+  shiftTypeData: ShiftTypeEngagement[];
   months: string;
   location: string;
   locations: Array<{ value: string; label: string }>;
@@ -108,6 +110,7 @@ function EngagementRing({
 
 export function EngagementAnalyticsClient({
   data,
+  shiftTypeData,
   months: initialMonths,
   location: initialLocation,
   locations,
@@ -123,6 +126,7 @@ export function EngagementAnalyticsClient({
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
   const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
+  const [breakdownView, setBreakdownView] = useState<"overall" | "shiftType">("overall");
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as "dark" | "light";
 
   const handleApplyFilters = () => {
@@ -418,86 +422,294 @@ export function EngagementAnalyticsClient({
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Donut */}
+          {/* Engagement Breakdown */}
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold">
-                  Engagement Breakdown
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold">
+                    Engagement Breakdown
+                  </CardTitle>
+                  <div className="flex items-center rounded-md border text-sm">
+                    <button
+                      onClick={() => setBreakdownView("overall")}
+                      className={`px-3 py-1 rounded-l-md transition-colors ${
+                        breakdownView === "overall"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Overall
+                    </button>
+                    <button
+                      onClick={() => setBreakdownView("shiftType")}
+                      className={`px-3 py-1 rounded-r-md transition-colors ${
+                        breakdownView === "shiftType"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      By Shift Type
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {data.breakdown.some((b) => b.value > 0) ? (
-                  <Chart
-                    options={{
-                      chart: {
-                        type: "donut" as const,
-                        background: "transparent",
-                      },
-                      labels: data.breakdown.map((b) => b.label),
-                      colors: data.breakdown.map((b) => b.color),
-                      legend: {
-                        position: "bottom" as const,
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                        fontSize: "12px",
-                        markers: { size: 6, offsetX: -2 },
-                        itemMargin: { horizontal: 8, vertical: 4 },
-                      },
-                      dataLabels: {
-                        enabled: true,
-                        formatter: function (val: number) {
-                          return Math.round(val) + "%";
-                        },
-                        style: {
-                          fontSize: "11px",
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
-                          fontWeight: 600,
-                        },
-                        dropShadow: { enabled: false },
-                      },
-                      plotOptions: {
-                        pie: {
-                          donut: {
-                            size: "68%",
-                            labels: {
-                              show: true,
-                              name: {
-                                fontSize: "13px",
-                                fontFamily:
-                                  "var(--font-libre-franklin), sans-serif",
-                                fontWeight: 500,
-                                offsetY: -4,
-                              },
-                              value: {
-                                fontSize: "22px",
-                                fontFamily:
-                                  "var(--font-libre-franklin), sans-serif",
-                                fontWeight: 700,
-                                offsetY: 4,
-                              },
-                              total: {
-                                show: true,
-                                label: "Total",
-                                fontFamily:
-                                  "var(--font-libre-franklin), sans-serif",
-                                fontSize: "13px",
-                                fontWeight: 500,
+                {breakdownView === "overall" ? (
+                  data.breakdown.some((b) => b.value > 0) ? (
+                    <div>
+                      <Chart
+                        options={{
+                          chart: {
+                            type: "donut" as const,
+                            background: "transparent",
+                          },
+                          labels: data.breakdown.map((b) => b.label),
+                          colors: data.breakdown.map((b) => b.color),
+                          legend: {
+                            position: "bottom" as const,
+                            fontFamily: "var(--font-libre-franklin), sans-serif",
+                            fontSize: "12px",
+                            markers: { size: 6, offsetX: -2 },
+                            itemMargin: { horizontal: 8, vertical: 4 },
+                          },
+                          dataLabels: {
+                            enabled: true,
+                            formatter: function (val: number) {
+                              return Math.round(val) + "%";
+                            },
+                            style: {
+                              fontSize: "11px",
+                              fontFamily:
+                                "var(--font-libre-franklin), sans-serif",
+                              fontWeight: 600,
+                            },
+                            dropShadow: { enabled: false },
+                          },
+                          plotOptions: {
+                            pie: {
+                              donut: {
+                                size: "68%",
+                                labels: {
+                                  show: true,
+                                  name: {
+                                    fontSize: "13px",
+                                    fontFamily:
+                                      "var(--font-libre-franklin), sans-serif",
+                                    fontWeight: 500,
+                                    offsetY: -4,
+                                  },
+                                  value: {
+                                    fontSize: "22px",
+                                    fontFamily:
+                                      "var(--font-libre-franklin), sans-serif",
+                                    fontWeight: 700,
+                                    offsetY: 4,
+                                  },
+                                  total: {
+                                    show: true,
+                                    label: "Total",
+                                    fontFamily:
+                                      "var(--font-libre-franklin), sans-serif",
+                                    fontSize: "13px",
+                                    fontWeight: 500,
+                                  },
+                                },
                               },
                             },
                           },
+                          stroke: { width: 2, colors: ["var(--card)"] },
+                          theme: { mode: chartThemeMode },
+                        }}
+                        series={data.breakdown.map((b) => b.value)}
+                        type="donut"
+                        height={280}
+                      />
+                      {data.breakdown.some((b) => b.prevValue > 0) && (
+                        <div className="grid grid-cols-4 gap-2 mt-2 pt-3 border-t text-center">
+                          {data.breakdown.map((b) => {
+                            const diff = b.value - b.prevValue;
+                            return (
+                              <div key={b.label} className="text-xs">
+                                <p className="text-muted-foreground truncate">
+                                  {b.label}
+                                </p>
+                                <p className="font-semibold">{b.value}</p>
+                                {b.prevValue > 0 && (
+                                  <p
+                                    className={
+                                      b.label === "Inactive" || b.label === "Never Volunteered"
+                                        ? diff > 0
+                                          ? "text-red-500"
+                                          : diff < 0
+                                            ? "text-emerald-500"
+                                            : "text-muted-foreground"
+                                        : diff > 0
+                                          ? "text-emerald-500"
+                                          : diff < 0
+                                            ? "text-red-500"
+                                            : "text-muted-foreground"
+                                    }
+                                  >
+                                    {diff > 0 ? "+" : ""}
+                                    {diff} vs prior
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
+                      No data available
+                    </div>
+                  )
+                ) : shiftTypeData.length > 0 ? (
+                  <Chart
+                    options={{
+                      chart: {
+                        type: "bar" as const,
+                        stacked: true,
+                        toolbar: { show: false },
+                        background: "transparent",
+                      },
+                      plotOptions: {
+                        bar: {
+                          horizontal: true,
+                          borderRadius: 4,
+                          borderRadiusApplication: "end" as const,
+                          barHeight: "60%",
                         },
                       },
-                      stroke: { width: 2, colors: ["var(--card)"] },
+                      xaxis: {
+                        categories: shiftTypeData.map((s) => s.shiftTypeName),
+                        labels: {
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "11px",
+                          },
+                        },
+                        title: {
+                          text: "Volunteers",
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "11px",
+                            fontWeight: 400,
+                          },
+                        },
+                      },
+                      yaxis: {
+                        labels: {
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "12px",
+                          },
+                        },
+                      },
+                      colors: ["#10b981", "#3b82f6"],
+                      dataLabels: {
+                        enabled: true,
+                        formatter: function (val: number) {
+                          return val > 0 ? String(val) : "";
+                        },
+                        style: {
+                          fontFamily:
+                            "var(--font-libre-franklin), sans-serif",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                        },
+                      },
+                      grid: {
+                        borderColor: "#e5e7eb",
+                        strokeDashArray: 4,
+                        yaxis: { lines: { show: false } },
+                      },
+                      tooltip: {
+                        shared: true,
+                        intersect: false,
+                        custom: function ({
+                          dataPointIndex,
+                        }: {
+                          dataPointIndex: number;
+                        }) {
+                          const st = shiftTypeData[dataPointIndex];
+                          if (!st) return "";
+                          const currTotal = st.highlyActive + st.active;
+                          const diff = currTotal - st.prevTotal;
+                          const diffLabel =
+                            st.prevTotal > 0
+                              ? diff > 0
+                                ? `<span style="color:#10b981">+${diff} vs prior</span>`
+                                : diff < 0
+                                  ? `<span style="color:#ef4444">${diff} vs prior</span>`
+                                  : `<span style="color:#64748b">no change</span>`
+                              : "";
+                          return `<div style="padding:8px 12px;font-size:12px;line-height:1.6">
+                            <b>${st.shiftTypeName}</b><br/>
+                            <span style="color:#10b981">\u25CF</span> Highly Active: ${st.highlyActive}<br/>
+                            <span style="color:#3b82f6">\u25CF</span> Active: ${st.active}<br/>
+                            <b>Total: ${currTotal}</b>
+                            ${st.prevTotal > 0 ? `<br/>Prior period: ${st.prevTotal} ${diffLabel}` : ""}
+                          </div>`;
+                        },
+                      },
+                      legend: {
+                        position: "top" as const,
+                        fontSize: "12px",
+                        fontFamily:
+                          "var(--font-libre-franklin), sans-serif",
+                        markers: { size: 6, offsetX: -2 },
+                      },
+                      annotations: {
+                        points: shiftTypeData
+                          .filter((s) => s.prevTotal > 0)
+                          .map((s) => ({
+                            x: s.prevTotal,
+                            y: s.shiftTypeName as unknown as number,
+                            marker: {
+                              size: 5,
+                              fillColor: "#64748b",
+                              strokeColor: "#fff",
+                              strokeWidth: 2,
+                              shape: "circle" as const,
+                            },
+                            label: {
+                              text: "Prior: " + s.prevTotal,
+                              borderWidth: 0,
+                              style: {
+                                fontSize: "9px",
+                                fontFamily:
+                                  "var(--font-libre-franklin), sans-serif",
+                                color: "#64748b",
+                                background: "transparent",
+                                padding: { left: 4, right: 4, top: 1, bottom: 1 },
+                              },
+                            },
+                          })),
+                      },
                       theme: { mode: chartThemeMode },
                     }}
-                    series={data.breakdown.map((b) => b.value)}
-                    type="donut"
-                    height={320}
+                    series={[
+                      {
+                        name: "Highly Active",
+                        data: shiftTypeData.map((s) => s.highlyActive),
+                      },
+                      {
+                        name: "Active",
+                        data: shiftTypeData.map((s) => s.active),
+                      },
+                    ]}
+                    type="bar"
+                    height={Math.max(320, shiftTypeData.length * 60)}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                    No data available
+                    No shift type data available
                   </div>
                 )}
               </CardContent>

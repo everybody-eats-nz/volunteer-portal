@@ -5,7 +5,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { EngagementAnalyticsClient } from "./engagement-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
-import { getEngagementSummary, getEngagementVolunteers } from "@/lib/engagement";
+import { getEngagementSummary, getEngagementVolunteers, getEngagementByShiftType } from "@/lib/engagement";
 
 export default async function EngagementAnalyticsPage({
   searchParams,
@@ -37,8 +37,9 @@ export default async function EngagementAnalyticsPage({
   const tableStatus = (params.status as string) || "";
   const tableSearch = (params.search as string) || "";
 
-  const [data, volunteersData] = await Promise.all([
+  const [data, shiftTypeData, volunteersData] = await Promise.all([
     getEngagementSummary(parseInt(months, 10), location),
+    getEngagementByShiftType(parseInt(months, 10), location),
     getEngagementVolunteers({
       months: parseInt(months, 10),
       location,
@@ -64,6 +65,7 @@ export default async function EngagementAnalyticsPage({
       <PageContainer testid="engagement-analytics-page">
         <EngagementAnalyticsClient
           data={data}
+          shiftTypeData={shiftTypeData}
           months={months}
           location={location}
           locations={locationOptions}

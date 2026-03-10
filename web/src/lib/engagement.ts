@@ -39,6 +39,7 @@ export interface EngagementSummaryData {
   breakdown: Array<{
     label: string;
     value: number;
+    prevValue: number;
     color: string;
   }>;
 }
@@ -84,6 +85,10 @@ export async function getEngagementSummary(
         priorActiveCount: bigint;
         retainedCount: bigint;
         newInPeriodCount: bigint;
+        prevHighlyActiveCount: bigint;
+        prevActiveCount: bigint;
+        prevInactiveCount: bigint;
+        prevNeverCount: bigint;
       }>
     >`
       WITH volunteer_stats AS (
@@ -92,6 +97,7 @@ export async function getEngagementSummary(
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now}), 0) as all_completed,
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond}), 0) as total_shifts,
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}), 0) as shifts_in_period,
+          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond}), 0) as shifts_in_prior,
           MIN(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as first_shift_date,
           BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond}) as in_prior_period,
           BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}) as in_current_period,
@@ -114,7 +120,11 @@ export async function getEngagementSummary(
         COUNT(*) FILTER (WHERE ${neverCond})::bigint as "neverVolunteeredCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE)::bigint as "priorActiveCount",
         COUNT(*) FILTER (WHERE in_prior_period IS TRUE AND in_current_period IS TRUE)::bigint as "retainedCount",
-        COUNT(*) FILTER (WHERE shifts_in_period > 0 AND first_shift_date >= ${periodStart})::bigint as "newInPeriodCount"
+        COUNT(*) FILTER (WHERE shifts_in_period > 0 AND first_shift_date >= ${periodStart})::bigint as "newInPeriodCount",
+        COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_prior::float / ${safeMonths} >= 2)::bigint as "prevHighlyActiveCount",
+        COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_prior > 0 AND shifts_in_prior::float / ${safeMonths} < 2)::bigint as "prevActiveCount",
+        COUNT(*) FILTER (WHERE total_shifts > 0 AND shifts_in_prior = 0)::bigint as "prevInactiveCount",
+        COUNT(*) FILTER (WHERE ${neverCond})::bigint as "prevNeverCount"
       FROM volunteer_stats
     `,
     prisma.$queryRaw<Array<{ month: string; activeVolunteers: bigint }>>`
@@ -141,6 +151,10 @@ export async function getEngagementSummary(
   const retainedCount = Number(summary?.retainedCount || 0);
   const newInPeriodCount = Number(summary?.newInPeriodCount || 0);
   const totalVolunteers = Number(summary?.totalVolunteers || 0);
+  const prevHighlyActiveCount = Number(summary?.prevHighlyActiveCount || 0);
+  const prevActiveCount = Number(summary?.prevActiveCount || 0);
+  const prevInactiveCount = Number(summary?.prevInactiveCount || 0);
+  const prevNeverCount = Number(summary?.prevNeverCount || 0);
 
   const retentionRate =
     priorActiveCount > 0
@@ -180,16 +194,83 @@ export async function getEngagementSummary(
     },
     monthlyTrend,
     breakdown: [
-      { label: "Highly Active", value: highlyActiveCount, color: "#10b981" },
-      { label: "Active", value: activeCount, color: "#3b82f6" },
-      { label: "Inactive", value: inactiveCount, color: "#f59e0b" },
+      { label: "Highly Active", value: highlyActiveCount, prevValue: prevHighlyActiveCount, color: "#10b981" },
+      { label: "Active", value: activeCount, prevValue: prevActiveCount, color: "#3b82f6" },
+      { label: "Inactive", value: inactiveCount, prevValue: prevInactiveCount, color: "#f59e0b" },
       {
         label: "Never Volunteered",
         value: neverVolunteeredCount,
+        prevValue: prevNeverCount,
         color: "#ef4444",
       },
     ],
   };
+}
+
+// --- Shift type breakdown ---
+
+export interface ShiftTypeEngagement {
+  shiftTypeName: string;
+  highlyActive: number;
+  active: number;
+  prevTotal: number;
+}
+
+export async function getEngagementByShiftType(
+  months: number,
+  location: string | null
+): Promise<ShiftTypeEngagement[]> {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setMonth(periodStart.getMonth() - months);
+  const priorStart = new Date(periodStart);
+  priorStart.setMonth(priorStart.getMonth() - months);
+  const safeMonths = Math.max(months, 1);
+
+  const isLocationFiltered = !!location && location !== "all";
+  const locationCond = isLocationFiltered
+    ? Prisma.sql`AND sh.location = ${location}`
+    : Prisma.empty;
+
+  const result = await prisma.$queryRaw<
+    Array<{
+      shiftTypeName: string;
+      highlyActive: bigint;
+      active: bigint;
+      prevTotal: bigint;
+    }>
+  >`
+    WITH per_volunteer_type AS (
+      SELECT
+        st.name as shift_type_name,
+        sg."userId",
+        COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now}) as shifts_in_period,
+        COUNT(sg.id) FILTER (WHERE sh."end" >= ${priorStart} AND sh."end" < ${periodStart}) as shifts_in_prior
+      FROM "Signup" sg
+      JOIN "Shift" sh ON sh.id = sg."shiftId"
+      JOIN "ShiftType" st ON st.id = sh."shiftTypeId"
+      WHERE sg.status = 'CONFIRMED'
+        AND sh."end" >= ${priorStart}
+        AND sh."end" < ${now}
+        ${locationCond}
+      GROUP BY st.name, sg."userId"
+    )
+    SELECT
+      shift_type_name as "shiftTypeName",
+      COUNT(*) FILTER (WHERE shifts_in_period::float / ${safeMonths} >= 2)::bigint as "highlyActive",
+      COUNT(*) FILTER (WHERE shifts_in_period > 0 AND shifts_in_period::float / ${safeMonths} < 2)::bigint as "active",
+      COUNT(*) FILTER (WHERE shifts_in_prior > 0)::bigint as "prevTotal"
+    FROM per_volunteer_type
+    GROUP BY shift_type_name
+    ORDER BY (COUNT(*) FILTER (WHERE shifts_in_period > 0)) DESC
+  `;
+
+  return result.map((r) => ({
+    shiftTypeName: r.shiftTypeName,
+    highlyActive: Number(r.highlyActive),
+    active: Number(r.active),
+    prevTotal: Number(r.prevTotal),
+  }));
 }
 
 // --- Volunteer table ---
