@@ -99,7 +99,7 @@ export function AdminDashboardQuickActions() {
                     <action.icon className="h-4 w-4 shrink-0" />
                     <span className="font-medium text-sm">{action.label}</span>
                   </div>
-                  <span className="text-xs opacity-70 font-normal pl-6">
+                  <span className="text-xs opacity-70 font-normal pl-6 hidden sm:inline">
                     {action.description}
                   </span>
                 </Link>
