@@ -26,6 +26,7 @@ import {
   UserPlus,
   Activity,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -37,6 +38,7 @@ import { EngagementVolunteerTable } from "./engagement-volunteer-table";
 import type {
   EngagementSummaryData,
   EngagementVolunteersResult,
+  RetentionHeatmapData,
   ShiftTypeEngagement,
 } from "@/lib/engagement";
 
@@ -45,6 +47,7 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 interface Props {
   data: EngagementSummaryData;
   shiftTypeData: ShiftTypeEngagement[];
+  retentionData: RetentionHeatmapData;
   months: string;
   location: string;
   locations: Array<{ value: string; label: string }>;
@@ -111,6 +114,7 @@ function EngagementRing({
 export function EngagementAnalyticsClient({
   data,
   shiftTypeData,
+  retentionData,
   months: initialMonths,
   location: initialLocation,
   locations,
@@ -463,6 +467,7 @@ export function EngagementAnalyticsClient({
                           chart: {
                             type: "donut" as const,
                             background: "transparent",
+                            title: { text: "" },
                           },
                           labels: data.breakdown.map((b) => b.label),
                           colors: data.breakdown.map((b) => b.color),
@@ -572,6 +577,7 @@ export function EngagementAnalyticsClient({
                       chart: {
                         type: "bar" as const,
                         stacked: true,
+                        title: { text: "" },
                         toolbar: { show: false },
                         background: "transparent",
                       },
@@ -756,6 +762,7 @@ export function EngagementAnalyticsClient({
                       chart: {
                         type: "area" as const,
                         toolbar: { show: false },
+                        title: { text: "" },
                         background: "transparent",
                       },
                       xaxis: {
@@ -858,6 +865,172 @@ export function EngagementAnalyticsClient({
             </Card>
           </motion.div>
         </div>
+
+        {/* Retention Heatmap */}
+        {retentionData.cohorts.length > 0 && (
+          <motion.div variants={staggerItem}>
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-emerald-500" />
+                    Monthly Retention
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Last 12 cohorts
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Chart
+                  options={{
+                    chart: {
+                      type: "heatmap" as const,
+                      toolbar: { show: false },
+                      title: { text: "" },
+                      background: "transparent",
+                    },
+                    plotOptions: {
+                      heatmap: {
+                        radius: 4,
+                        enableShades: false,
+                        colorScale: {
+                          ranges: [
+                            {
+                              from: -1,
+                              to: -1,
+                              color: resolvedTheme === "dark" ? "#1e293b" : "#f1f5f9",
+                              name: "N/A",
+                            },
+                            {
+                              from: 0,
+                              to: 0,
+                              color: resolvedTheme === "dark" ? "#1e293b" : "#f1f5f9",
+                              name: "0%",
+                            },
+                            {
+                              from: 1,
+                              to: 20,
+                              color: "#ef4444",
+                              name: "1–20%",
+                            },
+                            {
+                              from: 21,
+                              to: 40,
+                              color: "#f97316",
+                              name: "21–40%",
+                            },
+                            {
+                              from: 41,
+                              to: 60,
+                              color: "#eab308",
+                              name: "41–60%",
+                            },
+                            {
+                              from: 61,
+                              to: 80,
+                              color: "#22c55e",
+                              name: "61–80%",
+                            },
+                            {
+                              from: 81,
+                              to: 100,
+                              color: "#10b981",
+                              name: "81–100%",
+                            },
+                          ],
+                        },
+                      },
+                    },
+                    dataLabels: {
+                      enabled: true,
+                      formatter: function (val: number) {
+                        if (val < 0) return "";
+                        return val + "%";
+                      },
+                      style: {
+                        fontSize: "11px",
+                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontWeight: 500,
+                        colors: [resolvedTheme === "dark" ? "#e2e8f0" : "#1e293b"],
+                      },
+                    },
+                    xaxis: {
+                      position: "top" as const,
+                      labels: {
+                        style: {
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontSize: "11px",
+                        },
+                      },
+                      axisBorder: { show: false },
+                      axisTicks: { show: false },
+                      tooltip: { enabled: false },
+                    },
+                    yaxis: {
+                      labels: {
+                        style: {
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontSize: "11px",
+                        },
+                      },
+                    },
+                    grid: { show: false },
+                    stroke: {
+                      width: 2,
+                      colors: [resolvedTheme === "dark" ? "#0f172a" : "#ffffff"],
+                    },
+                    tooltip: {
+                      custom: function ({
+                        seriesIndex,
+                        dataPointIndex,
+                      }: {
+                        seriesIndex: number;
+                        dataPointIndex: number;
+                      }) {
+                        const cohort =
+                          retentionData.cohorts[
+                            retentionData.cohorts.length - 1 - seriesIndex
+                          ];
+                        if (!cohort) return "";
+                        const val = cohort.retention[dataPointIndex];
+                        if (val == null || val < 0) {
+                          return `<div style="padding:8px 12px;font-size:12px">
+                            <b>${cohort.label}</b> cohort (${cohort.size} volunteers)<br/>
+                            Month ${dataPointIndex}: No data yet
+                          </div>`;
+                        }
+                        const count = Math.round((val / 100) * cohort.size);
+                        return `<div style="padding:8px 12px;font-size:12px;line-height:1.6">
+                          <b>${cohort.label}</b> cohort (${cohort.size} volunteers)<br/>
+                          Month ${dataPointIndex}: <b>${val}%</b> retained (${count} volunteers)
+                        </div>`;
+                      },
+                      x: { show: false },
+                    },
+                    legend: { show: false },
+                    theme: { mode: chartThemeMode },
+                  }}
+                  series={retentionData.cohorts
+                    .slice()
+                    .reverse()
+                    .map((cohort) => ({
+                      name: `${cohort.label} (${cohort.size})`,
+                      data: Array.from({ length: 12 }, (_, i) => ({
+                        x: i === 0 ? "Start" : `Month ${i}`,
+                        y:
+                          cohort.retention[i] != null
+                            ? cohort.retention[i]!
+                            : -1,
+                      })),
+                    }))}
+                  type="heatmap"
+                  height={Math.max(280, retentionData.cohorts.length * 36)}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Volunteer Table */}
         <motion.div variants={staggerItem}>

@@ -5,7 +5,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { EngagementAnalyticsClient } from "./engagement-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
-import { getEngagementSummary, getEngagementVolunteers, getEngagementByShiftType } from "@/lib/engagement";
+import { getEngagementSummary, getEngagementVolunteers, getEngagementByShiftType, getRetentionHeatmap } from "@/lib/engagement";
 
 export default async function EngagementAnalyticsPage({
   searchParams,
@@ -37,7 +37,7 @@ export default async function EngagementAnalyticsPage({
   const tableStatus = (params.status as string) || "";
   const tableSearch = (params.search as string) || "";
 
-  const [data, shiftTypeData, volunteersData] = await Promise.all([
+  const [data, shiftTypeData, volunteersData, retentionData] = await Promise.all([
     getEngagementSummary(parseInt(months, 10), location),
     getEngagementByShiftType(parseInt(months, 10), location),
     getEngagementVolunteers({
@@ -50,6 +50,7 @@ export default async function EngagementAnalyticsPage({
       sortOrder: tableSortOrder,
       search: tableSearch,
     }),
+    getRetentionHeatmap(location),
   ]);
 
   const locationOptions = LOCATIONS.map((loc) => ({
@@ -66,6 +67,7 @@ export default async function EngagementAnalyticsPage({
         <EngagementAnalyticsClient
           data={data}
           shiftTypeData={shiftTypeData}
+          retentionData={retentionData}
           months={months}
           location={location}
           locations={locationOptions}

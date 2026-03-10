@@ -273,6 +273,141 @@ export async function getEngagementByShiftType(
   }));
 }
 
+// --- Retention heatmap ---
+
+export interface RetentionHeatmapData {
+  cohorts: Array<{
+    label: string;
+    size: number;
+    retention: (number | null)[];
+  }>;
+  maxMonths: number;
+}
+
+export async function getRetentionHeatmap(
+  location: string | null
+): Promise<RetentionHeatmapData> {
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setMonth(cutoff.getMonth() - 12);
+  // Align to 1st of that month
+  cutoff.setDate(1);
+  cutoff.setHours(0, 0, 0, 0);
+
+  const isLocationFiltered = !!location && location !== "all";
+  const locationCond = isLocationFiltered
+    ? Prisma.sql`AND sh.location = ${location}`
+    : Prisma.empty;
+
+  const result = await prisma.$queryRaw<
+    Array<{
+      cohortMonth: Date;
+      cohortSize: bigint;
+      monthsSince: number;
+      activeCount: bigint;
+    }>
+  >`
+    WITH volunteer_cohorts AS (
+      SELECT
+        sg."userId",
+        date_trunc('month', MIN(sh."end")) AS cohort_month
+      FROM "Signup" sg
+      JOIN "Shift" sh ON sh.id = sg."shiftId"
+      WHERE sg.status = 'CONFIRMED'
+        AND sh."end" < ${now}
+        ${locationCond}
+      GROUP BY sg."userId"
+    ),
+    cohort_sizes AS (
+      SELECT cohort_month, COUNT(*) AS cohort_size
+      FROM volunteer_cohorts
+      GROUP BY cohort_month
+    ),
+    monthly_activity AS (
+      SELECT DISTINCT
+        sg."userId",
+        date_trunc('month', sh."end") AS activity_month
+      FROM "Signup" sg
+      JOIN "Shift" sh ON sh.id = sg."shiftId"
+      WHERE sg.status = 'CONFIRMED'
+        AND sh."end" < ${now}
+        ${locationCond}
+    ),
+    retention AS (
+      SELECT
+        vc.cohort_month,
+        cs.cohort_size,
+        (EXTRACT(YEAR FROM age(ma.activity_month, vc.cohort_month)) * 12 +
+         EXTRACT(MONTH FROM age(ma.activity_month, vc.cohort_month)))::int AS months_since,
+        COUNT(DISTINCT vc."userId") AS active_count
+      FROM volunteer_cohorts vc
+      JOIN monthly_activity ma ON ma."userId" = vc."userId"
+      JOIN cohort_sizes cs ON cs.cohort_month = vc.cohort_month
+      WHERE ma.activity_month >= vc.cohort_month
+      GROUP BY vc.cohort_month, cs.cohort_size, months_since
+    )
+    SELECT
+      cohort_month AS "cohortMonth",
+      cohort_size::bigint AS "cohortSize",
+      months_since::int AS "monthsSince",
+      active_count::bigint AS "activeCount"
+    FROM retention
+    WHERE cohort_month >= ${cutoff}
+      AND months_since >= 0
+      AND months_since <= 11
+    ORDER BY cohort_month, months_since
+  `;
+
+  const nowMonthIndex = now.getFullYear() * 12 + now.getMonth();
+  const cohortMap = new Map<
+    string,
+    { label: string; size: number; monthIndex: number; retentionMap: Map<number, number> }
+  >();
+
+  for (const row of result) {
+    const date = new Date(row.cohortMonth);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const label = date.toLocaleDateString("en-NZ", {
+      month: "short",
+      year: "2-digit",
+    });
+
+    if (!cohortMap.has(key)) {
+      cohortMap.set(key, {
+        label,
+        size: Number(row.cohortSize),
+        monthIndex: date.getFullYear() * 12 + date.getMonth(),
+        retentionMap: new Map(),
+      });
+    }
+
+    const cohort = cohortMap.get(key)!;
+    const pct = Math.round(
+      (Number(row.activeCount) / cohort.size) * 100
+    );
+    cohort.retentionMap.set(row.monthsSince, pct);
+  }
+
+  let maxMonths = 0;
+  const cohorts = Array.from(cohortMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, cohort]) => {
+      const maxOffset = Math.min(nowMonthIndex - cohort.monthIndex, 11);
+      const retention: (number | null)[] = [];
+      for (let i = 0; i <= 11; i++) {
+        if (i > maxOffset) {
+          retention.push(null);
+        } else {
+          retention.push(cohort.retentionMap.get(i) || 0);
+        }
+      }
+      if (maxOffset + 1 > maxMonths) maxMonths = maxOffset + 1;
+      return { label: cohort.label, size: cohort.size, retention };
+    });
+
+  return { cohorts, maxMonths };
+}
+
 // --- Volunteer table ---
 
 export interface EngagementVolunteerRow {
