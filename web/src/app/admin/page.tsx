@@ -557,7 +557,7 @@ export default async function AdminDashboardPage({
         />
 
         {/* Attention Required + This Week */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <AdminDashboardAttention
             pendingSignups={pendingSignups}
             lowFillShifts={lowFillShifts}
@@ -573,7 +573,7 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Upcoming Shifts + Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <AdminDashboardUpcomingShifts days={upcomingShiftDays} />
           <AdminDashboardQuickActions />
         </div>
