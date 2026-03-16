@@ -3,12 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { formatInNZT, getStartOfDayUTC, parseISOInNZT, toUTC } from "@/lib/timezone";
+import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
 
 const applyRegularsSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dryRun: z.boolean().optional().default(false),
   location: z.string().min(1).optional(),
+  regularVolunteerIds: z.array(z.string()).optional(),
 });
 
 // POST /api/admin/regulars/apply - Apply regular volunteers to existing shifts in a date range
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find all shifts in the date range
+    // Find all shifts in the date range (optionally filtered by location)
     const shifts = await prisma.shift.findMany({
       where: {
         start: { gte: start, lt: endOfRange },
@@ -47,44 +49,77 @@ export async function POST(req: NextRequest) {
 
     if (shifts.length === 0) {
       return NextResponse.json({
+        signupsToCreate: 0,
         signupsCreated: 0,
         shiftsProcessed: 0,
+        preview: { volunteers: [], locations: [] },
         message: "No shifts found in the selected date range",
       });
     }
 
-    // Build unique shift configurations (shiftTypeId, location, dayOfWeek)
-    const shiftConfigs = new Map<string, Set<string>>();
-    for (const shift of shifts) {
-      const dayOfWeek = formatInNZT(shift.start, "EEEE");
-      const key = `${shift.shiftTypeId}|${shift.location || ""}`;
-      if (!shiftConfigs.has(key)) {
-        shiftConfigs.set(key, new Set());
-      }
-      shiftConfigs.get(key)!.add(dayOfWeek);
-    }
+    // If specific regular volunteer IDs provided, use those directly.
+    // Otherwise, batch query by shift configurations.
+    let regularVolunteers: Array<{
+      id: string;
+      userId: string;
+      shiftTypeId: string;
+      location: string;
+      frequency: string;
+      availableDays: string[];
+      autoApprove: boolean;
+      createdAt: Date;
+      user: { firstName: string | null; lastName: string | null };
+    }>;
 
-    // Batch query all matching regular volunteers
-    const allRegularVolunteers = await Promise.all(
-      Array.from(shiftConfigs.entries()).map(([key, days]) => {
-        const [shiftTypeId, location] = key.split("|");
-        return prisma.regularVolunteer.findMany({
-          where: {
-            shiftTypeId,
-            ...(location && { location }),
-            isActive: true,
-            isPausedByUser: false,
-            availableDays: { hasSome: Array.from(days) },
-          },
-        });
-      })
-    );
-    const regularVolunteers = allRegularVolunteers.flat();
+    if (validated.regularVolunteerIds?.length) {
+      regularVolunteers = await prisma.regularVolunteer.findMany({
+        where: {
+          id: { in: validated.regularVolunteerIds },
+          isActive: true,
+          isPausedByUser: false,
+        },
+        include: {
+          user: { select: { firstName: true, lastName: true } },
+        },
+      });
+    } else {
+      // Build unique shift configurations (shiftTypeId, location, dayOfWeek)
+      const shiftConfigs = new Map<string, Set<string>>();
+      for (const shift of shifts) {
+        const dayOfWeek = formatInNZT(shift.start, "EEEE");
+        const key = `${shift.shiftTypeId}|${shift.location || ""}`;
+        if (!shiftConfigs.has(key)) {
+          shiftConfigs.set(key, new Set());
+        }
+        shiftConfigs.get(key)!.add(dayOfWeek);
+      }
+
+      const allRegularVolunteers = await Promise.all(
+        Array.from(shiftConfigs.entries()).map(([key, days]) => {
+          const [shiftTypeId, location] = key.split("|");
+          return prisma.regularVolunteer.findMany({
+            where: {
+              shiftTypeId,
+              ...(location && { location }),
+              isActive: true,
+              isPausedByUser: false,
+              availableDays: { hasSome: Array.from(days) },
+            },
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+            },
+          });
+        })
+      );
+      regularVolunteers = allRegularVolunteers.flat();
+    }
 
     if (regularVolunteers.length === 0) {
       return NextResponse.json({
+        signupsToCreate: 0,
         signupsCreated: 0,
         shiftsProcessed: shifts.length,
+        preview: { volunteers: [], locations: [] },
         message: "No matching regular volunteers found",
       });
     }
@@ -135,6 +170,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Process all shifts and build signup batches
+    // Track per-volunteer and per-location counts for preview
+    const volunteerSignupCounts = new Map<string, { name: string; count: number; regularId: string }>();
+    const locationCounts = new Map<string, number>();
+
     const allSignups: Array<{
       id: string;
       userId: string;
@@ -204,6 +243,19 @@ export async function POST(req: NextRequest) {
           signupId: signupId,
         });
 
+        // Track preview data
+        const volName = [regular.user.firstName, regular.user.lastName]
+          .filter(Boolean)
+          .join(" ") || regular.userId;
+        const existing = volunteerSignupCounts.get(regular.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          volunteerSignupCounts.set(regular.id, { name: volName, count: 1, regularId: regular.id });
+        }
+        const loc = shift.location || "General";
+        locationCounts.set(loc, (locationCounts.get(loc) || 0) + 1);
+
         // Track the new signup so we don't double-assign within this batch
         if (!existingByDate.has(regular.userId)) {
           existingByDate.set(regular.userId, new Set());
@@ -214,6 +266,29 @@ export async function POST(req: NextRequest) {
         }
         existingByShift.get(regular.userId)!.add(shift.id);
       }
+    }
+
+    // Build preview breakdown
+    const preview = {
+      volunteers: Array.from(volunteerSignupCounts.values())
+        .sort((a, b) => b.count - a.count)
+        .map(({ name, count, regularId }) => ({ name, signups: count, id: regularId })),
+      locations: Array.from(locationCounts.entries())
+        .sort(([, a], [, b]) => b - a)
+        .map(([location, signups]) => ({ location, signups })),
+    };
+
+    // If dry run, return preview without creating anything
+    if (validated.dryRun) {
+      return NextResponse.json({
+        signupsToCreate: allSignups.length,
+        shiftsProcessed: shifts.length,
+        preview,
+        message:
+          allSignups.length > 0
+            ? `Will create ${allSignups.length} signup${allSignups.length === 1 ? "" : "s"} across ${shifts.length} shift${shifts.length === 1 ? "" : "s"}`
+            : "All regular volunteers are already signed up for matching shifts",
+      });
     }
 
     // Create signups in batches
@@ -228,6 +303,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       signupsCreated: allSignups.length,
       shiftsProcessed: shifts.length,
+      preview,
       message:
         allSignups.length > 0
           ? `Created ${allSignups.length} signup${allSignups.length === 1 ? "" : "s"} across ${shifts.length} shift${shifts.length === 1 ? "" : "s"}`

@@ -96,6 +96,8 @@ export function RegularsTable({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [toggleId, setToggleId] = useState<string | null>(null);
   const [editRegular, setEditRegular] = useState<RegularVolunteer | null>(null);
+  const [applyRegular, setApplyRegular] = useState<RegularVolunteer | null>(null);
+  const [bulkApplyOpen, setBulkApplyOpen] = useState(false);
 
   // Group regulars by userId to know each user's other shift types
   const regularsByUserId = regulars.reduce((acc, regular) => {
@@ -215,10 +217,15 @@ export function RegularsTable({
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <ApplyRegularsDialog
-                locations={locations}
-                selectedLocation={selectedLocation}
-              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setBulkApplyOpen(true)}
+              >
+                <PlayIcon className="h-4 w-4" />
+                Apply Regulars to Shifts
+              </Button>
               <LocationFilterTabs
                 locations={locations}
                 selectedLocation={selectedLocation}
@@ -333,6 +340,13 @@ export function RegularsTable({
                           >
                             <EditIcon className="h-4 w-4 mr-2" />
                             Edit
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            onClick={() => setApplyRegular(regular)}
+                          >
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            Apply to Shifts
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
@@ -471,6 +485,23 @@ export function RegularsTable({
           otherShiftTypeIds={getOtherShiftTypeIds(editRegular)}
         />
       )}
+
+      {/* Bulk Apply Regulars Dialog */}
+      <ApplyRegularsDialog
+        open={bulkApplyOpen}
+        onOpenChange={setBulkApplyOpen}
+        selectedLocation={selectedLocation}
+      />
+
+      {/* Individual Apply to Shifts Dialog */}
+      <ApplyRegularsDialog
+        open={!!applyRegular}
+        onOpenChange={(open) => {
+          if (!open) setApplyRegular(null);
+        }}
+        selectedLocation={selectedLocation}
+        regularVolunteer={applyRegular}
+      />
     </>
   );
 }
