@@ -19,7 +19,7 @@ interface SiteFooterProps {
  * ```
  */
 export function SiteFooter({ session }: SiteFooterProps) {
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2026;
   const isAdmin = session?.user?.role === "ADMIN";
 
   return (

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
@@ -63,6 +64,8 @@ async function getShiftTypes() {
  * Collects comprehensive user profile information during signup
  */
 export default async function RegisterPage() {
+  await connection();
+
   const [locationOptions, shiftTypes] = await Promise.all([
     getLocationOptions(),
     getShiftTypes(),
