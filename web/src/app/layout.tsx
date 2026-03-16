@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Libre_Franklin, Fraunces } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { SiteHeaderClientWrapper } from "@/components/site-header-client-wrapper";
 import { SiteFooterWrapper } from "@/components/site-footer-wrapper";
@@ -91,11 +92,17 @@ export default function RootLayout({
       >
         <Providers>
           <ImpersonationBanner />
-          <SiteHeaderClientWrapper />
+          <Suspense>
+            <SiteHeaderClientWrapper />
+          </Suspense>
           <main className="min-h-screen">
-            <MainContentWrapper>{children}</MainContentWrapper>
+            <Suspense>
+              <MainContentWrapper>{children}</MainContentWrapper>
+            </Suspense>
           </main>
-          <SiteFooterWrapper />
+          <Suspense>
+            <SiteFooterWrapper />
+          </Suspense>
           <Toaster position="top-right" closeButton />
         </Providers>
         <BotProtectionClient />
