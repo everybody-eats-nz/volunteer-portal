@@ -352,9 +352,10 @@ export default async function AdminDashboardPage({
   for (const loc of weekLocationDefaults) {
     defaultMealsMap.set(loc.name, loc.defaultMealsServed);
   }
-  // Get unique date-location pairs from shifts this week
+  // Get unique date-location pairs from completed shifts this week
   const shiftDateLocations = new Map<string, string>();
   for (const shift of weekShiftDetails) {
+    if (new Date(shift.end) > now) continue; // Skip shifts that haven't finished
     const dateUTC = getStartOfDayUTC(shift.start);
     const location = shift.location || "";
     const key = `${dateUTC.toISOString()}-${location}`;
@@ -371,6 +372,7 @@ export default async function AdminDashboardPage({
     }
   }
   const weekVolunteerHours = weekShiftDetails.reduce((total, shift) => {
+    if (new Date(shift.end) > now) return total; // Skip shifts that haven't finished
     const hours =
       (new Date(shift.end).getTime() - new Date(shift.start).getTime()) /
       (1000 * 60 * 60);
