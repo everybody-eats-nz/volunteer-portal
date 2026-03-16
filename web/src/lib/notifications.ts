@@ -132,9 +132,11 @@ export async function markNotificationAsRead(
       },
     });
 
-    // Update unread count via Better-SSE
-    const unreadCount = await getUnreadNotificationCount(userId);
-    await updateUnreadCount(userId, unreadCount);
+    // Update unread count via Better-SSE (fire-and-forget to avoid blocking the response
+    // if the SSE writer hangs due to backpressure or stale connections)
+    getUnreadNotificationCount(userId)
+      .then((unreadCount) => updateUnreadCount(userId, unreadCount))
+      .catch((err) => console.error("Error sending SSE unread count update:", err));
 
     return notification;
   } catch (error) {
@@ -158,8 +160,11 @@ export async function markAllNotificationsAsRead(userId: string) {
       },
     });
 
-    // Update unread count via Better-SSE (should be 0 now)
-    await updateUnreadCount(userId, 0);
+    // Update unread count via Better-SSE (fire-and-forget to avoid blocking the response
+    // if the SSE writer hangs due to backpressure or stale connections)
+    updateUnreadCount(userId, 0).catch((err) =>
+      console.error("Error sending SSE unread count update:", err)
+    );
 
     return result;
   } catch (error) {

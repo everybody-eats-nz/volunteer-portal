@@ -1,9 +1,9 @@
-import { FileText } from "lucide-react";
 import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { ResourcesGrid } from "@/components/resources-grid";
 import { ResourcesSearch } from "@/components/resources-search";
 import { PageContainer } from "@/components/page-container";
+import { PageHeader } from "@/components/page-header";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -103,17 +103,10 @@ export default async function ResourcesPage({
   return (
     <PageContainer>
       <div className="space-y-8">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold tracking-tight">Resource Hub</h1>
-          </div>
-          <p className="text-lg text-muted-foreground">
-            Access training materials, policies, forms, guides, and other
-            helpful resources for volunteers.
-          </p>
-        </div>
+        <PageHeader
+          title="Resource Hub"
+          description="Access training materials, policies, forms, guides, and other helpful resources for volunteers."
+        />
 
         {/* Search and Filters */}
         <ResourcesSearch availableTags={uniqueTags} />

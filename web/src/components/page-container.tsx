@@ -30,7 +30,7 @@ export function PageContainer({
 }: PageContainerProps) {
   return (
     <MotionPageContainer
-      className={cn("space-y-8", className)}
+      className={cn("space-y-2", className)}
       animate={animate}
       testid={testid}
       {...props}

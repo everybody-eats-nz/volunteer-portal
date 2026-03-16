@@ -96,7 +96,7 @@ export async function DashboardStats({ userId }: DashboardStatsProps) {
           variant: "blue",
         },
         {
-          title: "This Month",
+          title: "Shifts This Month",
           value: monthlyShifts,
           iconType: "trendingUp",
           variant: "purple",

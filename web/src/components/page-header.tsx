@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { motion, Variants } from "motion/react";
+import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
   title: string;
@@ -38,7 +39,23 @@ const descriptionVariants: Variants = {
     y: 0,
     transition: {
       duration: 0.5,
-      delay: 0.1,
+      delay: 0.15,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
+  },
+};
+
+const dividerVariants: Variants = {
+  hidden: {
+    scaleX: 0,
+    opacity: 0,
+  },
+  visible: {
+    scaleX: 1,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      delay: 0.25,
       ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
     },
   },
@@ -70,14 +87,15 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <motion.div
-      className={`${className}`}
+      className={cn("mb-4", className)}
       initial={"hidden"}
       animate={"visible"}
     >
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div className="flex-1 min-w-0">
           <motion.h1
-            className="text-4xl sm:text-6xl italic font-bold bg-gradient-to-r from-primary to-primary-700 bg-clip-text text-transparent tracking-tighter"
+            className="text-3xl sm:text-5xl font-bold text-foreground tracking-tight"
+            style={{ fontVariationSettings: '"WONK" 1, "SOFT" 50' }}
             data-testid={dataTestId}
             variants={headerVariants}
           >
@@ -85,7 +103,7 @@ export function PageHeader({
           </motion.h1>
           {description && (
             <motion.p
-              className="text-lg text-muted-foreground mt-2"
+              className="text-base sm:text-lg text-muted-foreground mt-2 max-w-2xl leading-relaxed font-sans"
               data-testid={
                 dataTestId
                   ? `${dataTestId.replace("-heading", "")}-description`
@@ -98,10 +116,7 @@ export function PageHeader({
           )}
         </div>
         {actions && (
-          <motion.div
-            className="flex-shrink-0 sm:mt-1"
-            variants={actionsVariants}
-          >
+          <motion.div className="flex-shrink-0" variants={actionsVariants}>
             {actions}
           </motion.div>
         )}
@@ -115,6 +130,10 @@ export function PageHeader({
           {children}
         </motion.div>
       )}
+      <motion.div
+        className="h-px bg-linear-to-r from-border via-border/60 to-transparent mt-2 origin-left"
+        variants={dividerVariants}
+      />
     </motion.div>
   );
 }
