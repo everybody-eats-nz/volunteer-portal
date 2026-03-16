@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { formatInNZT } from "@/lib/timezone";
+import { formatInNZT, toNZT, toUTC, getStartOfDayUTC } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
@@ -64,14 +64,17 @@ export default async function AdminDashboardPage({
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Start of current week (Monday)
-  const startOfWeek = new Date(now);
-  const dayOfWeek = startOfWeek.getDay();
-  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  startOfWeek.setDate(startOfWeek.getDate() - daysFromMonday);
-  startOfWeek.setHours(0, 0, 0, 0);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
+  // Start of current week (Monday) in NZ timezone
+  const nowNZT = toNZT(now);
+  const dayOfWeekNZT = nowNZT.getDay();
+  const daysFromMondayNZT = dayOfWeekNZT === 0 ? 6 : dayOfWeekNZT - 1;
+  const startOfWeekNZT = toNZT(now);
+  startOfWeekNZT.setDate(startOfWeekNZT.getDate() - daysFromMondayNZT);
+  startOfWeekNZT.setHours(0, 0, 0, 0);
+  const startOfWeek = toUTC(startOfWeekNZT);
+  const endOfWeekNZT = toNZT(startOfWeek);
+  endOfWeekNZT.setDate(endOfWeekNZT.getDate() + 7);
+  const endOfWeek = toUTC(endOfWeekNZT);
 
   const locationFilter = selectedLocation
     ? { location: selectedLocation }
@@ -300,9 +303,8 @@ export default async function AdminDashboardPage({
           createdAt: { gte: startOfWeek, lt: endOfWeek },
         },
       }),
-      // Meals served this week
-      prisma.mealsServed.aggregate({
-        _sum: { mealsServed: true },
+      // Meals served this week (individual records for fallback logic)
+      prisma.mealsServed.findMany({
         where: {
           date: { gte: startOfWeek, lt: endOfWeek },
           ...(selectedLocation ? { location: selectedLocation } : {}),
@@ -317,9 +319,15 @@ export default async function AdminDashboardPage({
         select: {
           start: true,
           end: true,
+          location: true,
           placeholderCount: true,
           _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
         },
+      }),
+      // Location defaults for meals served fallback
+      prisma.location.findMany({
+        where: { isActive: true },
+        select: { name: true, defaultMealsServed: true },
       }),
     ]),
   ]);
@@ -329,10 +337,39 @@ export default async function AdminDashboardPage({
     weekShifts,
     weekSignups,
     weekNewUsers,
-    weekMealsAgg,
+    weekMealsRecords,
     weekShiftDetails,
+    weekLocationDefaults,
   ] = weeklyStats;
-  const weekMeals = weekMealsAgg._sum.mealsServed ?? 0;
+
+  // Calculate meals served with fallback to location defaults
+  const actualMealsMap = new Map<string, number>();
+  for (const record of weekMealsRecords) {
+    const key = `${record.date.toISOString()}-${record.location}`;
+    actualMealsMap.set(key, record.mealsServed);
+  }
+  const defaultMealsMap = new Map<string, number>();
+  for (const loc of weekLocationDefaults) {
+    defaultMealsMap.set(loc.name, loc.defaultMealsServed);
+  }
+  // Get unique date-location pairs from shifts this week
+  const shiftDateLocations = new Map<string, string>();
+  for (const shift of weekShiftDetails) {
+    const dateUTC = getStartOfDayUTC(shift.start);
+    const location = shift.location || "";
+    const key = `${dateUTC.toISOString()}-${location}`;
+    if (!shiftDateLocations.has(key)) {
+      shiftDateLocations.set(key, location);
+    }
+  }
+  let weekMeals = 0;
+  for (const [key, location] of shiftDateLocations) {
+    if (actualMealsMap.has(key)) {
+      weekMeals += actualMealsMap.get(key)!;
+    } else if (defaultMealsMap.has(location)) {
+      weekMeals += defaultMealsMap.get(location)!;
+    }
+  }
   const weekVolunteerHours = weekShiftDetails.reduce((total, shift) => {
     const hours =
       (new Date(shift.end).getTime() - new Date(shift.start).getTime()) /

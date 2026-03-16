@@ -22,21 +22,21 @@ interface AdminDashboardWeekSummaryProps {
 const stats = [
   {
     key: "shifts",
-    label: "Shifts",
+    label: "Shifts Scheduled",
     icon: CalendarDays,
     color: "text-blue-600 dark:text-blue-400",
     bg: "bg-blue-100 dark:bg-blue-900/50",
   },
   {
     key: "signups",
-    label: "Volunteers",
+    label: "Volunteer Signups",
     icon: Users,
     color: "text-green-600 dark:text-green-400",
     bg: "bg-green-100 dark:bg-green-900/50",
   },
   {
     key: "hours",
-    label: "Hours",
+    label: "Hours Volunteered",
     icon: Clock,
     color: "text-amber-600 dark:text-amber-400",
     bg: "bg-amber-100 dark:bg-amber-900/50",
@@ -50,7 +50,7 @@ const stats = [
   },
   {
     key: "newUsers",
-    label: "New Users",
+    label: "New Registrations",
     icon: UserPlus,
     color: "text-pink-600 dark:text-pink-400",
     bg: "bg-pink-100 dark:bg-pink-900/50",
