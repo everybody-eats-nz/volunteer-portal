@@ -1,8 +1,8 @@
 import { Suspense } from "react";
-import RegisterClient from "./register-client";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Join as Volunteer",
@@ -70,7 +70,7 @@ export default async function RegisterPage() {
 
   return (
     <Suspense fallback={<div>Loading registration form...</div>}>
-      <RegisterClient 
+      <RegisterForm
         locationOptions={locationOptions}
         shiftTypes={shiftTypes}
       />
