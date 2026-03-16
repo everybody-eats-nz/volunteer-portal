@@ -16,7 +16,7 @@ import {
 
 const actions = [
   {
-    label: "Create Shift",
+    label: "New Shift",
     description: "Schedule new volunteer shifts",
     href: "/admin/shifts/new",
     icon: Plus,
@@ -24,21 +24,21 @@ const actions = [
     primary: true,
   },
   {
-    label: "Manage Shifts",
+    label: "Shifts",
     description: "View and edit all shifts",
     href: "/admin/shifts",
     icon: CalendarDays,
     testId: "dashboard-manage-shifts-button",
   },
   {
-    label: "Manage Users",
+    label: "Users",
     description: "View and manage volunteers",
     href: "/admin/users",
     icon: Users,
     testId: "dashboard-manage-users-button",
   },
   {
-    label: "Regular Volunteers",
+    label: "Regulars",
     description: "Manage recurring assignments",
     href: "/admin/regulars",
     icon: Star,
@@ -52,14 +52,14 @@ const actions = [
     testId: "dashboard-analytics-button",
   },
   {
-    label: "Restaurant Managers",
+    label: "Managers",
     description: "Manage restaurant managers",
     href: "/admin/restaurant-managers",
     icon: Users,
     testId: "restaurant-managers-button",
   },
   {
-    label: "Public Shifts",
+    label: "Public",
     description: "View the public shifts page",
     href: "/shifts",
     icon: ExternalLink,
@@ -74,7 +74,7 @@ export function AdminDashboardQuickActions() {
       initial="hidden"
       animate="visible"
     >
-      <Card className="h-full">
+      <Card>
         <CardHeader>
           <CardTitle data-testid="quick-actions-heading">
             Quick Actions
@@ -97,7 +97,7 @@ export function AdminDashboardQuickActions() {
                 <Link href={action.href}>
                   <div className="flex items-center gap-2 w-full">
                     <action.icon className="h-4 w-4 shrink-0" />
-                    <span className="font-medium text-sm">{action.label}</span>
+                    <span className="font-medium text-sm truncate">{action.label}</span>
                   </div>
                   <span className="text-xs opacity-70 font-normal pl-6 hidden sm:inline">
                     {action.description}
