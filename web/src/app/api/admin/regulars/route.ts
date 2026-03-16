@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { LocationSchema } from "@/lib/validation-schemas";
-import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
+import { formatInNZT } from "@/lib/timezone";
+import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 
 // Validation schema for creating a regular volunteer
 const createRegularVolunteerSchema = z.object({
@@ -202,102 +203,24 @@ export async function POST(req: NextRequest) {
 
     // If requested, add volunteer to existing future shifts
     if (validated.addToExistingShifts) {
-      // Find all future shifts matching the criteria
-      const now = new Date();
       const futureShifts = await prisma.shift.findMany({
         where: {
           shiftTypeId: validated.shiftTypeId,
           location: validated.location,
-          start: {
-            gt: now,
-          },
+          start: { gt: new Date() },
         },
-        orderBy: {
-          start: "asc",
-        },
+        orderBy: { start: "asc" },
       });
 
-      // Filter shifts by day of week and frequency
+      // Pre-filter by day of week (frequency filtering handled by shared utility)
       type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
       const matchingShifts = futureShifts.filter((shift) => {
-        // Check if shift is on one of the available days (use NZ timezone)
         const dayOfWeek = formatInNZT(shift.start, "EEEE") as DayOfWeek;
-        if (!validated.availableDays.includes(dayOfWeek)) {
-          return false;
-        }
-
-        // Apply frequency filter
-        if (validated.frequency === "WEEKLY") {
-          return true;
-        } else if (validated.frequency === "FORTNIGHTLY") {
-          // Calculate weeks since regular was created (use now as creation time)
-          const weeksSinceCreation = Math.floor(
-            (shift.start.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)
-          );
-          return weeksSinceCreation % 2 === 0;
-        } else if (validated.frequency === "MONTHLY") {
-          // Check if this is the first occurrence of this day in the month
-          const firstOccurrenceInMonth = new Date(
-            shift.start.getFullYear(),
-            shift.start.getMonth(),
-            1
-          );
-          while (firstOccurrenceInMonth.getDay() !== shift.start.getDay()) {
-            firstOccurrenceInMonth.setDate(
-              firstOccurrenceInMonth.getDate() + 1
-            );
-          }
-          return shift.start.getDate() === firstOccurrenceInMonth.getDate();
-        }
-        return false;
+        return validated.availableDays.includes(dayOfWeek);
       });
 
-      // Create signups for matching shifts
-      const signups = [];
-      const regularSignups = [];
-
-      for (const shift of matchingShifts) {
-        // Check if user already has a shift on this day (using NZ timezone boundaries)
-        const startOfDayNZ = getStartOfDayUTC(shift.start);
-        const endOfDayNZ = new Date(startOfDayNZ.getTime() + 24 * 60 * 60 * 1000);
-
-        const existingSignup = await prisma.signup.findFirst({
-          where: {
-            userId: validated.userId,
-            shift: {
-              start: {
-                gte: startOfDayNZ,
-                lt: endOfDayNZ,
-              },
-            },
-            status: {
-              in: ["CONFIRMED", "REGULAR_PENDING", "PENDING"],
-            },
-          },
-        });
-
-        if (!existingSignup) {
-          const signupId = crypto.randomUUID();
-          signups.push({
-            id: signupId,
-            userId: validated.userId,
-            shiftId: shift.id,
-            status: (regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING") as "CONFIRMED" | "REGULAR_PENDING",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-          regularSignups.push({
-            regularVolunteerId: regular.id,
-            signupId: signupId,
-          });
-        }
-      }
-
-      if (signups.length > 0) {
-        await prisma.signup.createMany({ data: signups });
-        await prisma.regularSignup.createMany({ data: regularSignups });
-        signupsCreated = signups.length;
-      }
+      const result = await createRegularVolunteerSignups(matchingShifts, [regular]);
+      signupsCreated = result.signupsCreated;
     }
 
     return NextResponse.json({ ...regular, signupsCreated }, { status: 201 });

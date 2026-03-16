@@ -73,7 +73,7 @@ export function LeaderboardCard() {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card className="md:col-span-2 lg:col-span-4">
+      <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CollapsibleTrigger asChild>
@@ -163,9 +163,9 @@ export function LeaderboardCard() {
                           : "bg-muted/30"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
-                          className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                          className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${
                             user.rank === 1
                               ? "bg-yellow-400 text-yellow-900"
                               : user.rank === 2
@@ -177,11 +177,11 @@ export function LeaderboardCard() {
                         >
                           {user.rank}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="font-medium flex items-center gap-2">
-                            {user.name}
+                            <span className="truncate">{user.name}</span>
                             {user.isCurrentUser && (
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge variant="secondary" className="text-xs flex-shrink-0">
                                 You
                               </Badge>
                             )}
@@ -191,7 +191,7 @@ export function LeaderboardCard() {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         <div className="font-bold text-lg">{user.points}</div>
                         <div className="text-xs text-muted-foreground">
                           points

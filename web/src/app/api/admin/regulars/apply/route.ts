@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
+import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 
 const applyRegularsSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -124,151 +125,41 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Get all unique volunteer IDs and query existing signups in the range
-    const volunteerIds = [...new Set(regularVolunteers.map((r) => r.userId))];
-    const existingSignups = await prisma.signup.findMany({
-      where: {
-        userId: { in: volunteerIds },
-        shift: {
-          start: { gte: start, lt: endOfRange },
-        },
-        status: { in: ["CONFIRMED", "REGULAR_PENDING", "PENDING"] },
-      },
-      select: {
-        userId: true,
-        shiftId: true,
-        shift: { select: { start: true } },
-      },
-    });
+    // Use shared utility for matching and signup creation
+    const result = await createRegularVolunteerSignups(
+      shifts,
+      regularVolunteers,
+      { dryRun: validated.dryRun }
+    );
 
-    // Build lookup: userId -> Set of date keys (NZ timezone) AND userId -> Set of shiftIds
-    const existingByDate = new Map<string, Set<string>>();
-    const existingByShift = new Map<string, Set<string>>();
-    for (const signup of existingSignups) {
-      const dateKey = formatInNZT(signup.shift.start, "yyyy-MM-dd");
-      if (!existingByDate.has(signup.userId)) {
-        existingByDate.set(signup.userId, new Set());
-      }
-      existingByDate.get(signup.userId)!.add(dateKey);
+    // Build preview from result records
+    // Create a userId -> volunteer name lookup
+    const volunteerNameMap = new Map(
+      regularVolunteers.map((r) => [
+        r.id,
+        [r.user.firstName, r.user.lastName].filter(Boolean).join(" ") || r.userId,
+      ])
+    );
 
-      if (!existingByShift.has(signup.userId)) {
-        existingByShift.set(signup.userId, new Set());
-      }
-      existingByShift.get(signup.userId)!.add(signup.shiftId);
-    }
-
-    // Build regular volunteer lookup by (shiftTypeId, location, dayOfWeek)
-    const regularsByConfig = new Map<string, typeof regularVolunteers>();
-    for (const regular of regularVolunteers) {
-      for (const day of regular.availableDays) {
-        const key = `${regular.shiftTypeId}|${regular.location || ""}|${day}`;
-        if (!regularsByConfig.has(key)) {
-          regularsByConfig.set(key, []);
-        }
-        regularsByConfig.get(key)!.push(regular);
-      }
-    }
-
-    // Process all shifts and build signup batches
-    // Track per-volunteer and per-location counts for preview
     const volunteerSignupCounts = new Map<string, { name: string; count: number; regularId: string }>();
     const locationCounts = new Map<string, number>();
+    const shiftLocationMap = new Map(shifts.map((s) => [s.id, s.location || "General"]));
 
-    const allSignups: Array<{
-      id: string;
-      userId: string;
-      shiftId: string;
-      status: "REGULAR_PENDING" | "CONFIRMED";
-      createdAt: Date;
-      updatedAt: Date;
-    }> = [];
-    const allRegularSignups: Array<{
-      regularVolunteerId: string;
-      signupId: string;
-    }> = [];
-
-    for (const shift of shifts) {
-      const dayOfWeek = formatInNZT(shift.start, "EEEE");
-      const dateKey = formatInNZT(shift.start, "yyyy-MM-dd");
-      const key = `${shift.shiftTypeId}|${shift.location || ""}|${dayOfWeek}`;
-      const matchingVolunteers = regularsByConfig.get(key) || [];
-
-      // Filter by frequency
-      const matchingRegulars = matchingVolunteers.filter((regular) => {
-        if (regular.frequency === "WEEKLY") {
-          return true;
-        } else if (regular.frequency === "FORTNIGHTLY") {
-          const weeksSinceCreation = Math.floor(
-            (shift.start.getTime() - regular.createdAt.getTime()) /
-              (7 * 24 * 60 * 60 * 1000)
-          );
-          return weeksSinceCreation % 2 === 0;
-        } else if (regular.frequency === "MONTHLY") {
-          const firstOccurrenceInMonth = new Date(
-            shift.start.getFullYear(),
-            shift.start.getMonth(),
-            1
-          );
-          while (firstOccurrenceInMonth.getDay() !== shift.start.getDay()) {
-            firstOccurrenceInMonth.setDate(
-              firstOccurrenceInMonth.getDate() + 1
-            );
-          }
-          return shift.start.getDate() === firstOccurrenceInMonth.getDate();
-        }
-        return false;
-      });
-
-      for (const regular of matchingRegulars) {
-        // Skip if volunteer already has a signup for this specific shift
-        if (existingByShift.get(regular.userId)?.has(shift.id)) {
-          continue;
-        }
-        // Skip if volunteer already has a signup for this day
-        if (existingByDate.get(regular.userId)?.has(dateKey)) {
-          continue;
-        }
-
-        const signupId = crypto.randomUUID();
-        allSignups.push({
-          id: signupId,
-          userId: regular.userId,
-          shiftId: shift.id,
-          status: regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING",
-          createdAt: new Date(),
-          updatedAt: new Date(),
+    for (const record of result.signupRecords) {
+      const existing = volunteerSignupCounts.get(record.regularVolunteerId);
+      if (existing) {
+        existing.count++;
+      } else {
+        volunteerSignupCounts.set(record.regularVolunteerId, {
+          name: volunteerNameMap.get(record.regularVolunteerId) || record.userId,
+          count: 1,
+          regularId: record.regularVolunteerId,
         });
-        allRegularSignups.push({
-          regularVolunteerId: regular.id,
-          signupId: signupId,
-        });
-
-        // Track preview data
-        const volName = [regular.user.firstName, regular.user.lastName]
-          .filter(Boolean)
-          .join(" ") || regular.userId;
-        const existing = volunteerSignupCounts.get(regular.id);
-        if (existing) {
-          existing.count++;
-        } else {
-          volunteerSignupCounts.set(regular.id, { name: volName, count: 1, regularId: regular.id });
-        }
-        const loc = shift.location || "General";
-        locationCounts.set(loc, (locationCounts.get(loc) || 0) + 1);
-
-        // Track the new signup so we don't double-assign within this batch
-        if (!existingByDate.has(regular.userId)) {
-          existingByDate.set(regular.userId, new Set());
-        }
-        existingByDate.get(regular.userId)!.add(dateKey);
-        if (!existingByShift.has(regular.userId)) {
-          existingByShift.set(regular.userId, new Set());
-        }
-        existingByShift.get(regular.userId)!.add(shift.id);
       }
+      const loc = shiftLocationMap.get(record.shiftId) || "General";
+      locationCounts.set(loc, (locationCounts.get(loc) || 0) + 1);
     }
 
-    // Build preview breakdown
     const preview = {
       volunteers: Array.from(volunteerSignupCounts.values())
         .sort((a, b) => b.count - a.count)
@@ -278,35 +169,17 @@ export async function POST(req: NextRequest) {
         .map(([location, signups]) => ({ location, signups })),
     };
 
-    // If dry run, return preview without creating anything
-    if (validated.dryRun) {
-      return NextResponse.json({
-        signupsToCreate: allSignups.length,
-        shiftsProcessed: shifts.length,
-        preview,
-        message:
-          allSignups.length > 0
-            ? `Will create ${allSignups.length} signup${allSignups.length === 1 ? "" : "s"} across ${shifts.length} shift${shifts.length === 1 ? "" : "s"}`
-            : "All regular volunteers are already signed up for matching shifts",
-      });
-    }
-
-    // Create signups in batches
-    const BATCH_SIZE = 500;
-    for (let i = 0; i < allSignups.length; i += BATCH_SIZE) {
-      const signupBatch = allSignups.slice(i, i + BATCH_SIZE);
-      const regularSignupBatch = allRegularSignups.slice(i, i + BATCH_SIZE);
-      await prisma.signup.createMany({ data: signupBatch });
-      await prisma.regularSignup.createMany({ data: regularSignupBatch });
-    }
+    const count = result.signupsCreated;
+    const action = validated.dryRun ? "Will create" : "Created";
+    const responseKey = validated.dryRun ? "signupsToCreate" : "signupsCreated";
 
     return NextResponse.json({
-      signupsCreated: allSignups.length,
+      [responseKey]: count,
       shiftsProcessed: shifts.length,
       preview,
       message:
-        allSignups.length > 0
-          ? `Created ${allSignups.length} signup${allSignups.length === 1 ? "" : "s"} across ${shifts.length} shift${shifts.length === 1 ? "" : "s"}`
+        count > 0
+          ? `${action} ${count} signup${count === 1 ? "" : "s"} across ${shifts.length} shift${shifts.length === 1 ? "" : "s"}`
           : "All regular volunteers are already signed up for matching shifts",
     });
   } catch (error) {
