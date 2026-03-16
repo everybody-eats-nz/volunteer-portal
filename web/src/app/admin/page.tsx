@@ -403,18 +403,31 @@ export default async function AdminDashboardPage({
     })
     .filter((s) => s.fillRate < 0.5);
 
-  // Serialize upcoming shifts for client component (top 3)
-  const upcomingShifts: UpcomingShiftData[] = upcomingShiftsData
-    .slice(0, 3)
-    .map((shift) => ({
+  // Serialize upcoming shifts grouped by day for client component
+  const shiftsByDay = new Map<
+    string,
+    { label: string; dateParam: string; shifts: UpcomingShiftData[] }
+  >();
+  for (const shift of upcomingShiftsData) {
+    const dateParam = formatInNZT(shift.start, "yyyy-MM-dd");
+    if (!shiftsByDay.has(dateParam)) {
+      shiftsByDay.set(dateParam, {
+        label: formatInNZT(shift.start, "EEEE, d MMM"),
+        dateParam,
+        shifts: [],
+      });
+    }
+    shiftsByDay.get(dateParam)!.shifts.push({
       id: shift.id,
       shiftTypeName: shift.shiftType.name,
-      formattedDate: formatInNZT(shift.start, "EEE d MMM, h:mm a"),
-      dateParam: formatInNZT(shift.start, "yyyy-MM-dd"),
+      formattedDate: formatInNZT(shift.start, "h:mm a"),
+      dateParam,
       location: shift.location,
       capacity: shift.capacity,
       confirmedCount: shift.signups.length + shift.placeholderCount,
-    }));
+    });
+  }
+  const upcomingShiftDays = Array.from(shiftsByDay.values()).slice(0, 5);
 
   // Build unified activity feed
   const activityItems: ActivityItem[] = [];
@@ -561,7 +574,7 @@ export default async function AdminDashboardPage({
 
         {/* Upcoming Shifts + Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AdminDashboardUpcomingShifts shifts={upcomingShifts} />
+          <AdminDashboardUpcomingShifts days={upcomingShiftDays} />
           <AdminDashboardQuickActions />
         </div>
 
