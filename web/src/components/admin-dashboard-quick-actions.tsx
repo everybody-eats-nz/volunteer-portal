@@ -74,7 +74,7 @@ export function AdminDashboardQuickActions() {
       initial="hidden"
       animate="visible"
     >
-      <Card className="h-full">
+      <Card>
         <CardHeader>
           <CardTitle data-testid="quick-actions-heading">
             Quick Actions
