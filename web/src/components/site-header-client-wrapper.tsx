@@ -18,16 +18,22 @@ export function SiteHeaderClientWrapper() {
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status !== "authenticated") {
-      setProfilePhotoUrl(null);
-      return;
-    }
+    if (status !== "authenticated") return;
 
+    let cancelled = false;
     fetch("/api/profile/photo")
       .then((res) => res.json())
-      .then((data) => setProfilePhotoUrl(data.profilePhotoUrl))
-      .catch(() => setProfilePhotoUrl(null));
+      .then((data) => {
+        if (!cancelled) setProfilePhotoUrl(data.profilePhotoUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setProfilePhotoUrl(null);
+      });
+    return () => { cancelled = true; };
   }, [status]);
+
+  // Clear profile photo when logged out (derived from status, not set in effect)
+  const effectiveProfilePhotoUrl = status === "authenticated" ? profilePhotoUrl : null;
 
   // Hide header on admin pages (they have their own sidebar layout)
   if (pathname.startsWith("/admin")) {
@@ -52,7 +58,7 @@ export function SiteHeaderClientWrapper() {
         session?.user
           ? {
               id: session.user.id,
-              profilePhotoUrl,
+              profilePhotoUrl: effectiveProfilePhotoUrl,
               name: session.user.name,
               firstName: session.user.firstName,
               lastName: session.user.lastName,
