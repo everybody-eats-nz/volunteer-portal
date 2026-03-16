@@ -9,7 +9,12 @@ import type { SurveyQuestion } from "@/types/survey";
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ location?: string }>;
+  searchParams: Promise<{
+    location?: string;
+    grade?: string;
+    tenure?: string;
+    shifts?: string;
+  }>;
 }
 
 export default async function SurveyResponsesPage({
@@ -23,7 +28,7 @@ export default async function SurveyResponsesPage({
   }
 
   const { id } = await params;
-  const { location } = await searchParams;
+  const { location, grade, tenure, shifts } = await searchParams;
 
   // Fetch available locations for the filter
   const locations = await prisma.location.findMany({
@@ -33,21 +38,47 @@ export default async function SurveyResponsesPage({
   });
   const locationOptions = locations.map((l) => l.name);
 
+  // Build user filter from query params
+  const userWhere: Record<string, unknown> = {};
+  if (location) {
+    userWhere.availableLocations = { contains: location, mode: "insensitive" };
+  }
+  if (grade) {
+    userWhere.volunteerGrade = grade;
+  }
+  if (tenure) {
+    const now = new Date();
+    const monthsAgo = (months: number) => {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - months);
+      return d;
+    };
+    switch (tenure) {
+      case "lt1m":
+        userWhere.createdAt = { gt: monthsAgo(1) };
+        break;
+      case "1-3m":
+        userWhere.createdAt = { gte: monthsAgo(3), lt: monthsAgo(1) };
+        break;
+      case "3-6m":
+        userWhere.createdAt = { gte: monthsAgo(6), lt: monthsAgo(3) };
+        break;
+      case "6-12m":
+        userWhere.createdAt = { gte: monthsAgo(12), lt: monthsAgo(6) };
+        break;
+      case "gt1y":
+        userWhere.createdAt = { lt: monthsAgo(12) };
+        break;
+    }
+  }
+
   // Fetch survey with all assignments
   const survey = await prisma.survey.findUnique({
     where: { id },
     include: {
       assignments: {
         where: {
-          // Filter by user's available locations if a location is selected
-          ...(location && {
-            user: {
-              availableLocations: {
-                contains: location,
-                mode: "insensitive",
-              },
-            },
-          }),
+          ...(Object.keys(userWhere).length > 0 && { user: userWhere }),
         },
         include: {
           user: {
@@ -57,6 +88,18 @@ export default async function SurveyResponsesPage({
               email: true,
               availableLocations: true,
               createdAt: true,
+              volunteerGrade: true,
+              completedShiftAdjustment: true,
+              _count: {
+                select: {
+                  signups: {
+                    where: {
+                      status: "CONFIRMED",
+                      shift: { start: { lt: new Date() } },
+                    },
+                  },
+                },
+              },
             },
           },
           response: true,
@@ -70,8 +113,31 @@ export default async function SurveyResponsesPage({
     notFound();
   }
 
+  // Apply shifts filter post-query (requires calculated count)
+  let filteredAssignments = survey.assignments;
+  if (shifts) {
+    filteredAssignments = filteredAssignments.filter((a) => {
+      const count =
+        a.user._count.signups + (a.user.completedShiftAdjustment || 0);
+      switch (shifts) {
+        case "0-5":
+          return count <= 5;
+        case "6-15":
+          return count >= 6 && count <= 15;
+        case "16-30":
+          return count >= 16 && count <= 30;
+        case "31-50":
+          return count >= 31 && count <= 50;
+        case "gt50":
+          return count > 50;
+        default:
+          return true;
+      }
+    });
+  }
+
   // Separate completed assignments for stats calculation
-  const completedAssignments = survey.assignments.filter(
+  const completedAssignments = filteredAssignments.filter(
     (a) => a.status === "COMPLETED"
   );
 
@@ -168,7 +234,15 @@ export default async function SurveyResponsesPage({
           responses={completedAssignments.map((a) => ({
             id: a.id,
             user: {
-              ...a.user,
+              id: a.user.id,
+              name: a.user.name,
+              email: a.user.email,
+              availableLocations: a.user.availableLocations,
+              createdAt: a.user.createdAt,
+              volunteerGrade: a.user.volunteerGrade,
+              completedShifts:
+                a.user._count.signups +
+                (a.user.completedShiftAdjustment || 0),
             },
             completedAt: a.completedAt,
             answers: a.response?.answers as
@@ -178,7 +252,7 @@ export default async function SurveyResponsesPage({
                 }>
               | undefined,
           }))}
-          assignments={survey.assignments.map((a) => ({
+          assignments={filteredAssignments.map((a) => ({
             id: a.id,
             status: a.status,
             assignedAt: a.assignedAt,
@@ -190,10 +264,17 @@ export default async function SurveyResponsesPage({
               email: a.user.email,
               availableLocations: a.user.availableLocations,
               createdAt: a.user.createdAt,
+              volunteerGrade: a.user.volunteerGrade,
+              completedShifts:
+                a.user._count.signups +
+                (a.user.completedShiftAdjustment || 0),
             },
           }))}
           locations={locationOptions}
           selectedLocation={location}
+          selectedGrade={grade}
+          selectedTenure={tenure}
+          selectedShifts={shifts}
         />
       </PageContainer>
     </AdminPageWrapper>

@@ -36,6 +36,9 @@ import {
   XCircle,
   AlertCircle,
   Download,
+  Shield,
+  CalendarDays,
+  Hash,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -100,15 +103,19 @@ interface QuestionStats {
   textResponses?: string[];
 }
 
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string;
+  availableLocations?: string | null;
+  createdAt: Date | string;
+  volunteerGrade?: string;
+  completedShifts?: number;
+}
+
 interface ResponseData {
   id: string;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    availableLocations?: string | null;
-    createdAt: Date | string;
-  };
+  user: UserData;
   completedAt: Date | null;
   answers?: Array<{
     questionId: string;
@@ -122,13 +129,7 @@ interface AssignmentData {
   assignedAt: Date;
   completedAt: Date | null;
   dismissedAt: Date | null;
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    availableLocations?: string | null;
-    createdAt: Date | string;
-  };
+  user: UserData;
 }
 
 interface ResponsesContentProps {
@@ -144,6 +145,9 @@ interface ResponsesContentProps {
   assignments: AssignmentData[];
   locations: string[];
   selectedLocation?: string;
+  selectedGrade?: string;
+  selectedTenure?: string;
+  selectedShifts?: string;
 }
 
 export function ResponsesContent({
@@ -154,6 +158,9 @@ export function ResponsesContent({
   assignments,
   locations,
   selectedLocation,
+  selectedGrade,
+  selectedTenure,
+  selectedShifts,
 }: ResponsesContentProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -161,8 +168,8 @@ export function ResponsesContent({
     new Set()
   );
 
-  type ResponseSortKey = "name" | "location" | "member" | "completed";
-  type AssignmentSortKey = "name" | "location" | "member" | "status" | "assigned" | "updated";
+  type ResponseSortKey = "name" | "location" | "shifts" | "member" | "completed";
+  type AssignmentSortKey = "name" | "location" | "shifts" | "member" | "status" | "assigned" | "updated";
 
   const [responseSortConfig, setResponseSortConfig] =
     useState<SortConfig<ResponseSortKey>>(null);
@@ -180,6 +187,8 @@ export function ResponsesContent({
         cmp = (a.user.availableLocations || "").localeCompare(
           b.user.availableLocations || ""
         );
+      } else if (key === "shifts") {
+        cmp = (a.user.completedShifts || 0) - (b.user.completedShifts || 0);
       } else if (key === "member") {
         cmp =
           new Date(a.user.createdAt).getTime() -
@@ -205,6 +214,8 @@ export function ResponsesContent({
         cmp = (a.user.availableLocations || "").localeCompare(
           b.user.availableLocations || ""
         );
+      } else if (key === "shifts") {
+        cmp = (a.user.completedShifts || 0) - (b.user.completedShifts || 0);
       } else if (key === "member") {
         cmp =
           new Date(a.user.createdAt).getTime() -
@@ -228,13 +239,33 @@ export function ResponsesContent({
     return sorted;
   }, [assignments, assignmentSortConfig]);
 
-  const handleLocationChange = (value: string) => {
+  const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams();
-    if (value !== "all") {
-      params.set("location", value);
-    }
+    const filters: Record<string, string | undefined> = {
+      location: selectedLocation,
+      grade: selectedGrade,
+      tenure: selectedTenure,
+      shifts: selectedShifts,
+    };
+    filters[key] = value === "all" ? undefined : value;
+
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v) params.set(k, v);
+    });
+
     const queryString = params.toString();
     router.push(queryString ? `${pathname}?${queryString}` : pathname);
+  };
+
+  const activeFilterCount = [
+    selectedLocation,
+    selectedGrade,
+    selectedTenure,
+    selectedShifts,
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    router.push(pathname);
   };
 
   // Calculate assignment stats
@@ -327,49 +358,118 @@ export function ResponsesContent({
           )}
           <p className="text-sm text-muted-foreground mt-2">
             {totalResponses} response{totalResponses !== 1 ? "s" : ""}{" "}
-            {selectedLocation ? `from ${selectedLocation}` : "received"}
+            {activeFilterCount > 0 ? "(filtered)" : "received"}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Location Filter */}
-          {locations.length > 0 && (
-            <>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <Select
-                value={selectedLocation || "all"}
-                onValueChange={handleLocationChange}
-              >
-                <SelectTrigger
-                  className="w-auto h-9 text-sm"
-                  data-testid="survey-location-filter"
-                >
-                  <SelectValue placeholder="Filter by location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc} value={loc}>
-                      {loc}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          )}
+        {totalResponses > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportCsv}
+            data-testid="survey-export-csv"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        )}
+      </div>
 
-          {totalResponses > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportCsv}
-              data-testid="survey-export-csv"
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {locations.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={selectedLocation || "all"}
+              onValueChange={(v) => handleFilterChange("location", v)}
             >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-          )}
+              <SelectTrigger
+                className="w-auto h-9 text-sm"
+                data-testid="survey-location-filter"
+              >
+                <SelectValue placeholder="Location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {locations.map((loc) => (
+                  <SelectItem key={loc} value={loc}>
+                    {loc}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <Select
+            value={selectedGrade || "all"}
+            onValueChange={(v) => handleFilterChange("grade", v)}
+          >
+            <SelectTrigger className="w-auto h-9 text-sm" data-testid="survey-grade-filter">
+              <SelectValue placeholder="Grade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Grades</SelectItem>
+              <SelectItem value="GREEN">Green</SelectItem>
+              <SelectItem value="YELLOW">Yellow</SelectItem>
+              <SelectItem value="PINK">Pink</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        <div className="flex items-center gap-1.5">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <Select
+            value={selectedTenure || "all"}
+            onValueChange={(v) => handleFilterChange("tenure", v)}
+          >
+            <SelectTrigger className="w-auto h-9 text-sm" data-testid="survey-tenure-filter">
+              <SelectValue placeholder="Tenure" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tenures</SelectItem>
+              <SelectItem value="lt1m">Less than 1 month</SelectItem>
+              <SelectItem value="1-3m">1-3 months</SelectItem>
+              <SelectItem value="3-6m">3-6 months</SelectItem>
+              <SelectItem value="6-12m">6-12 months</SelectItem>
+              <SelectItem value="gt1y">Over 1 year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Hash className="h-4 w-4 text-muted-foreground" />
+          <Select
+            value={selectedShifts || "all"}
+            onValueChange={(v) => handleFilterChange("shifts", v)}
+          >
+            <SelectTrigger className="w-auto h-9 text-sm" data-testid="survey-shifts-filter">
+              <SelectValue placeholder="Shifts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Shift Counts</SelectItem>
+              <SelectItem value="0-5">0-5 shifts</SelectItem>
+              <SelectItem value="6-15">6-15 shifts</SelectItem>
+              <SelectItem value="16-30">16-30 shifts</SelectItem>
+              <SelectItem value="31-50">31-50 shifts</SelectItem>
+              <SelectItem value="gt50">50+ shifts</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {activeFilterCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -556,6 +656,14 @@ export function ResponsesContent({
                     }
                   />
                   <SortableHeader
+                    label="Shifts"
+                    sortKey="shifts"
+                    sortConfig={responseSortConfig}
+                    onSort={(key) =>
+                      setResponseSortConfig(toggleSort(responseSortConfig, key))
+                    }
+                  />
+                  <SortableHeader
                     label="Member For"
                     sortKey="member"
                     sortConfig={responseSortConfig}
@@ -609,6 +717,11 @@ export function ResponsesContent({
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
+                          {response.user.completedShifts ?? "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
                           {formatDistanceToNow(new Date(response.user.createdAt))}
                         </span>
                       </TableCell>
@@ -623,7 +736,7 @@ export function ResponsesContent({
                     </TableRow>
                     {expandedResponses.has(response.id) && response.answers && (
                       <TableRow key={`${response.id}-details`}>
-                        <TableCell colSpan={5} className="bg-muted/30 whitespace-normal">
+                        <TableCell colSpan={6} className="bg-muted/30 whitespace-normal">
                           <div className="p-4 space-y-4 break-words">
                             {survey.questions.map((question) => {
                               const answer = response.answers?.find(
@@ -677,6 +790,16 @@ export function ResponsesContent({
                     }
                   />
                   <SortableHeader
+                    label="Shifts"
+                    sortKey="shifts"
+                    sortConfig={assignmentSortConfig}
+                    onSort={(key) =>
+                      setAssignmentSortConfig(
+                        toggleSort(assignmentSortConfig, key)
+                      )
+                    }
+                  />
+                  <SortableHeader
                     label="Member For"
                     sortKey="member"
                     sortConfig={assignmentSortConfig}
@@ -722,7 +845,7 @@ export function ResponsesContent({
                 {assignments.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center py-8 text-muted-foreground"
                     >
                       No assignments yet. Use the &quot;Assign Survey&quot;
@@ -748,6 +871,11 @@ export function ResponsesContent({
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
                           {safeParseAvailability(assignment.user.availableLocations).join(", ") || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {assignment.user.completedShifts ?? "-"}
                         </span>
                       </TableCell>
                       <TableCell>
