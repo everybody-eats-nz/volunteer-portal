@@ -280,12 +280,13 @@ export default async function AdminDashboardPage({
 
     // This week stats
     Promise.all([
-      // Shifts this week
-      prisma.shift.count({
+      // Days with shifts remaining this week
+      prisma.shift.findMany({
         where: {
-          start: { gte: startOfWeek, lt: endOfWeek },
+          start: { gte: now, lt: endOfWeek },
           ...locationFilter,
         },
+        select: { start: true },
       }),
       // Confirmed signups this week
       prisma.signup.count({
@@ -301,6 +302,9 @@ export default async function AdminDashboardPage({
       prisma.user.count({
         where: {
           createdAt: { gte: startOfWeek, lt: endOfWeek },
+          ...(selectedLocation
+            ? { availableLocations: { contains: selectedLocation } }
+            : {}),
         },
       }),
       // Meals served this week (individual records for fallback logic)
@@ -334,13 +338,16 @@ export default async function AdminDashboardPage({
 
   const [monthlyShifts, monthlySignups, newUsersThisMonth] = monthlyStats;
   const [
-    weekShifts,
+    weekRemainingShifts,
     weekSignups,
     weekNewUsers,
     weekMealsRecords,
     weekShiftDetails,
     weekLocationDefaults,
   ] = weeklyStats;
+  const weekDaysWithShifts = new Set(
+    weekRemainingShifts.map((s) => formatInNZT(s.start, "yyyy-MM-dd"))
+  ).size;
 
   // Calculate meals served with fallback to location defaults
   const actualMealsMap = new Map<string, number>();
@@ -352,9 +359,10 @@ export default async function AdminDashboardPage({
   for (const loc of weekLocationDefaults) {
     defaultMealsMap.set(loc.name, loc.defaultMealsServed);
   }
-  // Get unique date-location pairs from shifts this week
+  // Get unique date-location pairs from completed shifts this week
   const shiftDateLocations = new Map<string, string>();
   for (const shift of weekShiftDetails) {
+    if (new Date(shift.end) > now) continue; // Skip shifts that haven't finished
     const dateUTC = getStartOfDayUTC(shift.start);
     const location = shift.location || "";
     const key = `${dateUTC.toISOString()}-${location}`;
@@ -371,6 +379,7 @@ export default async function AdminDashboardPage({
     }
   }
   const weekVolunteerHours = weekShiftDetails.reduce((total, shift) => {
+    if (new Date(shift.end) > now) return total; // Skip shifts that haven't finished
     const hours =
       (new Date(shift.end).getTime() - new Date(shift.start).getTime()) /
       (1000 * 60 * 60);
@@ -394,18 +403,31 @@ export default async function AdminDashboardPage({
     })
     .filter((s) => s.fillRate < 0.5);
 
-  // Serialize upcoming shifts for client component (top 3)
-  const upcomingShifts: UpcomingShiftData[] = upcomingShiftsData
-    .slice(0, 3)
-    .map((shift) => ({
+  // Serialize upcoming shifts grouped by day for client component
+  const shiftsByDay = new Map<
+    string,
+    { label: string; dateParam: string; shifts: UpcomingShiftData[] }
+  >();
+  for (const shift of upcomingShiftsData) {
+    const dateParam = formatInNZT(shift.start, "yyyy-MM-dd");
+    if (!shiftsByDay.has(dateParam)) {
+      shiftsByDay.set(dateParam, {
+        label: formatInNZT(shift.start, "EEEE, d MMM"),
+        dateParam,
+        shifts: [],
+      });
+    }
+    shiftsByDay.get(dateParam)!.shifts.push({
       id: shift.id,
       shiftTypeName: shift.shiftType.name,
-      formattedDate: formatInNZT(shift.start, "EEE d MMM, h:mm a"),
-      dateParam: formatInNZT(shift.start, "yyyy-MM-dd"),
+      formattedDate: formatInNZT(shift.start, "h:mm a"),
+      dateParam,
       location: shift.location,
       capacity: shift.capacity,
       confirmedCount: shift.signups.length + shift.placeholderCount,
-    }));
+    });
+  }
+  const upcomingShiftDays = Array.from(shiftsByDay.values()).slice(0, 5);
 
   // Build unified activity feed
   const activityItems: ActivityItem[] = [];
@@ -535,14 +557,14 @@ export default async function AdminDashboardPage({
         />
 
         {/* Attention Required + This Week */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <AdminDashboardAttention
             pendingSignups={pendingSignups}
             lowFillShifts={lowFillShifts}
             pendingParentalConsent={pendingParentalConsent}
           />
           <AdminDashboardWeekSummary
-            weekShifts={weekShifts}
+            weekShifts={weekDaysWithShifts}
             weekSignups={weekSignups}
             weekVolunteerHours={weekVolunteerHours}
             weekMeals={weekMeals}
@@ -551,8 +573,8 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Upcoming Shifts + Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AdminDashboardUpcomingShifts shifts={upcomingShifts} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <AdminDashboardUpcomingShifts days={upcomingShiftDays} />
           <AdminDashboardQuickActions />
         </div>
 
