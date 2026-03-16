@@ -27,6 +27,7 @@ import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
 import { LOCATIONS } from "@/lib/locations";
 import { createShiftRecord } from "@/lib/services/shift-service";
+import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 import { BulkShiftSubmitButton } from "@/components/shift-creation-submit-buttons";
 
 // Templates are now stored in the database and fetched dynamically
@@ -99,7 +100,7 @@ export default async function NewShiftPage() {
         notes: notes ?? null,
       });
 
-      // Find matching regular volunteers (use NZ timezone for day calculation)
+      // Auto-assign matching regular volunteers
       const dayOfWeek = formatInNZT(start, "EEEE");
       const regularVolunteers = await prisma.regularVolunteer.findMany({
         where: {
@@ -107,95 +108,11 @@ export default async function NewShiftPage() {
           ...(location && { location }),
           isActive: true,
           isPausedByUser: false,
-          availableDays: {
-            has: dayOfWeek,
-          },
+          availableDays: { has: dayOfWeek },
         },
       });
 
-      // Filter by frequency
-      const matchingRegulars = regularVolunteers.filter((regular) => {
-        if (regular.frequency === "WEEKLY") {
-          return true;
-        } else if (regular.frequency === "FORTNIGHTLY") {
-          const weeksSinceCreation = Math.floor(
-            (start.getTime() - regular.createdAt.getTime()) /
-              (7 * 24 * 60 * 60 * 1000)
-          );
-          return weeksSinceCreation % 2 === 0;
-        } else if (regular.frequency === "MONTHLY") {
-          // Check if this is the first occurrence of this day in the month
-          const firstOccurrenceInMonth = new Date(
-            start.getFullYear(),
-            start.getMonth(),
-            1
-          );
-          while (firstOccurrenceInMonth.getDay() !== start.getDay()) {
-            firstOccurrenceInMonth.setDate(
-              firstOccurrenceInMonth.getDate() + 1
-            );
-          }
-          return start.getDate() === firstOccurrenceInMonth.getDate();
-        }
-        return false;
-      });
-
-      // Create auto-signups for matching regular volunteers
-      if (matchingRegulars.length > 0) {
-        const shiftDay = new Date(start);
-        shiftDay.setHours(0, 0, 0, 0);
-        const nextDay = new Date(shiftDay);
-        nextDay.setDate(nextDay.getDate() + 1);
-
-        // OPTIMIZED: Batch query all existing signups at once
-        const volunteerIds = matchingRegulars.map((r) => r.userId);
-        const existingSignups = await prisma.signup.findMany({
-          where: {
-            userId: { in: volunteerIds },
-            shift: {
-              start: {
-                gte: shiftDay,
-                lt: nextDay,
-              },
-            },
-            status: {
-              in: ["CONFIRMED", "REGULAR_PENDING", "PENDING"],
-            },
-          },
-          select: {
-            userId: true,
-          },
-        });
-
-        // Build a set of user IDs who already have signups
-        const existingUserIds = new Set(existingSignups.map((s) => s.userId));
-
-        const signups = [];
-        const regularSignups = [];
-
-        for (const regular of matchingRegulars) {
-          if (!existingUserIds.has(regular.userId)) {
-            const signupId = crypto.randomUUID();
-            signups.push({
-              id: signupId,
-              userId: regular.userId,
-              shiftId: shift.id,
-              status: (regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING") as "CONFIRMED" | "REGULAR_PENDING",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
-            regularSignups.push({
-              regularVolunteerId: regular.id,
-              signupId: signupId,
-            });
-          }
-        }
-
-        if (signups.length > 0) {
-          await prisma.signup.createMany({ data: signups });
-          await prisma.regularSignup.createMany({ data: regularSignups });
-        }
-      }
+      await createRegularVolunteerSignups([shift], regularVolunteers);
     } catch {
       redirect("/admin/shifts/new?error=create");
     }
@@ -327,9 +244,7 @@ export default async function NewShiftPage() {
         data: shifts,
       });
 
-      // OPTIMIZED: Batch process regular volunteers for all shifts
-
-      // Step 1: Get unique combinations of (shiftTypeId, location, dayOfWeek)
+      // Auto-assign matching regular volunteers to all created shifts
       const shiftConfigs = new Map<string, Set<string>>();
       for (const shift of createdShifts) {
         const dayOfWeek = formatInNZT(shift.start, "EEEE");
@@ -340,166 +255,24 @@ export default async function NewShiftPage() {
         shiftConfigs.get(key)!.add(dayOfWeek);
       }
 
-      // Step 2: Query all regular volunteers at once (batch by config)
-      const allRegularVolunteers = await Promise.all(
-        Array.from(shiftConfigs.entries()).map(([key, days]) => {
-          const [shiftTypeId, location] = key.split("|");
-          return prisma.regularVolunteer.findMany({
-            where: {
-              shiftTypeId,
-              ...(location && { location }),
-              isActive: true,
-              isPausedByUser: false,
-              availableDays: {
-                hasSome: Array.from(days),
+      const allRegularVolunteers = (
+        await Promise.all(
+          Array.from(shiftConfigs.entries()).map(([key, days]) => {
+            const [shiftTypeId, location] = key.split("|");
+            return prisma.regularVolunteer.findMany({
+              where: {
+                shiftTypeId,
+                ...(location && { location }),
+                isActive: true,
+                isPausedByUser: false,
+                availableDays: { hasSome: Array.from(days) },
               },
-            },
-          });
-        })
-      );
-
-      const regularVolunteers = allRegularVolunteers.flat();
-
-      // Step 3: Get all unique volunteer IDs
-      const volunteerIds = [...new Set(regularVolunteers.map((r) => r.userId))];
-
-      // Step 4: Get all unique dates to check for existing signups
-      const shiftDates = createdShifts.map((shift) => {
-        const shiftDay = new Date(shift.start);
-        shiftDay.setHours(0, 0, 0, 0);
-        return shiftDay.getTime();
-      });
-      const uniqueDates = [...new Set(shiftDates)].sort();
-
-      // Step 5: Query all existing signups at once
-      const existingSignups = await prisma.signup.findMany({
-        where: {
-          userId: { in: volunteerIds },
-          shift: {
-            start: {
-              gte: new Date(uniqueDates[0]),
-              lt: new Date(uniqueDates[uniqueDates.length - 1] + 24 * 60 * 60 * 1000),
-            },
-          },
-          status: {
-            in: ["CONFIRMED", "REGULAR_PENDING", "PENDING"],
-          },
-        },
-        select: {
-          userId: true,
-          shift: {
-            select: {
-              start: true,
-            },
-          },
-        },
-      });
-
-      // Step 6: Build lookup map for existing signups (userId -> Set of dates)
-      const existingSignupMap = new Map<string, Set<string>>();
-      for (const signup of existingSignups) {
-        const date = new Date(signup.shift.start);
-        date.setHours(0, 0, 0, 0);
-        const dateKey = date.toISOString().split("T")[0];
-
-        if (!existingSignupMap.has(signup.userId)) {
-          existingSignupMap.set(signup.userId, new Set());
-        }
-        existingSignupMap.get(signup.userId)!.add(dateKey);
-      }
-
-      // Step 7: Build regular volunteer lookup by (shiftTypeId, location, dayOfWeek)
-      const regularsByConfig = new Map<string, typeof regularVolunteers>();
-      for (const regular of regularVolunteers) {
-        for (const day of regular.availableDays) {
-          const key = `${regular.shiftTypeId}|${regular.location || ""}|${day}`;
-          if (!regularsByConfig.has(key)) {
-            regularsByConfig.set(key, []);
-          }
-          regularsByConfig.get(key)!.push(regular);
-        }
-      }
-
-      // Step 8: Process all shifts and build signup batches
-      const allSignups: Array<{
-        id: string;
-        userId: string;
-        shiftId: string;
-        status: "REGULAR_PENDING" | "CONFIRMED";
-        createdAt: Date;
-        updatedAt: Date;
-      }> = [];
-      const allRegularSignups: Array<{
-        regularVolunteerId: string;
-        signupId: string;
-      }> = [];
-
-      for (const shift of createdShifts) {
-        const dayOfWeek = formatInNZT(shift.start, "EEEE");
-        const shiftDate = new Date(shift.start);
-        shiftDate.setHours(0, 0, 0, 0);
-        const dateKey = shiftDate.toISOString().split("T")[0];
-
-        const key = `${shift.shiftTypeId}|${shift.location || ""}|${dayOfWeek}`;
-        const matchingVolunteers = regularsByConfig.get(key) || [];
-
-        // Filter by frequency
-        const matchingRegulars = matchingVolunteers.filter((regular) => {
-          if (regular.frequency === "WEEKLY") {
-            return true;
-          } else if (regular.frequency === "FORTNIGHTLY") {
-            const weeksSinceCreation = Math.floor(
-              (shift.start.getTime() - regular.createdAt.getTime()) /
-                (7 * 24 * 60 * 60 * 1000)
-            );
-            return weeksSinceCreation % 2 === 0;
-          } else if (regular.frequency === "MONTHLY") {
-            const firstOccurrenceInMonth = new Date(
-              shift.start.getFullYear(),
-              shift.start.getMonth(),
-              1
-            );
-            while (firstOccurrenceInMonth.getDay() !== shift.start.getDay()) {
-              firstOccurrenceInMonth.setDate(
-                firstOccurrenceInMonth.getDate() + 1
-              );
-            }
-            return shift.start.getDate() === firstOccurrenceInMonth.getDate();
-          }
-          return false;
-        });
-
-        // Check for existing signups and create new ones
-        for (const regular of matchingRegulars) {
-          const hasExistingSignup = existingSignupMap.get(regular.userId)?.has(dateKey);
-
-          if (!hasExistingSignup) {
-            const signupId = crypto.randomUUID();
-            allSignups.push({
-              id: signupId,
-              userId: regular.userId,
-              shiftId: shift.id,
-              status: regular.autoApprove ? "CONFIRMED" : "REGULAR_PENDING",
-              createdAt: new Date(),
-              updatedAt: new Date(),
             });
-            allRegularSignups.push({
-              regularVolunteerId: regular.id,
-              signupId: signupId,
-            });
-          }
-        }
-      }
+          })
+        )
+      ).flat();
 
-      // Step 9: Create all signups in batches (avoid hitting query limits)
-      const BATCH_SIZE = 500;
-      for (let i = 0; i < allSignups.length; i += BATCH_SIZE) {
-        const signupBatch = allSignups.slice(i, i + BATCH_SIZE);
-        const regularSignupBatch = allRegularSignups.slice(i, i + BATCH_SIZE);
-
-        await prisma.signup.createMany({ data: signupBatch });
-        await prisma.regularSignup.createMany({ data: regularSignupBatch });
-      }
+      await createRegularVolunteerSignups(createdShifts, allRegularVolunteers);
     } catch (error) {
       console.error("Bulk creation error:", error);
       redirect("/admin/shifts/new?error=bulk_create");
