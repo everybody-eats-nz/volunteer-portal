@@ -42,6 +42,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { formatInNZT } from "@/lib/timezone";
 import { EditRegularVolunteerDialog } from "./edit-regular-volunteer-dialog";
+import { ApplyRegularsDialog } from "./apply-regulars-dialog";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { LocationOption } from "@/lib/locations";
 
@@ -213,11 +214,17 @@ export function RegularsTable({
                 Manage volunteers with recurring shift assignments
               </p>
             </div>
-            <LocationFilterTabs
-              locations={locations}
-              selectedLocation={selectedLocation}
-              basePath="/admin/regulars"
-            />
+            <div className="flex items-center gap-3">
+              <ApplyRegularsDialog
+                locations={locations}
+                selectedLocation={selectedLocation}
+              />
+              <LocationFilterTabs
+                locations={locations}
+                selectedLocation={selectedLocation}
+                basePath="/admin/regulars"
+              />
+            </div>
           </div>
         </div>
 

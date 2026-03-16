@@ -322,22 +322,9 @@ export default async function NewShiftPage() {
     }
 
     try {
-      // Create all shifts
-      await prisma.shift.createMany({
+      // Create all shifts and return them (avoids fragile re-query)
+      const createdShifts = await prisma.shift.createManyAndReturn({
         data: shifts,
-      });
-
-      // Get the created shifts
-      const createdShifts = await prisma.shift.findMany({
-        where: {
-          start: {
-            gte: shifts[0].start,
-            lte: shifts[shifts.length - 1].start,
-          },
-          shiftTypeId: {
-            in: shifts.map((s) => s.shiftTypeId),
-          },
-        },
       });
 
       // OPTIMIZED: Batch process regular volunteers for all shifts
