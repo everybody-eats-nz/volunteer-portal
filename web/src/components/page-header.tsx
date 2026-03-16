@@ -130,10 +130,6 @@ export function PageHeader({
           {children}
         </motion.div>
       )}
-      <motion.div
-        className="h-px bg-linear-to-r from-border via-border/60 to-transparent mt-2 origin-left"
-        variants={dividerVariants}
-      />
     </motion.div>
   );
 }
