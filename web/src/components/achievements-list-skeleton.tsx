@@ -10,9 +10,9 @@ export function AchievementsListSkeleton() {
       <CardContent>
         <div className="space-y-6">
           {/* Tabs Skeleton */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-10 w-20" />
+              <Skeleton key={i} className="h-10 w-20 flex-shrink-0" />
             ))}
           </div>
 

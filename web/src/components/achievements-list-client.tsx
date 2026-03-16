@@ -247,7 +247,7 @@ export function AchievementsListClient({
               </p>
             )}
           </div>
-          <div className="text-sm font-medium text-muted-foreground">
+          <div className="text-sm font-medium text-muted-foreground whitespace-nowrap flex-shrink-0">
             {achievement.unlocked && "+"}
             {achievement.points} pts
           </div>

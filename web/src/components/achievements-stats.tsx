@@ -91,7 +91,7 @@ export async function AchievementsStats({ userId }: AchievementsStatsProps) {
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {/* Total Points */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -132,12 +132,12 @@ export async function AchievementsStats({ userId }: AchievementsStatsProps) {
             <CardContent>
               <div className="text-2xl font-bold">
                 #{ranking.userRank}
-                <span className="text-sm text-muted-foreground ml-2">
-                  of {ranking.totalUsers}
+                <span className="text-sm text-muted-foreground ml-1">
+                  / {ranking.totalUsers}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Top {Math.ceil((ranking.userRank / ranking.totalUsers) * 100)}% of volunteers
+              <p className="text-xs text-muted-foreground truncate">
+                Top {Math.ceil((ranking.userRank / ranking.totalUsers) * 100)}%
               </p>
             </CardContent>
           </Card>
@@ -161,9 +161,7 @@ export async function AchievementsStats({ userId }: AchievementsStatsProps) {
       </div>
 
       {/* Leaderboard Card with location filtering */}
-      <div className="mb-6">
-        <LeaderboardCard />
-      </div>
+      <LeaderboardCard />
     </>
   );
 }
