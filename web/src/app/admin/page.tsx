@@ -280,12 +280,13 @@ export default async function AdminDashboardPage({
 
     // This week stats
     Promise.all([
-      // Shifts this week
-      prisma.shift.count({
+      // Days with shifts remaining this week
+      prisma.shift.findMany({
         where: {
-          start: { gte: startOfWeek, lt: endOfWeek },
+          start: { gte: now, lt: endOfWeek },
           ...locationFilter,
         },
+        select: { start: true },
       }),
       // Confirmed signups this week
       prisma.signup.count({
@@ -301,6 +302,9 @@ export default async function AdminDashboardPage({
       prisma.user.count({
         where: {
           createdAt: { gte: startOfWeek, lt: endOfWeek },
+          ...(selectedLocation
+            ? { availableLocations: { contains: selectedLocation } }
+            : {}),
         },
       }),
       // Meals served this week (individual records for fallback logic)
@@ -334,13 +338,16 @@ export default async function AdminDashboardPage({
 
   const [monthlyShifts, monthlySignups, newUsersThisMonth] = monthlyStats;
   const [
-    weekShifts,
+    weekRemainingShifts,
     weekSignups,
     weekNewUsers,
     weekMealsRecords,
     weekShiftDetails,
     weekLocationDefaults,
   ] = weeklyStats;
+  const weekDaysWithShifts = new Set(
+    weekRemainingShifts.map((s) => formatInNZT(s.start, "yyyy-MM-dd"))
+  ).size;
 
   // Calculate meals served with fallback to location defaults
   const actualMealsMap = new Map<string, number>();
@@ -544,7 +551,7 @@ export default async function AdminDashboardPage({
             pendingParentalConsent={pendingParentalConsent}
           />
           <AdminDashboardWeekSummary
-            weekShifts={weekShifts}
+            weekShifts={weekDaysWithShifts}
             weekSignups={weekSignups}
             weekVolunteerHours={weekVolunteerHours}
             weekMeals={weekMeals}
