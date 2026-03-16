@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
 import { getConcurrentShifts } from "@/lib/concurrent-shifts";
+import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -241,6 +242,24 @@ export default async function ShiftDetailPage({
 
   const hasIncompleteProfile = missingFields.length > 0;
 
+  // Check if user has a conflicting signup in the same AM/PM period
+  let hasConflictingSignup = false;
+  if (userId && !userSignup) {
+    const shiftDate = getShiftDate(shift.start);
+    const shiftIsAM = isAMShift(shift.start);
+    const existingSignups = await prisma.signup.findMany({
+      where: {
+        userId,
+        status: { in: ["CONFIRMED", "PENDING"] },
+        shiftId: { not: id },
+      },
+      include: { shift: { select: { start: true } } },
+    });
+    hasConflictingSignup = existingSignups.some((s) => {
+      return getShiftDate(s.shift.start) === shiftDate && isAMShift(s.shift.start) === shiftIsAM;
+    });
+  }
+
   // Action button state
   const isLoggedOut = !session;
   const isAlreadySignedUp = !!userSignup;
@@ -249,7 +268,8 @@ export default async function ShiftDetailPage({
     !isPastShift &&
     !isAlreadySignedUp &&
     !needsParentalConsent &&
-    !hasIncompleteProfile;
+    !hasIncompleteProfile &&
+    !hasConflictingSignup;
 
   // Format date and time
   const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
@@ -396,6 +416,21 @@ export default async function ShiftDetailPage({
               !isLoggedOut &&
               !isPastShift &&
               !isAlreadySignedUp &&
+              hasConflictingSignup && (
+                <Button
+                  disabled
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                >
+                  Already signed up for this {isAMShift(shift.start) ? "AM" : "PM"} period
+                </Button>
+              )}
+
+            {!canSignUp &&
+              !isLoggedOut &&
+              !isPastShift &&
+              !isAlreadySignedUp &&
+              !hasConflictingSignup &&
               needsParentalConsent && (
                 <div className="w-full space-y-2">
                   <Button
@@ -417,6 +452,7 @@ export default async function ShiftDetailPage({
               !isLoggedOut &&
               !isPastShift &&
               !isAlreadySignedUp &&
+              !hasConflictingSignup &&
               !needsParentalConsent &&
               hasIncompleteProfile && (
                 <div className="w-full space-y-2">
