@@ -84,7 +84,7 @@ export function CollapsibleTemplateSelection({
   );
   return (
     <div className="space-y-4">
-      {sortedLocations?.map((location, index) => (
+      {sortedLocations?.filter((location) => templatesByLocation[location]?.length > 0).map((location, index) => (
         <Collapsible key={location} defaultOpen={index === 0}>
           <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-left bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <div className="flex items-center gap-3">
