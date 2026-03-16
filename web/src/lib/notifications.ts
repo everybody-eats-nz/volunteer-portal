@@ -30,11 +30,12 @@ export async function createNotification(params: CreateNotificationParams) {
       },
     });
 
-    // Send notification via Better-SSE
-    await sendNotificationToUser(params.userId, {
+    // Send notification via Better-SSE (fire-and-forget to avoid blocking the
+    // response if the SSE writer hangs due to backpressure or stale connections)
+    sendNotificationToUser(params.userId, {
       title: params.title,
       message: params.message,
-      type: "info", // Map NotificationType to our notification type
+      type: "info",
       actionUrl: params.actionUrl,
       metadata: {
         notificationId: notification.id,
@@ -42,11 +43,12 @@ export async function createNotification(params: CreateNotificationParams) {
         relatedId: params.relatedId,
         createdAt: notification.createdAt,
       },
-    });
+    }).catch((err) => console.error("Error sending SSE notification:", err));
 
-    // Update unread count
-    const unreadCount = await getUnreadNotificationCount(params.userId);
-    await updateUnreadCount(params.userId, unreadCount);
+    // Update unread count (fire-and-forget)
+    getUnreadNotificationCount(params.userId)
+      .then((unreadCount) => updateUnreadCount(params.userId, unreadCount))
+      .catch((err) => console.error("Error sending SSE unread count update:", err));
 
     return notification;
   } catch (error) {
