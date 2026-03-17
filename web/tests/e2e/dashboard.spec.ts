@@ -75,8 +75,9 @@ test.describe("Dashboard Page", () => {
   });
 
   test("should display stat numbers correctly", async ({ page }) => {
-    // Check that stat numbers are displayed as numbers (not NaN or undefined)
-    const statNumbers = page.locator('[data-testid$="-count"]');
+    // Wait for stats to stream in via Suspense
+    const statNumbers = page.locator('[data-testid$="-card-count"]');
+    await statNumbers.first().waitFor({ state: "visible", timeout: 15000 });
     const count = await statNumbers.count();
 
     // Should have at least 4 stat cards
