@@ -6,11 +6,10 @@ import { authOptions } from "@/lib/auth-options";
 import { MotionPageContainer } from "@/components/motion-page-container";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { getFriendsData } from "@/lib/friends-data";
-import { FriendsManagerServer } from "@/components/friends-manager-server";
 import { BarChart3 } from "lucide-react";
 import ErrorBoundary from "@/components/error-boundary";
 import { FriendsErrorFallback } from "@/components/friends-error-fallback";
+import { FriendsContent } from "./friends-content";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -32,19 +31,13 @@ export default async function FriendsPage({
     redirect("/login");
   }
 
-  // Fetch friends data server-side
-  const friendsData = await getFriendsData();
-
-  if (!friendsData) {
-    redirect("/login");
-  }
-
   // Get the tab from searchParams
   const { tab } = await searchParams;
   const initialTab = tab === "requests" ? "requests" : "friends";
 
   return (
     <MotionPageContainer>
+      {/* Header renders immediately */}
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2">
         <PageHeader
           title="My Friends"
@@ -64,16 +57,23 @@ export default async function FriendsPage({
           </Button>
         </div>
       </div>
+
+      {/* Friends content streams in */}
       <ErrorBoundary fallback={FriendsErrorFallback}>
         <Suspense
           fallback={
             <div className="space-y-6 animate-pulse">
               {/* Search and buttons skeleton */}
-              <div className="flex justify-between items-center">
-                <div className="h-10 bg-muted rounded-lg w-64"></div>
-                <div className="flex space-x-2">
-                  <div className="h-10 bg-muted rounded-md w-32"></div>
-                  <div className="h-10 bg-muted rounded-md w-28"></div>
+              <div className="bg-muted/30 rounded-xl p-8 border">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+                  <div className="flex-1 max-w-xl space-y-4">
+                    <div className="h-6 bg-muted rounded w-48"></div>
+                    <div className="h-10 bg-muted rounded-lg w-full"></div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="h-10 bg-muted rounded-md w-36"></div>
+                    <div className="h-10 bg-muted rounded-md w-28"></div>
+                  </div>
                 </div>
               </div>
 
@@ -109,10 +109,7 @@ export default async function FriendsPage({
             </div>
           }
         >
-          <FriendsManagerServer
-            initialData={friendsData}
-            initialTab={initialTab}
-          />
+          <FriendsContent initialTab={initialTab} />
         </Suspense>
       </ErrorBoundary>
     </MotionPageContainer>

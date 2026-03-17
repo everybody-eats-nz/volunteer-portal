@@ -7,9 +7,11 @@ import {
 } from "@/lib/achievements";
 import { prisma } from "@/lib/prisma";
 
-export async function AchievementsList({ userId }: { userId: string }) {
-  // Calculate achievements based on current history
-  await checkAndUnlockAchievements(userId);
+export async function AchievementsList({ userId, skipUnlockCheck }: { userId: string; skipUnlockCheck?: boolean }) {
+  // Calculate achievements based on current history (skip if already done at page level)
+  if (!skipUnlockCheck) {
+    await checkAndUnlockAchievements(userId);
+  }
 
   // Get user's current achievements and available ones
   const [userAchievements, availableAchievements, progress, shiftTypes] =

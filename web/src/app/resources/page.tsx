@@ -1,9 +1,10 @@
-import { Prisma } from "@/generated/client";
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
-import { ResourcesGrid } from "@/components/resources-grid";
 import { ResourcesSearch } from "@/components/resources-search";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ResourcesContent } from "./resources-content";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -35,67 +36,11 @@ export default async function ResourcesPage({
     ? params.tags
     : params.tags?.split(",");
 
-  // Build where clause
-  const whereClause: Prisma.ResourceWhereInput = {
-    isPublished: true,
-  };
-
-  if (searchQuery) {
-    whereClause.OR = [
-      { title: { contains: searchQuery, mode: "insensitive" } },
-      { description: { contains: searchQuery, mode: "insensitive" } },
-    ];
-  }
-
-  if (categoryFilter) {
-    whereClause.category = categoryFilter as Prisma.EnumResourceCategoryFilter;
-  }
-
-  if (typeFilter) {
-    whereClause.type = typeFilter as Prisma.EnumResourceTypeFilter;
-  }
-
-  if (tagsFilter && tagsFilter.length > 0) {
-    whereClause.tags = {
-      hasSome: tagsFilter,
-    };
-  }
-
-  // Fetch resources and unique tags
-  const [resources, allResources] = await Promise.all([
-    prisma.resource.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        type: true,
-        category: true,
-        tags: true,
-        fileUrl: true,
-        fileName: true,
-        fileSize: true,
-        url: true,
-        createdAt: true,
-        uploader: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
-    // Get all published resources to extract unique tags
-    prisma.resource.findMany({
-      where: { isPublished: true },
-      select: { tags: true },
-    }),
-  ]);
-
-  // Extract unique tags
+  // Fetch unique tags (small, fast query for the search UI)
+  const allResources = await prisma.resource.findMany({
+    where: { isPublished: true },
+    select: { tags: true },
+  });
   const uniqueTags = Array.from(
     new Set(allResources.flatMap((r) => r.tags))
   ).sort();
@@ -108,16 +53,29 @@ export default async function ResourcesPage({
           description="Access training materials, policies, forms, guides, and other helpful resources for volunteers."
         />
 
-        {/* Search and Filters */}
+        {/* Search and Filters - renders immediately */}
         <ResourcesSearch availableTags={uniqueTags} />
 
-        {/* Results Count */}
-        <div className="text-sm text-muted-foreground">
-          Showing {resources.length} resource{resources.length !== 1 ? "s" : ""}
-        </div>
-
-        {/* Resources Grid */}
-        <ResourcesGrid resources={resources} />
+        {/* Resources content streams in */}
+        <Suspense
+          fallback={
+            <div className="space-y-8">
+              <Skeleton className="h-5 w-40" />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="h-48 rounded-lg" />
+                ))}
+              </div>
+            </div>
+          }
+        >
+          <ResourcesContent
+            searchQuery={searchQuery}
+            categoryFilter={categoryFilter}
+            typeFilter={typeFilter}
+            tagsFilter={tagsFilter}
+          />
+        </Suspense>
       </div>
     </PageContainer>
   );
