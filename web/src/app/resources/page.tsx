@@ -1,9 +1,8 @@
 import { Suspense } from "react";
-import { prisma } from "@/lib/prisma";
-import { ResourcesSearch } from "@/components/resources-search";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResourcesSearchServer } from "@/components/resources-search-server";
 import { ResourcesContent } from "./resources-content";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
@@ -36,15 +35,6 @@ export default async function ResourcesPage({
     ? params.tags
     : params.tags?.split(",");
 
-  // Fetch unique tags (small, fast query for the search UI)
-  const allResources = await prisma.resource.findMany({
-    where: { isPublished: true },
-    select: { tags: true },
-  });
-  const uniqueTags = Array.from(
-    new Set(allResources.flatMap((r) => r.tags))
-  ).sort();
-
   return (
     <PageContainer>
       <div className="space-y-8">
@@ -53,8 +43,16 @@ export default async function ResourcesPage({
           description="Access training materials, policies, forms, guides, and other helpful resources for volunteers."
         />
 
-        {/* Search and Filters - renders immediately */}
-        <ResourcesSearch availableTags={uniqueTags} />
+        {/* Search and Filters - tags stream in from server */}
+        <Suspense fallback={
+          <div className="flex flex-wrap gap-4">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        }>
+          <ResourcesSearchServer />
+        </Suspense>
 
         {/* Resources content streams in */}
         <Suspense
