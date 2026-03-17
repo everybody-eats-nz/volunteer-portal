@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Libre_Franklin, Fraunces } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
 import { SiteHeaderClientWrapper } from "@/components/site-header-client-wrapper";
 import { SiteFooterWrapper } from "@/components/site-footer-wrapper";
 import { Providers } from "@/components/providers";
@@ -82,28 +80,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
-
-  // Fetch user profile data including profile photo
-  let userProfile = null;
-  if (session?.user?.email) {
-    userProfile = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: {
-        id: true,
-        profilePhotoUrl: true,
-        name: true,
-        firstName: true,
-        lastName: true,
-      },
-    });
-  }
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -111,14 +92,17 @@ export default async function RootLayout({
       >
         <Providers>
           <ImpersonationBanner />
-          <SiteHeaderClientWrapper
-            session={session}
-            userProfile={userProfile}
-          />
+          <Suspense>
+            <SiteHeaderClientWrapper />
+          </Suspense>
           <main className="min-h-screen">
-            <MainContentWrapper>{children}</MainContentWrapper>
+            <Suspense>
+              <MainContentWrapper>{children}</MainContentWrapper>
+            </Suspense>
           </main>
-          <SiteFooterWrapper session={session} />
+          <Suspense>
+            <SiteFooterWrapper />
+          </Suspense>
           <Toaster position="top-right" closeButton />
         </Providers>
         <BotProtectionClient />

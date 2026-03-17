@@ -28,7 +28,7 @@ export function MotionPageContainer({
   // If animations are disabled, just return a regular div
   if (!animate) {
     return (
-      <div className={cn("space-y-8", className)} {...props} {...testProps}>
+      <div className={cn("space-y-2", className)} {...props} {...testProps}>
         {children}
       </div>
     );
@@ -36,7 +36,7 @@ export function MotionPageContainer({
 
   return (
     <motion.div
-      className={cn("space-y-8", className)}
+      className={cn("space-y-2", className)}
       variants={fadeVariants}
       initial="hidden"
       animate="visible"

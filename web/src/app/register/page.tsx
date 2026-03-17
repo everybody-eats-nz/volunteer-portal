@@ -1,8 +1,9 @@
 import { Suspense } from "react";
-import RegisterClient from "./register-client";
+import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
+import { RegisterForm } from "./register-form";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Join as Volunteer",
@@ -63,6 +64,8 @@ async function getShiftTypes() {
  * Collects comprehensive user profile information during signup
  */
 export default async function RegisterPage() {
+  await connection();
+
   const [locationOptions, shiftTypes] = await Promise.all([
     getLocationOptions(),
     getShiftTypes(),
@@ -70,7 +73,7 @@ export default async function RegisterPage() {
 
   return (
     <Suspense fallback={<div>Loading registration form...</div>}>
-      <RegisterClient 
+      <RegisterForm
         locationOptions={locationOptions}
         shiftTypes={shiftTypes}
       />

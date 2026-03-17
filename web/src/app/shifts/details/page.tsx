@@ -175,6 +175,18 @@ function ShiftCard({
       )
     : undefined;
 
+  // Check if user already has a confirmed/pending signup for another shift in the same AM/PM period
+  const hasConflictingSignup = !mySignup && currentUserId
+    ? allShifts.some((otherShift) => {
+        if (otherShift.id === shift.id) return false;
+        if (getShiftDateHelper(otherShift.start) !== getShiftDateHelper(shift.start)) return false;
+        if (isAMShiftHelper(otherShift.start) !== isAMShiftHelper(shift.start)) return false;
+        return otherShift.signups.some(
+          (s) => s.userId === currentUserId && (s.status === "CONFIRMED" || s.status === "PENDING")
+        );
+      })
+    : false;
+
   // Find friends who have signed up for this shift
   const friendSignups = shift.signups.filter(
     (signup) =>
@@ -327,7 +339,16 @@ function ShiftCard({
                 className="w-full"
               />
             ) : session ? (
-              canSignUp ? (
+              hasConflictingSignup ? (
+                <Button
+                  disabled
+                  data-testid="shift-signup-button-conflict"
+                  className="w-full font-medium bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                  variant="outline"
+                >
+                  Already signed up for this {isAMShiftHelper(shift.start) ? "AM" : "PM"} period
+                </Button>
+              ) : canSignUp ? (
                 <ShiftSignupButton
                   isFull={isFull}
                   theme={theme}

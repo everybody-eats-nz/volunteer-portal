@@ -37,11 +37,14 @@ export default async function DashboardPage() {
     redirect("/login?callbackUrl=/dashboard");
   }
 
+  const hour = new Date().toLocaleString("en-NZ", { timeZone: "Pacific/Auckland", hour: "numeric", hour12: false });
+  const greeting = parseInt(hour, 10) < 12 ? "Mōrena" : "Kia ora";
+
   return (
     <PageContainer testid="dashboard-page">
       {/* Header renders immediately */}
       <PageHeader
-        title={`Welcome back${firstName ? `, ${firstName}` : ""}!`}
+        title={`${greeting}${firstName ? `, ${firstName}` : ""} 👋`}
         description="Here's what's happening with your volunteer journey"
       />
 

@@ -1,20 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { SiteFooter } from "./site-footer";
-import { Session } from "next-auth";
 
-interface SiteFooterWrapperProps {
-  session: Session | null;
-}
-
-export function SiteFooterWrapper({ session }: SiteFooterWrapperProps) {
+export function SiteFooterWrapper() {
   const pathname = usePathname();
-  
+  const { data: session } = useSession();
+
   // Hide footer on admin pages
   if (pathname.startsWith("/admin")) {
     return null;
   }
-  
+
   return <SiteFooter session={session} />;
 }

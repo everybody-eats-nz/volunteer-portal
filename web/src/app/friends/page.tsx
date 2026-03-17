@@ -45,7 +45,7 @@ export default async function FriendsPage({
 
   return (
     <MotionPageContainer>
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2">
         <PageHeader
           title="My Friends"
           description="Manage your friends and discover volunteering opportunities together"
@@ -109,7 +109,10 @@ export default async function FriendsPage({
             </div>
           }
         >
-          <FriendsManagerServer initialData={friendsData} initialTab={initialTab} />
+          <FriendsManagerServer
+            initialData={friendsData}
+            initialTab={initialTab}
+          />
         </Suspense>
       </ErrorBoundary>
     </MotionPageContainer>
