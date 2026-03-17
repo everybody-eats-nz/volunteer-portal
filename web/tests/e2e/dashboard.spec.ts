@@ -76,7 +76,7 @@ test.describe("Dashboard Page", () => {
 
   test("should display stat numbers correctly", async ({ page }) => {
     // Check that stat numbers are displayed as numbers (not NaN or undefined)
-    const statNumbers = page.locator('[class*="text-2xl"][class*="font-bold"]');
+    const statNumbers = page.locator('[data-testid$="-count"]');
     const count = await statNumbers.count();
 
     // Should have at least 4 stat cards
