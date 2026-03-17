@@ -74,7 +74,7 @@ export async function ProfileCompletionBannerServer() {
                   className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
                   asChild
                 >
-                  <a href={consentFormUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={consentFormUrl} target="_blank" rel="noopener noreferrer" data-testid="download-consent-form">
                     <FileText className="h-4 w-4 mr-1" />
                     Download Consent Form
                   </a>
