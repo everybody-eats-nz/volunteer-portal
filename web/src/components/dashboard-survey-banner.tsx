@@ -21,13 +21,20 @@ interface PendingSurvey {
   expiresAt: string;
 }
 
-export function DashboardSurveyBanner() {
+interface DashboardSurveyBannerProps {
+  initialSurveys?: PendingSurvey[];
+}
+
+export function DashboardSurveyBanner({ initialSurveys }: DashboardSurveyBannerProps = {}) {
   const { data: session } = useSession();
-  const [surveys, setSurveys] = useState<PendingSurvey[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [surveys, setSurveys] = useState<PendingSurvey[]>(initialSurveys ?? []);
+  const [loading, setLoading] = useState(!initialSurveys);
   const [dismissing, setDismissing] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skip fetch if server provided initial data
+    if (initialSurveys) return;
+
     if (!session?.user?.id) {
       setLoading(false);
       return;
@@ -48,7 +55,7 @@ export function DashboardSurveyBanner() {
         console.error("Error fetching surveys:", err);
         setLoading(false);
       });
-  }, [session]);
+  }, [session, initialSurveys]);
 
   const handleDismiss = async (assignmentId: string) => {
     setDismissing(assignmentId);

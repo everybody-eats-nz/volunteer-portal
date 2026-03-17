@@ -10,11 +10,14 @@ import {
 
 interface AchievementsStatsProps {
   userId: string;
+  skipUnlockCheck?: boolean;
 }
 
-async function getAchievementsData(userId: string) {
-  // Calculate achievements based on current history
-  await checkAndUnlockAchievements(userId);
+async function getAchievementsData(userId: string, skipUnlockCheck = false) {
+  // Calculate achievements based on current history (skip if already done at page level)
+  if (!skipUnlockCheck) {
+    await checkAndUnlockAchievements(userId);
+  }
 
   // Get user's current achievements and available ones
   const [userAchievements, availableAchievements] = await Promise.all([
@@ -78,8 +81,8 @@ async function getAchievementsData(userId: string) {
   };
 }
 
-export async function AchievementsStats({ userId }: AchievementsStatsProps) {
-  const data = await getAchievementsData(userId);
+export async function AchievementsStats({ userId, skipUnlockCheck }: AchievementsStatsProps) {
+  const data = await getAchievementsData(userId, skipUnlockCheck);
   const { userAchievements, availableAchievements, totalPoints, ranking } =
     data;
 

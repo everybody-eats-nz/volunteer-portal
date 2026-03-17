@@ -160,14 +160,20 @@ function calculateAchievementProgress(
   }
 }
 
-export default function AchievementsCard() {
+interface AchievementsCardProps {
+  initialData?: AchievementsData | null;
+}
+
+export default function AchievementsCard({ initialData }: AchievementsCardProps = {}) {
   const [achievementsData, setAchievementsData] =
-    useState<AchievementsData | null>(null);
-  const [loading, setLoading] = useState(true);
+    useState<AchievementsData | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
 
   useEffect(() => {
+    // Skip fetch if server provided initial data
+    if (initialData) return;
     fetchAchievements();
-  }, []);
+  }, [initialData]);
 
   const fetchAchievements = async () => {
     try {

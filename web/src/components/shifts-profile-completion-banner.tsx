@@ -1,5 +1,5 @@
-import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
+import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 
 export function ShiftsProfileCompletionBanner() {
-  return <DashboardProfileCompletionBanner />;
+  return <ProfileCompletionBannerServer />;
 }
