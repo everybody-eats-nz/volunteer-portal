@@ -37,8 +37,8 @@ export default async function DashboardPage() {
     redirect("/login?callbackUrl=/dashboard");
   }
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Mōrena" : "Kia ora";
+  const hour = new Date().toLocaleString("en-NZ", { timeZone: "Pacific/Auckland", hour: "numeric", hour12: false });
+  const greeting = parseInt(hour, 10) < 12 ? "Mōrena" : "Kia ora";
 
   return (
     <PageContainer testid="dashboard-page">
