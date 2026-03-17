@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
 import { ContentGrid } from "@/components/dashboard-animated";
-import AchievementsCard from "@/components/achievements-card";
+import { DashboardAchievementsServer } from "@/components/dashboard-achievements-server";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { DashboardNextShift } from "@/components/dashboard-next-shift";
 import { DashboardRecentActivity } from "@/components/dashboard-recent-activity";
@@ -13,8 +13,8 @@ import { DashboardStatsSkeleton } from "@/components/dashboard-stats-skeleton";
 import { DashboardContentSkeleton } from "@/components/dashboard-content-skeleton";
 import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
 import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
-import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
-import { DashboardSurveyBanner } from "@/components/dashboard-survey-banner";
+import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
+import { DashboardSurveyBannerServer } from "@/components/dashboard-survey-banner-server";
 import { DashboardSuggestedFriends } from "@/components/dashboard-suggested-friends";
 import { AchievementTracker } from "@/components/achievement-tracker";
 import type { Metadata } from "next";
@@ -48,14 +48,14 @@ export default async function DashboardPage() {
         description="Here's what's happening with your volunteer journey"
       />
 
-      {/* Profile completion banner - shows if profile incomplete */}
+      {/* Profile completion banner - streams in from server */}
       <Suspense fallback={null}>
-        <DashboardProfileCompletionBanner />
+        <ProfileCompletionBannerServer />
       </Suspense>
 
-      {/* Survey banner - shows if user has pending surveys */}
+      {/* Survey banner - fetched server-side, streams in */}
       <Suspense fallback={null}>
-        <DashboardSurveyBanner />
+        <DashboardSurveyBannerServer />
       </Suspense>
 
       {/* Stats Overview - streams in when ready */}
@@ -74,9 +74,9 @@ export default async function DashboardPage() {
           <DashboardSuggestedFriends />
         </Suspense>
 
-        {/* Achievements - streams in when ready */}
+        {/* Achievements - fetched server-side, streams in when ready */}
         <Suspense fallback={<DashboardContentSkeleton />}>
-          <AchievementsCard />
+          <DashboardAchievementsServer />
         </Suspense>
 
         {/* Recent Activity - streams in when ready */}

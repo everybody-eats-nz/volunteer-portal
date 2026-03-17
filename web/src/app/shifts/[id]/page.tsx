@@ -21,65 +21,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DashboardProfileCompletionBanner } from "@/components/dashboard-profile-completion-banner";
+import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
 import { ShiftSignupButton } from "@/components/shift-signup-button";
 import { getShiftTheme } from "@/lib/shift-themes";
-
-// Shift type theming configuration (same as shifts page)
-const SHIFT_THEMES = {
-  Dishwasher: {
-    gradient: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-50 dark:bg-blue-950/20",
-    borderColor: "border-blue-200 dark:border-blue-800/50",
-    textColor: "text-blue-700 dark:text-blue-300",
-    emoji: "🧽",
-  },
-  "FOH Set-Up & Service": {
-    gradient: "from-purple-500 to-pink-500",
-    bgColor: "bg-purple-50 dark:bg-purple-950/20",
-    borderColor: "border-purple-200 dark:border-purple-800/50",
-    textColor: "text-purple-700 dark:text-purple-300",
-    emoji: "✨",
-  },
-  "Front of House": {
-    gradient: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-50 dark:bg-green-950/20",
-    borderColor: "border-green-200 dark:border-green-800/50",
-    textColor: "text-green-700 dark:text-green-300",
-    emoji: "🌟",
-  },
-  "Kitchen Prep": {
-    gradient: "from-orange-500 to-amber-500",
-    bgColor: "bg-orange-50 dark:bg-orange-950/20",
-    borderColor: "border-orange-200 dark:border-orange-800/50",
-    textColor: "text-orange-700 dark:text-orange-300",
-    emoji: "🔪",
-  },
-  "Kitchen Prep & Service": {
-    gradient: "from-red-500 to-pink-500",
-    bgColor: "bg-red-50 dark:bg-red-950/20",
-    borderColor: "border-red-200 dark:border-red-800/50",
-    textColor: "text-red-700 dark:text-red-300",
-    emoji: "🍳",
-  },
-  "Kitchen Service & Pack Down": {
-    gradient: "from-indigo-500 to-purple-500",
-    bgColor: "bg-indigo-50 dark:bg-indigo-950/20",
-    borderColor: "border-indigo-200 dark:border-indigo-800/50",
-    textColor: "text-indigo-700 dark:text-indigo-300",
-    emoji: "📦",
-  },
-} as const;
-
-const DEFAULT_THEME = {
-  gradient: "from-gray-500 to-slate-500",
-  bgColor: "bg-gray-50 dark:bg-gray-950/20",
-  borderColor: "border-gray-200 dark:border-gray-800/50",
-  textColor: "text-gray-700 dark:text-gray-300",
-  emoji: "🍽️",
-};
+import { Suspense } from "react";
 
 export default async function ShiftDetailPage({
   params,
@@ -88,20 +35,16 @@ export default async function ShiftDetailPage({
 }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-
-  // Allow viewing without login, but signup requires authentication
   const userId = session?.user?.id;
 
-  // Fetch shift details with all related data
+  // Fetch shift details — must come first as everything depends on it
   const shift = await prisma.shift.findUnique({
     where: { id },
     include: {
       shiftType: true,
       signups: {
         where: {
-          status: {
-            in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
-          },
+          status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
         },
         include: {
           user: {
@@ -116,18 +59,14 @@ export default async function ShiftDetailPage({
             },
           },
         },
-        orderBy: {
-          createdAt: "asc",
-        },
+        orderBy: { createdAt: "asc" },
         take: 10,
       },
       _count: {
         select: {
           signups: {
             where: {
-              status: {
-                in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
-              },
+              status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
             },
           },
         },
@@ -139,29 +78,59 @@ export default async function ShiftDetailPage({
     notFound();
   }
 
-  // Get current user's friends if they're logged in
-  let userFriendIds: string[] = [];
-  if (userId) {
-    const friendships = await prisma.friendship.findMany({
-      where: {
-        OR: [
-          { userId: userId, status: "ACCEPTED" },
-          { friendId: userId, status: "ACCEPTED" },
-        ],
-      },
-      select: {
-        userId: true,
-        friendId: true,
-      },
-    });
+  // Parallelize all remaining queries
+  const [friendships, userSignup, currentUser, concurrentShifts] =
+    await Promise.all([
+      // Friends
+      userId
+        ? prisma.friendship.findMany({
+            where: {
+              OR: [
+                { userId, status: "ACCEPTED" },
+                { friendId: userId, status: "ACCEPTED" },
+              ],
+            },
+            select: { userId: true, friendId: true },
+          })
+        : Promise.resolve([]),
 
-    // Extract friend IDs (excluding current user)
-    userFriendIds = friendships.flatMap((f) =>
-      f.userId === userId ? [f.friendId] : [f.userId]
-    );
-  }
+      // User's signup for this shift
+      userId
+        ? prisma.signup.findFirst({
+            where: {
+              userId,
+              shiftId: id,
+              status: { in: ["CONFIRMED", "WAITLISTED", "PENDING", "REGULAR_PENDING"] },
+            },
+          })
+        : Promise.resolve(null),
 
-  // Separate friends from other volunteers
+      // User profile for consent/completion checks
+      userId
+        ? prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+              id: true,
+              requiresParentalConsent: true,
+              parentalConsentReceived: true,
+              phone: true,
+              dateOfBirth: true,
+              emergencyContactName: true,
+              emergencyContactPhone: true,
+              volunteerAgreementAccepted: true,
+              healthSafetyPolicyAccepted: true,
+            },
+          })
+        : Promise.resolve(null),
+
+      // Concurrent shifts for backup options
+      getConcurrentShifts(id),
+    ]);
+
+  const userFriendIds = friendships.flatMap((f) =>
+    f.userId === userId ? [f.friendId] : [f.userId]
+  );
+
   const friendSignups = shift.signups.filter(
     (signup) =>
       userId &&
@@ -169,63 +138,23 @@ export default async function ShiftDetailPage({
       userFriendIds.includes(signup.user.id)
   );
 
-  // Count other volunteers (not friends, not current user)
   const otherVolunteersCount =
     shift._count.signups -
     friendSignups.length -
     (userId && shift.signups.some((s) => s.user.id === userId) ? 1 : 0);
 
-  // Check if the shift is in the past
   const isPastShift = new Date(shift.end) < new Date();
-
-  // Check if user is already signed up (if logged in) and get parental consent info
-  let userSignup = null;
-  let currentUser = null;
-  if (userId) {
-    userSignup = await prisma.signup.findFirst({
-      where: {
-        userId: userId,
-        shiftId: id,
-        status: {
-          in: ["CONFIRMED", "WAITLISTED", "PENDING", "REGULAR_PENDING"],
-        },
-      },
-    });
-
-    // Get user info including parental consent status
-    currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        requiresParentalConsent: true,
-        parentalConsentReceived: true,
-        phone: true,
-        dateOfBirth: true,
-        emergencyContactName: true,
-        emergencyContactPhone: true,
-        volunteerAgreementAccepted: true,
-        healthSafetyPolicyAccepted: true,
-      },
-    });
-  }
-
-  // Fetch concurrent shifts for backup options
-  const concurrentShifts = await getConcurrentShifts(id);
 
   const confirmedCount = shift._count.signups + shift.placeholderCount;
   const isWaitlist = confirmedCount >= shift.capacity;
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
-  const theme =
-    SHIFT_THEMES[shift.shiftType.name as keyof typeof SHIFT_THEMES] ||
-    DEFAULT_THEME;
+  const theme = getShiftTheme(shift.shiftType.name);
 
-  // Check if user needs parental consent approval
   const needsParentalConsent =
     currentUser &&
     currentUser.requiresParentalConsent &&
     !currentUser.parentalConsentReceived;
 
-  // Check if profile is incomplete
   const missingFields = [];
   if (currentUser) {
     if (!currentUser.phone) missingFields.push("Mobile number");
@@ -239,10 +168,9 @@ export default async function ShiftDetailPage({
     if (!currentUser.healthSafetyPolicyAccepted)
       missingFields.push("Health & safety policy");
   }
-
   const hasIncompleteProfile = missingFields.length > 0;
 
-  // Check if user has a conflicting signup in the same AM/PM period
+  // Check conflicting signup (only if user hasn't signed up for this shift)
   let hasConflictingSignup = false;
   if (userId && !userSignup) {
     const shiftDate = getShiftDate(shift.start);
@@ -260,7 +188,6 @@ export default async function ShiftDetailPage({
     });
   }
 
-  // Action button state
   const isLoggedOut = !session;
   const isAlreadySignedUp = !!userSignup;
   const canSignUp =
@@ -271,7 +198,6 @@ export default async function ShiftDetailPage({
     !hasIncompleteProfile &&
     !hasConflictingSignup;
 
-  // Format date and time
   const shiftDate = formatInNZT(new Date(shift.start), "EEEE, MMMM d, yyyy");
   const shiftTime = `${formatInNZT(
     new Date(shift.start),
@@ -320,7 +246,6 @@ export default async function ShiftDetailPage({
         </div>
       </div>
 
-      {/* Main Shift Card */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -337,8 +262,6 @@ export default async function ShiftDetailPage({
                 </Badge>
               </div>
             </div>
-
-            {/* Status Badge */}
             <div className="flex-shrink-0">
               {isPastShift ? (
                 <Badge variant="outline">Past Shift</Badge>
@@ -359,7 +282,6 @@ export default async function ShiftDetailPage({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Signup Status - shown prominently at top if signed up */}
           {isAlreadySignedUp && !isPastShift && (
             <div className="flex items-center gap-2 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800/50">
               <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -369,7 +291,6 @@ export default async function ShiftDetailPage({
             </div>
           )}
 
-          {/* Shortage Alert - shown if spots need filling */}
           {!isPastShift && !userSignup && spotsRemaining > 3 && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
@@ -380,7 +301,6 @@ export default async function ShiftDetailPage({
             </Alert>
           )}
 
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             {isLoggedOut && (
               <div className="w-full">
@@ -417,11 +337,7 @@ export default async function ShiftDetailPage({
               !isPastShift &&
               !isAlreadySignedUp &&
               hasConflictingSignup && (
-                <Button
-                  disabled
-                  variant="secondary"
-                  className="w-full sm:w-auto"
-                >
+                <Button disabled variant="secondary" className="w-full sm:w-auto">
                   Already signed up for this {isAMShift(shift.start) ? "AM" : "PM"} period
                 </Button>
               )}
@@ -433,11 +349,7 @@ export default async function ShiftDetailPage({
               !hasConflictingSignup &&
               needsParentalConsent && (
                 <div className="w-full space-y-2">
-                  <Button
-                    disabled
-                    variant="secondary"
-                    className="w-full sm:w-auto"
-                  >
+                  <Button disabled variant="secondary" className="w-full sm:w-auto">
                     Parental Consent Required
                   </Button>
                   <p className="text-sm text-muted-foreground">
@@ -456,11 +368,7 @@ export default async function ShiftDetailPage({
               !needsParentalConsent &&
               hasIncompleteProfile && (
                 <div className="w-full space-y-2">
-                  <Button
-                    disabled
-                    variant="secondary"
-                    className="w-full sm:w-auto"
-                  >
+                  <Button disabled variant="secondary" className="w-full sm:w-auto">
                     Complete Profile Required
                   </Button>
                   <p className="text-sm text-muted-foreground">
@@ -481,14 +389,14 @@ export default async function ShiftDetailPage({
             )}
           </div>
 
-          {/* Profile Completion / Parental Consent Banner */}
           {session && (needsParentalConsent || hasIncompleteProfile) && (
             <div className="py-2">
-              <DashboardProfileCompletionBanner />
+              <Suspense fallback={null}>
+                <ProfileCompletionBannerServer />
+              </Suspense>
             </div>
           )}
 
-          {/* Shift Details */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Duration</p>
@@ -502,7 +410,6 @@ export default async function ShiftDetailPage({
             </div>
           </div>
 
-          {/* Location with Map */}
           {shift.location && (
             <div className="space-y-3">
               <div className="flex items-start justify-between">
@@ -559,7 +466,6 @@ export default async function ShiftDetailPage({
             </div>
           )}
 
-          {/* Current Volunteers */}
           {(friendSignups.length > 0 || otherVolunteersCount > 0) && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-muted-foreground">
@@ -587,7 +493,6 @@ export default async function ShiftDetailPage({
             </div>
           )}
 
-          {/* Add to Calendar - only for future shifts */}
           {!isPastShift && (
             <div className="pt-2 border-t">
               <div className="text-sm font-medium text-muted-foreground mb-2">
@@ -598,42 +503,19 @@ export default async function ShiftDetailPage({
                   const urls = generateCalendarUrls(shift);
                   return (
                     <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        asChild
-                      >
-                        <a
-                          href={urls.google}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                        <a href={urls.google} target="_blank" rel="noopener noreferrer">
                           <CalendarPlus className="h-3.5 w-3.5" />
                           Google
                         </a>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        asChild
-                      >
-                        <a
-                          href={urls.outlook}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                        <a href={urls.outlook} target="_blank" rel="noopener noreferrer">
                           <CalendarPlus className="h-3.5 w-3.5" />
                           Outlook
                         </a>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-1.5"
-                        asChild
-                      >
+                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
                         <a href={urls.ics} download={`shift-${shift.id}.ics`}>
                           <CalendarPlus className="h-3.5 w-3.5" />
                           .ics

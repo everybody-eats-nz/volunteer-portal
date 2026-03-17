@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { cacheLife } from "next/cache";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { RegisterForm } from "./register-form";
@@ -13,6 +13,9 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 async function getLocationOptions() {
+  "use cache";
+  cacheLife("hours");
+
   // Get all unique locations from shifts that are not null
   const shifts = await prisma.shift.findMany({
     select: {
@@ -46,6 +49,9 @@ async function getLocationOptions() {
 }
 
 async function getShiftTypes() {
+  "use cache";
+  cacheLife("hours");
+
   const shiftTypes = await prisma.shiftType.findMany({
     select: {
       id: true,
@@ -64,8 +70,6 @@ async function getShiftTypes() {
  * Collects comprehensive user profile information during signup
  */
 export default async function RegisterPage() {
-  await connection();
-
   const [locationOptions, shiftTypes] = await Promise.all([
     getLocationOptions(),
     getShiftTypes(),

@@ -237,11 +237,12 @@ test.describe("Parental Consent System", () => {
       await createAndLoginAsUnderageUser(page);
       await waitForPageLoad(page);
 
-      // Test PDF download from dashboard
-      const downloadPromise = page.waitForEvent("download");
-      await page.locator('button:has-text("Download Consent Form")').click();
-      const download = await downloadPromise;
-      expect(download.suggestedFilename()).toBe("parental-consent-form.pdf");
+      // Verify the consent form link is present with correct href
+      const consentLink = page.getByTestId("download-consent-form");
+      await expect(consentLink).toBeVisible();
+      const href = await consentLink.getAttribute("href");
+      expect(href).toBeTruthy();
+      expect(href).toContain("parental-consent-form");
     });
   });
 

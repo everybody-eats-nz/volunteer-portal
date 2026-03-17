@@ -1,8 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { redirect } from "next/navigation";
 import Image from "next/image";
 import {
   HomePageWrapper,
@@ -20,20 +17,8 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/",
 });
 
-export default async function Home() {
-  const session = await getServerSession(authOptions);
-
-  // Redirect logged-in users to their appropriate dashboard
-  if (session?.user) {
-    const userRole = session.user.role;
-
-    if (userRole === "ADMIN") {
-      redirect("/admin");
-    } else {
-      redirect("/dashboard");
-    }
-  }
-
+// Auth redirect handled by middleware - this page is now fully static
+export default function Home() {
   const organizationSchema = buildOrganizationSchema();
 
   return (
@@ -227,8 +212,7 @@ export default async function Home() {
               <br />
               Join us in our mission to ensure everybody eats.
             </p>
-            {!session?.user && (
-              <div
+            <div
                 className="flex flex-col sm:flex-row gap-4 justify-center"
                 data-testid="final-cta-buttons"
               >
@@ -249,7 +233,6 @@ export default async function Home() {
                   <Link href="/login">Sign In</Link>
                 </Button>
               </div>
-            )}
           </div>
         </div>
       </section>

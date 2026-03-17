@@ -209,13 +209,10 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
       page.getByRole("dialog", { name: /Email Template Preview/i })
     ).toBeVisible();
 
-    // Wait for content to load
-    await page.waitForTimeout(1000);
-
-    // Check for the note about placeholder variables
+    // Wait for preview content to load (note only appears after API data loads)
     await expect(
       page.getByText(/This preview shows the template with placeholder variables/i)
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
     await expect(
       page.getByText(/Actual emails will have these replaced with real data/i)
     ).toBeVisible();

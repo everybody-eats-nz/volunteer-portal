@@ -33,7 +33,7 @@ export default async function AchievementsPage() {
         description="Track your volunteer journey and see how you compare with others"
       />
 
-      {/* Stats Overview with Ranking */}
+      {/* Stats Overview with Ranking — achievement check runs inside, deduplicated by React cache */}
       <Suspense fallback={<AchievementsStatsSkeleton />}>
         <AchievementsStats userId={userId} />
       </Suspense>
