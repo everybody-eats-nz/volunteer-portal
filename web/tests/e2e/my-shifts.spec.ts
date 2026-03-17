@@ -525,7 +525,7 @@ test.describe("My Shifts Calendar Page", () => {
       await expect(errorMessage.first()).not.toBeVisible();
 
       // Check that all stat numbers are displayed
-      const statNumbers = page.locator(".text-2xl.font-bold");
+      const statNumbers = page.locator(".text-3xl.font-bold");
       const count = await statNumbers.count();
       expect(count).toBe(4); // Should have 4 stat cards
 
