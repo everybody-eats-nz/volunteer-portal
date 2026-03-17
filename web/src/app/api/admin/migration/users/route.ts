@@ -3,8 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
-
 const isTokenExpired = (expiresAt: Date | null): boolean => {
   if (!expiresAt) return false;
   return expiresAt < new Date();

@@ -7,8 +7,6 @@ import {
   validateConnectionToken
 } from "@/lib/sse-security";
 
-export const dynamic = "force-dynamic";
-
 export async function GET(request: NextRequest) {
   try {
     // Validate session and get secure headers

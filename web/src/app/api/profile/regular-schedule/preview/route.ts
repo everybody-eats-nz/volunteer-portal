@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { addWeeks, startOfDay, endOfDay } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
 
-export const dynamic = "force-dynamic";
-
 // GET /api/profile/regular-schedule/preview - Preview upcoming regular shifts
 export async function GET(req: NextRequest) {
   try {
