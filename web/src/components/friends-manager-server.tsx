@@ -34,7 +34,7 @@ export function FriendsManagerServer({
   return (
     <div className="space-y-8">
       {/* Enhanced Header Section */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/3 to-purple-500/5 dark:from-primary/10 dark:via-primary/8 dark:to-purple-500/10 rounded-xl p-8 lg:p-10 border border-primary/10 dark:border-primary/20 shadow-sm">
+      <div className="bg-linear-to-r from-primary/5 via-primary/3 to-purple-500/5 dark:from-primary/10 dark:via-primary/8 dark:to-purple-500/10 rounded-xl p-8 lg:p-10 border border-primary/10 dark:border-primary/20 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8 lg:gap-12">
           <div className="flex-1 max-w-xl space-y-4">
             <div>

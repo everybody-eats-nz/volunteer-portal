@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { NotificationsContent } from "./notifications-content";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 };
 
 export default async function NotificationsPage() {
+  await connection();
+
   // Fetch shift types on the server
   const shiftTypes = await prisma.shiftType.findMany({
     select: {

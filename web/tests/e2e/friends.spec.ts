@@ -14,7 +14,7 @@ test.describe("Friends System", () => {
 
     // Verify we're on the friends page
     await expect(page).toHaveURL("/friends");
-    await expect(page.locator("h1")).toContainText("My Friends");
+    await expect(page.locator("h1").first()).toContainText("My Friends");
   });
 
   test("should open send friend request dialog", async ({ page }) => {

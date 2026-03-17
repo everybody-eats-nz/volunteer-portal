@@ -118,7 +118,6 @@ test.describe("General Volunteer Movement System", () => {
       const tomorrowStr = tomorrow.toISOString().split("T")[0];
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
-      await page.waitForTimeout(2000);
 
       // Find the shift card with our volunteer
       const shiftCard = page
@@ -128,7 +127,7 @@ test.describe("General Volunteer Movement System", () => {
         })
         .first();
 
-      await expect(shiftCard).toBeVisible();
+      await expect(shiftCard).toBeVisible({ timeout: 10000 });
 
       // Should see confirmed status
       await expect(shiftCard.getByText("Confirmed")).toBeVisible();
@@ -225,7 +224,6 @@ test.describe("General Volunteer Movement System", () => {
       // Verify via UI that volunteer now appears in target shift
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
-      await page.waitForTimeout(2000);
 
       // Find the FOH shift card - volunteer should now be there
       const fohShiftCard = page
@@ -235,8 +233,8 @@ test.describe("General Volunteer Movement System", () => {
         })
         .first();
 
-      await expect(fohShiftCard).toBeVisible();
-      await expect(fohShiftCard.getByText("Test User")).toBeVisible();
+      await expect(fohShiftCard).toBeVisible({ timeout: 10000 });
+      await expect(fohShiftCard.getByText("Test User")).toBeVisible({ timeout: 10000 });
     });
 
     test("volunteer now appears in target shift", async ({ page }) => {
@@ -258,7 +256,6 @@ test.describe("General Volunteer Movement System", () => {
       const tomorrowStr = tomorrow.toISOString().split("T")[0];
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
-      await page.waitForTimeout(2000);
 
       // Find the FOH shift card - volunteer should now be there
       const fohShiftCard = page
@@ -268,9 +265,9 @@ test.describe("General Volunteer Movement System", () => {
         })
         .first();
 
-      await expect(fohShiftCard).toBeVisible();
-      await expect(fohShiftCard.getByText("Test User")).toBeVisible();
-      await expect(fohShiftCard.getByText("Confirmed")).toBeVisible();
+      await expect(fohShiftCard).toBeVisible({ timeout: 10000 });
+      await expect(fohShiftCard.getByText("Test User")).toBeVisible({ timeout: 10000 });
+      await expect(fohShiftCard.getByText("Confirmed")).toBeVisible({ timeout: 10000 });
 
       // Original shift should no longer have the volunteer
       const originalShiftCard = page
@@ -374,7 +371,6 @@ test.describe("General Volunteer Movement System", () => {
       const tomorrowStr = tomorrow.toISOString().split("T")[0];
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
-      await page.waitForTimeout(2000);
 
       // Verify volunteer is in target shift
       const fohShiftCard = page
@@ -384,8 +380,8 @@ test.describe("General Volunteer Movement System", () => {
         })
         .first();
 
-      await expect(fohShiftCard).toBeVisible();
-      await expect(fohShiftCard.getByText("Test User")).toBeVisible();
+      await expect(fohShiftCard).toBeVisible({ timeout: 10000 });
+      await expect(fohShiftCard.getByText("Test User")).toBeVisible({ timeout: 10000 });
     });
 
     test("movement notification is visible to volunteer", async ({ page }) => {

@@ -5,8 +5,9 @@ import { loginAsVolunteer } from "./helpers/auth";
 // Helper function to wait for dashboard content to load (including Suspense boundaries)
 async function waitForDashboardContent(page: Page) {
   // Wait for the welcome heading to appear (renders immediately)
+  // Greeting is dynamic: "Mōrena" (before noon) or "Kia ora" (afternoon)
   await page
-    .getByRole("heading", { name: /welcome back/i })
+    .getByRole("heading", { name: /mōrena|kia ora/i })
     .waitFor({ state: "visible" });
 
   // Wait for at least some stats to load (Suspense content) - be more flexible with what we wait for
@@ -38,7 +39,7 @@ test.describe("Dashboard Page", () => {
     await expect(page).toHaveURL("/dashboard");
 
     // Check main heading
-    const welcomeHeading = page.getByRole("heading", { name: /welcome back/i });
+    const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     await expect(welcomeHeading).toBeVisible();
 
     // Check description
@@ -74,8 +75,9 @@ test.describe("Dashboard Page", () => {
   });
 
   test("should display stat numbers correctly", async ({ page }) => {
-    // Check that stat numbers are displayed as numbers (not NaN or undefined)
-    const statNumbers = page.locator('[class*="text-2xl"][class*="font-bold"]');
+    // Wait for stats to stream in via Suspense — stat values use font-accent class
+    const statNumbers = page.locator(".font-accent.text-3xl");
+    await statNumbers.first().waitFor({ state: "visible", timeout: 15000 });
     const count = await statNumbers.count();
 
     // Should have at least 4 stat cards
@@ -144,7 +146,7 @@ test.describe("Dashboard Page", () => {
     await expect(page.locator("body")).toBeVisible();
 
     // At minimum, verify we're on the dashboard and it has content
-    const welcomeHeading = page.getByRole("heading", { name: /welcome back/i });
+    const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     await expect(welcomeHeading).toBeVisible();
   });
 
@@ -276,11 +278,11 @@ test.describe("Dashboard Page", () => {
   test("should display user name in welcome message if available", async ({
     page,
   }) => {
-    const welcomeHeading = page.getByRole("heading", { name: /welcome back/i });
+    const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     const headingText = await welcomeHeading.textContent();
 
-    // Should either be "Welcome back!" or "Welcome back, [Name]!"
-    expect(headingText).toMatch(/Welcome back[,!]/i);
+    // Should be "Mōrena, [Name] 👋" or "Kia ora, [Name] 👋" (or without name)
+    expect(headingText).toMatch(/(?:Mōrena|Kia ora)/i);
   });
 
   test("should be responsive on mobile viewport", async ({ page }) => {
@@ -291,7 +293,7 @@ test.describe("Dashboard Page", () => {
     await page.waitForTimeout(500);
 
     // Check that main elements are still visible
-    const welcomeHeading = page.getByRole("heading", { name: /welcome back/i });
+    const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     await expect(welcomeHeading).toBeVisible();
 
     // Check that stat cards are stacked vertically
@@ -310,7 +312,7 @@ test.describe("Dashboard Page", () => {
     await page.goto("/dashboard");
 
     // Wait for the main content to be visible
-    const welcomeHeading = page.getByRole("heading", { name: /welcome back/i });
+    const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     await expect(welcomeHeading).toBeVisible({ timeout: 10000 });
 
     // Check that no error messages are displayed

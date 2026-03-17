@@ -71,18 +71,21 @@ export function StatsCard({
 
   return (
     <Card
-      className={cn("p-4", styles.card, className)}
+      className={cn("p-5", styles.card, className)}
       data-testid={testId}
     >
       <div className="flex items-center justify-between">
-        <div>
+        <div className="min-w-0">
           <div
-            className={cn("text-2xl font-bold", styles.value)}
+            className={cn(
+              "text-3xl font-bold tracking-tight font-accent",
+              styles.value
+            )}
             data-testid={testId ? `${testId}-count` : undefined}
           >
             {value}
           </div>
-          <div className={cn("text-sm font-medium", styles.title)}>
+          <div className={cn("text-sm font-medium mt-0.5", styles.title)}>
             {title}
           </div>
           {subtitle && (
@@ -91,8 +94,8 @@ export function StatsCard({
             </div>
           )}
         </div>
-        <div className={cn("p-2 rounded-lg", styles.iconBg)}>
-          <Icon className={cn("h-5 w-5", styles.iconColor)} />
+        <div className={cn("p-2.5 rounded-xl", styles.iconBg)}>
+          <Icon className={cn("h-6 w-6", styles.iconColor)} />
         </div>
       </div>
     </Card>

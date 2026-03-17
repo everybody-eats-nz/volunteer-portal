@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getOAuthProviders } from "@/lib/auth-providers";
 import LoginClient from "./login-client";
 import type { Metadata } from "next";
@@ -17,5 +18,9 @@ export const metadata: Metadata = buildPageMetadata({
 export default function LoginPage() {
   const providers = getOAuthProviders();
 
-  return <LoginClient providers={providers} />;
+  return (
+    <Suspense>
+      <LoginClient providers={providers} />
+    </Suspense>
+  );
 }
