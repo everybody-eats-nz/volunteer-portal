@@ -75,8 +75,8 @@ test.describe("Dashboard Page", () => {
   });
 
   test("should display stat numbers correctly", async ({ page }) => {
-    // Wait for stats to stream in via Suspense
-    const statNumbers = page.locator('[data-testid$="-card-count"]');
+    // Wait for stats to stream in via Suspense — stat values use font-accent class
+    const statNumbers = page.locator(".font-accent.text-3xl");
     await statNumbers.first().waitFor({ state: "visible", timeout: 15000 });
     const count = await statNumbers.count();
 
