@@ -63,8 +63,11 @@ test.describe("User Notification Preferences", () => {
       page.getByTestId("notification-preferences-form")
     ).toBeVisible();
 
-    // Toggle off notifications
-    await page.getByTestId("receive-notifications-toggle").click();
+    // Toggle off notifications (scope to the form to avoid matching the profile page badge)
+    await page
+      .getByTestId("notification-preferences-form")
+      .getByTestId("receive-notifications-toggle")
+      .click();
 
     // Save changes using the header save button
     await page.getByTestId("header-save-button").click();

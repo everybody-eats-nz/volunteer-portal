@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  cacheComponents: true,
+
   experimental: {
     turbopackUseSystemTlsCerts: true,
   },

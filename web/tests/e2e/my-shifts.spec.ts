@@ -524,10 +524,11 @@ test.describe("My Shifts Calendar Page", () => {
       const errorMessage = page.getByText(/error|failed|something went wrong/i);
       await expect(errorMessage.first()).not.toBeVisible();
 
-      // Check that all stat numbers are displayed
-      const statNumbers = page.locator(".text-2xl.font-bold");
-      const count = await statNumbers.count();
-      expect(count).toBe(4); // Should have 4 stat cards
+      // Check that all 4 stat cards are displayed
+      await expect(page.getByTestId("completed-shifts-card-count")).toBeVisible();
+      await expect(page.getByTestId("upcoming-shifts-card-count")).toBeVisible();
+      await expect(page.getByTestId("this-month-shifts-card-count")).toBeVisible();
+      await expect(page.getByTestId("total-hours-card-count")).toBeVisible();
 
       // Check each stat card's number display
       const completedCount = await page

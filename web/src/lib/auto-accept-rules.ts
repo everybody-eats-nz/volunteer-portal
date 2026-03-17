@@ -295,12 +295,15 @@ export async function processAutoApproval(
         timeZone: "Pacific/Auckland",
       }).format(shift.start);
 
-      // Send in-app notification
-      await createShiftConfirmedNotification(
+      // Send in-app notification (fire-and-forget to avoid blocking the signup
+      // response if the SSE writer hangs due to backpressure or stale connections)
+      createShiftConfirmedNotification(
         userId,
         shift.shiftType.name,
         shiftDate,
         shiftId
+      ).catch((err) =>
+        console.error("Error sending shift confirmed notification:", err)
       );
 
       // Check if this is the volunteer's first confirmed shift

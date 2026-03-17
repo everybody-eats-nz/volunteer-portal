@@ -22,7 +22,7 @@ interface AdminDashboardWeekSummaryProps {
 const stats = [
   {
     key: "shifts",
-    label: "Shifts Scheduled",
+    label: "Days with Shifts Left",
     icon: CalendarDays,
     color: "text-blue-600 dark:text-blue-400",
     bg: "bg-blue-100 dark:bg-blue-900/50",

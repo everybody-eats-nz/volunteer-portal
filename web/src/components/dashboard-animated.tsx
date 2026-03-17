@@ -137,7 +137,7 @@ export function ContentGrid({ children }: DashboardAnimatedProps) {
   return (
     <motion.div
       ref={containerRef}
-      className="relative"
+      className="relative mt-6"
       style={{ minHeight: "200px" }}
       variants={staggerContainer}
       initial="hidden"

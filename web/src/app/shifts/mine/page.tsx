@@ -102,7 +102,6 @@ function getShiftTheme(shiftTypeName: string) {
   );
 }
 
-
 export default async function MyShiftsPage({
   searchParams,
 }: {
@@ -187,7 +186,9 @@ export default async function MyShiftsPage({
                   userFriendIds.length > 0
                     ? {
                         userId: { in: userFriendIds },
-                        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+                        status: {
+                          in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
+                        },
                       }
                     : {
                         id: { equals: "never-match" },
@@ -234,7 +235,9 @@ export default async function MyShiftsPage({
                   userFriendIds.length > 0
                     ? {
                         userId: { in: userFriendIds },
-                        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+                        status: {
+                          in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
+                        },
                       }
                     : {
                         id: { equals: "never-match" },
@@ -279,7 +282,7 @@ export default async function MyShiftsPage({
             where: {
               start: {
                 gte: now > monthStart ? now : monthStart,
-                lte: monthEnd
+                lte: monthEnd,
               },
               location: { in: userPreferredLocations },
               // Only shifts that aren't full and user hasn't signed up for
@@ -442,8 +445,15 @@ export default async function MyShiftsPage({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Meals Served</span>
                 <div className="text-sm text-right">
-                  <div className={isEstimated ? "text-muted-foreground" : "font-semibold text-primary"}>
-                    {isEstimated ? "~" : ""}{mealsServedData?.mealsServed || defaultMealsServed} people
+                  <div
+                    className={
+                      isEstimated
+                        ? "text-muted-foreground"
+                        : "font-semibold text-primary"
+                    }
+                  >
+                    {isEstimated ? "~" : ""}
+                    {mealsServedData?.mealsServed || defaultMealsServed} people
                   </div>
                   {isEstimated && (
                     <div className="text-xs text-muted-foreground">
@@ -623,47 +633,47 @@ export default async function MyShiftsPage({
       {/* Stats Overview */}
       <div data-testid="stats-overview">
         <AnimatedStatsGrid
-        useStatsGrid={false}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-        stats={[
-          {
-            title: "Completed",
-            value: completedShifts,
-            iconType: "checkCircle",
-            variant: "green",
-            testId: "completed-shifts-card",
-          },
-          {
-            title: "Upcoming",
-            value: upcomingShifts,
-            iconType: "calendar",
-            variant: "blue",
-            testId: "upcoming-shifts-card",
-          },
-          {
-            title: "This Month",
-            value: monthShifts.length,
-            iconType: "timer",
-            variant: "purple",
-            testId: "this-month-shifts-card",
-          },
-          {
-            title: "Total Hours",
-            value: Math.round(
-              allShifts
-                .filter((s) => s.shift.end < now && s.status === "CONFIRMED")
-                .reduce(
-                  (total, s) =>
-                    total + differenceInHours(s.shift.end, s.shift.start),
-                  0
-                )
-            ),
-            iconType: "timer",
-            variant: "amber",
-            testId: "total-hours-card",
-          },
-        ]}
-      />
+          useStatsGrid={false}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+          stats={[
+            {
+              title: "Completed",
+              value: completedShifts,
+              iconType: "checkCircle",
+              variant: "green",
+              testId: "completed-shifts-card",
+            },
+            {
+              title: "Upcoming",
+              value: upcomingShifts,
+              iconType: "calendar",
+              variant: "blue",
+              testId: "upcoming-shifts-card",
+            },
+            {
+              title: "Shifts This Month",
+              value: monthShifts.length,
+              iconType: "timer",
+              variant: "purple",
+              testId: "this-month-shifts-card",
+            },
+            {
+              title: "Total Hours",
+              value: Math.round(
+                allShifts
+                  .filter((s) => s.shift.end < now && s.status === "CONFIRMED")
+                  .reduce(
+                    (total, s) =>
+                      total + differenceInHours(s.shift.end, s.shift.start),
+                    0
+                  )
+              ),
+              iconType: "timer",
+              variant: "amber",
+              testId: "total-hours-card",
+            },
+          ]}
+        />
       </div>
 
       {/* Schedule View - Calendar on desktop, List on mobile */}
@@ -1005,7 +1015,10 @@ export default async function MyShiftsPage({
               const shift = dayShifts[0];
 
               // Skip days without shifts or available shifts unless it's today, and skip non-current month days
-              if ((!shift && availableShifts.length === 0 && !isToday) || !isCurrentMonth) {
+              if (
+                (!shift && availableShifts.length === 0 && !isToday) ||
+                !isCurrentMonth
+              ) {
                 return null;
               }
 
@@ -1089,7 +1102,8 @@ export default async function MyShiftsPage({
                                       {formatInNZT(
                                         shift.shift.start,
                                         "h:mm a"
-                                      )} - {formatInNZT(shift.shift.end, "h:mm a")}
+                                      )}{" "}
+                                      - {formatInNZT(shift.shift.end, "h:mm a")}
                                     </div>
                                     {shift.shift.location && (
                                       <div className="text-sm opacity-75 mt-1">

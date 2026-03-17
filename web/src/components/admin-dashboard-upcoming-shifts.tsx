@@ -19,12 +19,18 @@ export interface UpcomingShiftData {
   confirmedCount: number;
 }
 
-interface AdminDashboardUpcomingShiftsProps {
+export interface UpcomingShiftDay {
+  label: string;
+  dateParam: string;
   shifts: UpcomingShiftData[];
 }
 
+interface AdminDashboardUpcomingShiftsProps {
+  days: UpcomingShiftDay[];
+}
+
 export function AdminDashboardUpcomingShifts({
-  shifts,
+  days,
 }: AdminDashboardUpcomingShiftsProps) {
   return (
     <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
@@ -35,68 +41,111 @@ export function AdminDashboardUpcomingShifts({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {shifts.length > 0 ? (
+          {days.length > 0 ? (
             <div className="space-y-4">
-              {shifts.map((shift, index) => {
-                const fillRate =
-                  shift.capacity > 0
-                    ? (shift.confirmedCount / shift.capacity) * 100
+              {days.map((day, dayIndex) => {
+                const totalConfirmed = day.shifts.reduce(
+                  (sum, s) => sum + s.confirmedCount,
+                  0
+                );
+                const totalCapacity = day.shifts.reduce(
+                  (sum, s) => sum + s.capacity,
+                  0
+                );
+                const dayFillRate =
+                  totalCapacity > 0
+                    ? (totalConfirmed / totalCapacity) * 100
                     : 0;
+
                 return (
                   <div
-                    key={shift.id}
+                    key={day.dateParam}
                     className={cn(
-                      "space-y-2",
-                      index < shifts.length - 1 && "pb-4 border-b border-border"
+                      dayIndex < days.length - 1 &&
+                        "pb-4 border-b border-border"
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h4 className="font-medium text-sm truncate  mb-2">
-                          <Link
-                            href={`/admin/shifts?date=${shift.dateParam}${
-                              shift.location
-                                ? `&location=${encodeURIComponent(
-                                    shift.location
-                                  )}`
-                                : ""
-                            }&shiftId=${shift.id}`}
-                            className="hover:underline"
-                          >
-                            {shift.shiftTypeName}
-                          </Link>
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {shift.formattedDate}
-                        </p>
-                        {shift.location && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <MapPin className="h-3 w-3" />
-                            {shift.location}
-                          </p>
-                        )}
-                      </div>
+                    {/* Day header */}
+                    <div className="flex items-center justify-between mb-2">
+                      <Link
+                        href={`/admin/shifts?date=${day.dateParam}`}
+                        className="font-medium text-sm hover:underline"
+                      >
+                        {day.label}
+                      </Link>
                       <Badge
-                        variant={fillRate >= 50 ? "secondary" : "destructive"}
+                        variant={dayFillRate >= 50 ? "secondary" : "destructive"}
                         data-testid={
-                          index === 0 ? "shift-volunteers-badge" : undefined
+                          dayIndex === 0
+                            ? "shift-volunteers-badge"
+                            : undefined
                         }
                       >
-                        {shift.confirmedCount} / {shift.capacity}
+                        {totalConfirmed} / {totalCapacity}
                       </Badge>
                     </div>
-                    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
+
+                    {/* Day fill bar */}
+                    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted mb-2">
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
-                          fillRate >= 75
+                          dayFillRate >= 75
                             ? "bg-green-500"
-                            : fillRate >= 50
-                            ? "bg-amber-500"
-                            : "bg-red-500"
+                            : dayFillRate >= 50
+                              ? "bg-amber-500"
+                              : "bg-red-500"
                         )}
-                        style={{ width: `${Math.min(fillRate, 100)}%` }}
+                        style={{ width: `${Math.min(dayFillRate, 100)}%` }}
                       />
+                    </div>
+
+                    {/* Shifts for this day */}
+                    <div className="space-y-1">
+                      {day.shifts.map((shift) => {
+                        const fillRate =
+                          shift.capacity > 0
+                            ? (shift.confirmedCount / shift.capacity) * 100
+                            : 0;
+                        return (
+                          <Link
+                            key={shift.id}
+                            href={`/admin/shifts?date=${shift.dateParam}${
+                              shift.location
+                                ? `&location=${encodeURIComponent(shift.location)}`
+                                : ""
+                            }&shiftId=${shift.id}`}
+                            className="flex items-center justify-between gap-2 py-1 px-2 rounded text-xs hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-muted-foreground shrink-0">
+                                {shift.formattedDate}
+                              </span>
+                              <span className="truncate">
+                                {shift.shiftTypeName}
+                              </span>
+                              {shift.location && (
+                                <span className="text-muted-foreground flex items-center gap-0.5 shrink-0">
+                                  <MapPin className="h-3 w-3" />
+                                  {shift.location}
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className={cn(
+                                "shrink-0 tabular-nums font-medium",
+                                fillRate >= 75
+                                  ? "text-green-600 dark:text-green-400"
+                                  : fillRate >= 50
+                                    ? "text-amber-600 dark:text-amber-400"
+                                    : "text-red-600 dark:text-red-400"
+                              )}
+                            >
+                              {shift.confirmedCount}/{shift.capacity}
+                            </span>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 );
