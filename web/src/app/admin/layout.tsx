@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { AdminHeaderProvider } from "@/contexts/admin-header-context";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 export default async function AdminLayout({
   children,
@@ -76,6 +77,7 @@ export default async function AdminLayout({
           pendingParentalConsentCount={pendingParentalConsentCount}
         />
         <SidebarInset>
+          <ScrollToTop />
           <AdminLayoutHeader />
           <div className="flex-1 p-6">
             <div className="max-w-7xl mx-auto">{children}</div>
