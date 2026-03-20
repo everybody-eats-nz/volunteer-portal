@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
-import { MapPin, ChevronRight, Calendar } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { ShiftsCalendar } from "@/components/shifts-calendar";
@@ -288,60 +288,63 @@ export default async function ShiftsCalendarPage({
   if (!hasExplicitLocationChoice) {
     return (
       <PageContainer testid="shifts-location-selection">
-        <div className="max-w-2xl mx-auto py-8 sm:py-16">
-          {/* Header */}
-          <div className="text-center mb-10">
-            <div className="w-12 h-12 mx-auto mb-5 rounded-xl bg-primary/10 flex items-center justify-center">
-              <MapPin className="h-6 w-6 text-primary" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8">
+          <div className="space-y-4">
+            <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg">
+              <MapPin className="h-8 w-8" />
             </div>
-            <h1
-              className="text-3xl sm:text-4xl font-bold tracking-tight"
-              data-testid="location-selection-title"
-            >
-              Where would you like to volunteer?
-            </h1>
-            <p
-              className="text-muted-foreground mt-2 text-base sm:text-lg"
-              data-testid="location-selection-description"
-            >
-              Select a location to see available shifts
-            </p>
+            <div>
+              <h1
+                className="text-3xl font-bold tracking-tight mb-2"
+                data-testid="location-selection-title"
+              >
+                Choose Your Location
+              </h1>
+              <p
+                className="text-muted-foreground text-lg"
+                data-testid="location-selection-description"
+              >
+                Please select a location to view available volunteer shifts
+              </p>
+            </div>
           </div>
 
           <div
-            className="space-y-6"
+            className="max-w-md w-full space-y-4"
             data-testid="location-selection-options"
           >
             {/* User's preferred locations (if any) */}
             {userPreferredLocations.length > 1 && (
               <div className="space-y-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
-                  Your preferred locations
+                <p className="text-sm font-medium text-muted-foreground">
+                  Your preferred locations:
                 </p>
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   {userPreferredLocations.map(
                     (loc) =>
                       LOCATIONS.includes(loc as LocationOption) && (
                         <Link
                           key={loc}
                           href={`/shifts?location=${loc}`}
-                          className="flex items-center gap-4 p-4 bg-primary/[0.04] hover:bg-primary/[0.08] border border-primary/15 hover:border-primary/25 rounded-xl transition-all duration-200 group text-left"
+                          className="flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 border border-primary/20 hover:border-primary/30 rounded-lg transition-all duration-200 group text-left"
                           data-testid={`preferred-location-${loc
                             .toLowerCase()
                             .replace(/\s+/g, "-")}`}
                         >
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
-                            <MapPin className="h-5 w-5 text-primary" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 bg-primary rounded-full"></div>
+                            <div>
+                              <span className="font-medium">{loc}</span>
+                              {LOCATION_ADDRESSES[loc as Location] && (
+                                <LocationAddress
+                                  address={LOCATION_ADDRESSES[loc as Location]}
+                                />
+                              )}
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="font-semibold text-foreground block">{loc}</span>
-                            {LOCATION_ADDRESSES[loc as Location] && (
-                              <LocationAddress
-                                address={LOCATION_ADDRESSES[loc as Location]}
-                              />
-                            )}
+                          <div className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                            →
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors flex-shrink-0" />
                         </Link>
                       )
                   )}
@@ -352,11 +355,11 @@ export default async function ShiftsCalendarPage({
             {/* All locations */}
             <div className="space-y-3">
               {userPreferredLocations.length > 1 && (
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
-                  Other locations
+                <p className="text-sm font-medium text-muted-foreground">
+                  Other locations:
                 </p>
               )}
-              <div className="grid gap-2">
+              <div className="grid gap-3">
                 {LOCATIONS.filter((loc) =>
                   userPreferredLocations.length > 1
                     ? !userPreferredLocations.includes(loc)
@@ -365,40 +368,41 @@ export default async function ShiftsCalendarPage({
                   <Link
                     key={loc}
                     href={`/shifts?location=${loc}`}
-                    className="flex items-center gap-4 p-4 bg-background hover:bg-muted/60 border border-border hover:border-border/80 rounded-xl transition-all duration-200 group text-left"
+                    className="flex items-center justify-between p-4 bg-background hover:bg-muted border border-border hover:border-primary/30 rounded-lg transition-all duration-200 group text-left"
                     data-testid={`location-option-${loc
                       .toLowerCase()
                       .replace(/\s+/g, "-")}`}
                   >
-                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-muted/80 transition-colors">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                      <div>
+                        <span className="font-medium">{loc}</span>
+                        {LOCATION_ADDRESSES[loc as Location] && (
+                          <LocationAddress
+                            address={LOCATION_ADDRESSES[loc as Location]}
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-semibold text-foreground block">{loc}</span>
-                      {LOCATION_ADDRESSES[loc as Location] && (
-                        <LocationAddress
-                          address={LOCATION_ADDRESSES[loc as Location]}
-                        />
-                      )}
+                    <div className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                      →
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
                   </Link>
                 ))}
 
                 {/* Show all locations option */}
                 <Link
                   href="/shifts?showAll=true"
-                  className="flex items-center gap-4 p-4 bg-muted/30 hover:bg-muted/50 border border-dashed border-border rounded-xl transition-all duration-200 group"
+                  className="flex items-center justify-between p-4 bg-muted/50 hover:bg-muted border border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 rounded-lg transition-all duration-200 group"
                   data-testid="show-all-locations"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-muted/60 flex items-center justify-center flex-shrink-0">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 border-2 border-muted-foreground rounded-full"></div>
+                    <span className="font-medium">All Locations</span>
                   </div>
-                  <div className="flex-1">
-                    <span className="font-semibold text-foreground block">All Locations</span>
-                    <span className="text-sm text-muted-foreground">View shifts across all sites</span>
+                  <div className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    →
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors flex-shrink-0" />
                 </Link>
               </div>
             </div>
@@ -406,15 +410,17 @@ export default async function ShiftsCalendarPage({
 
           {/* Help text */}
           {userPreferredLocations.length === 0 && isLoggedIn && (
-            <p className="text-sm text-muted-foreground text-center mt-8">
-              <Link
-                href="/profile/edit"
-                className="underline underline-offset-4 hover:text-primary transition-colors"
-              >
-                Set your preferred locations
-              </Link>{" "}
-              in your profile to personalise this page.
-            </p>
+            <div className="text-sm text-muted-foreground max-w-lg">
+              <p className="mt-2">
+                <Link
+                  href="/profile/edit"
+                  className="underline hover:text-primary"
+                >
+                  Set your preferred locations
+                </Link>{" "}
+                to customize your experience.
+              </p>
+            </div>
           )}
         </div>
       </PageContainer>
