@@ -446,46 +446,6 @@ function FeedCard({
       );
     }
 
-    if (item.type === "new_shift") {
-      const spotsLeft = item.shift.capacity - item.shift.signedUp;
-      return (
-        <>
-          <View style={[styles.feedIcon, { backgroundColor: Brand.greenLight }]}>
-            <Text style={styles.feedIconEmoji}>🆕</Text>
-          </View>
-          <View style={styles.feedBody}>
-            <Text style={[styles.feedTitle, { color: colors.text }]}>
-              New shift available
-            </Text>
-            <Text
-              style={[styles.feedDescription, { color: colors.textSecondary }]}
-            >
-              {item.shift.shiftType.name} at {item.shift.location} — {spotsLeft}{" "}
-              spot{spotsLeft !== 1 ? "s" : ""} left
-            </Text>
-            <View style={styles.feedFooter}>
-              <View style={styles.feedMeta}>
-                <Text
-                  style={[styles.feedMetaText, { color: colors.textSecondary }]}
-                >
-                  {format(new Date(item.shift.start), "EEE d MMM, h:mm a")}
-                </Text>
-                <Text style={[styles.feedDot, { color: colors.textSecondary }]}>
-                  ·
-                </Text>
-                <Text
-                  style={[styles.feedMetaText, { color: colors.textSecondary }]}
-                >
-                  {timeAgo}
-                </Text>
-              </View>
-              {likeButton}
-            </View>
-          </View>
-        </>
-      );
-    }
-
     if (item.type === "achievement") {
       return (
         <>
@@ -665,16 +625,6 @@ const SHEET_TYPE_CONFIG = {
     accentSoft: "#fef3c7",
     accentSoftDark: "rgba(251, 191, 36, 0.10)",
   },
-  new_shift: {
-    emoji: "🆕",
-    label: "New Shift",
-    bg: Brand.greenLight,
-    bgDark: "rgba(14, 58, 35, 0.2)",
-    accent: Brand.green,
-    accentDark: "#86efac",
-    accentSoft: "#dcfce7",
-    accentSoftDark: "rgba(34, 197, 94, 0.10)",
-  },
   achievement: {
     emoji: "🏆",
     label: "Achievement",
@@ -742,10 +692,6 @@ function FeedItemSheet({
   if (item.type === "announcement") {
     title = item.title;
     body = item.body;
-  } else if (item.type === "new_shift") {
-    const spotsLeft = item.shift.capacity - item.shift.signedUp;
-    title = "New shift available";
-    body = `${item.shift.shiftType.name} at ${item.shift.location} — ${spotsLeft} spot${spotsLeft !== 1 ? "s" : ""} left`;
   } else if (item.type === "achievement") {
     title = `Ka pai! ${item.userName} earned "${item.achievementName}"`;
     body = item.description;
@@ -936,55 +882,6 @@ function FeedItemSheet({
                   </Text>
                 </View>
               )}
-              {item.type === "new_shift" && (
-                <>
-                  <View
-                    style={[
-                      sheet.metaPill,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : "#f8fafc",
-                      },
-                    ]}
-                  >
-                    <Ionicons name="calendar" size={11} color={colors.textSecondary} />
-                    <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                      {format(new Date(item.shift.start), "EEE d MMM")}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      sheet.metaPill,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : "#f8fafc",
-                      },
-                    ]}
-                  >
-                    <Ionicons name="time" size={11} color={colors.textSecondary} />
-                    <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                      {format(new Date(item.shift.start), "h:mm a")}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      sheet.metaPill,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : "#f8fafc",
-                      },
-                    ]}
-                  >
-                    <Ionicons name="location" size={11} color={colors.textSecondary} />
-                    <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                      {item.shift.location}
-                    </Text>
-                  </View>
-                </>
-              )}
               {item.type === "photo_post" && (
                 <>
                   <View
@@ -1036,39 +933,6 @@ function FeedItemSheet({
               </View>
             </View>
           </View>
-
-          {/* ── Shift link (for new_shift type) ── */}
-          {item.type === "new_shift" && (
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onClose();
-                router.push(`/shift/${item.shift.id}` as Href);
-              }}
-              style={({ pressed }) => [
-                sheet.shiftLink,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.04)"
-                    : "#f8fafc",
-                  borderColor: isDark
-                    ? "rgba(255,255,255,0.06)"
-                    : "#e2e8f0",
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-              accessibilityLabel="View shift details"
-              accessibilityRole="link"
-            >
-              <View style={[sheet.shiftLinkIcon, { backgroundColor: isDark ? "rgba(14,58,35,0.3)" : Brand.greenLight }]}>
-                <Ionicons name="calendar" size={14} color={isDark ? "#86efac" : Brand.green} />
-              </View>
-              <Text style={[sheet.shiftLinkText, { color: colors.text }]}>
-                View shift details
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-          )}
 
           {/* ── Photo gallery (for photo_post type) ── */}
           {item.type === "photo_post" && item.photos.length > 0 && (
@@ -1749,31 +1613,6 @@ const sheet = StyleSheet.create({
   metaPillText: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
-  },
-
-  // Shift link
-  shiftLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginHorizontal: 16,
-    marginTop: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  shiftLinkIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shiftLinkText: {
-    flex: 1,
-    fontFamily: FontFamily.semiBold,
-    fontSize: 14,
   },
 
   // Social card

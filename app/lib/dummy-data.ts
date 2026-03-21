@@ -468,7 +468,6 @@ const LIKERS: LikeUser[] = [
 /** Feed item types */
 export type FeedItem =
   | { type: 'announcement'; id: string; title: string; body: string; timestamp: string; author: string; likes: LikeUser[] }
-  | { type: 'new_shift'; id: string; shift: Shift; timestamp: string; likes: LikeUser[] }
   | { type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] };
@@ -819,13 +818,6 @@ export const FEED_ITEMS: FeedItem[] = [
     likes: [LIKERS[0], LIKERS[2], LIKERS[4], LIKERS[5], LIKERS[6], LIKERS[7]],
   },
   {
-    type: 'new_shift',
-    id: 'feed-3',
-    shift: AVAILABLE_SHIFTS[0],
-    timestamp: hoursAgo(5),
-    likes: [LIKERS[3]],
-  },
-  {
     type: 'milestone',
     id: 'feed-4',
     userName: 'James Tūhoe',
@@ -888,13 +880,6 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(28),
     isFriend: false,
     likes: [LIKERS[2], LIKERS[4]],
-  },
-  {
-    type: 'new_shift',
-    id: 'feed-7',
-    shift: AVAILABLE_SHIFTS[2],
-    timestamp: hoursAgo(26),
-    likes: [],
   },
   {
     type: 'achievement',

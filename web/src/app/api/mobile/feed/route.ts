@@ -7,8 +7,7 @@ import { requireMobileUser } from "@/lib/mobile-auth";
  *
  * Returns a unified activity feed for the mobile home screen.
  * Pulls real data from:
- * - Recent achievement unlocks (community-wide)
- * - Recently posted shifts
+ * - Recent achievement unlocks (friends + own)
  * - Milestone events (volunteers crossing shift count thresholds)
  *
  * Items are sorted by timestamp descending and limited to the last 14 days.
@@ -23,12 +22,28 @@ export async function GET(request: Request) {
   const since = new Date();
   since.setDate(since.getDate() - 14);
 
-  // Run all queries in parallel
-  const [recentAchievements, recentShifts, milestoneUsers] = await Promise.all([
-    // Recent achievement unlocks (community-wide, last 14 days)
+  // Get the user's accepted friend IDs first
+  const friendships = await prisma.friendship.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ userId }, { friendId: userId }],
+    },
+    select: { userId: true, friendId: true },
+  });
+
+  const friendIds = friendships.map((f) =>
+    f.userId === userId ? f.friendId : f.userId
+  );
+  // Include self + friends for feed visibility
+  const visibleUserIds = [userId, ...friendIds];
+
+  // Run remaining queries in parallel
+  const [recentAchievements, milestoneUsers] = await Promise.all([
+    // Recent achievement unlocks (friends + own, last 14 days)
     prisma.userAchievement.findMany({
       where: {
         unlockedAt: { gte: since },
+        userId: { in: visibleUserIds },
       },
       include: {
         user: {
@@ -40,20 +55,6 @@ export async function GET(request: Request) {
       },
       orderBy: { unlockedAt: "desc" },
       take: 10,
-    }),
-
-    // Recently created shifts (last 14 days, upcoming only)
-    prisma.shift.findMany({
-      where: {
-        createdAt: { gte: since },
-        start: { gte: new Date() },
-      },
-      include: {
-        shiftType: true,
-        signups: { where: { status: "CONFIRMED" } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 8,
     }),
 
     // Milestone candidates: volunteers who recently completed a shift and
@@ -101,6 +102,7 @@ export async function GET(request: Request) {
   const items: FeedItem[] = [];
 
   // Transform achievements into feed items
+  const friendIdSet = new Set(friendIds);
   for (const ua of recentAchievements) {
     const isMe = ua.user.id === userId;
     const displayName = isMe ? "You" : (ua.user.firstName ?? ua.user.name ?? "A volunteer");
@@ -114,32 +116,7 @@ export async function GET(request: Request) {
       achievementIcon: ua.achievement.icon,
       description: ua.achievement.description,
       timestamp: ua.unlockedAt.toISOString(),
-      isFriend: !isMe,
-      likes: [],
-    });
-  }
-
-  // Transform recent shifts into feed items
-  for (const shift of recentShifts) {
-    items.push({
-      type: "new_shift",
-      id: `shift-${shift.id}`,
-      shift: {
-        id: shift.id,
-        shiftType: {
-          id: shift.shiftType.id,
-          name: shift.shiftType.name,
-          description: shift.shiftType.description ?? "",
-        },
-        start: shift.start.toISOString(),
-        end: shift.end.toISOString(),
-        location: shift.location ?? "TBC",
-        capacity: shift.capacity,
-        signedUp: shift.signups.length,
-        status: null,
-        notes: shift.notes,
-      },
-      timestamp: shift.createdAt.toISOString(),
+      isFriend: friendIdSet.has(ua.user.id),
       likes: [],
     });
   }
@@ -172,7 +149,7 @@ export async function GET(request: Request) {
       profilePhotoUrl: isMe ? undefined : (signup.user.profilePhotoUrl ?? undefined),
       count: milestone,
       timestamp: signup.shift.end.toISOString(),
-      isFriend: !isMe,
+      isFriend: friendIdSet.has(signup.userId),
       likes: [],
     });
   }
