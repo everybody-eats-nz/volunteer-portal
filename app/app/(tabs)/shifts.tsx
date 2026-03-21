@@ -10,9 +10,11 @@ import {
 } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -91,7 +93,7 @@ function groupShiftsByDay(
 type TabDef = { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap };
 
 const TAB_DEFS: TabDef[] = [
-  { key: "upcoming", label: "My Mahi", icon: "calendar", iconOutline: "calendar-outline" },
+  { key: "upcoming", label: "My Shifts", icon: "calendar", iconOutline: "calendar-outline" },
   { key: "browse", label: "Browse", icon: "compass", iconOutline: "compass-outline" },
   { key: "past", label: "Past", icon: "time", iconOutline: "time-outline" },
 ];
@@ -140,17 +142,17 @@ const STATUS_CONFIG: Record<
 const EMPTY_CONFIG: Record<Tab, { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string }> = {
   upcoming: {
     icon: "leaf-outline",
-    title: "No upcoming mahi yet",
+    title: "No upcoming shifts yet",
     subtitle: "Browse available shifts to sign up",
   },
   browse: {
     icon: "compass-outline",
     title: "No open shifts right now",
-    subtitle: "Check back soon \u2014 new mahi is added regularly",
+    subtitle: "Check back soon — new shifts are added regularly",
   },
   past: {
     icon: "time-outline",
-    title: "No past mahi yet",
+    title: "No past shifts yet",
     subtitle: "Your completed shifts will appear here",
   },
 };
@@ -169,7 +171,35 @@ export default function ShiftsScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
-  const { myShifts, available, past, isLoading, error, refresh } = useShifts();
+  const {
+    myShifts,
+    available,
+    past,
+    isLoading,
+    error,
+    refresh,
+    loadMoreAvailable,
+    loadMorePast,
+    hasMoreAvailable,
+    hasMorePast,
+    isLoadingMore,
+  } = useShifts();
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+      if (distanceFromBottom < 300) {
+        if (activeTab === "browse" && hasMoreAvailable) {
+          loadMoreAvailable();
+        } else if (activeTab === "past" && hasMorePast) {
+          loadMorePast();
+        }
+      }
+    },
+    [activeTab, hasMoreAvailable, hasMorePast, loadMoreAvailable, loadMorePast]
+  );
 
   const flatShifts =
     activeTab === "upcoming"
@@ -205,6 +235,8 @@ export default function ShiftsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={handleScroll}
+      scrollEventThrottle={400}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}
@@ -215,7 +247,7 @@ export default function ShiftsScreen() {
     >
       {/* ── Header ── */}
       <View style={styles.header}>
-        <ThemedText type="title">Mahi</ThemedText>
+        <ThemedText type="title">Shifts</ThemedText>
         <ThemedText type="caption" style={{ color: colors.textSecondary }}>
           Your shifts and open opportunities
         </ThemedText>
@@ -410,8 +442,18 @@ export default function ShiftsScreen() {
         </View>
       )}
 
+      {/* ── Loading More Indicator ── */}
+      {isLoadingMore && (
+        <View style={styles.loadingMore}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.loadingMoreText, { color: colors.textSecondary }]}>
+            Loading more shifts...
+          </Text>
+        </View>
+      )}
+
       {/* ── Footer Hint ── */}
-      {!isEmpty && (
+      {!isEmpty && !isLoadingMore && (
         <View style={styles.footer}>
           <Ionicons
             name="hand-right-outline"
@@ -464,36 +506,39 @@ function ShiftCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: colors.card,
+          backgroundColor: compact ? (isDark ? colors.card : '#f8fafc') : accentBg,
           shadowColor: isDark ? "#000" : "#64748b",
-          opacity: pressed ? 0.92 : 1,
+          opacity: pressed ? 0.95 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
       accessibilityLabel={`${shift.shiftType.name} at ${shift.location}, ${format(date, "EEEE d MMMM")}`}
       accessibilityRole="button"
     >
-      {/* Left accent strip */}
-      <View
-        style={[
-          styles.accentStrip,
-          { backgroundColor: compact ? (isDark ? "rgba(255,255,255,0.1)" : "#cbd5e1") : accentColor },
-        ]}
-      />
+      {/* Top accent bar — matches web card gradient treatment */}
+      <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
 
       {/* Card body */}
       <View style={styles.cardBody}>
-        {/* Row 1: Emoji + Name + Badge */}
+        {/* Row 1: Emoji badge + Name + Status */}
         <View style={styles.typeRow}>
-          <View style={[styles.typeIconCircle, { backgroundColor: accentBg }]}>
+          <View style={[styles.typeIconCircle, { backgroundColor: accentColor }]}>
             <Text style={styles.typeEmoji}>{theme.emoji}</Text>
           </View>
-          <Text
-            style={[styles.typeName, { color: compact ? colors.textSecondary : colors.text }]}
-            numberOfLines={1}
-          >
-            {shift.shiftType.name}
-          </Text>
+          <View style={styles.typeInfo}>
+            <Text
+              style={[styles.typeName, { color: compact ? colors.textSecondary : colors.text }]}
+              numberOfLines={1}
+            >
+              {shift.shiftType.name}
+            </Text>
+            {/* Date line (inline with title for non-compact) */}
+            {!compact && (
+              <Text style={[styles.typeDate, { color: colors.textSecondary }]}>
+                {format(date, "EEE, d MMM")} · {timeUntil}
+              </Text>
+            )}
+          </View>
           {showStatus && shift.status ? (
             <StatusBadge status={shift.status} isDark={isDark} />
           ) : !compact ? (
@@ -506,132 +551,78 @@ function ShiftCard({
           ) : null}
         </View>
 
-        {/* Row 2: Time + Location (compact cards skip the full date since the day header has it) */}
-        <View style={styles.detailsRow}>
-          <View style={styles.detailItem}>
-            <Ionicons
-              name="time-outline"
-              size={14}
-              color={colors.textSecondary}
-            />
-            <Text
-              style={[styles.detailText, { color: colors.textSecondary }]}
-            >
-              {format(date, "h:mm a")} – {format(endDate, "h:mm a")}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.detailDivider,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.15)"
-                  : "#cbd5e1",
-              },
-            ]}
-          />
-          <View style={styles.detailItem}>
-            <Ionicons
-              name="location-outline"
-              size={14}
-              color={colors.textSecondary}
-            />
-            <Text
-              style={[styles.detailText, { color: colors.textSecondary }]}
-            >
-              {shift.location}
-            </Text>
-          </View>
-        </View>
-
-        {/* Row 3: Duration chip + relative time (skip for compact/past) */}
-        {!compact && (
-          <View style={styles.dateRow}>
-            <Text style={[styles.dateText, { color: colors.text }]}>
-              {format(date, "EEEE, d MMMM")}
-            </Text>
-            <View style={styles.dateRowRight}>
-              <View
-                style={[styles.durationChip, { backgroundColor: accentBg }]}
-              >
-                <Text
-                  style={[styles.durationChipText, { color: accentColor }]}
-                >
-                  {duration}
+        {/* Info boxes — time and capacity in subtle pill containers */}
+        {!compact ? (
+          <View style={styles.infoBoxRow}>
+            <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)' }]}>
+              <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+              <View>
+                <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
+                  {format(date, "h:mm a")}
+                </Text>
+                <Text style={[styles.infoBoxSecondary, { color: colors.textSecondary }]}>
+                  to {format(endDate, "h:mm a")} · {duration}
                 </Text>
               </View>
-              <Text
-                style={[styles.relativeTime, { color: colors.textSecondary }]}
-              >
-                {timeUntil}
-              </Text>
             </View>
-          </View>
-        )}
-
-        {/* Duration chip inline for compact cards */}
-        {compact && (
-          <View style={[styles.compactMeta, { paddingLeft: 42 }]}>
-            <View
-              style={[styles.durationChip, { backgroundColor: accentBg }]}
-            >
-              <Text style={[styles.durationChipText, { color: accentColor }]}>
-                {duration}
-              </Text>
-            </View>
-            <Text
-              style={[styles.capacityText, { color: colors.textSecondary }]}
-            >
-              {shift.signedUp}/{shift.capacity} volunteers
-            </Text>
-          </View>
-        )}
-
-        {/* Row 4: Capacity bar (skip for compact/past) */}
-        {!compact && (
-          <View style={styles.capacityRow}>
-            <View
-              style={[
-                styles.capacityBar,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.08)"
-                    : "#f1f5f9",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.capacityFill,
+            <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)' }]}>
+              <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+              <View>
+                <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
+                  {shift.signedUp}/{shift.capacity}
+                </Text>
+                <Text style={[
+                  styles.infoBoxSecondary,
                   {
-                    width: `${Math.min((shift.signedUp / shift.capacity) * 100, 100)}%`,
-                    backgroundColor: isFull
-                      ? colors.destructive
+                    color: isFull
+                      ? (isDark ? '#fca5a5' : '#dc2626')
                       : isUrgent
-                        ? "#d97706"
-                        : accentColor,
+                        ? (isDark ? '#fbbf24' : '#d97706')
+                        : (isDark ? '#86efac' : '#16a34a'),
+                    fontFamily: FontFamily.semiBold,
                   },
-                ]}
-              />
+                ]}>
+                  {isFull ? 'Full' : `${spotsLeft} spots left`}
+                </Text>
+              </View>
             </View>
-            <Text
-              style={[styles.capacityText, { color: colors.textSecondary }]}
-            >
+          </View>
+        ) : (
+          /* Compact: inline time + location + duration */
+          <View style={styles.compactDetails}>
+            <View style={styles.detailItem}>
+              <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
+              <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+                {format(date, "h:mm a")} – {format(endDate, "h:mm a")}
+              </Text>
+            </View>
+            <View style={[styles.detailDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1' }]} />
+            <View style={[styles.durationChip, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
+              <Text style={[styles.durationChipText, { color: colors.textSecondary }]}>{duration}</Text>
+            </View>
+            <View style={[styles.detailDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1' }]} />
+            <Text style={[styles.detailText, { color: colors.textSecondary }]}>
               {shift.signedUp}/{shift.capacity}
             </Text>
           </View>
         )}
 
-        {/* Optional: Notes callout */}
+        {/* Location row */}
+        {!compact && (
+          <View style={styles.locationRow}>
+            <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>
+              {shift.location}
+            </Text>
+          </View>
+        )}
+
+        {/* Notes callout */}
         {shift.notes && (
           <View
             style={[
               styles.notesCallout,
-              {
-                backgroundColor: isDark
-                  ? "rgba(217, 119, 6, 0.1)"
-                  : "#fffbeb",
-              },
+              { backgroundColor: isDark ? "rgba(217, 119, 6, 0.1)" : "#fffbeb" },
             ]}
           >
             <Ionicons
@@ -640,24 +631,12 @@ function ShiftCard({
               color={isDark ? "#fbbf24" : "#b45309"}
             />
             <Text
-              style={[
-                styles.notesText,
-                { color: isDark ? "#fbbf24" : "#92400e" },
-              ]}
+              style={[styles.notesText, { color: isDark ? "#fbbf24" : "#92400e" }]}
             >
               {shift.notes}
             </Text>
           </View>
         )}
-      </View>
-
-      {/* Chevron */}
-      <View style={styles.chevronContainer}>
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={colors.textSecondary}
-        />
       </View>
     </Pressable>
   );
@@ -853,89 +832,94 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    flexDirection: "row",
     borderRadius: 16,
     overflow: "hidden",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  accentStrip: {
-    width: 4,
+  accentBar: {
+    height: 3,
   },
   cardBody: {
-    flex: 1,
     padding: 16,
-    gap: 10,
+    gap: 12,
   },
 
   // Type row
   typeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   typeIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   typeEmoji: {
-    fontSize: 16,
+    fontSize: 18,
+  },
+  typeInfo: {
+    flex: 1,
+    gap: 1,
   },
   typeName: {
-    fontSize: 16,
-    fontFamily: FontFamily.semiBold,
-    flex: 1,
-  },
-
-  // Date row
-  dateRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingLeft: 42,
-  },
-  dateRowRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  durationChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  durationChipText: {
-    fontSize: 11,
+    fontSize: 17,
     fontFamily: FontFamily.semiBold,
   },
-  dateText: {
-    fontSize: 14,
-    fontFamily: FontFamily.medium,
-  },
-  relativeTime: {
-    fontSize: 12,
+  typeDate: {
+    fontSize: 13,
     fontFamily: FontFamily.regular,
   },
 
-  // Compact meta row (past shifts)
-  compactMeta: {
+  // Info box row (time + capacity side by side)
+  infoBoxRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  infoBox: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  infoBoxPrimary: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+  },
+  infoBoxSecondary: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
   },
 
-  // Details row
-  detailsRow: {
+  // Location row
+  locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingLeft: 42,
     gap: 6,
   },
+  locationText: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    flex: 1,
+  },
+
+  // Compact details (past shifts)
+  compactDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 52,
+  },
+
+  // Shared detail elements
   detailItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -951,29 +935,14 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     marginHorizontal: 2,
   },
-
-  // Capacity
-  capacityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 42,
-    gap: 10,
+  durationChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  capacityBar: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  capacityFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  capacityText: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-    minWidth: 28,
-    textAlign: "right",
+  durationChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
   },
 
   // Notes callout
@@ -981,7 +950,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginLeft: 42,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -990,13 +958,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.medium,
     flex: 1,
-  },
-
-  // Chevron
-  chevronContainer: {
-    justifyContent: "center",
-    paddingRight: 14,
-    paddingLeft: 4,
   },
 
   // Badge (shared)
@@ -1011,6 +972,19 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
+  },
+
+  // Loading more
+  loadingMore: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 20,
+  },
+  loadingMoreText: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
   },
 
   // Footer

@@ -78,7 +78,7 @@ export default function ShiftDetailScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Shift' }} />
+        <Stack.Screen options={{ title: '', headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -89,7 +89,7 @@ export default function ShiftDetailScreen() {
   if (!shift) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Shift' }} />
+        <Stack.Screen options={{ title: '', headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <View style={[s.notFoundIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
             <Ionicons name="search-outline" size={32} color={colors.textSecondary} />
@@ -98,7 +98,7 @@ export default function ShiftDetailScreen() {
             {error ?? 'Shift not found'}
           </ThemedText>
           <ThemedText type="caption" style={{ color: colors.textSecondary, marginTop: 4 }}>
-            This mahi may have been removed
+            This shift may have been removed
           </ThemedText>
           <Pressable
             onPress={() => router.back()}
@@ -124,7 +124,7 @@ export default function ShiftDetailScreen() {
   const fillPercent = Math.min((shift.signedUp / shift.capacity) * 100, 100);
   const duration = getDuration(shift.start, shift.end);
 
-  // Signups for "Who's on this mahi" section
+  // Signups for "Who's on this shift" section
   const signups = shiftSignups;
   const friendSignups = signups.filter((su) => su.isFriend);
 
@@ -230,21 +230,10 @@ export default function ShiftDetailScreen() {
         options={{
           title: '',
           headerShown: true,
-          headerBackTitle: 'Back',
           headerTransparent: true,
           headerTintColor: '#ffffff',
           headerRight: () => (
-            <Pressable
-              onPress={handleShare}
-              hitSlop={8}
-              style={({ pressed }) => [
-                s.headerShareButton,
-                { opacity: pressed ? 0.6 : 1 },
-              ]}
-              accessibilityLabel="Share shift"
-            >
-              <Ionicons name="share-outline" size={22} color="#ffffff" />
-            </Pressable>
+            <Ionicons name="share-outline" size={22} color="#ffffff" onPress={handleShare} />
           ),
         }}
       />
@@ -381,7 +370,7 @@ export default function ShiftDetailScreen() {
                 <Ionicons name="document-text" size={16} color={isDark ? '#93c5fd' : '#2563eb'} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Before Your Mahi</Text>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Before Your Shift</Text>
                 <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
                   Guides and resources for this shift
                 </Text>
@@ -445,7 +434,7 @@ export default function ShiftDetailScreen() {
           </View>
         )}
 
-        {/* ═══ Who's on this mahi ═══ */}
+        {/* ═══ Who's on this shift ═══ */}
         {/* Before check-in: only show friends (privacy) */}
         {friendSignups.length > 0 && !checkedIn && (
           <View style={[s.section, { backgroundColor: colors.card }]}>
@@ -454,7 +443,7 @@ export default function ShiftDetailScreen() {
                 <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Friends on this mahi</Text>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Friends on this shift</Text>
                 <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
                   {friendSignups.length} friend{friendSignups.length !== 1 ? 's' : ''} signed up
                   {signups.length - friendSignups.length > 0
@@ -526,7 +515,7 @@ export default function ShiftDetailScreen() {
                 Ka pai! You&apos;re checked in
               </Text>
               <Text style={[s.successSubtitle, { color: isDark ? '#86efac' : Brand.green }]}>
-                Have a great mahi today
+                Have a great shift today
               </Text>
             </View>
           </View>
@@ -561,7 +550,7 @@ export default function ShiftDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[s.sectionTitle, { color: colors.text }]}>Shift Photos</Text>
                 <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-                  Share moments from today&apos;s mahi
+                  Share moments from today&apos;s shift
                 </Text>
               </View>
             </View>
@@ -697,7 +686,7 @@ export default function ShiftDetailScreen() {
           <Pressable
             onPress={() => {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Ka pai! 🎉', "You've signed up for this mahi. See you there!");
+              Alert.alert('Ka pai! 🎉', "You've signed up for this shift. See you there!");
             }}
             style={({ pressed }) => [
               s.ctaButton,
@@ -708,7 +697,7 @@ export default function ShiftDetailScreen() {
             ]}
             accessibilityLabel="Sign up for shift">
             <Ionicons name="hand-right" size={20} color="#ffffff" />
-            <Text style={s.ctaText}>Sign Up for Mahi</Text>
+            <Text style={s.ctaText}>Sign Up for Shift</Text>
           </Pressable>
         )}
 
@@ -716,7 +705,7 @@ export default function ShiftDetailScreen() {
           <View style={[s.fullBanner, { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2' }]}>
             <Ionicons name="close-circle-outline" size={20} color={isDark ? '#fca5a5' : '#dc2626'} />
             <Text style={[s.fullText, { color: isDark ? '#fca5a5' : '#dc2626' }]}>
-              This mahi is full — check back later for cancellations
+              This shift is full — check back later for cancellations
             </Text>
           </View>
         )}
@@ -851,7 +840,7 @@ function ConcurrentShiftsSection({
         <View style={{ flex: 1 }}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>Also Working Today</Text>
           <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-            {totalPeople} people across {shifts.length} other mahi
+            {totalPeople} people across {shifts.length} other shift{shifts.length !== 1 ? 's' : ''}
           </Text>
         </View>
       </View>
@@ -970,15 +959,7 @@ const s = StyleSheet.create({
     fontSize: 15,
   },
 
-  // Header
-  headerShareButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
 
   // Hero
   hero: {

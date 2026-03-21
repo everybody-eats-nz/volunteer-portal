@@ -130,7 +130,7 @@ export default function HomeScreen() {
             {/* Top row */}
             <View style={styles.heroTop}>
               <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>🍽️ Next mahi</Text>
+                <Text style={styles.heroBadgeText}>🍽️ Next shift</Text>
               </View>
               <Ionicons
                 name="chevron-forward"
