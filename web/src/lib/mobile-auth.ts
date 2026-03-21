@@ -1,9 +1,11 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { prisma } from "@/lib/prisma";
 
-const SECRET = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET ?? "fallback-dev-secret"
-);
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error("NEXTAUTH_SECRET environment variable is required for mobile auth");
+}
+
+const SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
 
 const ISSUER = "everybody-eats";
 const AUDIENCE = "mobile";
