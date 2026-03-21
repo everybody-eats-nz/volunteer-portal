@@ -75,21 +75,10 @@ export default function ShiftDetailScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [votedSongs, setVotedSongs] = useState<Set<string>>(new Set());
 
-  const headerLeft = () => (
-    <Pressable
-      onPress={() => router.back()}
-      hitSlop={8}
-      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-      accessibilityLabel="Go back"
-    >
-      <Ionicons name="chevron-back" size={24} color={colors.text} />
-    </Pressable>
-  );
-
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Shift', headerLeft }} />
+        <Stack.Screen options={{ title: 'Shift' }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -100,7 +89,7 @@ export default function ShiftDetailScreen() {
   if (!shift) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Shift', headerLeft }} />
+        <Stack.Screen options={{ title: 'Shift' }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <View style={[s.notFoundIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
             <Ionicons name="search-outline" size={32} color={colors.textSecondary} />
@@ -243,31 +232,8 @@ export default function ShiftDetailScreen() {
           headerShown: true,
           headerTransparent: true,
           headerTintColor: '#ffffff',
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={8}
-              style={({ pressed }) => [
-                s.headerShareButton,
-                { opacity: pressed ? 0.6 : 1 },
-              ]}
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="chevron-back" size={24} color="#ffffff" />
-            </Pressable>
-          ),
           headerRight: () => (
-            <Pressable
-              onPress={handleShare}
-              hitSlop={8}
-              style={({ pressed }) => [
-                s.headerShareButton,
-                { opacity: pressed ? 0.6 : 1 },
-              ]}
-              accessibilityLabel="Share shift"
-            >
-              <Ionicons name="share-outline" size={22} color="#ffffff" />
-            </Pressable>
+            <Ionicons name="share-outline" size={22} color="#ffffff" onPress={handleShare} />
           ),
         }}
       />
@@ -993,15 +959,7 @@ const s = StyleSheet.create({
     fontSize: 15,
   },
 
-  // Header
-  headerShareButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
 
   // Hero
   hero: {
