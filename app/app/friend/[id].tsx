@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { differenceInDays, format } from "date-fns";
+import { differenceInDays } from "date-fns";
+import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import {
@@ -298,7 +299,7 @@ export default function FriendProfileScreen() {
                         {shift.type}
                       </Text>
                       <Text style={[styles.shiftRowMeta, { color: colors.textSecondary }]}>
-                        {format(new Date(shift.date), "MMM d, yyyy")} · {shift.location}
+                        {formatNZT(new Date(shift.date), "MMM d, yyyy")} · {shift.location}
                       </Text>
                     </View>
                     <View
@@ -378,7 +379,7 @@ export default function FriendProfileScreen() {
                     </View>
                     <View style={styles.upcomingDateCol}>
                       <Text style={[styles.upcomingDate, { color: colors.text }]}>
-                        {format(new Date(shift.date), "MMM d")}
+                        {formatNZT(new Date(shift.date), "MMM d")}
                       </Text>
                       <Text style={[styles.upcomingTime, { color: colors.textSecondary }]}>
                         {shift.time}

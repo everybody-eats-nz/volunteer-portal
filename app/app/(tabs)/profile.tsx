@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { format } from "date-fns";
+import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -206,7 +206,7 @@ export default function ProfileScreen() {
           ]}
         >
           <Text style={[styles.joinedText, { color: colors.textSecondary }]}>
-            Volunteer since {format(new Date(user.memberSince), "MMM yyyy")}
+            Volunteer since {formatNZT(new Date(user.memberSince), "MMM yyyy")}
           </Text>
         </View>
       </View>
@@ -542,7 +542,7 @@ function AchievementRow({
 
         {type === "unlocked" && achievement.unlockedAt && (
           <Text style={[styles.unlockedDate, { color: colors.textSecondary }]}>
-            {format(new Date(achievement.unlockedAt), "d MMM yyyy")}
+            {formatNZT(new Date(achievement.unlockedAt), "d MMM yyyy")}
           </Text>
         )}
       </View>
@@ -786,7 +786,7 @@ function AchievementSheet({
                     <Text
                       style={[achieveSheet.infoValue, { color: colors.text }]}
                     >
-                      {format(new Date(achievement.unlockedAt), "d MMMM yyyy")}
+                      {formatNZT(new Date(achievement.unlockedAt), "d MMMM yyyy")}
                     </Text>
                   </View>
                 </View>

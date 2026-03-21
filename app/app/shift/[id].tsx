@@ -17,7 +17,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { format, differenceInHours, differenceInMinutes } from 'date-fns';
+import { differenceInHours, differenceInMinutes } from 'date-fns';
+import { formatNZT } from '@/lib/dates';
 
 import { ActivityIndicator, RefreshControl } from 'react-native';
 
@@ -198,8 +199,8 @@ export default function ShiftDetailScreen() {
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const dateStr = format(date, "EEEE d MMMM");
-    const timeStr = `${format(date, "h:mm a")} – ${format(endDate, "h:mm a")}`;
+    const dateStr = formatNZT(date, "EEEE d MMMM");
+    const timeStr = `${formatNZT(date, "h:mm a")} – ${formatNZT(endDate, "h:mm a")}`;
     try {
       await Share.share({
         message: `🍽️ Volunteer with Everybody Eats!\n\n${shift.shiftType.name} — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${spotsLeft > 0 ? `${spotsLeft} spots left — sign up and join the whānau!` : 'This shift is full, but check back for cancellations.'}\n\nhttps://everybodyeats.nz/shifts`,
@@ -281,13 +282,13 @@ export default function ShiftDetailScreen() {
               <View style={s.heroInfoStripInner}>
                 <View style={s.heroInfoChip}>
                   <Text style={s.heroInfoIcon}>📅</Text>
-                  <Text style={s.heroInfoText}>{format(date, 'EEE, d MMM')}</Text>
+                  <Text style={s.heroInfoText}>{formatNZT(date, 'EEE, d MMM')}</Text>
                 </View>
                 <View style={s.heroInfoDot} />
                 <View style={s.heroInfoChip}>
                   <Text style={s.heroInfoIcon}>🕐</Text>
                   <Text style={s.heroInfoText}>
-                    {format(date, 'h:mm')} – {format(endDate, 'h:mm a')}
+                    {formatNZT(date, 'h:mm')} – {formatNZT(endDate, 'h:mm a')}
                   </Text>
                 </View>
                 <View style={s.heroInfoDot} />

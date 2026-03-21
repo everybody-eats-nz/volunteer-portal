@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { differenceInHours, format, formatDistanceToNow } from "date-fns";
+import { differenceInHours, formatDistanceToNow } from "date-fns";
+import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
@@ -152,7 +153,7 @@ export default function HomeScreen() {
               <View style={styles.heroDetail}>
                 <Text style={styles.heroEmoji}>🕐</Text>
                 <Text style={styles.heroDetailText}>
-                  {format(new Date(nextShift.start), "EEEE d MMM, h:mm a")}
+                  {formatNZT(new Date(nextShift.start), "EEEE d MMM, h:mm a")}
                 </Text>
               </View>
             </View>
@@ -572,7 +573,7 @@ function FeedCard({
               style={[styles.feedDescription, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              📍 {item.location} · {format(new Date(item.shiftDate), "d MMM")} {item.period}
+              📍 {item.location} · {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
             </Text>
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
@@ -640,7 +641,7 @@ function FeedCard({
               style={[styles.feedDescription, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              📍 {item.location} · {format(new Date(item.shiftDate), "EEEE d MMM")}
+              📍 {item.location} · {formatNZT(new Date(item.shiftDate), "EEEE d MMM")}
             </Text>
             <View style={styles.feedFooter}>
               <Text
@@ -663,7 +664,7 @@ function FeedCard({
           </View>
           <View style={styles.feedBody}>
             <Text style={[styles.feedTitle, { color: colors.text }]}>
-              {item.location} — {format(new Date(item.date), "EEEE d MMM")}
+              {item.location} — {formatNZT(new Date(item.date), "EEEE d MMM")}
             </Text>
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
@@ -812,9 +813,9 @@ function FeedItemSheet({
     body = item.caption;
   } else if (item.type === "friend_signup") {
     title = `${item.userName} signed up for ${item.shiftTypeName}`;
-    body = `📍 ${item.location} · ${format(new Date(item.shiftDate), "EEEE d MMM")}`;
+    body = `📍 ${item.location} · ${formatNZT(new Date(item.shiftDate), "EEEE d MMM")}`;
   } else if (item.type === "shift_recap") {
-    title = `${item.location} — ${format(new Date(item.date), "EEEE d MMM")}`;
+    title = `${item.location} — ${formatNZT(new Date(item.date), "EEEE d MMM")}`;
     body = getRecapMessage(item.mealsServed, item.volunteerHours, item.id);
   }
 
@@ -1026,7 +1027,7 @@ function FeedItemSheet({
                   >
                     <Ionicons name="calendar" size={11} color={colors.textSecondary} />
                     <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                      {format(new Date(item.shiftDate), "d MMM")} {item.period}
+                      {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
                     </Text>
                   </View>
                 </>

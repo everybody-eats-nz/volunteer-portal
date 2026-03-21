@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
-  format,
   formatDistanceToNowStrict,
   differenceInMinutes,
   isToday,
@@ -8,6 +7,7 @@ import {
   isYesterday,
   startOfDay,
 } from "date-fns";
+import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -76,7 +76,7 @@ function groupShiftsByDay(
 
   return sorted.map(([key, dayShifts]) => {
     const date = new Date(key);
-    const label = format(date, "EEEE, d MMMM");
+    const label = formatNZT(date, "EEEE, d MMMM");
     let relativeLabel: string;
     if (isToday(date)) {
       relativeLabel = "Today";
@@ -675,7 +675,7 @@ function ShiftCard({
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
-      accessibilityLabel={`${shift.shiftType.name} at ${shift.location}, ${format(date, "EEEE d MMMM")}`}
+      accessibilityLabel={`${shift.shiftType.name} at ${shift.location}, ${formatNZT(date, "EEEE d MMMM")}`}
       accessibilityRole="button"
     >
       {/* Top accent bar — matches web card gradient treatment */}
@@ -698,7 +698,7 @@ function ShiftCard({
             {/* Date line (inline with title for non-compact) */}
             {!compact && (
               <Text style={[styles.typeDate, { color: colors.textSecondary }]}>
-                {format(date, "EEE, d MMM")} · {timeUntil}
+                {formatNZT(date, "EEE, d MMM")} · {timeUntil}
               </Text>
             )}
           </View>
@@ -721,10 +721,10 @@ function ShiftCard({
               <Ionicons name="time-outline" size={15} color={accentColor} />
               <View>
                 <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
-                  {format(date, "h:mm a")}
+                  {formatNZT(date, "h:mm a")}
                 </Text>
                 <Text style={[styles.infoBoxSecondary, { color: colors.textSecondary }]}>
-                  to {format(endDate, "h:mm a")} · {duration}
+                  to {formatNZT(endDate, "h:mm a")} · {duration}
                 </Text>
               </View>
             </View>
@@ -756,7 +756,7 @@ function ShiftCard({
             <View style={styles.detailItem}>
               <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
               <Text style={[styles.detailText, { color: colors.textSecondary }]}>
-                {format(date, "h:mm a")} – {format(endDate, "h:mm a")}
+                {formatNZT(date, "h:mm a")} – {formatNZT(endDate, "h:mm a")}
               </Text>
             </View>
             <View style={[styles.detailDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1' }]} />
