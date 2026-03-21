@@ -18,9 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
 import {
-  DUMMY_FRIENDS,
   type Achievement,
   type Friend,
 } from "@/lib/dummy-data";
@@ -60,6 +60,7 @@ export default function ProfileScreen() {
     error,
     refresh,
   } = useProfile();
+  const { friends } = useFriends();
 
   const grade = user ? GRADE_CONFIG[user.volunteerGrade] : GRADE_CONFIG.GREEN;
 
@@ -206,7 +207,7 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Whānau</Text>
             <Text style={[styles.sectionCaption, { color: colors.textSecondary }]}>
-              {DUMMY_FRIENDS.length} friends
+              {friends.length} friends
             </Text>
           </View>
         </View>
@@ -215,7 +216,7 @@ export default function ProfileScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.friendsScroll}
         >
-          {DUMMY_FRIENDS.map((friend) => (
+          {friends.map((friend) => (
             <FriendCard
               key={friend.id}
               friend={friend}

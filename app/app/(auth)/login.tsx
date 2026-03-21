@@ -7,8 +7,6 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Brand } from '@/constants/theme';
@@ -20,7 +18,6 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { login } = useAuth();
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +29,8 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await login(email.trim(), password);
-      router.replace('/(tabs)');
+      // Navigation happens automatically — root layout swaps
+      // from (auth) to (tabs) when isAuthenticated becomes true
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -96,11 +94,6 @@ export default function LoginScreen() {
           </Pressable>
         </ThemedView>
 
-        <Pressable onPress={() => router.back()} style={styles.backLink}>
-          <ThemedText style={{ color: colors.textSecondary }}>
-            ← Back
-          </ThemedText>
-        </Pressable>
       </ThemedView>
     </KeyboardAvoidingView>
   );

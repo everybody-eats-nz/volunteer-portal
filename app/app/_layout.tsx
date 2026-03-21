@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import {
@@ -47,12 +47,7 @@ export default function RootLayout() {
     }
   }, [isLoading, fontsLoaded]);
 
-  if (isLoading || !fontsLoaded) {
-    return null;
-  }
-
-  // Customise the navigation theme to use EE brand colours
-  const eeLight = {
+  const eeLight = useMemo(() => ({
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
@@ -60,9 +55,9 @@ export default function RootLayout() {
       card: '#ffffff',
       primary: Brand.green,
     },
-  };
+  }), []);
 
-  const eeDark = {
+  const eeDark = useMemo(() => ({
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
@@ -70,7 +65,11 @@ export default function RootLayout() {
       card: '#1a1d21',
       primary: Brand.greenLight,
     },
-  };
+  }), []);
+
+  if (isLoading || !fontsLoaded) {
+    return null;
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
