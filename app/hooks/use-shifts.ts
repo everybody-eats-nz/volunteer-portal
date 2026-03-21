@@ -9,6 +9,7 @@ type ShiftsResponse = {
   past: Shift[];
   availableNextCursor: string | null;
   pastNextCursor: string | null;
+  userPreferredLocations: string[];
 };
 
 type UseShiftsReturn = {
@@ -23,6 +24,7 @@ type UseShiftsReturn = {
   hasMoreAvailable: boolean;
   hasMorePast: boolean;
   isLoadingMore: boolean;
+  userPreferredLocations: string[];
 };
 
 export function useShifts(): UseShiftsReturn {
@@ -32,6 +34,7 @@ export function useShifts(): UseShiftsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userPreferredLocations, setUserPreferredLocations] = useState<string[]>([]);
 
   const availableCursorRef = useRef<string | null>(null);
   const pastCursorRef = useRef<string | null>(null);
@@ -44,6 +47,7 @@ export function useShifts(): UseShiftsReturn {
       setMyShifts(result.myShifts);
       setAvailable(result.available);
       setPast(result.past);
+      setUserPreferredLocations(result.userPreferredLocations ?? []);
       availableCursorRef.current = result.availableNextCursor;
       pastCursorRef.current = result.pastNextCursor;
     } catch (err) {
@@ -116,5 +120,6 @@ export function useShifts(): UseShiftsReturn {
     hasMoreAvailable: availableCursorRef.current !== null,
     hasMorePast: pastCursorRef.current !== null,
     isLoadingMore,
+    userPreferredLocations,
   };
 }

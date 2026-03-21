@@ -10,11 +10,14 @@ import {
 } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -183,7 +186,63 @@ export default function ShiftsScreen() {
     hasMoreAvailable,
     hasMorePast,
     isLoadingMore,
+    userPreferredLocations,
   } = useShifts();
+
+  /* ── Location Filter ── */
+  const [locationFilter, setLocationFilter] = useState<string | null>(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const hasSetDefault = useRef(false);
+
+  // Default to user's preferred location (matching web app behaviour)
+  // Only auto-filter when they have exactly 1 preferred location
+  useEffect(() => {
+    if (hasSetDefault.current || userPreferredLocations.length === 0) return;
+    if (userPreferredLocations.length === 1) {
+      setLocationFilter(userPreferredLocations[0]);
+    }
+    hasSetDefault.current = true;
+  }, [userPreferredLocations]);
+
+  // Extract unique locations from all shifts for the menu
+  const locations = useMemo(() => {
+    const allShifts = [...myShifts, ...available, ...past];
+    return [...new Set(allShifts.map((s) => s.location))].sort();
+  }, [myShifts, available, past]);
+
+  // Filter browse & past by location (My Shifts always shows all)
+  const filteredAvailable = useMemo(
+    () => locationFilter ? available.filter((s) => s.location === locationFilter) : available,
+    [available, locationFilter]
+  );
+  const filteredPast = useMemo(
+    () => locationFilter ? past.filter((s) => s.location === locationFilter) : past,
+    [past, locationFilter]
+  );
+
+  const showLocationMenu = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS === "ios") {
+      const options = ["All Locations", ...locations, "Cancel"];
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: options.length - 1,
+          title: "Filter by location",
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) setLocationFilter(null);
+          else if (buttonIndex < options.length - 1) {
+            setLocationFilter(locations[buttonIndex - 1]);
+          }
+        }
+      );
+    } else {
+      setShowLocationPicker(true);
+    }
+  }, [locations]);
+
+  /* ── Scroll & Data ── */
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -205,22 +264,22 @@ export default function ShiftsScreen() {
     activeTab === "upcoming"
       ? myShifts
       : activeTab === "browse"
-        ? available
-        : past;
+        ? filteredAvailable
+        : filteredPast;
 
   const tabCounts: Record<Tab, number> = {
     upcoming: myShifts.length,
-    browse: available.length,
-    past: past.length,
+    browse: filteredAvailable.length,
+    past: filteredPast.length,
   };
 
   const groupedShifts = useMemo(() => {
     if (activeTab === "upcoming") return null;
     return groupShiftsByDay(
-      activeTab === "browse" ? available : past,
+      activeTab === "browse" ? filteredAvailable : filteredPast,
       activeTab === "past" ? "desc" : "asc"
     );
-  }, [activeTab, available, past]);
+  }, [activeTab, filteredAvailable, filteredPast]);
 
   const handleTabChange = (tab: Tab) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -231,6 +290,7 @@ export default function ShiftsScreen() {
   const isEmpty = !isLoading && flatShifts.length === 0;
 
   return (
+    <>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
@@ -247,7 +307,45 @@ export default function ShiftsScreen() {
     >
       {/* ── Header ── */}
       <View style={styles.header}>
-        <ThemedText type="title">Shifts</ThemedText>
+        <View style={styles.headerRow}>
+          <ThemedText type="title">Shifts</ThemedText>
+          <Pressable
+            onPress={showLocationMenu}
+            style={[
+              styles.locationFilter,
+              {
+                backgroundColor: locationFilter
+                  ? (isDark ? 'rgba(29, 83, 55, 0.3)' : Brand.greenLight)
+                  : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+                borderColor: locationFilter
+                  ? (isDark ? 'rgba(29, 83, 55, 0.5)' : '#b8dbb8')
+                  : (isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0'),
+              },
+            ]}
+            accessibilityLabel={`Filter by location. Currently: ${locationFilter ?? 'All locations'}`}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="location"
+              size={13}
+              color={locationFilter ? (isDark ? '#86efac' : Brand.green) : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.locationFilterText,
+                { color: locationFilter ? (isDark ? '#86efac' : Brand.green) : colors.textSecondary },
+              ]}
+              numberOfLines={1}
+            >
+              {locationFilter ?? 'All'}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={11}
+              color={locationFilter ? (isDark ? '#86efac' : Brand.green) : colors.textSecondary}
+            />
+          </Pressable>
+        </View>
         <ThemedText type="caption" style={{ color: colors.textSecondary }}>
           Your shifts and open opportunities
         </ThemedText>
@@ -466,6 +564,70 @@ export default function ShiftsScreen() {
         </View>
       )}
     </ScrollView>
+
+    {/* ── Android Location Picker Modal ── */}
+    {Platform.OS !== "ios" && (
+      <Modal
+        visible={showLocationPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLocationPicker(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowLocationPicker(false)}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: isDark ? '#1e2328' : '#ffffff' },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Filter by location
+            </Text>
+            {[null, ...locations].map((loc) => {
+              const isSelected = locationFilter === loc;
+              return (
+                <Pressable
+                  key={loc ?? "all"}
+                  style={[
+                    styles.modalOption,
+                    isSelected && {
+                      backgroundColor: isDark
+                        ? "rgba(29, 83, 55, 0.2)"
+                        : Brand.greenLight,
+                    },
+                  ]}
+                  onPress={() => {
+                    setLocationFilter(loc);
+                    setShowLocationPicker(false);
+                  }}
+                >
+                  <Ionicons
+                    name={loc ? "location" : "globe-outline"}
+                    size={18}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      { color: isSelected ? colors.primary : colors.text },
+                    ]}
+                  >
+                    {loc ?? "All Locations"}
+                  </Text>
+                  {isSelected && (
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
+    )}
+    </>
   );
 }
 
@@ -506,8 +668,9 @@ function ShiftCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: colors.card,
-          shadowColor: isDark ? "#000" : "#64748b",
+          backgroundColor: isDark ? '#1e2328' : '#ffffff',
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : '#e4dfd7',
+          shadowColor: isDark ? '#000' : '#94a3b8',
           opacity: pressed ? 0.95 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
@@ -736,6 +899,25 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 20,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  locationFilter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  locationFilterText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    maxWidth: 100,
+  },
 
   // Segmented Tabs
   tabBar: {
@@ -834,13 +1016,14 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 18,
     overflow: "hidden",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 4,
   },
   accentBar: {
-    height: 3,
+    height: 4,
   },
   cardBody: {
     padding: 18,
@@ -1006,5 +1189,38 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.regular,
     textAlign: "center",
+  },
+
+  // Android location picker modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    fontFamily: FontFamily.regular,
+    flex: 1,
   },
 });

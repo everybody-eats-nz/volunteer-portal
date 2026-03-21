@@ -26,6 +26,25 @@ export async function GET(request: Request) {
   const now = new Date();
   const { userId } = auth;
 
+  // Fetch user's preferred locations for the client to default the filter
+  const userRecord = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { availableLocations: true },
+  });
+  let userPreferredLocations: string[] = [];
+  if (userRecord?.availableLocations) {
+    try {
+      const parsed = JSON.parse(userRecord.availableLocations);
+      if (Array.isArray(parsed)) {
+        userPreferredLocations = parsed.filter(
+          (item: unknown) => typeof item === "string" && (item as string).trim()
+        );
+      }
+    } catch {
+      // Not valid JSON — ignore
+    }
+  }
+
   const url = new URL(request.url);
   const limit = Math.min(
     Math.max(parseInt(url.searchParams.get("limit") ?? "") || DEFAULT_PAGE_SIZE, 1),
@@ -149,5 +168,6 @@ export async function GET(request: Request) {
     pastNextCursor: hasMorePast
       ? pastSignups[pastSignups.length - 1]?.id ?? null
       : null,
+    userPreferredLocations,
   });
 }

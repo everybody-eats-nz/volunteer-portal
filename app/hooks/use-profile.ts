@@ -20,6 +20,7 @@ type ProfileResponse = {
   stats: ProfileStats;
   achievements: Achievement[];
   totalPoints: number;
+  totalVolunteers: number;
 };
 
 type UseProfileReturn = {
@@ -27,6 +28,7 @@ type UseProfileReturn = {
   stats: ProfileStats | null;
   achievements: Achievement[];
   totalPoints: number;
+  totalVolunteers: number;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -85,6 +87,7 @@ export function useProfile(): UseProfileReturn {
     stats: data?.stats ?? null,
     achievements: data?.achievements ?? [],
     totalPoints: data?.totalPoints ?? 0,
+    totalVolunteers: data?.totalVolunteers ?? 0,
     isLoading,
     error,
     refresh,
