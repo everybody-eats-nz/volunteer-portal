@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
@@ -20,6 +20,7 @@ import {
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
+import { AuthGate } from '@/components/auth-gate';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,12 +73,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="shift/[id]" />
-        <Stack.Screen name="friend/[id]" />
-      </Stack>
+      <AuthGate>
+        <Slot />
+      </AuthGate>
       <StatusBar style="auto" />
     </ThemeProvider>
   );

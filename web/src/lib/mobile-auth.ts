@@ -6,9 +6,9 @@ const AUDIENCE = "mobile";
 const EXPIRATION = "30d";
 
 function getSecret(): Uint8Array {
-  const secret = process.env.NEXTAUTH_SECRET;
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   if (!secret) {
-    throw new Error("NEXTAUTH_SECRET environment variable is required for mobile auth");
+    throw new Error("AUTH_SECRET (or NEXTAUTH_SECRET) environment variable is required for mobile auth");
   }
   return new TextEncoder().encode(secret);
 }
