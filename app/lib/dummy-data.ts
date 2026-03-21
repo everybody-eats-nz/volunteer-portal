@@ -470,7 +470,9 @@ export type FeedItem =
   | { type: 'announcement'; id: string; title: string; body: string; timestamp: string; author: string; likes: LikeUser[] }
   | { type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] };
+  | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
+  | { type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
+  | { type: 'shift_recap'; id: string; location: string; date: string; volunteerCount: number; shiftCount: number; timestamp: string; likes: LikeUser[] };
 
 function hoursAgo(hours: number): string {
   const d = new Date();

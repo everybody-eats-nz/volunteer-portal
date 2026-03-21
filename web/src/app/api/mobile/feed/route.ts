@@ -9,6 +9,8 @@ import { requireMobileUser } from "@/lib/mobile-auth";
  * Pulls real data from:
  * - Recent achievement unlocks (friends + own)
  * - Milestone events (volunteers crossing shift count thresholds)
+ * - Friend signups (friends signing up for shifts)
+ * - Shift recaps (aggregate stats for completed shifts at user's locations)
  *
  * Items are sorted by timestamp descending and limited to the last 14 days.
  */
@@ -38,59 +40,112 @@ export async function GET(request: Request) {
   const visibleUserIds = [userId, ...friendIds];
 
   // Run remaining queries in parallel
-  const [recentAchievements, milestoneUsers] = await Promise.all([
-    // Recent achievement unlocks (friends + own, last 14 days)
-    prisma.userAchievement.findMany({
-      where: {
-        unlockedAt: { gte: since },
-        userId: { in: visibleUserIds },
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, firstName: true, profilePhotoUrl: true },
+  const [recentAchievements, milestoneUsers, friendSignups, userLocations] =
+    await Promise.all([
+      // Recent achievement unlocks (friends + own, last 14 days)
+      prisma.userAchievement.findMany({
+        where: {
+          unlockedAt: { gte: since },
+          userId: { in: visibleUserIds },
         },
-        achievement: {
-          select: { name: true, description: true, icon: true, category: true },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              profilePhotoUrl: true,
+            },
+          },
+          achievement: {
+            select: {
+              name: true,
+              description: true,
+              icon: true,
+              category: true,
+            },
+          },
         },
-      },
-      orderBy: { unlockedAt: "desc" },
-      take: 10,
-    }),
+        orderBy: { unlockedAt: "desc" },
+        take: 10,
+      }),
 
-    // Milestone candidates: volunteers who recently completed a shift and
-    // whose total confirmed-shift count just crossed a milestone threshold.
-    // We find recent signups for past shifts, then check the user's total count.
-    prisma.signup.findMany({
-      where: {
-        status: "CONFIRMED",
-        shift: { end: { lt: new Date(), gte: since } },
-      },
-      select: {
-        userId: true,
-        shift: { select: { end: true } },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            firstName: true,
-            profilePhotoUrl: true,
-            _count: {
-              select: {
-                signups: {
-                  where: {
-                    status: "CONFIRMED",
-                    shift: { end: { lt: new Date() } },
+      // Milestone candidates: volunteers who recently completed a shift and
+      // whose total confirmed-shift count just crossed a milestone threshold.
+      prisma.signup.findMany({
+        where: {
+          status: "CONFIRMED",
+          userId: { in: visibleUserIds },
+          shift: { end: { lt: new Date(), gte: since } },
+        },
+        select: {
+          userId: true,
+          shift: { select: { end: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              profilePhotoUrl: true,
+              _count: {
+                select: {
+                  signups: {
+                    where: {
+                      status: "CONFIRMED",
+                      shift: { end: { lt: new Date() } },
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-      orderBy: { shift: { end: "desc" } },
-      take: 50,
-    }),
-  ]);
+        orderBy: { shift: { end: "desc" } },
+        take: 50,
+      }),
+
+      // Friend signups: friends who recently signed up for upcoming shifts
+      prisma.signup.findMany({
+        where: {
+          status: "CONFIRMED",
+          userId: { in: friendIds },
+          createdAt: { gte: since },
+        },
+        select: {
+          id: true,
+          userId: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              profilePhotoUrl: true,
+            },
+          },
+          shift: {
+            select: {
+              start: true,
+              location: true,
+              shiftType: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 15,
+      }),
+
+      // Locations the current user has signed up for (to scope shift recaps)
+      prisma.signup.findMany({
+        where: {
+          userId,
+          status: "CONFIRMED",
+          shift: { location: { not: null } },
+        },
+        select: { shift: { select: { location: true } } },
+        distinct: ["shiftId"],
+      }),
+    ]);
 
   type FeedItem = {
     type: string;
@@ -154,8 +209,95 @@ export async function GET(request: Request) {
     });
   }
 
+  // Transform friend signups into feed items
+  for (const signup of friendSignups) {
+    const displayName =
+      signup.user.firstName ?? signup.user.name ?? "A volunteer";
+
+    items.push({
+      type: "friend_signup",
+      id: `friend-signup-${signup.id}`,
+      userName: displayName,
+      profilePhotoUrl: signup.user.profilePhotoUrl ?? undefined,
+      shiftTypeName: signup.shift.shiftType.name,
+      shiftDate: signup.shift.start.toISOString(),
+      location: signup.shift.location ?? "",
+      timestamp: signup.createdAt.toISOString(),
+      isFriend: true,
+      likes: [],
+    });
+  }
+
+  // Build shift recaps — aggregate completed shifts by location+date,
+  // but only for locations the user has volunteered at
+  const myLocations = new Set(
+    userLocations
+      .map((s) => s.shift.location)
+      .filter((loc): loc is string => loc !== null)
+  );
+
+  if (myLocations.size > 0) {
+    const recapShifts = await prisma.shift.findMany({
+      where: {
+        end: { lt: new Date(), gte: since },
+        location: { in: [...myLocations] },
+      },
+      select: {
+        id: true,
+        start: true,
+        location: true,
+        _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
+      },
+      orderBy: { start: "desc" },
+    });
+
+    // Group by location + date
+    const recapGroups = new Map<
+      string,
+      { location: string; date: string; volunteerCount: number; shiftCount: number; latestStart: Date }
+    >();
+
+    for (const shift of recapShifts) {
+      if (!shift.location || shift._count.signups === 0) continue;
+      const dateKey = shift.start.toISOString().slice(0, 10);
+      const groupKey = `${shift.location}-${dateKey}`;
+
+      const existing = recapGroups.get(groupKey);
+      if (existing) {
+        existing.volunteerCount += shift._count.signups;
+        existing.shiftCount += 1;
+        if (shift.start > existing.latestStart) {
+          existing.latestStart = shift.start;
+        }
+      } else {
+        recapGroups.set(groupKey, {
+          location: shift.location,
+          date: dateKey,
+          volunteerCount: shift._count.signups,
+          shiftCount: 1,
+          latestStart: shift.start,
+        });
+      }
+    }
+
+    for (const [key, recap] of recapGroups) {
+      items.push({
+        type: "shift_recap",
+        id: `shift-recap-${key}`,
+        location: recap.location,
+        date: recap.date,
+        volunteerCount: recap.volunteerCount,
+        shiftCount: recap.shiftCount,
+        timestamp: recap.latestStart.toISOString(),
+        likes: [],
+      });
+    }
+  }
+
   // Sort by timestamp descending
-  items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  items.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
   return NextResponse.json({ items });
 }

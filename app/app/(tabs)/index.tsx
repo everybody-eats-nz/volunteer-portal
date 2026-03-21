@@ -594,6 +594,67 @@ function FeedCard({
       );
     }
 
+    if (item.type === "friend_signup") {
+      return (
+        <>
+          <FeedAvatar
+            profilePhotoUrl={item.profilePhotoUrl}
+            userName={item.userName}
+            emoji="✋"
+            badgeBg="#dbeafe"
+          />
+          <View style={styles.feedBody}>
+            <Text style={[styles.feedTitle, { color: colors.text }]}>
+              {item.userName} signed up for {item.shiftTypeName}
+            </Text>
+            <Text
+              style={[styles.feedDescription, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              📍 {item.location} · {format(new Date(item.shiftDate), "EEEE d MMM")}
+            </Text>
+            <View style={styles.feedFooter}>
+              <Text
+                style={[styles.feedMetaText, { color: colors.textSecondary }]}
+              >
+                {timeAgo}
+              </Text>
+              {likeButton}
+            </View>
+          </View>
+        </>
+      );
+    }
+
+    if (item.type === "shift_recap") {
+      return (
+        <>
+          <View style={[styles.feedIcon, { backgroundColor: "#d1fae5" }]}>
+            <Text style={styles.feedIconEmoji}>🍽️</Text>
+          </View>
+          <View style={styles.feedBody}>
+            <Text style={[styles.feedTitle, { color: colors.text }]}>
+              {item.location} — {format(new Date(item.date), "EEEE d MMM")}
+            </Text>
+            <Text
+              style={[styles.feedDescription, { color: colors.textSecondary }]}
+            >
+              {item.volunteerCount} volunteer{item.volunteerCount !== 1 ? "s" : ""} across{" "}
+              {item.shiftCount} shift{item.shiftCount !== 1 ? "s" : ""} — ka pai whānau 💚
+            </Text>
+            <View style={styles.feedFooter}>
+              <Text
+                style={[styles.feedMetaText, { color: colors.textSecondary }]}
+              >
+                {timeAgo}
+              </Text>
+              {likeButton}
+            </View>
+          </View>
+        </>
+      );
+    }
+
     return null;
   };
 
@@ -655,6 +716,26 @@ const SHEET_TYPE_CONFIG = {
     accentSoft: "#fdf2f8",
     accentSoftDark: "rgba(236, 72, 153, 0.10)",
   },
+  friend_signup: {
+    emoji: "✋",
+    label: "Friend Activity",
+    bg: "#dbeafe",
+    bgDark: "rgba(59, 130, 246, 0.12)",
+    accent: "#1d4ed8",
+    accentDark: "#93c5fd",
+    accentSoft: "#eff6ff",
+    accentSoftDark: "rgba(59, 130, 246, 0.10)",
+  },
+  shift_recap: {
+    emoji: "🍽️",
+    label: "Shift Recap",
+    bg: "#d1fae5",
+    bgDark: "rgba(16, 185, 129, 0.12)",
+    accent: "#047857",
+    accentDark: "#6ee7b7",
+    accentSoft: "#ecfdf5",
+    accentSoftDark: "rgba(16, 185, 129, 0.10)",
+  },
 } as const;
 
 function FeedItemSheet({
@@ -682,7 +763,7 @@ function FeedItemSheet({
 
   // Determine hero avatar for friend items
   const hasFriendAvatar =
-    (item.type === "achievement" || item.type === "milestone" || item.type === "photo_post") &&
+    (item.type === "achievement" || item.type === "milestone" || item.type === "photo_post" || item.type === "friend_signup") &&
     item.isFriend &&
     item.profilePhotoUrl;
 
@@ -701,6 +782,12 @@ function FeedItemSheet({
   } else if (item.type === "photo_post") {
     title = `${item.userName} shared photos`;
     body = item.caption;
+  } else if (item.type === "friend_signup") {
+    title = `${item.userName} signed up for ${item.shiftTypeName}`;
+    body = `📍 ${item.location} · ${format(new Date(item.shiftDate), "EEEE d MMM")}`;
+  } else if (item.type === "shift_recap") {
+    title = `${item.location} — ${format(new Date(item.date), "EEEE d MMM")}`;
+    body = `${item.volunteerCount} volunteer${item.volunteerCount !== 1 ? "s" : ""} across ${item.shiftCount} shift${item.shiftCount !== 1 ? "s" : ""} — ka pai whānau 💚`;
   }
 
   const likeCount = likers.length;
