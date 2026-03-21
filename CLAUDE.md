@@ -4,7 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Everybody Eats Volunteer Portal - a Next.js application for managing volunteers at a charitable restaurant. The main application is in the `/web/` directory.
+Everybody Eats Volunteer Portal - a Next.js application for managing volunteers at a charitable restaurant. The main application is in the `/web/` directory. A companion React Native/Expo mobile app is in the `/app/` directory.
+
+## UI/UX Design
+
+**IMPORTANT**: For any UI/UX work in either the web app (`/web/`) or mobile app (`/app/`), always load the `ui-ux-pro-max` skill first. This ensures consistent, professional design across all interfaces.
+
+### Mobile App (`/app/`) Design System
+
+See `app/STYLE_GUIDE.md` for the complete mobile design system. Key principles:
+
+- **Fonts**: Libre Franklin (body) + Fraunces (headings) — must match web app
+- **Colors**: Import from `@/constants/theme` (`Brand`, `Colors`, `FontFamily`)
+- **Emojis**: Use emojis freely for warmth (📍🕐🍽️🏆🔥📢). They replace icon-only indicators in the mobile app
+- **Te Reo Māori**: Weave in subtle Māori throughout — "Kia ora" (greeting), "mahi" (shifts/work), "whānau" (community), "Ka pai" (well done), "Ngā mihi" (thanks)
+- **Native feel**: Use `useSafeAreaInsets()`, haptic feedback on interactions, filled/outline icon toggle for active state, proper platform tab bar heights
+- **Touch targets**: Minimum 44pt, use `hitSlop` when visual element is smaller
+- **Typography**: Use `ThemedText` component with types: `title` (Fraunces 28pt), `heading` (Fraunces 22pt), `subtitle` (Libre Franklin 18pt semi-bold), `default` (Libre Franklin 16pt)
 
 ## Essential Commands
 
