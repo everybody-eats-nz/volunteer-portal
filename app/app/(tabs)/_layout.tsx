@@ -1,11 +1,18 @@
+import { Redirect } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (!isLoading && !isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   const eeLight = {
     ...DefaultTheme,
