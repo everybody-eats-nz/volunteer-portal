@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import {
@@ -23,13 +23,9 @@ import { Brand } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isLoading, restoreSession } = useAuth();
+  const { isLoading, isAuthenticated, restoreSession } = useAuth();
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -50,12 +46,8 @@ export default function RootLayout() {
     }
   }, [isLoading, fontsLoaded]);
 
-  if (isLoading || !fontsLoaded) {
-    return null;
-  }
-
-  // Customise the navigation theme to use EE brand colours
-  const eeLight = {
+  // Memoize themes to avoid re-render loops from ThemeProvider
+  const eeLight = useMemo(() => ({
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
@@ -63,9 +55,9 @@ export default function RootLayout() {
       card: '#ffffff',
       primary: Brand.green,
     },
-  };
+  }), []);
 
-  const eeDark = {
+  const eeDark = useMemo(() => ({
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
@@ -73,14 +65,24 @@ export default function RootLayout() {
       card: '#1a1d21',
       primary: Brand.greenLight,
     },
-  };
+  }), []);
+
+  if (isLoading || !fontsLoaded) {
+    return null;
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="shift/[id]" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          <>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="shift/[id]" />
+            <Stack.Screen name="friend/[id]" />
+          </>
+        ) : (
+          <Stack.Screen name="(auth)" />
+        )}
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
