@@ -25,7 +25,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isLoading, isAuthenticated, restoreSession } = useAuth();
+  const { isLoading, restoreSession } = useAuth();
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -46,7 +46,6 @@ export default function RootLayout() {
     }
   }, [isLoading, fontsLoaded]);
 
-  // Memoize themes to avoid re-render loops from ThemeProvider
   const eeLight = useMemo(() => ({
     ...DefaultTheme,
     colors: {
@@ -74,15 +73,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
       <Stack screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="shift/[id]" />
-            <Stack.Screen name="friend/[id]" />
-          </>
-        ) : (
-          <Stack.Screen name="(auth)" />
-        )}
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="shift/[id]" />
+        <Stack.Screen name="friend/[id]" />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

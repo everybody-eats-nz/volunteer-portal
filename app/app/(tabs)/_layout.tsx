@@ -2,10 +2,13 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
+import LoginScreen from '@/app/(auth)/login';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const eeLight = {
     ...DefaultTheme,
@@ -26,6 +29,15 @@ export default function TabLayout() {
       primary: Brand.greenLight,
     },
   };
+
+  // Show login screen if not authenticated (no redirect, no navigation)
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
+        <LoginScreen />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
