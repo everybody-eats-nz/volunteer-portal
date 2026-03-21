@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -20,18 +20,13 @@ import {
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
+import { AuthGate } from '@/components/auth-gate';
 
 SplashScreen.preventAutoHideAsync();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isLoading, isAuthenticated, restoreSession } = useAuth();
-  const router = useRouter();
-  const segments = useSegments();
+  const { isLoading, restoreSession } = useAuth();
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -45,21 +40,6 @@ export default function RootLayout() {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
-
-  // Redirect based on auth state once loading is done
-  useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-
-    if (!isAuthenticated && !inAuthGroup) {
-      // Not signed in and not on login screen — redirect to login
-      router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
-      // Signed in but still on login screen — redirect to tabs
-      router.replace('/(tabs)');
-    }
-  }, [isLoading, isAuthenticated, segments, router]);
 
   useEffect(() => {
     if (!isLoading && fontsLoaded) {
@@ -94,11 +74,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="shift/[id]" options={{ headerShown: false }} />
-      </Stack>
+      <AuthGate>
+        <Slot />
+      </AuthGate>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
