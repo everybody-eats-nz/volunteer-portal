@@ -1,15 +1,17 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { prisma } from "@/lib/prisma";
 
-if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error("NEXTAUTH_SECRET environment variable is required for mobile auth");
-}
-
-const SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
-
 const ISSUER = "everybody-eats";
 const AUDIENCE = "mobile";
 const EXPIRATION = "30d";
+
+function getSecret(): Uint8Array {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error("NEXTAUTH_SECRET environment variable is required for mobile auth");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export type MobileUser = {
   id: string;
@@ -36,14 +38,14 @@ export async function signMobileToken(userId: string, email: string): Promise<st
     .setAudience(AUDIENCE)
     .setIssuedAt()
     .setExpirationTime(EXPIRATION)
-    .sign(SECRET);
+    .sign(getSecret());
 }
 
 /**
  * Verify a mobile JWT and return the payload.
  */
 export async function verifyMobileToken(token: string): Promise<MobileTokenPayload> {
-  const { payload } = await jwtVerify(token, SECRET, {
+  const { payload } = await jwtVerify(token, getSecret(), {
     issuer: ISSUER,
     audience: AUDIENCE,
   });
