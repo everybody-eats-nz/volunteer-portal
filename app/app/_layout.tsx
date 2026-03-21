@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -29,7 +29,9 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isLoading, restoreSession } = useAuth();
+  const { isLoading, isAuthenticated, restoreSession } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -43,6 +45,21 @@ export default function RootLayout() {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  // Redirect based on auth state once loading is done
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // Not signed in and not on login screen — redirect to login
+      router.replace('/(auth)/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      // Signed in but still on login screen — redirect to tabs
+      router.replace('/(tabs)');
+    }
+  }, [isLoading, isAuthenticated, segments, router]);
 
   useEffect(() => {
     if (!isLoading && fontsLoaded) {
