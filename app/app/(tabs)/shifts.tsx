@@ -10,9 +10,11 @@ import {
 } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -91,7 +93,7 @@ function groupShiftsByDay(
 type TabDef = { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap; iconOutline: keyof typeof Ionicons.glyphMap };
 
 const TAB_DEFS: TabDef[] = [
-  { key: "upcoming", label: "My Mahi", icon: "calendar", iconOutline: "calendar-outline" },
+  { key: "upcoming", label: "My Shifts", icon: "calendar", iconOutline: "calendar-outline" },
   { key: "browse", label: "Browse", icon: "compass", iconOutline: "compass-outline" },
   { key: "past", label: "Past", icon: "time", iconOutline: "time-outline" },
 ];
@@ -140,17 +142,17 @@ const STATUS_CONFIG: Record<
 const EMPTY_CONFIG: Record<Tab, { icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string }> = {
   upcoming: {
     icon: "leaf-outline",
-    title: "No upcoming mahi yet",
+    title: "No upcoming shifts yet",
     subtitle: "Browse available shifts to sign up",
   },
   browse: {
     icon: "compass-outline",
     title: "No open shifts right now",
-    subtitle: "Check back soon \u2014 new mahi is added regularly",
+    subtitle: "Check back soon — new shifts are added regularly",
   },
   past: {
     icon: "time-outline",
-    title: "No past mahi yet",
+    title: "No past shifts yet",
     subtitle: "Your completed shifts will appear here",
   },
 };
@@ -169,7 +171,35 @@ export default function ShiftsScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
-  const { myShifts, available, past, isLoading, error, refresh } = useShifts();
+  const {
+    myShifts,
+    available,
+    past,
+    isLoading,
+    error,
+    refresh,
+    loadMoreAvailable,
+    loadMorePast,
+    hasMoreAvailable,
+    hasMorePast,
+    isLoadingMore,
+  } = useShifts();
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+      if (distanceFromBottom < 300) {
+        if (activeTab === "browse" && hasMoreAvailable) {
+          loadMoreAvailable();
+        } else if (activeTab === "past" && hasMorePast) {
+          loadMorePast();
+        }
+      }
+    },
+    [activeTab, hasMoreAvailable, hasMorePast, loadMoreAvailable, loadMorePast]
+  );
 
   const flatShifts =
     activeTab === "upcoming"
@@ -205,6 +235,8 @@ export default function ShiftsScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={handleScroll}
+      scrollEventThrottle={400}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}
@@ -215,7 +247,7 @@ export default function ShiftsScreen() {
     >
       {/* ── Header ── */}
       <View style={styles.header}>
-        <ThemedText type="title">Mahi</ThemedText>
+        <ThemedText type="title">Shifts</ThemedText>
         <ThemedText type="caption" style={{ color: colors.textSecondary }}>
           Your shifts and open opportunities
         </ThemedText>
@@ -410,8 +442,18 @@ export default function ShiftsScreen() {
         </View>
       )}
 
+      {/* ── Loading More Indicator ── */}
+      {isLoadingMore && (
+        <View style={styles.loadingMore}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.loadingMoreText, { color: colors.textSecondary }]}>
+            Loading more shifts...
+          </Text>
+        </View>
+      )}
+
       {/* ── Footer Hint ── */}
-      {!isEmpty && (
+      {!isEmpty && !isLoadingMore && (
         <View style={styles.footer}>
           <Ionicons
             name="hand-right-outline"
@@ -1011,6 +1053,19 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
+  },
+
+  // Loading more
+  loadingMore: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 20,
+  },
+  loadingMoreText: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
   },
 
   // Footer

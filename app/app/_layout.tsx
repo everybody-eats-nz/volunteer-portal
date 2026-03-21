@@ -1,6 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
@@ -74,7 +74,26 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
       <AuthGate>
-        <Slot />
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="shift/[id]"
+            options={{
+              headerShown: true,
+              title: 'Shift',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="friend/[id]"
+            options={{
+              headerShown: true,
+              title: 'Friend',
+              headerBackTitle: 'Back',
+            }}
+          />
+        </Stack>
       </AuthGate>
       <StatusBar style="auto" />
     </ThemeProvider>
