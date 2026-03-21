@@ -3,8 +3,8 @@ import { differenceInDays, format } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import {
+  ActivityIndicator,
   Image,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,11 +16,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import {
-  DUMMY_FRIEND_PROFILES,
-  getShiftThemeByName,
-  type FriendProfile,
-} from "@/lib/dummy-data";
+import { useFriendProfile } from "@/hooks/use-friend-profile";
+import { getShiftThemeByName } from "@/lib/dummy-data";
 
 /* ─── Grade config ──────────────────────────────────────────── */
 
@@ -43,9 +40,20 @@ export default function FriendProfileScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const friend = DUMMY_FRIEND_PROFILES[id];
+  const { profile: friend, isLoading, error } = useFriendProfile(id);
 
-  if (!friend) {
+  if (isLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={Brand.green} />
+        </View>
+      </>
+    );
+  }
+
+  if (error || !friend) {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />

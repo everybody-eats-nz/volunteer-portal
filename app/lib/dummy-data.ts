@@ -505,6 +505,12 @@ export type Achievement = {
   unlockedAt?: string; // ISO date — if set, it's unlocked
   progress?: number; // 0-1, for in-progress achievements
   target?: string; // e.g. "50 shifts"
+  unlockedByCount?: number; // how many volunteers have unlocked this
+  friendsWhoEarned?: Array<{
+    id: string;
+    name: string;
+    profilePhotoUrl?: string;
+  }>;
 };
 
 export const DUMMY_ACHIEVEMENTS: Achievement[] = [
