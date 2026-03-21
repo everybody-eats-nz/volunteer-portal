@@ -4,9 +4,11 @@ import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,11 +19,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useProfile } from "@/hooks/use-profile";
+import { useShifts } from "@/hooks/use-shifts";
 import {
-  AVAILABLE_SHIFTS,
-  DUMMY_PROFILE,
   FEED_ITEMS,
-  MY_SHIFTS,
   type FeedItem,
   type LikeUser,
 } from "@/lib/dummy-data";
@@ -31,7 +32,10 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const nextShift = MY_SHIFTS[0];
+  const { profile } = useProfile();
+  const { myShifts, available, isLoading: shiftsLoading, refresh: refreshShifts } = useShifts();
+
+  const nextShift = myShifts[0] ?? null;
   const hoursUntilShift = nextShift
     ? differenceInHours(new Date(nextShift.start), new Date())
     : null;
@@ -50,22 +54,29 @@ export default function HomeScreen() {
   }, []);
 
   const ME_AS_LIKER: LikeUser = {
-    id: DUMMY_PROFILE.id,
+    id: profile?.id ?? '',
     name: 'You',
-    profilePhotoUrl: DUMMY_PROFILE.image ?? undefined,
+    profilePhotoUrl: profile?.image ?? undefined,
   };
 
   const getLikersForItem = useCallback((item: FeedItem, isLikedByMe: boolean): LikeUser[] => {
     const likers = [...item.likes];
     if (isLikedByMe) likers.unshift(ME_AS_LIKER);
     return likers;
-  }, []);
+  }, [ME_AS_LIKER]);
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={shiftsLoading}
+          onRefresh={refreshShifts}
+          tintColor={colors.primary}
+        />
+      }
     >
       {/* ── Header ── */}
       <View style={styles.header}>
@@ -78,7 +89,7 @@ export default function HomeScreen() {
           >
             Kia ora 👋
           </Text>
-          <ThemedText type="title">{DUMMY_PROFILE.firstName}</ThemedText>
+          <ThemedText type="title">{profile?.firstName ?? ''}</ThemedText>
         </View>
         <Pressable
           onPress={() => router.push("/(tabs)/profile")}
@@ -88,9 +99,9 @@ export default function HomeScreen() {
           ]}
           accessibilityLabel="View profile"
         >
-          {DUMMY_PROFILE.image ? (
+          {profile?.image ? (
             <Image
-              source={{ uri: DUMMY_PROFILE.image }}
+              source={{ uri: profile.image }}
               style={styles.avatarImage}
             />
           ) : (
@@ -98,7 +109,7 @@ export default function HomeScreen() {
               style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
             >
               <Text style={styles.avatarText}>
-                {DUMMY_PROFILE.firstName.charAt(0)}
+                {(profile?.firstName ?? '').charAt(0)}
               </Text>
             </View>
           )}
@@ -160,7 +171,7 @@ export default function HomeScreen() {
       )}
 
       {/* ── Open Shifts CTA ── */}
-      {AVAILABLE_SHIFTS.length > 0 && (
+      {available.length > 0 && (
         <Pressable
           onPress={() => router.push("/(tabs)/shifts")}
           style={({ pressed }) => [
@@ -181,7 +192,7 @@ export default function HomeScreen() {
                 Volunteers needed!
               </Text>
               <Text style={[styles.openShiftsBody, { color: Brand.nearBlack }]}>
-                {AVAILABLE_SHIFTS.length} shifts are looking for whānau
+                {available.length} shifts are looking for whānau
               </Text>
             </View>
             <Ionicons name="arrow-forward" size={20} color={Brand.nearBlack} />
@@ -205,6 +216,7 @@ export default function HomeScreen() {
               liked={likedItems.has(item.id)}
               onToggleLike={() => toggleLike(item.id)}
               onShowSheet={() => setLikesSheetItem(item)}
+              myPhoto={profile?.image ?? undefined}
             />
           ))}
         </View>
@@ -364,6 +376,7 @@ function FeedCard({
   liked,
   onToggleLike,
   onShowSheet,
+  myPhoto,
 }: {
   item: FeedItem;
   colors: (typeof Colors)["light"];
@@ -371,6 +384,7 @@ function FeedCard({
   liked: boolean;
   onToggleLike: () => void;
   onShowSheet: () => void;
+  myPhoto?: string;
 }) {
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
@@ -389,7 +403,7 @@ function FeedCard({
       onShowLikes={onShowSheet}
       color={colors.textSecondary}
       likers={item.likes}
-      myPhoto={DUMMY_PROFILE.image ?? undefined}
+      myPhoto={myPhoto}
     />
   );
 

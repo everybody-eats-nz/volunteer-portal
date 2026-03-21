@@ -3,9 +3,11 @@ import { format } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,10 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useProfile } from "@/hooks/use-profile";
 import {
-  DUMMY_PROFILE,
-  DUMMY_STATS,
-  DUMMY_ACHIEVEMENTS,
   DUMMY_FRIENDS,
   type Achievement,
   type Friend,
@@ -51,13 +51,58 @@ export default function ProfileScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const user = DUMMY_PROFILE;
-  const stats = DUMMY_STATS;
-  const grade = GRADE_CONFIG[user.volunteerGrade];
+  const {
+    profile: user,
+    stats,
+    achievements,
+    totalPoints,
+    isLoading,
+    error,
+    refresh,
+  } = useProfile();
 
-  const unlocked = DUMMY_ACHIEVEMENTS.filter((a) => a.unlockedAt);
-  const inProgress = DUMMY_ACHIEVEMENTS.filter((a) => !a.unlockedAt && a.progress != null);
-  const totalPoints = unlocked.reduce((sum, a) => sum + a.points, 0);
+  const grade = user ? GRADE_CONFIG[user.volunteerGrade] : GRADE_CONFIG.GREEN;
+
+  const unlocked = achievements.filter((a) => a.unlockedAt);
+  const inProgress = achievements.filter((a) => !a.unlockedAt && a.progress != null);
+
+  if (isLoading && !user) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingTop: insets.top,
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!user || !stats) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingTop: insets.top,
+          },
+        ]}
+      >
+        <ThemedText type="subtitle" style={{ textAlign: "center" }}>
+          {error ?? "Couldn't load profile"}
+        </ThemedText>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -67,6 +112,13 @@ export default function ProfileScreen() {
         { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 20) + 20 },
       ]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={refresh}
+          tintColor={colors.primary}
+        />
+      }
     >
       {/* ── Header ── */}
       <View style={styles.header}>
