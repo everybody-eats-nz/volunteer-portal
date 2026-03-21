@@ -506,7 +506,7 @@ function ShiftCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: compact ? (isDark ? colors.card : '#f8fafc') : accentBg,
+          backgroundColor: colors.card,
           shadowColor: isDark ? "#000" : "#64748b",
           opacity: pressed ? 0.95 : 1,
           transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -554,8 +554,8 @@ function ShiftCard({
         {/* Info boxes — time and capacity in subtle pill containers */}
         {!compact ? (
           <View style={styles.infoBoxRow}>
-            <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)' }]}>
-              <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+            <View style={[styles.infoBox, { backgroundColor: accentBg }]}>
+              <Ionicons name="time-outline" size={15} color={accentColor} />
               <View>
                 <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
                   {format(date, "h:mm a")}
@@ -565,8 +565,8 @@ function ShiftCard({
                 </Text>
               </View>
             </View>
-            <View style={[styles.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)' }]}>
-              <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+            <View style={[styles.infoBox, { backgroundColor: accentBg }]}>
+              <Ionicons name="people-outline" size={15} color={accentColor} />
               <View>
                 <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
                   {shift.signedUp}/{shift.capacity}
@@ -794,12 +794,12 @@ const styles = StyleSheet.create({
   shiftList: {
     marginTop: 20,
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 16,
   },
 
   // Day group (browse & past)
   dayGroup: {
-    gap: 10,
+    gap: 12,
   },
   dayHeader: {
     flexDirection: "row",
@@ -827,12 +827,12 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
   },
   dayCards: {
-    gap: 10,
+    gap: 12,
   },
 
   // Card
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: "hidden",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -843,70 +843,75 @@ const styles = StyleSheet.create({
     height: 3,
   },
   cardBody: {
-    padding: 16,
-    gap: 12,
+    padding: 18,
+    gap: 16,
   },
 
   // Type row
   typeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
   },
   typeIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   typeEmoji: {
-    fontSize: 18,
+    fontSize: 20,
   },
   typeInfo: {
     flex: 1,
-    gap: 1,
+    gap: 3,
   },
   typeName: {
     fontSize: 17,
     fontFamily: FontFamily.semiBold,
+    lineHeight: 22,
   },
   typeDate: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
+    lineHeight: 18,
   },
 
   // Info box row (time + capacity side by side)
   infoBoxRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
   },
   infoBox: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
   infoBoxPrimary: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: FontFamily.semiBold,
+    lineHeight: 20,
   },
   infoBoxSecondary: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: FontFamily.regular,
+    lineHeight: 16,
+    marginTop: 1,
   },
 
   // Location row
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   locationText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: FontFamily.regular,
     flex: 1,
   },
@@ -916,7 +921,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingLeft: 52,
+    paddingLeft: 58,
   },
 
   // Shared detail elements
@@ -949,15 +954,16 @@ const styles = StyleSheet.create({
   notesCallout: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
   notesText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: FontFamily.medium,
     flex: 1,
+    lineHeight: 18,
   },
 
   // Badge (shared)
