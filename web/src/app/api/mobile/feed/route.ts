@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { getStartOfDayUTC } from "@/lib/timezone";
+import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
 
 /**
  * GET /api/mobile/feed
@@ -298,10 +298,10 @@ export async function GET(request: Request) {
     for (const shift of recapShifts) {
       if (!shift.location || shift._count.signups === 0) continue;
 
-      // Use NZ timezone start-of-day to match MealsServed date storage
+      // Use NZ timezone date for grouping and display
       const nzStartOfDay = getStartOfDayUTC(shift.start);
       const mealsKey = `${shift.location}-${nzStartOfDay.toISOString()}`;
-      const displayDate = shift.start.toISOString().slice(0, 10);
+      const displayDate = formatInNZT(shift.start, "yyyy-MM-dd");
       const groupKey = `${shift.location}-${displayDate}`;
 
       const shiftDurationHours =
