@@ -19,10 +19,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useFeed } from "@/hooks/use-feed";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts } from "@/hooks/use-shifts";
 import {
-  FEED_ITEMS,
   type FeedItem,
   type LikeUser,
 } from "@/lib/dummy-data";
@@ -34,6 +34,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
   const { myShifts, available, isLoading: shiftsLoading, refresh: refreshShifts } = useShifts();
+  const { items: feedItems, isLoading: feedLoading, refresh: refreshFeed } = useFeed();
 
   const nextShift = myShifts[0] ?? null;
   const hoursUntilShift = nextShift
@@ -72,8 +73,8 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
-          refreshing={shiftsLoading}
-          onRefresh={refreshShifts}
+          refreshing={shiftsLoading || feedLoading}
+          onRefresh={() => { refreshShifts(); refreshFeed(); }}
           tintColor={colors.primary}
         />
       }
@@ -207,12 +208,12 @@ export default function HomeScreen() {
         </ThemedText>
 
         <View style={styles.feedList}>
-          {FEED_ITEMS.map((item, index) => (
+          {feedItems.map((item, index) => (
             <FeedCard
               key={item.id}
               item={item}
               colors={colors}
-              isLast={index === FEED_ITEMS.length - 1}
+              isLast={index === feedItems.length - 1}
               liked={likedItems.has(item.id)}
               onToggleLike={() => toggleLike(item.id)}
               onShowSheet={() => setLikesSheetItem(item)}
