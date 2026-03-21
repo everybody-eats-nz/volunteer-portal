@@ -37,7 +37,14 @@ export function SiteFooter({ session }: SiteFooterProps) {
             </p>
             <p className="text-slate-400 text-xs">
               Registered charity number:{" "}
-              <span className="font-medium text-slate-300">CC56055</span>
+              <a
+                href="https://www.register.charities.govt.nz/Charity/CC56055"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-slate-300 hover:text-white underline transition-colors"
+              >
+                CC56055
+              </a>
             </p>
           </div>
 
