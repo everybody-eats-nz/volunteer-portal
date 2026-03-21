@@ -90,8 +90,9 @@ export default function RootLayout() {
             name="friend/[id]"
             options={{
               headerShown: true,
-              title: 'Friend',
+              headerTransparent: true,
               headerBackTitle: 'Back',
+              title: '',
             }}
           />
         </Stack>

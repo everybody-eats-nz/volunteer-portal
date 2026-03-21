@@ -203,7 +203,7 @@ export default function ShiftDetailScreen() {
     const timeStr = `${formatNZT(date, "h:mm a")} – ${formatNZT(endDate, "h:mm a")}`;
     try {
       await Share.share({
-        message: `🍽️ Volunteer with Everybody Eats!\n\n${shift.shiftType.name} — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${spotsLeft > 0 ? `${spotsLeft} spots left — sign up and join the whānau!` : 'This shift is full, but check back for cancellations.'}\n\nhttps://everybodyeats.nz/shifts`,
+        message: `🍽️ Volunteer with Everybody Eats!\n\n${shift.shiftType.name} — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${spotsLeft > 0 ? `${spotsLeft} spots left — sign up and join the whānau!` : 'This shift is full, but check back for cancellations.'}\n\nhttps://volunteers.everybodyeats.nz/shifts/${shift.id}`,
       });
     } catch {
       // User cancelled share

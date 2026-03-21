@@ -9,7 +9,7 @@ import {
 } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
-import { useRouter, type Href } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionSheetIOS,
@@ -173,7 +173,8 @@ export default function ShiftsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<Tab>("upcoming");
+  const { tab: initialTab } = useLocalSearchParams<{ tab?: Tab }>();
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab === "browse" || initialTab === "past" ? initialTab : "upcoming");
   const {
     myShifts,
     available,
@@ -492,12 +493,6 @@ export default function ShiftsScreen() {
             <View key={group.key} style={styles.dayGroup}>
               {/* Day header */}
               <View style={styles.dayHeader}>
-                <View
-                  style={[
-                    styles.dayHeaderDot,
-                    { backgroundColor: isDark ? colors.primary : Brand.green },
-                  ]}
-                />
                 <Text style={[styles.dayHeaderLabel, { color: colors.text }]}>
                   {group.label}
                 </Text>
@@ -989,12 +984,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 4,
   },
-  dayHeaderDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  dayHeaderLabel: {
+dayHeaderLabel: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
     flex: 1,

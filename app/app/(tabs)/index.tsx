@@ -175,7 +175,7 @@ export default function HomeScreen() {
       {/* ── Open Shifts CTA ── */}
       {available.length > 0 && (
         <Pressable
-          onPress={() => router.push("/(tabs)/shifts")}
+          onPress={() => router.push("/(tabs)/shifts?tab=browse")}
           style={({ pressed }) => [
             styles.openShiftsBanner,
             {
@@ -1475,19 +1475,17 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    borderWidth: 2,
-    borderColor: "#ffffff",
     overflow: "hidden",
   },
   avatarStackImage: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   avatarStackFallback: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
   },

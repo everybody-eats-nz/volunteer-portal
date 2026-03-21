@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { differenceInDays } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
@@ -45,29 +45,23 @@ export default function FriendProfileScreen() {
 
   if (isLoading) {
     return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-          <ActivityIndicator size="large" color={Brand.green} />
-        </View>
-      </>
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={Brand.green} />
+      </View>
     );
   }
 
   if (error || !friend) {
     return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>😕</Text>
-          <ThemedText type="heading">Friend not found</ThemedText>
-          <Pressable onPress={() => router.back()} style={styles.backLink}>
-            <Text style={[styles.backLinkText, { color: isDark ? Brand.greenLight : Brand.green }]}>
-              Go back
-            </Text>
-          </Pressable>
-        </View>
-      </>
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <Text style={{ fontSize: 48, marginBottom: 12 }}>😕</Text>
+        <ThemedText type="heading">Friend not found</ThemedText>
+        <Pressable onPress={() => router.back()} style={styles.backLink}>
+          <Text style={[styles.backLinkText, { color: isDark ? Brand.greenLight : Brand.green }]}>
+            Go back
+          </Text>
+        </Pressable>
+      </View>
     );
   }
 
@@ -77,41 +71,15 @@ export default function FriendProfileScreen() {
   const isCloseBuddy = friend.shiftsTogether > 10;
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={{
-          paddingTop: insets.top,
-          paddingBottom: Math.max(insets.bottom, 20) + 20,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Nav bar ── */}
-        <View style={styles.navBar}>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.back();
-            }}
-            style={({ pressed }) => [
-              styles.navButton,
-              {
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-            hitSlop={8}
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
-          </Pressable>
-          <Text style={[styles.navTitle, { color: colors.text }]}>Friend Profile</Text>
-          <View style={styles.navButton} />
-        </View>
-
-        {/* ── Profile Header Card ── */}
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={{
+        paddingTop: insets.top + 44,
+        paddingBottom: Math.max(insets.bottom, 20) + 20,
+      }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── Profile Header Card ── */}
         <View style={[styles.headerCard, { backgroundColor: isDark ? Brand.greenDark : Brand.green }]}>
           {/* Decorative circles */}
           <View style={[styles.decoCircle, styles.decoCircle1]} />
@@ -423,7 +391,6 @@ export default function FriendProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
-    </>
   );
 }
 
@@ -517,26 +484,6 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   backLinkText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-  },
-
-  /* Nav bar */
-  navBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  navButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navTitle: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
   },
