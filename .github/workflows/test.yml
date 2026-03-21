@@ -24,65 +24,8 @@ env:
   TZ: Pacific/Auckland
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: volunteer-portal
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: web/.nvmrc
-          cache: "npm"
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          cd web
-          npm ci
-
-      - name: Setup database for build
-        run: |
-          cd web
-          cp .env.example .env
-          echo "NEXTAUTH_SECRET=test-secret-for-ci" >> .env.local
-          echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
-          npx prisma migrate deploy
-
-      - name: Build application
-        run: |
-          cd web
-          NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run build
-
-      - name: Upload build output
-        uses: actions/upload-artifact@v7
-        with:
-          name: nextjs-build
-          path: |
-            web/.next/
-            !web/.next/cache/
-          retention-days: 1
-
   test:
     name: Playwright Tests
-    needs: [build]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -162,12 +105,6 @@ jobs:
           npx playwright install --with-deps chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
-      - name: Download build output
-        uses: actions/download-artifact@v8
-        with:
-          name: nextjs-build
-          path: web/.next/
-
       - name: Setup test database
         run: |
           cd web
@@ -176,6 +113,11 @@ jobs:
           echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
           npx prisma migrate deploy
           npx prisma db seed
+
+      - name: Build application
+        run: |
+          cd web
+          NEXT_PUBLIC_DISABLE_ANIMATIONS=true PLAYWRIGHT_TEST=true npm run build
 
       - name: Run Playwright tests
         run: |
