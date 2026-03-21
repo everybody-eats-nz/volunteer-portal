@@ -1,10 +1,10 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Must set env before importing the module
-vi.stubEnv("NEXTAUTH_SECRET", "test-secret-for-mobile-auth-tests");
+vi.stubEnv("AUTH_SECRET", "test-secret-for-mobile-auth-tests");
 
 // Mock Prisma before importing mobile-auth
-vi.mock("./prisma", () => ({
+vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
@@ -126,7 +126,7 @@ describe("Mobile Authentication", () => {
     });
 
     it("should return the user for a valid token", async () => {
-      const { prisma } = await import("./prisma");
+      const { prisma } = await import("@/lib/prisma");
       (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: "user-1",
         name: "Test User",
@@ -156,7 +156,7 @@ describe("Mobile Authentication", () => {
     });
 
     it("should return null if the user no longer exists in DB", async () => {
-      const { prisma } = await import("./prisma");
+      const { prisma } = await import("@/lib/prisma");
       (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
       const token = await signMobileToken("deleted-user", "gone@example.com");
