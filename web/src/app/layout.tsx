@@ -89,6 +89,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
+        suppressHydrationWarning
       >
         <Providers>
           <ImpersonationBanner />
