@@ -5,20 +5,38 @@ import {
   Pressable,
   TextInput,
   Alert,
+  Share,
+  Linking,
   View,
   Text,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
+import { format, differenceInHours, differenceInMinutes } from 'date-fns';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Brand, FontFamily } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MY_SHIFTS, AVAILABLE_SHIFTS, SHIFT_CREW } from '@/lib/dummy-data';
+import {
+  MY_SHIFTS,
+  AVAILABLE_SHIFTS,
+  SHIFT_CREW,
+  SHIFT_SIGNUPS,
+  getShiftThemeByName,
+  getConcurrentShifts,
+  getLocationShortAddress,
+  getLocationMapsUrl,
+  getResourcesForShiftType,
+  type Shift,
+  type Resource,
+} from '@/lib/dummy-data';
+
+/* ── Music Queue Type ── */
 
 type QueueItem = {
   id: string;
@@ -34,11 +52,23 @@ const PLACEHOLDER_QUEUE: QueueItem[] = [
   { id: '3', title: "Don't Stop Me Now", artist: 'Queen', requestedBy: 'Mia', votes: 1 },
 ];
 
+/* ── Duration Helper ── */
+
+function getDuration(start: string, end: string): string {
+  const mins = differenceInMinutes(new Date(end), new Date(start));
+  const hours = Math.floor(mins / 60);
+  const remainder = mins % 60;
+  return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
+}
+
+/* ── Main Screen ── */
+
 export default function ShiftDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
 
   const shift = [...MY_SHIFTS, ...AVAILABLE_SHIFTS].find((s) => s.id === id);
   const isMyShift = MY_SHIFTS.some((s) => s.id === id);
@@ -52,9 +82,11 @@ export default function ShiftDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Shift' }} />
-        <View style={[styles.centered, { backgroundColor: colors.background }]}>
-          <Text style={styles.notFoundEmoji}>🔍</Text>
-          <ThemedText type="subtitle" style={{ marginTop: 8 }}>
+        <View style={[s.centered, { backgroundColor: colors.background }]}>
+          <View style={[s.notFoundIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
+            <Ionicons name="search-outline" size={32} color={colors.textSecondary} />
+          </View>
+          <ThemedText type="subtitle" style={{ marginTop: 12 }}>
             Shift not found
           </ThemedText>
           <ThemedText type="caption" style={{ color: colors.textSecondary, marginTop: 4 }}>
@@ -63,10 +95,10 @@ export default function ShiftDetailScreen() {
           <Pressable
             onPress={() => router.back()}
             style={({ pressed }) => [
-              styles.backLink,
+              s.backButton,
               { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
             ]}>
-            <Text style={styles.backLinkText}>Go back</Text>
+            <Text style={s.backButtonText}>Go back</Text>
           </Pressable>
         </View>
       </>
@@ -76,6 +108,23 @@ export default function ShiftDetailScreen() {
   const date = new Date(shift.start);
   const endDate = new Date(shift.end);
   const spotsLeft = shift.capacity - shift.signedUp;
+  const isFull = spotsLeft <= 0;
+  const isUrgent = !isFull && spotsLeft <= 2;
+  const theme = getShiftThemeByName(shift.shiftType.name);
+  const accent = isDark ? theme.colorDark : theme.color;
+  const hoursUntil = differenceInHours(date, new Date());
+  const fillPercent = Math.min((shift.signedUp / shift.capacity) * 100, 100);
+  const duration = getDuration(shift.start, shift.end);
+
+  // Signups for "Who's on this mahi" section
+  const signups = SHIFT_SIGNUPS[shift.id] ?? [];
+  const friendSignups = signups.filter((su) => su.isFriend);
+
+  // Concurrent shifts (same day, same AM/PM, same location)
+  const concurrentShifts = getConcurrentShifts(shift.id);
+
+  // Relevant resources for this shift type
+  const relevantResources = getResourcesForShiftType(shift.shiftType.name);
 
   const handleCheckIn = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -88,14 +137,12 @@ export default function ShiftDetailScreen() {
       Alert.alert('Permission needed', 'Please allow photo access to share shift photos.');
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       setPhotos((prev) => [...prev, result.assets[0].uri]);
     }
@@ -107,13 +154,11 @@ export default function ShiftDetailScreen() {
       Alert.alert('Permission needed', 'Please allow camera access to take shift photos.');
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       setPhotos((prev) => [...prev, result.assets[0].uri]);
     }
@@ -131,15 +176,30 @@ export default function ShiftDetailScreen() {
   const handleAddSong = () => {
     if (!musicSearch.trim()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newItem: QueueItem = {
-      id: Date.now().toString(),
-      title: musicSearch.trim(),
-      artist: 'Searching...',
-      requestedBy: 'You',
-      votes: 0,
-    };
-    setQueue((prev) => [...prev, newItem]);
+    setQueue((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        title: musicSearch.trim(),
+        artist: 'Searching...',
+        requestedBy: 'You',
+        votes: 0,
+      },
+    ]);
     setMusicSearch('');
+  };
+
+  const handleShare = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const dateStr = format(date, "EEEE d MMMM");
+    const timeStr = `${format(date, "h:mm a")} – ${format(endDate, "h:mm a")}`;
+    try {
+      await Share.share({
+        message: `🍽️ Volunteer with Everybody Eats!\n\n${shift.shiftType.name} — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${spotsLeft > 0 ? `${spotsLeft} spots left — sign up and join the whānau!` : 'This shift is full, but check back for cancellations.'}\n\nhttps://everybodyeats.nz/shifts`,
+      });
+    } catch {
+      // User cancelled share
+    }
   };
 
   const handleVote = (itemId: string) => {
@@ -161,151 +221,366 @@ export default function ShiftDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: shift.shiftType.name,
+          title: '',
           headerShown: true,
           headerBackTitle: 'Back',
+          headerTransparent: true,
+          headerTintColor: '#ffffff',
+          headerRight: () => (
+            <Pressable
+              onPress={handleShare}
+              hitSlop={8}
+              style={({ pressed }) => [
+                s.headerShareButton,
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
+              accessibilityLabel="Share shift"
+            >
+              <Ionicons name="share-outline" size={22} color="#ffffff" />
+            </Pressable>
+          ),
         }}
       />
       <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.content}
+        style={[s.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}>
 
-        {/* ── Hero Header ── */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>🍽️ Mahi details</Text>
-            </View>
-            {shift.status && <StatusBadge status={shift.status} />}
-          </View>
+        {/* ═══ Hero Header ═══ */}
+        <View style={[s.hero, { backgroundColor: Brand.green }]}>
+          {/* Background image */}
+          {theme.heroImage && (
+            <Image
+              source={{ uri: theme.heroImage }}
+              style={s.heroImage}
+              contentFit="cover"
+            />
+          )}
 
-          <Text style={styles.heroTitle}>{shift.shiftType.name}</Text>
-          <Text style={styles.heroDescription}>{shift.shiftType.description}</Text>
+          {/* Gradient overlay — transparent top, rich bottom */}
+          <LinearGradient
+            colors={[
+              'rgba(0,0,0,0.1)',
+              'rgba(14,58,35,0.4)',
+              'rgba(14,58,35,0.88)',
+              'rgba(14,58,35,0.96)',
+            ]}
+            locations={[0, 0.35, 0.7, 1]}
+            style={s.heroGradient}
+          />
 
-          {/* Details with emojis */}
-          <View style={styles.heroDetails}>
-            <View style={styles.heroDetail}>
-              <Text style={styles.heroEmoji}>📍</Text>
-              <Text style={styles.heroDetailText}>{shift.location}</Text>
-            </View>
-            <View style={styles.heroDetail}>
-              <Text style={styles.heroEmoji}>📅</Text>
-              <Text style={styles.heroDetailText}>{format(date, 'EEEE, d MMMM yyyy')}</Text>
-            </View>
-            <View style={styles.heroDetail}>
-              <Text style={styles.heroEmoji}>🕐</Text>
-              <Text style={styles.heroDetailText}>
-                {format(date, 'h:mm a')} – {format(endDate, 'h:mm a')}
-              </Text>
-            </View>
-            <View style={styles.heroDetail}>
-              <Text style={styles.heroEmoji}>👥</Text>
-              <Text style={styles.heroDetailText}>
-                {shift.signedUp}/{shift.capacity} whānau
-                {spotsLeft > 0 ? ` · ${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left` : ' · Full'}
-              </Text>
-            </View>
-          </View>
+          {/* Main content */}
+          <View style={s.heroBody}>
+            {/* Large emoji */}
+            <Text style={s.heroEmoji}>{theme.emoji}</Text>
 
-          {/* Capacity bar */}
-          <View style={styles.heroCapacity}>
-            <View style={styles.heroCapacityBar}>
-              <View
-                style={[
-                  styles.heroCapacityFill,
-                  {
-                    width: `${Math.min((shift.signedUp / shift.capacity) * 100, 100)}%`,
-                    backgroundColor: spotsLeft <= 0 ? '#ef4444' : 'rgba(255,255,255,0.6)',
-                  },
-                ]}
-              />
+            {/* Title */}
+            <Text style={s.heroTitle}>{shift.shiftType.name}</Text>
+
+            {/* Description */}
+            <Text style={s.heroDescription}>{shift.shiftType.description}</Text>
+
+            {/* Frosted info strip */}
+            <BlurView intensity={25} tint="dark" style={s.heroInfoStrip}>
+              <View style={s.heroInfoStripInner}>
+                <View style={s.heroInfoChip}>
+                  <Text style={s.heroInfoIcon}>📅</Text>
+                  <Text style={s.heroInfoText}>{format(date, 'EEE, d MMM')}</Text>
+                </View>
+                <View style={s.heroInfoDot} />
+                <View style={s.heroInfoChip}>
+                  <Text style={s.heroInfoIcon}>🕐</Text>
+                  <Text style={s.heroInfoText}>
+                    {format(date, 'h:mm')} – {format(endDate, 'h:mm a')}
+                  </Text>
+                </View>
+                <View style={s.heroInfoDot} />
+                <Pressable
+                  onPress={() => Linking.openURL(getLocationMapsUrl(shift.location))}
+                  hitSlop={6}
+                  style={({ pressed }) => [s.heroInfoChip, { opacity: pressed ? 0.6 : 1 }]}
+                  accessibilityLabel={`Open ${shift.location} in Maps`}
+                  accessibilityRole="link"
+                >
+                  <Text style={s.heroInfoIcon}>📍</Text>
+                  <Text style={[s.heroInfoText, s.heroInfoLink]}>
+                    {shift.location}
+                  </Text>
+                </Pressable>
+              </View>
+            </BlurView>
+
+            {/* Bottom row — changes based on signed-up state */}
+            <View style={s.heroBottomRow}>
+              {isMyShift ? (
+                /* Confirmed: show "you're in" + countdown */
+                <>
+                  <View style={s.heroConfirmedChip}>
+                    <Ionicons name="checkmark-circle" size={14} color="#86efac" />
+                    <Text style={s.heroConfirmedText}>You&apos;re signed up</Text>
+                  </View>
+                  <View style={{ flex: 1 }} />
+                </>
+              ) : (
+                /* Browsing: show capacity bar + spots */
+                <View style={s.heroCapacity}>
+                  <View style={s.heroCapacityTrack}>
+                    <View
+                      style={[
+                        s.heroCapacityFill,
+                        {
+                          width: `${fillPercent}%`,
+                          backgroundColor: isFull ? '#ef4444' : isUrgent ? '#f59e0b' : '#86efac',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={s.heroCapacityText}>
+                    {shift.signedUp}/{shift.capacity}
+                    {isFull
+                      ? ' · Full'
+                      : isUrgent
+                        ? ` · ${spotsLeft} left!`
+                        : ` · ${spotsLeft} open`}
+                  </Text>
+                </View>
+              )}
+
+              <View style={s.heroDurationBadge}>
+                <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.7)" />
+                <Text style={s.heroDurationText}>{duration}</Text>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* ── Notes banner ── */}
+        {/* ═══ Notes ═══ */}
         {shift.notes && (
-          <View style={[styles.notesBanner, { backgroundColor: '#fef9c3' }]}>
-            <Text style={styles.notesEmoji}>💡</Text>
-            <Text style={styles.notesText}>{shift.notes}</Text>
+          <View style={[s.notesCard, { backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb' }]}>
+            <View style={[s.notesIconCircle, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7' }]}>
+              <Ionicons name="information-circle" size={18} color={isDark ? '#fbbf24' : '#b45309'} />
+            </View>
+            <Text style={[s.notesText, { color: isDark ? '#fbbf24' : '#92400e' }]}>
+              {shift.notes}
+            </Text>
           </View>
         )}
 
-        {/* ── Check-in button ── */}
+        {/* ═══ Useful Resources ═══ */}
+        {relevantResources.length > 0 && !checkedIn && (
+          <View style={[s.section, { backgroundColor: colors.card }]}>
+            <View style={s.sectionHeader}>
+              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : '#eff6ff' }]}>
+                <Ionicons name="document-text" size={16} color={isDark ? '#93c5fd' : '#2563eb'} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Before Your Mahi</Text>
+                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+                  Guides and resources for this shift
+                </Text>
+              </View>
+            </View>
+
+            {relevantResources.map((resource) => (
+              <Pressable
+                key={resource.id}
+                onPress={() => Linking.openURL(resource.url)}
+                style={({ pressed }) => [
+                  s.resourceRow,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                accessibilityLabel={`Open ${resource.title}`}
+                accessibilityRole="link"
+              >
+                <View style={[
+                  s.resourceIcon,
+                  {
+                    backgroundColor: resource.type === 'VIDEO'
+                      ? isDark ? 'rgba(249,115,22,0.12)' : '#fff7ed'
+                      : isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
+                  },
+                ]}>
+                  <Ionicons
+                    name={resource.type === 'VIDEO' ? 'play-circle' : 'document-text'}
+                    size={16}
+                    color={resource.type === 'VIDEO'
+                      ? isDark ? '#fb923c' : '#ea580c'
+                      : isDark ? '#f87171' : '#dc2626'}
+                  />
+                </View>
+                <View style={s.resourceInfo}>
+                  <Text style={[s.resourceTitle, { color: colors.text }]} numberOfLines={1}>
+                    {resource.title}
+                  </Text>
+                  {resource.description && (
+                    <Text style={[s.resourceDescription, { color: colors.textSecondary }]} numberOfLines={1}>
+                      {resource.description}
+                    </Text>
+                  )}
+                </View>
+                <View style={s.resourceMeta}>
+                  {resource.fileSize && (
+                    <Text style={[s.resourceSize, { color: colors.textSecondary }]}>
+                      {resource.fileSize}
+                    </Text>
+                  )}
+                  <Ionicons
+                    name={resource.type === 'VIDEO' ? 'open-outline' : 'download-outline'}
+                    size={14}
+                    color={colors.textSecondary}
+                  />
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* ═══ Who's on this mahi ═══ */}
+        {/* Before check-in: only show friends (privacy) */}
+        {friendSignups.length > 0 && !checkedIn && (
+          <View style={[s.section, { backgroundColor: colors.card }]}>
+            <View style={s.sectionHeader}>
+              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(14,58,35,0.3)' : Brand.greenLight }]}>
+                <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Friends on this mahi</Text>
+                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+                  {friendSignups.length} friend{friendSignups.length !== 1 ? 's' : ''} signed up
+                  {signups.length - friendSignups.length > 0
+                    ? ` · ${signups.length - friendSignups.length} other${signups.length - friendSignups.length !== 1 ? 's' : ''}`
+                    : ''}
+                </Text>
+              </View>
+            </View>
+
+            {/* Friend list */}
+            {friendSignups.map((signup) => {
+              const initial = signup.name.charAt(0).toUpperCase();
+              return (
+                <View
+                  key={signup.id}
+                  style={[
+                    s.signupRow,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa' },
+                  ]}>
+                  {signup.profilePhotoUrl ? (
+                    <Image
+                      source={{ uri: signup.profilePhotoUrl }}
+                      style={s.signupAvatar}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[s.signupAvatarFallback, { backgroundColor: Brand.greenLight }]}>
+                      <Text style={[s.signupInitial, { color: Brand.green }]}>{initial}</Text>
+                    </View>
+                  )}
+                  <Text style={[s.signupName, { color: colors.text }]} numberOfLines={1}>
+                    {signup.name}
+                  </Text>
+                  <View style={[s.friendTag, { backgroundColor: isDark ? 'rgba(22,163,74,0.12)' : '#dcfce7' }]}>
+                    <Ionicons name="heart" size={10} color={isDark ? '#86efac' : '#16a34a'} />
+                    <Text style={[s.friendTagText, { color: isDark ? '#86efac' : '#16a34a' }]}>Friend</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* ═══ Check-in CTA ═══ */}
         {isMyShift && shift.status === 'CONFIRMED' && !checkedIn && (
           <Pressable
             onPress={handleCheckIn}
             style={({ pressed }) => [
-              styles.primaryButton,
-              { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
+              s.ctaButton,
+              {
+                backgroundColor: Brand.green,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
             ]}
             accessibilityLabel="Check in to shift">
-            <Text style={styles.primaryButtonText}>Check In ✅</Text>
+            <Ionicons name="checkmark-circle" size={22} color="#ffffff" />
+            <Text style={s.ctaText}>Check In</Text>
           </Pressable>
         )}
 
-        {/* ── Checked-in banner ── */}
+        {/* ═══ Checked-in banner ═══ */}
         {checkedIn && (
-          <View style={[styles.checkedInBanner, { backgroundColor: Brand.greenLight }]}>
-            <Text style={styles.checkedInEmoji}>🙌</Text>
-            <View>
-              <Text style={[styles.checkedInTitle, { color: Brand.green }]}>
+          <View style={[s.successBanner, { backgroundColor: isDark ? 'rgba(34,197,94,0.1)' : Brand.greenLight }]}>
+            <View style={[s.successIcon, { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7' }]}>
+              <Ionicons name="checkmark-circle" size={24} color={isDark ? '#86efac' : '#16a34a'} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.successTitle, { color: isDark ? '#86efac' : Brand.green }]}>
                 Ka pai! You&apos;re checked in
               </Text>
-              <Text style={[styles.checkedInSubtitle, { color: Brand.green }]}>
+              <Text style={[s.successSubtitle, { color: isDark ? '#86efac' : Brand.green }]}>
                 Have a great mahi today
               </Text>
             </View>
           </View>
         )}
 
-        {/* ── Crew list — visible after check-in ── */}
+        {/* ═══ Crew section (after check-in) ═══ */}
         {checkedIn && (
-          <CrewSection shiftId={shift.id} colors={colors} />
+          <CrewSection shiftId={shift.id} colors={colors} isDark={isDark} />
         )}
 
-        {/* ── Shift Photos — visible after check-in ── */}
+        {/* ═══ Other shifts today (after check-in) ═══ */}
+        {checkedIn && concurrentShifts.length > 0 && (
+          <ConcurrentShiftsSection
+            shifts={concurrentShifts}
+            colors={colors}
+            isDark={isDark}
+          />
+        )}
+
+        {/* ═══ Shift Photos ═══ */}
         {checkedIn && (
-          <View style={[styles.sectionCard, { borderColor: colors.border }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>📸</Text>
-              <ThemedText type="subtitle">Shift Photos</ThemedText>
+          <View style={[s.section, { backgroundColor: colors.card }]}>
+            <View style={s.sectionHeader}>
+              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(168,85,247,0.12)' : '#f5f3ff' }]}>
+                <Ionicons name="camera" size={16} color={isDark ? '#c084fc' : '#7c3aed'} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Shift Photos</Text>
+                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+                  Share moments from today&apos;s mahi
+                </Text>
+              </View>
             </View>
-            <ThemedText type="caption" style={{ color: colors.textSecondary }}>
-              Share moments from today&apos;s mahi
-            </ThemedText>
 
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.photoScroll}>
-              {/* Add photo button */}
+              contentContainerStyle={s.photoScroll}>
               <Pressable
                 onPress={handleAddPhoto}
                 style={({ pressed }) => [
-                  styles.addPhotoButton,
-                  { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+                  s.addPhotoButton,
+                  {
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : colors.border,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa',
+                    opacity: pressed ? 0.7 : 1,
+                  },
                 ]}>
-                <Text style={styles.addPhotoEmoji}>📷</Text>
-                <Text style={[styles.addPhotoText, { color: Brand.green }]}>
-                  Add Photo
-                </Text>
+                <Ionicons name="add-circle-outline" size={28} color={accent} />
+                <Text style={[s.addPhotoText, { color: accent }]}>Add</Text>
               </Pressable>
 
-              {/* Photo thumbnails */}
               {photos.map((uri, index) => (
-                <View key={uri} style={styles.photoThumb}>
-                  <Image source={{ uri }} style={styles.photoImage} contentFit="cover" />
+                <View key={uri} style={s.photoThumb}>
+                  <Image source={{ uri }} style={s.photoImage} contentFit="cover" />
                   <Pressable
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setPhotos((prev) => prev.filter((_, i) => i !== index));
                     }}
-                    style={({ pressed }) => [
-                      styles.photoRemove,
-                      { opacity: pressed ? 0.7 : 1 },
-                    ]}>
+                    style={({ pressed }) => [s.photoRemove, { opacity: pressed ? 0.7 : 1 }]}>
                     <Ionicons name="close-circle" size={22} color="#ffffff" />
                   </Pressable>
                 </View>
@@ -314,76 +589,89 @@ export default function ShiftDetailScreen() {
           </View>
         )}
 
-        {/* ── Music Queue — visible after check-in ── */}
+        {/* ═══ Music Queue ═══ */}
         {checkedIn && (
-          <View style={[styles.sectionCard, { borderColor: colors.border }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>🎵</Text>
-              <ThemedText type="subtitle">Music Queue</ThemedText>
+          <View style={[s.section, { backgroundColor: colors.card }]}>
+            <View style={s.sectionHeader}>
+              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : '#fdf2f8' }]}>
+                <Ionicons name="musical-notes" size={16} color={isDark ? '#f472b6' : '#db2777'} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.sectionTitle, { color: colors.text }]}>Music Queue</Text>
+                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+                  Request songs for the BOH speaker
+                </Text>
+              </View>
             </View>
-            <ThemedText type="caption" style={{ color: colors.textSecondary }}>
-              Request songs for the BOH speaker
-            </ThemedText>
 
-            <View style={styles.musicSearchRow}>
-              <TextInput
-                style={[
-                  styles.musicInput,
-                  {
-                    backgroundColor: colors.card,
-                    color: colors.text,
-                    borderColor: colors.border,
-                    fontFamily: FontFamily.regular,
-                  },
-                ]}
-                value={musicSearch}
-                onChangeText={setMusicSearch}
-                placeholder="Search for a song..."
-                placeholderTextColor={colors.textSecondary}
-                onSubmitEditing={handleAddSong}
-                returnKeyType="send"
-              />
+            {/* Search */}
+            <View style={s.musicRow}>
+              <View style={[s.musicInputWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderColor: colors.border }]}>
+                <Ionicons name="search" size={16} color={colors.textSecondary} />
+                <TextInput
+                  style={[s.musicInput, { color: colors.text, fontFamily: FontFamily.regular }]}
+                  value={musicSearch}
+                  onChangeText={setMusicSearch}
+                  placeholder="Search for a song..."
+                  placeholderTextColor={colors.textSecondary}
+                  onSubmitEditing={handleAddSong}
+                  returnKeyType="send"
+                />
+              </View>
               <Pressable
                 onPress={handleAddSong}
                 disabled={!musicSearch.trim()}
                 style={({ pressed }) => [
-                  styles.addSongButton,
+                  s.addSongButton,
                   {
-                    backgroundColor: musicSearch.trim() ? Brand.green : colors.border,
+                    backgroundColor: musicSearch.trim() ? Brand.green : isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
                     opacity: pressed && musicSearch.trim() ? 0.8 : 1,
                   },
                 ]}>
-                <Ionicons name="add" size={24} color="#ffffff" />
+                <Ionicons name="add" size={22} color={musicSearch.trim() ? '#ffffff' : colors.textSecondary} />
               </Pressable>
             </View>
 
+            {/* Queue list */}
             {queue.map((item, index) => (
               <View
                 key={item.id}
-                style={[styles.queueItem, { borderColor: colors.border }]}>
-                <View style={[styles.queueRankBadge, { backgroundColor: colors.primaryLight }]}>
-                  <Text style={[styles.queueRankText, { color: Brand.green }]}>
+                style={[s.queueItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa' }]}>
+                <View style={[s.queueRank, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }]}>
+                  <Text style={[s.queueRankText, { color: colors.textSecondary }]}>
                     {index + 1}
                   </Text>
                 </View>
-                <View style={styles.songInfo}>
-                  <Text style={[styles.songTitle, { color: colors.text }]}>{item.title}</Text>
-                  <Text style={[styles.songMeta, { color: colors.textSecondary }]}>
+                <View style={s.songInfo}>
+                  <Text style={[s.songTitle, { color: colors.text }]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={[s.songMeta, { color: colors.textSecondary }]}>
                     {item.artist} · {item.requestedBy}
                   </Text>
                 </View>
                 <Pressable
                   onPress={() => handleVote(item.id)}
                   style={({ pressed }) => [
-                    styles.voteButton,
+                    s.voteButton,
                     {
-                      borderColor: votedSongs.has(item.id) ? Brand.green : colors.border,
-                      backgroundColor: votedSongs.has(item.id) ? Brand.greenLight : 'transparent',
+                      borderColor: votedSongs.has(item.id) ? accent : isDark ? 'rgba(255,255,255,0.08)' : colors.border,
+                      backgroundColor: votedSongs.has(item.id)
+                        ? isDark ? theme.bgDark : theme.bgLight
+                        : 'transparent',
                       opacity: pressed ? 0.7 : 1,
                     },
                   ]}>
-                  <Text style={styles.voteEmoji}>{votedSongs.has(item.id) ? '🔥' : '👍'}</Text>
-                  <Text style={[styles.voteCount, { color: votedSongs.has(item.id) ? Brand.green : colors.text }]}>
+                  <Ionicons
+                    name={votedSongs.has(item.id) ? 'heart' : 'heart-outline'}
+                    size={14}
+                    color={votedSongs.has(item.id) ? accent : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      s.voteCount,
+                      { color: votedSongs.has(item.id) ? accent : colors.text },
+                    ]}>
                     {item.votes}
                   </Text>
                 </Pressable>
@@ -392,28 +680,32 @@ export default function ShiftDetailScreen() {
           </View>
         )}
 
-        {/* ── Sign up button (for available shifts) ── */}
+        {/* ═══ Sign up CTA ═══ */}
         {!isMyShift && spotsLeft > 0 && (
           <Pressable
             onPress={() => {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Ka pai! 🎉', 'You\'ve signed up for this mahi. See you there!');
+              Alert.alert('Ka pai! 🎉', "You've signed up for this mahi. See you there!");
             }}
             style={({ pressed }) => [
-              styles.primaryButton,
-              { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
+              s.ctaButton,
+              {
+                backgroundColor: Brand.green,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
             ]}
             accessibilityLabel="Sign up for shift">
-            <Text style={styles.primaryButtonText}>✋ Sign Up for Mahi</Text>
+            <Ionicons name="hand-right" size={20} color="#ffffff" />
+            <Text style={s.ctaText}>Sign Up for Mahi</Text>
           </Pressable>
         )}
 
         {!isMyShift && spotsLeft <= 0 && (
-          <View style={[styles.fullBanner, { backgroundColor: colors.border }]}>
-            <Text style={styles.fullEmoji}>😔</Text>
-            <ThemedText type="caption" style={{ color: colors.textSecondary }}>
+          <View style={[s.fullBanner, { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2' }]}>
+            <Ionicons name="close-circle-outline" size={20} color={isDark ? '#fca5a5' : '#dc2626'} />
+            <Text style={[s.fullText, { color: isDark ? '#fca5a5' : '#dc2626' }]}>
               This mahi is full — check back later for cancellations
-            </ThemedText>
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -421,25 +713,8 @@ export default function ShiftDetailScreen() {
   );
 }
 
-/* ── Status Badge ── */
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { bg: string; text: string; label: string; emoji: string }> = {
-    CONFIRMED: { bg: 'rgba(255,255,255,0.2)', text: '#ffffff', label: 'Confirmed', emoji: '✅' },
-    PENDING: { bg: 'rgba(255,255,255,0.2)', text: '#ffffff', label: 'Pending', emoji: '⏳' },
-    WAITLISTED: { bg: 'rgba(255,255,255,0.2)', text: '#ffffff', label: 'Waitlisted', emoji: '📋' },
-  };
-  const c = config[status] ?? config.PENDING;
-
-  return (
-    <View style={[styles.statusBadge, { backgroundColor: c.bg }]}>
-      <Text style={[styles.statusText, { color: c.text }]}>
-        {c.emoji} {c.label}
-      </Text>
-    </View>
-  );
-}
-
 /* ── Crew Section ── */
+
 const GRADE_COLORS: Record<string, string> = {
   GREEN: '#22c55e',
   YELLOW: '#eab308',
@@ -449,66 +724,219 @@ const GRADE_COLORS: Record<string, string> = {
 function CrewSection({
   shiftId,
   colors,
+  isDark,
 }: {
   shiftId: string;
   colors: (typeof Colors)['light'];
+  isDark: boolean;
 }) {
   const crew = SHIFT_CREW[shiftId];
   if (!crew || crew.length === 0) return null;
 
+  // Cross-reference signups to know who is a friend
+  const signups = SHIFT_SIGNUPS[shiftId] ?? [];
+  const friendIds = new Set(signups.filter((su) => su.isFriend).map((su) => su.id));
+
   const checkedInCount = crew.filter((m) => m.checkedIn).length;
 
+  /** Show full name for friends + yourself, first name only for non-friends (privacy) */
+  function getDisplayName(member: (typeof crew)[0]): string {
+    if (member.isYou) return member.name;
+    if (friendIds.has(member.id)) return member.name;
+    return member.name.split(' ')[0]; // first name only
+  }
+
   return (
-    <View style={[styles.sectionCard, { borderColor: colors.border }]}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionEmoji}>👥</Text>
-        <ThemedText type="subtitle">Shift Whānau</ThemedText>
-        <View style={[styles.crewCountBadge, { backgroundColor: Brand.greenLight }]}>
-          <Text style={[styles.crewCountText, { color: Brand.green }]}>
-            {checkedInCount}/{crew.length} here
+    <View style={[s.section, { backgroundColor: colors.card }]}>
+      <View style={s.sectionHeader}>
+        <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(14,58,35,0.3)' : Brand.greenLight }]}>
+          <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>Shift Whānau</Text>
+          <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+            {checkedInCount} of {crew.length} checked in
+          </Text>
+        </View>
+        <View style={[s.crewBadge, { backgroundColor: isDark ? 'rgba(34,197,94,0.12)' : Brand.greenLight }]}>
+          <Text style={[s.crewBadgeText, { color: isDark ? '#86efac' : Brand.green }]}>
+            {checkedInCount}/{crew.length}
           </Text>
         </View>
       </View>
 
-      {crew.map((member) => (
-        <View
-          key={member.id}
-          style={[styles.memberRow, { borderColor: colors.border }]}>
-          <View style={[styles.memberAvatar, { backgroundColor: GRADE_COLORS[member.grade] + '20' }]}>
-            <Text style={[styles.memberInitial, { color: GRADE_COLORS[member.grade] }]}>
-              {member.name.charAt(0)}
-            </Text>
-          </View>
-          <View style={styles.memberInfo}>
-            <View style={styles.memberNameRow}>
-              <Text style={[styles.memberName, { color: colors.text }]}>
-                {member.name}
-                {member.isYou ? ' (you)' : ''}
+      {crew.map((member) => {
+        const gradeColor = GRADE_COLORS[member.grade];
+        const isFriend = friendIds.has(member.id);
+        const displayName = getDisplayName(member);
+        return (
+          <View
+            key={member.id}
+            style={[
+              s.memberRow,
+              {
+                backgroundColor: member.checkedIn
+                  ? isDark ? 'rgba(34,197,94,0.06)' : '#f0fdf4'
+                  : isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
+              },
+            ]}>
+            <View style={[s.memberAvatar, { backgroundColor: gradeColor + '18' }]}>
+              <Text style={[s.memberInitial, { color: gradeColor }]}>
+                {member.name.charAt(0)}
               </Text>
-              {member.checkedIn && <Text style={styles.checkedEmoji}>✅</Text>}
+              <View style={[s.gradeRing, { borderColor: gradeColor }]} />
             </View>
-            <Text style={[styles.memberRole, { color: colors.textSecondary }]}>
-              {member.role}
-            </Text>
+            <View style={s.memberInfo}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[s.memberName, { color: colors.text }]}>
+                  {displayName}
+                  {member.isYou && (
+                    <Text style={{ color: colors.textSecondary, fontFamily: FontFamily.regular }}> (you)</Text>
+                  )}
+                </Text>
+                {isFriend && !member.isYou && (
+                  <View style={[s.friendTag, { backgroundColor: isDark ? 'rgba(22,163,74,0.12)' : '#dcfce7' }]}>
+                    <Ionicons name="heart" size={8} color={isDark ? '#86efac' : '#16a34a'} />
+                  </View>
+                )}
+              </View>
+              <Text style={[s.memberRole, { color: colors.textSecondary }]}>{member.role}</Text>
+            </View>
+            {member.checkedIn ? (
+              <View style={[s.checkedInDot, { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7' }]}>
+                <Ionicons name="checkmark" size={12} color={isDark ? '#86efac' : '#16a34a'} />
+              </View>
+            ) : (
+              <View style={[s.awaitingDot, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9' }]}>
+                <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+              </View>
+            )}
           </View>
-          <View style={[styles.gradeDot, { backgroundColor: GRADE_COLORS[member.grade] }]} />
+        );
+      })}
+    </View>
+  );
+}
+
+/* ── Concurrent Shifts Section ── */
+
+function ConcurrentShiftsSection({
+  shifts,
+  colors,
+  isDark,
+}: {
+  shifts: Shift[];
+  colors: (typeof Colors)['light'];
+  isDark: boolean;
+}) {
+  const totalPeople = shifts.reduce((sum, sh) => {
+    const crew = SHIFT_CREW[sh.id];
+    return sum + (crew ? crew.length : sh.signedUp);
+  }, 0);
+
+  return (
+    <View style={[s.section, { backgroundColor: colors.card }]}>
+      <View style={s.sectionHeader}>
+        <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : '#eff6ff' }]}>
+          <Ionicons name="people-circle" size={18} color={isDark ? '#93c5fd' : '#2563eb'} />
         </View>
-      ))}
+        <View style={{ flex: 1 }}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>Also Working Today</Text>
+          <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+            {totalPeople} people across {shifts.length} other mahi
+          </Text>
+        </View>
+      </View>
+
+      {shifts.map((concurrentShift) => {
+        const theme = getShiftThemeByName(concurrentShift.shiftType.name);
+        const accent = isDark ? theme.colorDark : theme.color;
+        const crew = SHIFT_CREW[concurrentShift.id] ?? [];
+        const signups = SHIFT_SIGNUPS[concurrentShift.id] ?? [];
+        const friendIds = new Set(signups.filter((su) => su.isFriend).map((su) => su.id));
+        const checkedInCount = crew.filter((m) => m.checkedIn).length;
+
+        return (
+          <View key={concurrentShift.id} style={s.concurrentShiftGroup}>
+            {/* Shift type header */}
+            <View style={[s.concurrentShiftHeader, { backgroundColor: isDark ? theme.bgDark : theme.bgLight }]}>
+              <Text style={s.concurrentShiftEmoji}>{theme.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.concurrentShiftName, { color: colors.text }]}>
+                  {concurrentShift.shiftType.name}
+                </Text>
+                <Text style={[s.concurrentShiftMeta, { color: colors.textSecondary }]}>
+                  {checkedInCount} of {crew.length || concurrentShift.signedUp} checked in
+                </Text>
+              </View>
+              <View style={[s.crewBadge, { backgroundColor: isDark ? `${accent}18` : `${accent}18` }]}>
+                <Text style={[s.crewBadgeText, { color: accent }]}>
+                  {checkedInCount}/{crew.length || concurrentShift.signedUp}
+                </Text>
+              </View>
+            </View>
+
+            {/* Crew members */}
+            {crew.map((member) => {
+              const gradeColor = GRADE_COLORS[member.grade];
+              const isFriend = friendIds.has(member.id);
+              // First name only for non-friends (privacy)
+              const displayName = isFriend ? member.name : member.name.split(' ')[0];
+
+              return (
+                <View
+                  key={member.id}
+                  style={[
+                    s.memberRow,
+                    {
+                      backgroundColor: member.checkedIn
+                        ? isDark ? 'rgba(34,197,94,0.06)' : '#f0fdf4'
+                        : isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
+                    },
+                  ]}>
+                  <View style={[s.memberAvatar, { backgroundColor: gradeColor + '18' }]}>
+                    <Text style={[s.memberInitial, { color: gradeColor }]}>
+                      {member.name.charAt(0)}
+                    </Text>
+                    <View style={[s.gradeRing, { borderColor: gradeColor }]} />
+                  </View>
+                  <View style={s.memberInfo}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={[s.memberName, { color: colors.text }]}>
+                        {displayName}
+                      </Text>
+                      {isFriend && (
+                        <View style={[s.friendTag, { backgroundColor: isDark ? 'rgba(22,163,74,0.12)' : '#dcfce7' }]}>
+                          <Ionicons name="heart" size={8} color={isDark ? '#86efac' : '#16a34a'} />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[s.memberRole, { color: colors.textSecondary }]}>{member.role}</Text>
+                  </View>
+                  {member.checkedIn ? (
+                    <View style={[s.checkedInDot, { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7' }]}>
+                      <Ionicons name="checkmark" size={12} color={isDark ? '#86efac' : '#16a34a'} />
+                    </View>
+                  ) : (
+                    <View style={[s.awaitingDot, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9' }]}>
+                      <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        );
+      })}
     </View>
   );
 }
 
 /* ── Styles ── */
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-    gap: 16,
-  },
+const s = StyleSheet.create({
+  container: { flex: 1 },
+  content: { paddingBottom: 40, gap: 12 },
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -516,177 +944,348 @@ const styles = StyleSheet.create({
     gap: 4,
     padding: 20,
   },
-  notFoundEmoji: {
-    fontSize: 48,
+  notFoundIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backLink: {
+  backButton: {
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 14,
   },
-  backLinkText: {
+  backButtonText: {
     color: '#ffffff',
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
   },
 
-  // Hero card
-  heroCard: {
-    backgroundColor: Brand.green,
-    borderRadius: 20,
-    padding: 22,
+  // Header
+  headerShareButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Hero
+  hero: {
+    paddingTop: 130,
+    paddingBottom: 0,
+    overflow: 'hidden',
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroBody: {
+    position: 'relative',
+    paddingHorizontal: 24,
+    paddingBottom: 24,
     gap: 10,
   },
-  heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  heroBadgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.3,
+  heroEmoji: {
+    fontSize: 44,
+    marginBottom: 2,
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: FontFamily.headingBold,
-    marginTop: 2,
+    lineHeight: 34,
+    letterSpacing: -0.3,
+  },
+  heroDurationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  heroDurationText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
   },
   heroDescription: {
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
     fontFamily: FontFamily.regular,
     lineHeight: 20,
   },
-  heroDetails: {
-    gap: 8,
+  heroInfoStrip: {
+    borderRadius: 14,
+    overflow: 'hidden',
     marginTop: 4,
   },
-  heroDetail: {
+  heroInfoStripInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroInfoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  heroInfoIcon: {
+    fontSize: 13,
+  },
+  heroInfoText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+  },
+  heroInfoLink: {
+    textDecorationLine: 'underline',
+    textDecorationColor: 'rgba(255,255,255,0.4)',
+  },
+  heroInfoDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  heroBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 2,
+  },
+  heroCapacity: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  heroEmoji: {
-    fontSize: 15,
-  },
-  heroDetailText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 14,
-    fontFamily: FontFamily.regular,
-  },
-  heroCapacity: {
-    marginTop: 6,
-  },
-  heroCapacityBar: {
+  heroCapacityTrack: {
+    width: 48,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
   heroCapacityFill: {
     height: '100%',
     borderRadius: 2,
   },
-
-  // Status badge (inside hero)
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  statusText: {
+  heroCapacityText: {
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
+    fontFamily: FontFamily.medium,
+  },
+  heroConfirmedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(34,197,94,0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  heroConfirmedText: {
+    color: '#86efac',
+    fontSize: 13,
     fontFamily: FontFamily.semiBold,
   },
 
-  // Notes banner
-  notesBanner: {
+  // Resources
+  resourceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    borderRadius: 16,
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
-  notesEmoji: {
-    fontSize: 18,
+  resourceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resourceInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  resourceTitle: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+  },
+  resourceDescription: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+  },
+  resourceMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  resourceSize: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+  },
+
+  // Notes card
+  notesCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 14,
+  },
+  notesIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
   },
   notesText: {
-    color: '#92400e',
     fontSize: 14,
     fontFamily: FontFamily.medium,
     flex: 1,
     lineHeight: 20,
   },
 
-  // Primary action button
-  primaryButton: {
+  // CTA button
+  ctaButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+    marginHorizontal: 16,
     paddingVertical: 16,
     borderRadius: 16,
-    minHeight: 54,
+    minHeight: 56,
   },
-  primaryButtonText: {
+  ctaText: {
     color: '#ffffff',
     fontFamily: FontFamily.bold,
     fontSize: 16,
   },
 
-  // Checked-in banner
-  checkedInBanner: {
+  // Success banner
+  successBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    marginHorizontal: 16,
     padding: 16,
     borderRadius: 16,
   },
-  checkedInEmoji: {
-    fontSize: 28,
+  successIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  checkedInTitle: {
+  successTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: 16,
   },
-  checkedInSubtitle: {
+  successSubtitle: {
     fontFamily: FontFamily.regular,
     fontSize: 13,
-    opacity: 0.8,
+    opacity: 0.7,
+    marginTop: 2,
   },
 
-  // Section card
-  sectionCard: {
+  // Sections
+  section: {
+    marginHorizontal: 16,
     borderRadius: 16,
-    borderWidth: 1,
     padding: 18,
-    gap: 12,
+    gap: 14,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  sectionEmoji: {
-    fontSize: 20,
+  sectionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
+  },
+  sectionCaption: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    marginTop: 1,
   },
 
-  // Crew section
-  crewCountBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    marginLeft: 'auto',
+  // Signup rows
+  signupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
-  crewCountText: {
+  signupAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  signupAvatarFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signupInitial: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+  },
+  signupName: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamily.medium,
+  },
+  friendTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  friendTagText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+  },
+
+  // Crew
+  crewBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  crewBadgeText: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
   },
@@ -695,102 +1294,128 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     borderRadius: 14,
-    borderWidth: 1,
     gap: 12,
   },
   memberAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   memberInitial: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: FontFamily.bold,
+  },
+  gradeRing: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    opacity: 0.3,
   },
   memberInfo: {
     flex: 1,
     gap: 2,
   },
-  memberNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
   memberName: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
-  },
-  checkedEmoji: {
-    fontSize: 12,
   },
   memberRole: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
   },
-  gradeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  checkedInDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  awaitingDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  // Photo section
-  photoScroll: {
-    gap: 10,
-    paddingVertical: 4,
+  // Concurrent shifts
+  concurrentShiftGroup: {
+    gap: 8,
   },
+  concurrentShiftHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  concurrentShiftEmoji: {
+    fontSize: 18,
+  },
+  concurrentShiftName: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+  },
+  concurrentShiftMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    marginTop: 1,
+  },
+
+  // Photos
+  photoScroll: { gap: 10, paddingVertical: 2 },
   addPhotoButton: {
-    width: 110,
-    height: 110,
-    borderRadius: 16,
+    width: 100,
+    height: 100,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-  },
-  addPhotoEmoji: {
-    fontSize: 28,
+    gap: 4,
   },
   addPhotoText: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
   },
   photoThumb: {
-    width: 110,
-    height: 110,
-    borderRadius: 16,
+    width: 100,
+    height: 100,
+    borderRadius: 14,
     overflow: 'hidden',
   },
-  photoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  photoRemove: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-  },
+  photoImage: { width: '100%', height: '100%' },
+  photoRemove: { position: 'absolute', top: 4, right: 4 },
 
-  // Music section
-  musicSearchRow: {
+  // Music
+  musicRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  musicInput: {
+  musicInputWrap: {
     flex: 1,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     borderWidth: 1,
     minHeight: 44,
+  },
+  musicInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 10,
   },
   addSongButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -798,25 +1423,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 12,
     gap: 10,
   },
-  queueRankBadge: {
+  queueRank: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   queueRankText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: FontFamily.bold,
   },
-  songInfo: {
-    flex: 1,
-    gap: 2,
-  },
+  songInfo: { flex: 1, gap: 2 },
   songTitle: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
@@ -831,27 +1452,28 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
-    minHeight: 36,
-  },
-  voteEmoji: {
-    fontSize: 14,
+    minHeight: 34,
   },
   voteCount: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
   },
 
-  // Full shift banner
+  // Full banner
   fullBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    marginHorizontal: 16,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
   },
-  fullEmoji: {
-    fontSize: 22,
+  fullText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+    lineHeight: 20,
   },
 });
