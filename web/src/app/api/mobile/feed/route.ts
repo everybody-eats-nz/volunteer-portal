@@ -237,24 +237,49 @@ export async function GET(request: Request) {
   );
 
   if (myLocations.size > 0) {
-    const recapShifts = await prisma.shift.findMany({
-      where: {
-        end: { lt: new Date(), gte: since },
-        location: { in: [...myLocations] },
-      },
-      select: {
-        id: true,
-        start: true,
-        location: true,
-        _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
-      },
-      orderBy: { start: "desc" },
-    });
+    const [recapShifts, mealsServedRecords] = await Promise.all([
+      prisma.shift.findMany({
+        where: {
+          end: { lt: new Date(), gte: since },
+          location: { in: [...myLocations] },
+        },
+        select: {
+          id: true,
+          start: true,
+          end: true,
+          location: true,
+          _count: {
+            select: { signups: { where: { status: "CONFIRMED" } } },
+          },
+        },
+        orderBy: { start: "desc" },
+      }),
+      prisma.mealsServed.findMany({
+        where: {
+          date: { gte: since },
+          location: { in: [...myLocations] },
+        },
+        select: { date: true, location: true, mealsServed: true },
+      }),
+    ]);
+
+    // Index meals served by location+date for fast lookup
+    const mealsMap = new Map<string, number>();
+    for (const record of mealsServedRecords) {
+      const key = `${record.location}-${record.date.toISOString().slice(0, 10)}`;
+      mealsMap.set(key, record.mealsServed);
+    }
 
     // Group by location + date
     const recapGroups = new Map<
       string,
-      { location: string; date: string; volunteerCount: number; shiftCount: number; latestStart: Date }
+      {
+        location: string;
+        date: string;
+        volunteerHours: number;
+        mealsServed: number;
+        latestStart: Date;
+      }
     >();
 
     for (const shift of recapShifts) {
@@ -262,10 +287,13 @@ export async function GET(request: Request) {
       const dateKey = shift.start.toISOString().slice(0, 10);
       const groupKey = `${shift.location}-${dateKey}`;
 
+      const shiftDurationHours =
+        (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
+      const totalHours = shiftDurationHours * shift._count.signups;
+
       const existing = recapGroups.get(groupKey);
       if (existing) {
-        existing.volunteerCount += shift._count.signups;
-        existing.shiftCount += 1;
+        existing.volunteerHours += totalHours;
         if (shift.start > existing.latestStart) {
           existing.latestStart = shift.start;
         }
@@ -273,21 +301,24 @@ export async function GET(request: Request) {
         recapGroups.set(groupKey, {
           location: shift.location,
           date: dateKey,
-          volunteerCount: shift._count.signups,
-          shiftCount: 1,
+          volunteerHours: totalHours,
+          mealsServed: mealsMap.get(groupKey) ?? 0,
           latestStart: shift.start,
         });
       }
     }
 
     for (const [key, recap] of recapGroups) {
+      // Skip recaps with no meals data — nothing interesting to show
+      if (recap.mealsServed === 0) continue;
+
       items.push({
         type: "shift_recap",
         id: `shift-recap-${key}`,
         location: recap.location,
         date: recap.date,
-        volunteerCount: recap.volunteerCount,
-        shiftCount: recap.shiftCount,
+        mealsServed: recap.mealsServed,
+        volunteerHours: Math.round(recap.volunteerHours),
         timestamp: recap.latestStart.toISOString(),
         likes: [],
       });

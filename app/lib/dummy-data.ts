@@ -472,7 +472,7 @@ export type FeedItem =
   | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'shift_recap'; id: string; location: string; date: string; volunteerCount: number; shiftCount: number; timestamp: string; likes: LikeUser[] };
+  | { type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; timestamp: string; likes: LikeUser[] };
 
 function hoursAgo(hours: number): string {
   const d = new Date();

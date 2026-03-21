@@ -370,6 +370,35 @@ function FeedAvatar({
   );
 }
 
+const RECAP_TEMPLATES = [
+  (meals: number, hours: number) =>
+    `${meals} meals served with ${hours} hours of mahi from the whānau 💚`,
+  (meals: number, hours: number) =>
+    `${meals} people fed — ${hours} hours of aroha in the kitchen 🌿`,
+  (meals: number, hours: number) =>
+    `Another beautiful night — ${meals} meals out the door, ${hours} hours of volunteer power ✨`,
+  (meals: number, hours: number) =>
+    `${meals} plates, ${hours} hours, one big whānau 🍽️`,
+  (meals: number, hours: number) =>
+    `${hours} hours of mahi, ${meals} full bellies — ngā mihi nui 🙌`,
+  (meals: number, hours: number) =>
+    `The whānau showed up! ${meals} meals served across ${hours} hours of volunteering 💪`,
+  (meals: number, hours: number) =>
+    `Ka pai! ${meals} kai served — ${hours} hours of community love 🌱`,
+  (meals: number, hours: number) =>
+    `${meals} meals, ${hours} hours, endless aroha — that's Everybody Eats 💚`,
+];
+
+function getRecapMessage(meals: number, hours: number, id: string): string {
+  // Use id as a stable seed so the same recap always shows the same message
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  const index = Math.abs(hash) % RECAP_TEMPLATES.length;
+  return RECAP_TEMPLATES[index](meals, hours);
+}
+
 function FeedCard({
   item,
   colors,
@@ -639,8 +668,7 @@ function FeedCard({
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
             >
-              {item.volunteerCount} volunteer{item.volunteerCount !== 1 ? "s" : ""} across{" "}
-              {item.shiftCount} shift{item.shiftCount !== 1 ? "s" : ""} — ka pai whānau 💚
+              {getRecapMessage(item.mealsServed, item.volunteerHours, item.id)}
             </Text>
             <View style={styles.feedFooter}>
               <Text
@@ -787,7 +815,7 @@ function FeedItemSheet({
     body = `📍 ${item.location} · ${format(new Date(item.shiftDate), "EEEE d MMM")}`;
   } else if (item.type === "shift_recap") {
     title = `${item.location} — ${format(new Date(item.date), "EEEE d MMM")}`;
-    body = `${item.volunteerCount} volunteer${item.volunteerCount !== 1 ? "s" : ""} across ${item.shiftCount} shift${item.shiftCount !== 1 ? "s" : ""} — ka pai whānau 💚`;
+    body = getRecapMessage(item.mealsServed, item.volunteerHours, item.id);
   }
 
   const likeCount = likers.length;
