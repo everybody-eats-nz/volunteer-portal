@@ -52,6 +52,8 @@ const nextConfig: NextConfig = {
 
   turbopack: {},
 
+  devIndicators: false,
+
   reactCompiler: true,
 };
 
