@@ -9,14 +9,14 @@ Everybody Eats Volunteer Portal — a monorepo for managing volunteers at a char
 | Directory | Stack | Purpose |
 |-----------|-------|---------|
 | `web/` | Next.js 16, Prisma, PostgreSQL | Admin dashboard, volunteer web portal, API backend |
-| `app/` | React Native, Expo, expo-router | Mobile companion app for volunteers |
+| `mobile/` | React Native, Expo, expo-router | Mobile companion app for volunteers |
 | `docs/` | Astro | Public documentation site |
 
 Each project has its own `package.json`, `node_modules`, and toolchain — there is no shared workspace or Turborepo. Run `npm install` inside the relevant directory.
 
 ## UI/UX Design
 
-**IMPORTANT**: When making ANY frontend changes — whether in the web app (`/web/`, React/Next.js components, pages, layouts) or mobile app (`/app/`, React Native screens, components) — ALWAYS load both the `ui-ux-pro-max` and `frontend-design` skills first before writing or modifying UI code. This applies to new screens, component edits, styling changes, layout work, and design system updates. No exceptions.
+**IMPORTANT**: When making ANY frontend changes — whether in the web app (`/web/`, React/Next.js components, pages, layouts) or mobile app (`/mobile/`, React Native screens, components) — ALWAYS load both the `ui-ux-pro-max` and `frontend-design` skills first before writing or modifying UI code. This applies to new screens, component edits, styling changes, layout work, and design system updates. No exceptions.
 
 ## Essential Commands
 
@@ -30,10 +30,10 @@ npm run build         # Production build
 npm run lint          # ESLint
 ```
 
-### Mobile App (`app/`)
+### Mobile App (`mobile/`)
 
 ```bash
-cd app
+cd mobile
 npm install
 npx expo start        # Start Expo dev server
 npx expo run:ios      # Run on iOS simulator
@@ -85,7 +85,7 @@ npx playwright test test.spec.ts --project=chromium     # Single test (RECOMMEND
 │   ├── docs/               # Web-specific documentation
 │   └── public/             # Static assets
 │
-├── app/                    # React Native/Expo mobile app
+├── mobile/                 # React Native/Expo mobile app
 │   ├── app/                # expo-router file-based routes
 │   │   ├── (tabs)/         # Tab screens (index, shifts, chat, profile)
 │   │   ├── (auth)/         # Login screen
@@ -107,7 +107,7 @@ npx playwright test test.spec.ts --project=chromium     # Single test (RECOMMEND
 
 ### API Boundary
 
-The mobile app (`app/`) consumes the web app's REST API (`web/src/app/api/`). Key endpoints:
+The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`). Key endpoints:
 
 - `/api/auth/[...nextauth]` — NextAuth (web sessions)
 - `/api/auth/mobile/login` — Mobile JWT authentication
@@ -121,13 +121,13 @@ The mobile app (`app/`) consumes the web app's REST API (`web/src/app/api/`). Ke
 
 **Web**: NextAuth with multiple OAuth providers (Google, Facebook, Apple, Credentials). Use `getServerSession(authOptions)` in server components/API routes.
 
-**Mobile**: JWT-based auth stored in `expo-secure-store`. The `AuthGate` component in `app/components/auth-gate.tsx` renders `LoginScreen` directly when unauthenticated (no navigation redirects — avoids infinite loops). Auth state managed via `app/lib/auth.ts`.
+**Mobile**: JWT-based auth stored in `expo-secure-store`. The `AuthGate` component in `mobile/components/auth-gate.tsx` renders `LoginScreen` directly when unauthenticated (no navigation redirects — avoids infinite loops). Auth state managed via `mobile/lib/auth.ts`.
 
 ### Shared Design Language
 
 Both apps use the same brand fonts and colors:
 - **Fonts**: Libre Franklin (body) + Fraunces (headings)
-- **Colors**: Same brand palette defined in `app/constants/theme.ts` (mobile) and Tailwind config (web)
+- **Colors**: Same brand palette defined in `mobile/constants/theme.ts` (mobile) and Tailwind config (web)
 - **Te Reo Māori**: Weave in throughout — "Kia ora", "mahi", "whānau", "Ka pai", "Ngā mihi"
 
 ## Web App (`web/`) Details
@@ -185,7 +185,7 @@ Uses **motion.dev** — not CSS animations. All variants in `src/lib/motion.ts`.
 - Private pages (noindex): `/dashboard`, `/profile`, `/admin/*`, `/api/*`
 - Use `buildPageMetadata()` from `@/lib/seo` for new public pages
 
-## Mobile App (`app/`) Details
+## Mobile App (`mobile/`) Details
 
 ### Tech Stack
 
@@ -196,7 +196,7 @@ Uses **motion.dev** — not CSS animations. All variants in `src/lib/motion.ts`.
 
 ### Design System
 
-See `app/STYLE_GUIDE.md` for the complete reference. Key principles:
+See `mobile/STYLE_GUIDE.md` for the complete reference. Key principles:
 
 - **Typography**: Use `ThemedText` component — `title` (Fraunces 28pt), `heading` (22pt), `subtitle` (Libre Franklin 18pt semi-bold), `default` (16pt)
 - **Colors**: Import `Brand`, `Colors`, `FontFamily` from `@/constants/theme`
@@ -207,7 +207,7 @@ See `app/STYLE_GUIDE.md` for the complete reference. Key principles:
 
 ### Navigation
 
-File-based routing via expo-router:
+File-based routing via expo-router (paths relative to `mobile/`):
 - `app/(tabs)/` — Main tab bar (Home, Shifts, Chat, Profile)
 - `app/(auth)/` — Login screen
 - `app/shift/[id].tsx` — Shift detail screen
@@ -216,7 +216,7 @@ File-based routing via expo-router:
 
 ### Data Fetching
 
-Custom hooks in `app/hooks/` call the web API via `app/lib/api.ts`:
+Custom hooks in `mobile/hooks/` call the web API via `mobile/lib/api.ts`:
 - `useShifts()` — Shift listings
 - `useShiftDetail(id)` — Single shift
 - `useProfile()` — Current user
@@ -258,8 +258,8 @@ Required in `web/.env.local`:
 - `NEXTAUTH_URL` — Application URL
 - OAuth provider credentials (`GOOGLE_CLIENT_ID`, etc.)
 
-Required for mobile (`app/`):
-- API base URL configured in `app/lib/api.ts`
+Required for mobile (`mobile/`):
+- API base URL configured in `mobile/lib/api.ts`
 
 ## Development Tips
 
