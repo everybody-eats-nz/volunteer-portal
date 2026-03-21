@@ -19,19 +19,16 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format, differenceInHours, differenceInMinutes } from 'date-fns';
 
+import { ActivityIndicator, RefreshControl } from 'react-native';
+
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Brand, FontFamily } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useShiftDetail } from '@/hooks/use-shift-detail';
 import {
-  MY_SHIFTS,
-  AVAILABLE_SHIFTS,
-  SHIFT_CREW,
-  SHIFT_SIGNUPS,
   getShiftThemeByName,
-  getConcurrentShifts,
   getLocationShortAddress,
   getLocationMapsUrl,
-  getResourcesForShiftType,
   type Shift,
   type Resource,
 } from '@/lib/dummy-data';
@@ -70,13 +67,24 @@ export default function ShiftDetailScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
 
-  const shift = [...MY_SHIFTS, ...AVAILABLE_SHIFTS].find((s) => s.id === id);
-  const isMyShift = MY_SHIFTS.some((s) => s.id === id);
+  const { shift, signups: shiftSignups, crew: shiftCrew, isLoading, error, refresh } = useShiftDetail(id);
+  const isMyShift = shift?.status != null;
   const [checkedIn, setCheckedIn] = useState(false);
   const [musicSearch, setMusicSearch] = useState('');
   const [queue, setQueue] = useState<QueueItem[]>(PLACEHOLDER_QUEUE);
   const [photos, setPhotos] = useState<string[]>([]);
   const [votedSongs, setVotedSongs] = useState<Set<string>>(new Set());
+
+  if (isLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Shift' }} />
+        <View style={[s.centered, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </>
+    );
+  }
 
   if (!shift) {
     return (
@@ -87,7 +95,7 @@ export default function ShiftDetailScreen() {
             <Ionicons name="search-outline" size={32} color={colors.textSecondary} />
           </View>
           <ThemedText type="subtitle" style={{ marginTop: 12 }}>
-            Shift not found
+            {error ?? 'Shift not found'}
           </ThemedText>
           <ThemedText type="caption" style={{ color: colors.textSecondary, marginTop: 4 }}>
             This mahi may have been removed
@@ -117,14 +125,13 @@ export default function ShiftDetailScreen() {
   const duration = getDuration(shift.start, shift.end);
 
   // Signups for "Who's on this mahi" section
-  const signups = SHIFT_SIGNUPS[shift.id] ?? [];
+  const signups = shiftSignups;
   const friendSignups = signups.filter((su) => su.isFriend);
 
-  // Concurrent shifts (same day, same AM/PM, same location)
-  const concurrentShifts = getConcurrentShifts(shift.id);
-
-  // Relevant resources for this shift type
-  const relevantResources = getResourcesForShiftType(shift.shiftType.name);
+  // Concurrent shifts and resources — these features need their own
+  // endpoints in the future. For now, show empty.
+  const concurrentShifts: Shift[] = [];
+  const relevantResources: Resource[] = [];
 
   const handleCheckIn = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -527,7 +534,12 @@ export default function ShiftDetailScreen() {
 
         {/* ═══ Crew section (after check-in) ═══ */}
         {checkedIn && (
-          <CrewSection shiftId={shift.id} colors={colors} isDark={isDark} />
+          <CrewSection
+            crew={shiftCrew}
+            friendSignupIds={new Set(friendSignups.map((su) => su.id))}
+            colors={colors}
+            isDark={isDark}
+          />
         )}
 
         {/* ═══ Other shifts today (after check-in) ═══ */}
@@ -722,20 +734,19 @@ const GRADE_COLORS: Record<string, string> = {
 };
 
 function CrewSection({
-  shiftId,
+  crew,
+  friendSignupIds,
   colors,
   isDark,
 }: {
-  shiftId: string;
+  crew: { id: string; name: string; role: string; grade: string; checkedIn: boolean; isYou?: boolean }[];
+  friendSignupIds: Set<string>;
   colors: (typeof Colors)['light'];
   isDark: boolean;
 }) {
-  const crew = SHIFT_CREW[shiftId];
   if (!crew || crew.length === 0) return null;
 
-  // Cross-reference signups to know who is a friend
-  const signups = SHIFT_SIGNUPS[shiftId] ?? [];
-  const friendIds = new Set(signups.filter((su) => su.isFriend).map((su) => su.id));
+  const friendIds = friendSignupIds;
 
   const checkedInCount = crew.filter((m) => m.checkedIn).length;
 
@@ -829,10 +840,7 @@ function ConcurrentShiftsSection({
   colors: (typeof Colors)['light'];
   isDark: boolean;
 }) {
-  const totalPeople = shifts.reduce((sum, sh) => {
-    const crew = SHIFT_CREW[sh.id];
-    return sum + (crew ? crew.length : sh.signedUp);
-  }, 0);
+  const totalPeople = shifts.reduce((sum, sh) => sum + sh.signedUp, 0);
 
   return (
     <View style={[s.section, { backgroundColor: colors.card }]}>
@@ -851,10 +859,9 @@ function ConcurrentShiftsSection({
       {shifts.map((concurrentShift) => {
         const theme = getShiftThemeByName(concurrentShift.shiftType.name);
         const accent = isDark ? theme.colorDark : theme.color;
-        const crew = SHIFT_CREW[concurrentShift.id] ?? [];
-        const signups = SHIFT_SIGNUPS[concurrentShift.id] ?? [];
-        const friendIds = new Set(signups.filter((su) => su.isFriend).map((su) => su.id));
-        const checkedInCount = crew.filter((m) => m.checkedIn).length;
+        const crew: { id: string; name: string; role: string; grade: string; checkedIn: boolean; isYou?: boolean }[] = [];
+        const friendIds = new Set<string>();
+        const checkedInCount = 0;
 
         return (
           <View key={concurrentShift.id} style={s.concurrentShiftGroup}>
