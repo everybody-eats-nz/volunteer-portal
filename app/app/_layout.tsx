@@ -81,8 +81,9 @@ export default function RootLayout() {
             name="shift/[id]"
             options={{
               headerShown: true,
-              title: 'Shift',
+              headerTransparent: true,
               headerBackTitle: 'Back',
+              title: '',
             }}
           />
           <Stack.Screen

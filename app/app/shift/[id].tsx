@@ -78,7 +78,7 @@ export default function ShiftDetailScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Shift' }} />
+        <Stack.Screen options={{ title: '', headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -89,7 +89,7 @@ export default function ShiftDetailScreen() {
   if (!shift) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Shift' }} />
+        <Stack.Screen options={{ title: '', headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <View style={[s.notFoundIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
             <Ionicons name="search-outline" size={32} color={colors.textSecondary} />
