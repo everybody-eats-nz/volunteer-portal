@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { getStartOfDayUTC } from "@/lib/timezone";
 
 /**
  * GET /api/mobile/feed
@@ -237,45 +238,57 @@ export async function GET(request: Request) {
   );
 
   if (myLocations.size > 0) {
-    const [recapShifts, mealsServedRecords] = await Promise.all([
-      prisma.shift.findMany({
-        where: {
-          end: { lt: new Date(), gte: since },
-          location: { in: [...myLocations] },
-        },
-        select: {
-          id: true,
-          start: true,
-          end: true,
-          location: true,
-          _count: {
-            select: { signups: { where: { status: "CONFIRMED" } } },
+    const locationsList = [...myLocations];
+    const [recapShifts, mealsServedRecords, locationDefaults] =
+      await Promise.all([
+        prisma.shift.findMany({
+          where: {
+            end: { lt: new Date(), gte: since },
+            location: { in: locationsList },
           },
-        },
-        orderBy: { start: "desc" },
-      }),
-      prisma.mealsServed.findMany({
-        where: {
-          date: { gte: since },
-          location: { in: [...myLocations] },
-        },
-        select: { date: true, location: true, mealsServed: true },
-      }),
-    ]);
+          select: {
+            id: true,
+            start: true,
+            end: true,
+            location: true,
+            _count: {
+              select: { signups: { where: { status: "CONFIRMED" } } },
+            },
+          },
+          orderBy: { start: "desc" },
+        }),
+        prisma.mealsServed.findMany({
+          where: {
+            date: { gte: since },
+            location: { in: locationsList },
+          },
+          select: { date: true, location: true, mealsServed: true },
+        }),
+        // Fallback defaults for days without recorded meals
+        prisma.location.findMany({
+          where: { name: { in: locationsList } },
+          select: { name: true, defaultMealsServed: true },
+        }),
+      ]);
 
-    // Index meals served by location+date for fast lookup
+    // Index meals served by location + NZ-timezone date key
+    // MealsServed.date is stored as start-of-day in NZ timezone (as UTC)
     const mealsMap = new Map<string, number>();
     for (const record of mealsServedRecords) {
-      const key = `${record.location}-${record.date.toISOString().slice(0, 10)}`;
+      const key = `${record.location}-${record.date.toISOString()}`;
       mealsMap.set(key, record.mealsServed);
     }
 
-    // Group by location + date
+    const defaultsMap = new Map(
+      locationDefaults.map((loc) => [loc.name, loc.defaultMealsServed])
+    );
+
+    // Group by location + date (NZ timezone day)
     const recapGroups = new Map<
       string,
       {
         location: string;
-        date: string;
+        displayDate: string;
         volunteerHours: number;
         mealsServed: number;
         latestStart: Date;
@@ -284,8 +297,12 @@ export async function GET(request: Request) {
 
     for (const shift of recapShifts) {
       if (!shift.location || shift._count.signups === 0) continue;
-      const dateKey = shift.start.toISOString().slice(0, 10);
-      const groupKey = `${shift.location}-${dateKey}`;
+
+      // Use NZ timezone start-of-day to match MealsServed date storage
+      const nzStartOfDay = getStartOfDayUTC(shift.start);
+      const mealsKey = `${shift.location}-${nzStartOfDay.toISOString()}`;
+      const displayDate = shift.start.toISOString().slice(0, 10);
+      const groupKey = `${shift.location}-${displayDate}`;
 
       const shiftDurationHours =
         (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
@@ -298,25 +315,26 @@ export async function GET(request: Request) {
           existing.latestStart = shift.start;
         }
       } else {
+        // Look up actual meals, fall back to location default
+        const meals =
+          mealsMap.get(mealsKey) ?? defaultsMap.get(shift.location) ?? 0;
+
         recapGroups.set(groupKey, {
           location: shift.location,
-          date: dateKey,
+          displayDate,
           volunteerHours: totalHours,
-          mealsServed: mealsMap.get(groupKey) ?? 0,
+          mealsServed: meals,
           latestStart: shift.start,
         });
       }
     }
 
     for (const [key, recap] of recapGroups) {
-      // Skip recaps with no meals data — nothing interesting to show
-      if (recap.mealsServed === 0) continue;
-
       items.push({
         type: "shift_recap",
         id: `shift-recap-${key}`,
         location: recap.location,
-        date: recap.date,
+        date: recap.displayDate,
         mealsServed: recap.mealsServed,
         volunteerHours: Math.round(recap.volunteerHours),
         timestamp: recap.latestStart.toISOString(),
