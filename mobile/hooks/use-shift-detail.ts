@@ -1,0 +1,134 @@
+import { useCallback, useEffect, useState } from "react";
+
+import { api } from "@/lib/api";
+import type {
+  Shift,
+  ShiftSignup,
+  CrewMember,
+} from "@/lib/dummy-data";
+
+/** Raw shape returned by GET /api/mobile/shifts/[id] */
+type ShiftDetailResponse = {
+  id: string;
+  shiftType: {
+    id: string;
+    name: string;
+    description: string;
+  };
+  start: string;
+  end: string;
+  location: string;
+  capacity: number;
+  signedUp: number;
+  status: "CONFIRMED" | "PENDING" | "WAITLISTED" | "REGULAR_PENDING" | null;
+  notes: string | null;
+  signups: Array<{
+    id: string;
+    name: string;
+    profilePhotoUrl: string | null;
+    isFriend: boolean;
+  }>;
+  crew: Array<{
+    id: string;
+    name: string;
+    profilePhotoUrl: string | null;
+    role: string;
+    grade: "GREEN" | "YELLOW" | "PINK";
+    checkedIn: boolean;
+    isYou: boolean;
+  }>;
+};
+
+type UseShiftDetailReturn = {
+  shift: Shift | null;
+  signups: ShiftSignup[];
+  crew: CrewMember[];
+  isLoading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+};
+
+export function useShiftDetail(shiftId: string | undefined): UseShiftDetailReturn {
+  const [shift, setShift] = useState<Shift | null>(null);
+  const [signups, setSignups] = useState<ShiftSignup[]>([]);
+  const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDetail = useCallback(async () => {
+    if (!shiftId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setError(null);
+      const data = await api<ShiftDetailResponse>(
+        `/api/mobile/shifts/${shiftId}`
+      );
+
+      // Map to the Shift type used by shift/[id].tsx
+      const mappedShift: Shift = {
+        id: data.id,
+        shiftType: {
+          id: data.shiftType.id,
+          name: data.shiftType.name,
+          description: data.shiftType.description,
+        },
+        start: data.start,
+        end: data.end,
+        location: data.location,
+        capacity: data.capacity,
+        signedUp: data.signedUp,
+        status: data.status === "REGULAR_PENDING" ? "PENDING" : data.status,
+        notes: data.notes ?? undefined,
+      };
+
+      // Map to ShiftSignup[]
+      const mappedSignups: ShiftSignup[] = data.signups.map((s) => ({
+        id: s.id,
+        name: s.name,
+        profilePhotoUrl: s.profilePhotoUrl ?? undefined,
+        isFriend: s.isFriend,
+      }));
+
+      // Map to CrewMember[]
+      const mappedCrew: CrewMember[] = data.crew.map((c) => ({
+        id: c.id,
+        name: c.name,
+        role: c.role,
+        grade: c.grade,
+        checkedIn: c.checkedIn,
+        isYou: c.isYou,
+      }));
+
+      setShift(mappedShift);
+      setSignups(mappedSignups);
+      setCrew(mappedCrew);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load shift details"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shiftId]);
+
+  useEffect(() => {
+    fetchDetail();
+  }, [fetchDetail]);
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    await fetchDetail();
+  }, [fetchDetail]);
+
+  return {
+    shift,
+    signups,
+    crew,
+    isLoading,
+    error,
+    refresh,
+  };
+}

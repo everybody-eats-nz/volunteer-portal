@@ -23,11 +23,17 @@ This volunteer portal streamlines the entire volunteer experience, from registra
 
 This project is organized as a monorepo:
 
-### 🌐 `/web/` - Frontend Application
+### 🌐 `/web/` - Web Application
 
-Next.js-based web application providing the main volunteer portal interface.
+Next.js-based web application providing the admin dashboard, volunteer portal, and REST API backend.
 
-**[📖 Web Frontend Documentation →](./web/README.md)**
+**[📖 Web Documentation →](./web/README.md)**
+
+### 📱 `/mobile/` - Mobile App
+
+React Native/Expo companion app for volunteers — browse shifts, track achievements, connect with fellow volunteers, and get shift recaps on the go. Available on iOS and Android.
+
+**[📖 Mobile App Documentation →](./mobile/README.md)**
 
 ### 📚 `/docs/` - Admin Documentation
 

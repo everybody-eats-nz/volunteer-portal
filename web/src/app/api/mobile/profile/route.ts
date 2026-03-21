@@ -99,10 +99,75 @@ export async function GET(request: Request) {
 
     // Fetch achievements
     await checkAndUnlockAchievements(userId);
-    const [userAchievements, availableAchievements] = await Promise.all([
-      getUserAchievements(userId),
-      getAvailableAchievements(userId),
-    ]);
+    const [userAchievements, availableAchievements, totalVolunteers] =
+      await Promise.all([
+        getUserAchievements(userId),
+        getAvailableAchievements(userId),
+        prisma.user.count({ where: { role: "VOLUNTEER" } }),
+      ]);
+
+    // Count how many users have unlocked each achievement
+    const allAchievementIds = [
+      ...userAchievements.map((ua) => ua.achievement.id),
+      ...availableAchievements.map((a) => a.id),
+    ];
+    const unlockCounts = await prisma.userAchievement.groupBy({
+      by: ["achievementId"],
+      where: { achievementId: { in: allAchievementIds } },
+      _count: { userId: true },
+    });
+    const unlockCountMap = new Map(
+      unlockCounts.map((uc) => [uc.achievementId, uc._count.userId])
+    );
+
+    // Find which friends have unlocked each achievement
+    const friendIds = await prisma.friendship
+      .findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ userId }, { friendId: userId }],
+        },
+        select: { userId: true, friendId: true },
+      })
+      .then((rows) =>
+        rows.map((r) => (r.userId === userId ? r.friendId : r.userId))
+      );
+
+    const friendUnlocks =
+      friendIds.length > 0
+        ? await prisma.userAchievement.findMany({
+            where: {
+              achievementId: { in: allAchievementIds },
+              userId: { in: friendIds },
+            },
+            select: {
+              achievementId: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  firstName: true,
+                  profilePhotoUrl: true,
+                },
+              },
+            },
+          })
+        : [];
+
+    // Group friends by achievement
+    const friendsByAchievement = new Map<
+      string,
+      Array<{ id: string; name: string; profilePhotoUrl?: string }>
+    >();
+    for (const fu of friendUnlocks) {
+      const list = friendsByAchievement.get(fu.achievementId) ?? [];
+      list.push({
+        id: fu.user.id,
+        name: fu.user.name ?? fu.user.firstName ?? "Volunteer",
+        profilePhotoUrl: fu.user.profilePhotoUrl ?? undefined,
+      });
+      friendsByAchievement.set(fu.achievementId, list);
+    }
 
     const totalPoints = userAchievements.reduce(
       (sum, ua) => sum + ua.achievement.points,
@@ -110,8 +175,11 @@ export async function GET(request: Request) {
     );
 
     // Map achievements to mobile shape
-    const achievements = [
-      ...userAchievements.map((ua) => ({
+    // Unlocked: most recently unlocked first
+    const unlocked = userAchievements
+      .slice()
+      .sort((a, b) => b.unlockedAt.getTime() - a.unlockedAt.getTime())
+      .map((ua) => ({
         id: ua.achievement.id,
         name: ua.achievement.name,
         description: ua.achievement.description,
@@ -119,8 +187,14 @@ export async function GET(request: Request) {
         category: ua.achievement.category,
         points: ua.achievement.points,
         unlockedAt: ua.unlockedAt.toISOString(),
-      })),
-      ...availableAchievements.map((a) => {
+        unlockedByCount: unlockCountMap.get(ua.achievement.id) ?? 0,
+        friendsWhoEarned:
+          friendsByAchievement.get(ua.achievement.id) ?? [],
+      }));
+
+    // In-progress: closest to completion first (highest progress)
+    const inProgressList = availableAchievements
+      .map((a) => {
         const parsed = parseCriteria(a.criteria);
         return {
           id: a.id,
@@ -136,9 +210,13 @@ export async function GET(request: Request) {
             ? `${parsed.value} ${parsed.type === "shifts_completed" ? "shifts" : parsed.type === "hours_volunteered" ? "hours" : ""}`
                 .trim()
             : undefined,
+          unlockedByCount: unlockCountMap.get(a.id) ?? 0,
+          friendsWhoEarned: friendsByAchievement.get(a.id) ?? [],
         };
-      }),
-    ];
+      })
+      .sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0));
+
+    const achievements = [...unlocked, ...inProgressList];
 
     return NextResponse.json({
       profile: {
@@ -162,6 +240,7 @@ export async function GET(request: Request) {
       },
       achievements,
       totalPoints,
+      totalVolunteers,
     });
   } catch (error) {
     console.error("Mobile profile error:", error);
