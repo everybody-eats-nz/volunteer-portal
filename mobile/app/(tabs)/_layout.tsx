@@ -58,11 +58,11 @@ export default function TabLayout() {
           />
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="chat">
-          <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger name="ask">
+          <NativeTabs.Trigger.Label>Ask</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
-            sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }}
-            md="chat"
+            sf={{ default: 'questionmark.circle', selected: 'questionmark.circle.fill' }}
+            md="help"
           />
         </NativeTabs.Trigger>
 
