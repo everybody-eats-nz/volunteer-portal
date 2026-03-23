@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth-options";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { differenceInDays, differenceInHours, subMonths } from "date-fns";
-import { formatInNZT, toNZT } from "@/lib/timezone";
+import { formatInNZT } from "@/lib/timezone";
+import { isAMShift, getShiftDate, getShiftPeriodLabel } from "@/lib/concurrent-shifts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -90,18 +91,6 @@ export async function FriendProfileContent({
   if (friend.friendVisibility === "PRIVATE") {
     notFound();
   }
-
-  // Helper function to determine if a shift is AM or PM (in NZ timezone)
-  const isAMShift = (shiftStart: Date) => {
-    const nzTime = toNZT(shiftStart);
-    const hour = nzTime.getHours();
-    return hour < 16; // Before 4pm (16:00) is considered "AM"
-  };
-
-  // Helper to get shift date in NZ timezone (YYYY-MM-DD format)
-  const getShiftDate = (shiftStart: Date) => {
-    return formatInNZT(shiftStart, "yyyy-MM-dd");
-  };
 
   // Get comprehensive friendship stats
   const [
@@ -518,11 +507,10 @@ export async function FriendProfileContent({
                       <div className="w-3 h-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex-shrink-0 group-hover:scale-125 group-hover:shadow-lg transition-all" />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate mb-1">
-                          {shift.shiftType.name}
+                          {getShiftPeriodLabel(shift.start)} · {shift.location}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {formatInNZT(shift.start, "MMM d, yyyy")} •{" "}
-                          {shift.location}
+                          {formatInNZT(shift.start, "MMM d, yyyy")}
                         </p>
                       </div>
                       <Badge
