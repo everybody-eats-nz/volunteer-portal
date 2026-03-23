@@ -472,7 +472,7 @@ export type FeedItem =
   | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
   | { type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; timestamp: string; likes: LikeUser[] };
+  | { type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string; likes: LikeUser[] };
 
 function hoursAgo(hours: number): string {
   const d = new Date();
@@ -691,11 +691,11 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
     favoriteRole: 'Front of House',
     favoriteRoleCount: 22,
     sharedShifts: [
-      { id: 'ss-1', type: 'Front of House', date: daysFromNow(2, 16).split('T')[0], location: 'Wellington', isUpcoming: true },
-      { id: 'ss-2', type: 'Kitchen Prep', date: daysFromNow(-3, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
-      { id: 'ss-3', type: 'Front of House', date: daysFromNow(-10, 16).split('T')[0], location: 'Glen Innes', isUpcoming: false },
-      { id: 'ss-4', type: 'Kitchen Service & Pack Down', date: daysFromNow(-17, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
-      { id: 'ss-5', type: 'Front of House', date: daysFromNow(-24, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-1', type: 'Evening', date: daysFromNow(2, 16).split('T')[0], location: 'Wellington', isUpcoming: true },
+      { id: 'ss-2', type: 'Evening', date: daysFromNow(-3, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-3', type: 'Evening', date: daysFromNow(-10, 16).split('T')[0], location: 'Glen Innes', isUpcoming: false },
+      { id: 'ss-4', type: 'Evening', date: daysFromNow(-17, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-5', type: 'Day', date: daysFromNow(-24, 13).split('T')[0], location: 'Wellington', isUpcoming: false },
     ],
     upcomingShifts: [
       { id: 'us-1', type: 'Front of House', date: daysFromNow(2, 16).split('T')[0], time: '4:30 PM', location: 'Wellington' },
@@ -714,9 +714,9 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
     favoriteRole: 'Kitchen Prep',
     favoriteRoleCount: 28,
     sharedShifts: [
-      { id: 'ss-6', type: 'Front of House', date: daysFromNow(2, 16).split('T')[0], location: 'Wellington', isUpcoming: true },
-      { id: 'ss-7', type: 'Front of House', date: daysFromNow(-7, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
-      { id: 'ss-8', type: 'Kitchen Prep', date: daysFromNow(-14, 13).split('T')[0], location: 'Glen Innes', isUpcoming: false },
+      { id: 'ss-6', type: 'Evening', date: daysFromNow(2, 16).split('T')[0], location: 'Wellington', isUpcoming: true },
+      { id: 'ss-7', type: 'Evening', date: daysFromNow(-7, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-8', type: 'Day', date: daysFromNow(-14, 13).split('T')[0], location: 'Glen Innes', isUpcoming: false },
     ],
     upcomingShifts: [
       { id: 'us-4', type: 'Front of House', date: daysFromNow(2, 16).split('T')[0], time: '4:30 PM', location: 'Wellington' },
@@ -734,8 +734,8 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
     favoriteRole: 'Kitchen Service & Pack Down',
     favoriteRoleCount: 8,
     sharedShifts: [
-      { id: 'ss-9', type: 'Kitchen Service & Pack Down', date: daysFromNow(-5, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
-      { id: 'ss-10', type: 'Front of House', date: daysFromNow(-12, 16).split('T')[0], location: 'Onehunga', isUpcoming: false },
+      { id: 'ss-9', type: 'Evening', date: daysFromNow(-5, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-10', type: 'Evening', date: daysFromNow(-12, 16).split('T')[0], location: 'Onehunga', isUpcoming: false },
     ],
     upcomingShifts: [
       { id: 'us-6', type: 'Kitchen Service & Pack Down', date: daysFromNow(3, 16).split('T')[0], time: '4:00 PM', location: 'Wellington' },
@@ -752,9 +752,9 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
     favoriteRole: 'Kitchen Prep',
     favoriteRoleCount: 18,
     sharedShifts: [
-      { id: 'ss-11', type: 'Kitchen Prep', date: daysFromNow(5, 13).split('T')[0], location: 'Glen Innes', isUpcoming: true },
-      { id: 'ss-12', type: 'Kitchen Prep', date: daysFromNow(-8, 13).split('T')[0], location: 'Glen Innes', isUpcoming: false },
-      { id: 'ss-13', type: 'Front of House', date: daysFromNow(-15, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-11', type: 'Day', date: daysFromNow(5, 13).split('T')[0], location: 'Glen Innes', isUpcoming: true },
+      { id: 'ss-12', type: 'Day', date: daysFromNow(-8, 13).split('T')[0], location: 'Glen Innes', isUpcoming: false },
+      { id: 'ss-13', type: 'Evening', date: daysFromNow(-15, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
     ],
     upcomingShifts: [
       { id: 'us-7', type: 'Kitchen Prep', date: daysFromNow(5, 13).split('T')[0], time: '1:00 PM', location: 'Glen Innes' },
@@ -772,7 +772,7 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
     favoriteRole: 'Front of House',
     favoriteRoleCount: 5,
     sharedShifts: [
-      { id: 'ss-14', type: 'Front of House', date: daysFromNow(-4, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
+      { id: 'ss-14', type: 'Evening', date: daysFromNow(-4, 16).split('T')[0], location: 'Wellington', isUpcoming: false },
     ],
     upcomingShifts: [
       { id: 'us-9', type: 'Front of House', date: daysFromNow(9, 16).split('T')[0], time: '4:00 PM', location: 'Onehunga' },

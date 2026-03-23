@@ -251,6 +251,10 @@ export async function GET(request: Request) {
             start: true,
             end: true,
             location: true,
+            signups: {
+              where: { status: "CONFIRMED" },
+              select: { userId: true },
+            },
             _count: {
               select: { signups: { where: { status: "CONFIRMED" } } },
             },
@@ -290,10 +294,14 @@ export async function GET(request: Request) {
         location: string;
         displayDate: string;
         volunteerHours: number;
+        volunteerCount: number;
         mealsServed: number;
         latestStart: Date;
       }
     >();
+
+    // Track unique volunteers per recap group
+    const recapVolunteers = new Map<string, Set<string>>();
 
     for (const shift of recapShifts) {
       if (!shift.location || shift._count.signups === 0) continue;
@@ -308,9 +316,19 @@ export async function GET(request: Request) {
         (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
       const totalHours = shiftDurationHours * shift._count.signups;
 
+      // Collect unique volunteer IDs for this group
+      if (!recapVolunteers.has(groupKey)) {
+        recapVolunteers.set(groupKey, new Set());
+      }
+      const volunteerSet = recapVolunteers.get(groupKey)!;
+      for (const signup of shift.signups) {
+        volunteerSet.add(signup.userId);
+      }
+
       const existing = recapGroups.get(groupKey);
       if (existing) {
         existing.volunteerHours += totalHours;
+        existing.volunteerCount = volunteerSet.size;
         if (shift.start > existing.latestStart) {
           existing.latestStart = shift.start;
         }
@@ -323,6 +341,7 @@ export async function GET(request: Request) {
           location: shift.location,
           displayDate,
           volunteerHours: totalHours,
+          volunteerCount: volunteerSet.size,
           mealsServed: meals,
           latestStart: shift.start,
         });
@@ -337,6 +356,7 @@ export async function GET(request: Request) {
         date: recap.displayDate,
         mealsServed: recap.mealsServed,
         volunteerHours: Math.round(recap.volunteerHours),
+        volunteerCount: recap.volunteerCount,
         timestamp: recap.latestStart.toISOString(),
         likes: [],
       });

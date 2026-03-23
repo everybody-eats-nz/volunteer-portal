@@ -1,14 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { formatInNZT, toNZT } from "@/lib/timezone";
 
+/** Hour cutoff (NZ time) — shifts starting before this are "Day", at or after are "Evening" */
+export const DAY_EVENING_CUTOFF_HOUR = 16;
+
 /**
- * Helper to determine if a shift is AM or PM (in NZ timezone)
- * Before 4pm (16:00) is considered "AM"
+ * Whether a shift falls in the day period (before 4pm NZ time).
  */
 export function isAMShift(shiftStart: Date): boolean {
   const nzTime = toNZT(shiftStart);
   const hour = nzTime.getHours();
-  return hour < 16;
+  return hour < DAY_EVENING_CUTOFF_HOUR;
+}
+
+/**
+ * Returns a display label for the shift period: "Day" or "Evening".
+ */
+export function getShiftPeriodLabel(shiftStart: Date): string {
+  return isAMShift(shiftStart) ? "Day" : "Evening";
 }
 
 /**
