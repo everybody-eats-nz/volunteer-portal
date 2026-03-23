@@ -372,32 +372,32 @@ function FeedAvatar({
 }
 
 const RECAP_TEMPLATES = [
-  (meals: number, hours: number) =>
-    `${meals} meals served with ${hours} hours of mahi from the whānau 💚`,
-  (meals: number, hours: number) =>
-    `${meals} people fed — ${hours} hours of aroha in the kitchen 🌿`,
-  (meals: number, hours: number) =>
-    `Another beautiful night — ${meals} meals out the door, ${hours} hours of volunteer power ✨`,
-  (meals: number, hours: number) =>
-    `${meals} plates, ${hours} hours, one big whānau 🍽️`,
-  (meals: number, hours: number) =>
-    `${hours} hours of mahi, ${meals} full bellies — ngā mihi nui 🙌`,
-  (meals: number, hours: number) =>
-    `The whānau showed up! ${meals} meals served across ${hours} hours of volunteering 💪`,
-  (meals: number, hours: number) =>
-    `Ka pai! ${meals} kai served — ${hours} hours of community love 🌱`,
-  (meals: number, hours: number) =>
-    `${meals} meals, ${hours} hours, endless aroha — that's Everybody Eats 💚`,
+  (meals: number, volunteers: number, hours: number) =>
+    `${meals} meals served by ${volunteers} volunteers across ${hours} hours of mahi 💚`,
+  (meals: number, volunteers: number, hours: number) =>
+    `${meals} people fed — ${volunteers} of the whānau showed up for ${hours} hours of aroha 🌿`,
+  (meals: number, volunteers: number, hours: number) =>
+    `Another beautiful night — ${volunteers} volunteers, ${meals} meals out the door, ${hours} hours of volunteer power ✨`,
+  (meals: number, volunteers: number, hours: number) =>
+    `${meals} plates, ${volunteers} volunteers, ${hours} hours, one big whānau 🍽️`,
+  (meals: number, volunteers: number, hours: number) =>
+    `${volunteers} volunteers put in ${hours} hours of mahi — ${meals} full bellies — ngā mihi nui 🙌`,
+  (meals: number, volunteers: number, hours: number) =>
+    `The whānau showed up! ${volunteers} volunteers served ${meals} meals across ${hours} hours 💪`,
+  (meals: number, volunteers: number, hours: number) =>
+    `Ka pai! ${volunteers} volunteers, ${meals} kai served — ${hours} hours of community love 🌱`,
+  (meals: number, volunteers: number, hours: number) =>
+    `${meals} meals, ${volunteers} volunteers, ${hours} hours, endless aroha — that's Everybody Eats 💚`,
 ];
 
-function getRecapMessage(meals: number, hours: number, id: string): string {
+function getRecapMessage(meals: number, volunteers: number, hours: number, id: string): string {
   // Use id as a stable seed so the same recap always shows the same message
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = (hash * 31 + id.charCodeAt(i)) | 0;
   }
   const index = Math.abs(hash) % RECAP_TEMPLATES.length;
-  return RECAP_TEMPLATES[index](meals, hours);
+  return RECAP_TEMPLATES[index](meals, volunteers, hours);
 }
 
 function FeedCard({
@@ -669,7 +669,7 @@ function FeedCard({
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
             >
-              {getRecapMessage(item.mealsServed, item.volunteerHours, item.id)}
+              {getRecapMessage(item.mealsServed, item.volunteerCount, item.volunteerHours, item.id)}
             </Text>
             <View style={styles.feedFooter}>
               <Text
@@ -816,7 +816,7 @@ function FeedItemSheet({
     body = `📍 ${item.location} · ${formatNZT(new Date(item.shiftDate), "EEEE d MMM")}`;
   } else if (item.type === "shift_recap") {
     title = `${item.location} — ${formatNZT(new Date(item.date), "EEEE d MMM")}`;
-    body = getRecapMessage(item.mealsServed, item.volunteerHours, item.id);
+    body = getRecapMessage(item.mealsServed, item.volunteerCount, item.volunteerHours, item.id);
   }
 
   const likeCount = likers.length;

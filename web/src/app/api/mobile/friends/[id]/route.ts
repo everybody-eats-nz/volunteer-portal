@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { DAY_EVENING_CUTOFF_HOUR } from "@/lib/concurrent-shifts";
 
 /**
  * GET /api/mobile/friends/[id]
@@ -74,7 +75,7 @@ export async function GET(
     const friendsSince = friendship.createdAt.toISOString();
 
     // 5. Get shift stats for the friend
-    const [totalShiftsResult, totalHoursResult, shiftsThisMonthResult] =
+    const [totalShiftsResult, totalHoursResult, shiftsThisMonthResult, shiftsLast3MonthsResult] =
       await Promise.all([
         // Total confirmed shifts
         prisma.signup.count({
@@ -99,32 +100,76 @@ export async function GET(
             AND sh.start >= date_trunc('month', NOW())
             AND sh.start < date_trunc('month', NOW()) + interval '1 month'
         `,
+        // Shifts in last 3 months (rolling average)
+        prisma.$queryRaw<[{ count: bigint }]>`
+          SELECT COUNT(*)::bigint as count
+          FROM "Signup" s
+          JOIN "Shift" sh ON s."shiftId" = sh.id
+          WHERE s."userId" = ${friendId}
+            AND s.status = 'CONFIRMED'
+            AND sh.start >= NOW() - interval '3 months'
+            AND sh.start < NOW()
+        `,
       ]);
 
     const totalShifts = totalShiftsResult;
     const hoursVolunteered = Math.round(totalHoursResult[0].hours);
     const shiftsThisMonth = Number(shiftsThisMonthResult[0].count);
+    const shiftsLast3Months = Number(shiftsLast3MonthsResult[0].count);
 
-    // 6. Avg shifts per month (based on friendship duration)
-    const monthsSinceFriends = Math.max(
+    // 6. Avg shifts per month (rolling 3-month window, capped by friendship duration)
+    const daysSinceFriends = Math.max(
       1,
-      Math.ceil(
-        (Date.now() - friendship.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30)
-      )
+      Math.floor((Date.now() - friendship.createdAt.getTime()) / (1000 * 60 * 60 * 24))
     );
-    const avgPerMonth = Math.round(totalShifts / monthsSinceFriends);
+    const friendshipMonths = Math.max(1, Math.floor(daysSinceFriends / 30));
+    const monthsForAverage = Math.min(3, friendshipMonths);
+    const avgPerMonth = Math.round(shiftsLast3Months / monthsForAverage);
 
-    // 7. Shifts together count
-    const shiftsTogetherResult = await prisma.$queryRaw<[{ count: bigint }]>`
-      SELECT COUNT(DISTINCT s1."shiftId")::bigint as count
-      FROM "Signup" s1
-      JOIN "Signup" s2 ON s1."shiftId" = s2."shiftId"
-      WHERE s1."userId" = ${userId}
-        AND s2."userId" = ${friendId}
-        AND s1.status = 'CONFIRMED'
-        AND s2.status = 'CONFIRMED'
+    // 7. Shared shifts (matched by day + AM/PM + location)
+    // Single query returns all matches — we use the list for display and length for count
+    const sharedShiftsRaw = await prisma.$queryRaw<
+      Array<{
+        shift_date: Date;
+        period: string;
+        location: string;
+        latest_start: Date;
+      }>
+    >`
+      WITH user_shifts AS (
+        SELECT
+          (sh.start AT TIME ZONE 'Pacific/Auckland')::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM sh.start AT TIME ZONE 'Pacific/Auckland') < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          sh.location,
+          sh.start
+        FROM "Signup" s
+        JOIN "Shift" sh ON s."shiftId" = sh.id
+        WHERE s."userId" = ${userId} AND s.status = 'CONFIRMED' AND sh.location IS NOT NULL
+      ),
+      friend_shifts AS (
+        SELECT
+          (sh.start AT TIME ZONE 'Pacific/Auckland')::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM sh.start AT TIME ZONE 'Pacific/Auckland') < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          sh.location,
+          sh.start
+        FROM "Signup" s
+        JOIN "Shift" sh ON s."shiftId" = sh.id
+        WHERE s."userId" = ${friendId} AND s.status = 'CONFIRMED' AND sh.location IS NOT NULL
+      )
+      SELECT DISTINCT
+        us.shift_date,
+        us.period,
+        us.location,
+        GREATEST(us.start, fs.start) as latest_start
+      FROM user_shifts us
+      JOIN friend_shifts fs
+        ON us.shift_date = fs.shift_date
+        AND us.period = fs.period
+        AND us.location = fs.location
+      ORDER BY us.shift_date DESC
     `;
-    const shiftsTogether = Number(shiftsTogetherResult[0].count);
+
+    const shiftsTogether = sharedShiftsRaw.length;
 
     // 8. Mutual friends count
     const mutualResult = await prisma.$queryRaw<[{ count: bigint }]>`
@@ -164,39 +209,14 @@ export async function GET(
     const favoriteRole = favoriteRoleResult[0]?.name ?? "Volunteer";
     const favoriteRoleCount = Number(favoriteRoleResult[0]?.count ?? 0);
 
-    // 10. Shared shifts (recent + upcoming, up to 6)
-    const sharedShiftsRaw = await prisma.$queryRaw<
-      Array<{
-        shiftId: string;
-        typeName: string;
-        start: Date;
-        location: string | null;
-      }>
-    >`
-      SELECT
-        sh.id as "shiftId",
-        st.name as "typeName",
-        sh.start,
-        sh.location
-      FROM "Signup" s1
-      JOIN "Signup" s2 ON s1."shiftId" = s2."shiftId"
-      JOIN "Shift" sh ON s1."shiftId" = sh.id
-      JOIN "ShiftType" st ON sh."shiftTypeId" = st.id
-      WHERE s1."userId" = ${userId}
-        AND s2."userId" = ${friendId}
-        AND s1.status = 'CONFIRMED'
-        AND s2.status = 'CONFIRMED'
-      ORDER BY sh.start DESC
-      LIMIT 6
-    `;
-
+    // 10. Map shared shifts for display (most recent 6)
     const now = new Date();
-    const sharedShifts = sharedShiftsRaw.map((s) => ({
-      id: s.shiftId,
-      type: s.typeName,
-      date: s.start.toISOString().split("T")[0],
-      location: s.location ?? "TBC",
-      isUpcoming: s.start > now,
+    const sharedShifts = sharedShiftsRaw.slice(0, 6).map((s, i) => ({
+      id: `shared-${i}`,
+      type: s.period,
+      date: s.shift_date.toISOString().split("T")[0],
+      location: s.location,
+      isUpcoming: s.latest_start > now,
     }));
 
     // 11. Friend's upcoming shifts (next 5)

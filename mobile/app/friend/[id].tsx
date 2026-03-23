@@ -247,7 +247,7 @@ export default function FriendProfileScreen() {
           {friend.sharedShifts.length > 0 ? (
             <View style={styles.listContainer}>
               {friend.sharedShifts.slice(0, 5).map((shift) => {
-                const theme = getShiftThemeByName(shift.type);
+                const isDay = shift.type === "Day";
                 return (
                   <View
                     key={shift.id}
@@ -259,15 +259,15 @@ export default function FriendProfileScreen() {
                     <View
                       style={[
                         styles.shiftDot,
-                        { backgroundColor: isDark ? theme.colorDark : theme.color },
+                        { backgroundColor: isDark ? (isDay ? "#fde047" : "#c084fc") : (isDay ? "#eab308" : "#7c3aed") },
                       ]}
                     />
                     <View style={styles.shiftRowBody}>
                       <Text style={[styles.shiftRowType, { color: colors.text }]} numberOfLines={1}>
-                        {shift.type}
+                        {shift.type} · {shift.location}
                       </Text>
                       <Text style={[styles.shiftRowMeta, { color: colors.textSecondary }]}>
-                        {formatNZT(new Date(shift.date), "MMM d, yyyy")} · {shift.location}
+                        {formatNZT(new Date(shift.date), "MMM d, yyyy")}
                       </Text>
                     </View>
                     <View
