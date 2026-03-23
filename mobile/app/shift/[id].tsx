@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -9,6 +9,7 @@ import {
   Linking,
   View,
   Text,
+  ActivityIndicator as RNActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +27,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Brand, FontFamily } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useShiftDetail } from '@/hooks/use-shift-detail';
+import { api, ApiError } from '@/lib/api';
+import { ShiftSignupSheet } from '@/components/shift-signup-sheet';
 import {
   getShiftThemeByName,
   getLocationShortAddress,
@@ -71,10 +74,63 @@ export default function ShiftDetailScreen() {
   const { shift, signups: shiftSignups, crew: shiftCrew, isLoading, error, refresh } = useShiftDetail(id);
   const isMyShift = shift?.status != null;
   const [checkedIn, setCheckedIn] = useState(false);
+  const [signupSheetVisible, setSignupSheetVisible] = useState(false);
+  const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [musicSearch, setMusicSearch] = useState('');
   const [queue, setQueue] = useState<QueueItem[]>(PLACEHOLDER_QUEUE);
   const [photos, setPhotos] = useState<string[]>([]);
   const [votedSongs, setVotedSongs] = useState<Set<string>>(new Set());
+
+  const openSignupSheet = useCallback((waitlist = false) => {
+    setSignupSheetWaitlist(waitlist);
+    setSignupSheetVisible(true);
+  }, []);
+
+  const handleSignupSuccess = useCallback(
+    async (result: { id: string; status: string; autoApproved: boolean }) => {
+      if (result.status === 'CONFIRMED') {
+        Alert.alert('Ka pai! 🎉', "You're confirmed for this shift. See you there!");
+      } else if (result.status === 'WAITLISTED') {
+        Alert.alert('On the waitlist 📋', "You've been added to the waitlist. We'll notify you if a spot opens up.");
+      } else {
+        Alert.alert('Signed up! ✨', "Your signup is pending approval. You'll be notified once it's confirmed.");
+      }
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const handleCancel = useCallback(async () => {
+    if (!shift) return;
+    Alert.alert(
+      'Cancel signup?',
+      'Are you sure you want to cancel your signup for this shift?',
+      [
+        { text: 'Keep it', style: 'cancel' },
+        {
+          text: 'Yes, cancel',
+          style: 'destructive',
+          onPress: async () => {
+            setCancelLoading(true);
+            try {
+              await api(`/api/mobile/shifts/${shift.id}/signup`, {
+                method: 'DELETE',
+              });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('Canceled', 'Your signup has been canceled.');
+              await refresh();
+            } catch (err) {
+              const message = err instanceof ApiError ? err.message : 'Something went wrong.';
+              Alert.alert('Cancel failed', message);
+            } finally {
+              setCancelLoading(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [shift, refresh]);
 
   if (isLoading) {
     return (
@@ -353,14 +409,9 @@ export default function ShiftDetailScreen() {
 
         {/* ═══ Notes ═══ */}
         {shift.notes && (
-          <View style={[s.notesCard, { backgroundColor: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb' }]}>
-            <View style={[s.notesIconCircle, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7' }]}>
-              <Ionicons name="information-circle" size={18} color={isDark ? '#fbbf24' : '#b45309'} />
-            </View>
-            <Text style={[s.notesText, { color: isDark ? '#fbbf24' : '#92400e' }]}>
-              {shift.notes}
-            </Text>
-          </View>
+          <Text style={[s.notesText, { color: colors.textSecondary }]}>
+            {shift.notes}
+          </Text>
         )}
 
         {/* ═══ Useful Resources ═══ */}
@@ -685,10 +736,7 @@ export default function ShiftDetailScreen() {
         {/* ═══ Sign up CTA ═══ */}
         {!isMyShift && spotsLeft > 0 && (
           <Pressable
-            onPress={() => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Ka pai! 🎉', "You've signed up for this shift. See you there!");
-            }}
+            onPress={() => openSignupSheet(false)}
             style={({ pressed }) => [
               s.ctaButton,
               {
@@ -703,14 +751,58 @@ export default function ShiftDetailScreen() {
         )}
 
         {!isMyShift && spotsLeft <= 0 && (
-          <View style={[s.fullBanner, { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2' }]}>
-            <Ionicons name="close-circle-outline" size={20} color={isDark ? '#fca5a5' : '#dc2626'} />
-            <Text style={[s.fullText, { color: isDark ? '#fca5a5' : '#dc2626' }]}>
-              This shift is full — check back later for cancellations
-            </Text>
-          </View>
+          <Pressable
+            onPress={() => openSignupSheet(true)}
+            style={({ pressed }) => [
+              s.ctaButton,
+              {
+                backgroundColor: isDark ? '#92400e' : '#f59e0b',
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
+            ]}
+            accessibilityLabel="Join shift waitlist">
+            <Ionicons name="list" size={20} color="#ffffff" />
+            <Text style={s.ctaText}>Join Waitlist</Text>
+          </Pressable>
+        )}
+
+        {/* ═══ Cancel signup ═══ */}
+        {isMyShift && !checkedIn && (
+          <Pressable
+            onPress={handleCancel}
+            disabled={cancelLoading}
+            style={({ pressed }) => [
+              s.cancelButton,
+              {
+                borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
+                backgroundColor: isDark ? 'rgba(239,68,68,0.06)' : '#fef2f2',
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityLabel="Cancel shift signup">
+            {cancelLoading ? (
+              <RNActivityIndicator size="small" color={colors.destructive} />
+            ) : (
+              <>
+                <Ionicons name="close-circle-outline" size={18} color={colors.destructive} />
+                <Text style={[s.cancelText, { color: colors.destructive }]}>Cancel Signup</Text>
+              </>
+            )}
+          </Pressable>
         )}
       </ScrollView>
+
+      {/* ═══ Signup Sheet ═══ */}
+      {shift && (
+        <ShiftSignupSheet
+          visible={signupSheetVisible}
+          onClose={() => setSignupSheetVisible(false)}
+          onSuccess={handleSignupSuccess}
+          shift={shift}
+          isWaitlist={signupSheetWaitlist}
+          formatDate={formatNZT}
+        />
+      )}
     </>
   );
 }
@@ -1128,28 +1220,12 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.regular,
   },
 
-  // Notes card
-  notesCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginHorizontal: 16,
-    padding: 14,
-    borderRadius: 14,
-  },
-  notesIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
+  // Notes text
   notesText: {
     fontSize: 14,
-    fontFamily: FontFamily.medium,
-    flex: 1,
+    fontFamily: FontFamily.regular,
     lineHeight: 20,
+    marginHorizontal: 16,
   },
 
   // CTA button
@@ -1464,5 +1540,22 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.medium,
     lineHeight: 20,
+  },
+
+  // Cancel button
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    minHeight: 50,
+  },
+  cancelText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
   },
 });
