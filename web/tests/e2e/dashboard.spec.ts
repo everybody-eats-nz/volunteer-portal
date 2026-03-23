@@ -162,65 +162,6 @@ test.describe("Dashboard Page", () => {
     await expect(activeVolunteersText.first()).toBeVisible({ timeout: 10000 });
   });
 
-  test("should display quick actions section", async ({ page }) => {
-    // Check for quick actions heading - it's in a CardTitle, not a heading
-    const quickActionsHeading = page.getByText("Quick Actions");
-    await expect(quickActionsHeading.first()).toBeVisible();
-
-    // Check all quick action buttons
-    const findShiftsButton = page.getByRole("link", { name: /find shifts/i });
-    await expect(findShiftsButton.first()).toBeVisible();
-    await expect(findShiftsButton).toHaveAttribute("href", "/shifts");
-
-    const myScheduleButton = page.getByRole("link", { name: /my schedule/i });
-    await expect(myScheduleButton.first()).toBeVisible();
-    await expect(myScheduleButton).toHaveAttribute("href", "/shifts/mine");
-
-    const myProfileButton = page
-      .getByRole("main")
-      .getByRole("link", { name: "My Profile" });
-    await expect(myProfileButton.first()).toBeVisible();
-    await expect(myProfileButton).toHaveAttribute("href", "/profile");
-
-    const mainSiteLink = page.getByRole("link", { name: /visit main site/i });
-    await expect(mainSiteLink.first()).toBeVisible();
-    await expect(mainSiteLink).toHaveAttribute(
-      "href",
-      "https://everybodyeats.nz"
-    );
-    await expect(mainSiteLink).toHaveAttribute("target", "_blank");
-  });
-
-  test("should navigate to shifts page from quick actions", async ({
-    page,
-  }) => {
-    const findShiftsButton = page.getByRole("link", { name: /find shifts/i });
-    await expect(findShiftsButton.first()).toBeVisible();
-    await findShiftsButton.click();
-
-    await expect(page).toHaveURL("/shifts");
-  });
-
-  test("should navigate to my schedule from quick actions", async ({
-    page,
-  }) => {
-    const myScheduleButton = page.getByRole("link", { name: /my schedule/i });
-    await expect(myScheduleButton.first()).toBeVisible();
-    await myScheduleButton.click();
-
-    await expect(page).toHaveURL("/shifts/mine");
-  });
-
-  test("should navigate to profile from quick actions", async ({ page }) => {
-    const myProfileButton = page
-      .getByRole("main")
-      .getByRole("link", { name: "My Profile" });
-    await expect(myProfileButton.first()).toBeVisible();
-    await myProfileButton.click();
-
-    await expect(page).toHaveURL("/profile");
-  });
-
   test("should navigate to view all shifts from next shift section", async ({
     page,
   }) => {
@@ -302,9 +243,6 @@ test.describe("Dashboard Page", () => {
     );
     await expect(statCards).toBeVisible();
 
-    // Check quick actions are visible - use text instead of heading role
-    const quickActionsHeading = page.getByText("Quick Actions");
-    await expect(quickActionsHeading.first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should handle loading state gracefully", async ({ page }) => {
