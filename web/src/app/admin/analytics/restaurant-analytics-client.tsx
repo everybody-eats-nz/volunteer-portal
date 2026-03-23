@@ -39,6 +39,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DayOfWeekFilter } from "@/components/day-of-week-filter";
 import type { RestaurantAnalyticsData } from "@/lib/restaurant-analytics";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -47,6 +48,7 @@ interface Props {
   data: RestaurantAnalyticsData;
   months: string;
   location: string;
+  days: string;
   locations: Array<{ value: string; label: string }>;
 }
 
@@ -149,6 +151,7 @@ export function RestaurantAnalyticsClient({
   data,
   months: initialMonths,
   location: initialLocation,
+  days: initialDays,
   locations,
 }: Props) {
   const router = useRouter();
@@ -156,12 +159,15 @@ export function RestaurantAnalyticsClient({
   const [isPending, startTransition] = useTransition();
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
+  const [days, setDays] = useState(initialDays);
+  const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
   const chartThemeMode = (
     resolvedTheme === "dark" ? "dark" : "light"
   ) as "dark" | "light";
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
+    if (days) params.set("days", days);
     startTransition(() => {
       router.push(`/admin/analytics?${params}`);
     });
@@ -173,7 +179,7 @@ export function RestaurantAnalyticsClient({
       <Card>
         <CardContent className="py-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
@@ -204,6 +210,7 @@ export function RestaurantAnalyticsClient({
                   </SelectContent>
                 </Select>
               </div>
+              <DayOfWeekFilter value={days} onChange={setDays} />
             </div>
             <Button
               onClick={handleApplyFilters}
@@ -348,9 +355,10 @@ export function RestaurantAnalyticsClient({
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-blue-500" />
-                  Monthly Trend
+                  Meals Trend
                   <Dialog>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -386,10 +394,41 @@ export function RestaurantAnalyticsClient({
                     </DialogContent>
                   </Dialog>
                 </CardTitle>
+                  <div className="flex items-center rounded-md border text-sm">
+                    <button
+                      onClick={() => setTrendView("monthly")}
+                      className={`px-3 py-1 rounded-l-md transition-colors ${
+                        trendView === "monthly"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setTrendView("weekly")}
+                      className={`px-3 py-1 rounded-r-md transition-colors ${
+                        trendView === "weekly"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Weekly
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {data.currentYearTrend.some((v) => v > 0) ? (
+                {(() => {
+                  const isWeekly = trendView === "weekly";
+                  const labels = isWeekly ? data.weeklyLabels : data.trendLabels;
+                  const currentData = isWeekly ? data.currentYearWeekly : data.currentYearTrend;
+                  const prevData = isWeekly ? data.previousYearWeekly : data.previousYearTrend;
+                  const hasPrev = prevData.some((v) => v > 0);
+
+                  return currentData.some((v) => v > 0) ? (
                   <Chart
+                    key={`trend-${trendView}-${initialMonths}-${initialLocation}-${initialDays}`}
                     options={{
                       chart: {
                         type: "area" as const,
@@ -397,7 +436,8 @@ export function RestaurantAnalyticsClient({
                         background: "transparent",
                       },
                       xaxis: {
-                        categories: data.trendLabels,
+                        categories: labels,
+                        tickAmount: isWeekly ? 12 : undefined,
                         labels: {
                           style: {
                             fontFamily:
@@ -453,13 +493,13 @@ export function RestaurantAnalyticsClient({
                         },
                       },
                       markers: {
-                        size: [4, 3],
+                        size: isWeekly ? 0 : [4, 3],
                         strokeWidth: 2,
                         strokeColors: "#fff",
                         hover: { sizeOffset: 4 },
                       },
                       legend: {
-                        show: data.hasPreviousYearData,
+                        show: hasPrev,
                         position: "top" as const,
                         fontSize: "12px",
                         fontFamily:
@@ -471,13 +511,13 @@ export function RestaurantAnalyticsClient({
                     series={[
                       {
                         name: "This Year",
-                        data: data.currentYearTrend,
+                        data: currentData,
                       },
-                      ...(data.hasPreviousYearData
+                      ...(hasPrev
                         ? [
                             {
                               name: "Previous Year",
-                              data: data.previousYearTrend,
+                              data: prevData,
                             },
                           ]
                         : []),
@@ -489,7 +529,8 @@ export function RestaurantAnalyticsClient({
                   <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
                     No trend data available
                   </div>
-                )}
+                );
+                })()}
               </CardContent>
             </Card>
           </motion.div>
@@ -538,6 +579,7 @@ export function RestaurantAnalyticsClient({
               <CardContent>
                 {data.locationBreakdown.length > 0 ? (
                   <Chart
+                    key={`loc-${initialMonths}-${initialLocation}-${initialDays}`}
                     options={{
                       chart: {
                         type: "bar" as const,

@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const data = await getEngagementVolunteers({
       months,
       location,
+      daysFilter: null,
       statusFilter,
       page,
       pageSize,
