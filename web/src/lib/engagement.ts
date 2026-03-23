@@ -46,7 +46,8 @@ export interface EngagementSummaryData {
 
 export async function getEngagementSummary(
   months: number,
-  location: string | null
+  location: string | null,
+  daysFilter: number[] | null = null
 ): Promise<EngagementSummaryData> {
   const now = new Date();
   const periodStart = new Date(now);
@@ -62,6 +63,12 @@ export async function getEngagementSummary(
     : Prisma.sql`TRUE`;
   const trendLocationCond = isLocationFiltered
     ? Prisma.sql`AND sh.location = ${location}`
+    : Prisma.empty;
+  const daysCond = daysFilter && daysFilter.length > 0
+    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
+    : Prisma.empty;
+  const daysCond2 = daysFilter && daysFilter.length > 0
+    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
   // When location-filtered, include volunteers with shifts at this location
   // OR who selected this location in preferences (for "never volunteered")
@@ -95,12 +102,12 @@ export async function getEngagementSummary(
         SELECT
           u.id,
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now}), 0) as all_completed,
-          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond}), 0) as total_shifts,
-          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}), 0) as shifts_in_period,
-          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond}), 0) as shifts_in_prior,
-          MIN(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as first_shift_date,
-          BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond}) as in_prior_period,
-          BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}) as in_current_period,
+          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) as total_shifts,
+          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) as shifts_in_period,
+          COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond}), 0) as shifts_in_prior,
+          MIN(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}) as first_shift_date,
+          BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond2}) as in_prior_period,
+          BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond2}) as in_current_period,
           CASE
             WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
             THEN TRUE
@@ -137,6 +144,7 @@ export async function getEngagementSummary(
         AND sh."end" < ${now}
         AND sh."end" >= ${trendStart}
         ${trendLocationCond}
+        ${daysCond}
       GROUP BY date_trunc('week', sh."end")
       ORDER BY month
     `,
@@ -218,7 +226,8 @@ export interface ShiftTypeEngagement {
 
 export async function getEngagementByShiftType(
   months: number,
-  location: string | null
+  location: string | null,
+  daysFilter: number[] | null = null
 ): Promise<ShiftTypeEngagement[]> {
   const now = new Date();
   const periodStart = new Date(now);
@@ -230,6 +239,9 @@ export async function getEngagementByShiftType(
   const isLocationFiltered = !!location && location !== "all";
   const locationCond = isLocationFiltered
     ? Prisma.sql`AND sh.location = ${location}`
+    : Prisma.empty;
+  const daysCond = daysFilter && daysFilter.length > 0
+    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
 
   const result = await prisma.$queryRaw<
@@ -253,6 +265,7 @@ export async function getEngagementByShiftType(
         AND sh."end" >= ${priorStart}
         AND sh."end" < ${now}
         ${locationCond}
+        ${daysCond}
       GROUP BY st.name, sg."userId"
     )
     SELECT
@@ -285,7 +298,8 @@ export interface RetentionHeatmapData {
 }
 
 export async function getRetentionHeatmap(
-  location: string | null
+  location: string | null,
+  daysFilter: number[] | null = null
 ): Promise<RetentionHeatmapData> {
   const now = new Date();
   const cutoff = new Date(now);
@@ -297,6 +311,9 @@ export async function getRetentionHeatmap(
   const isLocationFiltered = !!location && location !== "all";
   const locationCond = isLocationFiltered
     ? Prisma.sql`AND sh.location = ${location}`
+    : Prisma.empty;
+  const daysCond = daysFilter && daysFilter.length > 0
+    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
 
   const result = await prisma.$queryRaw<
@@ -316,6 +333,7 @@ export async function getRetentionHeatmap(
       WHERE sg.status = 'CONFIRMED'
         AND sh."end" < ${now}
         ${locationCond}
+        ${daysCond}
       GROUP BY sg."userId"
     ),
     cohort_sizes AS (
@@ -332,6 +350,7 @@ export async function getRetentionHeatmap(
       WHERE sg.status = 'CONFIRMED'
         AND sh."end" < ${now}
         ${locationCond}
+        ${daysCond}
     ),
     retention AS (
       SELECT
@@ -438,6 +457,7 @@ export interface EngagementVolunteersResult {
 export async function getEngagementVolunteers(params: {
   months: number;
   location: string | null;
+  daysFilter: number[] | null;
   statusFilter: string | null;
   page: number;
   pageSize: number;
@@ -448,6 +468,7 @@ export async function getEngagementVolunteers(params: {
   const {
     months,
     location,
+    daysFilter,
     statusFilter,
     page,
     pageSize,
@@ -464,6 +485,9 @@ export async function getEngagementVolunteers(params: {
   const locationCond = isLocationFiltered
     ? Prisma.sql`sh.location = ${location}`
     : Prisma.sql`TRUE`;
+  const daysCond = daysFilter && daysFilter.length > 0
+    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
+    : Prisma.empty;
 
   const searchCond = search
     ? Prisma.sql`AND (
@@ -505,9 +529,9 @@ export async function getEngagementVolunteers(params: {
         u.id, u.name, u."firstName", u."lastName", u.email,
         u."profilePhotoUrl", u."volunteerGrade", u."createdAt",
         COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now}), 0) as all_completed,
-        COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond}), 0) as total_shifts,
-        COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond}), 0) as shifts_in_period,
-        MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond}) as last_shift_date,
+        COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) as total_shifts,
+        COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) as shifts_in_period,
+        MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}) as last_shift_date,
         CASE
           WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
           THEN TRUE

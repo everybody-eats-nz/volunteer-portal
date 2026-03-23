@@ -39,6 +39,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DayOfWeekFilter } from "@/components/day-of-week-filter";
 import type { RestaurantAnalyticsData } from "@/lib/restaurant-analytics";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -47,6 +48,7 @@ interface Props {
   data: RestaurantAnalyticsData;
   months: string;
   location: string;
+  days: string;
   locations: Array<{ value: string; label: string }>;
 }
 
@@ -149,6 +151,7 @@ export function RestaurantAnalyticsClient({
   data,
   months: initialMonths,
   location: initialLocation,
+  days: initialDays,
   locations,
 }: Props) {
   const router = useRouter();
@@ -156,12 +159,14 @@ export function RestaurantAnalyticsClient({
   const [isPending, startTransition] = useTransition();
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
+  const [days, setDays] = useState(initialDays);
   const chartThemeMode = (
     resolvedTheme === "dark" ? "dark" : "light"
   ) as "dark" | "light";
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
+    if (days) params.set("days", days);
     startTransition(() => {
       router.push(`/admin/analytics?${params}`);
     });
@@ -173,7 +178,7 @@ export function RestaurantAnalyticsClient({
       <Card>
         <CardContent className="py-4">
           <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
                 <Select value={months} onValueChange={setMonths}>
@@ -204,6 +209,7 @@ export function RestaurantAnalyticsClient({
                   </SelectContent>
                 </Select>
               </div>
+              <DayOfWeekFilter value={days} onChange={setDays} />
             </div>
             <Button
               onClick={handleApplyFilters}
@@ -390,6 +396,7 @@ export function RestaurantAnalyticsClient({
               <CardContent>
                 {data.currentYearTrend.some((v) => v > 0) ? (
                   <Chart
+                    key={`trend-${initialMonths}-${initialLocation}-${initialDays}`}
                     options={{
                       chart: {
                         type: "area" as const,
@@ -538,6 +545,7 @@ export function RestaurantAnalyticsClient({
               <CardContent>
                 {data.locationBreakdown.length > 0 ? (
                   <Chart
+                    key={`loc-${initialMonths}-${initialLocation}-${initialDays}`}
                     options={{
                       chart: {
                         type: "bar" as const,

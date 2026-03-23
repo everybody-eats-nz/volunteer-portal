@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/page-container";
 import { RestaurantAnalyticsClient } from "./restaurant-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
 import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
+import { parseDaysParam } from "@/lib/parse-days-param";
 
 export default async function AnalyticsPage({
   searchParams,
@@ -25,8 +26,10 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const months = (params.months as string) || "3";
   const location = (params.location as string) || "all";
+  const days = (params.days as string) || "";
+  const daysFilter = parseDaysParam(days);
 
-  const data = await getRestaurantAnalytics(parseInt(months, 10), location);
+  const data = await getRestaurantAnalytics(parseInt(months, 10), location, daysFilter);
 
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
@@ -43,6 +46,7 @@ export default async function AnalyticsPage({
           data={data}
           months={months}
           location={location}
+          days={days}
           locations={locationOptions}
         />
       </PageContainer>

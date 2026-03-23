@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { nowInNZT } from "@/lib/timezone";
+import { nowInNZT, toNZT } from "@/lib/timezone";
 
 export interface RestaurantAnalyticsData {
   summary: {
@@ -40,10 +40,16 @@ interface PeriodResult {
 function processPeriod(
   shifts: Array<{ start: Date; location: string | null }>,
   mealsRecords: Array<{ date: Date; location: string; mealsServed: number }>,
-  locationDefaults: Record<string, number>
+  locationDefaults: Record<string, number>,
+  daysFilter: number[] | null
 ): PeriodResult {
   const locationDays: Record<string, Set<string>> = {};
   shifts.forEach((shift) => {
+    // Use NZT day of week for filtering
+    if (daysFilter) {
+      const nzDay = toNZT(shift.start).getDay();
+      if (!daysFilter.includes(nzDay)) return;
+    }
     const dateKey = shift.start.toISOString().substring(0, 10);
     const loc = shift.location || "Unknown";
     if (!locationDays[loc]) locationDays[loc] = new Set();
@@ -87,7 +93,8 @@ function processPeriod(
 
 export async function getRestaurantAnalytics(
   months: number,
-  location: string | null
+  location: string | null,
+  daysFilter: number[] | null = null
 ): Promise<RestaurantAnalyticsData> {
   const isLocationFiltered = !!location && location !== "all";
   const locations = await prisma.location.findMany({
@@ -142,8 +149,8 @@ export async function getRestaurantAnalytics(
       }),
     ]);
 
-  const current = processPeriod(currentShifts, currentMeals, locationDefaults);
-  const previous = processPeriod(prevShifts, prevMeals, locationDefaults);
+  const current = processPeriod(currentShifts, currentMeals, locationDefaults, daysFilter);
+  const previous = processPeriod(prevShifts, prevMeals, locationDefaults, daysFilter);
 
   // Summary
   const grandTotal = Object.values(current.byLocation).reduce(
