@@ -67,9 +67,6 @@ export async function getEngagementSummary(
   const daysCond = daysFilter && daysFilter.length > 0
     ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
-  const daysCond2 = daysFilter && daysFilter.length > 0
-    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
-    : Prisma.empty;
   // When location-filtered, include volunteers with shifts at this location
   // OR who selected this location in preferences (for "never volunteered")
   const excludeCond = isLocationFiltered
@@ -106,8 +103,8 @@ export async function getEngagementSummary(
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) as shifts_in_period,
           COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond}), 0) as shifts_in_prior,
           MIN(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}) as first_shift_date,
-          BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond2}) as in_prior_period,
-          BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond2}) as in_current_period,
+          BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond}) as in_prior_period,
+          BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}) as in_current_period,
           CASE
             WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
             THEN TRUE
