@@ -48,7 +48,7 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "dashboard",
       },
       {
-        title: "Analytics (Beta)",
+        title: "Restaurant Analytics",
         href: "/admin/analytics",
         icon: BarChart3,
         description: "Restaurant analytics and metrics",
@@ -250,7 +250,7 @@ export const getIconColor = (
   const colorMap: Record<string, string> = {
     // Overview
     Dashboard: "text-blue-600",
-    "Analytics (Beta)": "text-purple-600",
+    "Restaurant Analytics": "text-purple-600",
     "Volunteer Engagement": "text-emerald-600",
 
     // Volunteer Management

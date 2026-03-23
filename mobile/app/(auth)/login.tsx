@@ -76,6 +76,7 @@ export default function LoginScreen() {
             placeholder="Password"
             placeholderTextColor={colors.textSecondary}
             secureTextEntry
+            autoComplete="password"
             textContentType="password"
             editable={!isLoading}
             onSubmitEditing={handleLogin}
