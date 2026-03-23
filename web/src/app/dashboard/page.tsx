@@ -12,7 +12,7 @@ import { DashboardRecentActivity } from "@/components/dashboard-recent-activity"
 import { DashboardStatsSkeleton } from "@/components/dashboard-stats-skeleton";
 import { DashboardContentSkeleton } from "@/components/dashboard-content-skeleton";
 import { DashboardImpactStats } from "@/components/dashboard-impact-stats";
-import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
+
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { DashboardSurveyBannerServer } from "@/components/dashboard-survey-banner-server";
 import { DashboardSuggestedFriends } from "@/components/dashboard-suggested-friends";
@@ -89,9 +89,6 @@ export default async function DashboardPage() {
           <DashboardImpactStats userId={userId} />
         </Suspense>
       </ContentGrid>
-
-      {/* Quick Actions - renders immediately (no data dependencies) */}
-      <DashboardQuickActions />
 
       {/* Achievement Tracker - client component for celebration dialog */}
       <AchievementTracker />
