@@ -26,6 +26,9 @@ export interface RestaurantAnalyticsData {
   trendLabels: string[];
   currentYearTrend: number[];
   previousYearTrend: number[];
+  weeklyLabels: string[];
+  currentYearWeekly: number[];
+  previousYearWeekly: number[];
   hasPreviousYearData: boolean;
 }
 
@@ -35,6 +38,7 @@ interface PeriodResult {
     { total: number; daysWithShifts: number; daysWithRecords: number }
   >;
   monthlyTotals: Record<string, number>;
+  weeklyTotals: Record<string, number>;
 }
 
 function processPeriod(
@@ -64,6 +68,7 @@ function processPeriod(
 
   const byLocation: PeriodResult["byLocation"] = {};
   const monthlyTotals: Record<string, number> = {};
+  const weeklyTotals: Record<string, number> = {};
 
   Object.entries(locationDays).forEach(([loc, days]) => {
     const defaultMeals = locationDefaults[loc] || 60;
@@ -79,6 +84,14 @@ function processPeriod(
 
       const monthKey = dateKey.substring(0, 7);
       monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + meals;
+
+      // ISO week key: Monday of the week containing this date
+      const d = new Date(dateKey + "T00:00:00");
+      const day = d.getDay();
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+      const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+      weeklyTotals[weekKey] = (weeklyTotals[weekKey] || 0) + meals;
     });
 
     byLocation[loc] = {
@@ -88,7 +101,7 @@ function processPeriod(
     };
   });
 
-  return { byLocation, monthlyTotals };
+  return { byLocation, monthlyTotals, weeklyTotals };
 }
 
 export async function getRestaurantAnalytics(
@@ -262,7 +275,41 @@ export async function getRestaurantAnalytics(
     return previous.monthlyTotals[prevKey] || 0;
   });
 
-  const hasPreviousYearData = previousYearTrend.some((v) => v > 0);
+  // Weekly trends — generate all week keys (Monday dates) in current period
+  const weekKeys: string[] = [];
+  {
+    // Start from the Monday on or before startDate
+    const cursor = new Date(startDate);
+    const day = cursor.getDay();
+    cursor.setDate(cursor.getDate() - (day === 0 ? 6 : day - 1));
+    cursor.setHours(0, 0, 0, 0);
+    while (cursor <= endDate) {
+      weekKeys.push(
+        `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`
+      );
+      cursor.setDate(cursor.getDate() + 7);
+    }
+  }
+
+  const weeklyLabels = weekKeys.map((w) => {
+    const d = new Date(w + "T00:00:00");
+    return d.toLocaleDateString("en-NZ", { day: "numeric", month: "short" });
+  });
+
+  const currentYearWeekly = weekKeys.map(
+    (w) => current.weeklyTotals[w] || 0
+  );
+
+  const previousYearWeekly = weekKeys.map((w) => {
+    const d = new Date(w + "T00:00:00");
+    d.setFullYear(d.getFullYear() - 1);
+    const prevKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return previous.weeklyTotals[prevKey] || 0;
+  });
+
+  const hasPreviousYearData =
+    previousYearTrend.some((v) => v > 0) ||
+    previousYearWeekly.some((v) => v > 0);
 
   return {
     summary,
@@ -270,6 +317,9 @@ export async function getRestaurantAnalytics(
     trendLabels,
     currentYearTrend,
     previousYearTrend,
+    weeklyLabels,
+    currentYearWeekly,
+    previousYearWeekly,
     hasPreviousYearData,
   };
 }
