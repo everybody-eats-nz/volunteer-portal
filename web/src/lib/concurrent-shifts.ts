@@ -1,8 +1,20 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 import { formatInNZT, toNZT } from "@/lib/timezone";
 
 /** Hour cutoff (NZ time) — shifts starting before this are "Day", at or after are "Evening" */
 export const DAY_EVENING_CUTOFF_HOUR = 16;
+
+/**
+ * SQL fragment to convert a UTC timestamp column to NZ local time.
+ * Prisma stores DateTime as `timestamp without time zone` in UTC,
+ * so we must first interpret it as UTC before converting to NZ.
+ *
+ * Usage: Prisma.sql`EXTRACT(HOUR FROM ${shiftStartNZ('"sh"."start"')}) < ${DAY_EVENING_CUTOFF_HOUR}`
+ */
+export function shiftStartNZ(column = 'sh.start'): Prisma.Sql {
+  return Prisma.raw(`(${column} AT TIME ZONE 'UTC') AT TIME ZONE 'Pacific/Auckland'`);
+}
 
 /**
  * Whether a shift falls in the day period (before 4pm NZ time).

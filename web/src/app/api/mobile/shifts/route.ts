@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -154,6 +155,91 @@ export async function GET(request: Request) {
     (s) => s.signups.length < s.capacity
   );
 
+  // Build periodFriends: friends signed up for shifts in each date+period
+  // Collect all upcoming shift IDs (myShifts + available)
+  const allUpcomingShiftIds = [
+    ...mySignups.map((s) => s.shift.id),
+    ...availableShifts.map((s) => s.id),
+  ];
+
+  // Build a map of shiftId → date+period key
+  const shiftPeriodMap = new Map<string, string>();
+  for (const signup of mySignups) {
+    const date = getShiftDate(signup.shift.start);
+    const period = isAMShift(signup.shift.start) ? "DAY" : "EVE";
+    shiftPeriodMap.set(signup.shift.id, `${date}-${period}`);
+  }
+  for (const shift of availableShifts) {
+    const date = getShiftDate(shift.start);
+    const period = isAMShift(shift.start) ? "DAY" : "EVE";
+    shiftPeriodMap.set(shift.id, `${date}-${period}`);
+  }
+
+  // Get user's friends
+  const friendships = await prisma.friendship.findMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [{ userId }, { friendId: userId }],
+    },
+    select: { userId: true, friendId: true },
+  });
+
+  const friendIds = new Set<string>();
+  for (const f of friendships) {
+    friendIds.add(f.userId === userId ? f.friendId : f.userId);
+  }
+
+  let periodFriends: Record<string, Array<{ id: string; name: string; profilePhotoUrl: string | null }>> = {};
+
+  if (friendIds.size > 0 && allUpcomingShiftIds.length > 0) {
+    const friendSignups = await prisma.signup.findMany({
+      where: {
+        shiftId: { in: allUpcomingShiftIds },
+        userId: { in: Array.from(friendIds) },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+      },
+      select: {
+        shiftId: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+          },
+        },
+      },
+    });
+
+    // Group by period key, dedup by friend ID within each period
+    const periodMap = new Map<string, Map<string, { id: string; name: string; profilePhotoUrl: string | null }>>();
+
+    for (const signup of friendSignups) {
+      const periodKey = shiftPeriodMap.get(signup.shiftId);
+      if (!periodKey) continue;
+
+      if (!periodMap.has(periodKey)) {
+        periodMap.set(periodKey, new Map());
+      }
+      const friendsInPeriod = periodMap.get(periodKey)!;
+      if (!friendsInPeriod.has(signup.user.id)) {
+        friendsInPeriod.set(signup.user.id, {
+          id: signup.user.id,
+          name:
+            signup.user.name ??
+            [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ??
+            "Volunteer",
+          profilePhotoUrl: signup.user.profilePhotoUrl,
+        });
+      }
+    }
+
+    periodFriends = Object.fromEntries(
+      Array.from(periodMap.entries()).map(([key, map]) => [key, Array.from(map.values())])
+    );
+  }
+
   return NextResponse.json({
     myShifts: mySignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)
@@ -169,5 +255,6 @@ export async function GET(request: Request) {
       ? pastSignups[pastSignups.length - 1]?.id ?? null
       : null,
     userPreferredLocations,
+    periodFriends,
   });
 }

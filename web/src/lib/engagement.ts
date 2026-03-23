@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
+import { shiftStartNZ } from "@/lib/concurrent-shifts";
 
 export type EngagementStatus = "highly_active" | "active" | "inactive" | "never";
 
@@ -65,7 +66,7 @@ export async function getEngagementSummary(
     ? Prisma.sql`AND sh.location = ${location}`
     : Prisma.empty;
   const daysCond = daysFilter && daysFilter.length > 0
-    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
+    ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ()})::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
   // When location-filtered, include volunteers with shifts at this location
   // OR who selected this location in preferences (for "never volunteered")
@@ -238,7 +239,7 @@ export async function getEngagementByShiftType(
     ? Prisma.sql`AND sh.location = ${location}`
     : Prisma.empty;
   const daysCond = daysFilter && daysFilter.length > 0
-    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
+    ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ()})::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
 
   const result = await prisma.$queryRaw<
@@ -310,7 +311,7 @@ export async function getRetentionHeatmap(
     ? Prisma.sql`AND sh.location = ${location}`
     : Prisma.empty;
   const daysCond = daysFilter && daysFilter.length > 0
-    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
+    ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ()})::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
 
   const result = await prisma.$queryRaw<
@@ -483,7 +484,7 @@ export async function getEngagementVolunteers(params: {
     ? Prisma.sql`sh.location = ${location}`
     : Prisma.sql`TRUE`;
   const daysCond = daysFilter && daysFilter.length > 0
-    ? Prisma.sql`AND EXTRACT(DOW FROM sh.start AT TIME ZONE 'Pacific/Auckland')::int IN (${Prisma.join(daysFilter)})`
+    ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ()})::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
 
   const searchCond = search
