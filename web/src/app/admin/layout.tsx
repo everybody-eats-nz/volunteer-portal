@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
 
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { AdminLayoutHeader } from "@/components/admin-layout-header";
@@ -59,13 +60,22 @@ export default async function AdminLayout({
 
   // Get pending parental consent count (volunteers requiring consent but not yet received)
   // Uses requiresParentalConsent flag for consistency with the table data
-  const pendingParentalConsentCount = await prisma.user.count({
-    where: {
-      role: "VOLUNTEER",
-      requiresParentalConsent: true,
-      parentalConsentReceived: false,
-    },
-  });
+  const [pendingParentalConsentCount, chatGuidesEnabled] = await Promise.all([
+    prisma.user.count({
+      where: {
+        role: "VOLUNTEER",
+        requiresParentalConsent: true,
+        parentalConsentReceived: false,
+      },
+    }),
+    isFeatureEnabled(FeatureFlag.CHAT_GUIDES, session.user.id),
+  ]);
+
+  // Build list of nav items to hide based on feature flags
+  const hiddenNavItems: string[] = [];
+  if (!chatGuidesEnabled) {
+    hiddenNavItems.push("/admin/chat-guides");
+  }
 
   return (
     <AdminHeaderProvider>
@@ -75,6 +85,7 @@ export default async function AdminLayout({
           userProfile={userProfile}
           displayName={displayName}
           pendingParentalConsentCount={pendingParentalConsentCount}
+          hiddenNavItems={hiddenNavItems}
         />
         <SidebarInset>
           <ScrollToTop />
