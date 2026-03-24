@@ -677,11 +677,16 @@ model Resource {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Chat guide context — when enabled, this resource's content is passed to the mobile AI chat
+  includeInChat Boolean @default(false)
+  chatContent   String? // Extracted/written text content for AI context (from PDF or manual entry)
+
   // Relations
   uploader User @relation("ResourceUploader", fields: [uploadedBy], references: [id])
 
   @@index([type, isPublished])
   @@index([category, isPublished])
+  @@index([includeInChat])
   @@index([uploadedBy])
   @@index([createdAt])
 }

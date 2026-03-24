@@ -26,6 +26,8 @@ const updateResourceSchema = z.object({
   fileSize: z.number().optional(),
   url: z.string().optional(),
   isPublished: z.boolean().optional(),
+  includeInChat: z.boolean().optional(),
+  chatContent: z.string().nullable().optional(),
 });
 
 // GET /api/admin/resources/[id] - Get single resource
