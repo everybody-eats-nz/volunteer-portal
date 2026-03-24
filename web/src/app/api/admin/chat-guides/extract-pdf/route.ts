@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { PDFParse } from "pdf-parse";
+import { extractText } from "unpdf";
 
 /**
  * POST /api/admin/chat-guides/extract-pdf
@@ -42,18 +42,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Use pdf-parse v2 PDFParse class with URL
-    const parser = new PDFParse({ url: resource.fileUrl });
-    const result = await parser.getText();
+    // Fetch the PDF and extract text using unpdf
+    const response = await fetch(resource.fileUrl);
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: "Failed to fetch PDF file" },
+        { status: 502 },
+      );
+    }
+    const buffer = await response.arrayBuffer();
+    const result = await extractText(new Uint8Array(buffer), { mergePages: true });
 
     // Clean up extracted text: collapse excessive whitespace
-    const text = result.text
+    const text = (result.text as string)
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
     return NextResponse.json({
       text,
-      pages: (result as unknown as { total: number }).total,
+      pages: result.totalPages,
       title: resource.title,
     });
   } catch (error) {
