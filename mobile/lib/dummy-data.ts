@@ -103,6 +103,27 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     bgLight: '#fef2f2',
     bgDark: 'rgba(220, 38, 38, 0.12)',
   },
+  'Dishwasher': {
+    emoji: '🧽',
+    color: '#2563eb',
+    colorDark: '#60a5fa',
+    bgLight: '#eff6ff',
+    bgDark: 'rgba(37, 99, 235, 0.12)',
+  },
+  'FOH': {
+    emoji: '✨',
+    color: '#9333ea',
+    colorDark: '#c084fc',
+    bgLight: '#faf5ff',
+    bgDark: 'rgba(147, 51, 234, 0.12)',
+  },
+  'Media Role': {
+    emoji: '📷',
+    color: '#db2777',
+    colorDark: '#f472b6',
+    bgLight: '#fdf2f8',
+    bgDark: 'rgba(219, 39, 119, 0.12)',
+  },
 };
 
 const DEFAULT_SHIFT_TYPE_THEME: ShiftTypeTheme = {

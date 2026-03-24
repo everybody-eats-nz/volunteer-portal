@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { DAY_EVENING_CUTOFF_HOUR } from "@/lib/concurrent-shifts";
+import { DAY_EVENING_CUTOFF_HOUR, shiftStartNZ } from "@/lib/concurrent-shifts";
 
 /**
  * GET /api/mobile/friends/[id]
@@ -138,8 +138,8 @@ export async function GET(
     >`
       WITH user_shifts AS (
         SELECT
-          (sh.start AT TIME ZONE 'Pacific/Auckland')::date as shift_date,
-          CASE WHEN EXTRACT(HOUR FROM sh.start AT TIME ZONE 'Pacific/Auckland') < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          (${shiftStartNZ()})::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM ${shiftStartNZ()}) < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
           sh.location,
           sh.start
         FROM "Signup" s
@@ -148,8 +148,8 @@ export async function GET(
       ),
       friend_shifts AS (
         SELECT
-          (sh.start AT TIME ZONE 'Pacific/Auckland')::date as shift_date,
-          CASE WHEN EXTRACT(HOUR FROM sh.start AT TIME ZONE 'Pacific/Auckland') < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          (${shiftStartNZ()})::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM ${shiftStartNZ()}) < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
           sh.location,
           sh.start
         FROM "Signup" s
