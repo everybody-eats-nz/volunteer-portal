@@ -61,7 +61,7 @@ export default function TabLayout() {
         <NativeTabs.Trigger name="chat">
           <NativeTabs.Trigger.Label>Help</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
-            sf={{ default: 'cpu', selected: 'cpu.fill' }}
+            sf={{ default: 'sparkles', selected: 'sparkles' }}
             md="smart-toy"
           />
         </NativeTabs.Trigger>
