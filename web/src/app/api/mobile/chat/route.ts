@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { streamText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
 
-const openrouter = createOpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
+const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY ?? "",
-  compatibility: "compatible",
 });
 
 const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
