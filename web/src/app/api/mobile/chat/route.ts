@@ -381,6 +381,10 @@ export async function POST(request: Request) {
         role: m.role,
         content: m.content,
       })),
+      maxTokens: 1024,
+      onError: ({ error }) => {
+        console.error("[mobile-chat] streamText error:", error);
+      },
     });
 
     return result.toTextStreamResponse();
