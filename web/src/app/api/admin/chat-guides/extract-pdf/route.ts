@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
+import { PDFParse } from "pdf-parse";
 
 /**
  * POST /api/admin/chat-guides/extract-pdf
@@ -43,26 +42,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch the PDF file
-    const pdfResponse = await fetch(resource.fileUrl);
-    if (!pdfResponse.ok) {
-      return NextResponse.json(
-        { error: `Failed to download PDF: ${pdfResponse.status}` },
-        { status: 502 },
-      );
-    }
-
-    const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-    const parsed = await pdfParse(pdfBuffer);
+    // Use pdf-parse v2 PDFParse class with URL
+    const parser = new PDFParse({ url: resource.fileUrl });
+    const result = await parser.getText();
 
     // Clean up extracted text: collapse excessive whitespace
-    const text = parsed.text
+    const text = result.text
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
     return NextResponse.json({
       text,
-      pages: parsed.numpages,
+      pages: (result as unknown as { total: number }).total,
       title: resource.title,
     });
   } catch (error) {
