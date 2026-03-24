@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   MessageSquare,
   Plus,
@@ -10,6 +10,10 @@ import {
   Check,
   X,
   Info,
+  Send,
+  RotateCcw,
+  Bot,
+  User,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -152,6 +156,7 @@ export function ChatGuidesContent({
   const [selectedResourceId, setSelectedResourceId] = useState("");
   const [chatContent, setChatContent] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [isExtractingPdf, setIsExtractingPdf] = useState(false);
 
   // Edit dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -169,6 +174,13 @@ export function ChatGuidesContent({
   const [newCategory, setNewCategory] = useState("GUIDES");
   const [newContent, setNewContent] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+
+  // Chat preview
+  type PreviewMessage = { id: string; role: "user" | "assistant"; content: string };
+  const [previewMessages, setPreviewMessages] = useState<PreviewMessage[]>([]);
+  const [previewInput, setPreviewInput] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewEndRef = useRef<HTMLDivElement>(null);
 
   const availableResources = allResources.filter(
     (r) => !r.includeInChat,
@@ -208,6 +220,44 @@ export function ChatGuidesContent({
       });
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleResourceSelected = async (resourceId: string) => {
+    setSelectedResourceId(resourceId);
+    setChatContent("");
+
+    // Auto-extract text if it's a PDF
+    const resource = availableResources.find((r) => r.id === resourceId);
+    if (resource?.type === "PDF") {
+      setIsExtractingPdf(true);
+      try {
+        const response = await fetch("/api/admin/chat-guides/extract-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resourceId }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Failed to extract PDF text");
+        }
+
+        const { text, pages } = await response.json();
+        setChatContent(text);
+        toast({
+          title: "PDF text extracted",
+          description: `Extracted text from ${pages} page${pages !== 1 ? "s" : ""}. Review and edit below.`,
+        });
+      } catch (error) {
+        toast({
+          title: "PDF extraction failed",
+          description: error instanceof Error ? error.message : "Could not extract text. You can paste content manually.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExtractingPdf(false);
+      }
     }
   };
 
@@ -270,6 +320,62 @@ export function ChatGuidesContent({
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handlePreviewSend = useCallback(async (text?: string) => {
+    const content = (text ?? previewInput).trim();
+    if (!content || previewLoading) return;
+
+    const userMsg: PreviewMessage = { id: Date.now().toString(), role: "user", content };
+    const assistantId = (Date.now() + 1).toString();
+    const allMsgs = [...previewMessages, userMsg];
+
+    setPreviewMessages(allMsgs);
+    setPreviewInput("");
+    setPreviewLoading(true);
+
+    try {
+      const response = await fetch("/api/admin/chat-guides/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: allMsgs.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to get response");
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No stream");
+
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      setPreviewMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        assistantContent += decoder.decode(value, { stream: true });
+        const captured = assistantContent;
+        setPreviewMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: captured } : m)),
+        );
+      }
+    } catch {
+      setPreviewMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: "assistant", content: "Error: Failed to get a response. Check that OPENROUTER_API_KEY is set." },
+      ]);
+    } finally {
+      setPreviewLoading(false);
+      setTimeout(() => previewEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    }
+  }, [previewInput, previewLoading, previewMessages]);
+
+  const resetPreview = () => {
+    setPreviewMessages([]);
+    setPreviewInput("");
   };
 
   const handleAddResource = async () => {
@@ -615,6 +721,108 @@ export function ChatGuidesContent({
         )}
       </div>
 
+      {/* Chat Preview */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="h-5 w-5" />
+                Chat Preview
+              </CardTitle>
+              <CardDescription>
+                Test the AI assistant with the current resources and prompt settings.
+              </CardDescription>
+            </div>
+            {previewMessages.length > 0 && (
+              <Button variant="outline" size="sm" onClick={resetPreview}>
+                <RotateCcw className="mr-1 h-3 w-3" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col rounded-lg border bg-muted/30">
+            {/* Messages area */}
+            <div className="h-[400px] overflow-y-auto p-4">
+              {previewMessages.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <MessageSquare className="h-10 w-10 opacity-40" />
+                  <p className="text-sm">Send a message to test the assistant</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {["What happens on a typical shift?", "Where are the kitchens?", "Kitchen safety tips"].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => handlePreviewSend(q)}
+                        className="rounded-full border bg-background px-3 py-1.5 text-xs transition-colors hover:bg-muted"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {previewMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      {msg.role === "assistant" && (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                          <Bot className="h-4 w-4 text-green-700 dark:text-green-400" />
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "border bg-background"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{msg.content || (previewLoading ? "..." : "")}</p>
+                      </div>
+                      {msg.role === "user" && (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={previewEndRef} />
+                </div>
+              )}
+            </div>
+
+            {/* Input bar */}
+            <div className="flex gap-2 border-t p-3">
+              <input
+                type="text"
+                value={previewInput}
+                onChange={(e) => setPreviewInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handlePreviewSend();
+                  }
+                }}
+                placeholder="Ask the assistant something..."
+                disabled={previewLoading}
+                className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+              <Button
+                size="icon"
+                onClick={() => handlePreviewSend()}
+                disabled={!previewInput.trim() || previewLoading}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Add Resource Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -628,7 +836,7 @@ export function ChatGuidesContent({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Resource</Label>
-              <Select value={selectedResourceId} onValueChange={setSelectedResourceId}>
+              <Select value={selectedResourceId} onValueChange={handleResourceSelected}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a resource..." />
                 </SelectTrigger>
@@ -651,12 +859,19 @@ export function ChatGuidesContent({
               <Textarea
                 value={chatContent}
                 onChange={(e) => setChatContent(e.target.value)}
-                placeholder="Paste or type the text content the AI should use as context..."
+                placeholder={
+                  isExtractingPdf
+                    ? "Extracting text from PDF..."
+                    : "Paste or type the text content the AI should use as context..."
+                }
                 rows={12}
+                disabled={isExtractingPdf}
                 className="max-h-[40vh] resize-none font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                ~{Math.round(chatContent.length / 4).toLocaleString()} tokens
+                {isExtractingPdf
+                  ? "Extracting text from PDF..."
+                  : `~${Math.round(chatContent.length / 4).toLocaleString()} tokens`}
               </p>
             </div>
           </div>
@@ -666,7 +881,7 @@ export function ChatGuidesContent({
             </Button>
             <Button
               onClick={handleAddResource}
-              disabled={!selectedResourceId || !chatContent.trim() || isAdding}
+              disabled={!selectedResourceId || !chatContent.trim() || isAdding || isExtractingPdf}
             >
               {isAdding ? "Adding..." : "Add to Chat"}
             </Button>

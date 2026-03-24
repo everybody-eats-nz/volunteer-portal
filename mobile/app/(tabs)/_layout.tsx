@@ -59,10 +59,10 @@ export default function TabLayout() {
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger name="chat">
-          <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>Help</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
-            sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }}
-            md="chat"
+            sf={{ default: 'sparkles', selected: 'sparkles' }}
+            md="smart-toy"
           />
         </NativeTabs.Trigger>
 
