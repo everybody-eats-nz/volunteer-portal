@@ -374,8 +374,16 @@ export async function POST(request: Request) {
       "\n---";
 
     // Stream response from OpenRouter
+    const modelId = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+    console.log("[mobile-chat] Starting streamText", {
+      modelId,
+      hasApiKey: !!process.env.OPENROUTER_API_KEY,
+      messageCount: messages.length,
+      systemPromptLength: systemPrompt.length,
+    });
+
     const result = streamText({
-      model: openrouter(process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4"),
+      model: openrouter(modelId),
       system: systemPrompt,
       messages: messages.map((m) => ({
         role: m.role,

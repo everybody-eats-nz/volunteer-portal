@@ -214,10 +214,10 @@ const MessageBubble = React.memo(function MessageBubble({
             ordered_list: { marginVertical: 4 },
             list_item: { marginVertical: 1 },
             link: { color: Brand.green },
-            paragraph: { marginTop: 0, marginBottom: 6 },
-            heading1: { fontFamily: FontFamily.headingSemiBold, fontSize: 17, marginBottom: 4, color: colors.text },
-            heading2: { fontFamily: FontFamily.headingSemiBold, fontSize: 16, marginBottom: 4, color: colors.text },
-            heading3: { fontFamily: FontFamily.headingMedium, fontSize: 15, marginBottom: 2, color: colors.text },
+            paragraph: { marginTop: 0, marginBottom: 10 },
+            heading1: { fontFamily: FontFamily.headingBold, fontSize: 18, marginBottom: 6, marginTop: 12, color: colors.text },
+            heading2: { fontFamily: FontFamily.headingBold, fontSize: 17, marginBottom: 4, marginTop: 10, color: colors.text },
+            heading3: { fontFamily: FontFamily.headingBold, fontSize: 16, marginBottom: 4, marginTop: 8, color: colors.text },
           }}
         >
           {item.content}
@@ -382,16 +382,18 @@ export default function ChatScreen() {
       };
 
       setInput("");
-      setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
 
-      // Stream response from AI assistant
       const assistantId = (Date.now() + 1).toString();
-      const allMessages = [...messages.filter((m) => m.id !== "welcome"), userMessage];
+      // Build conversation history from current messages + new user message
+      const allMessages = [...messages, userMessage]
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.content }));
+      setMessages((prev) => [...prev, userMessage]);
 
       try {
         await chatWithAssistant(
-          allMessages.map((m) => ({ role: m.role, content: m.content })),
+          allMessages,
           {
             onStart: () => {
               // Hide typing indicator and add empty message to stream into
@@ -443,7 +445,7 @@ export default function ChatScreen() {
         setIsLoading(false);
       }
     },
-    [input, isLoading],
+    [input, isLoading, messages],
   );
 
   /* ── Render message with grouping ── */
