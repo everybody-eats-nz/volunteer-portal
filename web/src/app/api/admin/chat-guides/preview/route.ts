@@ -186,7 +186,6 @@ export async function POST(request: Request) {
       model: openrouter(modelId),
       system: systemPrompt,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      maxTokens: 1024,
       onError: ({ error }) => {
         console.error("[chat-preview] streamText error:", error);
       },

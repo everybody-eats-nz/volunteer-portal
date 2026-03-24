@@ -54,6 +54,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type ChatResource = {
   id: string;
@@ -786,7 +788,26 @@ export function ChatGuidesContent({
                             : "border bg-background"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{msg.content || (previewLoading ? "..." : "")}</p>
+                        {msg.role === "assistant" && msg.content ? (
+                          <Markdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-0.5">{children}</ul>,
+                              ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
+                              li: ({ children }) => <li className="text-sm">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                              a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">{children}</a>,
+                              h1: ({ children }) => <h1 className="text-base font-semibold mb-1 mt-2 first:mt-0">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-sm font-semibold mb-1 mt-2 first:mt-0">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-medium mb-1 mt-1">{children}</h3>,
+                            }}
+                          >
+                            {msg.content}
+                          </Markdown>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.content || (previewLoading ? "..." : "")}</p>
+                        )}
                       </div>
                       {msg.role === "user" && (
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">

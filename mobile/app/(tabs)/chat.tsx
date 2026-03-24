@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MarkdownDisplay from "react-native-markdown-display";
 
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
@@ -205,9 +206,22 @@ const MessageBubble = React.memo(function MessageBubble({
           },
         ]}
       >
-        <Text style={[styles.messageText, { color: colors.text }]}>
+        <MarkdownDisplay
+          style={{
+            body: { color: colors.text, fontFamily: FontFamily.regular, fontSize: 15, lineHeight: 22 },
+            strong: { fontFamily: FontFamily.semiBold },
+            bullet_list: { marginVertical: 4 },
+            ordered_list: { marginVertical: 4 },
+            list_item: { marginVertical: 1 },
+            link: { color: Brand.green },
+            paragraph: { marginTop: 0, marginBottom: 6 },
+            heading1: { fontFamily: FontFamily.headingSemiBold, fontSize: 17, marginBottom: 4, color: colors.text },
+            heading2: { fontFamily: FontFamily.headingSemiBold, fontSize: 16, marginBottom: 4, color: colors.text },
+            heading3: { fontFamily: FontFamily.headingMedium, fontSize: 15, marginBottom: 2, color: colors.text },
+          }}
+        >
           {item.content}
-        </Text>
+        </MarkdownDisplay>
       </View>
     </View>
   );
