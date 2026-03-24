@@ -156,6 +156,7 @@ export function ChatGuidesContent({
   const [selectedResourceId, setSelectedResourceId] = useState("");
   const [chatContent, setChatContent] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [isExtractingPdf, setIsExtractingPdf] = useState(false);
 
   // Edit dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -219,6 +220,44 @@ export function ChatGuidesContent({
       });
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleResourceSelected = async (resourceId: string) => {
+    setSelectedResourceId(resourceId);
+    setChatContent("");
+
+    // Auto-extract text if it's a PDF
+    const resource = availableResources.find((r) => r.id === resourceId);
+    if (resource?.type === "PDF") {
+      setIsExtractingPdf(true);
+      try {
+        const response = await fetch("/api/admin/chat-guides/extract-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resourceId }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Failed to extract PDF text");
+        }
+
+        const { text, pages } = await response.json();
+        setChatContent(text);
+        toast({
+          title: "PDF text extracted",
+          description: `Extracted text from ${pages} page${pages !== 1 ? "s" : ""}. Review and edit below.`,
+        });
+      } catch (error) {
+        toast({
+          title: "PDF extraction failed",
+          description: error instanceof Error ? error.message : "Could not extract text. You can paste content manually.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExtractingPdf(false);
+      }
     }
   };
 
@@ -797,7 +836,7 @@ export function ChatGuidesContent({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Resource</Label>
-              <Select value={selectedResourceId} onValueChange={setSelectedResourceId}>
+              <Select value={selectedResourceId} onValueChange={handleResourceSelected}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a resource..." />
                 </SelectTrigger>
@@ -820,12 +859,19 @@ export function ChatGuidesContent({
               <Textarea
                 value={chatContent}
                 onChange={(e) => setChatContent(e.target.value)}
-                placeholder="Paste or type the text content the AI should use as context..."
+                placeholder={
+                  isExtractingPdf
+                    ? "Extracting text from PDF..."
+                    : "Paste or type the text content the AI should use as context..."
+                }
                 rows={12}
+                disabled={isExtractingPdf}
                 className="max-h-[40vh] resize-none font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                ~{Math.round(chatContent.length / 4).toLocaleString()} tokens
+                {isExtractingPdf
+                  ? "Extracting text from PDF..."
+                  : `~${Math.round(chatContent.length / 4).toLocaleString()} tokens`}
               </p>
             </div>
           </div>
@@ -835,7 +881,7 @@ export function ChatGuidesContent({
             </Button>
             <Button
               onClick={handleAddResource}
-              disabled={!selectedResourceId || !chatContent.trim() || isAdding}
+              disabled={!selectedResourceId || !chatContent.trim() || isAdding || isExtractingPdf}
             >
               {isAdding ? "Adding..." : "Add to Chat"}
             </Button>
