@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { api } from "@/lib/api";
+import { chatWithAssistant } from "@/lib/chat";
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -36,7 +38,7 @@ const WELCOME_MESSAGE: Message = {
     "Kia ora! 👋 I'm here to help with anything about volunteering at Everybody Eats. Ask me about what to expect on your first shift, kitchen safety, shift roles, or anything else 🌿",
 };
 
-const SUGGESTED_QUESTIONS = [
+const DEFAULT_SUGGESTED_QUESTIONS = [
   { emoji: "🍽️", label: "What happens on a typical shift?" },
   { emoji: "🔪", label: "Kitchen safety tips" },
   { emoji: "👥", label: "What are the volunteer grades?" },
@@ -217,10 +219,12 @@ function WelcomeHero({
   colors,
   isDark,
   onSuggestionPress,
+  questions,
 }: {
   colors: (typeof Colors)["light"];
   isDark: boolean;
   onSuggestionPress: (text: string) => void;
+  questions: { emoji: string; label: string }[];
 }) {
   return (
     <ScrollView
@@ -267,7 +271,7 @@ function WelcomeHero({
         Try asking...
       </Text>
       <View style={styles.suggestionsGrid}>
-        {SUGGESTED_QUESTIONS.map((q) => (
+        {questions.map((q) => (
           <Pressable
             key={q.label}
             onPress={() => {
@@ -322,10 +326,24 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState(DEFAULT_SUGGESTED_QUESTIONS);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
 
   const showWelcome = messages.length <= 1;
+
+  /* ── Fetch suggested questions from API ── */
+  useEffect(() => {
+    api<{ suggestedQuestions: typeof DEFAULT_SUGGESTED_QUESTIONS }>("/api/mobile/chat/config")
+      .then((data) => {
+        if (data.suggestedQuestions?.length > 0) {
+          setSuggestedQuestions(data.suggestedQuestions);
+        }
+      })
+      .catch(() => {
+        // Keep defaults on error
+      });
+  }, []);
 
   /* ── Reset ── */
   const resetChat = useCallback(() => {
@@ -353,17 +371,63 @@ export default function ChatScreen() {
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
 
-      // TODO: Connect to AI endpoint with volunteer knowledge base
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content:
-            "I'm not connected to the AI backend yet — once that's set up I'll be able to answer all your questions about volunteering! 🌱",
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+      // Stream response from AI assistant
+      const assistantId = (Date.now() + 1).toString();
+      const allMessages = [...messages.filter((m) => m.id !== "welcome"), userMessage];
+
+      try {
+        await chatWithAssistant(
+          allMessages.map((m) => ({ role: m.role, content: m.content })),
+          {
+            onStart: () => {
+              // Hide typing indicator and add empty message to stream into
+              setIsLoading(false);
+              setMessages((prev) => [
+                ...prev,
+                { id: assistantId, role: "assistant", content: "" },
+              ]);
+            },
+            onToken: (token: string) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: m.content + token }
+                    : m,
+                ),
+              );
+            },
+            onFinish: () => {
+              setIsLoading(false);
+            },
+            onError: (error: string) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        ...m,
+                        content:
+                          "Sorry, I had trouble responding. Please try again — or contact the team directly if you need help right away 🌿",
+                      }
+                    : m,
+                ),
+              );
+              setIsLoading(false);
+              console.error("Chat error:", error);
+            },
+          },
+        );
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: "assistant" as const,
+            content:
+              "Sorry, I couldn't connect right now. Please check your connection and try again 🌿",
+          },
+        ]);
         setIsLoading(false);
-      }, 1000);
+      }
     },
     [input, isLoading],
   );
@@ -466,6 +530,7 @@ export default function ChatScreen() {
           colors={colors}
           isDark={isDark}
           onSuggestionPress={sendMessage}
+          questions={suggestedQuestions}
         />
       ) : (
         <FlatList
