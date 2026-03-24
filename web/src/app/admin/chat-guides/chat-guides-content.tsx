@@ -362,10 +362,15 @@ export function ChatGuidesContent({
           prev.map((m) => (m.id === assistantId ? { ...m, content: captured } : m)),
         );
       }
-    } catch {
+
+      if (!assistantContent.trim()) {
+        throw new Error("Empty response from AI — check OPENROUTER_API_KEY and model config in Vercel env vars");
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to get a response. Check that OPENROUTER_API_KEY is set.";
       setPreviewMessages((prev) => [
         ...prev,
-        { id: assistantId, role: "assistant", content: "Error: Failed to get a response. Check that OPENROUTER_API_KEY is set." },
+        { id: assistantId, role: "assistant", content: `Error: ${errorMsg}` },
       ]);
     } finally {
       setPreviewLoading(false);

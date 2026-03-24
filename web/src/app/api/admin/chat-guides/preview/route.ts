@@ -173,10 +173,22 @@ export async function POST(request: Request) {
 
     const systemPrompt = basePrompt + "\n\n" + dynamicContext + "\n\nHere is your knowledge base:\n---\n" + resourceContext + "\n---";
 
+    const modelId = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+    console.log("[chat-preview] Starting streamText", {
+      modelId,
+      hasApiKey: !!process.env.OPENROUTER_API_KEY,
+      apiKeyLength: process.env.OPENROUTER_API_KEY?.length ?? 0,
+      messageCount: messages.length,
+      systemPromptLength: systemPrompt.length,
+    });
+
     const result = streamText({
-      model: openrouter(process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4"),
+      model: openrouter(modelId),
       system: systemPrompt,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      onError: ({ error }) => {
+        console.error("[chat-preview] streamText error:", error);
+      },
     });
 
     return result.toTextStreamResponse();

@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { fetch as expoFetch } from "expo/fetch";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -16,7 +17,7 @@ type StreamCallbacks = {
 
 /**
  * Stream a chat response from the AI assistant.
- * Reads the text stream chunk-by-chunk and calls onToken for each piece.
+ * Uses expo/fetch which supports ReadableStream (RN's built-in fetch does not).
  */
 export async function chatWithAssistant(
   messages: ChatMessage[],
@@ -24,7 +25,7 @@ export async function chatWithAssistant(
 ): Promise<void> {
   const token = await SecureStore.getItemAsync("auth_token");
 
-  const response = await fetch(`${API_URL}/api/mobile/chat`, {
+  const response = await expoFetch(`${API_URL}/api/mobile/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
