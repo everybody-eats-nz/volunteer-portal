@@ -56,14 +56,19 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 };
 
-export default withBotId(
-  withPostHogConfig(nextConfig, {
-    personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
-    projectId: process.env.POSTHOG_PROJECT_ID!,
-    host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    sourcemaps: {
-      enabled: true,
-      deleteAfterUpload: true,
-    },
-  })
-);
+const posthogEnabled =
+  !!process.env.POSTHOG_PERSONAL_API_KEY && !!process.env.POSTHOG_PROJECT_ID;
+
+const finalConfig = posthogEnabled
+  ? withPostHogConfig(nextConfig, {
+      personalApiKey: process.env.POSTHOG_PERSONAL_API_KEY!,
+      projectId: process.env.POSTHOG_PROJECT_ID!,
+      host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+      sourcemaps: {
+        enabled: true,
+        deleteAfterUpload: true,
+      },
+    })
+  : nextConfig;
+
+export default withBotId(finalConfig);
