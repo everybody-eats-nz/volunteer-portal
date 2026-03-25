@@ -474,6 +474,15 @@ export type LikeUser = {
   profilePhotoUrl?: string;
 };
 
+export type FeedComment = {
+  id: string;
+  userId: string;
+  userName: string;
+  profilePhotoUrl?: string;
+  text: string;
+  timestamp: string;
+};
+
 /** Reusable pool of dummy likers */
 const LIKERS: LikeUser[] = [
   { id: 'u-2', name: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face' },
@@ -488,12 +497,12 @@ const LIKERS: LikeUser[] = [
 
 /** Feed item types */
 export type FeedItem =
-  | { type: 'announcement'; id: string; title: string; body: string; timestamp: string; author: string; likes: LikeUser[] }
-  | { type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[] }
-  | { type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string; likes: LikeUser[] };
+  | { type: 'announcement'; id: string; title: string; body: string; timestamp: string; author: string; likes: LikeUser[]; comments: FeedComment[] }
+  | { type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
+  | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
+  | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
+  | { type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
+  | { type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string; likes: LikeUser[]; comments: FeedComment[] };
 
 function hoursAgo(hours: number): string {
   const d = new Date();
@@ -810,6 +819,11 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(2),
     author: 'Everybody Eats Team',
     likes: [LIKERS[0], LIKERS[1], LIKERS[2], LIKERS[4], LIKERS[5], LIKERS[7]],
+    comments: [
+      { id: 'c-1', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: 'Amazing news! Can\'t wait to volunteer there 🎉', timestamp: hoursAgo(1) },
+      { id: 'c-2', userId: 'u-3', userName: 'James Tūhoe', profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face', text: 'Ka pai! Onehunga needs this', timestamp: hoursAgo(1.5) },
+      { id: 'c-3', userId: 'u-7', userName: 'Hana Patel', profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', text: 'Signing up for the first Thursday shift!', timestamp: hoursAgo(1.8) },
+    ],
   },
   {
     type: 'achievement',
@@ -822,6 +836,9 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(4),
     isFriend: true,
     likes: [LIKERS[1], LIKERS[4], LIKERS[7]],
+    comments: [
+      { id: 'c-4', userId: 'u-4', userName: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face', text: 'Congrats Sarah! Well deserved 💚', timestamp: hoursAgo(3) },
+    ],
   },
   {
     type: 'photo_post',
@@ -839,6 +856,10 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(3),
     isFriend: true,
     likes: [LIKERS[0], LIKERS[2], LIKERS[4], LIKERS[5], LIKERS[6], LIKERS[7]],
+    comments: [
+      { id: 'c-5', userId: 'u-4', userName: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face', text: 'These photos are stunning! What a night 📸', timestamp: hoursAgo(2) },
+      { id: 'c-6', userId: 'u-6', userName: 'Te Rina Kahurangi', profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face', text: 'Love this whānau energy 🌿', timestamp: hoursAgo(2.5) },
+    ],
   },
   {
     type: 'milestone',
@@ -849,6 +870,11 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(8),
     isFriend: true,
     likes: [LIKERS[0], LIKERS[2], LIKERS[3], LIKERS[4], LIKERS[5], LIKERS[6], LIKERS[7]],
+    comments: [
+      { id: 'c-7', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: '50 shifts!! Legend status 🙌', timestamp: hoursAgo(7) },
+      { id: 'c-8', userId: 'u-4', userName: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face', text: 'Ngā mihi James! Absolute inspiration', timestamp: hoursAgo(7.5) },
+      { id: 'c-9', userId: 'u-7', userName: 'Hana Patel', profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', text: 'So well deserved! 💚', timestamp: hoursAgo(7.8) },
+    ],
   },
   {
     type: 'achievement',
@@ -860,6 +886,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(12),
     isFriend: false,
     likes: [LIKERS[0], LIKERS[1], LIKERS[2], LIKERS[5]],
+    comments: [],
   },
   {
     type: 'photo_post',
@@ -878,6 +905,9 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(18),
     isFriend: true,
     likes: [LIKERS[0], LIKERS[1], LIKERS[3], LIKERS[5], LIKERS[7]],
+    comments: [
+      { id: 'c-10', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: 'Such a vibe! Love the crew 💪', timestamp: hoursAgo(17) },
+    ],
   },
   {
     type: 'announcement',
@@ -887,6 +917,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(24),
     author: 'Aroha (Head Chef)',
     likes: [LIKERS[1], LIKERS[6]],
+    comments: [],
   },
   {
     type: 'photo_post',
@@ -903,6 +934,7 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(28),
     isFriend: false,
     likes: [LIKERS[2], LIKERS[4]],
+    comments: [],
   },
   {
     type: 'achievement',
@@ -915,6 +947,9 @@ export const FEED_ITEMS: FeedItem[] = [
     timestamp: hoursAgo(30),
     isFriend: true,
     likes: [LIKERS[0], LIKERS[1], LIKERS[3], LIKERS[4], LIKERS[6]],
+    comments: [
+      { id: 'c-11', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: 'Welcome to the whānau Mia! 🌱', timestamp: hoursAgo(29) },
+    ],
   },
 ];
 
