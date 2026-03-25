@@ -24,6 +24,8 @@ const createResourceSchema = z.object({
   fileSize: z.number().optional(),
   url: z.string().optional(),
   isPublished: z.boolean().default(true),
+  includeInChat: z.boolean().default(false),
+  chatContent: z.string().nullable().optional(),
 });
 
 // GET /api/admin/resources - List all resources (including unpublished)
@@ -108,20 +110,25 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = createResourceSchema.parse(body);
 
-    // Validate that either fileUrl or url is provided based on type
-    if (validatedData.type === "LINK" || validatedData.type === "VIDEO") {
-      if (!validatedData.url) {
-        return NextResponse.json(
-          { error: "URL is required for LINK and VIDEO types" },
-          { status: 400 }
-        );
-      }
-    } else {
-      if (!validatedData.fileUrl) {
-        return NextResponse.json(
-          { error: "File upload is required for this resource type" },
-          { status: 400 }
-        );
+    // Chat-only resources (includeInChat + chatContent) don't require file/url
+    const isChatOnly = validatedData.includeInChat && validatedData.chatContent;
+
+    if (!isChatOnly) {
+      // Validate that either fileUrl or url is provided based on type
+      if (validatedData.type === "LINK" || validatedData.type === "VIDEO") {
+        if (!validatedData.url) {
+          return NextResponse.json(
+            { error: "URL is required for LINK and VIDEO types" },
+            { status: 400 }
+          );
+        }
+      } else {
+        if (!validatedData.fileUrl) {
+          return NextResponse.json(
+            { error: "File upload is required for this resource type" },
+            { status: 400 }
+          );
+        }
       }
     }
 

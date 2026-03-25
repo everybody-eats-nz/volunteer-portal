@@ -3,16 +3,19 @@ import { differenceInHours, formatDistanceToNow } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +27,7 @@ import { useFeed } from "@/hooks/use-feed";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts } from "@/hooks/use-shifts";
 import {
+  type FeedComment,
   type FeedItem,
   type LikeUser,
 } from "@/lib/dummy-data";
@@ -34,8 +38,17 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
-  const { myShifts, available, isLoading: shiftsLoading, refresh: refreshShifts } = useShifts();
-  const { items: feedItems, isLoading: feedLoading, refresh: refreshFeed } = useFeed();
+  const {
+    myShifts,
+    available,
+    isLoading: shiftsLoading,
+    refresh: refreshShifts,
+  } = useShifts();
+  const {
+    items: feedItems,
+    isLoading: feedLoading,
+    refresh: refreshFeed,
+  } = useFeed();
 
   const nextShift = myShifts[0] ?? null;
   const hoursUntilShift = nextShift
@@ -44,6 +57,9 @@ export default function HomeScreen() {
 
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [likesSheetItem, setLikesSheetItem] = useState<FeedItem | null>(null);
+  const [localComments, setLocalComments] = useState<
+    Record<string, FeedComment[]>
+  >({});
 
   const toggleLike = useCallback((id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -56,26 +72,58 @@ export default function HomeScreen() {
   }, []);
 
   const ME_AS_LIKER: LikeUser = {
-    id: profile?.id ?? '',
-    name: 'You',
+    id: profile?.id ?? "",
+    name: "You",
     profilePhotoUrl: profile?.image ?? undefined,
   };
 
-  const getLikersForItem = useCallback((item: FeedItem, isLikedByMe: boolean): LikeUser[] => {
-    const likers = [...item.likes];
-    if (isLikedByMe) likers.unshift(ME_AS_LIKER);
-    return likers;
-  }, [ME_AS_LIKER]);
+  const getLikersForItem = useCallback(
+    (item: FeedItem, isLikedByMe: boolean): LikeUser[] => {
+      const likers = [...item.likes];
+      if (isLikedByMe) likers.unshift(ME_AS_LIKER);
+      return likers;
+    },
+    [ME_AS_LIKER]
+  );
+
+  const getCommentsForItem = useCallback(
+    (item: FeedItem): FeedComment[] => {
+      return [...(item.comments ?? []), ...(localComments[item.id] ?? [])];
+    },
+    [localComments]
+  );
+
+  const addComment = useCallback(
+    (itemId: string, text: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const comment: FeedComment = {
+        id: `local-${Date.now()}`,
+        userId: profile?.id ?? "",
+        userName: profile?.firstName ?? "You",
+        profilePhotoUrl: profile?.image ?? undefined,
+        text,
+        timestamp: new Date().toISOString(),
+      };
+      setLocalComments((prev) => ({
+        ...prev,
+        [itemId]: [...(prev[itemId] ?? []), comment],
+      }));
+    },
+    [profile]
+  );
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.content]}
+      contentContainerStyle={[styles.content, Platform.OS === 'android' && { paddingTop: insets.top }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={shiftsLoading || feedLoading}
-          onRefresh={() => { refreshShifts(); refreshFeed(); }}
+          onRefresh={() => {
+            refreshShifts();
+            refreshFeed();
+          }}
           tintColor={colors.primary}
         />
       }
@@ -91,7 +139,7 @@ export default function HomeScreen() {
           >
             Kia ora 👋
           </Text>
-          <ThemedText type="title">{profile?.firstName ?? ''}</ThemedText>
+          <ThemedText type="title">{profile?.firstName ?? ""}</ThemedText>
         </View>
         <Pressable
           onPress={() => router.push("/(tabs)/profile")}
@@ -102,16 +150,13 @@ export default function HomeScreen() {
           accessibilityLabel="View profile"
         >
           {profile?.image ? (
-            <Image
-              source={{ uri: profile.image }}
-              style={styles.avatarImage}
-            />
+            <Image source={{ uri: profile.image }} style={styles.avatarImage} />
           ) : (
             <View
               style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
             >
               <Text style={styles.avatarText}>
-                {(profile?.firstName ?? '').charAt(0)}
+                {(profile?.firstName ?? "").charAt(0)}
               </Text>
             </View>
           )}
@@ -181,6 +226,7 @@ export default function HomeScreen() {
             {
               backgroundColor: Brand.accent,
               opacity: pressed ? 0.9 : 1,
+              marginTop: nextShift ? 20 : 0,
             },
           ]}
           accessibilityLabel="Browse available shifts"
@@ -218,7 +264,7 @@ export default function HomeScreen() {
               liked={likedItems.has(item.id)}
               onToggleLike={() => toggleLike(item.id)}
               onShowSheet={() => setLikesSheetItem(item)}
-              myPhoto={profile?.image ?? undefined}
+              commentCount={getCommentsForItem(item).length}
             />
           ))}
         </View>
@@ -228,12 +274,17 @@ export default function HomeScreen() {
       {likesSheetItem && (
         <FeedItemSheet
           item={likesSheetItem}
-          likers={getLikersForItem(likesSheetItem, likedItems.has(likesSheetItem.id))}
+          likers={getLikersForItem(
+            likesSheetItem,
+            likedItems.has(likesSheetItem.id)
+          )}
           liked={likedItems.has(likesSheetItem.id)}
           onToggleLike={() => toggleLike(likesSheetItem.id)}
           onClose={() => setLikesSheetItem(null)}
           colors={colors}
           isDark={colorScheme === "dark"}
+          comments={getCommentsForItem(likesSheetItem)}
+          onAddComment={(text) => addComment(likesSheetItem.id, text)}
         />
       )}
 
@@ -255,85 +306,36 @@ export default function HomeScreen() {
 function LikeButton({
   liked,
   onPress,
-  onShowLikes,
   color,
-  likers,
-  myPhoto,
+  count,
 }: {
   liked: boolean;
   onPress: () => void;
-  onShowLikes: () => void;
   color: string;
-  likers: LikeUser[];
-  myPhoto?: string;
+  count: number;
 }) {
-  // Build display list: if I liked, prepend me
-  const displayLikers = liked
-    ? [{ id: "me", name: "You", profilePhotoUrl: myPhoto }, ...likers]
-    : likers;
-  const shown = displayLikers.slice(0, 3);
-
   return (
-    <View style={styles.likeRow}>
-      {shown.length > 0 && (
-        <Pressable
-          onPress={onShowLikes}
-          hitSlop={4}
-          style={({ pressed }) => [
-            styles.avatarStack,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-          accessibilityLabel={`Liked by ${displayLikers.length} people, tap to see who`}
-        >
-          {shown.map((liker, i) => {
-            const initial = liker.name.charAt(0).toUpperCase();
-            return (
-              <View
-                key={liker.id}
-                style={[
-                  styles.avatarStackItem,
-                  { zIndex: shown.length - i, marginLeft: i === 0 ? 0 : -8 },
-                ]}
-              >
-                {liker.profilePhotoUrl ? (
-                  <Image
-                    source={{ uri: liker.profilePhotoUrl }}
-                    style={styles.avatarStackImage}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.avatarStackFallback,
-                      { backgroundColor: Brand.greenLight },
-                    ]}
-                  >
-                    <Text style={[styles.avatarStackInitial, { color: Brand.green }]}>
-                      {initial}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </Pressable>
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [
+        styles.likeButton,
+        { opacity: pressed ? 0.5 : 1 },
+      ]}
+      accessibilityLabel={liked ? "Unlike" : "Like"}
+      accessibilityRole="button"
+    >
+      <Ionicons
+        name={liked ? "heart" : "heart-outline"}
+        size={15}
+        color={liked ? "#e11d48" : color}
+      />
+      {count > 0 && (
+        <Text style={[styles.likeCount, { color: liked ? "#e11d48" : color }]}>
+          {count}
+        </Text>
       )}
-      <Pressable
-        onPress={onPress}
-        hitSlop={8}
-        style={({ pressed }) => [
-          styles.likeButton,
-          { opacity: pressed ? 0.5 : 1 },
-        ]}
-        accessibilityLabel={liked ? "Unlike" : "Like"}
-        accessibilityRole="button"
-      >
-        <Ionicons
-          name={liked ? "heart" : "heart-outline"}
-          size={18}
-          color={liked ? "#e11d48" : color}
-        />
-      </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -360,7 +362,12 @@ function FeedAvatar({
           style={styles.feedAvatarImage}
         />
       ) : (
-        <View style={[styles.feedAvatarFallback, { backgroundColor: Brand.greenLight }]}>
+        <View
+          style={[
+            styles.feedAvatarFallback,
+            { backgroundColor: Brand.greenLight },
+          ]}
+        >
           <Text style={styles.feedAvatarInitial}>{initial}</Text>
         </View>
       )}
@@ -390,7 +397,12 @@ const RECAP_TEMPLATES = [
     `${meals} meals, ${volunteers} volunteers, ${hours} hours, endless aroha — that's Everybody Eats 💚`,
 ];
 
-function getRecapMessage(meals: number, volunteers: number, hours: number, id: string): string {
+function getRecapMessage(
+  meals: number,
+  volunteers: number,
+  hours: number,
+  id: string
+): string {
   // Use id as a stable seed so the same recap always shows the same message
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
@@ -407,7 +419,7 @@ function FeedCard({
   liked,
   onToggleLike,
   onShowSheet,
-  myPhoto,
+  commentCount,
 }: {
   item: FeedItem;
   colors: (typeof Colors)["light"];
@@ -415,7 +427,7 @@ function FeedCard({
   liked: boolean;
   onToggleLike: () => void;
   onShowSheet: () => void;
-  myPhoto?: string;
+  commentCount: number;
 }) {
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
@@ -427,15 +439,37 @@ function FeedCard({
       }
     : undefined;
 
-  const likeButton = (
-    <LikeButton
-      liked={liked}
-      onPress={onToggleLike}
-      onShowLikes={onShowSheet}
-      color={colors.textSecondary}
-      likers={item.likes}
-      myPhoto={myPhoto}
-    />
+  const likeCount = (liked ? 1 : 0) + item.likes.length;
+
+  const socialButtons = (
+    <View style={styles.feedSocialRow}>
+      {commentCount > 0 && (
+        <Pressable
+          onPress={onShowSheet}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.commentButton,
+            { opacity: pressed ? 0.5 : 1 },
+          ]}
+          accessibilityLabel={`${commentCount} comments`}
+        >
+          <Ionicons
+            name="chatbubble-outline"
+            size={15}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.commentCount, { color: colors.textSecondary }]}>
+            {commentCount}
+          </Text>
+        </Pressable>
+      )}
+      <LikeButton
+        liked={liked}
+        onPress={onToggleLike}
+        color={colors.textSecondary}
+        count={likeCount}
+      />
+    </View>
   );
 
   const renderContent = () => {
@@ -456,7 +490,12 @@ function FeedCard({
               {item.body}
             </Text>
             <View style={styles.feedFooter}>
-              <View style={[styles.feedMeta, { flexDirection: "column", alignItems: "flex-start", gap: 2 }]}>
+              <View
+                style={[
+                  styles.feedMeta,
+                  { flexDirection: "column", alignItems: "flex-start", gap: 2 },
+                ]}
+              >
                 <Text
                   style={[styles.feedMetaText, { color: colors.textSecondary }]}
                   numberOfLines={1}
@@ -469,7 +508,7 @@ function FeedCard({
                   {timeAgo}
                 </Text>
               </View>
-              {likeButton}
+              {socialButtons}
             </View>
           </View>
         </>
@@ -506,7 +545,7 @@ function FeedCard({
               >
                 {timeAgo}
               </Text>
-              {likeButton}
+              {socialButtons}
             </View>
           </View>
         </>
@@ -543,7 +582,7 @@ function FeedCard({
               >
                 {timeAgo}
               </Text>
-              {likeButton}
+              {socialButtons}
             </View>
           </View>
         </>
@@ -573,7 +612,8 @@ function FeedCard({
               style={[styles.feedDescription, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              📍 {item.location} · {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
+              📍 {item.location} ·{" "}
+              {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
             </Text>
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
@@ -605,7 +645,12 @@ function FeedCard({
                     },
                   ]}
                 >
-                  <Text style={[styles.feedPhotoMoreText, { color: colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.feedPhotoMoreText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     +{item.photos.length - 3}
                   </Text>
                 </View>
@@ -617,7 +662,7 @@ function FeedCard({
               >
                 {timeAgo}
               </Text>
-              {likeButton}
+              {socialButtons}
             </View>
           </View>
         </>
@@ -641,7 +686,8 @@ function FeedCard({
               style={[styles.feedDescription, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              📍 {item.location} · {formatNZT(new Date(item.shiftDate), "EEEE d MMM")}
+              📍 {item.location} ·{" "}
+              {formatNZT(new Date(item.shiftDate), "EEEE d MMM")}
             </Text>
             <View style={styles.feedFooter}>
               <Text
@@ -649,7 +695,7 @@ function FeedCard({
               >
                 {timeAgo}
               </Text>
-              {likeButton}
+              {socialButtons}
             </View>
           </View>
         </>
@@ -669,7 +715,12 @@ function FeedCard({
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
             >
-              {getRecapMessage(item.mealsServed, item.volunteerCount, item.volunteerHours, item.id)}
+              {getRecapMessage(
+                item.mealsServed,
+                item.volunteerCount,
+                item.volunteerHours,
+                item.id
+              )}
             </Text>
             <View style={styles.feedFooter}>
               <Text
@@ -677,7 +728,7 @@ function FeedCard({
               >
                 {timeAgo}
               </Text>
-              {likeButton}
+              {socialButtons}
             </View>
           </View>
         </>
@@ -775,6 +826,8 @@ function FeedItemSheet({
   onClose,
   colors,
   isDark,
+  comments,
+  onAddComment,
 }: {
   item: FeedItem;
   likers: LikeUser[];
@@ -783,16 +836,30 @@ function FeedItemSheet({
   onClose: () => void;
   colors: (typeof Colors)["light"];
   isDark: boolean;
+  comments: FeedComment[];
+  onAddComment: (text: string) => void;
 }) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const timeAgo = formatDistanceToNow(new Date(item.timestamp), { addSuffix: true });
+  const [commentText, setCommentText] = useState("");
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollToEnd = useCallback(() => {
+    setTimeout(
+      () => scrollViewRef.current?.scrollToEnd({ animated: true }),
+      50
+    );
+  }, []);
+  const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
+    addSuffix: true,
+  });
   const config = SHEET_TYPE_CONFIG[item.type];
   const accentColor = isDark ? config.accentDark : config.accent;
 
   // Determine hero avatar for friend items
   const hasFriendAvatar =
-    (item.type === "achievement" || item.type === "milestone" || item.type === "photo_post" || item.type === "friend_signup") &&
+    (item.type === "achievement" ||
+      item.type === "milestone" ||
+      item.type === "photo_post" ||
+      item.type === "friend_signup") &&
     item.isFriend &&
     item.profilePhotoUrl;
 
@@ -813,10 +880,21 @@ function FeedItemSheet({
     body = item.caption;
   } else if (item.type === "friend_signup") {
     title = `${item.userName} signed up for ${item.shiftTypeName}`;
-    body = `📍 ${item.location} · ${formatNZT(new Date(item.shiftDate), "EEEE d MMM")}`;
+    body = `📍 ${item.location} · ${formatNZT(
+      new Date(item.shiftDate),
+      "EEEE d MMM"
+    )}`;
   } else if (item.type === "shift_recap") {
-    title = `${item.location} — ${formatNZT(new Date(item.date), "EEEE d MMM")}`;
-    body = getRecapMessage(item.mealsServed, item.volunteerCount, item.volunteerHours, item.id);
+    title = `${item.location} — ${formatNZT(
+      new Date(item.date),
+      "EEEE d MMM"
+    )}`;
+    body = getRecapMessage(
+      item.mealsServed,
+      item.volunteerCount,
+      item.volunteerHours,
+      item.id
+    );
   }
 
   const likeCount = likers.length;
@@ -829,159 +907,242 @@ function FeedItemSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View
-        style={[
-          styles.sheetPage,
-          { backgroundColor: colors.background },
-        ]}
+      <KeyboardAvoidingView
+        style={styles.sheetPage}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: Math.max(insets.bottom, 20) + 12,
-          }}
+        <View
+          style={[styles.sheetPage, { backgroundColor: colors.background }]}
         >
-          {/* ── Hero section (handle bar embedded) ── */}
-          <View
-            style={[
-              sheet.heroBanner,
-              { backgroundColor: isDark ? config.bgDark : config.bg },
-            ]}
+          <ScrollView
+            ref={scrollViewRef}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingBottom: Math.max(insets.bottom, 20) + 12,
+            }}
           >
-            {/* Handle bar */}
+            {/* ── Hero section (handle bar embedded) ── */}
             <View
               style={[
-                styles.sheetHandleBar,
-                { backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)" },
-              ]}
-            />
-            {/* Decorative rings */}
-            <View
-              style={[
-                sheet.heroRing,
-                sheet.heroRingOuter,
-                {
-                  borderColor: isDark
-                    ? "rgba(255,255,255,0.03)"
-                    : "rgba(0,0,0,0.03)",
-                },
-              ]}
-            />
-            <View
-              style={[
-                sheet.heroRing,
-                sheet.heroRingInner,
-                {
-                  borderColor: isDark
-                    ? "rgba(255,255,255,0.04)"
-                    : "rgba(0,0,0,0.04)",
-                },
-              ]}
-            />
-
-            {/* Close pill - top right */}
-            <Pressable
-              onPress={onClose}
-              hitSlop={10}
-              accessibilityLabel="Close"
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                sheet.closePill,
-                {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.08)"
-                    : "rgba(0,0,0,0.05)",
-                  opacity: pressed ? 0.5 : 1,
-                },
+                sheet.heroBanner,
+                { backgroundColor: isDark ? config.bgDark : config.bg },
               ]}
             >
-              <Ionicons
-                name="close"
-                size={16}
-                color={isDark ? colors.textSecondary : "#6b7280"}
-              />
-            </Pressable>
-
-            {/* Hero icon or friend avatar */}
-            {hasFriendAvatar ? (
-              <View style={sheet.heroAvatarWrapper}>
-                <Image
-                  source={{ uri: (item as { profilePhotoUrl: string }).profilePhotoUrl }}
-                  style={sheet.heroAvatar}
-                />
-                <View
-                  style={[
-                    sheet.heroAvatarBadge,
-                    {
-                      backgroundColor: isDark ? colors.card : "#ffffff",
-                      borderColor: isDark ? colors.card : config.bg,
-                    },
-                  ]}
-                >
-                  <Text style={sheet.heroAvatarBadgeEmoji}>{config.emoji}</Text>
-                </View>
-              </View>
-            ) : (
+              {/* Handle bar */}
               <View
                 style={[
-                  sheet.heroIconCircle,
+                  styles.sheetHandleBar,
                   {
                     backgroundColor: isDark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(255,255,255,0.65)",
+                      ? "rgba(255,255,255,0.2)"
+                      : "rgba(0,0,0,0.15)",
+                  },
+                ]}
+              />
+              {/* Decorative rings */}
+              <View
+                style={[
+                  sheet.heroRing,
+                  sheet.heroRingOuter,
+                  {
+                    borderColor: isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(0,0,0,0.03)",
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  sheet.heroRing,
+                  sheet.heroRingInner,
+                  {
+                    borderColor: isDark
+                      ? "rgba(255,255,255,0.04)"
+                      : "rgba(0,0,0,0.04)",
+                  },
+                ]}
+              />
+
+              {/* Close pill - top right */}
+              <Pressable
+                onPress={onClose}
+                hitSlop={10}
+                accessibilityLabel="Close"
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  sheet.closePill,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(0,0,0,0.05)",
+                    opacity: pressed ? 0.5 : 1,
                   },
                 ]}
               >
-                <Text style={sheet.heroEmoji}>{config.emoji}</Text>
-              </View>
-            )}
+                <Ionicons
+                  name="close"
+                  size={16}
+                  color={isDark ? colors.textSecondary : "#6b7280"}
+                />
+              </Pressable>
 
-            {/* Type label pill */}
+              {/* Hero icon or friend avatar */}
+              {hasFriendAvatar ? (
+                <View style={sheet.heroAvatarWrapper}>
+                  <Image
+                    source={{
+                      uri: (item as { profilePhotoUrl: string })
+                        .profilePhotoUrl,
+                    }}
+                    style={sheet.heroAvatar}
+                  />
+                  <View
+                    style={[
+                      sheet.heroAvatarBadge,
+                      {
+                        backgroundColor: isDark ? colors.card : "#ffffff",
+                        borderColor: isDark ? colors.card : config.bg,
+                      },
+                    ]}
+                  >
+                    <Text style={sheet.heroAvatarBadgeEmoji}>
+                      {config.emoji}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View
+                  style={[
+                    sheet.heroIconCircle,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.06)"
+                        : "rgba(255,255,255,0.65)",
+                    },
+                  ]}
+                >
+                  <Text style={sheet.heroEmoji}>{config.emoji}</Text>
+                </View>
+              )}
+
+              {/* Type label pill */}
+              <View
+                style={[
+                  sheet.heroLabel,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.06)"
+                      : "rgba(0,0,0,0.04)",
+                  },
+                ]}
+              >
+                <Text style={[sheet.heroLabelText, { color: accentColor }]}>
+                  {config.label}
+                </Text>
+              </View>
+            </View>
+
+            {/* ── Content card ── */}
             <View
               style={[
-                sheet.heroLabel,
+                sheet.contentCard,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.04)",
+                  backgroundColor: colors.card,
+                  shadowColor: isDark ? "#000" : "#64748b",
                 },
               ]}
             >
-              <Text
-                style={[
-                  sheet.heroLabelText,
-                  { color: accentColor },
-                ]}
-              >
-                {config.label}
+              {/* Title */}
+              <Text style={[sheet.title, { color: colors.text }]}>{title}</Text>
+
+              {/* Body text */}
+              <Text style={[sheet.body, { color: colors.textSecondary }]}>
+                {body}
               </Text>
-            </View>
-          </View>
 
-          {/* ── Content card ── */}
-          <View
-            style={[
-              sheet.contentCard,
-              {
-                backgroundColor: colors.card,
-                shadowColor: isDark ? "#000" : "#64748b",
-              },
-            ]}
-          >
-            {/* Title */}
-            <Text style={[sheet.title, { color: colors.text }]}>
-              {title}
-            </Text>
-
-            {/* Body text */}
-            <Text style={[sheet.body, { color: colors.textSecondary }]}>
-              {body}
-            </Text>
-
-            {/* Meta pills */}
-            <View style={sheet.metaRow}>
-              {item.type === "announcement" && (
+              {/* Meta pills */}
+              <View style={sheet.metaRow}>
+                {item.type === "announcement" && (
+                  <View
+                    style={[
+                      sheet.metaPill,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.05)"
+                          : "#f8fafc",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="person"
+                      size={11}
+                      color={colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        sheet.metaPillText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {item.author}
+                    </Text>
+                  </View>
+                )}
+                {item.type === "photo_post" && (
+                  <>
+                    <View
+                      style={[
+                        sheet.metaPill,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.05)"
+                            : "#f8fafc",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="location"
+                        size={11}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          sheet.metaPillText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {item.location}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        sheet.metaPill,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.05)"
+                            : "#f8fafc",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="calendar"
+                        size={11}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          sheet.metaPillText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {formatNZT(new Date(item.shiftDate), "d MMM")}{" "}
+                        {item.period}
+                      </Text>
+                    </View>
+                  </>
+                )}
                 <View
                   style={[
                     sheet.metaPill,
@@ -992,277 +1153,349 @@ function FeedItemSheet({
                     },
                   ]}
                 >
-                  <Ionicons name="person" size={11} color={colors.textSecondary} />
-                  <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                    {item.author}
+                  <Ionicons
+                    name="time"
+                    size={11}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      sheet.metaPillText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {timeAgo}
                   </Text>
                 </View>
-              )}
-              {item.type === "photo_post" && (
-                <>
-                  <View
-                    style={[
-                      sheet.metaPill,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : "#f8fafc",
-                      },
-                    ]}
-                  >
-                    <Ionicons name="location" size={11} color={colors.textSecondary} />
-                    <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                      {item.location}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      sheet.metaPill,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(255,255,255,0.05)"
-                          : "#f8fafc",
-                      },
-                    ]}
-                  >
-                    <Ionicons name="calendar" size={11} color={colors.textSecondary} />
-                    <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                      {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
-                    </Text>
-                  </View>
-                </>
-              )}
+              </View>
+            </View>
+
+            {/* ── Photo gallery (for photo_post type) ── */}
+            {item.type === "photo_post" && item.photos.length > 0 && (
               <View
                 style={[
-                  sheet.metaPill,
+                  sheet.photoGalleryCard,
                   {
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.05)"
-                      : "#f8fafc",
+                    backgroundColor: colors.card,
+                    shadowColor: isDark ? "#000" : "#64748b",
                   },
                 ]}
               >
-                <Ionicons name="time" size={11} color={colors.textSecondary} />
-                <Text style={[sheet.metaPillText, { color: colors.textSecondary }]}>
-                  {timeAgo}
+                {item.photos.length === 1 ? (
+                  <Image
+                    source={{ uri: item.photos[0] }}
+                    style={sheet.photoSingle}
+                  />
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={sheet.photoScrollContent}
+                  >
+                    {item.photos.map((uri, i) => (
+                      <Image
+                        key={`${item.id}-photo-${i}`}
+                        source={{ uri }}
+                        style={sheet.photoScrollItem}
+                      />
+                    ))}
+                  </ScrollView>
+                )}
+                <Text
+                  style={[sheet.photoCount, { color: colors.textSecondary }]}
+                >
+                  {item.photos.length}{" "}
+                  {item.photos.length === 1 ? "photo" : "photos"}
                 </Text>
               </View>
-            </View>
-          </View>
+            )}
 
-          {/* ── Photo gallery (for photo_post type) ── */}
-          {item.type === "photo_post" && item.photos.length > 0 && (
+            {/* ── Unified social section (likes + comments) ── */}
             <View
               style={[
-                sheet.photoGalleryCard,
+                sheet.socialCard,
                 {
                   backgroundColor: colors.card,
                   shadowColor: isDark ? "#000" : "#64748b",
                 },
               ]}
             >
-              {item.photos.length === 1 ? (
-                <Image
-                  source={{ uri: item.photos[0] }}
-                  style={sheet.photoSingle}
-                />
-              ) : (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={sheet.photoScrollContent}
-                >
-                  {item.photos.map((uri, i) => (
-                    <Image
-                      key={`${item.id}-photo-${i}`}
-                      source={{ uri }}
-                      style={sheet.photoScrollItem}
-                    />
-                  ))}
-                </ScrollView>
-              )}
-              <Text style={[sheet.photoCount, { color: colors.textSecondary }]}>
-                {item.photos.length} {item.photos.length === 1 ? "photo" : "photos"}
-              </Text>
-            </View>
-          )}
-
-          {/* ── Social section ── */}
-          <View
-            style={[
-              sheet.socialCard,
-              {
-                backgroundColor: colors.card,
-                shadowColor: isDark ? "#000" : "#64748b",
-              },
-            ]}
-          >
-            {/* Like + count row */}
-            <View style={sheet.socialRow}>
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onToggleLike();
-                }}
-                style={({ pressed }) => [
-                  sheet.likeButton,
-                  {
-                    backgroundColor: liked
-                      ? "rgba(225, 29, 72, 0.10)"
-                      : isDark
+              {/* Like row */}
+              <View style={sheet.socialRow}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onToggleLike();
+                  }}
+                  style={({ pressed }) => [
+                    sheet.likeButton,
+                    {
+                      backgroundColor: liked
+                        ? "rgba(225, 29, 72, 0.10)"
+                        : isDark
                         ? "rgba(255,255,255,0.05)"
                         : "#f8fafc",
-                    transform: [{ scale: pressed ? 0.92 : 1 }],
-                  },
-                ]}
-                accessibilityLabel={liked ? "Unlike" : "Like"}
-                accessibilityRole="button"
-              >
-                <Ionicons
-                  name={liked ? "heart" : "heart-outline"}
-                  size={20}
-                  color={liked ? "#e11d48" : colors.textSecondary}
-                />
-              </Pressable>
-
-              <View style={sheet.socialInfo}>
-                <Text
-                  style={[
-                    sheet.socialTitle,
-                    { color: liked ? "#e11d48" : colors.text },
+                      transform: [{ scale: pressed ? 0.92 : 1 }],
+                    },
                   ]}
+                  accessibilityLabel={liked ? "Unlike" : "Like"}
+                  accessibilityRole="button"
                 >
-                  {liked ? "You liked this" : "Like this"}
-                </Text>
-                {likeCount > 0 && (
-                  <Text style={[sheet.socialCount, { color: colors.textSecondary }]}>
-                    {likeCount} {likeCount === 1 ? "person" : "people"} liked this
-                  </Text>
-                )}
-              </View>
+                  <Ionicons
+                    name={liked ? "heart" : "heart-outline"}
+                    size={20}
+                    color={liked ? "#e11d48" : colors.textSecondary}
+                  />
+                </Pressable>
 
-              {/* Stacked avatars on the right */}
-              {shownLikers.length > 0 && (
-                <View style={sheet.socialAvatarStack}>
-                  {shownLikers.map((liker, i) => {
-                    const initial = liker.name.charAt(0).toUpperCase();
-                    return (
+                <View style={sheet.socialInfo}>
+                  <Text
+                    style={[
+                      sheet.socialTitle,
+                      { color: liked ? "#e11d48" : colors.text },
+                    ]}
+                  >
+                    {liked ? "You liked this" : "Like this"}
+                  </Text>
+                  {likeCount > 0 && (
+                    <Text
+                      style={[
+                        sheet.socialCount,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {likeCount} {likeCount === 1 ? "person" : "people"} liked
+                      this
+                    </Text>
+                  )}
+                </View>
+
+                {shownLikers.length > 0 && (
+                  <View style={sheet.socialAvatarStack}>
+                    {shownLikers.map((liker, i) => {
+                      const initial = liker.name.charAt(0).toUpperCase();
+                      return (
+                        <View
+                          key={liker.id}
+                          style={[
+                            sheet.socialAvatarRing,
+                            {
+                              zIndex: shownLikers.length - i,
+                              marginLeft: i === 0 ? 0 : -10,
+                              borderColor: colors.card,
+                            },
+                          ]}
+                        >
+                          {liker.profilePhotoUrl ? (
+                            <Image
+                              source={{ uri: liker.profilePhotoUrl }}
+                              style={sheet.socialAvatarImg}
+                            />
+                          ) : (
+                            <View
+                              style={[
+                                sheet.socialAvatarFallback,
+                                { backgroundColor: Brand.greenLight },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  sheet.socialAvatarInitial,
+                                  { color: Brand.green },
+                                ]}
+                              >
+                                {initial}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                    {likeCount > 5 && (
                       <View
-                        key={liker.id}
                         style={[
                           sheet.socialAvatarRing,
                           {
-                            zIndex: shownLikers.length - i,
-                            marginLeft: i === 0 ? 0 : -10,
+                            zIndex: 0,
+                            marginLeft: -10,
                             borderColor: colors.card,
                           },
                         ]}
                       >
-                        {liker.profilePhotoUrl ? (
+                        <View
+                          style={[
+                            sheet.socialAvatarFallback,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255,255,255,0.08)"
+                                : "#f1f5f9",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              sheet.socialAvatarInitial,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            +{likeCount - 5}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* Divider between likes and comments */}
+              <View
+                style={[
+                  sheet.socialDivider,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.06)"
+                      : "#f1f5f9",
+                  },
+                ]}
+              />
+
+              {/* Comments */}
+              {comments.length > 0 ? (
+                <View style={sheet.commentsList}>
+                  {comments.map((comment) => {
+                    const initial = comment.userName.charAt(0).toUpperCase();
+                    const commentTimeAgo = formatDistanceToNow(
+                      new Date(comment.timestamp),
+                      { addSuffix: true }
+                    );
+                    return (
+                      <View key={comment.id} style={sheet.commentRow}>
+                        {comment.profilePhotoUrl ? (
                           <Image
-                            source={{ uri: liker.profilePhotoUrl }}
-                            style={sheet.socialAvatarImg}
+                            source={{ uri: comment.profilePhotoUrl }}
+                            style={sheet.commentAvatar}
                           />
                         ) : (
                           <View
                             style={[
-                              sheet.socialAvatarFallback,
+                              sheet.commentAvatarFallback,
                               { backgroundColor: Brand.greenLight },
                             ]}
                           >
-                            <Text style={[sheet.socialAvatarInitial, { color: Brand.green }]}>
+                            <Text
+                              style={[
+                                sheet.commentAvatarInitial,
+                                { color: Brand.green },
+                              ]}
+                            >
                               {initial}
                             </Text>
                           </View>
                         )}
+                        <View style={sheet.commentContent}>
+                          <View style={sheet.commentHeader}>
+                            <Text
+                              style={[
+                                sheet.commentUserName,
+                                { color: colors.text },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {comment.userName}
+                            </Text>
+                            <Text
+                              style={[
+                                sheet.commentTime,
+                                { color: colors.textSecondary },
+                              ]}
+                            >
+                              {commentTimeAgo}
+                            </Text>
+                          </View>
+                          <Text
+                            style={[sheet.commentText, { color: colors.text }]}
+                          >
+                            {comment.text}
+                          </Text>
+                        </View>
                       </View>
                     );
                   })}
-                  {likeCount > 5 && (
-                    <View
-                      style={[
-                        sheet.socialAvatarRing,
-                        {
-                          zIndex: 0,
-                          marginLeft: -10,
-                          borderColor: colors.card,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          sheet.socialAvatarFallback,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(255,255,255,0.08)"
-                              : "#f1f5f9",
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            sheet.socialAvatarInitial,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          +{likeCount - 5}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
                 </View>
+              ) : (
+                <Text
+                  style={[sheet.commentsEmpty, { color: colors.textSecondary }]}
+                >
+                  Be the first to comment 💬
+                </Text>
               )}
-            </View>
 
-            {/* Expanded likers list */}
-            {shownLikers.length > 0 && (
-              <View style={sheet.likersSection}>
-                <View
+              {/* Comment input */}
+              <View
+                style={[
+                  sheet.commentInputRow,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: isDark
+                      ? "rgba(255,255,255,0.06)"
+                      : "#f1f5f9",
+                  },
+                ]}
+              >
+                <TextInput
                   style={[
-                    sheet.likersDivider,
+                    sheet.commentInput,
                     {
+                      color: colors.text,
                       backgroundColor: isDark
-                        ? "rgba(255,255,255,0.06)"
-                        : "#f1f5f9",
+                        ? "rgba(255,255,255,0.05)"
+                        : "#f8fafc",
                     },
                   ]}
+                  placeholder="Add a comment..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  onFocus={scrollToEnd}
+                  multiline
+                  maxLength={280}
                 />
-                {shownLikers.map((liker) => {
-                  const initial = liker.name.charAt(0).toUpperCase();
-                  return (
-                    <View key={liker.id} style={sheet.likerRow}>
-                      {liker.profilePhotoUrl ? (
-                        <Image
-                          source={{ uri: liker.profilePhotoUrl }}
-                          style={sheet.likerAvatar}
-                        />
-                      ) : (
-                        <View
-                          style={[
-                            sheet.likerAvatarFallback,
-                            { backgroundColor: Brand.greenLight },
-                          ]}
-                        >
-                          <Text style={[sheet.likerInitial, { color: Brand.green }]}>
-                            {initial}
-                          </Text>
-                        </View>
-                      )}
-                      <Text
-                        style={[sheet.likerName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {liker.name}
-                      </Text>
-                      <Ionicons name="heart" size={11} color="#e11d48" />
-                    </View>
-                  );
-                })}
+                <Pressable
+                  onPress={() => {
+                    const trimmed = commentText.trim();
+                    if (trimmed) {
+                      onAddComment(trimmed);
+                      setCommentText("");
+                    }
+                  }}
+                  disabled={!commentText.trim()}
+                  style={({ pressed }) => [
+                    sheet.commentSendButton,
+                    {
+                      backgroundColor: commentText.trim()
+                        ? Brand.green
+                        : isDark
+                        ? "rgba(255,255,255,0.05)"
+                        : "#e2e8f0",
+                      opacity: pressed && commentText.trim() ? 0.7 : 1,
+                    },
+                  ]}
+                  accessibilityLabel="Send comment"
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name="arrow-up"
+                    size={18}
+                    color={
+                      commentText.trim() ? "#ffffff" : colors.textSecondary
+                    }
+                  />
+                </Pressable>
               </View>
-            )}
-          </View>
-        </ScrollView>
-      </View>
+            </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1383,7 +1616,6 @@ const styles = StyleSheet.create({
   // Open shifts banner
   openShiftsBanner: {
     marginHorizontal: 20,
-    marginTop: 20,
     borderRadius: 16,
     padding: 16,
   },
@@ -1454,44 +1686,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 4,
   },
-  likeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
   likeButton: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-  },
-  // Avatar stack (overlapping circles)
-  avatarStack: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
-  avatarStackItem: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    overflow: "hidden",
-  },
-  avatarStackImage: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-  },
-  avatarStackFallback: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarStackInitial: {
-    fontSize: 9,
-    fontFamily: FontFamily.semiBold,
+  likeCount: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
   },
 
   // Friend avatar with badge
@@ -1531,6 +1735,21 @@ const styles = StyleSheet.create({
   },
   feedAvatarBadgeEmoji: {
     fontSize: 10,
+  },
+  feedSocialRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  commentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingVertical: 4,
+  },
+  commentCount: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
   },
   feedMeta: {
     flexDirection: "row",
@@ -1793,42 +2012,10 @@ const sheet = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
   },
 
-  // Likers section
-  likersSection: {
-    gap: 4,
-    marginTop: 14,
-  },
-  likersDivider: {
+  // Divider between likes and comments
+  socialDivider: {
     height: 1,
-    marginBottom: 10,
-  },
-  likerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 4,
-  },
-  likerAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  likerAvatarFallback: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  likerInitial: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
-  },
-  likerName: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: FontFamily.medium,
+    marginVertical: 14,
   },
 
   // Photo gallery
@@ -1858,5 +2045,89 @@ const sheet = StyleSheet.create({
     fontFamily: FontFamily.medium,
     textAlign: "center",
     paddingVertical: 10,
+  },
+
+  // Comments (inside social card)
+  commentsEmpty: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    textAlign: "center",
+    paddingVertical: 16,
+  },
+  commentsList: {
+    gap: 4,
+    marginTop: 4,
+  },
+  commentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingVertical: 8,
+  },
+  commentAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginTop: 2,
+  },
+  commentAvatarFallback: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  commentAvatarInitial: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+  },
+  commentContent: {
+    flex: 1,
+    gap: 2,
+  },
+  commentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  commentUserName: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    flex: 1,
+  },
+  commentTime: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+  },
+  commentText: {
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    lineHeight: 20,
+  },
+  commentInputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 14,
+  },
+  commentInput: {
+    flex: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 10,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    maxHeight: 80,
+  },
+  commentSendButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

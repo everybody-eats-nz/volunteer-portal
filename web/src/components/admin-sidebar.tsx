@@ -36,6 +36,7 @@ interface AdminSidebarProps {
   } | null;
   displayName: string;
   pendingParentalConsentCount: number;
+  hiddenNavItems?: string[];
 }
 
 export function AdminSidebar({
@@ -43,6 +44,7 @@ export function AdminSidebar({
   userProfile,
   displayName,
   pendingParentalConsentCount,
+  hiddenNavItems = [],
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -93,12 +95,17 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {adminNavCategories.map((category) => (
+        {adminNavCategories.map((category) => {
+          const visibleItems = category.items.filter(
+            (item) => !hiddenNavItems.includes(item.href),
+          );
+          if (visibleItems.length === 0) return null;
+          return (
           <SidebarGroup key={category.label}>
             <SidebarGroupLabel>{category.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {category.items.map((item) => {
+                {visibleItems.map((item) => {
                   // Map test IDs to match existing tests
                   const testIdMap: Record<string, string> = {
                     "/admin/shifts": "manage-shifts-button",
@@ -140,7 +147,8 @@ export function AdminSidebar({
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ))}
+          );
+        })}
 
         <SidebarGroup>
           <SidebarGroupLabel>Public</SidebarGroupLabel>
