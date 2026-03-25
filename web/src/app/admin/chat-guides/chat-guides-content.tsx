@@ -331,8 +331,25 @@ export function ChatGuidesContent({
     );
   };
 
+  const isValidEEUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname.endsWith("everybodyeats.nz");
+    } catch {
+      return false;
+    }
+  };
+
   const handleExtractImportUrl = async () => {
     if (!importUrl.trim()) return;
+    if (!isValidEEUrl(importUrl.trim())) {
+      toast({
+        title: "Invalid URL",
+        description: "Only URLs from everybodyeats.nz are allowed.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsExtractingImportUrl(true);
     try {
       const response = await fetch("/api/admin/chat-guides/extract-url", {
@@ -1213,7 +1230,7 @@ export function ChatGuidesContent({
                 </div>
                 <Button
                   onClick={handleExtractImportUrl}
-                  disabled={!importUrl.trim() || isExtractingImportUrl}
+                  disabled={!importUrl.trim() || isExtractingImportUrl || !isValidEEUrl(importUrl.trim())}
                   variant="secondary"
                 >
                   {isExtractingImportUrl ? (

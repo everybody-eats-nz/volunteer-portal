@@ -64,6 +64,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only HTTP/HTTPS URLs are supported" }, { status: 400 });
     }
 
+    // Only allow scraping from everybodyeats.nz
+    if (!parsedUrl.hostname.endsWith("everybodyeats.nz")) {
+      return NextResponse.json(
+        { error: "Only URLs from everybodyeats.nz are allowed" },
+        { status: 400 },
+      );
+    }
+
     const result = await scrapeUrl(targetUrl);
 
     if (!result) {

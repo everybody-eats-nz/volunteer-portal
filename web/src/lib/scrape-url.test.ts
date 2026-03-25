@@ -195,6 +195,52 @@ describe("extractStructuredText", () => {
     expect(result).not.toContain("Registered charity");
   });
 
+  it("keeps inline elements as continuous text (apostrophes, links, bold)", () => {
+    const result = extract(`
+      <body>
+        <p>We couldn<span>'</span>t open our doors without <a href="/volunteers">our volunteers</a>.</p>
+      </body>
+    `);
+    expect(result).toContain("We couldn't open our doors without our volunteers.");
+  });
+
+  it("keeps apostrophes in contractions intact across spans", () => {
+    const result = extract(`
+      <body>
+        <p>Don<span>'</span>t forget to join the <a href="/fb">Auckland</a> or <a href="/fb2">Wellington</a> page!</p>
+      </body>
+    `);
+    expect(result).toContain("Don't forget to join the Auckland or Wellington page!");
+  });
+
+  it("strips zero-width characters from CMS content", () => {
+    const result = extract(`
+      <body>
+        <p>Some text\u200B\u200D with zero-width\uFEFF chars</p>
+      </body>
+    `);
+    expect(result).toBe("Some text with zero-width chars");
+    expect(result).not.toMatch(/[\u200B\u200C\u200D\uFEFF]/);
+  });
+
+  it("handles bold and italic inline elements without splitting", () => {
+    const result = extract(`
+      <body>
+        <p>This is <strong>very important</strong> and <em>also italic</em> text.</p>
+      </body>
+    `);
+    expect(result).toBe("This is very important and also italic text.");
+  });
+
+  it("handles nested inline elements in paragraphs", () => {
+    const result = extract(`
+      <body>
+        <p>Contact <a href="mailto:jack@ee.nz"><strong>Jack</strong></a> for more info.</p>
+      </body>
+    `);
+    expect(result).toBe("Contact Jack for more info.");
+  });
+
   it("returns empty string for empty body", () => {
     const result = extract("<body></body>");
     expect(result).toBe("");
