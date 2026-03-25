@@ -95,8 +95,6 @@ npm run test:e2e:ci                                     # CI mode (chromium, lis
 │   │   │   ├── shifts/     # Shift browsing
 │   │   │   ├── friends/    # Friends system
 │   │   │   ├── achievements/ # Achievement pages
-│   │   │   ├── group-bookings/ # Group booking management
-│   │   │   ├── group-invitations/ # Invitation handling
 │   │   │   ├── resources/  # Resource hub
 │   │   │   ├── surveys/    # Volunteer surveys
 │   │   │   ├── profile/    # User profile
@@ -167,8 +165,6 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 - `/api/achievements` — Gamification and achievement tracking
 - `/api/leaderboard` — Volunteer leaderboard
 - `/api/friends/*` — Friends, requests, activity, privacy, recommended
-- `/api/group-bookings/*` — Group booking system
-- `/api/group-invitations/*` — Invitation token handling
 - `/api/notifications` — Notification system with SSE
 - `/api/passkey/*` — WebAuthn/Passkey registration and authentication
 - `/api/resources` — Resource hub content
@@ -245,8 +241,6 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 **Gamification & Social**:
 - **Achievement** / **UserAchievement** — Achievement system with categories (`MILESTONE`, `DEDICATION`, `IMPACT`, `SPECIALIZATION`)
 - **Friendship** / **FriendRequest** — Friends system with privacy controls (`FriendVisibility`)
-- **GroupBooking** / **GroupInvitation** — Group booking workflow
-
 **Admin & Management**:
 - **AdminNote** — Notes on volunteers
 - **CustomLabel** / **UserCustomLabel** — Custom volunteer labels/tags
@@ -265,15 +259,11 @@ SSE (Server-Sent Events) for real-time notifications — utilities in `src/lib/s
 **Surveys**:
 - **Survey** / **SurveyAssignment** / **SurveyToken** / **SurveyResponse** — Full survey system with triggers
 
-**Key Enums**: `Role`, `SignupStatus`, `VolunteerGrade`, `NotificationType`, `AchievementCategory`, `GroupBookingStatus`, `FriendshipStatus`, `Frequency`, `CriteriaLogic`, `ResourceType`, `ResourceCategory`, `SurveyTriggerType`
+**Key Enums**: `Role`, `SignupStatus`, `VolunteerGrade`, `NotificationType`, `AchievementCategory`, `FriendshipStatus`, `Frequency`, `CriteriaLogic`, `ResourceType`, `ResourceCategory`, `SurveyTriggerType`
 
 ### Achievement System
 
 Automatic unlocking based on shift counts (MILESTONE), consecutive months (DEDICATION), hours (IMPACT), and shift types (SPECIALIZATION). Processing in `/api/achievements/route.ts`. Calculator logic in `src/lib/achievement-calculator.ts`.
-
-### Group Booking System
-
-Volunteers can create group bookings, send invitations, manage assignments, and handle approval workflows.
 
 ### Notification System
 
