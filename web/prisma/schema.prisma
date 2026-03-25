@@ -77,9 +77,6 @@ model User {
   updatedAt            DateTime          @updatedAt
   signups              Signup[]
   achievements         UserAchievement[]
-  ledGroupBookings     GroupBooking[]    @relation("GroupLeader")
-  groupInvitationsSent GroupInvitation[]
-
   // Friend system relations
   friendships          Friendship[]    @relation("UserFriendships")
   friendOf             Friendship[]    @relation("FriendFriendships")
@@ -208,7 +205,6 @@ model Shift {
   updatedAt        DateTime       @updatedAt
   shiftType        ShiftType      @relation(fields: [shiftTypeId], references: [id])
   signups          Signup[]
-  groupBookings    GroupBooking[]
 }
 
 model Signup {
@@ -216,7 +212,6 @@ model Signup {
   userId         String
   shiftId        String
   status         SignupStatus @default(CONFIRMED)
-  groupBookingId String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -239,7 +234,6 @@ model Signup {
 
   shift         Shift          @relation(fields: [shiftId], references: [id])
   user          User           @relation(fields: [userId], references: [id])
-  groupBooking  GroupBooking?  @relation(fields: [groupBookingId], references: [id])
   regularSignup RegularSignup? // One-to-one relation with RegularSignup
   autoApproval  AutoApproval?
 
@@ -274,47 +268,6 @@ model UserAchievement {
   @@unique([userId, achievementId])
 }
 
-model GroupBooking {
-  id          String             @id @default(cuid())
-  name        String // e.g., "Smith Family", "Acme Corp Team"
-  description String? // Optional group description
-  shiftId     String
-  leaderId    String // Group leader (creator)
-  maxMembers  Int                @default(10) // Configurable limit
-  status      GroupBookingStatus @default(PENDING)
-  notes       String? // Admin/leader notes
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-
-  // Relations
-  shift       Shift             @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  leader      User              @relation("GroupLeader", fields: [leaderId], references: [id])
-  signups     Signup[] // Individual signups linked to this group
-  invitations GroupInvitation[] // Pending invitations
-
-  @@unique([shiftId, leaderId]) // One group per leader per shift
-}
-
-model GroupInvitation {
-  id               String                @id @default(cuid())
-  groupBookingId   String
-  email            String
-  invitedById      String
-  status           GroupInvitationStatus @default(PENDING)
-  message          String? // Personal message from inviter
-  token            String                @unique @default(cuid()) // For invitation links
-  expiresAt        DateTime // Invitation expiry (7 days)
-  assignedShiftIds String[] // Array of shift IDs this member is assigned to
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
-
-  // Relations
-  groupBooking GroupBooking @relation(fields: [groupBookingId], references: [id], onDelete: Cascade)
-  invitedBy    User         @relation(fields: [invitedById], references: [id])
-
-  @@unique([groupBookingId, email])
-}
-
 enum Role {
   VOLUNTEER
   ADMIN
@@ -344,22 +297,6 @@ enum AchievementCategory {
   SPECIALIZATION
   COMMUNITY
   IMPACT
-}
-
-enum GroupBookingStatus {
-  PENDING // Awaiting admin review
-  CONFIRMED // Approved by admin
-  WAITLISTED // On waitlist as a group
-  CANCELED // Canceled by leader or admin
-  PARTIAL // Some members approved, others not
-}
-
-enum GroupInvitationStatus {
-  PENDING // Invitation sent, awaiting response
-  ACCEPTED // User accepted and joined (signup created)
-  DECLINED // User declined invitation
-  EXPIRED // Invitation expired
-  CANCELED // Canceled by leader
 }
 
 model Friendship {
@@ -449,7 +386,6 @@ enum NotificationType {
   SHIFT_CONFIRMED // Your shift signup was confirmed
   SHIFT_WAITLISTED // Your shift signup was waitlisted
   SHIFT_CANCELED // Your shift was canceled by admin
-  GROUP_INVITATION // You were invited to a group booking
   ACHIEVEMENT_UNLOCKED // You unlocked a new achievement
   SHIFT_CANCELLATION_MANAGER // Volunteer canceled shift - notify managers
   FLEXIBLE_PLACEMENT // Deprecated - kept for backwards compatibility

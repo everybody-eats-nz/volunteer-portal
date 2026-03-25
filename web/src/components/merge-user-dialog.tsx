@@ -546,14 +546,6 @@ export function MergeUserDialog({ user, children }: MergeUserDialogProps) {
                       </span>
                     </div>
                   )}
-                  {preview.estimatedStats.groupBookings.toTransfer > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Group Bookings</span>
-                      <span className="font-medium">
-                        {preview.estimatedStats.groupBookings.toTransfer}
-                      </span>
-                    </div>
-                  )}
                   {preview.estimatedStats.passkeys > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Passkeys</span>

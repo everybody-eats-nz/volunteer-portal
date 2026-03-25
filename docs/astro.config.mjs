@@ -182,10 +182,6 @@ export default defineConfig({
                     slug: "shift-management/creating-shifts",
                   },
                   {
-                    label: "👨‍👩‍👧‍👦 Group Bookings",
-                    slug: "shift-management/group-bookings",
-                  },
-                  {
                     label: "✅ Attendance Tracking",
                     slug: "shift-management/attendance-tracking",
                   },
