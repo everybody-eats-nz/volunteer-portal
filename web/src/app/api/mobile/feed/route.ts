@@ -174,6 +174,7 @@ export async function GET(request: Request) {
       timestamp: ua.unlockedAt.toISOString(),
       isFriend: friendIdSet.has(ua.user.id),
       likes: [],
+      comments: [],
     });
   }
 
@@ -207,6 +208,7 @@ export async function GET(request: Request) {
       timestamp: signup.shift.end.toISOString(),
       isFriend: friendIdSet.has(signup.userId),
       likes: [],
+      comments: [],
     });
   }
 
@@ -226,6 +228,7 @@ export async function GET(request: Request) {
       timestamp: signup.createdAt.toISOString(),
       isFriend: true,
       likes: [],
+      comments: [],
     });
   }
 

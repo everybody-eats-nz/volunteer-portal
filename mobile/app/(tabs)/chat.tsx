@@ -536,7 +536,6 @@ export default function ChatScreen() {
   const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
   const hasInput = input.trim().length > 0 && !isLoading;
   const useNativeGlass = isLiquidGlassAvailable();
-  if (__DEV__) console.log("[Chat] liquid glass available:", useNativeGlass);
 
   /* ── Input contents (shared between glass and fallback paths) ── */
   const inputContents = (
