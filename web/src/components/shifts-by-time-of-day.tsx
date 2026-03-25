@@ -50,11 +50,6 @@ interface Shift {
       }>;
     };
   }>;
-  groupBookings: Array<{
-    signups: Array<{
-      status: string;
-    }>;
-  }>;
 }
 
 interface ShiftsByTimeOfDayProps {

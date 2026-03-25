@@ -71,16 +71,6 @@ export async function DELETE(
         where: { userId: userId },
       });
 
-      // Delete group invitations sent by this user
-      await tx.groupInvitation.deleteMany({
-        where: { invitedById: userId },
-      });
-
-      // Delete group bookings created by this user (as leader)
-      await tx.groupBooking.deleteMany({
-        where: { leaderId: userId },
-      });
-
       // Delete admin notes about this user
       await tx.adminNote.deleteMany({
         where: { volunteerId: userId },

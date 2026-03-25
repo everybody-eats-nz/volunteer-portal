@@ -39,11 +39,6 @@ export async function DELETE(
       where: { shiftId: id },
     });
 
-    // Delete any group bookings for this shift
-    await prisma.groupBooking.deleteMany({
-      where: { shiftId: id },
-    });
-
     // Then delete the shift
     await prisma.shift.delete({
       where: { id },

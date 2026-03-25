@@ -142,23 +142,6 @@ export default async function AdminShiftsPage({
           },
         },
       },
-      groupBookings: {
-        include: {
-          signups: {
-            where: {
-              status: {
-                in: [
-                  "CONFIRMED",
-                  "PENDING",
-                  "WAITLISTED",
-                  "REGULAR_PENDING",
-                  "NO_SHOW",
-                ],
-              },
-            },
-          },
-        },
-      },
       _count: {
         select: {
           signups: {

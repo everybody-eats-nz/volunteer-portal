@@ -36,8 +36,6 @@ function countDuplicates<T>(
 export interface MergeStats {
   signups: { transferred: number; skipped: number };
   achievements: { transferred: number; skipped: number };
-  groupBookings: { transferred: number; skipped: number };
-  groupInvitations: { transferred: number; skipped: number };
   friendships: { transferred: number; skipped: number };
   friendRequests: { transferred: number; skipped: number };
   notifications: { transferred: number; skipped: number };
@@ -87,7 +85,6 @@ export interface MergePreview {
     duplicateCustomLabels: number;
     duplicateSurveyAssignments: number;
     selfFriendships: number;
-    duplicateGroupBookings: number;
     duplicateNotificationGroupMembers: number;
     duplicateFriendRequests: number;
     duplicateRegularVolunteers: number;
@@ -100,8 +97,6 @@ export interface MergePreview {
     notifications: number;
     adminNotes: number;
     resources: number;
-    groupBookings: { toTransfer: number; toSkip: number };
-    groupInvitations: number;
     notificationGroupMembers: { toTransfer: number; toSkip: number };
     friendRequests: { toTransfer: number; toSkip: number };
     autoAcceptRules: number;
@@ -161,8 +156,6 @@ export async function getMergePreview(
             notifications: true,
             adminNotes: true,
             uploadedResources: true,
-            ledGroupBookings: true,
-            groupInvitationsSent: true,
             notificationGroupMembers: true,
             sentFriendRequests: true,
             createdAutoAcceptRules: true,
@@ -196,8 +189,6 @@ export async function getMergePreview(
             notifications: true,
             adminNotes: true,
             uploadedResources: true,
-            ledGroupBookings: true,
-            groupInvitationsSent: true,
             notificationGroupMembers: true,
             sentFriendRequests: true,
             createdAutoAcceptRules: true,
@@ -231,8 +222,6 @@ export async function getMergePreview(
     sourceCustomLabels,
     targetSurveyAssignments,
     sourceSurveyAssignments,
-    targetGroupBookings,
-    sourceGroupBookings,
     targetNotificationGroupMembers,
     sourceNotificationGroupMembers,
     targetFriendRequests,
@@ -248,8 +237,6 @@ export async function getMergePreview(
     prisma.userCustomLabel.findMany({ where: { userId: sourceId }, select: { labelId: true } }),
     prisma.surveyAssignment.findMany({ where: { userId: targetId }, select: { surveyId: true } }),
     prisma.surveyAssignment.findMany({ where: { userId: sourceId }, select: { surveyId: true } }),
-    prisma.groupBooking.findMany({ where: { leaderId: targetId }, select: { shiftId: true } }),
-    prisma.groupBooking.findMany({ where: { leaderId: sourceId }, select: { shiftId: true } }),
     prisma.notificationGroupMember.findMany({ where: { userId: targetId }, select: { groupId: true } }),
     prisma.notificationGroupMember.findMany({ where: { userId: sourceId }, select: { groupId: true } }),
     prisma.friendRequest.findMany({ where: { fromUserId: targetId }, select: { toEmail: true } }),
@@ -261,7 +248,6 @@ export async function getMergePreview(
   const duplicateAchievements = countDuplicates(targetAchievements, sourceAchievements, (a) => a.achievementId);
   const duplicateCustomLabels = countDuplicates(targetCustomLabels, sourceCustomLabels, (l) => l.labelId);
   const duplicateSurveyAssignments = countDuplicates(targetSurveyAssignments, sourceSurveyAssignments, (s) => s.surveyId);
-  const duplicateGroupBookings = countDuplicates(targetGroupBookings, sourceGroupBookings, (g) => g.shiftId);
   const duplicateNotificationGroupMembers = countDuplicates(
     targetNotificationGroupMembers,
     sourceNotificationGroupMembers,
@@ -321,7 +307,6 @@ export async function getMergePreview(
       duplicateCustomLabels,
       duplicateSurveyAssignments,
       selfFriendships,
-      duplicateGroupBookings,
       duplicateNotificationGroupMembers,
       duplicateFriendRequests,
       duplicateRegularVolunteers,
@@ -346,11 +331,6 @@ export async function getMergePreview(
       notifications: sourceUser._count.notifications,
       adminNotes: sourceUser._count.adminNotes,
       resources: sourceUser._count.uploadedResources,
-      groupBookings: {
-        toTransfer: sourceUser._count.ledGroupBookings - duplicateGroupBookings,
-        toSkip: duplicateGroupBookings,
-      },
-      groupInvitations: sourceUser._count.groupInvitationsSent,
       notificationGroupMembers: {
         toTransfer:
           sourceUser._count.notificationGroupMembers -
@@ -441,8 +421,6 @@ export async function executeUserMerge(
   const stats: MergeStats = {
     signups: { transferred: 0, skipped: 0 },
     achievements: { transferred: 0, skipped: 0 },
-    groupBookings: { transferred: 0, skipped: 0 },
-    groupInvitations: { transferred: 0, skipped: 0 },
     friendships: { transferred: 0, skipped: 0 },
     friendRequests: { transferred: 0, skipped: 0 },
     notifications: { transferred: 0, skipped: 0 },
@@ -530,42 +508,7 @@ export async function executeUserMerge(
         }
       }
 
-      // 3. Transfer GroupBookings (skip duplicates based on [shiftId, leaderId])
-      const targetGroupBookings = await tx.groupBooking.findMany({
-        where: { leaderId: targetId },
-        select: { shiftId: true },
-      });
-      const targetGroupBookingShiftIds = new Set(
-        targetGroupBookings.map((g) => g.shiftId)
-      );
-
-      const sourceGroupBookings = await tx.groupBooking.findMany({
-        where: { leaderId: sourceId },
-        select: { id: true, shiftId: true },
-      });
-
-      for (const groupBooking of sourceGroupBookings) {
-        if (targetGroupBookingShiftIds.has(groupBooking.shiftId)) {
-          // Delete duplicate - target already leads a group for this shift
-          await tx.groupBooking.delete({ where: { id: groupBooking.id } });
-          stats.groupBookings.skipped++;
-        } else {
-          await tx.groupBooking.update({
-            where: { id: groupBooking.id },
-            data: { leaderId: targetId },
-          });
-          stats.groupBookings.transferred++;
-        }
-      }
-
-      // 4. Transfer GroupInvitations (transfer all)
-      const groupInvitationsResult = await tx.groupInvitation.updateMany({
-        where: { invitedById: sourceId },
-        data: { invitedById: targetId },
-      });
-      stats.groupInvitations.transferred = groupInvitationsResult.count;
-
-      // 5. Transfer Friendships (skip duplicates and self-friendships)
+      // 3. Transfer Friendships (skip duplicates and self-friendships)
       const targetFriendships = await tx.friendship.findMany({
         where: { userId: targetId },
         select: { friendId: true },
@@ -960,19 +903,6 @@ function createAuditNote(
     lines.push(
       `- Friendships: ${stats.friendships.transferred} transferred${stats.friendships.skipped > 0 ? ` (${stats.friendships.skipped} duplicates/self-refs skipped)` : ""}`
     );
-  }
-
-  if (
-    stats.groupBookings.transferred > 0 ||
-    stats.groupBookings.skipped > 0
-  ) {
-    lines.push(
-      `- Group Bookings: ${stats.groupBookings.transferred} transferred${stats.groupBookings.skipped > 0 ? ` (${stats.groupBookings.skipped} duplicates skipped)` : ""}`
-    );
-  }
-
-  if (stats.groupInvitations.transferred > 0) {
-    lines.push(`- Group Invitations: ${stats.groupInvitations.transferred}`);
   }
 
   if (stats.notifications.transferred > 0) {
