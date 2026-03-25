@@ -52,25 +52,6 @@ export function BotProtectionClient() {
           path: "/api/shifts/*/signup",
           method: "POST",
         },
-        {
-          path: "/api/shifts/*/group-booking",
-          method: "POST",
-        },
-
-        // Group bookings
-        {
-          path: "/api/group-bookings/*/invite",
-          method: "POST",
-        },
-        {
-          path: "/api/group-invitations/*/accept",
-          method: "POST",
-        },
-        {
-          path: "/api/group-invitations/*/decline",
-          method: "POST",
-        },
-
         // Friend system
         {
           path: "/api/friends",

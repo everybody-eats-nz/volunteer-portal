@@ -71,15 +71,10 @@ export async function DELETE(request: NextRequest) {
       0
     );
 
-    // Delete in a transaction: signups → group bookings → shifts
+    // Delete in a transaction: signups → shifts
     await prisma.$transaction(async (tx) => {
       // Delete all signups for these shifts
       await tx.signup.deleteMany({
-        where: { shiftId: { in: shiftIds } },
-      });
-
-      // Delete all group bookings for these shifts
-      await tx.groupBooking.deleteMany({
         where: { shiftId: { in: shiftIds } },
       });
 
