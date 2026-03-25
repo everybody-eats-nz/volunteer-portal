@@ -6,5 +6,11 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/refresh-website-content",
+      "schedule": "0 4 * * *"
+    }
+  ]
 }

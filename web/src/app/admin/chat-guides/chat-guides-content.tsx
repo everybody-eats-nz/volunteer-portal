@@ -14,6 +14,9 @@ import {
   RotateCcw,
   Bot,
   User,
+  Globe,
+  RefreshCw,
+  Link,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -66,6 +69,7 @@ type ChatResource = {
   includeInChat: boolean;
   description?: string | null;
   fileName?: string | null;
+  url?: string | null;
   uploader?: { id: string; firstName: string | null; lastName: string | null; name: string | null };
 };
 
@@ -159,6 +163,19 @@ export function ChatGuidesContent({
   const [chatContent, setChatContent] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [isExtractingPdf, setIsExtractingPdf] = useState(false);
+  const [isExtractingUrl, setIsExtractingUrl] = useState(false);
+
+  // Import from URL dialog
+  const [importUrlDialogOpen, setImportUrlDialogOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importTitle, setImportTitle] = useState("");
+  const [importCategory, setImportCategory] = useState("GENERAL");
+  const [importContent, setImportContent] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExtractingImportUrl, setIsExtractingImportUrl] = useState(false);
+
+  // Refresh URL content
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
 
   // Edit dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -229,8 +246,9 @@ export function ChatGuidesContent({
     setSelectedResourceId(resourceId);
     setChatContent("");
 
-    // Auto-extract text if it's a PDF
     const resource = availableResources.find((r) => r.id === resourceId);
+
+    // Auto-extract text if it's a PDF
     if (resource?.type === "PDF") {
       setIsExtractingPdf(true);
       try {
@@ -261,6 +279,38 @@ export function ChatGuidesContent({
         setIsExtractingPdf(false);
       }
     }
+
+    // Auto-extract text if it's a LINK
+    if (resource?.type === "LINK") {
+      setIsExtractingUrl(true);
+      try {
+        const response = await fetch("/api/admin/chat-guides/extract-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resourceId }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Failed to extract page content");
+        }
+
+        const { text } = await response.json();
+        setChatContent(text);
+        toast({
+          title: "Page content extracted",
+          description: "Review and edit the extracted content below.",
+        });
+      } catch (error) {
+        toast({
+          title: "URL extraction failed",
+          description: error instanceof Error ? error.message : "Could not extract content. You can paste content manually.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsExtractingUrl(false);
+      }
+    }
   };
 
   const handleAddQuestion = () => {
@@ -279,6 +329,146 @@ export function ChatGuidesContent({
     setSuggestedQuestions((prev) =>
       prev.map((q, i) => (i === index ? { ...q, [field]: value } : q)),
     );
+  };
+
+  const handleExtractImportUrl = async () => {
+    if (!importUrl.trim()) return;
+    setIsExtractingImportUrl(true);
+    try {
+      const response = await fetch("/api/admin/chat-guides/extract-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: importUrl.trim() }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to extract page content");
+      }
+
+      const { text, title } = await response.json();
+      setImportContent(text);
+      if (!importTitle.trim()) {
+        setImportTitle(title);
+      }
+      toast({
+        title: "Page content extracted",
+        description: "Review and edit the extracted content below.",
+      });
+    } catch (error) {
+      toast({
+        title: "URL extraction failed",
+        description: error instanceof Error ? error.message : "Could not extract content from this URL.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtractingImportUrl(false);
+    }
+  };
+
+  const handleImportUrl = async () => {
+    if (!importUrl.trim() || !importContent.trim() || !importTitle.trim()) return;
+    setIsImporting(true);
+
+    try {
+      const response = await fetch("/api/admin/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: importTitle.trim(),
+          type: "LINK",
+          category: importCategory,
+          url: importUrl.trim(),
+          isPublished: true,
+          includeInChat: true,
+          chatContent: importContent.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to import URL");
+      }
+
+      const created = await response.json();
+      setChatResources((prev) => [...prev, created]);
+      recalcTokens([...chatResources, created]);
+
+      toast({ title: "Website page imported", description: created.title });
+      setImportUrlDialogOpen(false);
+      setImportUrl("");
+      setImportTitle("");
+      setImportCategory("GENERAL");
+      setImportContent("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to import URL",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleRefreshUrlContent = async (resource: ChatResource) => {
+    if (!resource.url) {
+      toast({
+        title: "No URL stored",
+        description: "This resource has no URL to refresh from. Edit it to add one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRefreshingId(resource.id);
+    try {
+      // Pass the URL directly to avoid server-side type check
+      const response = await fetch("/api/admin/chat-guides/extract-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: resource.url }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Failed to extract content" }));
+        throw new Error(err.error || "Failed to refresh content");
+      }
+
+      const { text } = await response.json();
+
+      // Save the refreshed content
+      const saveResponse = await fetch(`/api/admin/resources/${resource.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatContent: text }),
+      });
+
+      if (!saveResponse.ok) {
+        const err = await saveResponse.json().catch(() => ({ error: "Failed to save refreshed content" }));
+        throw new Error(err.error || "Failed to save refreshed content");
+      }
+
+      const updated = await saveResponse.json();
+      setChatResources((prev) =>
+        prev.map((r) => (r.id === updated.id ? updated : r)),
+      );
+      recalcTokens(
+        chatResources.map((r) =>
+          r.id === resource.id ? { ...r, chatContent: text } : r,
+        ),
+      );
+
+      toast({ title: "Content refreshed", description: resource.title });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: error instanceof Error ? error.message : "Could not refresh content",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshingId(null);
+    }
   };
 
   const handleCreateGuide = async () => {
@@ -649,6 +839,10 @@ export function ChatGuidesContent({
               <Plus className="mr-2 h-4 w-4" />
               Add Existing Resource
             </Button>
+            <Button variant="outline" onClick={() => setImportUrlDialogOpen(true)}>
+              <Globe className="mr-2 h-4 w-4" />
+              Import from URL
+            </Button>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <FileText className="mr-2 h-4 w-4" />
               Create Guide
@@ -676,7 +870,11 @@ export function ChatGuidesContent({
               <Card key={resource.id}>
                 <CardContent className="flex items-start gap-4 p-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    {resource.type === "LINK" ? (
+                      <Globe className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -696,9 +894,25 @@ export function ChatGuidesContent({
                     )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       ~{Math.round((resource.chatContent?.length ?? 0) / 4).toLocaleString()} tokens
+                      {resource.type === "LINK" && (
+                        <span className="ml-2 text-muted-foreground/70">
+                          · Auto-refreshes daily ~4–5pm NZT
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1">
+                    {resource.type === "LINK" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRefreshUrlContent(resource)}
+                        disabled={refreshingId === resource.id}
+                        title="Re-scrape content from URL"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${refreshingId === resource.id ? "animate-spin" : ""}`} />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -888,16 +1102,20 @@ export function ChatGuidesContent({
                 placeholder={
                   isExtractingPdf
                     ? "Extracting text from PDF..."
-                    : "Paste or type the text content the AI should use as context..."
+                    : isExtractingUrl
+                      ? "Extracting content from URL..."
+                      : "Paste or type the text content the AI should use as context..."
                 }
                 rows={12}
-                disabled={isExtractingPdf}
+                disabled={isExtractingPdf || isExtractingUrl}
                 className="max-h-[40vh] resize-none font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
                 {isExtractingPdf
                   ? "Extracting text from PDF..."
-                  : `~${Math.round(chatContent.length / 4).toLocaleString()} tokens`}
+                  : isExtractingUrl
+                    ? "Extracting content from web page..."
+                    : `~${Math.round(chatContent.length / 4).toLocaleString()} tokens`}
               </p>
             </div>
           </div>
@@ -907,7 +1125,7 @@ export function ChatGuidesContent({
             </Button>
             <Button
               onClick={handleAddResource}
-              disabled={!selectedResourceId || !chatContent.trim() || isAdding || isExtractingPdf}
+              disabled={!selectedResourceId || !chatContent.trim() || isAdding || isExtractingPdf || isExtractingUrl}
             >
               {isAdding ? "Adding..." : "Add to Chat"}
             </Button>
@@ -969,6 +1187,103 @@ export function ChatGuidesContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import from URL Dialog */}
+      <Dialog open={importUrlDialogOpen} onOpenChange={setImportUrlDialogOpen}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Import from Website</DialogTitle>
+            <DialogDescription>
+              Enter a URL to scrape its content for the AI assistant. The page
+              content will be extracted and stored as a chat resource.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>URL</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={importUrl}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                    placeholder="https://everybodyeats.nz/..."
+                    className="pl-9"
+                  />
+                </div>
+                <Button
+                  onClick={handleExtractImportUrl}
+                  disabled={!importUrl.trim() || isExtractingImportUrl}
+                  variant="secondary"
+                >
+                  {isExtractingImportUrl ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Globe className="mr-2 h-4 w-4" />
+                  )}
+                  {isExtractingImportUrl ? "Extracting..." : "Fetch"}
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  value={importTitle}
+                  onChange={(e) => setImportTitle(e.target.value)}
+                  placeholder="Page title (auto-filled on fetch)"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={importCategory} onValueChange={setImportCategory}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Extracted Content</Label>
+              <Textarea
+                value={importContent}
+                onChange={(e) => setImportContent(e.target.value)}
+                placeholder={
+                  isExtractingImportUrl
+                    ? "Extracting content from page..."
+                    : "Click Fetch to extract content, or paste manually..."
+                }
+                rows={14}
+                disabled={isExtractingImportUrl}
+                className="max-h-[40vh] resize-none font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {isExtractingImportUrl
+                  ? "Extracting content from page..."
+                  : `~${Math.round(importContent.length / 4).toLocaleString()} tokens`}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportUrlDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImportUrl}
+              disabled={!importUrl.trim() || !importTitle.trim() || !importContent.trim() || isImporting || isExtractingImportUrl}
+            >
+              {isImporting ? "Importing..." : "Import to Chat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Guide Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
