@@ -115,7 +115,7 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.content]}
+      contentContainerStyle={[styles.content, Platform.OS === 'android' && { paddingTop: insets.top }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
@@ -226,6 +226,7 @@ export default function HomeScreen() {
             {
               backgroundColor: Brand.accent,
               opacity: pressed ? 0.9 : 1,
+              marginTop: nextShift ? 20 : 0,
             },
           ]}
           accessibilityLabel="Browse available shifts"
@@ -1615,7 +1616,6 @@ const styles = StyleSheet.create({
   // Open shifts banner
   openShiftsBanner: {
     marginHorizontal: 20,
-    marginTop: 20,
     borderRadius: 16,
     padding: 16,
   },
