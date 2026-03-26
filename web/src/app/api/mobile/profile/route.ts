@@ -110,7 +110,12 @@ export async function GET(request: Request) {
       await Promise.all([
         getUserAchievements(userId),
         getAvailableAchievements(userId),
-        prisma.user.count({ where: { role: "VOLUNTEER" } }),
+        prisma.user.count({
+          where: {
+            role: "VOLUNTEER",
+            signups: { some: { status: "CONFIRMED" } },
+          },
+        }),
       ]);
 
     // Count how many users have unlocked each achievement
