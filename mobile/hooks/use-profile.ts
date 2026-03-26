@@ -16,6 +16,11 @@ type ProfileResponse = {
     role: string;
     volunteerGrade: "GREEN" | "YELLOW" | "PINK";
     memberSince: string;
+    dateOfBirth: string | null;
+    emergencyContactName: string | null;
+    emergencyContactRelationship: string | null;
+    emergencyContactPhone: string | null;
+    medicalConditions: string | null;
   };
   stats: ProfileStats;
   achievements: Achievement[];
@@ -74,9 +79,10 @@ export function useProfile(): UseProfileReturn {
         phone: data.profile.phone ?? "",
         pronouns: data.profile.pronouns ?? "",
         volunteerGrade: data.profile.volunteerGrade,
-        emergencyContactName: "",
-        emergencyContactRelationship: "",
-        emergencyContactPhone: "",
+        emergencyContactName: data.profile.emergencyContactName ?? "",
+        emergencyContactRelationship: data.profile.emergencyContactRelationship ?? "",
+        emergencyContactPhone: data.profile.emergencyContactPhone ?? "",
+        medicalConditions: data.profile.medicalConditions ?? "",
         totalShifts: data.stats.shiftsCompleted,
         memberSince: data.profile.memberSince,
       }

@@ -23,6 +23,7 @@ export type UserProfile = User & {
   emergencyContactName: string;
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
+  medicalConditions: string;
   totalShifts: number;
   memberSince: string;
 };
@@ -37,6 +38,7 @@ export const DUMMY_PROFILE: UserProfile = {
   emergencyContactName: 'Hemi Williams',
   emergencyContactRelationship: 'Partner',
   emergencyContactPhone: '021 765 4321',
+  medicalConditions: '',
   totalShifts: 23,
   memberSince: '2025-06-15',
 };

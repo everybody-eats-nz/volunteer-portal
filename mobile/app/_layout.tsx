@@ -95,6 +95,15 @@ export default function RootLayout() {
               title: '',
             }}
           />
+          <Stack.Screen
+            name="profile/edit"
+            options={{
+              headerShown: true,
+              headerBackTitle: 'Profile',
+              title: 'Edit Profile',
+              presentation: 'card',
+            }}
+          />
         </Stack>
       </AuthGate>
       <StatusBar style="auto" />

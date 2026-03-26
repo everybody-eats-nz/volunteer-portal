@@ -14,13 +14,16 @@ export {
 } from "./storage-utils";
 
 export const STORAGE_BUCKET = "resource-hub";
+export const PROFILE_PHOTOS_BUCKET = "profile-photos";
+export const MAX_PROFILE_PHOTO_SIZE = 1 * 1024 * 1024; // 1MB
 
 /**
  * Upload a file to Supabase storage (uses service role for admin uploads)
  */
 export async function uploadFile(
   file: File,
-  folder: string = "uploads"
+  folder: string = "uploads",
+  bucket: string = STORAGE_BUCKET
 ): Promise<{ url: string; path: string }> {
   // Validate file size
   if (file.size > MAX_FILE_SIZE) {
@@ -64,7 +67,7 @@ export async function uploadFile(
 
   // Upload to Supabase
   const { data, error } = await admin.storage
-    .from(STORAGE_BUCKET)
+    .from(bucket)
     .upload(filePath, file, {
       cacheControl: "3600",
       upsert: false,
@@ -78,7 +81,7 @@ export async function uploadFile(
   // Get public URL (can use regular client for this)
   const {
     data: { publicUrl },
-  } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(data.path);
+  } = supabase.storage.from(bucket).getPublicUrl(data.path);
 
   return {
     url: publicUrl,
@@ -89,10 +92,10 @@ export async function uploadFile(
 /**
  * Delete a file from Supabase storage (admin only)
  */
-export async function deleteFile(filePath: string): Promise<void> {
+export async function deleteFile(filePath: string, bucket: string = STORAGE_BUCKET): Promise<void> {
   const admin = getSupabaseAdmin();
 
-  const { error } = await admin.storage.from(STORAGE_BUCKET).remove([filePath]);
+  const { error } = await admin.storage.from(bucket).remove([filePath]);
 
   if (error) {
     console.error("Supabase delete error:", error);
