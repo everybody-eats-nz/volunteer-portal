@@ -102,7 +102,7 @@ export function PageHeader({
             {title}
           </motion.h1>
           {description && (
-            <motion.p
+            <motion.div
               className="text-base sm:text-lg text-muted-foreground mt-2 max-w-2xl leading-relaxed font-sans"
               data-testid={
                 dataTestId
@@ -112,7 +112,7 @@ export function PageHeader({
               variants={descriptionVariants}
             >
               {description}
-            </motion.p>
+            </motion.div>
           )}
         </div>
         {actions && (
