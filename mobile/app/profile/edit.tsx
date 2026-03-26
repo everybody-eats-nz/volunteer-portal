@@ -48,11 +48,25 @@ type NewsletterList = {
   description: string | null;
 };
 
-const NOTIFICATION_OPTIONS: { value: FormData["notificationPreference"]; label: string; icon: string }[] = [
-  { value: "EMAIL", label: "Email only", icon: "mail-outline" },
-  { value: "SMS", label: "Text message only", icon: "chatbubble-outline" },
-  { value: "BOTH", label: "Both email and text", icon: "notifications-outline" },
-  { value: "NONE", label: "No notifications", icon: "notifications-off-outline" },
+// Map multi-select toggles to/from the database enum
+function channelsToPreference(channels: { email: boolean; sms: boolean }): FormData["notificationPreference"] {
+  if (channels.email && channels.sms) return "BOTH";
+  if (channels.email) return "EMAIL";
+  if (channels.sms) return "SMS";
+  return "NONE";
+}
+
+function preferenceToChannels(pref: FormData["notificationPreference"]): { email: boolean; sms: boolean } {
+  return {
+    email: pref === "EMAIL" || pref === "BOTH",
+    sms: pref === "SMS" || pref === "BOTH",
+  };
+}
+
+const CHANNEL_OPTIONS: { key: "email" | "sms" | "push"; label: string; hint: string; icon: string }[] = [
+  { key: "email", label: "Email", hint: "Shift confirmations, updates, and reminders", icon: "mail-outline" },
+  { key: "sms", label: "Text Message", hint: "Quick alerts for shift changes and shortages", icon: "chatbubble-outline" },
+  { key: "push", label: "Push Notifications", hint: "Coming soon", icon: "phone-portrait-outline" },
 ];
 
 export default function EditProfileScreen() {
@@ -78,6 +92,7 @@ export default function EditProfileScreen() {
     emailNewsletterSubscription: true,
     newsletterLists: [],
   });
+  const [pushNotifications, setPushNotifications] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
@@ -449,45 +464,57 @@ export default function EditProfileScreen() {
             Notifications
           </Text>
           <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
-            How would you like to receive notifications?
+            Choose how you'd like to hear from us.
           </Text>
 
-          {NOTIFICATION_OPTIONS.map((opt) => {
-            const selected = form.notificationPreference === opt.value;
+          {CHANNEL_OPTIONS.map((ch) => {
+            const channels = preferenceToChannels(form.notificationPreference);
+            const isPush = ch.key === "push";
+            const enabled = isPush ? pushNotifications : channels[ch.key as "email" | "sms"];
+            const isComingSoon = isPush;
+
             return (
               <Pressable
-                key={opt.value}
+                key={ch.key}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  updateField("notificationPreference", opt.value);
+                  if (isPush) {
+                    setPushNotifications(!pushNotifications);
+                  } else {
+                    const k = ch.key as "email" | "sms";
+                    const updated = { ...channels, [k]: !channels[k] };
+                    updateField("notificationPreference", channelsToPreference(updated));
+                  }
                 }}
-                style={[
-                  s.optionRow,
-                  {
-                    borderColor: selected
-                      ? isDark ? "#86efac" : Brand.green
-                      : colors.border,
-                    backgroundColor: selected
-                      ? isDark ? "rgba(14,58,35,0.2)" : Brand.greenLight
-                      : "transparent",
-                  },
-                ]}
+                style={s.toggleRow}
               >
                 <Ionicons
-                  name={opt.icon as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color={selected ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                  name={ch.icon as keyof typeof Ionicons.glyphMap}
+                  size={22}
+                  color={enabled ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
                 />
-                <Text style={[s.optionLabel, { color: colors.text, flex: 1 }]}>
-                  {opt.label}
-                </Text>
-                {selected && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={22}
-                    color={isDark ? "#86efac" : Brand.green}
-                  />
-                )}
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={[s.toggleLabel, { color: colors.text }]}>
+                      {ch.label}
+                    </Text>
+                    {isComingSoon && (
+                      <View style={[s.badge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9" }]}>
+                        <Text style={[s.badgeText, { color: colors.textSecondary }]}>
+                          Coming soon
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                    {ch.hint}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={enabled ? "checkbox" : "square-outline"}
+                  size={26}
+                  color={enabled ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                />
               </Pressable>
             );
           })}
@@ -831,17 +858,14 @@ const s = StyleSheet.create({
     paddingTop: 12,
   },
 
-  // Notification options
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+  // Badges
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  optionLabel: {
-    fontSize: 15,
+  badgeText: {
+    fontSize: 11,
     fontFamily: FontFamily.medium,
   },
 
