@@ -99,9 +99,9 @@ export default function RootLayout() {
             name="profile/edit"
             options={{
               headerShown: true,
+              headerTransparent: true,
               headerBackTitle: 'Profile',
-              title: 'Edit Profile',
-              presentation: 'card',
+              title: '',
             }}
           />
         </Stack>

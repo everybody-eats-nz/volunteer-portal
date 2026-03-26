@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -309,7 +311,10 @@ export default function EditProfileScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={[
           s.content,
-          { paddingBottom: Math.max(insets.bottom, 20) + 80 },
+          {
+            paddingTop: insets.top + 56,
+            paddingBottom: Math.max(insets.bottom, 20) + 80,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -657,49 +662,142 @@ export default function EditProfileScreen() {
       </ScrollView>
 
       {/* ── Footer ── */}
-      <View
-        style={[
-          s.footer,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.background,
-            paddingBottom: Math.max(insets.bottom, 16),
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          disabled={isSaving}
-          style={({ pressed }) => [
-            s.footerButtonSecondary,
-            { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+      {Platform.OS === "ios" ? (
+        <View
+          style={[
+            s.footerWrap,
+            { paddingBottom: Math.max(insets.bottom, 16) },
           ]}
         >
-          <Text style={[s.footerButtonSecondaryText, { color: colors.text }]}>
-            Cancel
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={handleSave}
-          disabled={isSaving}
-          style={({ pressed }) => [
-            s.footerButtonPrimary,
+          {isLiquidGlassAvailable() ? (
+            <GlassView glassEffectStyle="regular" style={s.footerGlass}>
+              <FooterButtons
+                isSaving={isSaving}
+                isDark={isDark}
+                colors={colors}
+                onCancel={() => router.back()}
+                onSave={handleSave}
+              />
+            </GlassView>
+          ) : (
+            <View style={s.footerGlass}>
+              <BlurView
+                intensity={isDark ? 60 : 80}
+                tint={isDark ? "dark" : "light"}
+                style={[StyleSheet.absoluteFill, { borderRadius: 20 }]}
+              />
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    borderRadius: 20,
+                    backgroundColor: isDark
+                      ? "rgba(30,30,30,0.4)"
+                      : "rgba(255,255,255,0.3)",
+                  },
+                ]}
+              />
+              <FooterButtons
+                isSaving={isSaving}
+                isDark={isDark}
+                colors={colors}
+                onCancel={() => router.back()}
+                onSave={handleSave}
+              />
+            </View>
+          )}
+        </View>
+      ) : (
+        <View
+          style={[
+            s.footerSolid,
             {
-              backgroundColor: isSaving ? colors.textSecondary : Brand.green,
-              opacity: pressed ? 0.9 : 1,
-              flex: 1,
+              borderTopColor: colors.border,
+              backgroundColor: colors.background,
+              paddingBottom: Math.max(insets.bottom, 16),
             },
           ]}
         >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <Text style={s.footerButtonPrimaryText}>Save Changes</Text>
-          )}
-        </Pressable>
-      </View>
+          <FooterButtons
+            isSaving={isSaving}
+            isDark={isDark}
+            colors={colors}
+            onCancel={() => router.back()}
+            onSave={handleSave}
+          />
+        </View>
+      )}
     </KeyboardAvoidingView>
+  );
+}
+
+/* ── Form Field Component ── */
+
+/* ── Footer Buttons Component ── */
+
+function FooterButtons({
+  isSaving,
+  isDark,
+  colors,
+  onCancel,
+  onSave,
+}: {
+  isSaving: boolean;
+  isDark: boolean;
+  colors: (typeof Colors)["light"];
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <>
+      <Pressable
+        onPress={onCancel}
+        disabled={isSaving}
+        style={({ pressed }) => [
+          s.glassButton,
+          {
+            backgroundColor: isDark
+              ? "rgba(255,255,255,0.1)"
+              : "rgba(0,0,0,0.06)",
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            s.glassButtonText,
+            { color: isDark ? "#e5e5e5" : colors.text },
+          ]}
+        >
+          Cancel
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={onSave}
+        disabled={isSaving}
+        style={({ pressed }) => [
+          s.glassButton,
+          {
+            flex: 1,
+            backgroundColor: isSaving
+              ? "rgba(128,128,128,0.3)"
+              : isDark
+                ? "rgba(14,58,35,0.7)"
+                : "rgba(14,58,35,0.85)",
+            opacity: pressed ? 0.85 : 1,
+          },
+        ]}
+      >
+        {isSaving ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <Text style={[s.glassButtonText, { color: "#ffffff" }]}>
+            Save Changes
+          </Text>
+        )}
+      </Pressable>
+    </>
   );
 }
 
@@ -769,7 +867,6 @@ const s = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 20,
   },
 
   // Avatar
@@ -909,8 +1006,25 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Footer
-  footer: {
+  // Footer — iOS glass
+  footerWrap: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+  },
+  footerGlass: {
+    flexDirection: "row",
+    gap: 8,
+    borderRadius: 20,
+    padding: 8,
+    overflow: "hidden",
+  },
+
+  // Footer — Android solid
+  footerSolid: {
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -921,27 +1035,17 @@ const s = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  footerButtonSecondary: {
+
+  // Glass buttons (used by FooterButtons)
+  glassButton: {
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footerButtonSecondaryText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-  },
-  footerButtonPrimary: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 50,
   },
-  footerButtonPrimaryText: {
-    color: "#ffffff",
+  glassButtonText: {
     fontSize: 15,
     fontFamily: FontFamily.bold,
   },
