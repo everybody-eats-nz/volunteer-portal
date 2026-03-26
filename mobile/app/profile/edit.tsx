@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
-import { api } from "@/lib/api";
+import { api, apiUpload } from "@/lib/api";
 
 type FormData = {
   firstName: string;
@@ -86,7 +86,6 @@ export default function EditProfileScreen() {
       allowsEditing: true,
       aspect: [1, 1] as [number, number],
       quality: 0.7,
-      base64: true,
     };
 
     let result: ImagePicker.ImagePickerResult;
@@ -114,19 +113,24 @@ export default function EditProfileScreen() {
       result = await ImagePicker.launchImageLibraryAsync(common);
     }
 
-    if (result.canceled || !result.assets[0]?.base64) return;
+    if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
+    const uri = asset.uri;
     const mimeType = asset.mimeType ?? "image/jpeg";
-    const dataUri = `data:${mimeType};base64,${asset.base64}`;
+    const fileName = asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
+
+    const formData = new FormData();
+    formData.append("photo", {
+      uri,
+      name: fileName,
+      type: mimeType,
+    } as unknown as Blob);
 
     setIsUploadingPhoto(true);
     try {
-      await api("/api/mobile/profile", {
-        method: "PUT",
-        body: { profilePhotoUrl: dataUri },
-      });
-      setLocalImage(dataUri);
+      const res = await apiUpload<{ image: string }>("/api/mobile/profile/photo", formData);
+      setLocalImage(res.image);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       Alert.alert("Upload failed", "Couldn't update your photo. Please try again.");
@@ -138,10 +142,7 @@ export default function EditProfileScreen() {
   const removePhoto = async () => {
     setIsUploadingPhoto(true);
     try {
-      await api("/api/mobile/profile", {
-        method: "PUT",
-        body: { profilePhotoUrl: null },
-      });
+      await api("/api/mobile/profile/photo", { method: "DELETE" });
       setLocalImage(null);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {

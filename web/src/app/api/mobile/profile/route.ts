@@ -293,7 +293,6 @@ const updateMobileProfileSchema = z.object({
   lastName: z.string().optional(),
   phone: z.string().optional(),
   pronouns: z.string().optional(),
-  profilePhotoUrl: z.string().nullable().optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactRelationship: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
@@ -317,20 +316,9 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { profilePhotoUrl, ...profileFields } = parsed.data;
-
-    // Basic size check for base64 images (~1.5MB max encoded)
-    if (profilePhotoUrl && profilePhotoUrl.length > 2_000_000) {
-      return NextResponse.json(
-        { error: "Image too large. Please choose a smaller photo." },
-        { status: 413 }
-      );
-    }
+    const profileFields = parsed.data;
 
     const data: Record<string, unknown> = { ...profileFields };
-    if (profilePhotoUrl !== undefined) {
-      data.profilePhotoUrl = profilePhotoUrl;
-    }
 
     // Update name field for display consistency
     if (profileFields.firstName || profileFields.lastName) {
