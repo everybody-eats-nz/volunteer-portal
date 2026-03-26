@@ -112,7 +112,6 @@ export async function GET(request: Request) {
         getAvailableAchievements(userId),
         prisma.user.count({
           where: {
-            role: "VOLUNTEER",
             signups: { some: { status: "CONFIRMED" } },
           },
         }),

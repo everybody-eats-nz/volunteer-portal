@@ -27,7 +27,6 @@ export async function DashboardImpactStats({
 
     prisma.user.count({
       where: {
-        role: "VOLUNTEER",
         signups: { some: { status: "CONFIRMED" } },
       },
     }),
