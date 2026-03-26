@@ -24,6 +24,11 @@ export type UserProfile = User & {
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
   medicalConditions: string;
+  notificationPreference: 'EMAIL' | 'SMS' | 'BOTH' | 'NONE';
+  receiveShortageNotifications: boolean;
+  excludedShortageNotificationTypes: string[];
+  emailNewsletterSubscription: boolean;
+  newsletterLists: string[];
   totalShifts: number;
   memberSince: string;
 };
@@ -39,6 +44,11 @@ export const DUMMY_PROFILE: UserProfile = {
   emergencyContactRelationship: 'Partner',
   emergencyContactPhone: '021 765 4321',
   medicalConditions: '',
+  notificationPreference: 'EMAIL',
+  receiveShortageNotifications: true,
+  excludedShortageNotificationTypes: [],
+  emailNewsletterSubscription: true,
+  newsletterLists: [],
   totalShifts: 23,
   memberSince: '2025-06-15',
 };

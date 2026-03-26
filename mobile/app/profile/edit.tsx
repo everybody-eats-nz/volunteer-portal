@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -33,7 +35,41 @@ type FormData = {
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
   medicalConditions: string;
+  notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
+  receiveShortageNotifications: boolean;
+  excludedShortageNotificationTypes: string[];
+  emailNewsletterSubscription: boolean;
+  newsletterLists: string[];
 };
+
+type ShiftType = { id: string; name: string };
+type NewsletterList = {
+  id: string;
+  name: string;
+  campaignMonitorId: string;
+  description: string | null;
+};
+
+// Map multi-select toggles to/from the database enum
+function channelsToPreference(channels: { email: boolean; sms: boolean }): FormData["notificationPreference"] {
+  if (channels.email && channels.sms) return "BOTH";
+  if (channels.email) return "EMAIL";
+  if (channels.sms) return "SMS";
+  return "NONE";
+}
+
+function preferenceToChannels(pref: FormData["notificationPreference"]): { email: boolean; sms: boolean } {
+  return {
+    email: pref === "EMAIL" || pref === "BOTH",
+    sms: pref === "SMS" || pref === "BOTH",
+  };
+}
+
+const CHANNEL_OPTIONS: { key: "email" | "sms" | "push"; label: string; hint: string; icon: string }[] = [
+  { key: "email", label: "Email", hint: "Shift confirmations, updates, and reminders", icon: "mail-outline" },
+  { key: "sms", label: "Text Message", hint: "Quick alerts for shift changes and shortages", icon: "chatbubble-outline" },
+  { key: "push", label: "Push Notifications", hint: "Coming soon", icon: "phone-portrait-outline" },
+];
 
 export default function EditProfileScreen() {
   const colorScheme = useColorScheme();
@@ -52,14 +88,29 @@ export default function EditProfileScreen() {
     emergencyContactRelationship: "",
     emergencyContactPhone: "",
     medicalConditions: "",
+    notificationPreference: "EMAIL",
+    receiveShortageNotifications: true,
+    excludedShortageNotificationTypes: [],
+    emailNewsletterSubscription: true,
+    newsletterLists: [],
   });
+  const [pushNotifications, setPushNotifications] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
+  const [newsletterListOptions, setNewsletterListOptions] = useState<NewsletterList[]>([]);
 
-  // Populate form when profile loads
+  // Fetch shift types and newsletter lists
   useEffect(() => {
-    if (profile) {
+    api<ShiftType[]>("/api/mobile/shift-types").then(setShiftTypes).catch(() => {});
+    api<NewsletterList[]>("/api/newsletter-lists").then(setNewsletterListOptions).catch(() => {});
+  }, []);
+
+  // Populate form once when profile first loads
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    if (profile && !initialized) {
       setForm({
         firstName: profile.firstName,
         lastName: profile.lastName,
@@ -69,12 +120,18 @@ export default function EditProfileScreen() {
         emergencyContactRelationship: profile.emergencyContactRelationship,
         emergencyContactPhone: profile.emergencyContactPhone,
         medicalConditions: profile.medicalConditions,
+        notificationPreference: profile.notificationPreference,
+        receiveShortageNotifications: profile.receiveShortageNotifications,
+        excludedShortageNotificationTypes: profile.excludedShortageNotificationTypes,
+        emailNewsletterSubscription: profile.emailNewsletterSubscription,
+        newsletterLists: profile.newsletterLists,
       });
       setLocalImage(profile.image ?? null);
+      setInitialized(true);
     }
-  }, [profile]);
+  }, [profile, initialized]);
 
-  const updateField = (key: keyof FormData, value: string) => {
+  const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -214,6 +271,11 @@ export default function EditProfileScreen() {
           emergencyContactRelationship: form.emergencyContactRelationship.trim(),
           emergencyContactPhone: form.emergencyContactPhone.trim(),
           medicalConditions: form.medicalConditions.trim(),
+          notificationPreference: form.notificationPreference,
+          receiveShortageNotifications: form.receiveShortageNotifications,
+          excludedShortageNotificationTypes: form.excludedShortageNotificationTypes,
+          emailNewsletterSubscription: form.emailNewsletterSubscription,
+          newsletterLists: form.emailNewsletterSubscription ? form.newsletterLists : [],
         },
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -249,7 +311,10 @@ export default function EditProfileScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={[
           s.content,
-          { paddingBottom: Math.max(insets.bottom, 20) + 80 },
+          {
+            paddingTop: insets.top + 56,
+            paddingBottom: Math.max(insets.bottom, 20) + 80,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -397,52 +462,365 @@ export default function EditProfileScreen() {
             multiline
           />
         </View>
+
+        {/* ── Notification Preferences ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Notifications
+          </Text>
+          <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+            Choose how you'd like to hear from us.
+          </Text>
+
+          {CHANNEL_OPTIONS.map((ch) => {
+            const channels = preferenceToChannels(form.notificationPreference);
+            const isPush = ch.key === "push";
+            const enabled = isPush ? pushNotifications : channels[ch.key as "email" | "sms"];
+            const isComingSoon = isPush;
+
+            return (
+              <Pressable
+                key={ch.key}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (isPush) {
+                    setPushNotifications(!pushNotifications);
+                  } else {
+                    const k = ch.key as "email" | "sms";
+                    const updated = { ...channels, [k]: !channels[k] };
+                    updateField("notificationPreference", channelsToPreference(updated));
+                  }
+                }}
+                style={s.toggleRow}
+              >
+                <Ionicons
+                  name={ch.icon as keyof typeof Ionicons.glyphMap}
+                  size={22}
+                  color={enabled ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                />
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={[s.toggleLabel, { color: colors.text }]}>
+                      {ch.label}
+                    </Text>
+                    {isComingSoon && (
+                      <View style={[s.badge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9" }]}>
+                        <Text style={[s.badgeText, { color: colors.textSecondary }]}>
+                          Coming soon
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                    {ch.hint}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={enabled ? "checkbox" : "square-outline"}
+                  size={26}
+                  color={enabled ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* ── Shortage Notifications ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Shift Shortage Alerts
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateField("receiveShortageNotifications", !form.receiveShortageNotifications);
+            }}
+            style={s.toggleRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Receive shortage notifications
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Get notified when shifts need more volunteers.
+              </Text>
+            </View>
+            <Ionicons
+              name={form.receiveShortageNotifications ? "checkbox" : "square-outline"}
+              size={26}
+              color={form.receiveShortageNotifications ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+            />
+          </Pressable>
+
+          {form.receiveShortageNotifications && shiftTypes.length > 0 && (
+            <View style={[s.nestedSection, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc" }]}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>
+                Notify me about these shift types:
+              </Text>
+              {shiftTypes.map((st) => {
+                const included = !form.excludedShortageNotificationTypes.includes(st.id);
+                return (
+                  <Pressable
+                    key={st.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateField(
+                        "excludedShortageNotificationTypes",
+                        included
+                          ? [...form.excludedShortageNotificationTypes, st.id]
+                          : form.excludedShortageNotificationTypes.filter((id) => id !== st.id),
+                      );
+                    }}
+                    style={s.checkRow}
+                  >
+                    <Ionicons
+                      name={included ? "checkbox" : "square-outline"}
+                      size={22}
+                      color={included ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                    />
+                    <Text style={[s.checkLabel, { color: colors.text }]}>{st.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* ── Newsletter ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Newsletter
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              const newVal = !form.emailNewsletterSubscription;
+              updateField("emailNewsletterSubscription", newVal);
+              if (!newVal) {
+                updateField("newsletterLists", []);
+              }
+            }}
+            style={s.toggleRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Subscribe to our newsletter
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Updates about events, volunteer opportunities, and news.
+              </Text>
+            </View>
+            <Ionicons
+              name={form.emailNewsletterSubscription ? "checkbox" : "square-outline"}
+              size={26}
+              color={form.emailNewsletterSubscription ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+            />
+          </Pressable>
+
+          {form.emailNewsletterSubscription && newsletterListOptions.length > 0 && (
+            <View style={[s.nestedSection, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc" }]}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>
+                Choose which lists to subscribe to:
+              </Text>
+              {newsletterListOptions.map((list) => {
+                const subscribed = form.newsletterLists.includes(list.campaignMonitorId);
+                return (
+                  <Pressable
+                    key={list.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateField(
+                        "newsletterLists",
+                        subscribed
+                          ? form.newsletterLists.filter((id) => id !== list.campaignMonitorId)
+                          : [...form.newsletterLists, list.campaignMonitorId],
+                      );
+                    }}
+                    style={s.checkRow}
+                  >
+                    <Ionicons
+                      name={subscribed ? "checkbox" : "square-outline"}
+                      size={22}
+                      color={subscribed ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.checkLabel, { color: colors.text }]}>{list.name}</Text>
+                      {list.description && (
+                        <Text style={[s.checkHint, { color: colors.textSecondary }]}>
+                          {list.description}
+                        </Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* ── Footer ── */}
       <View
         style={[
-          s.footer,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.background,
-            paddingBottom: Math.max(insets.bottom, 16),
-          },
+          s.footerWrap,
+          { paddingBottom: Math.max(insets.bottom, 16) },
         ]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          disabled={isSaving}
-          style={({ pressed }) => [
-            s.footerButtonSecondary,
-            { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Text style={[s.footerButtonSecondaryText, { color: colors.text }]}>
-            Cancel
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={handleSave}
-          disabled={isSaving}
-          style={({ pressed }) => [
-            s.footerButtonPrimary,
-            {
-              backgroundColor: isSaving ? colors.textSecondary : Brand.green,
-              opacity: pressed ? 0.9 : 1,
-              flex: 1,
-            },
-          ]}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <Text style={s.footerButtonPrimaryText}>Save Changes</Text>
-          )}
-        </Pressable>
+        <FooterButtons
+          isSaving={isSaving}
+          isDark={isDark}
+          colors={colors}
+          onCancel={() => router.back()}
+          onSave={handleSave}
+        />
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+/* ── Form Field Component ── */
+
+/* ── Footer Buttons Component ── */
+
+function GlassButton({
+  onPress,
+  disabled,
+  isDark,
+  tintColor,
+  style,
+  children,
+}: {
+  onPress: () => void;
+  disabled?: boolean;
+  isDark: boolean;
+  tintColor?: string;
+  style?: object;
+  children: React.ReactNode;
+}) {
+  const useNativeGlass = Platform.OS === "ios" && isLiquidGlassAvailable();
+
+  if (useNativeGlass) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, style]}
+      >
+        <GlassView glassEffectStyle="regular" style={[s.glassButton, tintColor ? { backgroundColor: tintColor } : undefined]}>
+          {children}
+        </GlassView>
+      </Pressable>
+    );
+  }
+
+  if (Platform.OS === "ios") {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          s.glassButton,
+          { overflow: "hidden", opacity: pressed ? 0.85 : 1 },
+          style,
+        ]}
+      >
+        <BlurView
+          intensity={isDark ? 50 : 70}
+          tint={isDark ? "dark" : "light"}
+          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: 16,
+              backgroundColor: tintColor
+                ? tintColor
+                : isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(255,255,255,0.25)",
+            },
+          ]}
+        />
+        {children}
+      </Pressable>
+    );
+  }
+
+  // Android — solid button
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        s.glassButton,
+        { opacity: pressed ? 0.85 : 1 },
+        style,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+function FooterButtons({
+  isSaving,
+  isDark,
+  colors,
+  onCancel,
+  onSave,
+}: {
+  isSaving: boolean;
+  isDark: boolean;
+  colors: (typeof Colors)["light"];
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <>
+      <GlassButton
+        onPress={onCancel}
+        disabled={isSaving}
+        isDark={isDark}
+        style={Platform.OS === "android" ? {
+          backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+          borderRadius: 12,
+        } : undefined}
+      >
+        <Text
+          style={[
+            s.glassButtonText,
+            { color: isDark ? "#e5e5e5" : colors.text },
+          ]}
+        >
+          Cancel
+        </Text>
+      </GlassButton>
+
+      <GlassButton
+        onPress={onSave}
+        disabled={isSaving}
+        isDark={isDark}
+        tintColor={isSaving ? "rgba(128,128,128,0.4)" : "rgba(14,58,35,0.55)"}
+        style={{
+          flex: 1,
+          ...(Platform.OS === "android" ? {
+            backgroundColor: isSaving ? colors.textSecondary : Brand.green,
+            borderRadius: 12,
+          } : {}),
+        }}
+      >
+        {isSaving ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <Text style={[s.glassButtonText, { color: "#ffffff" }]}>
+            Save Changes
+          </Text>
+        )}
+      </GlassButton>
+    </>
   );
 }
 
@@ -512,7 +890,6 @@ const s = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 20,
   },
 
   // Avatar
@@ -601,39 +978,80 @@ const s = StyleSheet.create({
     paddingTop: 12,
   },
 
+  // Badges
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Toggle rows
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 4,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+  },
+  toggleHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
+  // Nested checkbox sections
+  nestedSection: {
+    borderRadius: 14,
+    padding: 16,
+    gap: 10,
+  },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  checkLabel: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+  },
+  checkHint: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    lineHeight: 16,
+    marginTop: 1,
+  },
+
   // Footer
-  footer: {
+  footerWrap: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: "row",
     gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
-  footerButtonSecondary: {
-    paddingHorizontal: 20,
+
+  // Glass buttons
+  glassButton: {
     paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footerButtonSecondaryText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-  },
-  footerButtonPrimary: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 50,
+    overflow: "hidden",
   },
-  footerButtonPrimaryText: {
-    color: "#ffffff",
+  glassButtonText: {
     fontSize: 15,
     fontFamily: FontFamily.bold,
   },

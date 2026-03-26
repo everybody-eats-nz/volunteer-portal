@@ -45,6 +45,11 @@ export async function GET(request: Request) {
         emergencyContactRelationship: true,
         emergencyContactPhone: true,
         medicalConditions: true,
+        notificationPreference: true,
+        receiveShortageNotifications: true,
+        excludedShortageNotificationTypes: true,
+        emailNewsletterSubscription: true,
+        newsletterLists: true,
         createdAt: true,
         customLabels: {
           select: {
@@ -105,7 +110,11 @@ export async function GET(request: Request) {
       await Promise.all([
         getUserAchievements(userId),
         getAvailableAchievements(userId),
-        prisma.user.count({ where: { role: "VOLUNTEER" } }),
+        prisma.user.count({
+          where: {
+            signups: { some: { status: "CONFIRMED" } },
+          },
+        }),
       ]);
 
     // Count how many users have unlocked each achievement
@@ -238,6 +247,11 @@ export async function GET(request: Request) {
         emergencyContactRelationship: user.emergencyContactRelationship,
         emergencyContactPhone: user.emergencyContactPhone,
         medicalConditions: user.medicalConditions,
+        notificationPreference: user.notificationPreference,
+        receiveShortageNotifications: user.receiveShortageNotifications,
+        excludedShortageNotificationTypes: user.excludedShortageNotificationTypes,
+        emailNewsletterSubscription: user.emailNewsletterSubscription,
+        newsletterLists: user.newsletterLists,
       },
       stats: {
         shiftsCompleted: completedSignups,
@@ -297,6 +311,11 @@ const updateMobileProfileSchema = z.object({
   emergencyContactRelationship: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   medicalConditions: z.string().optional(),
+  notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
+  receiveShortageNotifications: z.boolean().optional(),
+  excludedShortageNotificationTypes: z.array(z.string()).optional(),
+  emailNewsletterSubscription: z.boolean().optional(),
+  newsletterLists: z.array(z.string()).optional(),
 });
 
 export async function PUT(request: Request) {
