@@ -484,6 +484,7 @@ export default function ProfileScreen() {
           isDark={isDark}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/profile/edit");
           }}
         />
         <ActionButton

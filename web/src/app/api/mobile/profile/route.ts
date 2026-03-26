@@ -44,6 +44,7 @@ export async function GET(request: Request) {
         emergencyContactName: true,
         emergencyContactRelationship: true,
         emergencyContactPhone: true,
+        medicalConditions: true,
         createdAt: true,
         customLabels: {
           select: {
@@ -232,6 +233,11 @@ export async function GET(request: Request) {
         role: user.role,
         volunteerGrade,
         memberSince: user.createdAt.toISOString(),
+        dateOfBirth: user.dateOfBirth?.toISOString() ?? null,
+        emergencyContactName: user.emergencyContactName,
+        emergencyContactRelationship: user.emergencyContactRelationship,
+        emergencyContactPhone: user.emergencyContactPhone,
+        medicalConditions: user.medicalConditions,
       },
       stats: {
         shiftsCompleted: completedSignups,
@@ -280,10 +286,18 @@ function getProgressForCriteria(
 /**
  * PUT /api/mobile/profile
  *
- * Update the authenticated mobile user's profile photo.
+ * Update the authenticated mobile user's profile.
  */
 const updateMobileProfileSchema = z.object({
-  profilePhotoUrl: z.string().nullable(),
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  pronouns: z.string().optional(),
+  profilePhotoUrl: z.string().nullable().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactRelationship: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  medicalConditions: z.string().optional(),
 });
 
 export async function PUT(request: Request) {
@@ -303,7 +317,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { profilePhotoUrl } = parsed.data;
+    const { profilePhotoUrl, ...profileFields } = parsed.data;
 
     // Basic size check for base64 images (~1.5MB max encoded)
     if (profilePhotoUrl && profilePhotoUrl.length > 2_000_000) {
@@ -313,15 +327,39 @@ export async function PUT(request: Request) {
       );
     }
 
+    const data: Record<string, unknown> = { ...profileFields };
+    if (profilePhotoUrl !== undefined) {
+      data.profilePhotoUrl = profilePhotoUrl;
+    }
+
+    // Update name field for display consistency
+    if (profileFields.firstName || profileFields.lastName) {
+      const user = await prisma.user.findUnique({
+        where: { id: auth.userId },
+        select: { firstName: true, lastName: true },
+      });
+      const first = profileFields.firstName ?? user?.firstName ?? "";
+      const last = profileFields.lastName ?? user?.lastName ?? "";
+      data.name = [first, last].filter(Boolean).join(" ");
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: auth.userId },
-      data: { profilePhotoUrl },
-      select: { profilePhotoUrl: true },
+      data,
+      select: {
+        firstName: true,
+        lastName: true,
+        phone: true,
+        pronouns: true,
+        profilePhotoUrl: true,
+        emergencyContactName: true,
+        emergencyContactRelationship: true,
+        emergencyContactPhone: true,
+        medicalConditions: true,
+      },
     });
 
-    return NextResponse.json({
-      image: updatedUser.profilePhotoUrl,
-    });
+    return NextResponse.json({ profile: updatedUser });
   } catch (error) {
     console.error("Mobile profile update error:", error);
     return NextResponse.json(
