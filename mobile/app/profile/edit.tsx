@@ -33,7 +33,27 @@ type FormData = {
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
   medicalConditions: string;
+  notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
+  receiveShortageNotifications: boolean;
+  excludedShortageNotificationTypes: string[];
+  emailNewsletterSubscription: boolean;
+  newsletterLists: string[];
 };
+
+type ShiftType = { id: string; name: string };
+type NewsletterList = {
+  id: string;
+  name: string;
+  campaignMonitorId: string;
+  description: string | null;
+};
+
+const NOTIFICATION_OPTIONS: { value: FormData["notificationPreference"]; label: string; icon: string }[] = [
+  { value: "EMAIL", label: "Email only", icon: "mail-outline" },
+  { value: "SMS", label: "Text message only", icon: "chatbubble-outline" },
+  { value: "BOTH", label: "Both email and text", icon: "notifications-outline" },
+  { value: "NONE", label: "No notifications", icon: "notifications-off-outline" },
+];
 
 export default function EditProfileScreen() {
   const colorScheme = useColorScheme();
@@ -52,10 +72,23 @@ export default function EditProfileScreen() {
     emergencyContactRelationship: "",
     emergencyContactPhone: "",
     medicalConditions: "",
+    notificationPreference: "EMAIL",
+    receiveShortageNotifications: true,
+    excludedShortageNotificationTypes: [],
+    emailNewsletterSubscription: true,
+    newsletterLists: [],
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
+  const [newsletterListOptions, setNewsletterListOptions] = useState<NewsletterList[]>([]);
+
+  // Fetch shift types and newsletter lists
+  useEffect(() => {
+    api<ShiftType[]>("/api/mobile/shift-types").then(setShiftTypes).catch(() => {});
+    api<NewsletterList[]>("/api/newsletter-lists").then(setNewsletterListOptions).catch(() => {});
+  }, []);
 
   // Populate form once when profile first loads
   const [initialized, setInitialized] = useState(false);
@@ -70,13 +103,18 @@ export default function EditProfileScreen() {
         emergencyContactRelationship: profile.emergencyContactRelationship,
         emergencyContactPhone: profile.emergencyContactPhone,
         medicalConditions: profile.medicalConditions,
+        notificationPreference: profile.notificationPreference,
+        receiveShortageNotifications: profile.receiveShortageNotifications,
+        excludedShortageNotificationTypes: profile.excludedShortageNotificationTypes,
+        emailNewsletterSubscription: profile.emailNewsletterSubscription,
+        newsletterLists: profile.newsletterLists,
       });
       setLocalImage(profile.image ?? null);
       setInitialized(true);
     }
   }, [profile, initialized]);
 
-  const updateField = (key: keyof FormData, value: string) => {
+  const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -216,6 +254,11 @@ export default function EditProfileScreen() {
           emergencyContactRelationship: form.emergencyContactRelationship.trim(),
           emergencyContactPhone: form.emergencyContactPhone.trim(),
           medicalConditions: form.medicalConditions.trim(),
+          notificationPreference: form.notificationPreference,
+          receiveShortageNotifications: form.receiveShortageNotifications,
+          excludedShortageNotificationTypes: form.excludedShortageNotificationTypes,
+          emailNewsletterSubscription: form.emailNewsletterSubscription,
+          newsletterLists: form.emailNewsletterSubscription ? form.newsletterLists : [],
         },
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -398,6 +441,191 @@ export default function EditProfileScreen() {
             isDark={isDark}
             multiline
           />
+        </View>
+
+        {/* ── Notification Preferences ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Notifications
+          </Text>
+          <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+            How would you like to receive notifications?
+          </Text>
+
+          {NOTIFICATION_OPTIONS.map((opt) => {
+            const selected = form.notificationPreference === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  updateField("notificationPreference", opt.value);
+                }}
+                style={[
+                  s.optionRow,
+                  {
+                    borderColor: selected
+                      ? isDark ? "#86efac" : Brand.green
+                      : colors.border,
+                    backgroundColor: selected
+                      ? isDark ? "rgba(14,58,35,0.2)" : Brand.greenLight
+                      : "transparent",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={opt.icon as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={selected ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                />
+                <Text style={[s.optionLabel, { color: colors.text, flex: 1 }]}>
+                  {opt.label}
+                </Text>
+                {selected && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={isDark ? "#86efac" : Brand.green}
+                  />
+                )}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* ── Shortage Notifications ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Shift Shortage Alerts
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateField("receiveShortageNotifications", !form.receiveShortageNotifications);
+            }}
+            style={s.toggleRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Receive shortage notifications
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Get notified when shifts need more volunteers.
+              </Text>
+            </View>
+            <Ionicons
+              name={form.receiveShortageNotifications ? "checkbox" : "square-outline"}
+              size={26}
+              color={form.receiveShortageNotifications ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+            />
+          </Pressable>
+
+          {form.receiveShortageNotifications && shiftTypes.length > 0 && (
+            <View style={[s.nestedSection, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc" }]}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>
+                Notify me about these shift types:
+              </Text>
+              {shiftTypes.map((st) => {
+                const included = !form.excludedShortageNotificationTypes.includes(st.id);
+                return (
+                  <Pressable
+                    key={st.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateField(
+                        "excludedShortageNotificationTypes",
+                        included
+                          ? [...form.excludedShortageNotificationTypes, st.id]
+                          : form.excludedShortageNotificationTypes.filter((id) => id !== st.id),
+                      );
+                    }}
+                    style={s.checkRow}
+                  >
+                    <Ionicons
+                      name={included ? "checkbox" : "square-outline"}
+                      size={22}
+                      color={included ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                    />
+                    <Text style={[s.checkLabel, { color: colors.text }]}>{st.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+
+        {/* ── Newsletter ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Newsletter
+          </Text>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              const newVal = !form.emailNewsletterSubscription;
+              updateField("emailNewsletterSubscription", newVal);
+              if (!newVal) {
+                updateField("newsletterLists", []);
+              }
+            }}
+            style={s.toggleRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Subscribe to our newsletter
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Updates about events, volunteer opportunities, and news.
+              </Text>
+            </View>
+            <Ionicons
+              name={form.emailNewsletterSubscription ? "checkbox" : "square-outline"}
+              size={26}
+              color={form.emailNewsletterSubscription ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+            />
+          </Pressable>
+
+          {form.emailNewsletterSubscription && newsletterListOptions.length > 0 && (
+            <View style={[s.nestedSection, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc" }]}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>
+                Choose which lists to subscribe to:
+              </Text>
+              {newsletterListOptions.map((list) => {
+                const subscribed = form.newsletterLists.includes(list.campaignMonitorId);
+                return (
+                  <Pressable
+                    key={list.id}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateField(
+                        "newsletterLists",
+                        subscribed
+                          ? form.newsletterLists.filter((id) => id !== list.campaignMonitorId)
+                          : [...form.newsletterLists, list.campaignMonitorId],
+                      );
+                    }}
+                    style={s.checkRow}
+                  >
+                    <Ionicons
+                      name={subscribed ? "checkbox" : "square-outline"}
+                      size={22}
+                      color={subscribed ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.checkLabel, { color: colors.text }]}>{list.name}</Text>
+                      {list.description && (
+                        <Text style={[s.checkHint, { color: colors.textSecondary }]}>
+                          {list.description}
+                        </Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -601,6 +829,60 @@ const s = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
     paddingTop: 12,
+  },
+
+  // Notification options
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  optionLabel: {
+    fontSize: 15,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Toggle rows
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 4,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+  },
+  toggleHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+
+  // Nested checkbox sections
+  nestedSection: {
+    borderRadius: 14,
+    padding: 16,
+    gap: 10,
+  },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  checkLabel: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+  },
+  checkHint: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    lineHeight: 16,
+    marginTop: 1,
   },
 
   // Footer
