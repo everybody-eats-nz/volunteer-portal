@@ -1,13 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -23,6 +26,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
 import { type Achievement, type Friend } from "@/lib/dummy-data";
+import { api } from "@/lib/api";
 
 const GRADE_CONFIG: Record<
   string,
@@ -98,8 +102,121 @@ export default function ProfileScreen() {
   const { friends } = useFriends();
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const grade = user ? GRADE_CONFIG[user.volunteerGrade] : GRADE_CONFIG.GREEN;
+
+  const pickImage = async (source: "camera" | "library") => {
+    const common: ImagePicker.ImagePickerOptions = {
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1] as [number, number],
+      quality: 0.7,
+      base64: true,
+    };
+
+    let result: ImagePicker.ImagePickerResult;
+
+    if (source === "camera") {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Camera access needed",
+          "Please enable camera access in Settings to take a profile photo.",
+        );
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync(common);
+    } else {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Photos access needed",
+          "Please enable photo library access in Settings to choose a profile photo.",
+        );
+        return;
+      }
+      result = await ImagePicker.launchImageLibraryAsync(common);
+    }
+
+    if (result.canceled || !result.assets[0]?.base64) return;
+
+    const asset = result.assets[0];
+    const mimeType = asset.mimeType ?? "image/jpeg";
+    const dataUri = `data:${mimeType};base64,${asset.base64}`;
+
+    setIsUploadingPhoto(true);
+    try {
+      await api("/api/mobile/profile", {
+        method: "PUT",
+        body: { profilePhotoUrl: dataUri },
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refresh();
+    } catch {
+      Alert.alert("Upload failed", "Couldn't update your photo. Please try again.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    setIsUploadingPhoto(true);
+    try {
+      await api("/api/mobile/profile", {
+        method: "PUT",
+        body: { profilePhotoUrl: null },
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await refresh();
+    } catch {
+      Alert.alert("Failed", "Couldn't remove your photo. Please try again.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const options = user?.image
+      ? ["Take Photo", "Choose from Library", "Remove Photo", "Cancel"]
+      : ["Take Photo", "Choose from Library", "Cancel"];
+    const cancelIndex = options.length - 1;
+    const destructiveIndex = user?.image ? 2 : undefined;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: cancelIndex,
+          destructiveButtonIndex: destructiveIndex,
+          title: "Profile Photo",
+        },
+        (index) => {
+          if (index === 0) pickImage("camera");
+          else if (index === 1) pickImage("library");
+          else if (index === 2 && user?.image) removePhoto();
+        },
+      );
+    } else {
+      Alert.alert("Profile Photo", undefined, [
+        { text: "Take Photo", onPress: () => pickImage("camera") },
+        { text: "Choose from Library", onPress: () => pickImage("library") },
+        ...(user?.image
+          ? [
+              {
+                text: "Remove Photo",
+                style: "destructive" as const,
+                onPress: removePhoto,
+              },
+            ]
+          : []),
+        { text: "Cancel", style: "cancel" as const },
+      ]);
+    }
+  };
 
   const unlocked = achievements.filter((a) => a.unlockedAt);
   const inProgress = achievements.filter(
@@ -167,15 +284,14 @@ export default function ProfileScreen() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            // Navigate to edit profile
-          }}
+          onPress={showPhotoOptions}
+          disabled={isUploadingPhoto}
           style={({ pressed }) => [
             styles.avatarContainer,
-            { opacity: pressed ? 0.9 : 1 },
+            { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
           ]}
-          accessibilityLabel="Edit profile photo"
+          accessibilityLabel="Change profile photo"
+          accessibilityHint="Opens options to take a photo or choose from library"
         >
           {user.image ? (
             <Image source={{ uri: user.image }} style={styles.avatarImage} />
@@ -186,15 +302,25 @@ export default function ProfileScreen() {
               <Text style={styles.avatarText}>{user.firstName.charAt(0)}</Text>
             </View>
           )}
-          {/* Edit indicator */}
-          <View
-            style={[
-              styles.avatarEditBadge,
-              { backgroundColor: colors.card, borderColor: colors.background },
-            ]}
-          >
-            <Ionicons name="pencil" size={11} color={colors.textSecondary} />
-          </View>
+          {isUploadingPhoto ? (
+            <View
+              style={[
+                styles.avatarEditBadge,
+                { backgroundColor: Brand.green },
+              ]}
+            >
+              <ActivityIndicator size={14} color="#ffffff" />
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.avatarEditBadge,
+                { backgroundColor: Brand.green },
+              ]}
+            >
+              <Ionicons name="camera" size={14} color="#ffffff" />
+            </View>
+          )}
         </Pressable>
         <ThemedText type="title">
           {user.firstName} {user.lastName}
@@ -1175,13 +1301,19 @@ const styles = StyleSheet.create({
   },
   avatarEditBadge: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2.5,
+    bottom: -2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: "#ffffff",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
     justifyContent: "center",
   },
   headerMeta: {

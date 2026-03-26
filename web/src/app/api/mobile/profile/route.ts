@@ -8,6 +8,7 @@ import {
   calculateUserProgress,
   type UserProgress,
 } from "@/lib/achievements";
+import { z } from "zod";
 
 /**
  * GET /api/mobile/profile
@@ -274,4 +275,58 @@ function getProgressForCriteria(
     return Math.min(current / criteria.value, 0.99);
   }
   return undefined;
+}
+
+/**
+ * PUT /api/mobile/profile
+ *
+ * Update the authenticated mobile user's profile photo.
+ */
+const updateMobileProfileSchema = z.object({
+  profilePhotoUrl: z.string().nullable(),
+});
+
+export async function PUT(request: Request) {
+  const auth = await requireMobileUser(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const parsed = updateMobileProfileSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { profilePhotoUrl } = parsed.data;
+
+    // Basic size check for base64 images (~1.5MB max encoded)
+    if (profilePhotoUrl && profilePhotoUrl.length > 2_000_000) {
+      return NextResponse.json(
+        { error: "Image too large. Please choose a smaller photo." },
+        { status: 413 }
+      );
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: auth.userId },
+      data: { profilePhotoUrl },
+      select: { profilePhotoUrl: true },
+    });
+
+    return NextResponse.json({
+      image: updatedUser.profilePhotoUrl,
+    });
+  } catch (error) {
+    console.error("Mobile profile update error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
