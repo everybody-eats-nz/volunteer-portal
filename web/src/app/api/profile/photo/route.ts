@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/storage";
+import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_FILE_SIZE, PROFILE_PHOTOS_BUCKET } from "@/lib/storage";
 import { extractFilePathFromUrl } from "@/lib/storage-utils";
 
 export async function GET() {
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       const oldPath = extractFilePathFromUrl(currentUser.profilePhotoUrl);
       if (oldPath) {
         try {
-          await deleteFile(oldPath);
+          await deleteFile(oldPath, PROFILE_PHOTOS_BUCKET);
         } catch {
           // Non-critical — old file may already be gone
         }
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     }
 
     // Upload new photo
-    const { url } = await uploadFile(file, "profile-photos");
+    const { url } = await uploadFile(file, "uploads", PROFILE_PHOTOS_BUCKET);
 
     // Save URL to user record
     await prisma.user.update({
