@@ -179,7 +179,10 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-html,
+html {
+  background-color: #0e3a23;
+}
+
 body {
   background: var(--ee-bg);
   color: var(--ee-fg);

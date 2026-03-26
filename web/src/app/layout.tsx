@@ -87,6 +87,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#0e3a23" />
+      </head>
       <body
         className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
       >
