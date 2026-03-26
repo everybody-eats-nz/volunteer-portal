@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_FILE_SIZE, PROFILE_PHOTOS_BUCKET } from "@/lib/storage";
+import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_PROFILE_PHOTO_SIZE, PROFILE_PHOTOS_BUCKET } from "@/lib/storage";
 import { extractFilePathFromUrl } from "@/lib/storage-utils";
 
 /**
@@ -25,9 +25,9 @@ export async function POST(request: Request) {
     }
 
     // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_PROFILE_PHOTO_SIZE) {
       return NextResponse.json(
-        { error: `Photo exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit.` },
+        { error: "Photo exceeds 1MB limit." },
         { status: 400 },
       );
     }

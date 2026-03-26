@@ -15,6 +15,7 @@ export {
 
 export const STORAGE_BUCKET = "resource-hub";
 export const PROFILE_PHOTOS_BUCKET = "profile-photos";
+export const MAX_PROFILE_PHOTO_SIZE = 1 * 1024 * 1024; // 1MB
 
 /**
  * Upload a file to Supabase storage (uses service role for admin uploads)
