@@ -57,9 +57,10 @@ export default function EditProfileScreen() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
 
-  // Populate form when profile loads
+  // Populate form once when profile first loads
+  const [initialized, setInitialized] = useState(false);
   useEffect(() => {
-    if (profile) {
+    if (profile && !initialized) {
       setForm({
         firstName: profile.firstName,
         lastName: profile.lastName,
@@ -71,8 +72,9 @@ export default function EditProfileScreen() {
         medicalConditions: profile.medicalConditions,
       });
       setLocalImage(profile.image ?? null);
+      setInitialized(true);
     }
-  }, [profile]);
+  }, [profile, initialized]);
 
   const updateField = (key: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
