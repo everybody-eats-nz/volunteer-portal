@@ -662,71 +662,20 @@ export default function EditProfileScreen() {
       </ScrollView>
 
       {/* ── Footer ── */}
-      {Platform.OS === "ios" ? (
-        <View
-          style={[
-            s.footerWrap,
-            { paddingBottom: Math.max(insets.bottom, 16) },
-          ]}
-        >
-          {isLiquidGlassAvailable() ? (
-            <GlassView glassEffectStyle="regular" style={s.footerGlass}>
-              <FooterButtons
-                isSaving={isSaving}
-                isDark={isDark}
-                colors={colors}
-                onCancel={() => router.back()}
-                onSave={handleSave}
-              />
-            </GlassView>
-          ) : (
-            <View style={s.footerGlass}>
-              <BlurView
-                intensity={isDark ? 60 : 80}
-                tint={isDark ? "dark" : "light"}
-                style={[StyleSheet.absoluteFill, { borderRadius: 20 }]}
-              />
-              <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  {
-                    borderRadius: 20,
-                    backgroundColor: isDark
-                      ? "rgba(30,30,30,0.4)"
-                      : "rgba(255,255,255,0.3)",
-                  },
-                ]}
-              />
-              <FooterButtons
-                isSaving={isSaving}
-                isDark={isDark}
-                colors={colors}
-                onCancel={() => router.back()}
-                onSave={handleSave}
-              />
-            </View>
-          )}
-        </View>
-      ) : (
-        <View
-          style={[
-            s.footerSolid,
-            {
-              borderTopColor: colors.border,
-              backgroundColor: colors.background,
-              paddingBottom: Math.max(insets.bottom, 16),
-            },
-          ]}
-        >
-          <FooterButtons
-            isSaving={isSaving}
-            isDark={isDark}
-            colors={colors}
-            onCancel={() => router.back()}
-            onSave={handleSave}
-          />
-        </View>
-      )}
+      <View
+        style={[
+          s.footerWrap,
+          { paddingBottom: Math.max(insets.bottom, 16) },
+        ]}
+      >
+        <FooterButtons
+          isSaving={isSaving}
+          isDark={isDark}
+          colors={colors}
+          onCancel={() => router.back()}
+          onSave={handleSave}
+        />
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -734,6 +683,87 @@ export default function EditProfileScreen() {
 /* ── Form Field Component ── */
 
 /* ── Footer Buttons Component ── */
+
+function GlassButton({
+  onPress,
+  disabled,
+  isDark,
+  tintColor,
+  style,
+  children,
+}: {
+  onPress: () => void;
+  disabled?: boolean;
+  isDark: boolean;
+  tintColor?: string;
+  style?: object;
+  children: React.ReactNode;
+}) {
+  const useNativeGlass = Platform.OS === "ios" && isLiquidGlassAvailable();
+
+  if (useNativeGlass) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, style]}
+      >
+        <GlassView glassEffectStyle="regular" style={[s.glassButton, tintColor ? { backgroundColor: tintColor } : undefined]}>
+          {children}
+        </GlassView>
+      </Pressable>
+    );
+  }
+
+  if (Platform.OS === "ios") {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          s.glassButton,
+          { overflow: "hidden", opacity: pressed ? 0.85 : 1 },
+          style,
+        ]}
+      >
+        <BlurView
+          intensity={isDark ? 50 : 70}
+          tint={isDark ? "dark" : "light"}
+          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: 16,
+              backgroundColor: tintColor
+                ? tintColor
+                : isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(255,255,255,0.25)",
+            },
+          ]}
+        />
+        {children}
+      </Pressable>
+    );
+  }
+
+  // Android — solid button
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        s.glassButton,
+        { opacity: pressed ? 0.85 : 1 },
+        style,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 function FooterButtons({
   isSaving,
@@ -750,18 +780,14 @@ function FooterButtons({
 }) {
   return (
     <>
-      <Pressable
+      <GlassButton
         onPress={onCancel}
         disabled={isSaving}
-        style={({ pressed }) => [
-          s.glassButton,
-          {
-            backgroundColor: isDark
-              ? "rgba(255,255,255,0.1)"
-              : "rgba(0,0,0,0.06)",
-            opacity: pressed ? 0.7 : 1,
-          },
-        ]}
+        isDark={isDark}
+        style={Platform.OS === "android" ? {
+          backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+          borderRadius: 12,
+        } : undefined}
       >
         <Text
           style={[
@@ -771,23 +797,20 @@ function FooterButtons({
         >
           Cancel
         </Text>
-      </Pressable>
+      </GlassButton>
 
-      <Pressable
+      <GlassButton
         onPress={onSave}
         disabled={isSaving}
-        style={({ pressed }) => [
-          s.glassButton,
-          {
-            flex: 1,
-            backgroundColor: isSaving
-              ? "rgba(128,128,128,0.3)"
-              : isDark
-                ? "rgba(14,58,35,0.7)"
-                : "rgba(14,58,35,0.85)",
-            opacity: pressed ? 0.85 : 1,
-          },
-        ]}
+        isDark={isDark}
+        tintColor={isSaving ? "rgba(128,128,128,0.4)" : "rgba(14,58,35,0.55)"}
+        style={{
+          flex: 1,
+          ...(Platform.OS === "android" ? {
+            backgroundColor: isSaving ? colors.textSecondary : Brand.green,
+            borderRadius: 12,
+          } : {}),
+        }}
       >
         {isSaving ? (
           <ActivityIndicator size="small" color="#ffffff" />
@@ -796,7 +819,7 @@ function FooterButtons({
             Save Changes
           </Text>
         )}
-      </Pressable>
+      </GlassButton>
     </>
   );
 }
@@ -1006,44 +1029,27 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Footer — iOS glass
+  // Footer
   footerWrap: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-  },
-  footerGlass: {
-    flexDirection: "row",
-    gap: 8,
-    borderRadius: 20,
-    padding: 8,
-    overflow: "hidden",
-  },
-
-  // Footer — Android solid
-  footerSolid: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: "row",
     gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
 
-  // Glass buttons (used by FooterButtons)
+  // Glass buttons
   glassButton: {
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 50,
+    overflow: "hidden",
   },
   glassButtonText: {
     fontSize: 15,
