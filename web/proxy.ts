@@ -23,13 +23,11 @@ const routeConfig = {
     "/friends",
     "/shifts/mine", // User's personal shifts
     "/shifts/details", // Shift details and signup 
-    "/group-bookings", // Group booking functionality
     "/api/profile",
     "/api/achievements", 
     "/api/friends",
     "/api/notifications",
     "/api/shifts", // User shift-related API calls
-    "/api/group-bookings", // Group booking API
   ],
   
   // Everything else defaults to admin-only access

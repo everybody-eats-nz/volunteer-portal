@@ -17,7 +17,6 @@ import {
   Users,
   UserCheck,
 } from "lucide-react";
-import { GroupBookingDialogWrapper } from "@/components/group-booking-dialog-wrapper";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { checkProfileCompletion } from "@/lib/profile-completion";
 
@@ -92,16 +91,6 @@ interface ShiftWithRelations {
       email: string;
       profilePhotoUrl: string | null;
     };
-  }>;
-  groupBookings: Array<{
-    id: string;
-    name: string;
-    status: string;
-    signups: Array<{
-      id: string;
-      userId: string;
-      status: string;
-    }>;
   }>;
 }
 
@@ -274,15 +263,6 @@ function ShiftCard({
               </div>
             )}
 
-            {shift.groupBookings.length > 0 && (
-              <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-800/50">
-                <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                  {shift.groupBookings.length} group booking
-                  {shift.groupBookings.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-            )}
           </div>
 
           <div className="pt-4 mt-auto">
@@ -422,7 +402,6 @@ export async function ShiftDetailsContent({
           },
         },
       },
-      groupBookings: { include: { signups: true } },
     },
   })) as ShiftWithRelations[];
 
@@ -503,15 +482,6 @@ export async function ShiftDetailsContent({
                     </p>
                   </div>
                 </div>
-                {session && (
-                  <GroupBookingDialogWrapper
-                    shifts={[...locationTimeShifts.AM, ...locationTimeShifts.PM]}
-                    date={formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
-                    location={locationKey}
-                    testid={`group-booking-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
-                    currentUserEmail={session.user?.email || undefined}
-                  />
-                )}
               </div>
             )}
 

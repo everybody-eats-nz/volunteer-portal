@@ -114,7 +114,6 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 - `/api/shifts/*` — Shift listing and management
 - `/api/profile` — User profile
 - `/api/achievements` — Gamification
-- `/api/group-bookings/*` — Group booking system
 - `/api/admin/*` — Admin operations (protected)
 
 ### Authentication
@@ -169,10 +168,6 @@ import { prisma } from "@/lib/prisma";
 ### Achievement System
 
 Automatic unlocking based on shift counts (MILESTONE), consecutive months (DEDICATION), hours (IMPACT), and shift types (SPECIALIZATION). Processing in `/api/achievements/route.ts`.
-
-### Group Booking System
-
-Volunteers can create group bookings, send invitations, manage assignments, and handle approval workflows.
 
 ### Animation System
 
