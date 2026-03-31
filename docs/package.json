@@ -16,7 +16,7 @@
     "@ai-sdk/anthropic": "^3.0.63",
     "@ai-sdk/openai": "^3.0.47",
     "@astrojs/starlight": "^0.37.7",
-    "@astrojs/vercel": "^9.0.4",
+    "@astrojs/vercel": "^10.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
     "ai": "^6.0.134",
     "astro": "^5.18.1",
