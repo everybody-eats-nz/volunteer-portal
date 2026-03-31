@@ -18,6 +18,7 @@ import {
   BarChart3,
   ClipboardList,
   Activity,
+  MessageSquare,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -48,7 +49,7 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "dashboard",
       },
       {
-        title: "Analytics (Beta)",
+        title: "Restaurant Analytics",
         href: "/admin/analytics",
         icon: BarChart3,
         description: "Restaurant analytics and metrics",
@@ -186,6 +187,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Create and manage feedback surveys",
         commandKey: "surveys",
       },
+      {
+        title: "Chat Guides",
+        href: "/admin/chat-guides",
+        icon: MessageSquare,
+        description: "Manage AI chat assistant context",
+        commandKey: "chat-guides",
+      },
     ],
   },
   {
@@ -250,7 +258,7 @@ export const getIconColor = (
   const colorMap: Record<string, string> = {
     // Overview
     Dashboard: "text-blue-600",
-    "Analytics (Beta)": "text-purple-600",
+    "Restaurant Analytics": "text-purple-600",
     "Volunteer Engagement": "text-emerald-600",
 
     // Volunteer Management
@@ -272,6 +280,7 @@ export const getIconColor = (
     // Resources
     "Resource Hub": "text-blue-500",
     "Site Settings": "text-slate-600",
+    "Chat Guides": "text-emerald-500",
 
     // User Migration
     "Bulk Migration": "text-blue-600",

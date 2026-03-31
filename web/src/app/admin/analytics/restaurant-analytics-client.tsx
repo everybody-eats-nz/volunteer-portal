@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,572 +14,826 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import {
   UtensilsCrossed,
   TrendingUp,
   Calendar,
-  Target,
-  TrendingDown,
+  Loader2,
+  Info,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { DayOfWeekFilter } from "@/components/day-of-week-filter";
+import type { RestaurantAnalyticsData } from "@/lib/restaurant-analytics";
 
-// Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-interface MealsServedData {
-  totalsByLocation: Record<
-    string,
-    {
-      total: number;
-      records: number;
-      daysWithShifts: number;
-      average: number;
-      expected: number;
-      defaultMealsPerDay: number;
-      variance: number;
-      percentOfTarget: number;
-    }
-  >;
-  grandTotal: number;
-  grandExpected: number;
-  grandVariance: number;
-  grandPercentOfTarget: number;
-  daysInRange: number;
-  chartData: Array<Record<string, string | number>>;
-  monthlyTrends: Record<string, Record<string, { total: number; count: number }>>;
-  recordCount: number;
-}
-
 interface Props {
+  data: RestaurantAnalyticsData;
+  months: string;
+  location: string;
+  days: string;
   locations: Array<{ value: string; label: string }>;
-  initialFilters: {
-    location: string;
-    startDate: string;
-    endDate: string;
-  };
 }
 
-// Date range presets
-const DATE_PRESETS = [
-  { value: "last7days", label: "Last 7 Days" },
-  { value: "last30days", label: "Last 30 Days" },
-  { value: "last90days", label: "Last 90 Days" },
-  { value: "thisMonth", label: "This Month" },
-  { value: "lastMonth", label: "Last Month" },
-  { value: "thisYear", label: "This Year" },
-  { value: "lastYear", label: "Last Year" },
-  { value: "custom", label: "Custom Range" },
-];
+const MONTHS_LABELS: Record<string, string> = {
+  "1": "1 month",
+  "3": "3 months",
+  "6": "6 months",
+  "12": "12 months",
+};
 
-function getDateRangeFromPreset(preset: string): { start: string; end: string } {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let start = new Date(today);
-  let end = new Date(today);
+function ProgressRing({
+  value,
+  max,
+  color,
+  size = 52,
+  strokeWidth = 5,
+}: {
+  value: number;
+  max: number;
+  color: string;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = max > 0 ? Math.min(value / max, 1) : 0;
+  const offset = circumference * (1 - pct);
 
-  switch (preset) {
-    case "last7days":
-      start.setDate(today.getDate() - 7);
-      break;
-    case "last30days":
-      start.setDate(today.getDate() - 30);
-      break;
-    case "last90days":
-      start.setDate(today.getDate() - 90);
-      break;
-    case "thisMonth":
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
-      break;
-    case "lastMonth":
-      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      end = new Date(today.getFullYear(), today.getMonth(), 0);
-      break;
-    case "thisYear":
-      start = new Date(today.getFullYear(), 0, 1);
-      break;
-    case "lastYear":
-      start = new Date(today.getFullYear() - 1, 0, 1);
-      end = new Date(today.getFullYear() - 1, 11, 31);
-      break;
+  return (
+    <svg width={size} height={size} className="shrink-0 -rotate-90">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        className="text-muted/20"
+      />
+      <motion.circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={circumference}
+        animate={{ strokeDashoffset: offset }}
+        transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function YoYBadge({
+  percent,
+  prevValue,
+  className = "",
+}: {
+  percent: number;
+  prevValue: number;
+  className?: string;
+}) {
+  if (prevValue === 0) return null;
+
+  if (percent === 0) {
+    return (
+      <span
+        className={`inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground ${className}`}
+      >
+        <Minus className="h-3 w-3" />
+        No change vs last year
+      </span>
+    );
   }
 
-  return {
-    start: start.toISOString().substring(0, 10),
-    end: end.toISOString().substring(0, 10),
-  };
+  const isPositive = percent > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-medium ${
+        isPositive
+          ? "text-emerald-600 dark:text-emerald-400"
+          : "text-red-600 dark:text-red-400"
+      } ${className}`}
+    >
+      {isPositive ? (
+        <ArrowUpRight className="h-3 w-3" />
+      ) : (
+        <ArrowDownRight className="h-3 w-3" />
+      )}
+      {isPositive ? "+" : ""}
+      {percent}% vs last year
+    </span>
+  );
 }
 
-export function RestaurantAnalyticsClient({ locations, initialFilters }: Props) {
-  const [datePreset, setDatePreset] = useState("last30days");
-  const [location, setLocation] = useState(initialFilters.location);
-  const [startDate, setStartDate] = useState(
-    initialFilters.startDate.substring(0, 10)
-  );
-  const [endDate, setEndDate] = useState(initialFilters.endDate.substring(0, 10));
-  const [mealsData, setMealsData] = useState<MealsServedData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchMealsData = async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        location,
-      });
-
-      const response = await fetch(`/api/admin/analytics/meals-served?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMealsData(data);
-      }
-    } catch (error) {
-      console.error("Error fetching meals data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMealsData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+export function RestaurantAnalyticsClient({
+  data,
+  months: initialMonths,
+  location: initialLocation,
+  days: initialDays,
+  locations,
+}: Props) {
+  const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const [isPending, startTransition] = useTransition();
+  const [months, setMonths] = useState(initialMonths);
+  const [location, setLocation] = useState(initialLocation);
+  const [days, setDays] = useState(initialDays);
+  const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
+  const chartThemeMode = (
+    resolvedTheme === "dark" ? "dark" : "light"
+  ) as "dark" | "light";
 
   const handleApplyFilters = () => {
-    fetchMealsData();
-  };
-
-  const handlePresetChange = (preset: string) => {
-    setDatePreset(preset);
-    if (preset !== "custom") {
-      const { start, end } = getDateRangeFromPreset(preset);
-      setStartDate(start);
-      setEndDate(end);
-    }
-  };
-
-  const handleManualDateChange = () => {
-    setDatePreset("custom");
+    const params = new URLSearchParams({ months, location });
+    if (days) params.set("days", days);
+    startTransition(() => {
+      router.push(`/admin/analytics?${params}`);
+    });
   };
 
   return (
     <div className="space-y-6">
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="datePreset">Date Range</Label>
-              <Select value={datePreset} onValueChange={handlePresetChange}>
-                <SelectTrigger id="datePreset">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DATE_PRESETS.map((preset) => (
-                    <SelectItem key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <CardContent className="py-4">
+          <div className="flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="months">Time Period</Label>
+                <Select value={months} onValueChange={setMonths}>
+                  <SelectTrigger id="months">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Last 1 month</SelectItem>
+                    <SelectItem value="3">Last 3 months</SelectItem>
+                    <SelectItem value="6">Last 6 months</SelectItem>
+                    <SelectItem value="12">Last 12 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger id="location">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {locations.map((loc) => (
+                      <SelectItem key={loc.value} value={loc.value}>
+                        {loc.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DayOfWeekFilter value={days} onChange={setDays} />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  handleManualDateChange();
-                }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  handleManualDateChange();
-                }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger id="location">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((loc) => (
-                    <SelectItem key={loc.value} value={loc.value}>
-                      {loc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
-              <Button onClick={handleApplyFilters} className="w-full">
-                Apply Filters
-              </Button>
-            </div>
+            <Button
+              onClick={handleApplyFilters}
+              className="sm:w-auto w-full"
+              disabled={isPending}
+            >
+              {isPending && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
+              Apply Filters
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Loading State */}
-      {isLoading && (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Loading data...
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Meals Served Report */}
-      {!isLoading && mealsData && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UtensilsCrossed className="h-5 w-5" />
-                Total Guests Served
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {new Date(startDate).toLocaleDateString()} -{" "}
-                {new Date(endDate).toLocaleDateString()} • {mealsData.recordCount}{" "}
-                records
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Grand Totals - Actual vs Expected */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-lg bg-primary/5 p-6 text-center">
-                  <div className="text-sm font-medium text-muted-foreground mb-1">
-                    Total Meals Served
-                  </div>
-                  <div className="text-4xl font-bold text-primary">
-                    {mealsData.grandTotal.toLocaleString()}
+      {/* Content */}
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className={`space-y-6 transition-opacity ${isPending ? "opacity-50 pointer-events-none" : ""}`}
+      >
+        {/* Hero — Guests Served Overview */}
+        <motion.div variants={staggerItem}>
+          <Card className="overflow-hidden">
+            <div className="flex flex-col md:flex-row">
+              {/* Left: progress ring + total */}
+              <div className="flex items-center gap-5 p-6">
+                <div className="relative">
+                  <ProgressRing
+                    value={data.summary.totalMeals}
+                    max={Math.max(data.summary.totalMeals, data.summary.prevYearTotalMeals) || 1}
+                    color={data.summary.totalMeals >= data.summary.prevYearTotalMeals ? "#10b981" : "#f59e0b"}
+                    size={72}
+                    strokeWidth={6}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <UtensilsCrossed className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                 </div>
-
-                <div className="rounded-lg bg-muted/50 p-6 text-center">
-                  <div className="text-sm font-medium text-muted-foreground mb-1 flex items-center justify-center gap-1">
-                    <Target className="h-4 w-4" />
-                    Expected Total
-                  </div>
-                  <div className="text-4xl font-bold">
-                    {mealsData.grandExpected.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Based on {mealsData.daysInRange} days
-                  </div>
-                </div>
-
-                <div
-                  className={`rounded-lg p-6 text-center ${
-                    mealsData.grandVariance >= 0
-                      ? "bg-green-50 dark:bg-green-950/20"
-                      : "bg-red-50 dark:bg-red-950/20"
-                  }`}
-                >
-                  <div className="text-sm font-medium text-muted-foreground mb-1 flex items-center justify-center gap-1">
-                    {mealsData.grandVariance >= 0 ? (
-                      <TrendingUp className="h-4 w-4" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4" />
-                    )}
-                    Variance
-                  </div>
-                  <div
-                    className={`text-4xl font-bold ${
-                      mealsData.grandVariance >= 0
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-red-700 dark:text-red-400"
-                    }`}
-                  >
-                    {mealsData.grandVariance >= 0 ? "+" : ""}
-                    {mealsData.grandVariance.toLocaleString()}
-                  </div>
-                  <div className="text-sm font-medium mt-1">
-                    {mealsData.grandPercentOfTarget}% of target
-                  </div>
-                </div>
-              </div>
-
-              {/* Daily Trend Chart */}
-              {mealsData.chartData.length > 0 && (() => {
-                const locations = Object.keys(mealsData.totalsByLocation);
-                const colors = ["#3b82f6", "#10b981", "#ef4444", "#6366f1", "#f59e0b"];
-
-                // Prepare bar series data for ApexCharts
-                const barSeries = locations.map((loc, index) => ({
-                  name: loc,
-                  type: "column",
-                  data: mealsData.chartData.map((item) => item[loc] as number || 0),
-                  color: colors[index % colors.length],
-                }));
-
-                // Calculate total trend line
-                const trendData = mealsData.chartData.map((item) => {
-                  return locations.reduce((sum, loc) => {
-                    return sum + (item[loc] as number || 0);
-                  }, 0);
-                });
-
-                const trendSeries = {
-                  name: "Total Trend",
-                  type: "line",
-                  data: trendData,
-                };
-
-                const series = [...barSeries, trendSeries];
-
-                // Prepare categories (x-axis labels) with weekdays
-                const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const categories = mealsData.chartData.map((item) => {
-                  const date = new Date(item.date as string);
-                  const weekday = weekdays[date.getDay()];
-                  return `${weekday} ${date.getMonth() + 1}/${date.getDate()}`;
-                });
-
-                const chartOptions = {
-                  chart: {
-                    type: "line" as const,
-                    height: 400,
-                    toolbar: {
-                      show: false,
-                    },
-                    background: "transparent",
-                  },
-                  plotOptions: {
-                    bar: {
-                      horizontal: false,
-                      columnWidth: "75%",
-                      borderRadius: 4,
-                    },
-                  },
-                  dataLabels: {
-                    enabled: false,
-                  },
-                  stroke: {
-                    width: [...Array(locations.length).fill(0), 3],
-                    curve: "smooth" as const,
-                  },
-                  colors: [...colors.slice(0, locations.length), "#000000"],
-                  xaxis: {
-                    categories: categories,
-                    title: {
-                      text: "Date",
-                      style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                        fontSize: "12px",
-                      },
-                    },
-                    labels: {
-                      style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                      },
-                    },
-                  },
-                  yaxis: {
-                    title: {
-                      text: "Meals Served",
-                      style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                        fontSize: "12px",
-                      },
-                    },
-                    labels: {
-                      style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                      },
-                    },
-                  },
-                  fill: {
-                    opacity: 1,
-                  },
-                  tooltip: {
-                    y: {
-                      formatter: function (val: number) {
-                        return val.toLocaleString() + " meals";
-                      },
-                    },
-                  },
-                  legend: {
-                    position: "top" as const,
-                    horizontalAlign: "left" as const,
-                    fontFamily: "var(--font-libre-franklin), sans-serif",
-                  },
-                  theme: {
-                    mode: "light" as const,
-                  },
-                  grid: {
-                    borderColor: "#e5e7eb",
-                  },
-                  markers: {
-                    size: 4,
-                  },
-                };
-
-                return (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4" />
-                      Daily Trend
-                    </h3>
-                    <div className="w-full">
-                      <Chart
-                        options={chartOptions}
-                        series={series}
-                        type="line"
-                        height={400}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help">
+                      <p className="text-sm text-muted-foreground">
+                        Total Guests Served
+                      </p>
+                      <p className="text-3xl font-bold tracking-tight">
+                        {data.summary.totalMeals.toLocaleString()}
+                      </p>
+                      <YoYBadge
+                        percent={data.summary.yoyChangePercent}
+                        prevValue={data.summary.prevYearTotalMeals}
+                        className="mt-0.5"
                       />
+                      {data.summary.prevYearTotalMeals === 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Last {MONTHS_LABELS[initialMonths]}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                );
-              })()}
-
-              {/* By Location */}
-              <div className="space-y-4">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  By Location
-                </h3>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {Object.entries(mealsData.totalsByLocation)
-                    .sort(([, a], [, b]) => b.total - a.total)
-                    .map(([loc, data]) => (
-                      <Card key={loc}>
-                        <CardContent className="pt-6">
-                          <div className="space-y-3">
-                            <div className="font-semibold text-lg">{loc}</div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Actual Total
-                                </span>
-                                <span className="font-bold text-xl">
-                                  {data.total.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Expected Total
-                                </span>
-                                <span className="font-medium">
-                                  {data.expected.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center pb-2 border-b">
-                                <span className="text-sm text-muted-foreground">
-                                  Variance
-                                </span>
-                                <span
-                                  className={`font-medium ${
-                                    data.variance >= 0
-                                      ? "text-green-600 dark:text-green-400"
-                                      : "text-red-600 dark:text-red-400"
-                                  }`}
-                                >
-                                  {data.variance >= 0 ? "+" : ""}
-                                  {data.variance.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Average/Day
-                                </span>
-                                <span className="font-medium">
-                                  {data.average.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Target/Day
-                                </span>
-                                <span className="font-medium">
-                                  {data.defaultMealsPerDay}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Days with Shifts
-                                </span>
-                                <span className="font-medium">
-                                  {data.daysWithShifts}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">
-                                  Days Recorded
-                                </span>
-                                <span className="font-medium">
-                                  {data.records}
-                                  {data.records < data.daysWithShifts && (
-                                    <span className="text-xs text-yellow-600 dark:text-yellow-400 ml-1">
-                                      ({data.daysWithShifts - data.records} using
-                                      default)
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center pt-2 border-t">
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  % of Target
-                                </span>
-                                <span
-                                  className={`font-bold ${
-                                    data.percentOfTarget >= 100
-                                      ? "text-green-600 dark:text-green-400"
-                                      : data.percentOfTarget >= 80
-                                        ? "text-yellow-600 dark:text-yellow-400"
-                                        : "text-red-600 dark:text-red-400"
-                                  }`}
-                                >
-                                  {data.percentOfTarget}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-64">
+                    Total meals served across all locations in the last{" "}
+                    {MONTHS_LABELS[initialMonths]}.
+                    {data.summary.prevYearTotalMeals > 0 && (
+                      <>
+                        {" "}
+                        Previous year same period:{" "}
+                        {data.summary.prevYearTotalMeals.toLocaleString()}
+                      </>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
-              {/* No data message */}
-              {Object.keys(mealsData.totalsByLocation).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No meals served data found for the selected filters.
-                </div>
-              )}
-            </CardContent>
+              {/* Right: secondary metrics */}
+              <div className="flex-1 grid grid-cols-3 divide-x">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                      <Calendar className="h-4 w-4 text-muted-foreground mb-1" />
+                      <p className="text-2xl font-bold tracking-tight">
+                        {data.summary.prevYearTotalMeals > 0
+                          ? data.summary.prevYearTotalMeals.toLocaleString()
+                          : "\u2014"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Last Year
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-56">
+                    {data.summary.prevYearTotalMeals > 0
+                      ? `Same ${MONTHS_LABELS[initialMonths]} period last year`
+                      : "No data available for the same period last year"}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                      <UtensilsCrossed className="h-4 w-4 text-muted-foreground mb-1" />
+                      <p className="text-2xl font-bold tracking-tight">
+                        {data.summary.avgPerDay}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Avg/Day</p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-56">
+                    Average meals served per operational day.
+                    {data.summary.prevYearAvgPerDay > 0 && (
+                      <> Previous year: {data.summary.prevYearAvgPerDay}/day</>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                      <Calendar className="h-4 w-4 text-muted-foreground mb-1" />
+                      <p className="text-2xl font-bold tracking-tight">
+                        {data.summary.daysWithShifts}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Days Active
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-56">
+                    Days with scheduled shifts.{" "}
+                    {data.summary.daysWithRecords} of{" "}
+                    {data.summary.daysWithShifts} days have recorded meal counts
+                    (rest use defaults).
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
           </Card>
         </motion.div>
-      )}
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Monthly Trend */}
+          <motion.div variants={staggerItem}>
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  Meals Trend
+                  <Dialog>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">More info</TooltipContent>
+                    </Tooltip>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Monthly Meals Trend</DialogTitle>
+                        <DialogDescription>
+                          How this chart tracks meals served over time
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 text-sm">
+                        <p>
+                          Shows total meals served per month across all
+                          locations. Includes both recorded counts and default
+                          estimates for days without records.
+                        </p>
+                        <p>
+                          The{" "}
+                          <span className="font-medium">dashed line</span>{" "}
+                          overlays the same months from the previous year,
+                          making it easy to spot year-over-year growth or
+                          seasonal patterns.
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardTitle>
+                  <div className="flex items-center rounded-md border text-sm">
+                    <button
+                      onClick={() => setTrendView("monthly")}
+                      className={`px-3 py-1 rounded-l-md transition-colors ${
+                        trendView === "monthly"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setTrendView("weekly")}
+                      className={`px-3 py-1 rounded-r-md transition-colors ${
+                        trendView === "weekly"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      Weekly
+                    </button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const isWeekly = trendView === "weekly";
+                  const labels = isWeekly ? data.weeklyLabels : data.trendLabels;
+                  const currentData = isWeekly ? data.currentYearWeekly : data.currentYearTrend;
+                  const prevData = isWeekly ? data.previousYearWeekly : data.previousYearTrend;
+                  const hasPrev = prevData.some((v) => v > 0);
+
+                  return currentData.some((v) => v > 0) ? (
+                  <Chart
+                    key={`trend-${trendView}-${initialMonths}-${initialLocation}-${initialDays}`}
+                    options={{
+                      chart: {
+                        type: "area" as const,
+                        toolbar: { show: false },
+                        background: "transparent",
+                      },
+                      xaxis: {
+                        categories: labels,
+                        tickAmount: isWeekly ? 12 : undefined,
+                        labels: {
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "11px",
+                          },
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                      },
+                      yaxis: {
+                        labels: {
+                          formatter: (val: number) =>
+                            val >= 1000
+                              ? `${(val / 1000).toFixed(1)}k`
+                              : String(Math.round(val)),
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "11px",
+                          },
+                        },
+                        min: 0,
+                      },
+                      colors: ["#3b82f6", "#64748b"],
+                      stroke: {
+                        curve: "smooth" as const,
+                        width: [2.5, 2],
+                        dashArray: [0, 5],
+                      },
+                      fill: {
+                        type: "gradient",
+                        gradient: {
+                          shadeIntensity: 1,
+                          opacityFrom: 0.35,
+                          opacityTo: 0.02,
+                          stops: [0, 90, 100],
+                        },
+                      },
+                      dataLabels: { enabled: false },
+                      grid: {
+                        borderColor: "#e5e7eb",
+                        strokeDashArray: 4,
+                        xaxis: { lines: { show: false } },
+                      },
+                      tooltip: {
+                        shared: true,
+                        y: {
+                          formatter: (val: number) => {
+                            if (val == null) return "";
+                            return val.toLocaleString() + " meals";
+                          },
+                        },
+                      },
+                      markers: {
+                        size: isWeekly ? 0 : [4, 3],
+                        strokeWidth: 2,
+                        strokeColors: "#fff",
+                        hover: { sizeOffset: 4 },
+                      },
+                      legend: {
+                        show: hasPrev,
+                        position: "top" as const,
+                        fontSize: "12px",
+                        fontFamily:
+                          "var(--font-libre-franklin), sans-serif",
+                        markers: { size: 6, offsetX: -2 },
+                      },
+                      theme: { mode: chartThemeMode },
+                    }}
+                    series={[
+                      {
+                        name: "This Year",
+                        data: currentData,
+                      },
+                      ...(hasPrev
+                        ? [
+                            {
+                              name: "Previous Year",
+                              data: prevData,
+                            },
+                          ]
+                        : []),
+                    ]}
+                    type="area"
+                    height={320}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
+                    No trend data available
+                  </div>
+                );
+                })()}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Location Comparison */}
+          <motion.div variants={staggerItem}>
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <UtensilsCrossed className="h-4 w-4 text-emerald-500" />
+                  Location Comparison
+                  <Dialog>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">More info</TooltipContent>
+                    </Tooltip>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Location Comparison</DialogTitle>
+                        <DialogDescription>
+                          Year-over-year comparison by location
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 text-sm">
+                        <p>
+                          Compares total meals served at each location between
+                          the current period and the same period last year.
+                        </p>
+                        <p>
+                          The{" "}
+                          <span className="font-medium">dot marker</span>{" "}
+                          shows the previous year&rsquo;s total for each
+                          location, making it easy to see growth or decline.
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.locationBreakdown.length > 0 ? (
+                  <Chart
+                    key={`loc-${initialMonths}-${initialLocation}-${initialDays}`}
+                    options={{
+                      chart: {
+                        type: "bar" as const,
+                        toolbar: { show: false },
+                        background: "transparent",
+                      },
+                      plotOptions: {
+                        bar: {
+                          horizontal: true,
+                          borderRadius: 4,
+                          borderRadiusApplication: "end" as const,
+                          barHeight: "60%",
+                        },
+                      },
+                      xaxis: {
+                        categories: data.locationBreakdown.map(
+                          (l) => l.location
+                        ),
+                        labels: {
+                          formatter: (val: string) => {
+                            const n = Number(val);
+                            return n >= 1000
+                              ? `${(n / 1000).toFixed(1)}k`
+                              : val;
+                          },
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "11px",
+                          },
+                        },
+                        title: {
+                          text: "Meals Served",
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "11px",
+                            fontWeight: 400,
+                          },
+                        },
+                      },
+                      yaxis: {
+                        labels: {
+                          style: {
+                            fontFamily:
+                              "var(--font-libre-franklin), sans-serif",
+                            fontSize: "12px",
+                          },
+                        },
+                      },
+                      colors: ["#10b981"],
+                      dataLabels: {
+                        enabled: true,
+                        formatter: (val: number) =>
+                          val > 0 ? val.toLocaleString() : "",
+                        style: {
+                          fontFamily:
+                            "var(--font-libre-franklin), sans-serif",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                        },
+                      },
+                      grid: {
+                        borderColor: "#e5e7eb",
+                        strokeDashArray: 4,
+                        yaxis: { lines: { show: false } },
+                      },
+                      tooltip: {
+                        shared: true,
+                        intersect: false,
+                        custom: ({
+                          dataPointIndex,
+                        }: {
+                          dataPointIndex: number;
+                        }) => {
+                          const loc =
+                            data.locationBreakdown[dataPointIndex];
+                          if (!loc) return "";
+                          const diff =
+                            loc.totalMeals - loc.prevYearMeals;
+                          const diffLabel =
+                            loc.prevYearMeals > 0
+                              ? diff > 0
+                                ? `<span style="color:#10b981">+${diff.toLocaleString()} vs last year</span>`
+                                : diff < 0
+                                  ? `<span style="color:#ef4444">${diff.toLocaleString()} vs last year</span>`
+                                  : `<span style="color:#64748b">No change</span>`
+                              : "";
+                          return `<div style="padding:8px 12px;font-size:12px;line-height:1.6">
+                            <b>${loc.location}</b><br/>
+                            This year: <b>${loc.totalMeals.toLocaleString()}</b><br/>
+                            ${loc.prevYearMeals > 0 ? `Last year: ${loc.prevYearMeals.toLocaleString()}<br/>${diffLabel}<br/>` : ""}
+                            Avg: ${loc.avgPerDay}/day
+                          </div>`;
+                        },
+                      },
+                      legend: { show: false },
+                      annotations: data.hasPreviousYearData
+                        ? {
+                            points: data.locationBreakdown
+                              .filter((l) => l.prevYearMeals > 0)
+                              .map((l) => ({
+                                x: l.prevYearMeals,
+                                y: l.location as unknown as number,
+                                marker: {
+                                  size: 5,
+                                  fillColor: "#64748b",
+                                  strokeColor: "#fff",
+                                  strokeWidth: 2,
+                                  shape: "circle" as const,
+                                },
+                                label: {
+                                  text:
+                                    "Last yr: " +
+                                    l.prevYearMeals.toLocaleString(),
+                                  borderWidth: 0,
+                                  style: {
+                                    fontSize: "9px",
+                                    fontFamily:
+                                      "var(--font-libre-franklin), sans-serif",
+                                    color: "#64748b",
+                                    background: "transparent",
+                                    padding: {
+                                      left: 4,
+                                      right: 4,
+                                      top: 1,
+                                      bottom: 1,
+                                    },
+                                  },
+                                },
+                              })),
+                          }
+                        : undefined,
+                      theme: { mode: chartThemeMode },
+                    }}
+                    series={[
+                      {
+                        name: "This Year",
+                        data: data.locationBreakdown.map(
+                          (l) => l.totalMeals
+                        ),
+                      },
+                    ]}
+                    type="bar"
+                    height={Math.max(
+                      280,
+                      data.locationBreakdown.length * 80
+                    )}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
+                    No location data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Year-over-Year Summary */}
+        {data.hasPreviousYearData && (
+          <motion.div variants={staggerItem}>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                  Year-over-Year Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                  {[
+                    {
+                      label: "Total Meals",
+                      current: data.summary.totalMeals,
+                      previous: data.summary.prevYearTotalMeals,
+                      format: (v: number) => v.toLocaleString(),
+                    },
+                    {
+                      label: "Avg per Day",
+                      current: data.summary.avgPerDay,
+                      previous: data.summary.prevYearAvgPerDay,
+                      format: (v: number) => String(v),
+                    },
+                  ].map((metric) => {
+                    const diff = metric.current - metric.previous;
+                    const pctChange =
+                      metric.previous > 0
+                        ? Math.round((diff / metric.previous) * 100)
+                        : 0;
+                    return (
+                      <div
+                        key={metric.label}
+                        className="text-center space-y-1 py-3"
+                      >
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {metric.label}
+                        </p>
+                        <p className="text-xl font-bold">
+                          {metric.format(metric.current)}
+                        </p>
+                        {metric.previous > 0 ? (
+                          <div className="space-y-0.5">
+                            <p className="text-xs text-muted-foreground">
+                              was {metric.format(metric.previous)}
+                            </p>
+                            <p
+                              className={`text-xs font-medium ${
+                                diff > 0
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : diff < 0
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {diff > 0 ? "+" : ""}
+                              {metric.format(diff)} ({pctChange > 0 ? "+" : ""}
+                              {pctChange}%)
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            &nbsp;
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Empty state */}
+        {data.locationBreakdown.length === 0 &&
+          !data.currentYearTrend.some((v) => v > 0) && (
+            <motion.div variants={staggerItem}>
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <UtensilsCrossed className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                  <p className="font-medium">No data available</p>
+                  <p className="text-sm mt-1">
+                    No meals served data found for the last{" "}
+                    {MONTHS_LABELS[initialMonths]}
+                    {initialLocation !== "all" &&
+                      ` at ${initialLocation}`}
+                    .
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+      </motion.div>
     </div>
   );
 }

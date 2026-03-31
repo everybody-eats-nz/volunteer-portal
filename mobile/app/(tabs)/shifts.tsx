@@ -27,10 +27,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Image } from "expo-image";
+
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useShifts } from "@/hooks/use-shifts";
+import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
   getShiftThemeByName,
   type Shift,
@@ -38,11 +40,18 @@ import {
 
 type Tab = "upcoming" | "browse" | "past";
 
+type PeriodSubGroup = {
+  periodKey: string; // "YYYY-MM-DD-DAY" or "YYYY-MM-DD-EVE"
+  periodLabel: string; // "Day" or "Evening"
+  shifts: Shift[];
+};
+
 type ShiftGroup = {
   key: string;
   label: string;
   relativeLabel: string;
   shifts: Shift[];
+  periods: PeriodSubGroup[];
 };
 
 function getDuration(start: string, end: string): string {
@@ -52,7 +61,15 @@ function getDuration(start: string, end: string): string {
   return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
 }
 
-/** Group shifts by calendar day */
+/** Cutoff hour (NZ time) — before this is "Day", at or after is "Evening" */
+const DAY_EVENING_CUTOFF = 16;
+
+function isShiftDay(shift: Shift): boolean {
+  const hour = parseInt(formatNZT(new Date(shift.start), "H"), 10);
+  return hour < DAY_EVENING_CUTOFF;
+}
+
+/** Group shifts by calendar day, then split each day into Day/Evening sub-groups */
 function groupShiftsByDay(
   shifts: Shift[],
   order: "asc" | "desc" = "asc"
@@ -77,6 +94,7 @@ function groupShiftsByDay(
   return sorted.map(([key, dayShifts]) => {
     const date = new Date(key);
     const label = formatNZT(date, "EEEE, d MMMM");
+    const dateStr = formatNZT(date, "yyyy-MM-dd");
     let relativeLabel: string;
     if (isToday(date)) {
       relativeLabel = "Today";
@@ -87,7 +105,19 @@ function groupShiftsByDay(
     } else {
       relativeLabel = formatDistanceToNowStrict(date, { addSuffix: true });
     }
-    return { key, label, relativeLabel, shifts: dayShifts };
+
+    // Split into Day / Evening sub-groups
+    const dayPeriod = dayShifts.filter(isShiftDay);
+    const evePeriod = dayShifts.filter((s) => !isShiftDay(s));
+    const periods: PeriodSubGroup[] = [];
+    if (dayPeriod.length > 0) {
+      periods.push({ periodKey: `${dateStr}-DAY`, periodLabel: "Day", shifts: dayPeriod });
+    }
+    if (evePeriod.length > 0) {
+      periods.push({ periodKey: `${dateStr}-EVE`, periodLabel: "Evening", shifts: evePeriod });
+    }
+
+    return { key, label, relativeLabel, shifts: dayShifts, periods };
   });
 }
 
@@ -188,6 +218,7 @@ export default function ShiftsScreen() {
     hasMorePast,
     isLoadingMore,
     userPreferredLocations,
+    periodFriends,
   } = useShifts();
 
   /* ── Location Filter ── */
@@ -294,7 +325,7 @@ export default function ShiftsScreen() {
     <>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, Platform.OS === 'android' && { paddingTop: insets.top }]}
       showsVerticalScrollIndicator={false}
       onScroll={handleScroll}
       scrollEventThrottle={400}
@@ -487,7 +518,7 @@ export default function ShiftsScreen() {
           ))}
         </View>
       ) : (
-        /* Browse & Past: grouped by day */
+        /* Browse & Past: grouped by day → Day/Evening sub-groups */
         <View style={styles.shiftList}>
           {groupedShifts?.map((group) => (
             <View key={group.key} style={styles.dayGroup}>
@@ -517,19 +548,48 @@ export default function ShiftsScreen() {
                 </View>
               </View>
 
-              {/* Shift cards for this day */}
-              <View style={styles.dayCards}>
-                {group.shifts.map((shift) => (
-                  <ShiftCard
-                    key={shift.id}
-                    shift={shift}
-                    colors={colors}
-                    isDark={isDark}
-                    showStatus={activeTab === "past"}
-                    compact={activeTab === "past"}
-                  />
-                ))}
-              </View>
+              {/* Period sub-groups (Day / Evening) */}
+              {group.periods.map((period) => {
+                const friends = periodFriends[period.periodKey] ?? [];
+                return (
+                  <View key={period.periodKey} style={styles.periodGroup}>
+                    {/* Period header with friend avatars */}
+                    {group.periods.length > 1 && (
+                      <View style={styles.periodHeader}>
+                        <Ionicons
+                          name={period.periodLabel === "Day" ? "sunny-outline" : "moon-outline"}
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={[styles.periodLabel, { color: colors.textSecondary }]}>
+                          {period.periodLabel}
+                        </Text>
+                        {friends.length > 0 && (
+                          <FriendAvatarRow friends={friends} isDark={isDark} />
+                        )}
+                      </View>
+                    )}
+                    {/* Show friends row even when only 1 period, just without the label */}
+                    {group.periods.length === 1 && friends.length > 0 && (
+                      <FriendAvatarRow friends={friends} isDark={isDark} />
+                    )}
+
+                    {/* Shift cards */}
+                    <View style={styles.dayCards}>
+                      {period.shifts.map((shift) => (
+                        <ShiftCard
+                          key={shift.id}
+                          shift={shift}
+                          colors={colors}
+                          isDark={isDark}
+                          showStatus={activeTab === "past"}
+                          compact={activeTab === "past"}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           ))}
         </View>
@@ -623,6 +683,79 @@ export default function ShiftsScreen() {
       </Modal>
     )}
     </>
+  );
+}
+
+/* ── Friend Avatar Row ── */
+
+function FriendAvatarRow({
+  friends,
+  isDark,
+}: {
+  friends: PeriodFriend[];
+  isDark: boolean;
+}) {
+  const maxShow = 4;
+  const shown = friends.slice(0, maxShow);
+  const overflow = friends.length - maxShow;
+
+  return (
+    <View style={styles.friendAvatarRow}>
+      {shown.map((friend, index) => (
+        <View
+          key={friend.id}
+          style={[
+            styles.friendAvatarWrap,
+            { marginLeft: index === 0 ? 0 : -8, zIndex: maxShow - index },
+          ]}
+        >
+          {friend.profilePhotoUrl ? (
+            <Image
+              source={{ uri: friend.profilePhotoUrl }}
+              style={[styles.friendAvatar, { borderColor: isDark ? "#0f1114" : Brand.warmWhite }]}
+            />
+          ) : (
+            <View
+              style={[
+                styles.friendAvatar,
+                styles.friendAvatarFallback,
+                {
+                  borderColor: isDark ? "#0f1114" : Brand.warmWhite,
+                  backgroundColor: isDark ? "rgba(14,58,35,0.4)" : Brand.greenLight,
+                },
+              ]}
+            >
+              <Text style={[styles.friendInitial, { color: isDark ? "#86efac" : Brand.green }]}>
+                {friend.name.charAt(0)}
+              </Text>
+            </View>
+          )}
+        </View>
+      ))}
+      {overflow > 0 && (
+        <View
+          style={[
+            styles.friendAvatarWrap,
+            { marginLeft: -8, zIndex: 0 },
+          ]}
+        >
+          <View
+            style={[
+              styles.friendAvatar,
+              styles.friendAvatarFallback,
+              {
+                borderColor: isDark ? "#0f1114" : Brand.warmWhite,
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+              },
+            ]}
+          >
+            <Text style={[styles.friendOverflow, { color: isDark ? "#94a3b8" : "#64748b" }]}>
+              +{overflow}
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -775,25 +908,14 @@ function ShiftCard({
           </View>
         )}
 
-        {/* Notes callout */}
+        {/* Notes / description */}
         {shift.notes && (
-          <View
-            style={[
-              styles.notesCallout,
-              { backgroundColor: isDark ? "rgba(217, 119, 6, 0.1)" : "#fffbeb" },
-            ]}
+          <Text
+            style={[styles.notesText, { color: colors.textSecondary }]}
+            numberOfLines={2}
           >
-            <Ionicons
-              name="information-circle-outline"
-              size={14}
-              color={isDark ? "#fbbf24" : "#b45309"}
-            />
-            <Text
-              style={[styles.notesText, { color: isDark ? "#fbbf24" : "#92400e" }]}
-            >
-              {shift.notes}
-            </Text>
-          </View>
+            {shift.notes}
+          </Text>
         )}
       </View>
     </Pressable>
@@ -1002,6 +1124,47 @@ dayHeaderLabel: {
     gap: 12,
   },
 
+  // Period sub-groups (Day / Evening)
+  periodGroup: {
+    gap: 10,
+  },
+  periodHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 2,
+  },
+  periodLabel: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+  },
+
+  // Friend avatar row
+  friendAvatarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 6,
+  },
+  friendAvatarWrap: {},
+  friendAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+  },
+  friendAvatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendInitial: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+  },
+  friendOverflow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+  },
+
   // Card
   card: {
     borderRadius: 18,
@@ -1123,19 +1286,10 @@ dayHeaderLabel: {
     fontFamily: FontFamily.semiBold,
   },
 
-  // Notes callout
-  notesCallout: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
+  // Notes text
   notesText: {
     fontSize: 13,
-    fontFamily: FontFamily.medium,
-    flex: 1,
+    fontFamily: FontFamily.regular,
     lineHeight: 18,
   },
 

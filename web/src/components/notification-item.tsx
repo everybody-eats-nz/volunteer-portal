@@ -101,8 +101,6 @@ export function NotificationItem({
         return "⏰";
       case "SHIFT_CANCELED":
         return "❌";
-      case "GROUP_INVITATION":
-        return "📧";
       case "ACHIEVEMENT_UNLOCKED":
         return "🏆";
       default:

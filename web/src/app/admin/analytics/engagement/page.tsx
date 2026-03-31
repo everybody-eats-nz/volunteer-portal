@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/page-container";
 import { EngagementAnalyticsClient } from "./engagement-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
 import { getEngagementSummary, getEngagementVolunteers, getEngagementByShiftType, getRetentionHeatmap } from "@/lib/engagement";
+import { parseDaysParam } from "@/lib/parse-days-param";
 
 export default async function EngagementAnalyticsPage({
   searchParams,
@@ -26,6 +27,8 @@ export default async function EngagementAnalyticsPage({
 
   const months = (params.months as string) || "3";
   const location = (params.location as string) || "all";
+  const days = (params.days as string) || "";
+  const daysFilter = parseDaysParam(days);
 
   // Table params
   const tablePage = parseInt((params.page as string) || "1", 10);
@@ -38,11 +41,12 @@ export default async function EngagementAnalyticsPage({
   const tableSearch = (params.search as string) || "";
 
   const [data, shiftTypeData, volunteersData, retentionData] = await Promise.all([
-    getEngagementSummary(parseInt(months, 10), location),
-    getEngagementByShiftType(parseInt(months, 10), location),
+    getEngagementSummary(parseInt(months, 10), location, daysFilter),
+    getEngagementByShiftType(parseInt(months, 10), location, daysFilter),
     getEngagementVolunteers({
       months: parseInt(months, 10),
       location,
+      daysFilter,
       statusFilter: tableStatus || null,
       page: tablePage,
       pageSize: tablePageSize,
@@ -50,7 +54,7 @@ export default async function EngagementAnalyticsPage({
       sortOrder: tableSortOrder,
       search: tableSearch,
     }),
-    getRetentionHeatmap(location),
+    getRetentionHeatmap(location, daysFilter),
   ]);
 
   const locationOptions = LOCATIONS.map((loc) => ({
@@ -70,6 +74,7 @@ export default async function EngagementAnalyticsPage({
           retentionData={retentionData}
           months={months}
           location={location}
+          days={days}
           locations={locationOptions}
           volunteersData={volunteersData}
           tableSearch={tableSearch}

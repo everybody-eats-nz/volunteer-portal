@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
-  KeyboardAvoidingView,
+  Keyboard,
+  LayoutAnimation,
   Platform,
   Pressable,
   ScrollView,
@@ -14,10 +17,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MarkdownDisplay from "react-native-markdown-display";
 
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { api } from "@/lib/api";
+import { chatWithAssistant } from "@/lib/chat";
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -36,12 +42,16 @@ const WELCOME_MESSAGE: Message = {
     "Kia ora! 👋 I'm here to help with anything about volunteering at Everybody Eats. Ask me about what to expect on your first shift, kitchen safety, shift roles, or anything else 🌿",
 };
 
-const SUGGESTED_QUESTIONS = [
+const DEFAULT_SUGGESTED_QUESTIONS = [
   { emoji: "🍽️", label: "What happens on a typical shift?" },
   { emoji: "🔪", label: "Kitchen safety tips" },
   { emoji: "👥", label: "What are the volunteer grades?" },
   { emoji: "📍", label: "Where are the kitchens?" },
 ];
+
+/* ─── Layout Constants ─────────────────────────────────────── */
+
+const FLOATING_BAR_HEIGHT = 60;
 
 /* ─── Animated Typing Dots ──────────────────────────────────── */
 
@@ -71,8 +81,8 @@ const TypingDots = React.memo(function TypingDots({
             useNativeDriver: true,
           }),
           Animated.delay((2 - i) * 160),
-        ]),
-      ),
+        ])
+      )
     );
     animations.forEach((a) => a.start());
     return () => animations.forEach((a) => a.stop());
@@ -203,9 +213,45 @@ const MessageBubble = React.memo(function MessageBubble({
           },
         ]}
       >
-        <Text style={[styles.messageText, { color: colors.text }]}>
+        <MarkdownDisplay
+          style={{
+            body: {
+              color: colors.text,
+              fontFamily: FontFamily.regular,
+              fontSize: 15,
+              lineHeight: 22,
+            },
+            strong: { fontFamily: FontFamily.semiBold },
+            bullet_list: { marginVertical: 4 },
+            ordered_list: { marginVertical: 4 },
+            list_item: { marginVertical: 1 },
+            link: { color: Brand.green },
+            paragraph: { marginTop: 0, marginBottom: 10 },
+            heading1: {
+              fontFamily: FontFamily.headingBold,
+              fontSize: 18,
+              marginBottom: 6,
+              marginTop: 12,
+              color: colors.text,
+            },
+            heading2: {
+              fontFamily: FontFamily.headingBold,
+              fontSize: 17,
+              marginBottom: 4,
+              marginTop: 10,
+              color: colors.text,
+            },
+            heading3: {
+              fontFamily: FontFamily.headingBold,
+              fontSize: 16,
+              marginBottom: 4,
+              marginTop: 8,
+              color: colors.text,
+            },
+          }}
+        >
           {item.content}
-        </Text>
+        </MarkdownDisplay>
       </View>
     </View>
   );
@@ -217,10 +263,12 @@ function WelcomeHero({
   colors,
   isDark,
   onSuggestionPress,
+  questions,
 }: {
   colors: (typeof Colors)["light"];
   isDark: boolean;
   onSuggestionPress: (text: string) => void;
+  questions: { emoji: string; label: string }[];
 }) {
   return (
     <ScrollView
@@ -262,12 +310,12 @@ function WelcomeHero({
         about{"\n"}shifts, safety, or getting started.
       </Text>
 
-      {/* Suggestion cards — 2×2 grid */}
+      {/* Suggestion cards — 2x2 grid */}
       <Text style={[styles.suggestionsLabel, { color: colors.textSecondary }]}>
         Try asking...
       </Text>
       <View style={styles.suggestionsGrid}>
-        {SUGGESTED_QUESTIONS.map((q) => (
+        {questions.map((q) => (
           <Pressable
             key={q.label}
             onPress={() => {
@@ -322,10 +370,62 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState(
+    DEFAULT_SUGGESTED_QUESTIONS
+  );
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
 
   const showWelcome = messages.length <= 1;
+  const keyboardVisible = keyboardHeight > 0;
+
+  /* ── Track keyboard with LayoutAnimation for smooth transitions ── */
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => {
+        if (Platform.OS === "ios") {
+          LayoutAnimation.configureNext({
+            duration: e.duration,
+            update: { type: LayoutAnimation.Types.keyboard },
+          });
+        }
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      (e) => {
+        if (Platform.OS === "ios" && e?.duration) {
+          LayoutAnimation.configureNext({
+            duration: e.duration,
+            update: { type: LayoutAnimation.Types.keyboard },
+          });
+        }
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  /* ── Fetch suggested questions from API ── */
+  useEffect(() => {
+    api<{ suggestedQuestions: typeof DEFAULT_SUGGESTED_QUESTIONS }>(
+      "/api/mobile/chat/config"
+    )
+      .then((data) => {
+        if (data.suggestedQuestions?.length > 0) {
+          setSuggestedQuestions(data.suggestedQuestions);
+        }
+      })
+      .catch(() => {
+        // Keep defaults on error
+      });
+  }, []);
 
   /* ── Reset ── */
   const resetChat = useCallback(() => {
@@ -350,22 +450,63 @@ export default function ChatScreen() {
       };
 
       setInput("");
-      setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
 
-      // TODO: Connect to AI endpoint with volunteer knowledge base
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content:
-            "I'm not connected to the AI backend yet — once that's set up I'll be able to answer all your questions about volunteering! 🌱",
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+      const assistantId = (Date.now() + 1).toString();
+      const allMessages = [...messages, userMessage]
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.content }));
+      setMessages((prev) => [...prev, userMessage]);
+
+      try {
+        await chatWithAssistant(allMessages, {
+          onStart: () => {
+            setIsLoading(false);
+            setMessages((prev) => [
+              ...prev,
+              { id: assistantId, role: "assistant", content: "" },
+            ]);
+          },
+          onToken: (token: string) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: m.content + token } : m
+              )
+            );
+          },
+          onFinish: () => {
+            setIsLoading(false);
+          },
+          onError: (error: string) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      content:
+                        "Sorry, I had trouble responding. Please try again — or contact the team directly if you need help right away 🌿",
+                    }
+                  : m
+              )
+            );
+            setIsLoading(false);
+            console.error("Chat error:", error);
+          },
+        });
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantId,
+            role: "assistant" as const,
+            content:
+              "Sorry, I couldn't connect right now. Please check your connection and try again 🌿",
+          },
+        ]);
         setIsLoading(false);
-      }, 1000);
+      }
     },
-    [input, isLoading],
+    [input, isLoading, messages]
   );
 
   /* ── Render message with grouping ── */
@@ -383,22 +524,67 @@ export default function ChatScreen() {
         />
       );
     },
-    [messages, colors, isDark],
+    [messages, colors, isDark]
   );
 
-  /* ── Input bar colors ── */
-  const inputBarBg = isDark ? "#1a1d21" : "#ffffff";
-  const inputFieldBg = isDark ? "#252830" : "#f1f5f9";
-  const inputFieldBorder = isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0";
-  const sendBtnInactive = isDark ? "#2a2d32" : "#e2e8f0";
+  /* ── Floating bar position ── */
+  const floatingBottom = keyboardVisible
+    ? keyboardHeight + 8
+    : insets.bottom + 8;
+
+  /* ── Glass bar colors ── */
+  const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
   const hasInput = input.trim().length > 0 && !isLoading;
+  const useNativeGlass = isLiquidGlassAvailable();
+
+  /* ── Input contents (shared between glass and fallback paths) ── */
+  const inputContents = (
+    <>
+      <View
+        style={[styles.glassInputField, { backgroundColor: "transparent" }]}
+      >
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.glassInputText,
+            { color: "white", fontFamily: FontFamily.regular },
+          ]}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Ask a question..."
+          placeholderTextColor={"#ccc"}
+          multiline
+          maxLength={1000}
+          onSubmitEditing={() => sendMessage()}
+          returnKeyType="send"
+          editable={!isLoading}
+          accessibilityLabel="Message input"
+        />
+      </View>
+      <Pressable
+        onPress={() => sendMessage()}
+        disabled={!hasInput}
+        style={({ pressed }) => [
+          styles.glassSendBtn,
+          {
+            backgroundColor: hasInput ? Brand.green : sendBtnInactive,
+            transform: [{ scale: pressed && hasInput ? 0.9 : 1 }],
+          },
+        ]}
+        accessibilityLabel="Send message"
+        accessibilityRole="button"
+      >
+        <Ionicons
+          name="arrow-up"
+          size={18}
+          color={hasInput ? "#ffffff" : colors.textSecondary}
+        />
+      </Pressable>
+    </>
+  );
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={90}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* ── Header ── */}
       <View
         style={[
@@ -418,16 +604,10 @@ export default function ChatScreen() {
             </ThemedText>
             <View style={styles.statusRow}>
               <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: "#22c55e" },
-                ]}
+                style={[styles.statusDot, { backgroundColor: "#22c55e" }]}
               />
               <Text
-                style={[
-                  styles.statusLabel,
-                  { color: colors.textSecondary },
-                ]}
+                style={[styles.statusLabel, { color: colors.textSecondary }]}
               >
                 Online
               </Text>
@@ -466,6 +646,7 @@ export default function ChatScreen() {
           colors={colors}
           isDark={isDark}
           onSuggestionPress={sendMessage}
+          questions={suggestedQuestions}
         />
       ) : (
         <FlatList
@@ -473,14 +654,23 @@ export default function ChatScreen() {
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messageList}
+          contentContainerStyle={[
+            styles.messageList,
+            { paddingBottom: FLOATING_BAR_HEIGHT + 100 },
+          ]}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
           ListFooterComponent={
             isLoading ? (
-              <View style={[styles.messageRow, styles.assistantRow, { marginTop: 12 }]}>
+              <View
+                style={[
+                  styles.messageRow,
+                  styles.assistantRow,
+                  { marginTop: 12 },
+                ]}
+              >
                 <AssistantAvatar size={30} isDark={isDark} />
                 <View
                   style={[
@@ -502,73 +692,52 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* ── Input bar ── */}
+      {/* ── Floating glass input bar ── */}
       <View
         style={[
-          styles.inputBar,
-          {
-            backgroundColor: inputBarBg,
-            paddingBottom: Math.max(insets.bottom, 16) + 8,
-            borderTopColor: colors.border,
-          },
-          Platform.OS === "ios" && {
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: isDark ? 0.25 : 0.05,
-            shadowRadius: 8,
-          },
-          Platform.OS === "android" && { elevation: 8 },
+          styles.floatingWrap,
+          { bottom: floatingBottom },
+          !useNativeGlass &&
+            Platform.OS === "ios" && {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isDark ? 0.3 : 0.1,
+              shadowRadius: 16,
+            },
+          !useNativeGlass && Platform.OS === "android" && { elevation: 8 },
         ]}
       >
-        <View
-          style={[
-            styles.inputField,
-            {
-              backgroundColor: inputFieldBg,
-              borderColor: inputFieldBorder,
-            },
-          ]}
-        >
-          <TextInput
-            ref={inputRef}
-            style={[
-              styles.inputText,
-              { color: colors.text, fontFamily: FontFamily.regular },
-            ]}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Ask a question..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            maxLength={1000}
-            onSubmitEditing={() => sendMessage()}
-            returnKeyType="send"
-            editable={!isLoading}
-            accessibilityLabel="Message input"
-          />
-        </View>
-
-        <Pressable
-          onPress={() => sendMessage()}
-          disabled={!hasInput}
-          style={({ pressed }) => [
-            styles.sendBtn,
-            {
-              backgroundColor: hasInput ? Brand.green : sendBtnInactive,
-              transform: [{ scale: pressed && hasInput ? 0.9 : 1 }],
-            },
-          ]}
-          accessibilityLabel="Send message"
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="arrow-up"
-            size={20}
-            color={hasInput ? "#ffffff" : colors.textSecondary}
-          />
-        </Pressable>
+        {useNativeGlass ? (
+          <GlassView glassEffectStyle={"regular"} style={styles.glassBar}>
+            {inputContents}
+          </GlassView>
+        ) : (
+          <View style={styles.glassBar}>
+            <BlurView
+              intensity={isDark ? 60 : 80}
+              tint={isDark ? "dark" : "light"}
+              style={[StyleSheet.absoluteFill, { borderRadius: 26 }]}
+            />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(40,44,52,0.35)"
+                    : "rgba(255,255,255,0.25)",
+                  borderColor: isDark
+                    ? "rgba(255,255,255,0.18)"
+                    : "rgba(255,255,255,0.5)",
+                  borderWidth: 1,
+                  borderRadius: 26,
+                },
+              ]}
+            />
+            {inputContents}
+          </View>
+        )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -584,6 +753,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    zIndex: 2,
   },
   headerInner: {
     flexDirection: "row",
@@ -631,7 +801,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: FLOATING_BAR_HEIGHT + 40,
   },
   welcomeAvatarWrap: {
     marginBottom: 20,
@@ -706,7 +876,6 @@ const styles = StyleSheet.create({
   messageList: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 8,
   },
   listFooter: {
     paddingBottom: 8,
@@ -764,33 +933,42 @@ const styles = StyleSheet.create({
     borderRadius: 3.5,
   },
 
-  /* Input bar */
-  inputBar: {
+  /* Floating glass input bar */
+  floatingWrap: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    zIndex: 10,
+  },
+  glassBar: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderRadius: 26,
+    padding: 6,
+    gap: 6,
+    overflow: "hidden",
   },
-  inputField: {
+  glassInputField: {
     flex: 1,
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === "ios" ? 10 : 6,
-    minHeight: 44,
+    minHeight: 40,
     justifyContent: "center",
   },
-  inputText: {
+  glassInputText: {
     fontSize: 15,
     lineHeight: 20,
     maxHeight: 100,
+    paddingTop: 0,
+    paddingBottom: 0,
+    textAlignVertical: "center",
+    color: "white",
   },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  glassSendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },

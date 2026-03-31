@@ -5,6 +5,8 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { RestaurantAnalyticsClient } from "./restaurant-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
+import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
+import { parseDaysParam } from "@/lib/parse-days-param";
 
 export default async function AnalyticsPage({
   searchParams,
@@ -22,19 +24,13 @@ export default async function AnalyticsPage({
   }
 
   const params = await searchParams;
+  const months = (params.months as string) || "3";
+  const location = (params.location as string) || "all";
+  const days = (params.days as string) || "";
+  const daysFilter = parseDaysParam(days);
 
-  // Calculate default dates - last 30 days
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const data = await getRestaurantAnalytics(parseInt(months, 10), location, daysFilter);
 
-  const initialFilters = {
-    location: (params.location as string) || "all",
-    startDate: (params.startDate as string) || thirtyDaysAgo.toISOString(),
-    endDate: (params.endDate as string) || now.toISOString(),
-  };
-
-  // Transform LOCATIONS array to the format expected by the component
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
     label: loc,
@@ -43,11 +39,14 @@ export default async function AnalyticsPage({
   return (
     <AdminPageWrapper
       title="Restaurant Analytics"
-      description="Key statistics and metrics for restaurant operations across all locations"
+      description="Meals served metrics and year-over-year comparisons across all locations"
     >
       <PageContainer testid="restaurant-analytics-page">
         <RestaurantAnalyticsClient
-          initialFilters={initialFilters}
+          data={data}
+          months={months}
+          location={location}
+          days={days}
           locations={locationOptions}
         />
       </PageContainer>

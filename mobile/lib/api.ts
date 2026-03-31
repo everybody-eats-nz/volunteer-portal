@@ -41,6 +41,36 @@ export async function api<T = unknown>(
   return response.json() as Promise<T>;
 }
 
+/**
+ * Upload a file via multipart/form-data.
+ * Automatically attaches the auth token from SecureStore.
+ */
+export async function apiUpload<T = unknown>(
+  path: string,
+  formData: FormData,
+): Promise<T> {
+  const token = await SecureStore.getItemAsync('auth_token');
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  // Do NOT set Content-Type — fetch sets it with the boundary automatically
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+    throw new ApiError(response.status, error.error ?? 'Upload failed');
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
-import { deleteFile, extractFilePathFromUrl } from "@/lib/storage";
+// storage is lazy-imported in DELETE to avoid crashing when Supabase env vars are missing
 
 const updateResourceSchema = z.object({
   title: z.string().min(1, "Title is required").optional(),
@@ -26,6 +26,8 @@ const updateResourceSchema = z.object({
   fileSize: z.number().optional(),
   url: z.string().optional(),
   isPublished: z.boolean().optional(),
+  includeInChat: z.boolean().optional(),
+  chatContent: z.string().nullable().optional(),
 });
 
 // GET /api/admin/resources/[id] - Get single resource
@@ -153,6 +155,7 @@ export async function DELETE(
     // Delete file from Supabase if it exists
     if (resource.fileUrl) {
       try {
+        const { deleteFile, extractFilePathFromUrl } = await import("@/lib/storage");
         const filePath = extractFilePathFromUrl(resource.fileUrl);
         if (filePath) {
           await deleteFile(filePath);

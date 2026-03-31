@@ -20,8 +20,6 @@ export default function robots(): MetadataRoute.Robots {
           "/friends/*",
           "/admin",
           "/admin/*",
-          "/group-bookings/*",
-          "/group-invitations/*",
           "/verify-email",
           "/reset-password",
           "/forgot-password",

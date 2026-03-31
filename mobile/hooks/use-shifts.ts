@@ -3,6 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { Shift } from "@/lib/dummy-data";
 
+export type PeriodFriend = {
+  id: string;
+  name: string;
+  profilePhotoUrl: string | null;
+};
+
 type ShiftsResponse = {
   myShifts: Shift[];
   available: Shift[];
@@ -10,6 +16,7 @@ type ShiftsResponse = {
   availableNextCursor: string | null;
   pastNextCursor: string | null;
   userPreferredLocations: string[];
+  periodFriends: Record<string, PeriodFriend[]>;
 };
 
 type UseShiftsReturn = {
@@ -25,6 +32,8 @@ type UseShiftsReturn = {
   hasMorePast: boolean;
   isLoadingMore: boolean;
   userPreferredLocations: string[];
+  /** Friends keyed by "YYYY-MM-DD-DAY" or "YYYY-MM-DD-EVE" */
+  periodFriends: Record<string, PeriodFriend[]>;
 };
 
 export function useShifts(): UseShiftsReturn {
@@ -35,6 +44,7 @@ export function useShifts(): UseShiftsReturn {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userPreferredLocations, setUserPreferredLocations] = useState<string[]>([]);
+  const [periodFriends, setPeriodFriends] = useState<Record<string, PeriodFriend[]>>({});
 
   const availableCursorRef = useRef<string | null>(null);
   const pastCursorRef = useRef<string | null>(null);
@@ -48,6 +58,7 @@ export function useShifts(): UseShiftsReturn {
       setAvailable(result.available);
       setPast(result.past);
       setUserPreferredLocations(result.userPreferredLocations ?? []);
+      setPeriodFriends(result.periodFriends ?? {});
       availableCursorRef.current = result.availableNextCursor;
       pastCursorRef.current = result.pastNextCursor;
     } catch (err) {
@@ -121,5 +132,6 @@ export function useShifts(): UseShiftsReturn {
     hasMorePast: pastCursorRef.current !== null,
     isLoadingMore,
     userPreferredLocations,
+    periodFriends,
   };
 }

@@ -9,7 +9,7 @@ type MockSignupWithShift = {
   userId: string;
   shiftId: string;
   status: SignupStatus;
-  groupBookingId: string | null;
+
   createdAt: Date;
   updatedAt: Date;
   canceledAt: Date | null;
@@ -62,7 +62,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-1",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -85,7 +85,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-2",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -108,7 +108,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-3",
         status: SignupStatus.WAITLISTED,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -159,7 +159,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-1",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -182,7 +182,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-2",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -205,7 +205,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-3",
         status: SignupStatus.REGULAR_PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -256,7 +256,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-1",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -279,7 +279,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-2",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -302,7 +302,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-3",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -353,7 +353,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-1",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -376,7 +376,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-2",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -455,7 +455,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-1",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
@@ -478,7 +478,7 @@ describe("autoCancelOtherPendingSignupsForDay", () => {
         userId,
         shiftId: "shift-2",
         status: SignupStatus.PENDING,
-        groupBookingId: null,
+
         createdAt: new Date(),
         updatedAt: new Date(),
         canceledAt: null,
