@@ -58,6 +58,8 @@ const nextConfig: NextConfig = {
 
   turbopack: {},
 
+  ...(process.env.PLAYWRIGHT_TEST && { devIndicators: false }),
+
   reactCompiler: true,
 };
 
