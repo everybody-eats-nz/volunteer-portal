@@ -37,6 +37,9 @@ export default async function AdminUsersPage({
     ? params.search[0]
     : params.search;
   const roleFilter = Array.isArray(params.role) ? params.role[0] : params.role;
+  const locationFilter = Array.isArray(params.location)
+    ? params.location[0]
+    : params.location;
 
   // Get pagination parameters
   const page = params.page ? parseInt(params.page as string, 10) : 1;
@@ -68,6 +71,17 @@ export default async function AdminUsersPage({
   if (roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
     whereClause.role = roleFilter;
   }
+
+  if (locationFilter) {
+    whereClause.availableLocations = { contains: locationFilter };
+  }
+
+  // Fetch active locations for the filter dropdown
+  const locations = await prisma.location.findMany({
+    where: { isActive: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
 
   // Fetch users with completed signup counts (confirmed signups for past shifts)
   const now = new Date();
@@ -111,42 +125,34 @@ export default async function AdminUsersPage({
     let whereCondition = Prisma.empty;
     let countWhereCondition = Prisma.empty;
 
-    if (searchQuery && roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
-      // Both search and role filter
+    // Build individual condition fragments
+    const conditions: ReturnType<typeof Prisma.sql>[] = [];
+
+    if (searchQuery) {
       const searchPattern = `%${searchQuery.toLowerCase()}%`;
-      whereCondition = Prisma.sql`
-        WHERE (LOWER(u.email) LIKE ${searchPattern}
+      conditions.push(Prisma.sql`
+        (LOWER(u.email) LIKE ${searchPattern}
           OR LOWER(u.name) LIKE ${searchPattern}
           OR LOWER(u."firstName") LIKE ${searchPattern}
           OR LOWER(u."lastName") LIKE ${searchPattern})
-        AND u.role = ${roleFilter}::text
-      `;
-      countWhereCondition = Prisma.sql`
-        WHERE (LOWER(u.email) LIKE ${searchPattern}
-          OR LOWER(u.name) LIKE ${searchPattern}
-          OR LOWER(u."firstName") LIKE ${searchPattern}
-          OR LOWER(u."lastName") LIKE ${searchPattern})
-        AND u.role = ${roleFilter}::text
-      `;
-    } else if (searchQuery) {
-      // Only search filter
-      const searchPattern = `%${searchQuery.toLowerCase()}%`;
-      whereCondition = Prisma.sql`
-        WHERE (LOWER(u.email) LIKE ${searchPattern}
-          OR LOWER(u.name) LIKE ${searchPattern}
-          OR LOWER(u."firstName") LIKE ${searchPattern}
-          OR LOWER(u."lastName") LIKE ${searchPattern})
-      `;
-      countWhereCondition = Prisma.sql`
-        WHERE (LOWER(u.email) LIKE ${searchPattern}
-          OR LOWER(u.name) LIKE ${searchPattern}
-          OR LOWER(u."firstName") LIKE ${searchPattern}
-          OR LOWER(u."lastName") LIKE ${searchPattern})
-      `;
-    } else if (roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
-      // Only role filter
-      whereCondition = Prisma.sql`WHERE u.role = ${roleFilter}::text`;
-      countWhereCondition = Prisma.sql`WHERE u.role = ${roleFilter}::text`;
+      `);
+    }
+
+    if (roleFilter && (roleFilter === "ADMIN" || roleFilter === "VOLUNTEER")) {
+      conditions.push(Prisma.sql`u.role = ${roleFilter}::text`);
+    }
+
+    if (locationFilter) {
+      const locationPattern = `%"${locationFilter}"%`;
+      conditions.push(Prisma.sql`u."availableLocations" LIKE ${locationPattern}`);
+    }
+
+    if (conditions.length > 0) {
+      const combined = conditions.reduce(
+        (acc, cond) => Prisma.sql`${acc} AND ${cond}`
+      );
+      whereCondition = Prisma.sql`WHERE ${combined}`;
+      countWhereCondition = Prisma.sql`WHERE ${combined}`;
     }
 
     // Query to get user IDs sorted by completed signup count (including manual adjustment)
@@ -406,7 +412,12 @@ export default async function AdminUsersPage({
         </section>
 
         {/* Search and Filters */}
-        <AdminUsersSearch initialSearch={searchQuery} roleFilter={roleFilter} />
+        <AdminUsersSearch
+          initialSearch={searchQuery}
+          roleFilter={roleFilter}
+          locationFilter={locationFilter}
+          locations={locations.map((l) => l.name)}
+        />
 
         {/* Users DataTable */}
         <section data-testid="users-section">
@@ -419,11 +430,11 @@ export default async function AdminUsersPage({
                 No users found
               </h3>
               <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
-                {searchQuery || roleFilter
+                {searchQuery || roleFilter || locationFilter
                   ? "No users found matching your filters. Try adjusting your search or filter criteria."
                   : "Get started by inviting your first user to the platform."}
               </p>
-              {!searchQuery && !roleFilter && (
+              {!searchQuery && !roleFilter && !locationFilter && (
                 <InviteUserDialog>
                   <Button
                     className="btn-primary gap-2"
