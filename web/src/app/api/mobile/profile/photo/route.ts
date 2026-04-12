@@ -1,37 +1,18 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { requireMobileUser } from "@/lib/mobile-auth";
 import { uploadFile, deleteFile, ALLOWED_FILE_TYPES, MAX_PROFILE_PHOTO_SIZE, PROFILE_PHOTOS_BUCKET } from "@/lib/storage";
 import { extractFilePathFromUrl } from "@/lib/storage-utils";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
-    return NextResponse.json({ profilePhotoUrl: null });
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { profilePhotoUrl: true },
-  });
-
-  return NextResponse.json({
-    profilePhotoUrl: user?.profilePhotoUrl ?? null,
-  });
-}
-
 /**
- * POST /api/profile/photo
+ * POST /api/mobile/profile/photo
  *
  * Upload a profile photo to Supabase Storage and save the URL.
  * Accepts multipart/form-data with a "photo" field.
  */
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
+  const auth = await requireMobileUser(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -43,6 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No photo provided" }, { status: 400 });
     }
 
+    // Validate file size
     if (file.size > MAX_PROFILE_PHOTO_SIZE) {
       return NextResponse.json(
         { error: "Photo exceeds 1MB limit." },
@@ -50,6 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate file type
     if (!ALLOWED_FILE_TYPES.IMAGE.includes(file.type)) {
       return NextResponse.json(
         { error: "Invalid file type. Please use JPEG, PNG, or WebP." },
@@ -57,13 +40,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Delete old photo from storage if it's a Supabase URL (not base64)
+    // Delete old photo from storage if it exists
     const currentUser = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: auth.userId },
       select: { profilePhotoUrl: true },
     });
 
-    if (currentUser?.profilePhotoUrl && !currentUser.profilePhotoUrl.startsWith("data:")) {
+    if (currentUser?.profilePhotoUrl) {
       const oldPath = extractFilePathFromUrl(currentUser.profilePhotoUrl);
       if (oldPath) {
         try {
@@ -79,11 +62,11 @@ export async function POST(request: Request) {
 
     // Save URL to user record
     await prisma.user.update({
-      where: { email: session.user.email },
+      where: { id: auth.userId },
       data: { profilePhotoUrl: url },
     });
 
-    return NextResponse.json({ profilePhotoUrl: url });
+    return NextResponse.json({ image: url });
   } catch (error) {
     console.error("Profile photo upload error:", error);
     return NextResponse.json(
@@ -94,41 +77,41 @@ export async function POST(request: Request) {
 }
 
 /**
- * DELETE /api/profile/photo
+ * DELETE /api/mobile/profile/photo
  *
  * Remove the user's profile photo.
  */
-export async function DELETE() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
+export async function DELETE(request: Request) {
+  const auth = await requireMobileUser(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: auth.userId },
       select: { profilePhotoUrl: true },
     });
 
-    // Delete from storage if it's a Supabase URL (skip base64 data URIs)
-    if (user?.profilePhotoUrl && !user.profilePhotoUrl.startsWith("data:")) {
+    // Delete from storage if it's a Supabase URL
+    if (user?.profilePhotoUrl) {
       const filePath = extractFilePathFromUrl(user.profilePhotoUrl);
       if (filePath) {
         try {
-          await deleteFile(filePath);
+          await deleteFile(filePath, PROFILE_PHOTOS_BUCKET);
         } catch {
           // Non-critical
         }
       }
     }
 
+    // Clear from database
     await prisma.user.update({
-      where: { email: session.user.email },
+      where: { id: auth.userId },
       data: { profilePhotoUrl: null },
     });
 
-    return NextResponse.json({ profilePhotoUrl: null });
+    return NextResponse.json({ image: null });
   } catch (error) {
     console.error("Profile photo delete error:", error);
     return NextResponse.json(

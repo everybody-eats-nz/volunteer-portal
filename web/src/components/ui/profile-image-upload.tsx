@@ -24,7 +24,7 @@ import Image from "next/image";
 
 interface ProfileImageUploadProps {
   currentImage?: string | null;
-  onImageChange: (base64Image: string | null) => void;
+  onImageChange: (imageUrl: string | null) => void;
   disabled?: boolean;
   size?: "sm" | "md" | "lg";
   fallbackText?: string;
@@ -57,14 +57,14 @@ function centerAspectCrop(
   );
 }
 
-// Helper function to convert crop data to canvas and get base64
-async function getCroppedImage(
+// Helper function to crop and rotate image, returning a Blob for upload
+async function getCroppedImageBlob(
   image: HTMLImageElement,
   crop: PixelCrop,
   rotation = 0,
-  maxWidth = 300,
-  quality = 0.75
-): Promise<string> {
+  maxWidth = 400,
+  quality = 0.8
+): Promise<Blob> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -126,30 +126,35 @@ async function getCroppedImage(
     outputSize
   );
 
-  const base64 = canvas.toDataURL("image/jpeg", quality);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Failed to create image blob"));
+      },
+      "image/jpeg",
+      quality,
+    );
+  });
+}
 
-  // Check if the base64 string is too large (> 1MB when encoded)
-  // Base64 is roughly 4/3 the size of the original data
-  const sizeInBytes = (base64.length * 3) / 4;
-  const maxSizeInBytes = 1024 * 1024; // 1MB
+// Upload a cropped image blob to the server
+async function uploadProfilePhoto(blob: Blob): Promise<string> {
+  const formData = new FormData();
+  formData.append("photo", blob, "profile-photo.jpg");
 
-  if (sizeInBytes > maxSizeInBytes) {
-    // Try with lower quality
-    if (quality > 0.3) {
-      return getCroppedImage(image, crop, rotation, maxWidth, quality - 0.15);
-    } else {
-      // Try with smaller dimensions
-      if (maxWidth > 150) {
-        return getCroppedImage(image, crop, rotation, maxWidth - 50, 0.75);
-      } else {
-        throw new Error(
-          "Image is too large even after compression. Please try a different image."
-        );
-      }
-    }
+  const response = await fetch("/api/profile/photo", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Upload failed" }));
+    throw new Error(error.error ?? "Failed to upload photo");
   }
 
-  return base64;
+  const data = await response.json();
+  return data.profilePhotoUrl;
 }
 
 export function ProfileImageUpload({
@@ -290,12 +295,13 @@ export function ProfileImageUpload({
 
     setIsProcessing(true);
     try {
-      const croppedImageUrl = await getCroppedImage(
+      const blob = await getCroppedImageBlob(
         imgRef.current,
         completedCrop,
         rotation
       );
-      onImageChange(croppedImageUrl);
+      const url = await uploadProfilePhoto(blob);
+      onImageChange(url);
       setImageKey((prev) => prev + 1); // Force re-render
       setIsDialogOpen(false);
       // Revoke object URL if one was used for the preview
@@ -311,18 +317,23 @@ export function ProfileImageUpload({
         fileInputRef.current.value = "";
       }
     } catch (error) {
-      console.error("Error cropping image:", error);
+      console.error("Error uploading image:", error);
       toast?.({
-        title: "Error processing image",
-        description: "Please try again.",
+        title: "Error uploading photo",
+        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
     }
-  }, [completedCrop, rotation, onImageChange, toast]);
+  }, [completedCrop, rotation, onImageChange, imageSrc, toast]);
 
-  const handleRemoveImage = useCallback(() => {
+  const handleRemoveImage = useCallback(async () => {
+    try {
+      await fetch("/api/profile/photo", { method: "DELETE" });
+    } catch {
+      // Non-critical — clear locally even if server delete fails
+    }
     onImageChange(null);
   }, [onImageChange]);
 
@@ -551,7 +562,7 @@ export function ProfileImageUpload({
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
-                    {isProcessing ? "Processing..." : "Apply Crop"}
+                    {isProcessing ? "Uploading..." : "Upload Photo"}
                   </Button>
                 </div>
               </div>

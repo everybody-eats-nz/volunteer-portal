@@ -8,6 +8,7 @@ import {
   calculateUserProgress,
   type UserProgress,
 } from "@/lib/achievements";
+import { z } from "zod";
 
 /**
  * GET /api/mobile/profile
@@ -43,6 +44,12 @@ export async function GET(request: Request) {
         emergencyContactName: true,
         emergencyContactRelationship: true,
         emergencyContactPhone: true,
+        medicalConditions: true,
+        notificationPreference: true,
+        receiveShortageNotifications: true,
+        excludedShortageNotificationTypes: true,
+        emailNewsletterSubscription: true,
+        newsletterLists: true,
         createdAt: true,
         customLabels: {
           select: {
@@ -103,7 +110,11 @@ export async function GET(request: Request) {
       await Promise.all([
         getUserAchievements(userId),
         getAvailableAchievements(userId),
-        prisma.user.count({ where: { role: "VOLUNTEER" } }),
+        prisma.user.count({
+          where: {
+            signups: { some: { status: "CONFIRMED" } },
+          },
+        }),
       ]);
 
     // Count how many users have unlocked each achievement
@@ -231,6 +242,16 @@ export async function GET(request: Request) {
         role: user.role,
         volunteerGrade,
         memberSince: user.createdAt.toISOString(),
+        dateOfBirth: user.dateOfBirth?.toISOString() ?? null,
+        emergencyContactName: user.emergencyContactName,
+        emergencyContactRelationship: user.emergencyContactRelationship,
+        emergencyContactPhone: user.emergencyContactPhone,
+        medicalConditions: user.medicalConditions,
+        notificationPreference: user.notificationPreference,
+        receiveShortageNotifications: user.receiveShortageNotifications,
+        excludedShortageNotificationTypes: user.excludedShortageNotificationTypes,
+        emailNewsletterSubscription: user.emailNewsletterSubscription,
+        newsletterLists: user.newsletterLists,
       },
       stats: {
         shiftsCompleted: completedSignups,
@@ -274,4 +295,83 @@ function getProgressForCriteria(
     return Math.min(current / criteria.value, 0.99);
   }
   return undefined;
+}
+
+/**
+ * PUT /api/mobile/profile
+ *
+ * Update the authenticated mobile user's profile.
+ */
+const updateMobileProfileSchema = z.object({
+  firstName: z.string().min(1, "First name is required").optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  pronouns: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactRelationship: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  medicalConditions: z.string().optional(),
+  notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
+  receiveShortageNotifications: z.boolean().optional(),
+  excludedShortageNotificationTypes: z.array(z.string()).optional(),
+  emailNewsletterSubscription: z.boolean().optional(),
+  newsletterLists: z.array(z.string()).optional(),
+});
+
+export async function PUT(request: Request) {
+  const auth = await requireMobileUser(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const parsed = updateMobileProfileSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const profileFields = parsed.data;
+
+    const data: Record<string, unknown> = { ...profileFields };
+
+    // Update name field for display consistency
+    if (profileFields.firstName || profileFields.lastName) {
+      const user = await prisma.user.findUnique({
+        where: { id: auth.userId },
+        select: { firstName: true, lastName: true },
+      });
+      const first = profileFields.firstName ?? user?.firstName ?? "";
+      const last = profileFields.lastName ?? user?.lastName ?? "";
+      data.name = [first, last].filter(Boolean).join(" ");
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: auth.userId },
+      data,
+      select: {
+        firstName: true,
+        lastName: true,
+        phone: true,
+        pronouns: true,
+        profilePhotoUrl: true,
+        emergencyContactName: true,
+        emergencyContactRelationship: true,
+        emergencyContactPhone: true,
+        medicalConditions: true,
+      },
+    });
+
+    return NextResponse.json({ profile: updatedUser });
+  } catch (error) {
+    console.error("Mobile profile update error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
