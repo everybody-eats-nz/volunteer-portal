@@ -5,16 +5,27 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 
 interface AdminUsersSearchProps {
   initialSearch?: string;
   roleFilter?: string;
+  locationFilter?: string;
+  locations?: string[];
 }
 
 export function AdminUsersSearch({
   initialSearch,
   roleFilter,
+  locationFilter,
+  locations = [],
 }: AdminUsersSearchProps) {
   const [searchValue, setSearchValue] = useState(initialSearch || "");
   const [prevInitialSearch, setPrevInitialSearch] = useState(initialSearch);
@@ -30,7 +41,7 @@ export function AdminUsersSearch({
 
   // Helper to build URLs that preserve sorting parameters
   const buildFilterUrl = useMemo(
-    () => (role?: string) => {
+    () => (role?: string, location?: string) => {
       const params = new URLSearchParams();
 
       // Preserve sorting if exists
@@ -44,6 +55,9 @@ export function AdminUsersSearch({
 
       // Add role if specified
       if (role) params.set("role", role);
+
+      // Add location if specified
+      if (location) params.set("location", location);
 
       const queryString = params.toString();
       return queryString ? `/admin/users?${queryString}` : "/admin/users";
@@ -68,11 +82,22 @@ export function AdminUsersSearch({
       params.set("role", roleFilter);
     }
 
+    // Preserve location filter if it exists
+    if (locationFilter) {
+      params.set("location", locationFilter);
+    }
+
     // Reset to page 1 when searching
     params.set("page", "1");
 
     const queryString = params.toString();
     const url = queryString ? `/admin/users?${queryString}` : "/admin/users";
+    router.push(url);
+  };
+
+  const handleLocationChange = (value: string) => {
+    const location = value === "all" ? undefined : value;
+    const url = buildFilterUrl(roleFilter, location);
     router.push(url);
   };
 
@@ -95,7 +120,28 @@ export function AdminUsersSearch({
             />
           </div>
         </div>
-        <Button 
+        {locations.length > 0 && (
+          <Select
+            value={locationFilter ?? "all"}
+            onValueChange={handleLocationChange}
+          >
+            <SelectTrigger
+              className="w-[180px]"
+              data-testid="location-filter-select"
+            >
+              <SelectValue placeholder="All Locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations.map((loc) => (
+                <SelectItem key={loc} value={loc}>
+                  {loc}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        <Button
           type="submit"
           variant="outline"
           size="sm"
@@ -107,7 +153,7 @@ export function AdminUsersSearch({
 
       {/* Role Filter Buttons */}
       <div className="flex flex-wrap gap-2 mt-4" data-testid="main-role-filter-buttons">
-        <Link href={buildFilterUrl()}>
+        <Link href={buildFilterUrl(undefined, locationFilter)}>
           <Button
             variant={!roleFilter ? "default" : "outline"}
             size="sm"
@@ -119,7 +165,7 @@ export function AdminUsersSearch({
             All Roles
           </Button>
         </Link>
-        <Link href={buildFilterUrl("VOLUNTEER")}>
+        <Link href={buildFilterUrl("VOLUNTEER", locationFilter)}>
           <Button
             variant={roleFilter === "VOLUNTEER" ? "default" : "outline"}
             size="sm"
@@ -133,7 +179,7 @@ export function AdminUsersSearch({
             Volunteers
           </Button>
         </Link>
-        <Link href={buildFilterUrl("ADMIN")}>
+        <Link href={buildFilterUrl("ADMIN", locationFilter)}>
           <Button
             variant={roleFilter === "ADMIN" ? "default" : "outline"}
             size="sm"
@@ -147,7 +193,7 @@ export function AdminUsersSearch({
             Admins
           </Button>
         </Link>
-        {(initialSearch || roleFilter) && (
+        {(initialSearch || roleFilter || locationFilter) && (
           <Button
             asChild
             variant="ghost"
