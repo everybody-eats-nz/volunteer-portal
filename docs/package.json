@@ -20,7 +20,7 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "ai": "^6.0.134",
     "astro": "^6.1.1",
-    "astro-mermaid": "^1.4.0",
+    "astro-mermaid": "^2.0.1",
     "fs-extra": "^11.3.4",
     "gray-matter": "^4.0.3",
     "mermaid": "^11.13.0",
