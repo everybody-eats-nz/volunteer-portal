@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import {
-  FEED_ITEMS as DUMMY_FEED_ITEMS,
+  FEED_ITEMS as DUMMY_PHOTO_POSTS,
   type FeedItem,
 } from "@/lib/dummy-data";
 
-/** Feed items that have no real data source yet — announcements and photo posts */
-const DUMMY_ONLY_ITEMS = DUMMY_FEED_ITEMS.filter(
-  (item) => item.type === "announcement" || item.type === "photo_post"
+/** Photo posts are the only items without a real data source. */
+const DUMMY_ONLY_ITEMS = DUMMY_PHOTO_POSTS.filter(
+  (item) => item.type === "photo_post"
 );
 
 type FeedResponse = {
@@ -20,12 +20,16 @@ type UseFeedReturn = {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /** Update a single item's interaction counts in-place (used by useFeedInteractions) */
+  updateItem: (id: string, patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>) => void;
 };
 
 /**
  * Fetches real feed data from the API and merges it with
- * dummy items (announcements, photo posts) that don't have
- * a real data source yet.
+ * dummy photo posts (which don't have a real data source yet).
+ *
+ * The API now populates likeCount, likedByMe, recentLikers, commentCount
+ * on every item, so all interaction data comes from the DB.
  */
 export function useFeed(): UseFeedReturn {
   const [realItems, setRealItems] = useState<FeedItem[]>([]);
@@ -39,7 +43,6 @@ export function useFeed(): UseFeedReturn {
       setRealItems(result.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load feed");
-      // On error, fall back to empty real items — dummy items still show
       setRealItems([]);
     } finally {
       setIsLoading(false);
@@ -55,10 +58,22 @@ export function useFeed(): UseFeedReturn {
     await fetchFeed();
   }, [fetchFeed]);
 
-  // Merge real items with dummy-only items, sorted by timestamp descending
+  const updateItem = useCallback(
+    (id: string, patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>) => {
+      setRealItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, ...patch } : item
+        )
+      );
+    },
+    []
+  );
+
+  // Merge real items with dummy photo posts, sorted by timestamp descending.
+  // Note: photo posts also go through the real interaction system (their IDs are stable).
   const items = [...realItems, ...DUMMY_ONLY_ITEMS].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  return { items, isLoading, error, refresh };
+  return { items, isLoading, error, refresh, updateItem };
 }

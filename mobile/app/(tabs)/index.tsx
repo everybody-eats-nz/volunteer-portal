@@ -4,6 +4,7 @@ import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useRef, useState } from "react";
+import Markdown from "react-native-markdown-display";
 import {
   ActivityIndicator,
   Image,
@@ -24,6 +25,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFeed } from "@/hooks/use-feed";
+import { useFeedInteractions } from "@/hooks/use-feed-interactions";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts } from "@/hooks/use-shifts";
 import {
@@ -48,7 +50,15 @@ export default function HomeScreen() {
     items: feedItems,
     isLoading: feedLoading,
     refresh: refreshFeed,
+    updateItem: updateFeedItem,
   } = useFeed();
+
+  const {
+    toggleLike: apiToggleLike,
+    loadComments,
+    addComment: apiAddComment,
+    getCommentState,
+  } = useFeedInteractions();
 
   const nextShift = myShifts[0] ?? null;
   const hoursUntilShift = nextShift
@@ -62,21 +72,34 @@ export default function HomeScreen() {
     return start >= weekStart && start <= weekEnd;
   });
 
-  const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [likesSheetItem, setLikesSheetItem] = useState<FeedItem | null>(null);
-  const [localComments, setLocalComments] = useState<
-    Record<string, FeedComment[]>
-  >({});
 
-  const toggleLike = useCallback((id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLikedItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const toggleLike = useCallback(
+    async (item: FeedItem) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      // Optimistic update
+      const wasLiked = item.likedByMe;
+      updateFeedItem(item.id, {
+        likedByMe: !wasLiked,
+        likeCount: item.likeCount + (wasLiked ? -1 : 1),
+      });
+      // API call — revert on failure
+      const result = await apiToggleLike(item.id);
+      if (result) {
+        updateFeedItem(item.id, {
+          likedByMe: result.liked,
+          likeCount: result.likeCount,
+        });
+      } else {
+        // Revert
+        updateFeedItem(item.id, {
+          likedByMe: wasLiked,
+          likeCount: item.likeCount,
+        });
+      }
+    },
+    [apiToggleLike, updateFeedItem]
+  );
 
   const ME_AS_LIKER: LikeUser = {
     id: profile?.id ?? "",
@@ -85,38 +108,48 @@ export default function HomeScreen() {
   };
 
   const getLikersForItem = useCallback(
-    (item: FeedItem, isLikedByMe: boolean): LikeUser[] => {
-      const likers = [...item.likes];
-      if (isLikedByMe) likers.unshift(ME_AS_LIKER);
+    (item: FeedItem): LikeUser[] => {
+      const likers = [...item.recentLikers];
+      if (item.likedByMe) likers.unshift(ME_AS_LIKER);
       return likers;
     },
     [ME_AS_LIKER]
   );
 
   const getCommentsForItem = useCallback(
-    (item: FeedItem): FeedComment[] => {
-      return [...(item.comments ?? []), ...(localComments[item.id] ?? [])];
+    (itemId: string): FeedComment[] => {
+      return getCommentState(itemId).comments;
     },
-    [localComments]
+    [getCommentState]
+  );
+
+  const handleOpenSheet = useCallback(
+    (item: FeedItem) => {
+      setLikesSheetItem(item);
+      loadComments(item.id);
+    },
+    [loadComments]
   );
 
   const addComment = useCallback(
-    (itemId: string, text: string) => {
+    async (itemId: string, text: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const comment: FeedComment = {
-        id: `local-${Date.now()}`,
-        userId: profile?.id ?? "",
-        userName: profile?.firstName ?? "You",
-        profilePhotoUrl: profile?.image ?? undefined,
+      const result = await apiAddComment(
+        itemId,
         text,
-        timestamp: new Date().toISOString(),
-      };
-      setLocalComments((prev) => ({
-        ...prev,
-        [itemId]: [...(prev[itemId] ?? []), comment],
-      }));
+        profile?.id ?? "",
+        profile?.firstName ?? "You",
+        profile?.image ?? undefined
+      );
+      if (result) {
+        // Update comment count in the feed item
+        const item = feedItems.find((i) => i.id === itemId);
+        if (item) {
+          updateFeedItem(itemId, { commentCount: item.commentCount + 1 });
+        }
+      }
     },
-    [profile]
+    [apiAddComment, profile, feedItems, updateFeedItem]
   );
 
   return (
@@ -269,10 +302,10 @@ export default function HomeScreen() {
               item={item}
               colors={colors}
               isLast={index === feedItems.length - 1}
-              liked={likedItems.has(item.id)}
-              onToggleLike={() => toggleLike(item.id)}
-              onShowSheet={() => setLikesSheetItem(item)}
-              commentCount={getCommentsForItem(item).length}
+              liked={item.likedByMe}
+              onToggleLike={() => toggleLike(item)}
+              onShowSheet={() => handleOpenSheet(item)}
+              commentCount={item.commentCount}
             />
           ))}
         </View>
@@ -282,16 +315,14 @@ export default function HomeScreen() {
       {likesSheetItem && (
         <FeedItemSheet
           item={likesSheetItem}
-          likers={getLikersForItem(
-            likesSheetItem,
-            likedItems.has(likesSheetItem.id)
-          )}
-          liked={likedItems.has(likesSheetItem.id)}
-          onToggleLike={() => toggleLike(likesSheetItem.id)}
+          likers={getLikersForItem(likesSheetItem)}
+          liked={likesSheetItem.likedByMe}
+          onToggleLike={() => toggleLike(likesSheetItem)}
           onClose={() => setLikesSheetItem(null)}
           colors={colors}
           isDark={colorScheme === "dark"}
-          comments={getCommentsForItem(likesSheetItem)}
+          comments={getCommentsForItem(likesSheetItem.id)}
+          isLoadingComments={getCommentState(likesSheetItem.id).isLoading}
           onAddComment={(text) => addComment(likesSheetItem.id, text)}
         />
       )}
@@ -447,7 +478,7 @@ function FeedCard({
       }
     : undefined;
 
-  const likeCount = (liked ? 1 : 0) + item.likes.length;
+  const likeCount = item.likeCount;
 
   const socialButtons = (
     <View style={styles.feedSocialRow}>
@@ -482,7 +513,7 @@ function FeedCard({
 
   const renderContent = () => {
     if (item.type === "announcement") {
-      return (
+      const iconAndBody = (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#fef9c3" }]}>
             <Text style={styles.feedIconEmoji}>📢</Text>
@@ -519,6 +550,23 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
+        </>
+      );
+
+      return (
+        <>
+          {item.imageUrl && (
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.announcementImage}
+              resizeMode="cover"
+            />
+          )}
+          {item.imageUrl ? (
+            <View style={styles.feedCard}>{iconAndBody}</View>
+          ) : (
+            iconAndBody
+          )}
         </>
       );
     }
@@ -746,12 +794,16 @@ function FeedCard({
     return null;
   };
 
+  const hasAnnouncementImage =
+    item.type === "announcement" && !!item.imageUrl;
+
   return (
     <Pressable
       onPress={onShowSheet}
       style={({ pressed }) => [
         styles.feedCard,
         borderStyle,
+        hasAnnouncementImage && styles.feedCardColumn,
         { opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
@@ -835,6 +887,7 @@ function FeedItemSheet({
   colors,
   isDark,
   comments,
+  isLoadingComments,
   onAddComment,
 }: {
   item: FeedItem;
@@ -845,6 +898,7 @@ function FeedItemSheet({
   colors: (typeof Colors)["light"];
   isDark: boolean;
   comments: FeedComment[];
+  isLoadingComments?: boolean;
   onAddComment: (text: string) => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -1065,10 +1119,24 @@ function FeedItemSheet({
               {/* Title */}
               <Text style={[sheet.title, { color: colors.text }]}>{title}</Text>
 
-              {/* Body text */}
-              <Text style={[sheet.body, { color: colors.textSecondary }]}>
-                {body}
-              </Text>
+              {/* Body text — use Markdown renderer for announcements */}
+              {item.type === "announcement" ? (
+                <Markdown
+                  style={{
+                    body: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, fontFamily: FontFamily.regular },
+                    strong: { color: colors.text },
+                    link: { color: colors.primary },
+                    bullet_list: { marginVertical: 4 },
+                    ordered_list: { marginVertical: 4 },
+                  }}
+                >
+                  {body}
+                </Markdown>
+              ) : (
+                <Text style={[sheet.body, { color: colors.textSecondary }]}>
+                  {body}
+                </Text>
+              )}
 
               {/* Meta pills */}
               <View style={sheet.metaRow}>
@@ -1179,6 +1247,15 @@ function FeedItemSheet({
             </View>
 
             {/* ── Photo gallery (for photo_post type) ── */}
+            {/* Announcement image */}
+            {item.type === "announcement" && item.imageUrl && (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={[sheet.photoSingle, { borderRadius: 12, marginBottom: 12 }]}
+                resizeMode="cover"
+              />
+            )}
+
             {item.type === "photo_post" && item.photos.length > 0 && (
               <View
                 style={[
@@ -1368,7 +1445,13 @@ function FeedItemSheet({
               />
 
               {/* Comments */}
-              {comments.length > 0 ? (
+              {isLoadingComments ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={{ marginVertical: 12 }}
+                />
+              ) : comments.length > 0 ? (
                 <View style={sheet.commentsList}>
                   {comments.map((comment) => {
                     const initial = comment.userName.charAt(0).toUpperCase();
@@ -1662,6 +1745,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 14,
     gap: 12,
+  },
+  feedCardColumn: {
+    flexDirection: "column",
+    gap: 0,
+  },
+  announcementImage: {
+    width: "100%",
+    height: 160,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   feedIcon: {
     width: 42,

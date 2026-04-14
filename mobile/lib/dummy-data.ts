@@ -507,14 +507,22 @@ const LIKERS: LikeUser[] = [
   { id: 'u-9', name: 'Olivia Ma', profilePhotoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face' },
 ];
 
+/** Shared interaction fields present on every feed item */
+type FeedInteractions = {
+  likeCount: number;
+  likedByMe: boolean;
+  recentLikers: LikeUser[]; // top likers for the sheet
+  commentCount: number;
+};
+
 /** Feed item types */
 export type FeedItem =
-  | { type: 'announcement'; id: string; title: string; body: string; timestamp: string; author: string; likes: LikeUser[]; comments: FeedComment[] }
-  | { type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
-  | { type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
-  | { type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
-  | { type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean; likes: LikeUser[]; comments: FeedComment[] }
-  | { type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string; likes: LikeUser[]; comments: FeedComment[] };
+  | ({ type: 'announcement'; id: string; title: string; body: string; imageUrl?: string; timestamp: string; author: string } & FeedInteractions)
+  | ({ type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string } & FeedInteractions);
 
 function hoursAgo(hours: number): string {
   const d = new Date();
@@ -822,39 +830,14 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
   },
 };
 
+// Photo posts are dummy-only items (no real data source yet).
+// Announcements, achievements, milestones, friend signups, and recaps all come from the API.
+// likeCount/likedByMe/commentCount start at 0 — the API will populate them for real items,
+// but dummy photo posts use the real interaction system via their stable IDs.
 export const FEED_ITEMS: FeedItem[] = [
   {
-    type: 'announcement',
-    id: 'feed-1',
-    title: 'New Location Opening!',
-    body: "We're excited to announce that our Onehunga kitchen is now open for evening service on Thursdays. Sign up for shifts now!",
-    timestamp: hoursAgo(2),
-    author: 'Everybody Eats Team',
-    likes: [LIKERS[0], LIKERS[1], LIKERS[2], LIKERS[4], LIKERS[5], LIKERS[7]],
-    comments: [
-      { id: 'c-1', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: 'Amazing news! Can\'t wait to volunteer there 🎉', timestamp: hoursAgo(1) },
-      { id: 'c-2', userId: 'u-3', userName: 'James Tūhoe', profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face', text: 'Ka pai! Onehunga needs this', timestamp: hoursAgo(1.5) },
-      { id: 'c-3', userId: 'u-7', userName: 'Hana Patel', profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', text: 'Signing up for the first Thursday shift!', timestamp: hoursAgo(1.8) },
-    ],
-  },
-  {
-    type: 'achievement',
-    id: 'feed-2',
-    userName: 'Sarah Chen',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face',
-    achievementName: 'Making a Difference',
-    achievementIcon: 'star',
-    description: 'Completed 10 volunteer shifts',
-    timestamp: hoursAgo(4),
-    isFriend: true,
-    likes: [LIKERS[1], LIKERS[4], LIKERS[7]],
-    comments: [
-      { id: 'c-4', userId: 'u-4', userName: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face', text: 'Congrats Sarah! Well deserved 💚', timestamp: hoursAgo(3) },
-    ],
-  },
-  {
     type: 'photo_post',
-    id: 'feed-2b',
+    id: 'photo-post-2b',
     userName: 'James Tūhoe',
     profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
     caption: 'Beautiful night at the kitchen — whānau energy was next level tonight 🌿🍽️',
@@ -867,42 +850,14 @@ export const FEED_ITEMS: FeedItem[] = [
     location: 'Everybody Eats — Auckland CBD',
     timestamp: hoursAgo(3),
     isFriend: true,
-    likes: [LIKERS[0], LIKERS[2], LIKERS[4], LIKERS[5], LIKERS[6], LIKERS[7]],
-    comments: [
-      { id: 'c-5', userId: 'u-4', userName: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face', text: 'These photos are stunning! What a night 📸', timestamp: hoursAgo(2) },
-      { id: 'c-6', userId: 'u-6', userName: 'Te Rina Kahurangi', profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face', text: 'Love this whānau energy 🌿', timestamp: hoursAgo(2.5) },
-    ],
-  },
-  {
-    type: 'milestone',
-    id: 'feed-4',
-    userName: 'James Tūhoe',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
-    count: 50,
-    timestamp: hoursAgo(8),
-    isFriend: true,
-    likes: [LIKERS[0], LIKERS[2], LIKERS[3], LIKERS[4], LIKERS[5], LIKERS[6], LIKERS[7]],
-    comments: [
-      { id: 'c-7', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: '50 shifts!! Legend status 🙌', timestamp: hoursAgo(7) },
-      { id: 'c-8', userId: 'u-4', userName: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face', text: 'Ngā mihi James! Absolute inspiration', timestamp: hoursAgo(7.5) },
-      { id: 'c-9', userId: 'u-7', userName: 'Hana Patel', profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face', text: 'So well deserved! 💚', timestamp: hoursAgo(7.8) },
-    ],
-  },
-  {
-    type: 'achievement',
-    id: 'feed-5',
-    userName: 'You',
-    achievementName: 'Getting Started',
-    achievementIcon: 'ribbon',
-    description: 'Completed 5 volunteer shifts',
-    timestamp: hoursAgo(12),
-    isFriend: false,
-    likes: [LIKERS[0], LIKERS[1], LIKERS[2], LIKERS[5]],
-    comments: [],
+    likeCount: 0,
+    likedByMe: false,
+    recentLikers: [],
+    commentCount: 0,
   },
   {
     type: 'photo_post',
-    id: 'feed-5b',
+    id: 'photo-post-5b',
     userName: 'Te Rina Kahurangi',
     profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face',
     caption: 'Service night vibes! So proud of the crew tonight 💚',
@@ -916,24 +871,14 @@ export const FEED_ITEMS: FeedItem[] = [
     location: 'Everybody Eats — Onehunga',
     timestamp: hoursAgo(18),
     isFriend: true,
-    likes: [LIKERS[0], LIKERS[1], LIKERS[3], LIKERS[5], LIKERS[7]],
-    comments: [
-      { id: 'c-10', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: 'Such a vibe! Love the crew 💪', timestamp: hoursAgo(17) },
-    ],
-  },
-  {
-    type: 'announcement',
-    id: 'feed-6',
-    title: 'Kitchen Safety Refresher',
-    body: 'All volunteers please review the updated kitchen safety guidelines before your next shift. Check the Chat tab if you have questions!',
-    timestamp: hoursAgo(24),
-    author: 'Aroha (Head Chef)',
-    likes: [LIKERS[1], LIKERS[6]],
-    comments: [],
+    likeCount: 0,
+    likedByMe: false,
+    recentLikers: [],
+    commentCount: 0,
   },
   {
     type: 'photo_post',
-    id: 'feed-6b',
+    id: 'photo-post-6b',
     userName: 'Hana Patel',
     profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
     caption: 'Community kai at its finest — love this place 🌱',
@@ -945,23 +890,10 @@ export const FEED_ITEMS: FeedItem[] = [
     location: 'Everybody Eats — Auckland CBD',
     timestamp: hoursAgo(28),
     isFriend: false,
-    likes: [LIKERS[2], LIKERS[4]],
-    comments: [],
-  },
-  {
-    type: 'achievement',
-    id: 'feed-8',
-    userName: 'Mia Johnson',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face',
-    achievementName: 'First Steps',
-    achievementIcon: 'footsteps',
-    description: 'Completed first volunteer shift',
-    timestamp: hoursAgo(30),
-    isFriend: true,
-    likes: [LIKERS[0], LIKERS[1], LIKERS[3], LIKERS[4], LIKERS[6]],
-    comments: [
-      { id: 'c-11', userId: 'u-2', userName: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face', text: 'Welcome to the whānau Mia! 🌱', timestamp: hoursAgo(29) },
-    ],
+    likeCount: 0,
+    likedByMe: false,
+    recentLikers: [],
+    commentCount: 0,
   },
 ];
 

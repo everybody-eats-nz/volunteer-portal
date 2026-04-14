@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Activity,
   MessageSquare,
+  Megaphone,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -194,6 +195,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Manage AI chat assistant context",
         commandKey: "chat-guides",
       },
+      {
+        title: "Announcements",
+        href: "/admin/announcements",
+        icon: Megaphone,
+        description: "Send targeted announcements to volunteers",
+        commandKey: "announcements",
+      },
     ],
   },
   {
@@ -281,6 +289,7 @@ export const getIconColor = (
     "Resource Hub": "text-blue-500",
     "Site Settings": "text-slate-600",
     "Chat Guides": "text-emerald-500",
+    "Announcements": "text-orange-500",
 
     // User Migration
     "Bulk Migration": "text-blue-600",
