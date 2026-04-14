@@ -71,6 +71,7 @@ import {
   UserX,
   X,
   UserPlus,
+  ArrowRightLeft,
 } from "lucide-react";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -476,13 +477,19 @@ function VolunteerStatusGroups({
                         </div>
                       )}
                       {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
-                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-amber-50/50 dark:bg-amber-900/20 border-l-2 border-amber-400 dark:border-amber-600 rounded">
-                          <span className="font-semibold text-amber-700 dark:text-amber-300">🤝 Backup options: </span>
-                          <span className="text-amber-600 dark:text-amber-400">
-                            {signup.backupForShiftIds
-                              .map((shiftId) => shiftIdToTypeName.get(shiftId) || 'Unknown')
-                              .join(', ')}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                          <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 flex-shrink-0">
+                            <ArrowRightLeft className="h-3 w-3" />
+                            Backup:
                           </span>
+                          {signup.backupForShiftIds.map((shiftId) => (
+                            <span
+                              key={shiftId}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
+                            >
+                              {shiftIdToTypeName.get(shiftId) || 'Unknown'}
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>
