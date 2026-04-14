@@ -29,6 +29,12 @@ export default defineConfig({
   output: "server",
   adapter: vercel(),
   vite: {
+    ssr: {
+      // mermaid 11.x uses syntax esbuild on Vercel can't parse; astro-mermaid
+      // processes diagrams at build time via remark, so mermaid is not needed
+      // at runtime in the serverless function.
+      external: ["mermaid"],
+    },
     define: {
       "import.meta.env.VOLUNTEER_PORTAL_URL": JSON.stringify(APP_URL),
     },
