@@ -53,12 +53,12 @@ export function PlaceholderCountControl({
     >
       <div className="flex items-center gap-1.5">
         <Users className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-        <span className="text-xs text-slate-500 dark:text-slate-400">Walk-in volunteers</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">Unregistered volunteers</span>
         <Tooltip>
           <TooltipTrigger asChild>
             <Info className="h-3 w-3 text-slate-400 dark:text-slate-500 cursor-help" />
           </TooltipTrigger>
-          <TooltipContent>Volunteers who showed up without an account</TooltipContent>
+          <TooltipContent>Volunteers counted toward capacity who don&apos;t have an account</TooltipContent>
         </Tooltip>
       </div>
       <div className="flex items-center gap-1">
