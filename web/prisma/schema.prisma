@@ -120,6 +120,13 @@ model User {
   // Survey system
   surveyAssignments SurveyAssignment[]
   createdSurveys    Survey[]           @relation("SurveyCreator")
+
+  // Feed interactions
+  feedLikes     FeedLike[]
+  feedComments  FeedComment[]
+
+  // Announcements authored by this user (admin)
+  announcements Announcement[] @relation("AnnouncementAuthor")
 }
 
 model Passkey {
@@ -798,4 +805,59 @@ model ShortageNotificationLog {
   @@index([sentAt])
   @@index([sentBy])
   @@index([recipientId])
+}
+
+// ─── Feed Interactions ────────────────────────────────────────────────────────
+
+/// A like on any feed item (achievement, milestone, friend_signup, shift_recap, announcement).
+/// feedItemId is a stable computed string, e.g. "achievement-clxxx", "shift-recap-Auckland-2026-04-14".
+model FeedLike {
+  id         String   @id @default(cuid())
+  userId     String
+  feedItemId String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feedItemId])
+  @@index([feedItemId])
+}
+
+/// A comment on any feed item.
+model FeedComment {
+  id         String   @id @default(cuid())
+  userId     String
+  feedItemId String
+  text       String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([feedItemId])
+  @@index([userId])
+}
+
+// ─── Announcements ────────────────────────────────────────────────────────────
+
+/// Admin-authored announcements surfaced in the mobile feed.
+/// Targeting arrays are OR-within-dimension, AND-across-dimensions.
+/// Empty array on any dimension means "all volunteers" for that dimension.
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  body      String    // Markdown content
+  imageUrl  String?   // Optional Supabase image URL
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // If set, hidden from feed after this date
+  createdBy String
+
+  // Targeting — empty = everyone on that dimension
+  targetLocations String[] @default([]) // Location names, e.g. ["Auckland", "Wellington"]
+  targetGrades    String[] @default([]) // VolunteerGrade values, e.g. ["GREEN", "YELLOW"]
+  targetLabelIds  String[] @default([]) // CustomLabel IDs
+
+  author User @relation("AnnouncementAuthor", fields: [createdBy], references: [id])
+
+  @@index([createdAt])
+  @@index([expiresAt])
 }
