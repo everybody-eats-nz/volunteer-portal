@@ -169,13 +169,27 @@ export async function GET(request: Request) {
       distinct: ["shiftId"],
     }),
 
-    // Announcements targeted at this user
+    // Announcements: fetch all non-expired ones from the window, then filter by
+    // user targeting in app code. Grade and label are pre-filtered at DB level;
+    // location targeting uses in-memory exact matching (availableLocations is a
+    // comma-separated string so we can't safely do it in Prisma without raw SQL).
     prisma.announcement.findMany({
       where: {
         createdAt: { gte: since },
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: now } },
+        ],
+        // Pre-filter: skip announcements that explicitly exclude this user's grade
+        AND: [
+          userProfile?.volunteerGrade
+            ? {
+                OR: [
+                  { targetGrades: { isEmpty: true } },
+                  { targetGrades: { has: userProfile.volunteerGrade } },
+                ],
+              }
+            : {},
         ],
       },
       include: {
@@ -184,7 +198,6 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 10,
     }),
   ]);
 

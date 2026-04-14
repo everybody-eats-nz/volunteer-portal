@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 
 /**
  * POST /api/admin/announcements/recipient-count
@@ -20,25 +21,35 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const { targetLocations = [], targetGrades = [], targetLabelIds = [] } = body;
 
-  const where: Record<string, unknown> = { role: "VOLUNTEER" };
+  const conditions: Prisma.Sql[] = [Prisma.sql`role = 'VOLUNTEER'`];
 
   if (Array.isArray(targetLocations) && targetLocations.length > 0) {
-    where.OR = targetLocations.map((loc: string) => ({
-      availableLocations: { contains: loc },
-    }));
+    // Split availableLocations on commas (trimming spaces) and check for exact overlap.
+    // Prisma's `contains` would do substring matching and false-match partial location names.
+    conditions.push(
+      Prisma.sql`string_to_array(regexp_replace(COALESCE("availableLocations", ''), '\\s*,\\s*', ',', 'g'), ',') && ARRAY[${Prisma.join(targetLocations as string[])}]::text[]`
+    );
   }
 
   if (Array.isArray(targetGrades) && targetGrades.length > 0) {
-    where.volunteerGrade = { in: targetGrades };
+    conditions.push(
+      Prisma.sql`"volunteerGrade"::text = ANY(ARRAY[${Prisma.join(targetGrades as string[])}]::text[])`
+    );
   }
 
   if (Array.isArray(targetLabelIds) && targetLabelIds.length > 0) {
-    where.customLabels = {
-      some: { labelId: { in: targetLabelIds } },
-    };
+    conditions.push(
+      Prisma.sql`EXISTS (
+        SELECT 1 FROM "UserCustomLabel"
+        WHERE "userId" = id
+        AND "labelId" = ANY(ARRAY[${Prisma.join(targetLabelIds as string[])}]::text[])
+      )`
+    );
   }
 
-  const count = await prisma.user.count({ where });
+  const result = await prisma.$queryRaw<[{ count: bigint }]>(
+    Prisma.sql`SELECT COUNT(*) AS count FROM "User" WHERE ${Prisma.join(conditions, " AND ")}`
+  );
 
-  return NextResponse.json({ count });
+  return NextResponse.json({ count: Number(result[0].count) });
 }

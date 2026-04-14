@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 
 /**
  * GET /api/admin/announcements
@@ -114,31 +115,45 @@ export async function POST(request: Request) {
 /**
  * Count how many volunteers will receive an announcement based on targeting filters.
  * Each filter dimension is OR-within, AND-across. Empty = "all" for that dimension.
+ *
+ * Uses $queryRaw for location matching because availableLocations is a comma-separated
+ * string field — Prisma's `contains` would do substring matching and false-match
+ * (e.g. targeting "land" would match users with "Auckland"). string_to_array splits
+ * on commas (normalising surrounding whitespace) and && checks array overlap.
  */
 async function countRecipients(
   targetLocations: string[],
   targetGrades: string[],
   targetLabelIds: string[]
 ): Promise<number> {
-  // Build where clause based on targeting
-  const where: Record<string, unknown> = { role: "VOLUNTEER" };
+  const conditions: Prisma.Sql[] = [Prisma.sql`role = 'VOLUNTEER'`];
 
   if (targetLocations.length > 0) {
-    // availableLocations is a comma-separated string field
-    where.OR = targetLocations.map((loc) => ({
-      availableLocations: { contains: loc },
-    }));
+    // Split availableLocations on commas (trimming spaces) and check for exact overlap
+    conditions.push(
+      Prisma.sql`string_to_array(regexp_replace(COALESCE("availableLocations", ''), '\\s*,\\s*', ',', 'g'), ',') && ARRAY[${Prisma.join(targetLocations)}]::text[]`
+    );
   }
 
   if (targetGrades.length > 0) {
-    where.volunteerGrade = { in: targetGrades };
+    conditions.push(
+      Prisma.sql`"volunteerGrade"::text = ANY(ARRAY[${Prisma.join(targetGrades)}]::text[])`
+    );
   }
 
   if (targetLabelIds.length > 0) {
-    where.customLabels = {
-      some: { labelId: { in: targetLabelIds } },
-    };
+    conditions.push(
+      Prisma.sql`EXISTS (
+        SELECT 1 FROM "UserCustomLabel"
+        WHERE "userId" = id
+        AND "labelId" = ANY(ARRAY[${Prisma.join(targetLabelIds)}]::text[])
+      )`
+    );
   }
 
-  return prisma.user.count({ where });
+  const result = await prisma.$queryRaw<[{ count: bigint }]>(
+    Prisma.sql`SELECT COUNT(*) AS count FROM "User" WHERE ${Prisma.join(conditions, " AND ")}`
+  );
+
+  return Number(result[0].count);
 }
