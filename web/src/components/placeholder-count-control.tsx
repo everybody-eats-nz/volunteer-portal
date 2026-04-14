@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Users } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Minus, Plus, Users, Info } from "lucide-react";
 
 interface PlaceholderCountControlProps {
   shiftId: string;
@@ -52,10 +53,13 @@ export function PlaceholderCountControl({
     >
       <div className="flex items-center gap-1.5">
         <Users className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-        <span className="text-xs text-slate-500 dark:text-slate-400">
-          Walk-in volunteers
-          <span className="text-slate-400 dark:text-slate-500 font-normal"> · no account needed</span>
-        </span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">Walk-in volunteers</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-3 w-3 text-slate-400 dark:text-slate-500 cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent>Volunteers who showed up without an account</TooltipContent>
+        </Tooltip>
       </div>
       <div className="flex items-center gap-1">
         <Button
