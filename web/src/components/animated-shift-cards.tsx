@@ -439,8 +439,8 @@ function VolunteerStatusGroups({
                           </span>
                         </div>
                       )}
-                      <div className="flex items-start justify-between gap-3 mt-1">
-                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                      <div className="flex items-start gap-2 mt-1">
+                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
                           <div
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
                             data-testid={`volunteer-grade-${signup.id}`}
