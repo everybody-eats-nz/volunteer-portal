@@ -648,20 +648,25 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   return (
     <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-pending-actions` : `volunteer-actions-${signupId}-pending`}>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
-        onClick={() => handleAction("approve")}
-        disabled={loading === "approve"}
-        data-testid={testIdPrefix ? `${testIdPrefix}-approve-button` : `volunteer-approve-${signupId}`}
-      >
-        {loading === "approve" ? (
-          <Clock className="h-3 w-3 animate-spin" />
-        ) : (
-          <Check className="h-3 w-3" />
-        )}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
+            onClick={() => handleAction("approve")}
+            disabled={loading === "approve"}
+            data-testid={testIdPrefix ? `${testIdPrefix}-approve-button` : `volunteer-approve-${signupId}`}
+          >
+            {loading === "approve" ? (
+              <Clock className="h-3 w-3 animate-spin" />
+            ) : (
+              <Check className="h-3 w-3" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Approve this volunteer</TooltipContent>
+      </Tooltip>
 
       {/* Move Button for Pending */}
       {currentShift && (
@@ -744,21 +749,26 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       )}
 
       <Dialog open={dialogOpen === "reject"} onOpenChange={(open) => setDialogOpen(open ? "reject" : null)}>
-        <DialogTrigger asChild>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
-            disabled={loading === "reject"}
-            data-testid={testIdPrefix ? `${testIdPrefix}-reject-button` : `volunteer-reject-${signupId}`}
-          >
-            {loading === "reject" ? (
-              <Clock className="h-3 w-3 animate-spin" />
-            ) : (
-              <X className="h-3 w-3" />
-            )}
-          </Button>
-        </DialogTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
+                disabled={loading === "reject"}
+                data-testid={testIdPrefix ? `${testIdPrefix}-reject-button` : `volunteer-reject-${signupId}`}
+              >
+                {loading === "reject" ? (
+                  <Clock className="h-3 w-3 animate-spin" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Reject this signup</TooltipContent>
+        </Tooltip>
         <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-reject-dialog` : `volunteer-reject-dialog-${signupId}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-reject-dialog-title` : `volunteer-reject-dialog-title-${signupId}`}>

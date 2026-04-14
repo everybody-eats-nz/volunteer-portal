@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Users } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Minus, Plus, Users, Info } from "lucide-react";
 
 interface PlaceholderCountControlProps {
   shiftId: string;
@@ -47,18 +48,24 @@ export function PlaceholderCountControl({
 
   return (
     <div
-      className="flex items-center gap-2"
+      className="flex items-center justify-between"
       data-testid={`placeholder-control-${shiftId}`}
     >
-      <Users className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-        Walk-ins
-      </span>
+      <div className="flex items-center gap-1.5">
+        <Users className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+        <span className="text-xs text-slate-500 dark:text-slate-400">Unregistered volunteers</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info className="h-3 w-3 text-slate-400 dark:text-slate-500 cursor-help" />
+          </TooltipTrigger>
+          <TooltipContent>Volunteers counted toward capacity who don&apos;t have an account</TooltipContent>
+        </Tooltip>
+      </div>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
           size="sm"
-          className="h-7 w-7 p-0"
+          className="h-6 w-6 p-0 text-slate-500"
           disabled={count <= 0 || isPending}
           onClick={() => updateCount(count - 1)}
           data-testid={`placeholder-decrease-${shiftId}`}
@@ -66,7 +73,7 @@ export function PlaceholderCountControl({
           <Minus className="h-3 w-3" />
         </Button>
         <span
-          className="w-6 text-center text-sm font-semibold tabular-nums"
+          className="w-5 text-center text-xs font-semibold tabular-nums text-slate-600 dark:text-slate-300"
           data-testid={`placeholder-count-${shiftId}`}
         >
           {count}
@@ -74,7 +81,7 @@ export function PlaceholderCountControl({
         <Button
           variant="outline"
           size="sm"
-          className="h-7 w-7 p-0"
+          className="h-6 w-6 p-0 text-slate-500"
           disabled={isPending}
           onClick={() => updateCount(count + 1)}
           data-testid={`placeholder-increase-${shiftId}`}
