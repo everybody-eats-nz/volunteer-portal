@@ -439,8 +439,30 @@ function VolunteerStatusGroups({
                           </span>
                         </div>
                       )}
-                      <div className="flex items-start gap-2 mt-1">
-                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-1">
+                        <div className="flex-shrink-0 ml-auto">
+                          <VolunteerActions
+                            signupId={signup.id}
+                            currentStatus={signup.status}
+                            onUpdate={triggerLayoutUpdate}
+                            testIdPrefix={`shift-${shift.id}-volunteer-${signup.id}`}
+                            currentShift={{
+                              id: shift.id,
+                              start: shift.start,
+                              end: shift.end,
+                              location: shift.location,
+                              shiftType: {
+                                name: shift.shiftType.name,
+                              },
+                            }}
+                            volunteerName={
+                              signup.user.name ||
+                              `${signup.user.firstName} ${signup.user.lastName}`
+                            }
+                            backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
+                          />
+                        </div>
+                        <div className="w-full flex items-center gap-1.5 flex-wrap">
                           <div
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
                             data-testid={`volunteer-grade-${signup.id}`}
@@ -466,28 +488,6 @@ function VolunteerStatusGroups({
                               />
                             )
                           )}
-                        </div>
-                        <div className="flex-shrink-0">
-                          <VolunteerActions
-                            signupId={signup.id}
-                            currentStatus={signup.status}
-                            onUpdate={triggerLayoutUpdate}
-                            testIdPrefix={`shift-${shift.id}-volunteer-${signup.id}`}
-                            currentShift={{
-                              id: shift.id,
-                              start: shift.start,
-                              end: shift.end,
-                              location: shift.location,
-                              shiftType: {
-                                name: shift.shiftType.name,
-                              },
-                            }}
-                            volunteerName={
-                              signup.user.name ||
-                              `${signup.user.firstName} ${signup.user.lastName}`
-                            }
-                            backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
-                          />
                         </div>
                       </div>
                     </div>
