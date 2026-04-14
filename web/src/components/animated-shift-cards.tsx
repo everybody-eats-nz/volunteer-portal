@@ -375,56 +375,16 @@ function VolunteerStatusGroups({
                     <div className="flex-1 min-w-0 pt-0.5">
                       {/* Name row + actions pinned to the right */}
                       <div className="flex items-center gap-2 mb-1">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Link
-                            href={`/admin/volunteers/${signup.user.id}`}
-                            className="text-sm font-semibold text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
-                            data-testid={`volunteer-name-link-${signup.id}`}
-                          >
-                            {signup.user.name ||
-                              `${signup.user.firstName || ""} ${signup.user.lastName || ""
-                                }`.trim() ||
-                              "Volunteer"}
-                          </Link>
-                          {signup.user.adminNotes.length > 0 && (
-                            <AdminNotesDialog
-                              volunteerId={signup.user.id}
-                              volunteerName={
-                                signup.user.name ||
-                                `${signup.user.firstName || ""} ${signup.user.lastName || ""
-                                  }`.trim() ||
-                                "Volunteer"
-                              }
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 px-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20 flex-shrink-0"
-                                  data-testid={`admin-notes-button-${signup.id}`}
-                                >
-                                  <Info className="h-3.5 w-3.5 mr-0.5" />
-                                  <span className="text-xs">
-                                    {signup.user.adminNotes.length > 1
-                                      ? `${signup.user.adminNotes.length} notes`
-                                      : "Note"}
-                                  </span>
-                                </Button>
-                              }
-                            />
-                          )}
-                          {(() => {
-                            const age = signup.user.dateOfBirth ? calculateAge(signup.user.dateOfBirth) : null;
-                            return age !== null && age < 16 ? (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 px-1.5 py-0.5 flex-shrink-0"
-                                data-testid={`volunteer-age-${signup.id}`}
-                              >
-                                {age}yr
-                              </Badge>
-                            ) : null;
-                          })()}
-                        </div>
+                        <Link
+                          href={`/admin/volunteers/${signup.user.id}`}
+                          className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                          data-testid={`volunteer-name-link-${signup.id}`}
+                        >
+                          {signup.user.name ||
+                            `${signup.user.firstName || ""} ${signup.user.lastName || ""
+                              }`.trim() ||
+                            "Volunteer"}
+                        </Link>
                         <div className="flex-shrink-0">
                           <VolunteerActions
                             signupId={signup.id}
@@ -448,7 +408,7 @@ function VolunteerStatusGroups({
                           />
                         </div>
                       </div>
-                      {/* Labels row — full width, wraps freely */}
+                      {/* Labels row — grade, custom labels, note button, age badge. Full width, wraps freely */}
                       <div className="flex items-center gap-1.5 flex-wrap mb-1">
                         <div
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color}`}
@@ -470,6 +430,44 @@ function VolunteerStatusGroups({
                             data-testid={`volunteer-label-${signup.id}-${userLabel.label.id}`}
                           />
                         ))}
+                        {signup.user.adminNotes.length > 0 && (
+                          <AdminNotesDialog
+                            volunteerId={signup.user.id}
+                            volunteerName={
+                              signup.user.name ||
+                              `${signup.user.firstName || ""} ${signup.user.lastName || ""
+                                }`.trim() ||
+                              "Volunteer"
+                            }
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 px-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                                data-testid={`admin-notes-button-${signup.id}`}
+                              >
+                                <Info className="h-3.5 w-3.5 mr-0.5" />
+                                <span className="text-xs">
+                                  {signup.user.adminNotes.length > 1
+                                    ? `${signup.user.adminNotes.length} notes`
+                                    : "Note"}
+                                </span>
+                              </Button>
+                            }
+                          />
+                        )}
+                        {(() => {
+                          const age = signup.user.dateOfBirth ? calculateAge(signup.user.dateOfBirth) : null;
+                          return age !== null && age < 16 ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 px-1.5 py-0.5"
+                              data-testid={`volunteer-age-${signup.id}`}
+                            >
+                              {age}yr
+                            </Badge>
+                          ) : null;
+                        })()}
                       </div>
                       {signup.note && (
                         <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
