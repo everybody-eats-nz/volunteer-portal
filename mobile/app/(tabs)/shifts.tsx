@@ -299,11 +299,6 @@ export default function ShiftsScreen() {
         ? filteredAvailable
         : filteredPast;
 
-  const tabCounts: Record<Tab, number> = {
-    upcoming: myShifts.length,
-    browse: filteredAvailable.length,
-    past: filteredPast.length,
-  };
 
   const groupedShifts = useMemo(() => {
     if (activeTab === "upcoming") return null;
@@ -392,7 +387,6 @@ export default function ShiftsScreen() {
       >
         {TAB_DEFS.map((tab) => {
           const isActive = activeTab === tab.key;
-          const count = tabCounts[tab.key];
           return (
             <Pressable
               key={tab.key}
@@ -414,27 +408,6 @@ export default function ShiftsScreen() {
               >
                 {tab.label}
               </Text>
-              <View
-                style={[
-                  styles.tabCountBadge,
-                  {
-                    backgroundColor: isActive
-                      ? "rgba(255,255,255,0.25)"
-                      : isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(0,0,0,0.06)",
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tabCountText,
-                    { color: isActive ? "#ffffff" : colors.textSecondary },
-                  ]}
-                >
-                  {count}
-                </Text>
-              </View>
             </Pressable>
           );
         })}
@@ -500,6 +473,20 @@ export default function ShiftsScreen() {
           >
             {emptyConfig.subtitle}
           </ThemedText>
+          {activeTab === "upcoming" && (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setActiveTab("browse");
+              }}
+              style={({ pressed }) => [
+                styles.emptyCtaButton,
+                { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <Text style={styles.emptyCtaText}>Browse shifts</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -1060,19 +1047,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
   },
-  tabCountBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  tabCountText: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
-  },
-
   // Empty State
   emptyState: {
     alignItems: "center",
@@ -1087,6 +1061,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 4,
+  },
+  emptyCtaButton: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 24,
+  },
+  emptyCtaText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    color: "#ffffff",
   },
 
   // Shift List

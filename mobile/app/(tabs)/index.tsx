@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { differenceInHours, formatDistanceToNow } from "date-fns";
+import { differenceInHours, endOfWeek, formatDistanceToNow, startOfWeek } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
@@ -54,6 +54,13 @@ export default function HomeScreen() {
   const hoursUntilShift = nextShift
     ? differenceInHours(new Date(nextShift.start), new Date())
     : null;
+
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+  const thisWeekAvailable = available.filter((s) => {
+    const start = new Date(s.start);
+    return start >= weekStart && start <= weekEnd;
+  });
 
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [likesSheetItem, setLikesSheetItem] = useState<FeedItem | null>(null);
@@ -218,7 +225,7 @@ export default function HomeScreen() {
       )}
 
       {/* ── Open Shifts CTA ── */}
-      {available.length > 0 && (
+      {thisWeekAvailable.length > 0 && (
         <Pressable
           onPress={() => router.push("/(tabs)/shifts?tab=browse")}
           style={({ pressed }) => [
@@ -240,7 +247,8 @@ export default function HomeScreen() {
                 Volunteers needed!
               </Text>
               <Text style={[styles.openShiftsBody, { color: Brand.nearBlack }]}>
-                {available.length} shifts are looking for whānau
+                {thisWeekAvailable.length} open{" "}
+                {thisWeekAvailable.length === 1 ? "shift" : "shifts"} this week
               </Text>
             </View>
             <Ionicons name="arrow-forward" size={20} color={Brand.nearBlack} />
