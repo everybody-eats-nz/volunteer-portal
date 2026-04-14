@@ -71,6 +71,7 @@ import {
   UserX,
   X,
   UserPlus,
+  ArrowRightLeft,
 } from "lucide-react";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -373,10 +374,11 @@ function VolunteerStatusGroups({
                       </Avatar>
                     </Link>
                     <div className="flex-1 min-w-0 pt-0.5">
-                      <div className="flex items-center flex-wrap gap-2 mb-1">
+                      {/* Name row + actions pinned to the right */}
+                      <div className="flex items-center gap-2 mb-1">
                         <Link
                           href={`/admin/volunteers/${signup.user.id}`}
-                          className="text-sm font-semibold text-slate-900 dark:text-white truncate hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                          className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                           data-testid={`volunteer-name-link-${signup.id}`}
                         >
                           {signup.user.name ||
@@ -384,6 +386,51 @@ function VolunteerStatusGroups({
                               }`.trim() ||
                             "Volunteer"}
                         </Link>
+                        <div className="flex-shrink-0">
+                          <VolunteerActions
+                            signupId={signup.id}
+                            currentStatus={signup.status}
+                            onUpdate={triggerLayoutUpdate}
+                            testIdPrefix={`shift-${shift.id}-volunteer-${signup.id}`}
+                            currentShift={{
+                              id: shift.id,
+                              start: shift.start,
+                              end: shift.end,
+                              location: shift.location,
+                              shiftType: {
+                                name: shift.shiftType.name,
+                              },
+                            }}
+                            volunteerName={
+                              signup.user.name ||
+                              `${signup.user.firstName} ${signup.user.lastName}`
+                            }
+                            backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
+                          />
+                        </div>
+                      </div>
+                      {/* Labels row — grade, custom labels, note button, age badge. Full width, wraps freely */}
+                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                        <div
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color}`}
+                          data-testid={`volunteer-grade-${signup.id}`}
+                        >
+                          {GradeIcon && <GradeIcon className="h-3 w-3" />}
+                          {gradeInfo.label}
+                        </div>
+                        {signup.user.customLabels.map((userLabel) => (
+                          <CustomLabelBadge
+                            key={userLabel.label.id}
+                            label={{
+                              ...userLabel.label,
+                              isActive: true,
+                              createdAt: new Date(),
+                              updatedAt: new Date(),
+                            }}
+                            size="sm"
+                            data-testid={`volunteer-label-${signup.id}-${userLabel.label.id}`}
+                          />
+                        ))}
                         {signup.user.adminNotes.length > 0 && (
                           <AdminNotesDialog
                             volunteerId={signup.user.id}
@@ -415,7 +462,7 @@ function VolunteerStatusGroups({
                           return age !== null && age < 16 ? (
                             <Badge
                               variant="outline"
-                              className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 dark:border-orange-800 px-1.5 py-0.5"
+                              className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800 px-1.5 py-0.5"
                               data-testid={`volunteer-age-${signup.id}`}
                             >
                               {age}yr
@@ -424,72 +471,21 @@ function VolunteerStatusGroups({
                         })()}
                       </div>
                       {signup.note && (
-                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
+                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">
                           <span className="font-semibold text-blue-700 dark:text-blue-300">Note: </span>
                           {signup.note}
                         </div>
                       )}
                       {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
-                        <div className="text-xs text-slate-700 dark:text-slate-300 mt-2 p-3 bg-amber-50/50 dark:bg-amber-900/20 border-l-2 border-amber-400 dark:border-amber-600 rounded">
-                          <span className="font-semibold text-amber-700 dark:text-amber-300">🤝 Backup options: </span>
-                          <span className="text-amber-600 dark:text-amber-400">
-                            {signup.backupForShiftIds
+                        <div className="flex items-center gap-1 mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                          <ArrowRightLeft className="h-3 w-3 flex-shrink-0" />
+                          <span>
+                            Backup: {signup.backupForShiftIds
                               .map((shiftId) => shiftIdToTypeName.get(shiftId) || 'Unknown')
                               .join(', ')}
                           </span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between gap-3 mt-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <div
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${gradeInfo.color} flex-shrink-0`}
-                            data-testid={`volunteer-grade-${signup.id}`}
-                          >
-                            {GradeIcon && (
-                              <GradeIcon className="h-3 w-3" />
-                            )}
-                            {gradeInfo.label}
-                          </div>
-                          {signup.user.customLabels.map(
-                            (userLabel) => (
-                              <CustomLabelBadge
-                                key={userLabel.label.id}
-                                label={{
-                                  ...userLabel.label,
-                                  isActive: true,
-                                  createdAt: new Date(),
-                                  updatedAt: new Date(),
-                                }}
-                                size="sm"
-                                className="flex-shrink-0"
-                                data-testid={`volunteer-label-${signup.id}-${userLabel.label.id}`}
-                              />
-                            )
-                          )}
-                        </div>
-                        <div className="flex-shrink-0">
-                          <VolunteerActions
-                            signupId={signup.id}
-                            currentStatus={signup.status}
-                            onUpdate={triggerLayoutUpdate}
-                            testIdPrefix={`shift-${shift.id}-volunteer-${signup.id}`}
-                            currentShift={{
-                              id: shift.id,
-                              start: shift.start,
-                              end: shift.end,
-                              location: shift.location,
-                              shiftType: {
-                                name: shift.shiftType.name,
-                              },
-                            }}
-                            volunteerName={
-                              signup.user.name ||
-                              `${signup.user.firstName} ${signup.user.lastName}`
-                            }
-                            backupShiftIds={signup.backupForShiftIds.length > 0 ? signup.backupForShiftIds : undefined}
-                          />
-                        </div>
-                      </div>
                     </div>
                   </div>
                 );
