@@ -477,19 +477,13 @@ function VolunteerStatusGroups({
                         </div>
                       )}
                       {signup.backupForShiftIds && signup.backupForShiftIds.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                          <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 flex-shrink-0">
-                            <ArrowRightLeft className="h-3 w-3" />
-                            Backup:
+                        <div className="flex items-center gap-1 mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                          <ArrowRightLeft className="h-3 w-3 flex-shrink-0" />
+                          <span>
+                            Backup: {signup.backupForShiftIds
+                              .map((shiftId) => shiftIdToTypeName.get(shiftId) || 'Unknown')
+                              .join(', ')}
                           </span>
-                          {signup.backupForShiftIds.map((shiftId) => (
-                            <span
-                              key={shiftId}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
-                            >
-                              {shiftIdToTypeName.get(shiftId) || 'Unknown'}
-                            </span>
-                          ))}
                         </div>
                       )}
                     </div>
