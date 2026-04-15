@@ -57,22 +57,31 @@ export async function GET(request: NextRequest) {
       where: { date_location: { date: targetDate, location } },
     });
 
-    if (!menu) {
+    const isFallback = !menu;
+    const resolved =
+      menu ??
+      (await prisma.dailyMenu.findFirst({
+        where: { location, date: { lte: targetDate } },
+        orderBy: { date: "desc" },
+      }));
+
+    if (!resolved) {
       return NextResponse.json({ menu: null }, { headers: corsHeaders });
     }
 
     return NextResponse.json(
       {
-        id: menu.id,
-        date: menu.date.toISOString().split("T")[0],
-        location: menu.location,
-        chefName: menu.chefName ?? null,
-        announcement: menu.announcement ?? null,
-        starter: menu.starter,
-        mains: menu.mains,
-        drink: menu.drink,
-        dessert: menu.dessert,
-        updatedAt: menu.updatedAt.toISOString(),
+        id: resolved.id,
+        date: resolved.date.toISOString().split("T")[0],
+        location: resolved.location,
+        chefName: resolved.chefName ?? null,
+        announcement: resolved.announcement ?? null,
+        starter: resolved.starter,
+        mains: resolved.mains,
+        drink: resolved.drink,
+        dessert: resolved.dessert,
+        updatedAt: resolved.updatedAt.toISOString(),
+        isFallback,
       },
       { headers: corsHeaders }
     );

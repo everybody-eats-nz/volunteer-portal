@@ -62,7 +62,7 @@
         })
       : '';
 
-    var html = '<h2>Today\'s menu</h2>';
+    var html = '<h2>' + (data.isFallback ? 'Last menu' : 'Today\'s menu') + '</h2>';
 
     // Last updated + announcement
     html += '<div>';
