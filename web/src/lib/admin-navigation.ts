@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Megaphone,
   UtensilsCrossed,
+  Shield,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -213,6 +214,18 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
+    label: "Safety",
+    items: [
+      {
+        title: "Content Moderation",
+        href: "/admin/moderation",
+        icon: Shield,
+        description: "Review reports and user blocks",
+        commandKey: "moderation",
+      },
+    ],
+  },
+  {
     label: "User Migration",
     items: [
       {
@@ -301,6 +314,9 @@ export const getIconColor = (
     "Site Settings": "text-slate-600",
     "Chat Guides": "text-emerald-500",
     "Announcements": "text-orange-500",
+
+    // Safety
+    "Content Moderation": "text-red-600",
 
     // User Migration
     "Bulk Migration": "text-blue-600",
