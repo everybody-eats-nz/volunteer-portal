@@ -28,8 +28,8 @@ export async function GET(request: Request) {
   since.setDate(since.getDate() - 14);
   const now = new Date();
 
-  // Get the user's profile for targeting checks
-  const [userProfile, friendships] = await Promise.all([
+  // Get the user's profile, friendships, and blocks in parallel
+  const [userProfile, friendships, blocks] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -45,12 +45,22 @@ export async function GET(request: Request) {
       },
       select: { userId: true, friendId: true },
     }),
+    // Users this person has blocked
+    prisma.userBlock.findMany({
+      where: { blockerId: userId },
+      select: { blockedId: true },
+    }),
   ]);
 
-  const friendIds = friendships.map((f) =>
-    f.userId === userId ? f.friendId : f.userId
+  const blockedUserIds = new Set(blocks.map((b) => b.blockedId));
+
+  const friendIds = friendships
+    .map((f) => (f.userId === userId ? f.friendId : f.userId))
+    // Exclude blocked users from friend feed
+    .filter((id) => !blockedUserIds.has(id));
+  const visibleUserIds = [userId, ...friendIds].filter(
+    (id) => !blockedUserIds.has(id)
   );
-  const visibleUserIds = [userId, ...friendIds];
 
   const userLabelIds = (userProfile?.customLabels ?? []).map((l) => l.labelId);
   const userLocations = userProfile?.availableLocations

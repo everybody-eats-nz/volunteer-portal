@@ -21,6 +21,8 @@ type CommentState = {
   error: string | null;
 };
 
+type ReportResponse = { ok: boolean };
+
 type UseFeedInteractionsReturn = {
   /** Toggle like on a feed item. Returns the new liked state and count. */
   toggleLike: (itemId: string) => Promise<LikeResponse | null>;
@@ -33,6 +35,9 @@ type UseFeedInteractionsReturn = {
 
   /** Get cached comment state for an item. */
   getCommentState: (itemId: string) => CommentState;
+
+  /** Report a feed item as objectionable content. */
+  reportItem: (targetType: string, targetId: string, reason: string) => Promise<boolean>;
 };
 
 /**
@@ -169,5 +174,20 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
     [commentStates]
   );
 
-  return { toggleLike, loadComments, addComment, getCommentState };
+  const reportItem = useCallback(
+    async (targetType: string, targetId: string, reason: string): Promise<boolean> => {
+      try {
+        await api<ReportResponse>("/api/mobile/report", {
+          method: "POST",
+          body: { targetType, targetId, reason },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
+
+  return { toggleLike, loadComments, addComment, getCommentState, reportItem };
 }

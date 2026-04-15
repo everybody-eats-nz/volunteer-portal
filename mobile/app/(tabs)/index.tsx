@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from "react";
 import Markdown from "react-native-markdown-display";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -58,6 +59,7 @@ export default function HomeScreen() {
     loadComments,
     addComment: apiAddComment,
     getCommentState,
+    reportItem,
   } = useFeedInteractions();
 
   const nextShift = myShifts[0] ?? null;
@@ -306,6 +308,28 @@ export default function HomeScreen() {
               onToggleLike={() => toggleLike(item)}
               onShowSheet={() => handleOpenSheet(item)}
               commentCount={item.commentCount}
+              onReport={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                Alert.alert(
+                  "Report Content",
+                  "Why are you reporting this?",
+                  [
+                    {
+                      text: "Offensive or abusive content",
+                      onPress: () => reportItem("post", item.id, "Offensive or abusive content"),
+                    },
+                    {
+                      text: "Spam",
+                      onPress: () => reportItem("post", item.id, "Spam"),
+                    },
+                    {
+                      text: "Harassment",
+                      onPress: () => reportItem("post", item.id, "Harassment"),
+                    },
+                    { text: "Cancel", style: "cancel" },
+                  ]
+                );
+              }}
             />
           ))}
         </View>
@@ -459,6 +483,7 @@ function FeedCard({
   onToggleLike,
   onShowSheet,
   commentCount,
+  onReport,
 }: {
   item: FeedItem;
   colors: (typeof Colors)["light"];
@@ -467,6 +492,7 @@ function FeedCard({
   onToggleLike: () => void;
   onShowSheet: () => void;
   commentCount: number;
+  onReport: () => void;
 }) {
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
@@ -809,6 +835,31 @@ function FeedCard({
       accessibilityRole="button"
     >
       {renderContent()}
+      {/* Report button — positioned top-right, only for user-generated items */}
+      {(item.type === "achievement" ||
+        item.type === "milestone" ||
+        item.type === "friend_signup" ||
+        item.type === "announcement") && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            onReport();
+          }}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.reportBtn,
+            { opacity: pressed ? 0.4 : 0.35 },
+          ]}
+          accessibilityLabel="Report this post"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="ellipsis-horizontal"
+            size={16}
+            color={colors.textSecondary}
+          />
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -1749,6 +1800,12 @@ const styles = StyleSheet.create({
   feedCardColumn: {
     flexDirection: "column",
     gap: 0,
+  },
+  reportBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    padding: 4,
   },
   announcementImage: {
     width: "100%",
