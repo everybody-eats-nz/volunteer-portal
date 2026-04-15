@@ -60,7 +60,7 @@ export default async function AdminLayout({
 
   // Get pending parental consent count (volunteers requiring consent but not yet received)
   // Uses requiresParentalConsent flag for consistency with the table data
-  const [pendingParentalConsentCount, chatGuidesEnabled] = await Promise.all([
+  const [pendingParentalConsentCount, pendingReportCount, chatGuidesEnabled] = await Promise.all([
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
@@ -68,6 +68,7 @@ export default async function AdminLayout({
         parentalConsentReceived: false,
       },
     }),
+    prisma.contentReport.count({ where: { status: "PENDING" } }),
     isFeatureEnabled(FeatureFlag.CHAT_GUIDES, session.user.id),
   ]);
 
@@ -85,6 +86,7 @@ export default async function AdminLayout({
           userProfile={userProfile}
           displayName={displayName}
           pendingParentalConsentCount={pendingParentalConsentCount}
+          pendingReportCount={pendingReportCount}
           hiddenNavItems={hiddenNavItems}
         />
         <SidebarInset>

@@ -3,8 +3,10 @@ import { differenceInDays } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -12,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { api } from "@/lib/api";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -42,6 +45,75 @@ export default function FriendProfileScreen() {
   const insets = useSafeAreaInsets();
 
   const { profile: friend, isLoading, error } = useFriendProfile(id);
+  const [isBlocking, setIsBlocking] = useState(false);
+
+  const handleBlock = () => {
+    Alert.alert(
+      "Block User",
+      `Block ${friend?.name ?? "this user"}? Their content will be immediately removed from your feed. The Everybody Eats team will be notified.`,
+      [
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            setIsBlocking(true);
+            try {
+              await api(`/api/mobile/users/${id}/block`, { method: "POST" });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert(
+                "User Blocked",
+                `${friend?.name ?? "This user"} has been blocked and removed from your feed.`,
+                [{ text: "OK", onPress: () => router.back() }]
+              );
+            } catch {
+              Alert.alert("Error", "Could not block this user. Please try again.");
+            } finally {
+              setIsBlocking(false);
+            }
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
+  const handleReport = () => {
+    Alert.alert(
+      "Report User",
+      `Why are you reporting ${friend?.name ?? "this user"}?`,
+      [
+        {
+          text: "Offensive or abusive behaviour",
+          onPress: async () => {
+            try {
+              await api("/api/mobile/report", {
+                method: "POST",
+                body: { targetType: "user", targetId: id, reason: "Offensive or abusive behaviour" },
+              });
+              Alert.alert("Report Submitted", "Thank you. The Everybody Eats team will review this within 24 hours.");
+            } catch {
+              Alert.alert("Error", "Could not submit report. Please try again.");
+            }
+          },
+        },
+        {
+          text: "Harassment",
+          onPress: async () => {
+            try {
+              await api("/api/mobile/report", {
+                method: "POST",
+                body: { targetType: "user", targetId: id, reason: "Harassment" },
+              });
+              Alert.alert("Report Submitted", "Thank you. The Everybody Eats team will review this within 24 hours.");
+            } catch {
+              Alert.alert("Error", "Could not submit report. Please try again.");
+            }
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
 
   if (isLoading) {
     return (
@@ -388,6 +460,48 @@ export default function FriendProfileScreen() {
           >
             <Ionicons name="calendar-outline" size={18} color="#ffffff" />
             <Text style={styles.ctaText}>Browse Shifts Together</Text>
+          </Pressable>
+        </View>
+
+        {/* ── Safety Actions ── */}
+        <View style={[styles.section, styles.safetySection]}>
+          <Pressable
+            onPress={handleReport}
+            style={({ pressed }) => [
+              styles.safetyBtn,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityLabel="Report this user"
+            accessibilityRole="button"
+          >
+            <Ionicons name="flag-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.safetyBtnText, { color: colors.textSecondary }]}>
+              Report User
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBlock}
+            disabled={isBlocking}
+            style={({ pressed }) => [
+              styles.safetyBtn,
+              {
+                borderColor: "#fca5a5",
+                backgroundColor: isDark ? "rgba(220,38,38,0.08)" : "#fff5f5",
+                opacity: pressed || isBlocking ? 0.6 : 1,
+              },
+            ]}
+            accessibilityLabel="Block this user"
+            accessibilityRole="button"
+          >
+            <Ionicons name="ban-outline" size={16} color="#dc2626" />
+            <Text style={[styles.safetyBtnText, { color: "#dc2626" }]}>
+              {isBlocking ? "Blocking…" : "Block User"}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -805,5 +919,26 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
+  },
+
+  /* Safety actions */
+  safetySection: {
+    flexDirection: "row",
+    gap: 10,
+    paddingBottom: 8,
+  },
+  safetyBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  safetyBtnText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
   },
 });

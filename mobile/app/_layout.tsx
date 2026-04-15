@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import {
@@ -21,6 +21,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
 import { AuthGate } from '@/components/auth-gate';
+import { EulaModal } from '@/components/eula-modal';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -67,12 +68,15 @@ export default function RootLayout() {
     },
   }), []);
 
+  const handleEulaAccepted = useCallback(() => {}, []);
+
   if (isLoading || !fontsLoaded) {
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
+      <EulaModal onAccepted={handleEulaAccepted} />
       <AuthGate>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
