@@ -20,6 +20,7 @@ import {
   Activity,
   MessageSquare,
   Megaphone,
+  UtensilsCrossed,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -141,6 +142,13 @@ export const adminNavCategories: AdminNavCategory[] = [
   {
     label: "Restaraunt Management",
     items: [
+      {
+        title: "Daily Menus",
+        href: "/admin/menus",
+        icon: UtensilsCrossed,
+        description: "Set daily menus published to the website",
+        commandKey: "menus",
+      },
       {
         title: "Restaurant Locations",
         href: "/admin/locations",
@@ -277,6 +285,9 @@ export const getIconColor = (
     "Custom Labels": "text-indigo-600",
     Achievements: "text-amber-600",
     "Newsletter Lists": "text-cyan-600",
+
+    // Restaurant Management
+    "Daily Menus": "text-orange-600",
 
     // Shift Management
     "Create Shift": "text-green-600",
