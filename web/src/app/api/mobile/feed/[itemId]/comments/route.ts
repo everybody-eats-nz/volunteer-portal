@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { filterContent } from "@/lib/content-filter";
 
 /**
  * GET /api/mobile/feed/[itemId]/comments
@@ -22,8 +23,18 @@ export async function GET(
     return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
   }
 
+  // Get users that this person has blocked (hide their comments)
+  const blocks = await prisma.userBlock.findMany({
+    where: { blockerId: auth.userId },
+    select: { blockedId: true },
+  });
+  const blockedIds = blocks.map((b) => b.blockedId);
+
   const comments = await prisma.feedComment.findMany({
-    where: { feedItemId: itemId },
+    where: {
+      feedItemId: itemId,
+      ...(blockedIds.length > 0 ? { userId: { notIn: blockedIds } } : {}),
+    },
     include: {
       user: {
         select: { id: true, name: true, firstName: true, profilePhotoUrl: true },
@@ -74,6 +85,11 @@ export async function POST(
   }
   if (text.length > 1000) {
     return NextResponse.json({ error: "Comment too long (max 1000 characters)" }, { status: 400 });
+  }
+
+  const filterError = filterContent(text);
+  if (filterError) {
+    return NextResponse.json({ error: filterError }, { status: 422 });
   }
 
   const [comment, user] = await Promise.all([

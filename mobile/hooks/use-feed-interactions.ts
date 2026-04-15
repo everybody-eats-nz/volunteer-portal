@@ -21,6 +21,8 @@ type CommentState = {
   error: string | null;
 };
 
+type ReportResponse = { ok: boolean };
+
 type UseFeedInteractionsReturn = {
   /** Toggle like on a feed item. Returns the new liked state and count. */
   toggleLike: (itemId: string) => Promise<LikeResponse | null>;
@@ -33,6 +35,12 @@ type UseFeedInteractionsReturn = {
 
   /** Get cached comment state for an item. */
   getCommentState: (itemId: string) => CommentState;
+
+  /** Report a feed item as objectionable content. */
+  reportItem: (targetType: string, targetId: string, reason: string) => Promise<boolean>;
+
+  /** Returns true if the user has already reported this targetId in this session. */
+  hasReported: (targetId: string) => boolean;
 };
 
 /**
@@ -46,6 +54,9 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
   const [commentStates, setCommentStates] = useState<
     Record<string, CommentState>
   >({});
+
+  // Track items reported this session so the UI can reflect the reported state
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
 
   const toggleLike = useCallback(
     async (itemId: string): Promise<LikeResponse | null> => {
@@ -169,5 +180,26 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
     [commentStates]
   );
 
-  return { toggleLike, loadComments, addComment, getCommentState };
+  const reportItem = useCallback(
+    async (targetType: string, targetId: string, reason: string): Promise<boolean> => {
+      try {
+        await api<ReportResponse>("/api/mobile/report", {
+          method: "POST",
+          body: { targetType, targetId, reason },
+        });
+        setReportedIds((prev) => new Set(prev).add(targetId));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
+
+  const hasReported = useCallback(
+    (targetId: string) => reportedIds.has(targetId),
+    [reportedIds]
+  );
+
+  return { toggleLike, loadComments, addComment, getCommentState, reportItem, hasReported };
 }
