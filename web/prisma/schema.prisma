@@ -837,6 +837,29 @@ model FeedComment {
   @@index([userId])
 }
 
+// ─── Daily Menus ─────────────────────────────────────────────────────────────
+
+// Daily menu per location, published to the Webflow public website.
+// Each course holds an array of MenuItem objects: {name: string, description?: string}
+model DailyMenu {
+  id           String   @id @default(cuid())
+  date         DateTime // Date for this menu (stored as midnight UTC, treated as date-only)
+  location     String   // Location name (matches Location.name)
+  chefName     String?  // Optional chef name displayed on website
+  announcement String?  // Optional daily message shown above the menu
+  starter      Json     // Array of MenuItem: [{name, description?}]
+  mains        Json     // Array of MenuItem: [{name, description?}]
+  drink        Json     // Array of MenuItem for beverages (may be empty)
+  dessert      Json     // Array of MenuItem: [{name, description?}]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?  // Admin user ID who last saved
+
+  @@unique([date, location])
+  @@index([location, date])
+  @@index([date])
+}
+
 // ─── Announcements ────────────────────────────────────────────────────────────
 
 /// Admin-authored announcements surfaced in the mobile feed.
