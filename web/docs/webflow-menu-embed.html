@@ -1,0 +1,111 @@
+<!--
+  Everybody Eats — Daily Menu embed for Webflow
+  ─────────────────────────────────────────────
+  Setup:
+    1. In Webflow, add an "Embed" element where you want the menu to appear.
+    2. Paste this entire file into the embed code box.
+    3. Change API_BASE and LOCATION at the top of the script.
+
+  That's it. The script creates the full menu HTML inside an empty wrapper div,
+  using the same CSS classes your existing Webflow styles already target.
+  No data attributes needed on other elements.
+-->
+<div id="ee-daily-menu"></div>
+
+<script>
+(function () {
+  var API_BASE = 'https://your-portal-domain.com'; // ← REPLACE with your portal URL
+  var LOCATION = 'Wellington';                      // ← REPLACE with location name
+  var CONTAINER_ID = 'ee-daily-menu';
+
+  function esc(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderCourse(label, items) {
+    if (!items || items.length === 0) return '';
+    var filled = items.filter(function(i) { return (i.name || i || '').trim() !== ''; });
+    if (filled.length === 0) return '';
+
+    var inner = '';
+    filled.forEach(function(item, i) {
+      if (i > 0) inner += '<p class="paragraph-9">or</p>';
+      inner += '<p>' + esc(item.name || item) + '</p>';
+    });
+
+    return (
+      '<div class="col">' +
+        '<p class="caps-sm">' + esc(label) + '</p>' +
+        '<div><div class="menu-item__name">' + inner + '</div></div>' +
+      '</div>'
+    );
+  }
+
+  function renderMenu(data) {
+    var container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+
+    if (!data || data.menu === null) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var dateStr = data.updatedAt
+      ? new Date(data.updatedAt).toLocaleDateString('en-NZ', {
+          day: 'numeric', month: 'long', year: 'numeric',
+          timeZone: 'Pacific/Auckland'
+        })
+      : '';
+
+    var html = '<h2>Today\'s menu</h2>';
+
+    // Last updated + announcement
+    html += '<div>';
+    html += '<div class="div-block-88"><div>Last updated:</div><div>' + esc(dateStr) + '</div></div>';
+    if (data.announcement) {
+      html += '<div class="paragraph"><em>' + esc(data.announcement) + '</em></div>';
+    }
+    html += '</div>';
+
+    // Chef name
+    if (data.chefName) {
+      html += '<div class="div-block-87"><h4>Chef: </h4><h4 class="heading-18">' + esc(data.chefName) + '</h4></div>';
+    }
+
+    // Courses row
+    html += '<div class="row">';
+    html += renderCourse('kai tīmata / Starter', data.starter);
+    html += renderCourse('kai matua / main', data.mains);
+    if (data.drink && data.drink.length > 0) {
+      html += renderCourse('inu / Drink', data.drink);
+    }
+    html += renderCourse('kai reka / dessert', data.dessert);
+    html += '</div>';
+
+    container.innerHTML = html;
+  }
+
+  function fetchMenu() {
+    var nzDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' });
+    var url = API_BASE + '/api/menus?date=' + nzDate + '&location=' + encodeURIComponent(LOCATION);
+
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(renderMenu)
+      .catch(function (err) {
+        console.warn('Everybody Eats: could not load menu', err);
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fetchMenu);
+  } else {
+    fetchMenu();
+  }
+})();
+</script>
