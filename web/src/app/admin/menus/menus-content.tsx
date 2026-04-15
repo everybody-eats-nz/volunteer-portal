@@ -4,10 +4,14 @@ import { useState, useCallback, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import {
   Plus, Trash2, Save, UtensilsCrossed, Clock, ChefHat,
-  Wine, Salad, Coffee, Eye, EyeOff,
+  Wine, Salad, Coffee, Eye, EyeOff, CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -231,6 +235,7 @@ function MenuPreview({ draft, location, date }: MenuPreviewProps) {
 
 export function MenusContent({ locations, initialRecentMenus }: MenusContentProps) {
   const [selectedDate, setSelectedDate] = useState(todayNZ());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>(
     locations.length === 1 ? locations[0].name : ""
   );
@@ -370,14 +375,36 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-1.5">
-              <Label htmlFor="menu-date">Date</Label>
-              <Input
-                id="menu-date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full"
-              />
+              <Label>Date</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-11 justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate
+                      ? format(parseISO(selectedDate), "d MMMM yyyy")
+                      : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate ? parseISO(selectedDate) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(format(date, "yyyy-MM-dd"));
+                        setDatePickerOpen(false);
+                      }
+                    }}
+                    autoFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex-1 space-y-1.5">
               <Label htmlFor="menu-location">Location</Label>
