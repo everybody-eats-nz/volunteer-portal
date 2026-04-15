@@ -83,7 +83,7 @@ async function notifyAdmin(
 
   if (!adminEmail) {
     console.log(
-      `[report] Content report received (ADMIN_NOTIFICATION_EMAIL not set): ${targetType}/${targetId} — "${reason}" by user ${reporterId}`
+      `[report] Content report received (ADMIN_NOTIFICATION_EMAIL not set): ${targetType} — "${reason}"`
     );
     return;
   }

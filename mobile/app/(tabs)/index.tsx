@@ -60,6 +60,7 @@ export default function HomeScreen() {
     addComment: apiAddComment,
     getCommentState,
     reportItem,
+    hasReported,
   } = useFeedInteractions();
 
   const nextShift = myShifts[0] ?? null;
@@ -308,7 +309,12 @@ export default function HomeScreen() {
               onToggleLike={() => toggleLike(item)}
               onShowSheet={() => handleOpenSheet(item)}
               commentCount={item.commentCount}
+              isReported={hasReported(item.id)}
               onReport={() => {
+                if (hasReported(item.id)) {
+                  Alert.alert("Already reported", "You've already reported this content. Our team will review it within 24 hours.");
+                  return;
+                }
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 Alert.alert(
                   "Report Content",
@@ -484,6 +490,7 @@ function FeedCard({
   onShowSheet,
   commentCount,
   onReport,
+  isReported = false,
 }: {
   item: FeedItem;
   colors: (typeof Colors)["light"];
@@ -493,6 +500,7 @@ function FeedCard({
   onShowSheet: () => void;
   commentCount: number;
   onReport: () => void;
+  isReported?: boolean;
 }) {
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
@@ -848,15 +856,15 @@ function FeedCard({
           hitSlop={10}
           style={({ pressed }) => [
             styles.reportBtn,
-            { opacity: pressed ? 0.4 : 0.35 },
+            { opacity: pressed ? 0.5 : isReported ? 0.7 : 0.35 },
           ]}
-          accessibilityLabel="Report this post"
+          accessibilityLabel={isReported ? "Already reported" : "Report this post"}
           accessibilityRole="button"
         >
           <Ionicons
-            name="ellipsis-horizontal"
-            size={16}
-            color={colors.textSecondary}
+            name={isReported ? "flag" : "ellipsis-horizontal"}
+            size={14}
+            color={isReported ? "#f97316" : colors.textSecondary}
           />
         </Pressable>
       )}

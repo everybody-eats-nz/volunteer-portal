@@ -28,7 +28,6 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoading, restoreSession } = useAuth();
-  const [eulaAccepted, setEulaAccepted] = React.useState(false);
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -69,7 +68,7 @@ export default function RootLayout() {
     },
   }), []);
 
-  const handleEulaAccepted = useCallback(() => setEulaAccepted(true), []);
+  const handleEulaAccepted = useCallback(() => {}, []);
 
   if (isLoading || !fontsLoaded) {
     return null;

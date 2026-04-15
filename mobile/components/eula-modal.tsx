@@ -3,7 +3,6 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Linking,
   Modal,
   Platform,
   Pressable,
