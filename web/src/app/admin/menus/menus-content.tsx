@@ -94,7 +94,7 @@ function CourseEditor({ label, icon, items, onChange, optional, placeholder }: C
 
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground italic pl-1">
-          No items — click "Add item" to add one.
+          No items — click &ldquo;Add item&rdquo; to add one.
         </p>
       ) : (
         <div className="space-y-1.5">
