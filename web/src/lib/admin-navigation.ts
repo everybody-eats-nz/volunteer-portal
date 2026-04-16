@@ -23,6 +23,7 @@ import {
   UtensilsCrossed,
   Shield,
   UserPlus,
+  Award,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -77,6 +78,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: UserPlus,
         description: "New registrations, onboarding funnel, and conversion",
         commandKey: "recruitment",
+      },
+      {
+        title: "Milestone Analytics",
+        href: "/admin/analytics/milestones",
+        icon: Award,
+        description: "Shift milestones, volunteer recognition, and 12-month projections",
+        commandKey: "milestones",
       },
     ],
   },
@@ -303,6 +311,7 @@ export const getIconColor = (
     "Restaurant Analytics": "text-purple-600",
     "Volunteer Engagement": "text-emerald-600",
     "Volunteer Recruitment": "text-violet-600",
+    "Milestone Analytics": "text-amber-600",
 
     // Volunteer Management
     "All Users": "text-purple-600",
