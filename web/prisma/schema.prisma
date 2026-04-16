@@ -132,6 +132,9 @@ model User {
   contentReports ContentReport[] @relation("ContentReporter")
   blocksGiven    UserBlock[]     @relation("BlocksMade")
   blocksReceived UserBlock[]     @relation("BlocksReceived")
+
+  // Analytics queries filter heavily on role + createdAt
+  @@index([role, createdAt])
 }
 
 model Passkey {
@@ -217,6 +220,9 @@ model Shift {
   updatedAt        DateTime       @updatedAt
   shiftType        ShiftType      @relation(fields: [shiftTypeId], references: [id])
   signups          Signup[]
+
+  // Analytics queries filter and sort on shift end date
+  @@index([end])
 }
 
 model Signup {
@@ -252,6 +258,8 @@ model Signup {
   @@unique([userId, shiftId])
   @@index([status, canceledAt])
   @@index([userId, canceledAt])
+  // shiftId-only index for reverse joins (Shift → Signup lookups in analytics)
+  @@index([shiftId])
 }
 
 model Achievement {
