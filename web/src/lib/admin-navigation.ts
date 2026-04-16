@@ -22,6 +22,7 @@ import {
   Megaphone,
   UtensilsCrossed,
   Shield,
+  UserPlus,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -51,19 +52,31 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Overview and statistics",
         commandKey: "dashboard",
       },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
       {
         title: "Restaurant Analytics",
         href: "/admin/analytics",
         icon: BarChart3,
-        description: "Restaurant analytics and metrics",
+        description: "Meals served and year-over-year comparisons",
         commandKey: "analytics",
       },
       {
         title: "Volunteer Engagement",
         href: "/admin/analytics/engagement",
         icon: Activity,
-        description: "Volunteer activity and retention metrics",
+        description: "Activity levels, retention, and cohort analysis",
         commandKey: "engagement",
+      },
+      {
+        title: "Volunteer Recruitment",
+        href: "/admin/analytics/recruitment",
+        icon: UserPlus,
+        description: "New registrations, onboarding funnel, and conversion",
+        commandKey: "recruitment",
       },
     ],
   },
@@ -141,7 +154,7 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
-    label: "Restaraunt Management",
+    label: "Restaurant Management",
     items: [
       {
         title: "Daily Menus",
@@ -289,6 +302,7 @@ export const getIconColor = (
     Dashboard: "text-blue-600",
     "Restaurant Analytics": "text-purple-600",
     "Volunteer Engagement": "text-emerald-600",
+    "Volunteer Recruitment": "text-violet-600",
 
     // Volunteer Management
     "All Users": "text-purple-600",
