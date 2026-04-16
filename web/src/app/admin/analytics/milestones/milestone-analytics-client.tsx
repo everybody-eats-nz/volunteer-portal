@@ -122,9 +122,9 @@ export function MilestoneAnalyticsClient({
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
   const [selectedMilestone, setSelectedMilestone] = useState<number>(100);
-  const chartThemeMode = (
-    resolvedTheme === "dark" ? "dark" : "light"
-  ) as "dark" | "light";
+  const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
+    | "dark"
+    | "light";
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
@@ -210,7 +210,9 @@ export function MilestoneAnalyticsClient({
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className={`space-y-6 transition-opacity ${isPending ? "opacity-50 pointer-events-none" : ""}`}
+        className={`space-y-6 transition-opacity ${
+          isPending ? "opacity-50 pointer-events-none" : ""
+        }`}
       >
         {/* Milestone Summary Cards */}
         <motion.div
@@ -320,8 +322,7 @@ export function MilestoneAnalyticsClient({
                           val > 0 ? String(val) : "",
                         style: {
                           fontSize: "11px",
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
                           fontWeight: 600,
                         },
                       },
@@ -341,14 +342,16 @@ export function MilestoneAnalyticsClient({
                       legend: {
                         position: "top" as const,
                         fontSize: "12px",
-                        fontFamily:
-                          "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-libre-franklin), sans-serif",
                         markers: { size: 6, offsetX: -2 },
                       },
                       theme: { mode: chartThemeMode },
                     }}
                     series={[
-                      { name: `Hit in last ${periodLabel}`, data: hitsInPeriod },
+                      {
+                        name: `Hit in last ${periodLabel}`,
+                        data: hitsInPeriod,
+                      },
                       { name: "All-time total", data: hitsAllTime },
                     ]}
                     type="bar"
@@ -376,12 +379,9 @@ export function MilestoneAnalyticsClient({
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className="w-auto max-w-56"
-                    >
-                      How many volunteers currently sit in each shift-count
-                      band (all-time completed shifts)
+                    <TooltipContent side="top" className="w-auto max-w-56">
+                      How many volunteers currently sit in each shift-count band
+                      (all-time completed shifts)
                     </TooltipContent>
                   </Tooltip>
                 </CardTitle>
@@ -440,8 +440,7 @@ export function MilestoneAnalyticsClient({
                           val > 0 ? String(val) : "",
                         style: {
                           fontSize: "11px",
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
                           fontWeight: 600,
                         },
                       },
@@ -545,8 +544,7 @@ export function MilestoneAnalyticsClient({
                       categories: projCategories,
                       labels: {
                         style: {
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
                           fontSize: "11px",
                         },
                       },
@@ -557,16 +555,14 @@ export function MilestoneAnalyticsClient({
                       title: {
                         text: "Volunteers",
                         style: {
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
                           fontSize: "11px",
                           fontWeight: 400,
                         },
                       },
                       labels: {
                         style: {
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-libre-franklin), sans-serif",
                           fontSize: "11px",
                         },
                       },
@@ -574,12 +570,10 @@ export function MilestoneAnalyticsClient({
                     colors: ["#10b981", "#6366f1"],
                     dataLabels: {
                       enabled: true,
-                      formatter: (val: number) =>
-                        val > 0 ? String(val) : "",
+                      formatter: (val: number) => (val > 0 ? String(val) : ""),
                       style: {
                         fontSize: "11px",
-                        fontFamily:
-                          "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-libre-franklin), sans-serif",
                         fontWeight: 600,
                       },
                     },
@@ -638,9 +632,9 @@ export function MilestoneAnalyticsClient({
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="w-auto max-w-64">
-                      Volunteers within 20% of the selected milestone
-                      threshold. Projected months is based on their average
-                      shift rate over the last 6 months.
+                      Volunteers within 20% of the selected milestone threshold.
+                      Projected months is based on their average shift rate over
+                      the last 6 months.
                     </TooltipContent>
                   </Tooltip>
                 </CardTitle>
@@ -655,15 +649,15 @@ export function MilestoneAnalyticsClient({
                     value={String(selectedMilestone)}
                     onValueChange={(v) => setSelectedMilestone(Number(v))}
                   >
-                    <SelectTrigger
-                      id="milestone-select"
-                      className="w-36"
-                    >
+                    <SelectTrigger id="milestone-select" className="w-36">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {data.projections.map((p) => (
-                        <SelectItem key={p.threshold} value={String(p.threshold)}>
+                        <SelectItem
+                          key={p.threshold}
+                          value={String(p.threshold)}
+                        >
                           {p.threshold} shifts
                         </SelectItem>
                       ))}
@@ -673,7 +667,8 @@ export function MilestoneAnalyticsClient({
               </div>
             </CardHeader>
             <CardContent>
-              {selectedProjection && selectedProjection.approaching.length > 0 ? (
+              {selectedProjection &&
+              selectedProjection.approaching.length > 0 ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-4 text-xs text-muted-foreground pb-1">
                     <span className="flex-1">Volunteer</span>
@@ -686,8 +681,7 @@ export function MilestoneAnalyticsClient({
                   {selectedProjection.approaching.map((v) => {
                     const color =
                       MILESTONE_COLORS[selectedMilestone] ?? "#6b7280";
-                    const pctDone =
-                      (v.totalShifts / selectedMilestone) * 100;
+                    const pctDone = (v.totalShifts / selectedMilestone) * 100;
                     return (
                       <div
                         key={v.userId}
@@ -714,9 +708,7 @@ export function MilestoneAnalyticsClient({
                           {v.shiftsNeeded}
                         </span>
                         <span className="w-28 text-right text-sm tabular-nums text-muted-foreground">
-                          {v.monthlyRate > 0
-                            ? `${v.monthlyRate}/mo`
-                            : "—"}
+                          {v.monthlyRate > 0 ? `${v.monthlyRate}/mo` : "—"}
                         </span>
                         <span className="w-28 text-right text-sm">
                           {v.projectedMonths != null ? (
@@ -725,8 +717,8 @@ export function MilestoneAnalyticsClient({
                                 v.projectedMonths <= 3
                                   ? "default"
                                   : v.projectedMonths <= 6
-                                    ? "secondary"
-                                    : "outline"
+                                  ? "secondary"
+                                  : "outline"
                               }
                               className="text-xs"
                             >
@@ -739,7 +731,7 @@ export function MilestoneAnalyticsClient({
                           )}
                         </span>
                         <Link
-                          href={`/admin/users/${v.userId}`}
+                          href={`/admin/volunteers/${v.userId}`}
                           className="w-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
