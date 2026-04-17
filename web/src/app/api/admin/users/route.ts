@@ -16,13 +16,14 @@ export async function GET(request: Request) {
   const limit = searchParams.get("limit");
 
   try {
-    let whereClause = {};
+    let whereClause: Record<string, unknown> = { archivedAt: null };
 
     // If there's a search query, add search conditions
     if (query && query.trim()) {
       const searchQuery = query.trim();
 
       whereClause = {
+        archivedAt: null,
         OR: [
           // Email matching
           { email: { contains: searchQuery, mode: "insensitive" } },

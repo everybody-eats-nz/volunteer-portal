@@ -24,6 +24,7 @@ import {
   Shield,
   UserPlus,
   Award,
+  Archive,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -125,6 +126,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         icon: Trophy,
         description: "Manage volunteer achievements",
         commandKey: "achievements",
+      },
+      {
+        title: "Archiving",
+        href: "/admin/archiving",
+        icon: Archive,
+        description: "Monitor inactivity and archive rules",
+        commandKey: "archiving",
       },
     ],
   },
@@ -320,6 +328,7 @@ export const getIconColor = (
     "Parental Consent": "text-blue-600",
     "Custom Labels": "text-indigo-600",
     Achievements: "text-amber-600",
+    Archiving: "text-rose-600",
     "Newsletter Lists": "text-cyan-600",
 
     // Restaurant Management

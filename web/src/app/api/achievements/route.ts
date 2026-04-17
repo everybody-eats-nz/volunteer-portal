@@ -88,10 +88,11 @@ export async function GET(request: Request) {
 
     // Include ranking data if requested
     if (includeRanking) {
-      // Get all users with their achievement points
+      // Get all users with their achievement points (exclude archived)
       const allUsersWithPoints = await prisma.user.findMany({
         where: {
           role: "VOLUNTEER",
+          archivedAt: null,
         },
         select: {
           id: true,

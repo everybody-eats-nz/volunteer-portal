@@ -58,10 +58,12 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    // Build base where clause
+    // Build base where clause — exclude archived so the migration invite queue
+    // never targets users archived via the never-migrated rule.
     const baseWhere: {
       isMigrated: boolean;
       role: "VOLUNTEER";
+      archivedAt: null;
       OR?: Array<{
         email?: { contains: string; mode: "insensitive" };
         firstName?: { contains: string; mode: "insensitive" };
@@ -70,6 +72,7 @@ export async function GET(request: NextRequest) {
     } = {
       isMigrated: true,
       role: "VOLUNTEER" as const,
+      archivedAt: null,
     };
 
     // Add search filter
@@ -87,6 +90,7 @@ export async function GET(request: NextRequest) {
     const where: {
       isMigrated: boolean;
       role: "VOLUNTEER";
+      archivedAt: null;
       OR?: Array<{
         email?: { contains: string; mode: "insensitive" };
         firstName?: { contains: string; mode: "insensitive" };

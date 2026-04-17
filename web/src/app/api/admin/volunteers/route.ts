@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     const volunteers = await prisma.user.findMany({
       where: {
         role: includeAdmins ? { in: ["VOLUNTEER", "ADMIN"] } : "VOLUNTEER",
+        archivedAt: null,
         signups: {
           some: {
             status: "CONFIRMED",

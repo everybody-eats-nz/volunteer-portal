@@ -197,6 +197,24 @@ interface EmailAttachment {
   Type: string; // MIME type
 }
 
+interface SendArchiveWarningParams {
+  to: string;
+  firstName: string;
+  extendLink: string;
+}
+
+interface SendArchivedConfirmationParams {
+  to: string;
+  firstName: string;
+  reactivateLink: string;
+}
+
+interface SendFirstShiftNudgeParams {
+  to: string;
+  firstName: string;
+  shiftsLink: string;
+}
+
 class EmailService {
   private readonly apiKey: string;
   private readonly baseUrl = "https://api.createsend.com/api/v3.3";
@@ -213,6 +231,9 @@ class EmailService {
   private profileCompletionSmartEmailID: string;
   private surveyNotificationSmartEmailID: string;
   private firstShiftConfirmationSmartEmailID: string;
+  private archiveWarningSmartEmailID: string;
+  private archivedConfirmationSmartEmailID: string;
+  private firstShiftNudgeSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -475,6 +496,136 @@ class EmailService {
       }
     } else {
       this.firstShiftConfirmationSmartEmailID = firstShiftConfirmationEmailId;
+    }
+
+    // Smart email IDs for volunteer archiving
+    this.archiveWarningSmartEmailID =
+      process.env.CAMPAIGN_MONITOR_ARCHIVE_WARNING_EMAIL_ID ||
+      "dummy-archive-warning-id";
+    this.archivedConfirmationSmartEmailID =
+      process.env.CAMPAIGN_MONITOR_ARCHIVED_CONFIRMATION_EMAIL_ID ||
+      "dummy-archived-confirmation-id";
+    this.firstShiftNudgeSmartEmailID =
+      process.env.CAMPAIGN_MONITOR_FIRST_SHIFT_NUDGE_EMAIL_ID ||
+      "dummy-first-shift-nudge-id";
+
+    if (
+      this.archiveWarningSmartEmailID === "dummy-archive-warning-id" &&
+      !isDevelopment
+    ) {
+      console.warn(
+        "[EMAIL SERVICE] CAMPAIGN_MONITOR_ARCHIVE_WARNING_EMAIL_ID is not configured - archive warning emails will not be sent"
+      );
+    }
+    if (
+      this.archivedConfirmationSmartEmailID === "dummy-archived-confirmation-id" &&
+      !isDevelopment
+    ) {
+      console.warn(
+        "[EMAIL SERVICE] CAMPAIGN_MONITOR_ARCHIVED_CONFIRMATION_EMAIL_ID is not configured - archive confirmation emails will not be sent"
+      );
+    }
+    if (
+      this.firstShiftNudgeSmartEmailID === "dummy-first-shift-nudge-id" &&
+      !isDevelopment
+    ) {
+      console.warn(
+        "[EMAIL SERVICE] CAMPAIGN_MONITOR_FIRST_SHIFT_NUDGE_EMAIL_ID is not configured - first shift nudge emails will not be sent"
+      );
+    }
+  }
+
+  async sendArchiveWarning(params: SendArchiveWarningParams): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    if (this.archiveWarningSmartEmailID === "dummy-archive-warning-id") {
+      console.log(
+        `[EMAIL SERVICE] Would send archive warning to ${params.to} — extendLink: ${params.extendLink}`
+      );
+      return;
+    }
+    try {
+      await this.sendSmartEmail(
+        this.archiveWarningSmartEmailID,
+        `${params.firstName} <${params.to}>`,
+        {
+          firstName: params.firstName,
+          extendLink: params.extendLink,
+        }
+      );
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending archive warning (dev):",
+          err instanceof Error ? err.message : "Unknown error"
+        );
+      } else {
+        console.error("Error sending archive warning:", err);
+        throw err;
+      }
+    }
+  }
+
+  async sendArchivedConfirmation(
+    params: SendArchivedConfirmationParams
+  ): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    if (
+      this.archivedConfirmationSmartEmailID === "dummy-archived-confirmation-id"
+    ) {
+      console.log(
+        `[EMAIL SERVICE] Would send archived confirmation to ${params.to} — reactivateLink: ${params.reactivateLink}`
+      );
+      return;
+    }
+    try {
+      await this.sendSmartEmail(
+        this.archivedConfirmationSmartEmailID,
+        `${params.firstName} <${params.to}>`,
+        {
+          firstName: params.firstName,
+          reactivateLink: params.reactivateLink,
+        }
+      );
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending archived confirmation (dev):",
+          err instanceof Error ? err.message : "Unknown error"
+        );
+      } else {
+        console.error("Error sending archived confirmation:", err);
+        throw err;
+      }
+    }
+  }
+
+  async sendFirstShiftNudge(params: SendFirstShiftNudgeParams): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    if (this.firstShiftNudgeSmartEmailID === "dummy-first-shift-nudge-id") {
+      console.log(
+        `[EMAIL SERVICE] Would send first shift nudge to ${params.to} — shiftsLink: ${params.shiftsLink}`
+      );
+      return;
+    }
+    try {
+      await this.sendSmartEmail(
+        this.firstShiftNudgeSmartEmailID,
+        `${params.firstName} <${params.to}>`,
+        {
+          firstName: params.firstName,
+          shiftsLink: params.shiftsLink,
+        }
+      );
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending first shift nudge (dev):",
+          err instanceof Error ? err.message : "Unknown error"
+        );
+      } else {
+        console.error("Error sending first shift nudge:", err);
+        throw err;
+      }
     }
   }
 

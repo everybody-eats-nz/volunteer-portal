@@ -99,10 +99,11 @@ export async function checkAndAssignSurveys(userId: string): Promise<string[]> {
         email: true,
         name: true,
         createdAt: true,
+        archivedAt: true,
       },
     });
 
-    if (!user) {
+    if (!user || user.archivedAt) {
       return assignedSurveys;
     }
 
@@ -229,9 +230,9 @@ export async function manuallyAssignSurvey(
   // Filter to users who don't already have assignments
   const eligibleUserIds = userIds.filter((id) => !alreadyAssignedUserIds.has(id));
 
-  // Batch query: Get user details for all eligible users
+  // Batch query: Get user details for all eligible users (skip archived)
   const users = await prisma.user.findMany({
-    where: { id: { in: eligibleUserIds } },
+    where: { id: { in: eligibleUserIds }, archivedAt: null },
     select: { id: true, email: true, name: true },
   });
   const userMap = new Map(users.map((u) => [u.id, u]));
@@ -339,8 +340,10 @@ export async function findEligibleUsersForSurvey(
         SELECT s."userId"
         FROM "Signup" s
         JOIN "Shift" sh ON sh.id = s."shiftId"
+        JOIN "User" u ON u.id = s."userId"
         WHERE s.status = 'CONFIRMED'
           AND sh."end" < NOW()
+          AND u."archivedAt" IS NULL
         GROUP BY s."userId"
         HAVING COUNT(DISTINCT s.id) >= ${survey.triggerValue}
           ${maxCondition}
@@ -359,8 +362,10 @@ export async function findEligibleUsersForSurvey(
         SELECT s."userId"
         FROM "Signup" s
         JOIN "Shift" sh ON sh.id = s."shiftId"
+        JOIN "User" u ON u.id = s."userId"
         WHERE s.status = 'CONFIRMED'
           AND sh."end" < NOW()
+          AND u."archivedAt" IS NULL
         GROUP BY s."userId"
         HAVING SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600) >= ${survey.triggerValue}
           ${maxCondition}
@@ -379,8 +384,10 @@ export async function findEligibleUsersForSurvey(
         SELECT s."userId"
         FROM "Signup" s
         JOIN "Shift" sh ON sh.id = s."shiftId"
+        JOIN "User" u ON u.id = s."userId"
         WHERE s.status = 'CONFIRMED'
           AND sh."end" < NOW()
+          AND u."archivedAt" IS NULL
         GROUP BY s."userId"
         HAVING EXTRACT(EPOCH FROM (NOW() - MIN(sh.start))) / 86400 >= ${survey.triggerValue}
           ${maxCondition}
@@ -390,9 +397,9 @@ export async function findEligibleUsersForSurvey(
     }
 
     case "MANUAL": {
-      // All VOLUNTEER-role users
+      // All active VOLUNTEER-role users
       const rows = await prisma.user.findMany({
-        where: { role: "VOLUNTEER" },
+        where: { role: "VOLUNTEER", archivedAt: null },
         select: { id: true },
       });
       candidateUserIds = rows.map((r) => r.id);
@@ -408,10 +415,10 @@ export async function findEligibleUsersForSurvey(
     (id) => !alreadyAssignedIds.has(id)
   );
 
-  // Fetch sample users for preview (up to 10)
+  // Fetch sample users for preview (up to 10, skip archived)
   const sampleUsers = eligibleUserIds.length > 0
     ? await prisma.user.findMany({
-        where: { id: { in: eligibleUserIds.slice(0, 10) } },
+        where: { id: { in: eligibleUserIds.slice(0, 10) }, archivedAt: null },
         select: { id: true, name: true, email: true },
       })
     : [];

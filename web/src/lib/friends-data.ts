@@ -262,6 +262,7 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
         status: "CONFIRMED",
         user: {
           allowFriendSuggestions: true,
+          archivedAt: null,
           id: { notIn: friendIds },
         },
       },

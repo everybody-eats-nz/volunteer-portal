@@ -73,6 +73,16 @@ model User {
   migrationInvitationToken  String?   @unique
   migrationTokenExpiresAt   DateTime?
 
+  // Archiving (inactive volunteer management)
+  archivedAt                    DateTime?
+  archiveReason                 ArchiveReason?
+  archivedBy                    String? // admin user id if manually archived; null if automated
+  archiveWarningSentAt          DateTime? // 11mo warning email sent at
+  firstShiftNudgeSentAt         DateTime? // 1mo nudge for never-activated users
+  archiveExtendedUntil          DateTime? // set when user clicks "keep me active" link
+  archiveExtensionToken         String?   @unique
+  archiveExtensionTokenExpiresAt DateTime?
+
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   signups              Signup[]
@@ -133,8 +143,15 @@ model User {
   blocksGiven    UserBlock[]     @relation("BlocksMade")
   blocksReceived UserBlock[]     @relation("BlocksReceived")
 
+  // Archive activity (events affecting this user)
+  archiveLogs ArchiveLog[] @relation("ArchivedUser")
+  // Archive activity performed by this user (admin)
+  archiveActions ArchiveLog[] @relation("ArchiveActor")
+
   // Analytics queries filter heavily on role + createdAt
   @@index([role, createdAt])
+  // Archive filters and scheduled job queries
+  @@index([archivedAt])
 }
 
 model Passkey {
@@ -930,4 +947,44 @@ model Announcement {
 
   @@index([createdAt])
   @@index([expiresAt])
+}
+
+enum ArchiveReason {
+  INACTIVE_12_MONTHS
+  NEVER_ACTIVATED
+  NEVER_MIGRATED
+  MANUAL
+}
+
+enum ArchiveEventType {
+  ARCHIVED
+  UNARCHIVED
+  WARNING_SENT
+  FIRST_SHIFT_NUDGE_SENT
+  EXTENDED
+}
+
+enum ArchiveTriggerSource {
+  MANUAL
+  CRON
+  SELF_EXTENSION
+  SELF_REACTIVATION
+}
+
+model ArchiveLog {
+  id           String               @id @default(cuid())
+  userId       String
+  eventType    ArchiveEventType
+  reason       ArchiveReason?
+  triggerSource ArchiveTriggerSource
+  actorId      String? // admin user id when MANUAL; null otherwise
+  note         String?
+  createdAt    DateTime             @default(now())
+
+  user  User  @relation("ArchivedUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("ArchiveActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([eventType, createdAt])
 }
