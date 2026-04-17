@@ -58,6 +58,7 @@ export async function POST(request: Request) {
           in: volunteerIds,
         },
         receiveShortageNotifications: true, // Only send to those who opted in
+        archivedAt: null,
       },
       select: {
         id: true,

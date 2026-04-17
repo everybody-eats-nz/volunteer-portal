@@ -14,7 +14,6 @@ import { TabsList } from "@/components/ui/tabs";
  * Features:
  * - Horizontal scrolling on mobile
  * - Smooth scroll behavior
- * - Fade indicators on the edges (optional)
  * - Maintains accessibility
  *
  * Usage:
@@ -36,10 +35,6 @@ export function ScrollableTabsList({
 }: React.ComponentProps<typeof TabsList>) {
   return (
     <div className="relative w-full">
-      {/* Gradient fade on left edge */}
-      <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 hidden sm:block" />
-
-      {/* Scrollable container */}
       <div className="overflow-x-auto scrollbar-hide -mx-2 px-2">
         <TabsList
           className={cn(
@@ -51,9 +46,6 @@ export function ScrollableTabsList({
           {children}
         </TabsList>
       </div>
-
-      {/* Gradient fade on right edge */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 hidden sm:block" />
     </div>
   );
 }

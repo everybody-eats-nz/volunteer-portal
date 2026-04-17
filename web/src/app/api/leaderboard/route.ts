@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const allUsersWithPoints = await prisma.user.findMany({
       where: {
         role: "VOLUNTEER",
+        archivedAt: null,
       },
       select: {
         id: true,

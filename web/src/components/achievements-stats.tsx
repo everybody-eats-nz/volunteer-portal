@@ -31,10 +31,11 @@ async function getAchievementsData(userId: string, skipUnlockCheck = false) {
     0
   );
 
-  // Get all users with their achievement points for ranking (all locations)
+  // Get all active users with their achievement points for ranking (all locations)
   const allUsersWithPoints = await prisma.user.findMany({
     where: {
       role: "VOLUNTEER",
+      archivedAt: null,
     },
     select: {
       id: true,

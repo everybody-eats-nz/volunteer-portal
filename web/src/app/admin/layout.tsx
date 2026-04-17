@@ -66,6 +66,7 @@ export default async function AdminLayout({
         role: "VOLUNTEER",
         requiresParentalConsent: true,
         parentalConsentReceived: false,
+        archivedAt: null,
       },
     }),
     prisma.contentReport.count({ where: { status: "PENDING" } }),

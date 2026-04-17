@@ -17,9 +17,9 @@ export default async function RestaurantManagersPage() {
     redirect("/dashboard");
   }
 
-  // Fetch admin users
+  // Fetch active admin users
   const adminUsers = await prisma.user.findMany({
-    where: { role: "ADMIN" },
+    where: { role: "ADMIN", archivedAt: null },
     select: {
       id: true,
       email: true,
