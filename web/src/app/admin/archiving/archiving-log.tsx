@@ -32,11 +32,7 @@ type LogEntry = {
     | "FIRST_SHIFT_NUDGE_SENT"
     | "EXTENDED";
   reason: string | null;
-  triggerSource:
-    | "MANUAL"
-    | "CRON"
-    | "SELF_EXTENSION"
-    | "SELF_REACTIVATION";
+  triggerSource: "MANUAL" | "CRON" | "SELF_EXTENSION" | "SELF_REACTIVATION";
   note: string | null;
   createdAt: string;
   user: {
@@ -51,7 +47,10 @@ type LogEntry = {
 
 const EVENT_VARIANT: Record<
   LogEntry["eventType"],
-  { label: string; variant: "default" | "destructive" | "secondary" | "outline" }
+  {
+    label: string;
+    variant: "default" | "destructive" | "secondary" | "outline";
+  }
 > = {
   ARCHIVED: { label: "Archived", variant: "destructive" },
   UNARCHIVED: { label: "Reactivated", variant: "default" },
@@ -158,7 +157,7 @@ export function ArchivingLog() {
                       </TableCell>
                       <TableCell>
                         <Link
-                          href={`/admin/users/${log.user.id}`}
+                          href={`/admin/volunteers/${log.user.id}`}
                           className="hover:underline"
                         >
                           <span className="font-medium">

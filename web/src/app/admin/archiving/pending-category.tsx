@@ -82,8 +82,8 @@ export function PendingCategory({
         action.kind === "archive"
           ? `Archive ${user.email}? They'll be soft-archived and asked to reactivate on next login.`
           : action.kind === "warn"
-            ? `Send the 11-month warning email to ${user.email}?`
-            : `Send the first-shift nudge email to ${user.email}?`;
+          ? `Send the 11-month warning email to ${user.email}?`
+          : `Send the first-shift nudge email to ${user.email}?`;
       if (!confirm(confirmMsg)) return;
 
       setWorkingUserId(user.id);
@@ -107,8 +107,8 @@ export function PendingCategory({
           action.kind === "archive"
             ? "User archived"
             : action.kind === "warn"
-              ? "Warning email sent"
-              : "Nudge email sent"
+            ? "Warning email sent"
+            : "Nudge email sent"
         );
         await fetchUsers();
         onMutation();
@@ -184,7 +184,7 @@ export function PendingCategory({
                     <TableCell>
                       <div className="flex flex-col">
                         <Link
-                          href={`/admin/users/${u.id}`}
+                          href={`/admin/volunteers/${u.id}`}
                           className="font-medium hover:underline inline-flex items-center gap-1"
                         >
                           {displayName(u)}
@@ -202,17 +202,21 @@ export function PendingCategory({
                       <>
                         <TableCell className="text-sm">
                           {u.effectiveLastActivityAt ? (
-                            format(new Date(u.effectiveLastActivityAt), "dd MMM yyyy")
+                            format(
+                              new Date(u.effectiveLastActivityAt),
+                              "dd MMM yyyy"
+                            )
                           ) : (
-                            <span className="text-muted-foreground">
-                              Never
-                            </span>
+                            <span className="text-muted-foreground">Never</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {u.archiveWarningSentAt ? (
                             <Badge variant="secondary">
-                              {format(new Date(u.archiveWarningSentAt), "dd MMM yyyy")}
+                              {format(
+                                new Date(u.archiveWarningSentAt),
+                                "dd MMM yyyy"
+                              )}
                             </Badge>
                           ) : (
                             <span className="text-xs text-muted-foreground">
