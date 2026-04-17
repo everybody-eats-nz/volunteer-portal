@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import type { ArchiveCategory } from "@/lib/archive-service";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict } from "date-fns";
 
 type PendingUser = {
   id: string;
@@ -166,6 +166,7 @@ export function PendingCategory({
                   {category.startsWith("inactive") && (
                     <>
                       <TableHead>Last activity</TableHead>
+                      <TableHead>Inactive for</TableHead>
                       <TableHead>Warning sent</TableHead>
                     </>
                   )}
@@ -209,6 +210,14 @@ export function PendingCategory({
                           ) : (
                             <span className="text-muted-foreground">Never</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {u.effectiveLastActivityAt
+                            ? formatDistanceToNowStrict(
+                                new Date(u.effectiveLastActivityAt),
+                                { addSuffix: true }
+                              )
+                            : "—"}
                         </TableCell>
                         <TableCell>
                           {u.archiveWarningSentAt ? (
