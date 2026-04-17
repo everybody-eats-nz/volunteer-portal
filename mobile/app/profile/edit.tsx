@@ -1,6 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -21,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { GlassButton } from "@/components/glass-button";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
@@ -684,87 +683,6 @@ export default function EditProfileScreen() {
 
 /* ── Footer Buttons Component ── */
 
-function GlassButton({
-  onPress,
-  disabled,
-  isDark,
-  tintColor,
-  style,
-  children,
-}: {
-  onPress: () => void;
-  disabled?: boolean;
-  isDark: boolean;
-  tintColor?: string;
-  style?: object;
-  children: React.ReactNode;
-}) {
-  const useNativeGlass = Platform.OS === "ios" && isLiquidGlassAvailable();
-
-  if (useNativeGlass) {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, style]}
-      >
-        <GlassView glassEffectStyle="regular" style={[s.glassButton, tintColor ? { backgroundColor: tintColor } : undefined]}>
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  if (Platform.OS === "ios") {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [
-          s.glassButton,
-          { overflow: "hidden", opacity: pressed ? 0.85 : 1 },
-          style,
-        ]}
-      >
-        <BlurView
-          intensity={isDark ? 50 : 70}
-          tint={isDark ? "dark" : "light"}
-          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
-        />
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: 16,
-              backgroundColor: tintColor
-                ? tintColor
-                : isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "rgba(255,255,255,0.25)",
-            },
-          ]}
-        />
-        {children}
-      </Pressable>
-    );
-  }
-
-  // Android — solid button
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        s.glassButton,
-        { opacity: pressed ? 0.85 : 1 },
-        style,
-      ]}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
 function FooterButtons({
   isSaving,
   isDark,
@@ -1042,15 +960,6 @@ const s = StyleSheet.create({
   },
 
   // Glass buttons
-  glassButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 50,
-    overflow: "hidden",
-  },
   glassButtonText: {
     fontSize: 15,
     fontFamily: FontFamily.bold,

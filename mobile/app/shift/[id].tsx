@@ -15,11 +15,10 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { differenceInMinutes } from "date-fns";
 import { formatNZT } from "@/lib/dates";
@@ -30,6 +29,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
 import { api, ApiError } from "@/lib/api";
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
+import { GlassButton } from "@/components/glass-button";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
 
 /* ── Music Queue Type ── */
@@ -83,6 +83,7 @@ export default function ShiftDetailScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const {
     shift,
@@ -359,8 +360,16 @@ export default function ShiftDetailScreen() {
     });
   };
 
+  const showFloatingCta = !isMyShift;
+  const floatingCtaReserve = 96 + Math.max(insets.bottom, 12);
+
   return (
-    <>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: isDark ? colors.background : Brand.warmWhite,
+      }}
+    >
       <Stack.Screen
         options={{
           title: "",
@@ -382,7 +391,10 @@ export default function ShiftDetailScreen() {
           s.container,
           { backgroundColor: isDark ? colors.background : Brand.warmWhite },
         ]}
-        contentContainerStyle={s.content}
+        contentContainerStyle={[
+          s.content,
+          showFloatingCta && { paddingBottom: floatingCtaReserve + 16 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* ═══ HERO ═══ */}
@@ -834,37 +846,6 @@ export default function ShiftDetailScreen() {
           </Section>
         )}
 
-        {/* ═══ Sign up CTA ═══ */}
-        {!isMyShift && spotsLeft > 0 && (
-          <View style={s.ctaWrap}>
-            <GlassButton
-              onPress={() => openSignupSheet(false)}
-              isDark={isDark}
-              tintColor="rgba(14,58,35,0.55)"
-              androidBg={Brand.green}
-              accessibilityLabel="Sign up for shift"
-            >
-              <Text style={s.glassCtaText}>Join this shift</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fffdf7" />
-            </GlassButton>
-          </View>
-        )}
-
-        {!isMyShift && spotsLeft <= 0 && (
-          <View style={s.ctaWrap}>
-            <GlassButton
-              onPress={() => openSignupSheet(true)}
-              isDark={isDark}
-              tintColor="rgba(194,65,12,0.55)"
-              androidBg={isDark ? "#92400e" : "#c2410c"}
-              accessibilityLabel="Join shift waitlist"
-            >
-              <Ionicons name="list-outline" size={18} color="#fffdf7" />
-              <Text style={s.glassCtaText}>Join the waitlist</Text>
-            </GlassButton>
-          </View>
-        )}
-
         {/* ═══ Cancel signup ═══ */}
         {isMyShift && !checkedIn && (
           <Pressable
@@ -887,6 +868,41 @@ export default function ShiftDetailScreen() {
         )}
       </ScrollView>
 
+      {/* ═══ Floating CTA — liquid glass action pinned to bottom ═══ */}
+      {showFloatingCta && (
+        <View
+          style={[
+            s.floatingCta,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}
+          pointerEvents="box-none"
+        >
+          {spotsLeft > 0 ? (
+            <GlassButton
+              onPress={() => openSignupSheet(false)}
+              isDark={isDark}
+              tintColor="rgba(14,58,35,0.8)"
+              androidBg={Brand.green}
+              accessibilityLabel="Sign up for shift"
+            >
+              <Text style={s.glassCtaText}>Join this shift</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fffdf7" />
+            </GlassButton>
+          ) : (
+            <GlassButton
+              onPress={() => openSignupSheet(true)}
+              isDark={isDark}
+              tintColor="rgba(194,65,12,0.8)"
+              androidBg={isDark ? "#92400e" : "#c2410c"}
+              accessibilityLabel="Join shift waitlist"
+            >
+              <Ionicons name="list-outline" size={18} color="#fffdf7" />
+              <Text style={s.glassCtaText}>Join the waitlist</Text>
+            </GlassButton>
+          )}
+        </View>
+      )}
+
       {/* ═══ Signup Sheet ═══ */}
       {shift && (
         <ShiftSignupSheet
@@ -898,107 +914,7 @@ export default function ShiftDetailScreen() {
           formatDate={formatNZT}
         />
       )}
-    </>
-  );
-}
-
-/* ═════════════════════════════════════════════════════════
-   GLASS BUTTON — iOS liquid-glass with blur fallback
-   ═════════════════════════════════════════════════════════ */
-
-function GlassButton({
-  onPress,
-  disabled,
-  isDark,
-  tintColor,
-  androidBg,
-  accessibilityLabel,
-  children,
-}: {
-  onPress: () => void;
-  disabled?: boolean;
-  isDark: boolean;
-  tintColor?: string;
-  androidBg?: string;
-  accessibilityLabel?: string;
-  children: React.ReactNode;
-}) {
-  const useNativeGlass = Platform.OS === "ios" && isLiquidGlassAvailable();
-
-  if (useNativeGlass) {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-      >
-        <GlassView
-          glassEffectStyle="regular"
-          style={[
-            s.glassButton,
-            tintColor ? { backgroundColor: tintColor } : undefined,
-          ]}
-        >
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  if (Platform.OS === "ios") {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [
-          s.glassButton,
-          { overflow: "hidden", opacity: pressed ? 0.85 : 1 },
-        ]}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-      >
-        <BlurView
-          intensity={isDark ? 50 : 70}
-          tint={isDark ? "dark" : "light"}
-          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
-        />
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: 16,
-              backgroundColor: tintColor
-                ? tintColor
-                : isDark
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(255,255,255,0.25)",
-            },
-          ]}
-        />
-        {children}
-      </Pressable>
-    );
-  }
-
-  // Android — solid button
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        s.glassButton,
-        {
-          backgroundColor: androidBg ?? Brand.green,
-          opacity: pressed ? 0.85 : 1,
-        },
-      ]}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-    >
-      {children}
-    </Pressable>
+    </View>
   );
 }
 
@@ -1850,22 +1766,21 @@ const s = StyleSheet.create({
   ctaWrap: {
     paddingHorizontal: 20,
   },
-  glassButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 22,
-    borderRadius: 16,
-    minHeight: 56,
-    overflow: "hidden",
-  },
   glassCtaText: {
     color: "#fffdf7",
     fontFamily: FontFamily.bold,
     fontSize: 16,
     letterSpacing: -0.1,
+  },
+
+  /* ── FLOATING CTA ── */
+  floatingCta: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
 
   /* ── CHECKED-IN BANNER ── */
