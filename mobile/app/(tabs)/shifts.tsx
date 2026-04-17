@@ -210,9 +210,14 @@ export default function ShiftsScreen() {
   const signedUpDates = useMemo(() => {
     const set = new Set<string>();
     for (const shift of myShifts) set.add(formatDateKey(new Date(shift.start)));
+    return set;
+  }, [myShifts]);
+
+  const pastAttendedDates = useMemo(() => {
+    const set = new Set<string>();
     for (const shift of past) set.add(formatDateKey(new Date(shift.start)));
     return set;
-  }, [myShifts, past]);
+  }, [past]);
 
   /* Selected-day shifts: merge signups (past + upcoming) + available, dedupe by id */
   const selectedDayShifts = useMemo(() => {
@@ -373,6 +378,7 @@ export default function ShiftsScreen() {
               shiftCountByDate={shiftCountByDate}
               friendDates={friendDates}
               signedUpDates={signedUpDates}
+              pastAttendedDates={pastAttendedDates}
               isDark={isDark}
             />
           </View>

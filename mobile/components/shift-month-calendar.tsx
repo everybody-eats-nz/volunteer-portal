@@ -30,8 +30,10 @@ type ShiftMonthCalendarProps = {
   shiftCountByDate: Record<string, number>;
   /** Key "YYYY-MM-DD" → true if any friends are going that day */
   friendDates: Set<string>;
-  /** Key "YYYY-MM-DD" → true if user is signed up that day */
+  /** Key "YYYY-MM-DD" → true if user is signed up for an upcoming shift that day */
   signedUpDates: Set<string>;
+  /** Key "YYYY-MM-DD" → true if user attended a shift on that past day */
+  pastAttendedDates: Set<string>;
   isDark: boolean;
   /** Force initial visible month (defaults to selectedDate's month) */
   initialMonth?: Date;
@@ -49,6 +51,7 @@ export function ShiftMonthCalendar({
   shiftCountByDate,
   friendDates,
   signedUpDates,
+  pastAttendedDates,
   isDark,
   initialMonth,
 }: ShiftMonthCalendarProps) {
@@ -166,11 +169,12 @@ export function ShiftMonthCalendar({
               const shiftCount = shiftCountByDate[key] ?? 0;
               const hasFriends = friendDates.has(key);
               const isSignedUp = signedUpDates.has(key);
+              const isPastAttended = pastAttendedDates.has(key);
               const isSelected = isSameDay(day, selectedDate);
               const inMonth = isSameMonth(day, visibleMonth);
               const isTodayCell = isToday(day);
 
-              const hasContent = shiftCount > 0 || isSignedUp;
+              const hasContent = shiftCount > 0 || isSignedUp || isPastAttended;
 
               return (
                 <DayCell
@@ -179,6 +183,7 @@ export function ShiftMonthCalendar({
                   shiftCount={shiftCount}
                   hasFriends={hasFriends}
                   isSignedUp={isSignedUp}
+                  isPastAttended={isPastAttended}
                   isSelected={isSelected}
                   inMonth={inMonth}
                   isToday={isTodayCell}
@@ -197,23 +202,6 @@ export function ShiftMonthCalendar({
         <View style={styles.legendItem}>
           <View
             style={[
-              styles.legendDot,
-              { backgroundColor: isDark ? "#86efac" : Brand.green },
-            ]}
-          />
-          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-            Shifts
-          </Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#f5c518" }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-            Friends going
-          </Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View
-            style={[
               styles.legendSquare,
               {
                 backgroundColor: isDark
@@ -225,6 +213,27 @@ export function ShiftMonthCalendar({
           />
           <Text style={[styles.legendText, { color: colors.textSecondary }]}>
             {"You're on"}
+          </Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View
+            style={[
+              styles.legendDot,
+              {
+                backgroundColor: isDark
+                  ? "rgba(134, 239, 172, 0.55)"
+                  : "#94a3b8",
+              },
+            ]}
+          />
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+            Past shift
+          </Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: "#f5c518" }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary }]}>
+            Friends going
           </Text>
         </View>
       </View>
@@ -239,6 +248,7 @@ function DayCell({
   shiftCount,
   hasFriends,
   isSignedUp,
+  isPastAttended,
   isSelected,
   inMonth,
   isToday,
@@ -250,6 +260,7 @@ function DayCell({
   shiftCount: number;
   hasFriends: boolean;
   isSignedUp: boolean;
+  isPastAttended: boolean;
   isSelected: boolean;
   inMonth: boolean;
   isToday: boolean;
@@ -260,13 +271,7 @@ function DayCell({
   const colors = Colors[isDark ? "dark" : "light"];
   const dayNumber = formatNZT(day, "d");
 
-  // Density tier: 0 / 1-2 / 3-4 / 5+
-  let densityDots = 0;
-  if (shiftCount >= 5) densityDots = 3;
-  else if (shiftCount >= 3) densityDots = 2;
-  else if (shiftCount >= 1) densityDots = 1;
-
-  const densityColor = isDark ? "#86efac" : Brand.green;
+  const pastDotColor = isDark ? "rgba(134, 239, 172, 0.55)" : "#94a3b8";
   const friendColor = "#f5c518"; // gold — distinct from green
 
   // Subtle tappable-target background for days that have shifts available
@@ -321,7 +326,9 @@ function DayCell({
       ]}
       accessibilityLabel={`${formatNZT(day, "EEEE, d MMMM")}${
         shiftCount > 0 ? `, ${shiftCount} shifts` : ", no shifts"
-      }${hasFriends ? ", friends going" : ""}${isSignedUp ? ", you're signed up" : ""}`}
+      }${hasFriends ? ", friends going" : ""}${
+        isSignedUp ? ", you're signed up" : ""
+      }${isPastAttended ? ", shift attended" : ""}`}
       accessibilityRole="button"
       accessibilityState={{ selected: isSelected, disabled: !hasContent }}
     >
@@ -348,19 +355,18 @@ function DayCell({
           {dayNumber}
         </Text>
 
-        {/* Density + friend dots */}
+        {/* Past-attended + friend dots */}
         <View style={styles.dotRow}>
-          {Array.from({ length: densityDots }).map((_, i) => (
+          {isPastAttended && (
             <View
-              key={i}
               style={[
                 styles.dot,
                 {
-                  backgroundColor: isSelected ? "#ffffff" : densityColor,
+                  backgroundColor: isSelected ? "#ffffff" : pastDotColor,
                 },
               ]}
             />
-          ))}
+          )}
           {hasFriends && (
             <View
               style={[

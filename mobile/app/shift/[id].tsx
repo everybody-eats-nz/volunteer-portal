@@ -525,7 +525,7 @@ export default function ShiftDetailScreen() {
                   <Text
                     style={[s.statusCapacityNumber, { color: colors.text }]}
                   >
-                    {String(shift.signedUp).padStart(2, "0")}
+                    {shift.signedUp}
                     <Text
                       style={[
                         s.statusCapacitySlash,
@@ -558,7 +558,7 @@ export default function ShiftDetailScreen() {
                       },
                     ]}
                   >
-                    {isFull ? "Full" : String(spotsLeft).padStart(2, "0")}
+                    {isFull ? "Full" : spotsLeft}
                   </Text>
                   <Text
                     style={[
@@ -939,7 +939,7 @@ function FriendsSection({
     <View style={s.section}>
       <SectionHeader
         label=""
-        title={`${total} friend${total !== 1 ? "s" : ""} on this session`}
+        title={`${total} friend${total !== 1 ? "s" : ""} on this shift`}
         caption={""}
         colors={colors}
       />
@@ -1161,21 +1161,23 @@ function SectionHeader({
   caption,
   colors,
 }: {
-  label: string;
+  label?: string;
   title: string;
   caption?: string;
   colors: (typeof Colors)["light"];
 }) {
   return (
     <View style={s.sectionHeaderBlock}>
-      <View style={s.sectionOverlineRow}>
-        <View
-          style={[s.sectionOverlineDot, { backgroundColor: Brand.accent }]}
-        />
-        <Text style={[s.sectionOverline, { color: colors.textSecondary }]}>
-          {label}
-        </Text>
-      </View>
+      {label ? (
+        <View style={s.sectionOverlineRow}>
+          <View
+            style={[s.sectionOverlineDot, { backgroundColor: Brand.accent }]}
+          />
+          <Text style={[s.sectionOverline, { color: colors.textSecondary }]}>
+            {label}
+          </Text>
+        </View>
+      ) : null}
       <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
       {caption ? (
         <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
@@ -1495,7 +1497,7 @@ const s = StyleSheet.create({
   /* ── STATUS STRIP (bridges hero + content) ── */
   statusStripWrap: {
     paddingHorizontal: 16,
-    marginTop: -36,
+    marginTop: -46,
     marginBottom: -4,
   },
   statusStrip: {
