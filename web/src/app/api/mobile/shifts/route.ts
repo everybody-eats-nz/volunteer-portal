@@ -5,17 +5,19 @@ import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 
 const DEFAULT_PAGE_SIZE = 15;
 
+/** How far ahead (in months) to include available shifts — covers the calendar window. */
+const AVAILABLE_WINDOW_MONTHS = 3;
+
 /**
  * GET /api/mobile/shifts
  *
  * Returns shifts categorized for the authenticated user:
  * - myShifts: upcoming shifts the user is signed up for (always returns all)
- * - available: upcoming shifts with open spots the user is NOT signed up for (paginated)
+ * - available: upcoming shifts the user is NOT signed up for, within a 3-month window (unpaginated)
  * - past: past shifts the user attended (paginated)
  *
  * Pagination query params:
- * - limit: number of items per page (default 15)
- * - availableCursor: shift ID cursor for available shifts (omit for first page)
+ * - limit: number of items per page for past (default 15)
  * - pastCursor: signup ID cursor for past shifts (omit for first page)
  */
 export async function GET(request: Request) {
@@ -51,7 +53,6 @@ export async function GET(request: Request) {
     Math.max(parseInt(url.searchParams.get("limit") ?? "") || DEFAULT_PAGE_SIZE, 1),
     50
   );
-  const availableCursor = url.searchParams.get("availableCursor");
   const pastCursor = url.searchParams.get("pastCursor");
 
   // Active signup statuses (not canceled/no-show/etc)
@@ -75,12 +76,15 @@ export async function GET(request: Request) {
     orderBy: { shift: { start: "asc" } },
   });
 
-  // Fetch available upcoming shifts (paginated)
+  // Fetch available upcoming shifts within the calendar window (unpaginated — bounded by date range)
   const userSignedUpShiftIds = mySignups.map((s) => s.shift.id);
+
+  const availableWindowEnd = new Date(now);
+  availableWindowEnd.setMonth(availableWindowEnd.getMonth() + AVAILABLE_WINDOW_MONTHS);
 
   const availableShifts = await prisma.shift.findMany({
     where: {
-      start: { gte: now },
+      start: { gte: now, lt: availableWindowEnd },
       id: { notIn: userSignedUpShiftIds.length > 0 ? userSignedUpShiftIds : undefined },
     },
     include: {
@@ -88,14 +92,7 @@ export async function GET(request: Request) {
       signups: { where: { status: "CONFIRMED" } },
     },
     orderBy: { start: "asc" },
-    take: limit + 1, // Fetch one extra to detect if there are more
-    ...(availableCursor
-      ? { cursor: { id: availableCursor }, skip: 1 }
-      : {}),
   });
-
-  const hasMoreAvailable = availableShifts.length > limit;
-  if (hasMoreAvailable) availableShifts.pop(); // Remove the extra item
 
   // Fetch past shifts the user attended (paginated)
   const pastSignups = await prisma.signup.findMany({
@@ -150,10 +147,6 @@ export async function GET(request: Request) {
     status: status ?? null,
     notes: shift.notes,
   });
-
-  const filteredAvailable = availableShifts.filter(
-    (s) => s.signups.length < s.capacity
-  );
 
   // Build periodFriends: friends signed up for shifts in each date+period
   // Collect all upcoming shift IDs (myShifts + available)
@@ -244,13 +237,10 @@ export async function GET(request: Request) {
     myShifts: mySignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)
     ),
-    available: filteredAvailable.map((s) => toMobileShift(s)),
+    available: availableShifts.map((s) => toMobileShift(s)),
     past: pastSignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)
     ),
-    availableNextCursor: hasMoreAvailable
-      ? availableShifts[availableShifts.length - 1]?.id ?? null
-      : null,
     pastNextCursor: hasMorePast
       ? pastSignups[pastSignups.length - 1]?.id ?? null
       : null,
