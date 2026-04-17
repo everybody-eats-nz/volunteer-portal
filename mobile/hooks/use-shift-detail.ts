@@ -22,13 +22,13 @@ type ShiftDetailResponse = {
   signedUp: number;
   status: "CONFIRMED" | "PENDING" | "WAITLISTED" | "REGULAR_PENDING" | null;
   notes: string | null;
-  signups: Array<{
+  signups: {
     id: string;
     name: string;
     profilePhotoUrl: string | null;
     isFriend: boolean;
-  }>;
-  crew: Array<{
+  }[];
+  crew: {
     id: string;
     name: string;
     profilePhotoUrl: string | null;
@@ -36,13 +36,39 @@ type ShiftDetailResponse = {
     grade: "GREEN" | "YELLOW" | "PINK";
     checkedIn: boolean;
     isYou: boolean;
-  }>;
+  }[];
+};
+
+/** Raw shape returned by GET /api/mobile/shifts/[id]/concurrent */
+type ConcurrentResponse = {
+  concurrentShifts: {
+    id: string;
+    shiftTypeName: string;
+    shiftTypeDescription: string;
+    spotsRemaining: number;
+  }[];
+  friends: {
+    id: string;
+    name: string;
+    profilePhotoUrl: string | null;
+    shiftTypeName: string | null;
+  }[];
+};
+
+export type PeriodFriend = {
+  id: string;
+  name: string;
+  profilePhotoUrl: string | null;
+  /** The role/shift-type name the friend is signed up for */
+  shiftTypeName: string | null;
 };
 
 type UseShiftDetailReturn = {
   shift: Shift | null;
   signups: ShiftSignup[];
   crew: CrewMember[];
+  /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
+  periodFriends: PeriodFriend[];
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -52,6 +78,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
   const [shift, setShift] = useState<Shift | null>(null);
   const [signups, setSignups] = useState<ShiftSignup[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [periodFriends, setPeriodFriends] = useState<PeriodFriend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,11 +90,13 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
 
     try {
       setError(null);
-      const data = await api<ShiftDetailResponse>(
-        `/api/mobile/shifts/${shiftId}`
-      );
+      const [data, concurrent] = await Promise.all([
+        api<ShiftDetailResponse>(`/api/mobile/shifts/${shiftId}`),
+        api<ConcurrentResponse>(`/api/mobile/shifts/${shiftId}/concurrent`).catch(
+          () => null,
+        ),
+      ]);
 
-      // Map to the Shift type used by shift/[id].tsx
       const mappedShift: Shift = {
         id: data.id,
         shiftType: {
@@ -84,7 +113,6 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
         notes: data.notes ?? undefined,
       };
 
-      // Map to ShiftSignup[]
       const mappedSignups: ShiftSignup[] = data.signups.map((s) => ({
         id: s.id,
         name: s.name,
@@ -92,7 +120,6 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
         isFriend: s.isFriend,
       }));
 
-      // Map to CrewMember[]
       const mappedCrew: CrewMember[] = data.crew.map((c) => ({
         id: c.id,
         name: c.name,
@@ -102,9 +129,19 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
         isYou: c.isYou,
       }));
 
+      const mappedPeriodFriends: PeriodFriend[] = (concurrent?.friends ?? []).map(
+        (f) => ({
+          id: f.id,
+          name: f.name,
+          profilePhotoUrl: f.profilePhotoUrl,
+          shiftTypeName: f.shiftTypeName,
+        }),
+      );
+
       setShift(mappedShift);
       setSignups(mappedSignups);
       setCrew(mappedCrew);
+      setPeriodFriends(mappedPeriodFriends);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load shift details"
@@ -127,6 +164,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     shift,
     signups,
     crew,
+    periodFriends,
     isLoading,
     error,
     refresh,

@@ -12,19 +12,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const limit = Math.min(
-    Number(req.nextUrl.searchParams.get("limit") ?? "50"),
+  const pageSize = Math.min(
+    Math.max(Number(req.nextUrl.searchParams.get("pageSize") ?? "50"), 1),
     200
   );
+  const page = Math.max(
+    Number(req.nextUrl.searchParams.get("page") ?? "1"),
+    1
+  );
 
-  const logs = await prisma.archiveLog.findMany({
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: {
-      user: { select: { id: true, email: true, name: true, firstName: true, lastName: true } },
-      actor: { select: { id: true, email: true, name: true } },
-    },
-  });
+  const [logs, total] = await Promise.all([
+    prisma.archiveLog.findMany({
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, email: true, name: true, firstName: true, lastName: true } },
+        actor: { select: { id: true, email: true, name: true } },
+      },
+    }),
+    prisma.archiveLog.count(),
+  ]);
 
-  return NextResponse.json({ logs });
+  return NextResponse.json({ logs, total, page, pageSize });
 }

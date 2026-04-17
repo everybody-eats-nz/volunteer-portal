@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { differenceInHours, endOfWeek, formatDistanceToNow, startOfWeek } from "date-fns";
+import { differenceInHours, differenceInMinutes, endOfWeek, formatDistanceToNow, startOfWeek } from "date-fns";
 import { formatNZT } from "@/lib/dates";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useRef, useState } from "react";
@@ -64,9 +65,6 @@ export default function HomeScreen() {
   } = useFeedInteractions();
 
   const nextShift = myShifts[0] ?? null;
-  const hoursUntilShift = nextShift
-    ? differenceInHours(new Date(nextShift.start), new Date())
-    : null;
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
@@ -208,56 +206,10 @@ export default function HomeScreen() {
 
       {/* ── Next Shift Hero ── */}
       {nextShift && (
-        <Pressable
+        <NextShiftHero
+          shift={nextShift}
           onPress={() => router.push(`/shift/${nextShift.id}` as Href)}
-          style={({ pressed }) => [
-            styles.heroCard,
-            { opacity: pressed ? 0.95 : 1 },
-          ]}
-          accessibilityLabel={`Next shift: ${nextShift.shiftType.name} at ${nextShift.location}`}
-        >
-          <View style={styles.heroGradient}>
-            {/* Top row */}
-            <View style={styles.heroTop}>
-              <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>🍽️ Next shift</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color="rgba(255,255,255,0.6)"
-              />
-            </View>
-
-            {/* Shift type */}
-            <Text style={styles.heroTitle}>{nextShift.shiftType.name}</Text>
-
-            {/* Details */}
-            <View style={styles.heroDetails}>
-              <View style={styles.heroDetail}>
-                <Text style={styles.heroEmoji}>📍</Text>
-                <Text style={styles.heroDetailText}>{nextShift.location}</Text>
-              </View>
-              <View style={styles.heroDetail}>
-                <Text style={styles.heroEmoji}>🕐</Text>
-                <Text style={styles.heroDetailText}>
-                  {formatNZT(new Date(nextShift.start), "EEEE d MMM, h:mm a")}
-                </Text>
-              </View>
-            </View>
-
-            {/* Countdown */}
-            {hoursUntilShift !== null && hoursUntilShift > 0 && (
-              <View style={styles.heroCountdown}>
-                <Text style={styles.heroCountdownText}>
-                  {hoursUntilShift < 24
-                    ? `⏰ ${hoursUntilShift}h away — see you soon!`
-                    : `📅 ${Math.floor(hoursUntilShift / 24)} days to go`}
-                </Text>
-              </View>
-            )}
-          </View>
-        </Pressable>
+        />
       )}
 
       {/* ── Open Shifts CTA ── */}
@@ -369,6 +321,388 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
+
+/* ── Next Shift Hero ── */
+
+type ShiftStatusKey = "CONFIRMED" | "PENDING" | "WAITLISTED";
+
+const HERO_PALETTE: Record<
+  ShiftStatusKey,
+  {
+    gradient: readonly [string, string, string];
+    glow: string;
+    ring: string;
+    pillBg: string;
+    pillText: string;
+    accent: string;
+    heroText: string;
+    bodyText: string;
+    mutedText: string;
+    chevron: string;
+    eyebrow: string;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }
+> = {
+  CONFIRMED: {
+    gradient: ["#0b2c1b", "#165135", "#0a2416"],
+    glow: "rgba(248, 251, 105, 0.22)",
+    ring: "rgba(255, 255, 255, 0.07)",
+    pillBg: Brand.accent,
+    pillText: Brand.nearBlack,
+    accent: Brand.accent,
+    heroText: "#f8fcef",
+    bodyText: "rgba(248, 252, 239, 0.92)",
+    mutedText: "rgba(248, 252, 239, 0.62)",
+    chevron: "rgba(255, 255, 255, 0.45)",
+    eyebrow: "Your next shift",
+    label: "Confirmed",
+    icon: "checkmark-circle",
+  },
+  PENDING: {
+    gradient: ["#3a2808", "#6b4912", "#2a1d05"],
+    glow: "rgba(251, 191, 36, 0.24)",
+    ring: "rgba(255, 255, 255, 0.06)",
+    pillBg: "#fbbf24",
+    pillText: "#3a2808",
+    accent: "#fbbf24",
+    heroText: "#fdf6e3",
+    bodyText: "rgba(253, 246, 227, 0.92)",
+    mutedText: "rgba(253, 246, 227, 0.60)",
+    chevron: "rgba(255, 255, 255, 0.45)",
+    eyebrow: "Awaiting approval",
+    label: "Pending",
+    icon: "time",
+  },
+  WAITLISTED: {
+    gradient: ["#1a2332", "#334155", "#0f172a"],
+    glow: "rgba(148, 163, 184, 0.22)",
+    ring: "rgba(255, 255, 255, 0.06)",
+    pillBg: "#e2e8f0",
+    pillText: "#0f172a",
+    accent: "#cbd5e1",
+    heroText: "#f1f5f9",
+    bodyText: "rgba(241, 245, 249, 0.92)",
+    mutedText: "rgba(241, 245, 249, 0.58)",
+    chevron: "rgba(255, 255, 255, 0.45)",
+    eyebrow: "You're on the waitlist",
+    label: "Waitlisted",
+    icon: "list",
+  },
+};
+
+function resolveStatusKey(status?: string | null): ShiftStatusKey {
+  if (status === "PENDING" || status === "REGULAR_PENDING") return "PENDING";
+  if (status === "WAITLISTED") return "WAITLISTED";
+  return "CONFIRMED";
+}
+
+function formatCountdown(start: Date, now: Date): string | null {
+  const minutes = differenceInMinutes(start, now);
+  if (minutes <= 0) return "Starting now";
+  if (minutes < 60) return `In ${minutes} min`;
+  const hours = differenceInHours(start, now);
+  if (hours < 24) return `In ${hours}h ${minutes - hours * 60}m`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours - days * 24;
+  if (days < 7) {
+    return remHours > 0
+      ? `In ${days} day${days === 1 ? "" : "s"} ${remHours}h`
+      : `In ${days} day${days === 1 ? "" : "s"}`;
+  }
+  return `In ${days} days`;
+}
+
+function NextShiftHero({
+  shift,
+  onPress,
+}: {
+  shift: {
+    id: string;
+    shiftType: { name: string };
+    start: string;
+    location: string;
+    status?: string | null;
+  };
+  onPress: () => void;
+}) {
+  const statusKey = resolveStatusKey(shift.status);
+  const palette = HERO_PALETTE[statusKey];
+  const start = new Date(shift.start);
+  const countdown = formatCountdown(start, new Date());
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        heroStyles.card,
+        { transform: [{ scale: pressed ? 0.985 : 1 }] },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Next shift: ${shift.shiftType.name} at ${shift.location}, ${palette.label}`}
+    >
+      <LinearGradient
+        colors={palette.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Warm ambient glow (upper-right) */}
+      <View style={[heroStyles.glow, { backgroundColor: palette.glow }]} />
+      <View
+        style={[
+          heroStyles.glowInner,
+          { backgroundColor: palette.glow },
+        ]}
+      />
+
+      {/* Decorative concentric rings */}
+      <View
+        style={[
+          heroStyles.ring,
+          heroStyles.ringOuter,
+          { borderColor: palette.ring },
+        ]}
+      />
+      <View
+        style={[
+          heroStyles.ring,
+          heroStyles.ringInner,
+          { borderColor: palette.ring },
+        ]}
+      />
+
+      <View style={heroStyles.content}>
+        {/* Top row — status pill + chevron */}
+        <View style={heroStyles.topRow}>
+          <View style={[heroStyles.statusPill, { backgroundColor: palette.pillBg }]}>
+            <Ionicons name={palette.icon} size={12} color={palette.pillText} />
+            <Text style={[heroStyles.statusPillText, { color: palette.pillText }]}>
+              {palette.label}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={palette.chevron} />
+        </View>
+
+        {/* Hero time block */}
+        <View style={heroStyles.heroBlock}>
+          <Text style={[heroStyles.eyebrow, { color: palette.mutedText }]}>
+            {palette.eyebrow}
+          </Text>
+          <Text style={[heroStyles.heroTime, { color: palette.heroText }]}>
+            {formatNZT(start, "h:mm a")}
+          </Text>
+          <View style={[heroStyles.accentBar, { backgroundColor: palette.accent }]} />
+          <Text style={[heroStyles.heroDate, { color: palette.bodyText }]}>
+            {formatNZT(start, "EEEE · d MMMM")}
+          </Text>
+        </View>
+
+        {/* Shift type + location */}
+        <View style={heroStyles.metaBlock}>
+          <Text
+            style={[heroStyles.shiftName, { color: palette.heroText }]}
+            numberOfLines={1}
+          >
+            {shift.shiftType.name}
+          </Text>
+          <View style={heroStyles.metaRow}>
+            <Ionicons
+              name="location-outline"
+              size={13}
+              color={palette.bodyText}
+            />
+            <Text
+              style={[heroStyles.metaText, { color: palette.bodyText }]}
+              numberOfLines={1}
+            >
+              {shift.location}
+            </Text>
+          </View>
+        </View>
+
+        {/* Countdown strip */}
+        {countdown && (
+          <View
+            style={[
+              heroStyles.countdown,
+              { borderTopColor: "rgba(255,255,255,0.08)" },
+            ]}
+          >
+            <View style={heroStyles.countdownLeft}>
+              <View
+                style={[
+                  heroStyles.countdownDot,
+                  { backgroundColor: palette.accent },
+                ]}
+              />
+              <Text
+                style={[
+                  heroStyles.countdownLabel,
+                  { color: palette.mutedText },
+                ]}
+              >
+                Countdown
+              </Text>
+            </View>
+            <Text
+              style={[heroStyles.countdownValue, { color: palette.heroText }]}
+            >
+              {countdown}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
+const heroStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: 20,
+    borderRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "#0b2c1b",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    elevation: 8,
+  },
+  content: {
+    padding: 22,
+  },
+  glow: {
+    position: "absolute",
+    top: -120,
+    right: -110,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    opacity: 0.9,
+  },
+  glowInner: {
+    position: "absolute",
+    top: -60,
+    right: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    opacity: 0.8,
+  },
+  ring: {
+    position: "absolute",
+    borderWidth: 1,
+    borderRadius: 999,
+  },
+  ringOuter: {
+    width: 360,
+    height: 360,
+    top: -160,
+    right: -130,
+  },
+  ringInner: {
+    width: 240,
+    height: 240,
+    top: -90,
+    right: -70,
+  },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.4,
+  },
+  heroBlock: {
+    marginTop: 22,
+    alignItems: "flex-start",
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+  },
+  heroTime: {
+    marginTop: 6,
+    fontSize: 46,
+    lineHeight: 52,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.5,
+  },
+  accentBar: {
+    marginTop: 8,
+    width: 40,
+    height: 2,
+    borderRadius: 1,
+  },
+  heroDate: {
+    marginTop: 10,
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.2,
+  },
+  metaBlock: {
+    marginTop: 20,
+    gap: 6,
+  },
+  shiftName: {
+    fontSize: 19,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.1,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+  },
+  countdown: {
+    marginTop: 20,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  countdownLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  countdownDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  countdownLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
+  countdownValue: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
+  },
+});
 
 /* ── Feed Card ── */
 
@@ -1697,70 +2031,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 20,
     fontFamily: FontFamily.bold,
-  },
-
-  // Hero card
-  heroCard: {
-    marginHorizontal: 20,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  heroGradient: {
-    backgroundColor: Brand.green,
-    padding: 22,
-    gap: 10,
-  },
-  heroTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  heroBadge: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  heroBadgeText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.3,
-  },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 22,
-    fontFamily: FontFamily.headingBold,
-    marginTop: 2,
-  },
-  heroDetails: {
-    gap: 6,
-  },
-  heroDetail: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  heroEmoji: {
-    fontSize: 14,
-  },
-  heroDetailText: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    fontFamily: FontFamily.regular,
-  },
-  heroCountdown: {
-    marginTop: 4,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  heroCountdownText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontFamily: FontFamily.medium,
   },
 
   // Open shifts banner

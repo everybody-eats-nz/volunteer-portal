@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -66,17 +66,24 @@ const TRIGGER_LABEL: Record<LogEntry["triggerSource"], string> = {
   SELF_REACTIVATION: "Self",
 };
 
+const PAGE_SIZE = 50;
+
 export function ArchivingLog() {
   const [logs, setLogs] = useState<LogEntry[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (targetPage: number) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/archiving/log?limit=100");
+      const res = await fetch(
+        `/api/admin/archiving/log?page=${targetPage}&pageSize=${PAGE_SIZE}`
+      );
       if (!res.ok) throw new Error("Failed to load log");
       const data = await res.json();
       setLogs(data.logs as LogEntry[]);
+      setTotal(data.total ?? 0);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load log");
     } finally {
@@ -85,8 +92,12 @@ export function ArchivingLog() {
   }, []);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    fetchLogs(page);
+  }, [fetchLogs, page]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, total);
 
   const displayName = (u: LogEntry["user"]) =>
     u.name ||
@@ -106,7 +117,7 @@ export function ArchivingLog() {
         <Button
           variant="outline"
           size="sm"
-          onClick={fetchLogs}
+          onClick={() => fetchLogs(page)}
           disabled={loading}
           data-testid="archiving-log-refresh"
         >
@@ -187,6 +198,41 @@ export function ArchivingLog() {
                 })}
               </TableBody>
             </Table>
+          </div>
+        )}
+        {logs && total > 0 && (
+          <div
+            className="mt-4 flex items-center justify-between text-sm text-muted-foreground"
+            data-testid="archiving-log-pagination"
+          >
+            <span>
+              Showing {rangeStart}–{rangeEnd} of {total.toLocaleString()}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={loading || page <= 1}
+                data-testid="archiving-log-prev"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="tabular-nums">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={loading || page >= totalPages}
+                data-testid="archiving-log-next"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

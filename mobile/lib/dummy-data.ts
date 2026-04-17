@@ -287,7 +287,7 @@ export type Shift = {
   location: string;
   capacity: number;
   signedUp: number;
-  status?: 'CONFIRMED' | 'PENDING' | 'WAITLISTED' | null;
+  status?: 'CONFIRMED' | 'PENDING' | 'WAITLISTED' | 'REGULAR_PENDING' | null;
   notes?: string;
 };
 

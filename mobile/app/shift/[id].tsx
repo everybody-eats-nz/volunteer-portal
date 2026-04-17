@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -9,33 +9,28 @@ import {
   Linking,
   View,
   Text,
+  Platform,
+  ActivityIndicator,
   ActivityIndicator as RNActivityIndicator,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import * as ImagePicker from 'expo-image-picker';
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { differenceInHours, differenceInMinutes } from 'date-fns';
-import { formatNZT } from '@/lib/dates';
+} from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { differenceInMinutes } from "date-fns";
+import { formatNZT } from "@/lib/dates";
 
-import { ActivityIndicator, RefreshControl } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { Colors, Brand, FontFamily } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useShiftDetail } from '@/hooks/use-shift-detail';
-import { api, ApiError } from '@/lib/api';
-import { ShiftSignupSheet } from '@/components/shift-signup-sheet';
-import {
-  getShiftThemeByName,
-  getLocationShortAddress,
-  getLocationMapsUrl,
-  type Shift,
-  type Resource,
-} from '@/lib/dummy-data';
+import { ThemedText } from "@/components/themed-text";
+import { Colors, Brand, FontFamily } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
+import { api, ApiError } from "@/lib/api";
+import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
+import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
 
 /* ── Music Queue Type ── */
 
@@ -48,9 +43,27 @@ type QueueItem = {
 };
 
 const PLACEHOLDER_QUEUE: QueueItem[] = [
-  { id: '1', title: 'Here Comes the Sun', artist: 'The Beatles', requestedBy: 'Sarah', votes: 3 },
-  { id: '2', title: 'Three Little Birds', artist: 'Bob Marley', requestedBy: 'James', votes: 2 },
-  { id: '3', title: "Don't Stop Me Now", artist: 'Queen', requestedBy: 'Mia', votes: 1 },
+  {
+    id: "1",
+    title: "Here Comes the Sun",
+    artist: "The Beatles",
+    requestedBy: "Sarah",
+    votes: 3,
+  },
+  {
+    id: "2",
+    title: "Three Little Birds",
+    artist: "Bob Marley",
+    requestedBy: "James",
+    votes: 2,
+  },
+  {
+    id: "3",
+    title: "Don't Stop Me Now",
+    artist: "Queen",
+    requestedBy: "Mia",
+    votes: 1,
+  },
 ];
 
 /* ── Duration Helper ── */
@@ -69,15 +82,23 @@ export default function ShiftDetailScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
 
-  const { shift, signups: shiftSignups, crew: shiftCrew, isLoading, error, refresh } = useShiftDetail(id);
+  const {
+    shift,
+    signups: shiftSignups,
+    crew: shiftCrew,
+    periodFriends,
+    isLoading,
+    error,
+    refresh,
+  } = useShiftDetail(id);
   const isMyShift = shift?.status != null;
   const [checkedIn, setCheckedIn] = useState(false);
   const [signupSheetVisible, setSignupSheetVisible] = useState(false);
   const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [musicSearch, setMusicSearch] = useState('');
+  const [musicSearch, setMusicSearch] = useState("");
   const [queue, setQueue] = useState<QueueItem[]>(PLACEHOLDER_QUEUE);
   const [photos, setPhotos] = useState<string[]>([]);
   const [votedSongs, setVotedSongs] = useState<Set<string>>(new Set());
@@ -89,53 +110,87 @@ export default function ShiftDetailScreen() {
 
   const handleSignupSuccess = useCallback(
     async (result: { id: string; status: string; autoApproved: boolean }) => {
-      if (result.status === 'CONFIRMED') {
-        Alert.alert('Ka pai! 🎉', "You're confirmed for this shift. See you there!");
-      } else if (result.status === 'WAITLISTED') {
-        Alert.alert('On the waitlist 📋', "You've been added to the waitlist. We'll notify you if a spot opens up.");
+      if (result.status === "CONFIRMED") {
+        Alert.alert(
+          "Ka pai! 🎉",
+          "You're confirmed for this shift. See you there!"
+        );
+      } else if (result.status === "WAITLISTED") {
+        Alert.alert(
+          "On the waitlist 📋",
+          "You've been added to the waitlist. We'll notify you if a spot opens up."
+        );
       } else {
-        Alert.alert('Signed up! ✨', "Your signup is pending approval. You'll be notified once it's confirmed.");
+        Alert.alert(
+          "Signed up! ✨",
+          "Your signup is pending approval. You'll be notified once it's confirmed."
+        );
       }
       await refresh();
     },
-    [refresh],
+    [refresh]
   );
 
   const handleCancel = useCallback(async () => {
     if (!shift) return;
     Alert.alert(
-      'Cancel signup?',
-      'Are you sure you want to cancel your signup for this shift?',
+      "Cancel signup?",
+      "Are you sure you want to cancel your signup for this shift?",
       [
-        { text: 'Keep it', style: 'cancel' },
+        { text: "Keep it", style: "cancel" },
         {
-          text: 'Yes, cancel',
-          style: 'destructive',
+          text: "Yes, cancel",
+          style: "destructive",
           onPress: async () => {
             setCancelLoading(true);
             try {
               await api(`/api/mobile/shifts/${shift.id}/signup`, {
-                method: 'DELETE',
+                method: "DELETE",
               });
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Canceled', 'Your signup has been canceled.');
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+              Alert.alert("Canceled", "Your signup has been canceled.");
               await refresh();
             } catch (err) {
-              const message = err instanceof ApiError ? err.message : 'Something went wrong.';
-              Alert.alert('Cancel failed', message);
+              const message =
+                err instanceof ApiError ? err.message : "Something went wrong.";
+              Alert.alert("Cancel failed", message);
             } finally {
               setCancelLoading(false);
             }
           },
         },
-      ],
+      ]
     );
   }, [shift, refresh]);
+
+  // Split period friends into "on your shift" vs "same session, different role"
+  const yourShiftFriendIds = useMemo(
+    () => new Set(shiftSignups.filter((su) => su.isFriend).map((su) => su.id)),
+    [shiftSignups]
+  );
+  const thisShiftName = shift?.shiftType.name;
+  const friendsOnYourShift = useMemo(
+    () =>
+      periodFriends.filter(
+        (f) => yourShiftFriendIds.has(f.id) || f.shiftTypeName === thisShiftName
+      ),
+    [periodFriends, yourShiftFriendIds, thisShiftName]
+  );
+  const friendsInSession = useMemo(
+    () =>
+      periodFriends.filter(
+        (f) =>
+          !yourShiftFriendIds.has(f.id) && f.shiftTypeName !== thisShiftName
+      ),
+    [periodFriends, yourShiftFriendIds, thisShiftName]
+  );
 
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: '', headerTransparent: true }} />
+        <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -146,15 +201,29 @@ export default function ShiftDetailScreen() {
   if (!shift) {
     return (
       <>
-        <Stack.Screen options={{ title: '', headerTransparent: true }} />
+        <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <View style={[s.centered, { backgroundColor: colors.background }]}>
-          <View style={[s.notFoundIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
-            <Ionicons name="search-outline" size={32} color={colors.textSecondary} />
+          <View
+            style={[
+              s.notFoundIcon,
+              {
+                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9",
+              },
+            ]}
+          >
+            <Ionicons
+              name="search-outline"
+              size={32}
+              color={colors.textSecondary}
+            />
           </View>
           <ThemedText type="subtitle" style={{ marginTop: 12 }}>
-            {error ?? 'Shift not found'}
+            {error ?? "Shift not found"}
           </ThemedText>
-          <ThemedText type="caption" style={{ color: colors.textSecondary, marginTop: 4 }}>
+          <ThemedText
+            type="caption"
+            style={{ color: colors.textSecondary, marginTop: 4 }}
+          >
             This shift may have been removed
           </ThemedText>
           <Pressable
@@ -162,7 +231,8 @@ export default function ShiftDetailScreen() {
             style={({ pressed }) => [
               s.backButton,
               { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
-            ]}>
+            ]}
+          >
             <Text style={s.backButtonText}>Go back</Text>
           </Pressable>
         </View>
@@ -177,18 +247,7 @@ export default function ShiftDetailScreen() {
   const isUrgent = !isFull && spotsLeft <= 2;
   const theme = getShiftThemeByName(shift.shiftType.name);
   const accent = isDark ? theme.colorDark : theme.color;
-  const hoursUntil = differenceInHours(date, new Date());
-  const fillPercent = Math.min((shift.signedUp / shift.capacity) * 100, 100);
   const duration = getDuration(shift.start, shift.end);
-
-  // Signups for "Who's on this shift" section
-  const signups = shiftSignups;
-  const friendSignups = signups.filter((su) => su.isFriend);
-
-  // Concurrent shifts and resources — these features need their own
-  // endpoints in the future. For now, show empty.
-  const concurrentShifts: Shift[] = [];
-  const relevantResources: Resource[] = [];
 
   const handleCheckIn = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -197,12 +256,15 @@ export default function ShiftDetailScreen() {
 
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow photo access to share shift photos.');
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "Please allow photo access to share shift photos."
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -214,8 +276,11 @@ export default function ShiftDetailScreen() {
 
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow camera access to take shift photos.');
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "Please allow camera access to take shift photos."
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -230,10 +295,10 @@ export default function ShiftDetailScreen() {
 
   const handleAddPhoto = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Add Photo', 'How would you like to add a photo?', [
-      { text: 'Take Photo', onPress: handleTakePhoto },
-      { text: 'Choose from Library', onPress: handlePickPhoto },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Add Photo", "How would you like to add a photo?", [
+      { text: "Take Photo", onPress: handleTakePhoto },
+      { text: "Choose from Library", onPress: handlePickPhoto },
+      { text: "Cancel", style: "cancel" },
     ]);
   };
 
@@ -245,21 +310,30 @@ export default function ShiftDetailScreen() {
       {
         id: Date.now().toString(),
         title: musicSearch.trim(),
-        artist: 'Searching...',
-        requestedBy: 'You',
+        artist: "Searching...",
+        requestedBy: "You",
         votes: 0,
       },
     ]);
-    setMusicSearch('');
+    setMusicSearch("");
   };
 
   const handleShare = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const dateStr = formatNZT(date, "EEEE d MMMM");
-    const timeStr = `${formatNZT(date, "h:mm a")} – ${formatNZT(endDate, "h:mm a")}`;
+    const timeStr = `${formatNZT(date, "h:mm a")} – ${formatNZT(
+      endDate,
+      "h:mm a"
+    )}`;
     try {
       await Share.share({
-        message: `🍽️ Volunteer with Everybody Eats!\n\n${shift.shiftType.name} — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${spotsLeft > 0 ? `${spotsLeft} spots left — sign up and join the whānau!` : 'This shift is full, but check back for cancellations.'}\n\nhttps://volunteers.everybodyeats.nz/shifts/${shift.id}`,
+        message: `🍽️ Volunteer with Everybody Eats!\n\n${
+          shift.shiftType.name
+        } — ${dateStr}\n🕐 ${timeStr}\n📍 ${shift.location}\n\n${
+          spotsLeft > 0
+            ? `${spotsLeft} spots left — sign up and join the whānau!`
+            : "This shift is full, but check back for cancellations."
+        }\n\nhttps://volunteers.everybodyeats.nz/shifts/${shift.id}`,
       });
     } catch {
       // User cancelled share
@@ -272,10 +346,14 @@ export default function ShiftDetailScreen() {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
-        setQueue((q) => q.map((i) => (i.id === itemId ? { ...i, votes: i.votes - 1 } : i)));
+        setQueue((q) =>
+          q.map((i) => (i.id === itemId ? { ...i, votes: i.votes - 1 } : i))
+        );
       } else {
         next.add(itemId);
-        setQueue((q) => q.map((i) => (i.id === itemId ? { ...i, votes: i.votes + 1 } : i)));
+        setQueue((q) =>
+          q.map((i) => (i.id === itemId ? { ...i, votes: i.votes + 1 } : i))
+        );
       }
       return next;
     });
@@ -285,23 +363,30 @@ export default function ShiftDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: '',
+          title: "",
           headerShown: true,
           headerTransparent: true,
-          headerTintColor: '#ffffff',
+          headerTintColor: "#fffdf7",
           headerRight: () => (
-            <Ionicons name="share-outline" size={22} color="#ffffff" onPress={handleShare} />
+            <Ionicons
+              name="share-outline"
+              size={22}
+              color="#fffdf7"
+              onPress={handleShare}
+            />
           ),
         }}
       />
       <ScrollView
-        style={[s.container, { backgroundColor: colors.background }]}
+        style={[
+          s.container,
+          { backgroundColor: isDark ? colors.background : Brand.warmWhite },
+        ]}
         contentContainerStyle={s.content}
-        showsVerticalScrollIndicator={false}>
-
-        {/* ═══ Hero Header ═══ */}
-        <View style={[s.hero, { backgroundColor: Brand.green }]}>
-          {/* Background image */}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ═══ HERO ═══ */}
+        <View style={s.hero}>
           {theme.heroImage && (
             <Image
               source={{ uri: theme.heroImage }}
@@ -310,362 +395,347 @@ export default function ShiftDetailScreen() {
             />
           )}
 
-          {/* Gradient overlay — transparent top, rich bottom */}
+          {/* Layered gradient — faint top, atmospheric middle, solid-green pour at base */}
           <LinearGradient
             colors={[
-              'rgba(0,0,0,0.1)',
-              'rgba(14,58,35,0.4)',
-              'rgba(14,58,35,0.88)',
-              'rgba(14,58,35,0.96)',
+              "rgba(14,58,35,0.25)",
+              "rgba(14,58,35,0.55)",
+              "rgba(14,58,35,0.88)",
+              Brand.green,
             ]}
-            locations={[0, 0.35, 0.7, 1]}
+            locations={[0, 0.45, 0.82, 1]}
             style={s.heroGradient}
           />
 
-          {/* Main content */}
           <View style={s.heroBody}>
-            {/* Large emoji */}
-            <Text style={s.heroEmoji}>{theme.emoji}</Text>
+            {/* Eyebrow */}
+            <View style={s.heroOverlineRow}>
+              <View style={s.heroOverlineRule} />
+              <Text style={s.heroOverline}>
+                {isMyShift ? "You're in the whānau" : "Ngā mahi · A shift"}
+              </Text>
+              <View style={s.heroOverlineRule} />
+            </View>
 
-            {/* Title */}
-            <Text style={s.heroTitle}>{shift.shiftType.name}</Text>
+            {/* Display title — oversized Fraunces */}
+            <Text
+              style={s.heroTitle}
+              numberOfLines={3}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {shift.shiftType.name}
+            </Text>
 
-            {/* Description */}
-            <Text style={s.heroDescription}>{shift.shiftType.description}</Text>
+            {/* Description pulled tight under title */}
+            {shift.shiftType.description ? (
+              <Text style={s.heroDescription} numberOfLines={2}>
+                {shift.shiftType.description}
+              </Text>
+            ) : null}
 
-            {/* Frosted info strip */}
-            <BlurView intensity={25} tint="dark" style={s.heroInfoStrip}>
-              <View style={s.heroInfoStripInner}>
-                <View style={s.heroInfoChip}>
-                  <Text style={s.heroInfoIcon}>📅</Text>
-                  <Text style={s.heroInfoText}>{formatNZT(date, 'EEE, d MMM')}</Text>
-                </View>
-                <View style={s.heroInfoDot} />
-                <View style={s.heroInfoChip}>
-                  <Text style={s.heroInfoIcon}>🕐</Text>
-                  <Text style={s.heroInfoText}>
-                    {formatNZT(date, 'h:mm')} – {formatNZT(endDate, 'h:mm a')}
+            {/* Editorial 3-column meta row */}
+            <View style={s.heroMetaRow}>
+              <View style={s.heroMetaCol}>
+                <Text style={s.heroMetaLabel}>
+                  {formatNZT(date, "EEEE").toUpperCase()}
+                </Text>
+                <Text style={s.heroMetaValue}>{formatNZT(date, "d MMM")}</Text>
+              </View>
+              <View style={s.heroMetaRule} />
+              <View style={s.heroMetaCol}>
+                <Text style={s.heroMetaLabel}>KICK-OFF</Text>
+                <Text style={s.heroMetaValue}>
+                  {formatNZT(date, "h:mm").toLowerCase()}
+                  <Text style={s.heroMetaValueSmall}>
+                    {formatNZT(date, "a").toLowerCase()}
                   </Text>
-                </View>
-                <View style={s.heroInfoDot} />
-                <Pressable
-                  onPress={() => Linking.openURL(getLocationMapsUrl(shift.location))}
-                  hitSlop={6}
-                  style={({ pressed }) => [s.heroInfoChip, { opacity: pressed ? 0.6 : 1 }]}
-                  accessibilityLabel={`Open ${shift.location} in Maps`}
-                  accessibilityRole="link"
+                </Text>
+              </View>
+              <View style={s.heroMetaRule} />
+              <Pressable
+                onPress={() =>
+                  Linking.openURL(getLocationMapsUrl(shift.location))
+                }
+                hitSlop={6}
+                style={({ pressed }) => [
+                  s.heroMetaCol,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+                accessibilityLabel={`Open ${shift.location} in Maps`}
+                accessibilityRole="link"
+              >
+                <Text style={s.heroMetaLabel}>WHERE</Text>
+                <Text
+                  style={[s.heroMetaValue, s.heroMetaLink]}
+                  numberOfLines={1}
                 >
-                  <Text style={s.heroInfoIcon}>📍</Text>
-                  <Text style={[s.heroInfoText, s.heroInfoLink]}>
-                    {shift.location}
-                  </Text>
-                </Pressable>
-              </View>
-            </BlurView>
-
-            {/* Bottom row — changes based on signed-up state */}
-            <View style={s.heroBottomRow}>
-              {isMyShift ? (
-                /* Confirmed: show "you're in" + countdown */
-                <>
-                  <View style={s.heroConfirmedChip}>
-                    <Ionicons name="checkmark-circle" size={14} color="#86efac" />
-                    <Text style={s.heroConfirmedText}>You&apos;re signed up</Text>
-                  </View>
-                  <View style={{ flex: 1 }} />
-                </>
-              ) : (
-                /* Browsing: show capacity bar + spots */
-                <View style={s.heroCapacity}>
-                  <View style={s.heroCapacityTrack}>
-                    <View
-                      style={[
-                        s.heroCapacityFill,
-                        {
-                          width: `${fillPercent}%`,
-                          backgroundColor: isFull ? '#ef4444' : isUrgent ? '#f59e0b' : '#86efac',
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={s.heroCapacityText}>
-                    {shift.signedUp}/{shift.capacity}
-                    {isFull
-                      ? ' · Full'
-                      : isUrgent
-                        ? ` · ${spotsLeft} left!`
-                        : ` · ${spotsLeft} open`}
-                  </Text>
-                </View>
-              )}
-
-              <View style={s.heroDurationBadge}>
-                <Ionicons name="time-outline" size={12} color="rgba(255,255,255,0.7)" />
-                <Text style={s.heroDurationText}>{duration}</Text>
-              </View>
+                  {shift.location}
+                </Text>
+              </Pressable>
             </View>
           </View>
         </View>
 
-        {/* ═══ Notes ═══ */}
-        {shift.notes && (
-          <Text style={[s.notesText, { color: colors.textSecondary }]}>
-            {shift.notes}
-          </Text>
-        )}
-
-        {/* ═══ Useful Resources ═══ */}
-        {relevantResources.length > 0 && !checkedIn && (
-          <View style={[s.section, { backgroundColor: colors.card }]}>
-            <View style={s.sectionHeader}>
-              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : '#eff6ff' }]}>
-                <Ionicons name="document-text" size={16} color={isDark ? '#93c5fd' : '#2563eb'} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Before Your Shift</Text>
-                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-                  Guides and resources for this shift
-                </Text>
-              </View>
-            </View>
-
-            {relevantResources.map((resource) => (
-              <Pressable
-                key={resource.id}
-                onPress={() => Linking.openURL(resource.url)}
-                style={({ pressed }) => [
-                  s.resourceRow,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-                accessibilityLabel={`Open ${resource.title}`}
-                accessibilityRole="link"
-              >
-                <View style={[
-                  s.resourceIcon,
-                  {
-                    backgroundColor: resource.type === 'VIDEO'
-                      ? isDark ? 'rgba(249,115,22,0.12)' : '#fff7ed'
-                      : isDark ? 'rgba(239,68,68,0.12)' : '#fef2f2',
-                  },
-                ]}>
-                  <Ionicons
-                    name={resource.type === 'VIDEO' ? 'play-circle' : 'document-text'}
-                    size={16}
-                    color={resource.type === 'VIDEO'
-                      ? isDark ? '#fb923c' : '#ea580c'
-                      : isDark ? '#f87171' : '#dc2626'}
-                  />
+        {/* ═══ Status strip — hanging card bridging hero & content ═══ */}
+        <View style={s.statusStripWrap}>
+          <View
+            style={[
+              s.statusStrip,
+              { backgroundColor: isDark ? "#1a1d21" : "#ffffff" },
+            ]}
+          >
+            {isMyShift ? (
+              <View style={s.statusConfirmed}>
+                <View style={s.statusConfirmedBadge}>
+                  <Ionicons name="checkmark" size={12} color={Brand.green} />
                 </View>
-                <View style={s.resourceInfo}>
-                  <Text style={[s.resourceTitle, { color: colors.text }]} numberOfLines={1}>
-                    {resource.title}
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[s.statusConfirmedTitle, { color: colors.text }]}
+                  >
+                    You&apos;re signed up
                   </Text>
-                  {resource.description && (
-                    <Text style={[s.resourceDescription, { color: colors.textSecondary }]} numberOfLines={1}>
-                      {resource.description}
-                    </Text>
-                  )}
-                </View>
-                <View style={s.resourceMeta}>
-                  {resource.fileSize && (
-                    <Text style={[s.resourceSize, { color: colors.textSecondary }]}>
-                      {resource.fileSize}
-                    </Text>
-                  )}
-                  <Ionicons
-                    name={resource.type === 'VIDEO' ? 'open-outline' : 'download-outline'}
-                    size={14}
-                    color={colors.textSecondary}
-                  />
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        )}
-
-        {/* ═══ Who's on this shift ═══ */}
-        {/* Before check-in: only show friends (privacy) */}
-        {friendSignups.length > 0 && !checkedIn && (
-          <View style={[s.section, { backgroundColor: colors.card }]}>
-            <View style={s.sectionHeader}>
-              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(14,58,35,0.3)' : Brand.greenLight }]}>
-                <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Friends on this shift</Text>
-                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-                  {friendSignups.length} friend{friendSignups.length !== 1 ? 's' : ''} signed up
-                  {signups.length - friendSignups.length > 0
-                    ? ` · ${signups.length - friendSignups.length} other${signups.length - friendSignups.length !== 1 ? 's' : ''}`
-                    : ''}
-                </Text>
-              </View>
-            </View>
-
-            {/* Friend list */}
-            {friendSignups.map((signup) => {
-              const initial = signup.name.charAt(0).toUpperCase();
-              return (
-                <View
-                  key={signup.id}
-                  style={[
-                    s.signupRow,
-                    { backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa' },
-                  ]}>
-                  {signup.profilePhotoUrl ? (
-                    <Image
-                      source={{ uri: signup.profilePhotoUrl }}
-                      style={s.signupAvatar}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[s.signupAvatarFallback, { backgroundColor: Brand.greenLight }]}>
-                      <Text style={[s.signupInitial, { color: Brand.green }]}>{initial}</Text>
-                    </View>
-                  )}
-                  <Text style={[s.signupName, { color: colors.text }]} numberOfLines={1}>
-                    {signup.name}
+                  <Text
+                    style={[
+                      s.statusConfirmedMeta,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {formatNZT(date, "EEE h:mma")} —{" "}
+                    {formatNZT(endDate, "h:mma").toLowerCase()} · {duration}
                   </Text>
-                  <View style={[s.friendTag, { backgroundColor: isDark ? 'rgba(22,163,74,0.12)' : '#dcfce7' }]}>
-                    <Ionicons name="heart" size={10} color={isDark ? '#86efac' : '#16a34a'} />
-                    <Text style={[s.friendTagText, { color: isDark ? '#86efac' : '#16a34a' }]}>Friend</Text>
-                  </View>
                 </View>
-              );
-            })}
+              </View>
+            ) : (
+              <View style={s.statusBrowsing}>
+                <View style={s.statusBrowsingLeft}>
+                  <Text
+                    style={[s.statusCapacityNumber, { color: colors.text }]}
+                  >
+                    {String(shift.signedUp).padStart(2, "0")}
+                    <Text
+                      style={[
+                        s.statusCapacitySlash,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      /{shift.capacity}
+                    </Text>
+                  </Text>
+                  <Text
+                    style={[
+                      s.statusCapacityLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Volunteers
+                  </Text>
+                </View>
+                <View style={s.statusDivider} />
+                <View style={s.statusBrowsingMid}>
+                  <Text
+                    style={[
+                      s.statusSpotsNumber,
+                      {
+                        color: isFull
+                          ? colors.destructive
+                          : isUrgent
+                          ? "#c2410c"
+                          : colors.text,
+                      },
+                    ]}
+                  >
+                    {isFull ? "Full" : String(spotsLeft).padStart(2, "0")}
+                  </Text>
+                  <Text
+                    style={[
+                      s.statusCapacityLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {isFull
+                      ? "Join waitlist"
+                      : isUrgent
+                      ? "Spots left"
+                      : "Open spots"}
+                  </Text>
+                </View>
+                <View style={s.statusDivider} />
+                <View style={s.statusBrowsingMid}>
+                  <Text style={[s.statusSpotsNumber, { color: colors.text }]}>
+                    {duration}
+                  </Text>
+                  <Text
+                    style={[
+                      s.statusCapacityLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Duration
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
-        )}
+        </View>
+
+        {/* ═══ Friends this session ═══ */}
+        {(friendsOnYourShift.length > 0 || friendsInSession.length > 0) &&
+          !checkedIn && (
+            <FriendsSection
+              onYourShift={friendsOnYourShift}
+              sameSession={friendsInSession}
+              colors={colors}
+              isDark={isDark}
+            />
+          )}
 
         {/* ═══ Check-in CTA ═══ */}
-        {isMyShift && shift.status === 'CONFIRMED' && !checkedIn && (
-          <Pressable
-            onPress={handleCheckIn}
-            style={({ pressed }) => [
-              s.ctaButton,
-              {
-                backgroundColor: Brand.green,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-              },
-            ]}
-            accessibilityLabel="Check in to shift">
-            <Ionicons name="checkmark-circle" size={22} color="#ffffff" />
-            <Text style={s.ctaText}>Check In</Text>
-          </Pressable>
+        {isMyShift && shift.status === "CONFIRMED" && !checkedIn && (
+          <View style={s.ctaWrap}>
+            <GlassButton
+              onPress={handleCheckIn}
+              isDark={isDark}
+              tintColor="rgba(14,58,35,0.55)"
+              androidBg={Brand.green}
+              accessibilityLabel="Check in to shift"
+            >
+              <Ionicons name="checkmark-circle" size={18} color="#fffdf7" />
+              <Text style={s.glassCtaText}>Check in to your shift</Text>
+            </GlassButton>
+          </View>
         )}
 
         {/* ═══ Checked-in banner ═══ */}
         {checkedIn && (
-          <View style={[s.successBanner, { backgroundColor: isDark ? 'rgba(34,197,94,0.1)' : Brand.greenLight }]}>
-            <View style={[s.successIcon, { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7' }]}>
-              <Ionicons name="checkmark-circle" size={24} color={isDark ? '#86efac' : '#16a34a'} />
+          <View
+            style={[
+              s.checkedBanner,
+              { backgroundColor: isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4" },
+            ]}
+          >
+            <View style={s.checkedBannerIcon}>
+              <Ionicons name="checkmark" size={22} color={Brand.green} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[s.successTitle, { color: isDark ? '#86efac' : Brand.green }]}>
+              <Text
+                style={[
+                  s.checkedBannerTitle,
+                  { color: isDark ? "#86efac" : Brand.green },
+                ]}
+              >
                 Ka pai! You&apos;re checked in
               </Text>
-              <Text style={[s.successSubtitle, { color: isDark ? '#86efac' : Brand.green }]}>
-                Have a great shift today
+              <Text
+                style={[
+                  s.checkedBannerSubtitle,
+                  { color: isDark ? "#86efac" : Brand.green },
+                ]}
+              >
+                Have a brilliant shift.
               </Text>
             </View>
           </View>
         )}
 
-        {/* ═══ Crew section (after check-in) ═══ */}
+        {/* ═══ Crew (post check-in) ═══ */}
         {checkedIn && (
           <CrewSection
             crew={shiftCrew}
-            friendSignupIds={new Set(friendSignups.map((su) => su.id))}
+            friendSignupIds={yourShiftFriendIds}
             colors={colors}
             isDark={isDark}
           />
         )}
 
-        {/* ═══ Other shifts today (after check-in) ═══ */}
-        {checkedIn && concurrentShifts.length > 0 && (
-          <ConcurrentShiftsSection
-            shifts={concurrentShifts}
-            colors={colors}
-            isDark={isDark}
-          />
-        )}
-
-        {/* ═══ Shift Photos ═══ */}
+        {/* ═══ Shift Photos (post check-in) ═══ */}
         {checkedIn && (
-          <View style={[s.section, { backgroundColor: colors.card }]}>
-            <View style={s.sectionHeader}>
-              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(168,85,247,0.12)' : '#f5f3ff' }]}>
-                <Ionicons name="camera" size={16} color={isDark ? '#c084fc' : '#7c3aed'} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Shift Photos</Text>
-                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-                  Share moments from today&apos;s shift
-                </Text>
-              </View>
-            </View>
-
+          <Section
+            label="THE MOMENTS"
+            title="Shift photos"
+            caption="Share a snap from today's mahi"
+            colors={colors}
+          >
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.photoScroll}>
+              contentContainerStyle={s.photoScroll}
+            >
               <Pressable
                 onPress={handleAddPhoto}
                 style={({ pressed }) => [
                   s.addPhotoButton,
                   {
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : colors.border,
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa',
+                    borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e4ddd0",
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "#fdfaf2",
                     opacity: pressed ? 0.7 : 1,
                   },
-                ]}>
-                <Ionicons name="add-circle-outline" size={28} color={accent} />
+                ]}
+              >
+                <Ionicons name="camera-outline" size={24} color={accent} />
                 <Text style={[s.addPhotoText, { color: accent }]}>Add</Text>
               </Pressable>
-
               {photos.map((uri, index) => (
                 <View key={uri} style={s.photoThumb}>
-                  <Image source={{ uri }} style={s.photoImage} contentFit="cover" />
+                  <Image
+                    source={{ uri }}
+                    style={s.photoImage}
+                    contentFit="cover"
+                  />
                   <Pressable
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setPhotos((prev) => prev.filter((_, i) => i !== index));
                     }}
-                    style={({ pressed }) => [s.photoRemove, { opacity: pressed ? 0.7 : 1 }]}>
+                    style={({ pressed }) => [
+                      s.photoRemove,
+                      { opacity: pressed ? 0.7 : 1 },
+                    ]}
+                  >
                     <Ionicons name="close-circle" size={22} color="#ffffff" />
                   </Pressable>
                 </View>
               ))}
             </ScrollView>
-          </View>
+          </Section>
         )}
 
-        {/* ═══ Music Queue ═══ */}
+        {/* ═══ Music Queue (post check-in) ═══ */}
         {checkedIn && (
-          <View style={[s.section, { backgroundColor: colors.card }]}>
-            <View style={s.sectionHeader}>
-              <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(236,72,153,0.12)' : '#fdf2f8' }]}>
-                <Ionicons name="musical-notes" size={16} color={isDark ? '#f472b6' : '#db2777'} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.sectionTitle, { color: colors.text }]}>Music Queue</Text>
-                <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-                  Request songs for the BOH speaker
-                </Text>
-              </View>
-            </View>
-
-            {/* Search */}
+          <Section
+            label="ON ROTATION"
+            title="Music queue"
+            caption="Request songs for the BOH speaker"
+            colors={colors}
+          >
             <View style={s.musicRow}>
-              <View style={[s.musicInputWrap, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderColor: colors.border }]}>
-                <Ionicons name="search" size={16} color={colors.textSecondary} />
+              <View
+                style={[
+                  s.musicInputWrap,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.04)"
+                      : "#fdfaf2",
+                    borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e4ddd0",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="search"
+                  size={16}
+                  color={colors.textSecondary}
+                />
                 <TextInput
-                  style={[s.musicInput, { color: colors.text, fontFamily: FontFamily.regular }]}
+                  style={[
+                    s.musicInput,
+                    { color: colors.text, fontFamily: FontFamily.regular },
+                  ]}
                   value={musicSearch}
                   onChangeText={setMusicSearch}
-                  placeholder="Search for a song..."
+                  placeholder="Add a song to the queue..."
                   placeholderTextColor={colors.textSecondary}
                   onSubmitEditing={handleAddSong}
                   returnKeyType="send"
@@ -677,26 +747,47 @@ export default function ShiftDetailScreen() {
                 style={({ pressed }) => [
                   s.addSongButton,
                   {
-                    backgroundColor: musicSearch.trim() ? Brand.green : isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0',
+                    backgroundColor: musicSearch.trim()
+                      ? Brand.green
+                      : isDark
+                      ? "rgba(255,255,255,0.06)"
+                      : "#e4ddd0",
                     opacity: pressed && musicSearch.trim() ? 0.8 : 1,
                   },
-                ]}>
-                <Ionicons name="add" size={22} color={musicSearch.trim() ? '#ffffff' : colors.textSecondary} />
+                ]}
+              >
+                <Ionicons
+                  name="add"
+                  size={22}
+                  color={
+                    musicSearch.trim() ? Brand.accent : colors.textSecondary
+                  }
+                />
               </Pressable>
             </View>
 
-            {/* Queue list */}
             {queue.map((item, index) => (
               <View
                 key={item.id}
-                style={[s.queueItem, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa' }]}>
-                <View style={[s.queueRank, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9' }]}>
-                  <Text style={[s.queueRankText, { color: colors.textSecondary }]}>
-                    {index + 1}
-                  </Text>
-                </View>
+                style={[
+                  s.queueItem,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "#fdfaf2",
+                  },
+                ]}
+              >
+                <Text
+                  style={[s.queueRankText, { color: colors.textSecondary }]}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </Text>
                 <View style={s.songInfo}>
-                  <Text style={[s.songTitle, { color: colors.text }]} numberOfLines={1}>
+                  <Text
+                    style={[s.songTitle, { color: colors.text }]}
+                    numberOfLines={1}
+                  >
                     {item.title}
                   </Text>
                   <Text style={[s.songMeta, { color: colors.textSecondary }]}>
@@ -708,62 +799,70 @@ export default function ShiftDetailScreen() {
                   style={({ pressed }) => [
                     s.voteButton,
                     {
-                      borderColor: votedSongs.has(item.id) ? accent : isDark ? 'rgba(255,255,255,0.08)' : colors.border,
+                      borderColor: votedSongs.has(item.id)
+                        ? accent
+                        : isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "#e4ddd0",
                       backgroundColor: votedSongs.has(item.id)
-                        ? isDark ? theme.bgDark : theme.bgLight
-                        : 'transparent',
+                        ? isDark
+                          ? theme.bgDark
+                          : theme.bgLight
+                        : "transparent",
                       opacity: pressed ? 0.7 : 1,
                     },
-                  ]}>
+                  ]}
+                >
                   <Ionicons
-                    name={votedSongs.has(item.id) ? 'heart' : 'heart-outline'}
+                    name={votedSongs.has(item.id) ? "heart" : "heart-outline"}
                     size={14}
-                    color={votedSongs.has(item.id) ? accent : colors.textSecondary}
+                    color={
+                      votedSongs.has(item.id) ? accent : colors.textSecondary
+                    }
                   />
                   <Text
                     style={[
                       s.voteCount,
                       { color: votedSongs.has(item.id) ? accent : colors.text },
-                    ]}>
+                    ]}
+                  >
                     {item.votes}
                   </Text>
                 </Pressable>
               </View>
             ))}
-          </View>
+          </Section>
         )}
 
         {/* ═══ Sign up CTA ═══ */}
         {!isMyShift && spotsLeft > 0 && (
-          <Pressable
-            onPress={() => openSignupSheet(false)}
-            style={({ pressed }) => [
-              s.ctaButton,
-              {
-                backgroundColor: Brand.green,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-              },
-            ]}
-            accessibilityLabel="Sign up for shift">
-            <Ionicons name="hand-right" size={20} color="#ffffff" />
-            <Text style={s.ctaText}>Sign Up for Shift</Text>
-          </Pressable>
+          <View style={s.ctaWrap}>
+            <GlassButton
+              onPress={() => openSignupSheet(false)}
+              isDark={isDark}
+              tintColor="rgba(14,58,35,0.55)"
+              androidBg={Brand.green}
+              accessibilityLabel="Sign up for shift"
+            >
+              <Text style={s.glassCtaText}>Join this shift</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fffdf7" />
+            </GlassButton>
+          </View>
         )}
 
         {!isMyShift && spotsLeft <= 0 && (
-          <Pressable
-            onPress={() => openSignupSheet(true)}
-            style={({ pressed }) => [
-              s.ctaButton,
-              {
-                backgroundColor: isDark ? '#92400e' : '#f59e0b',
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-              },
-            ]}
-            accessibilityLabel="Join shift waitlist">
-            <Ionicons name="list" size={20} color="#ffffff" />
-            <Text style={s.ctaText}>Join Waitlist</Text>
-          </Pressable>
+          <View style={s.ctaWrap}>
+            <GlassButton
+              onPress={() => openSignupSheet(true)}
+              isDark={isDark}
+              tintColor="rgba(194,65,12,0.55)"
+              androidBg={isDark ? "#92400e" : "#c2410c"}
+              accessibilityLabel="Join shift waitlist"
+            >
+              <Ionicons name="list-outline" size={18} color="#fffdf7" />
+              <Text style={s.glassCtaText}>Join the waitlist</Text>
+            </GlassButton>
+          </View>
         )}
 
         {/* ═══ Cancel signup ═══ */}
@@ -773,20 +872,16 @@ export default function ShiftDetailScreen() {
             disabled={cancelLoading}
             style={({ pressed }) => [
               s.cancelButton,
-              {
-                borderColor: isDark ? 'rgba(239,68,68,0.3)' : '#fecaca',
-                backgroundColor: isDark ? 'rgba(239,68,68,0.06)' : '#fef2f2',
-                opacity: pressed ? 0.7 : 1,
-              },
+              { opacity: pressed ? 0.6 : 1 },
             ]}
-            accessibilityLabel="Cancel shift signup">
+            accessibilityLabel="Cancel shift signup"
+          >
             {cancelLoading ? (
               <RNActivityIndicator size="small" color={colors.destructive} />
             ) : (
-              <>
-                <Ionicons name="close-circle-outline" size={18} color={colors.destructive} />
-                <Text style={[s.cancelText, { color: colors.destructive }]}>Cancel Signup</Text>
-              </>
+              <Text style={[s.cancelText, { color: colors.destructive }]}>
+                Cancel this signup
+              </Text>
             )}
           </Pressable>
         )}
@@ -807,12 +902,408 @@ export default function ShiftDetailScreen() {
   );
 }
 
-/* ── Crew Section ── */
+/* ═════════════════════════════════════════════════════════
+   GLASS BUTTON — iOS liquid-glass with blur fallback
+   ═════════════════════════════════════════════════════════ */
+
+function GlassButton({
+  onPress,
+  disabled,
+  isDark,
+  tintColor,
+  androidBg,
+  accessibilityLabel,
+  children,
+}: {
+  onPress: () => void;
+  disabled?: boolean;
+  isDark: boolean;
+  tintColor?: string;
+  androidBg?: string;
+  accessibilityLabel?: string;
+  children: React.ReactNode;
+}) {
+  const useNativeGlass = Platform.OS === "ios" && isLiquidGlassAvailable();
+
+  if (useNativeGlass) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+      >
+        <GlassView
+          glassEffectStyle="regular"
+          style={[
+            s.glassButton,
+            tintColor ? { backgroundColor: tintColor } : undefined,
+          ]}
+        >
+          {children}
+        </GlassView>
+      </Pressable>
+    );
+  }
+
+  if (Platform.OS === "ios") {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          s.glassButton,
+          { overflow: "hidden", opacity: pressed ? 0.85 : 1 },
+        ]}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+      >
+        <BlurView
+          intensity={isDark ? 50 : 70}
+          tint={isDark ? "dark" : "light"}
+          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
+        />
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: 16,
+              backgroundColor: tintColor
+                ? tintColor
+                : isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(255,255,255,0.25)",
+            },
+          ]}
+        />
+        {children}
+      </Pressable>
+    );
+  }
+
+  // Android — solid button
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        s.glassButton,
+        {
+          backgroundColor: androidBg ?? Brand.green,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   FRIENDS SECTION — horizontal "ensemble" cards
+   ═════════════════════════════════════════════════════════ */
+
+function FriendsSection({
+  onYourShift,
+  sameSession,
+  colors,
+  isDark,
+}: {
+  onYourShift: PeriodFriend[];
+  sameSession: PeriodFriend[];
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  const total = onYourShift.length + sameSession.length;
+
+  return (
+    <View style={s.section}>
+      <SectionHeader
+        label=""
+        title={`${total} friend${total !== 1 ? "s" : ""} on this session`}
+        caption={""}
+        colors={colors}
+      />
+
+      {onYourShift.length > 0 && (
+        <View style={s.friendsGroup}>
+          <View style={s.friendsGroupHead}>
+            <Text
+              style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
+            >
+              SAME ROLE
+            </Text>
+            <Text
+              style={[s.friendsGroupCount, { color: colors.textSecondary }]}
+            >
+              {String(onYourShift.length).padStart(2, "0")}
+            </Text>
+          </View>
+          <View style={s.friendsList}>
+            {onYourShift.map((f) => (
+              <FriendRow
+                key={f.id}
+                friend={f}
+                isDark={isDark}
+                colors={colors}
+                alongside
+              />
+            ))}
+          </View>
+        </View>
+      )}
+
+      {sameSession.length > 0 && (
+        <View style={s.friendsGroup}>
+          <View style={s.friendsGroupHead}>
+            <Text
+              style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
+            >
+              SAME SHIFT
+            </Text>
+            <Text
+              style={[s.friendsGroupCount, { color: colors.textSecondary }]}
+            >
+              {String(sameSession.length).padStart(2, "0")}
+            </Text>
+          </View>
+          <View style={s.friendsList}>
+            {sameSession.map((f) => (
+              <FriendRow
+                key={f.id}
+                friend={f}
+                isDark={isDark}
+                colors={colors}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function FriendStackAvatar({
+  friend,
+  index,
+  isDark,
+}: {
+  friend: PeriodFriend;
+  index: number;
+  isDark: boolean;
+}) {
+  const initial = friend.name.charAt(0).toUpperCase();
+  const roleTheme = friend.shiftTypeName
+    ? getShiftThemeByName(friend.shiftTypeName)
+    : null;
+  const roleBg = roleTheme
+    ? isDark
+      ? roleTheme.bgDark
+      : roleTheme.bgLight
+    : isDark
+    ? "rgba(14,58,35,0.3)"
+    : "#e8f5e8";
+  const roleInk = roleTheme
+    ? isDark
+      ? roleTheme.colorDark
+      : roleTheme.color
+    : Brand.green;
+
+  const borderColor = isDark ? "#0f1114" : Brand.warmWhite;
+
+  return (
+    <View
+      style={[
+        s.friendsStackItem,
+        {
+          marginLeft: index === 0 ? 0 : -12,
+          borderColor,
+          zIndex: 10 - index,
+        },
+      ]}
+    >
+      {friend.profilePhotoUrl ? (
+        <Image
+          source={{ uri: friend.profilePhotoUrl }}
+          style={s.friendsStackImg}
+          contentFit="cover"
+        />
+      ) : (
+        <View style={[s.friendsStackFallback, { backgroundColor: roleBg }]}>
+          <Text style={[s.friendsStackInitial, { color: roleInk }]}>
+            {initial}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function FriendRow({
+  friend,
+  isDark,
+  colors,
+  alongside = false,
+}: {
+  friend: PeriodFriend;
+  isDark: boolean;
+  colors: (typeof Colors)["light"];
+  alongside?: boolean;
+}) {
+  const initial = friend.name.charAt(0).toUpperCase();
+  const roleTheme = friend.shiftTypeName
+    ? getShiftThemeByName(friend.shiftTypeName)
+    : null;
+  const roleAccent = roleTheme
+    ? isDark
+      ? roleTheme.colorDark
+      : roleTheme.color
+    : Brand.green;
+  const roleBg = roleTheme
+    ? isDark
+      ? roleTheme.bgDark
+      : roleTheme.bgLight
+    : isDark
+    ? "rgba(14,58,35,0.3)"
+    : "#e8f5e8";
+
+  return (
+    <View style={s.friendRow}>
+      {/* Avatar with role tint */}
+      <View style={s.friendRowAvatar}>
+        {friend.profilePhotoUrl ? (
+          <Image
+            source={{ uri: friend.profilePhotoUrl }}
+            style={s.friendRowAvatarImg}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={[s.friendRowAvatarFallback, { backgroundColor: roleBg }]}
+          >
+            <Text style={[s.friendRowInitial, { color: roleAccent }]}>
+              {initial}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Name + role */}
+      <View style={s.friendRowBody}>
+        <Text
+          style={[s.friendRowName, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {friend.name}
+        </Text>
+        {friend.shiftTypeName && (
+          <View style={s.friendRowRole}>
+            <View
+              style={[s.friendRowRoleDot, { backgroundColor: roleAccent }]}
+            />
+            <Text
+              style={[s.friendRowRoleText, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {friend.shiftTypeName}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Right-edge marker */}
+      {alongside ? (
+        <View style={[s.friendRowMarker, { backgroundColor: Brand.accent }]}>
+          <Ionicons name="checkmark" size={12} color={Brand.green} />
+        </View>
+      ) : (
+        roleTheme && (
+          <View
+            style={[
+              s.friendRowEmojiChip,
+              { backgroundColor: roleBg, borderColor: roleAccent + "33" },
+            ]}
+          >
+            <Text style={s.friendRowEmoji}>{roleTheme.emoji}</Text>
+          </View>
+        )
+      )}
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   GENERIC SECTION SHELL
+   ═════════════════════════════════════════════════════════ */
+
+function SectionHeader({
+  label,
+  title,
+  caption,
+  colors,
+}: {
+  label: string;
+  title: string;
+  caption?: string;
+  colors: (typeof Colors)["light"];
+}) {
+  return (
+    <View style={s.sectionHeaderBlock}>
+      <View style={s.sectionOverlineRow}>
+        <View
+          style={[s.sectionOverlineDot, { backgroundColor: Brand.accent }]}
+        />
+        <Text style={[s.sectionOverline, { color: colors.textSecondary }]}>
+          {label}
+        </Text>
+      </View>
+      <Text style={[s.sectionTitle, { color: colors.text }]}>{title}</Text>
+      {caption ? (
+        <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
+          {caption}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function Section({
+  label,
+  title,
+  caption,
+  colors,
+  children,
+}: {
+  label: string;
+  title: string;
+  caption?: string;
+  colors: (typeof Colors)["light"];
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={s.section}>
+      <SectionHeader
+        label={label}
+        title={title}
+        caption={caption}
+        colors={colors}
+      />
+      {children}
+    </View>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   CREW SECTION (post check-in)
+   ═════════════════════════════════════════════════════════ */
 
 const GRADE_COLORS: Record<string, string> = {
-  GREEN: '#22c55e',
-  YELLOW: '#eab308',
-  PINK: '#ec4899',
+  GREEN: "#22c55e",
+  YELLOW: "#eab308",
+  PINK: "#ec4899",
 };
 
 function CrewSection({
@@ -821,46 +1312,40 @@ function CrewSection({
   colors,
   isDark,
 }: {
-  crew: { id: string; name: string; role: string; grade: string; checkedIn: boolean; isYou?: boolean }[];
+  crew: {
+    id: string;
+    name: string;
+    role: string;
+    grade: string;
+    checkedIn: boolean;
+    isYou?: boolean;
+  }[];
   friendSignupIds: Set<string>;
-  colors: (typeof Colors)['light'];
+  colors: (typeof Colors)["light"];
   isDark: boolean;
 }) {
   if (!crew || crew.length === 0) return null;
 
-  const friendIds = friendSignupIds;
-
   const checkedInCount = crew.filter((m) => m.checkedIn).length;
 
-  /** Show full name for friends + yourself, first name only for non-friends (privacy) */
   function getDisplayName(member: (typeof crew)[0]): string {
     if (member.isYou) return member.name;
-    if (friendIds.has(member.id)) return member.name;
-    return member.name.split(' ')[0]; // first name only
+    if (friendSignupIds.has(member.id)) return member.name;
+    return member.name.split(" ")[0];
   }
 
   return (
-    <View style={[s.section, { backgroundColor: colors.card }]}>
-      <View style={s.sectionHeader}>
-        <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(14,58,35,0.3)' : Brand.greenLight }]}>
-          <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[s.sectionTitle, { color: colors.text }]}>Shift Whānau</Text>
-          <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-            {checkedInCount} of {crew.length} checked in
-          </Text>
-        </View>
-        <View style={[s.crewBadge, { backgroundColor: isDark ? 'rgba(34,197,94,0.12)' : Brand.greenLight }]}>
-          <Text style={[s.crewBadgeText, { color: isDark ? '#86efac' : Brand.green }]}>
-            {checkedInCount}/{crew.length}
-          </Text>
-        </View>
-      </View>
+    <View style={s.section}>
+      <SectionHeader
+        label="THE CREW"
+        title="Shift whānau"
+        caption={`${checkedInCount} of ${crew.length} checked in`}
+        colors={colors}
+      />
 
       {crew.map((member) => {
         const gradeColor = GRADE_COLORS[member.grade];
-        const isFriend = friendIds.has(member.id);
+        const isFriend = friendSignupIds.has(member.id);
         const displayName = getDisplayName(member);
         return (
           <View
@@ -869,39 +1354,95 @@ function CrewSection({
               s.memberRow,
               {
                 backgroundColor: member.checkedIn
-                  ? isDark ? 'rgba(34,197,94,0.06)' : '#f0fdf4'
-                  : isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
+                  ? isDark
+                    ? "rgba(34,197,94,0.06)"
+                    : "#f0fdf4"
+                  : isDark
+                  ? "rgba(255,255,255,0.02)"
+                  : "#fdfaf2",
               },
-            ]}>
-            <View style={[s.memberAvatar, { backgroundColor: gradeColor + '18' }]}>
+            ]}
+          >
+            <View
+              style={[s.memberAvatar, { backgroundColor: gradeColor + "18" }]}
+            >
               <Text style={[s.memberInitial, { color: gradeColor }]}>
                 {member.name.charAt(0)}
               </Text>
               <View style={[s.gradeRing, { borderColor: gradeColor }]} />
             </View>
             <View style={s.memberInfo}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
                 <Text style={[s.memberName, { color: colors.text }]}>
                   {displayName}
                   {member.isYou && (
-                    <Text style={{ color: colors.textSecondary, fontFamily: FontFamily.regular }}> (you)</Text>
+                    <Text
+                      style={{
+                        color: colors.textSecondary,
+                        fontFamily: FontFamily.regular,
+                      }}
+                    >
+                      {" "}
+                      (you)
+                    </Text>
                   )}
                 </Text>
                 {isFriend && !member.isYou && (
-                  <View style={[s.friendTag, { backgroundColor: isDark ? 'rgba(22,163,74,0.12)' : '#dcfce7' }]}>
-                    <Ionicons name="heart" size={8} color={isDark ? '#86efac' : '#16a34a'} />
+                  <View
+                    style={[
+                      s.friendTag,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(22,163,74,0.12)"
+                          : "#dcfce7",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="heart"
+                      size={8}
+                      color={isDark ? "#86efac" : "#16a34a"}
+                    />
                   </View>
                 )}
               </View>
-              <Text style={[s.memberRole, { color: colors.textSecondary }]}>{member.role}</Text>
+              <Text style={[s.memberRole, { color: colors.textSecondary }]}>
+                {member.role}
+              </Text>
             </View>
             {member.checkedIn ? (
-              <View style={[s.checkedInDot, { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7' }]}>
-                <Ionicons name="checkmark" size={12} color={isDark ? '#86efac' : '#16a34a'} />
+              <View
+                style={[
+                  s.checkedInDot,
+                  {
+                    backgroundColor: isDark ? "rgba(34,197,94,0.2)" : "#dcfce7",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="checkmark"
+                  size={12}
+                  color={isDark ? "#86efac" : "#16a34a"}
+                />
               </View>
             ) : (
-              <View style={[s.awaitingDot, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9' }]}>
-                <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+              <View
+                style={[
+                  s.awaitingDot,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.04)"
+                      : "#f1ede4",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="time-outline"
+                  size={12}
+                  color={colors.textSecondary}
+                />
               </View>
             )}
           </View>
@@ -911,125 +1452,17 @@ function CrewSection({
   );
 }
 
-/* ── Concurrent Shifts Section ── */
-
-function ConcurrentShiftsSection({
-  shifts,
-  colors,
-  isDark,
-}: {
-  shifts: Shift[];
-  colors: (typeof Colors)['light'];
-  isDark: boolean;
-}) {
-  const totalPeople = shifts.reduce((sum, sh) => sum + sh.signedUp, 0);
-
-  return (
-    <View style={[s.section, { backgroundColor: colors.card }]}>
-      <View style={s.sectionHeader}>
-        <View style={[s.sectionIconCircle, { backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : '#eff6ff' }]}>
-          <Ionicons name="people-circle" size={18} color={isDark ? '#93c5fd' : '#2563eb'} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[s.sectionTitle, { color: colors.text }]}>Also Working Today</Text>
-          <Text style={[s.sectionCaption, { color: colors.textSecondary }]}>
-            {totalPeople} people across {shifts.length} other shift{shifts.length !== 1 ? 's' : ''}
-          </Text>
-        </View>
-      </View>
-
-      {shifts.map((concurrentShift) => {
-        const theme = getShiftThemeByName(concurrentShift.shiftType.name);
-        const accent = isDark ? theme.colorDark : theme.color;
-        const crew: { id: string; name: string; role: string; grade: string; checkedIn: boolean; isYou?: boolean }[] = [];
-        const friendIds = new Set<string>();
-        const checkedInCount = 0;
-
-        return (
-          <View key={concurrentShift.id} style={s.concurrentShiftGroup}>
-            {/* Shift type header */}
-            <View style={[s.concurrentShiftHeader, { backgroundColor: isDark ? theme.bgDark : theme.bgLight }]}>
-              <Text style={s.concurrentShiftEmoji}>{theme.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[s.concurrentShiftName, { color: colors.text }]}>
-                  {concurrentShift.shiftType.name}
-                </Text>
-                <Text style={[s.concurrentShiftMeta, { color: colors.textSecondary }]}>
-                  {checkedInCount} of {crew.length || concurrentShift.signedUp} checked in
-                </Text>
-              </View>
-              <View style={[s.crewBadge, { backgroundColor: isDark ? `${accent}18` : `${accent}18` }]}>
-                <Text style={[s.crewBadgeText, { color: accent }]}>
-                  {checkedInCount}/{crew.length || concurrentShift.signedUp}
-                </Text>
-              </View>
-            </View>
-
-            {/* Crew members */}
-            {crew.map((member) => {
-              const gradeColor = GRADE_COLORS[member.grade];
-              const isFriend = friendIds.has(member.id);
-              // First name only for non-friends (privacy)
-              const displayName = isFriend ? member.name : member.name.split(' ')[0];
-
-              return (
-                <View
-                  key={member.id}
-                  style={[
-                    s.memberRow,
-                    {
-                      backgroundColor: member.checkedIn
-                        ? isDark ? 'rgba(34,197,94,0.06)' : '#f0fdf4'
-                        : isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
-                    },
-                  ]}>
-                  <View style={[s.memberAvatar, { backgroundColor: gradeColor + '18' }]}>
-                    <Text style={[s.memberInitial, { color: gradeColor }]}>
-                      {member.name.charAt(0)}
-                    </Text>
-                    <View style={[s.gradeRing, { borderColor: gradeColor }]} />
-                  </View>
-                  <View style={s.memberInfo}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={[s.memberName, { color: colors.text }]}>
-                        {displayName}
-                      </Text>
-                      {isFriend && (
-                        <View style={[s.friendTag, { backgroundColor: isDark ? 'rgba(22,163,74,0.12)' : '#dcfce7' }]}>
-                          <Ionicons name="heart" size={8} color={isDark ? '#86efac' : '#16a34a'} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[s.memberRole, { color: colors.textSecondary }]}>{member.role}</Text>
-                  </View>
-                  {member.checkedIn ? (
-                    <View style={[s.checkedInDot, { backgroundColor: isDark ? 'rgba(34,197,94,0.2)' : '#dcfce7' }]}>
-                      <Ionicons name="checkmark" size={12} color={isDark ? '#86efac' : '#16a34a'} />
-                    </View>
-                  ) : (
-                    <View style={[s.awaitingDot, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9' }]}>
-                      <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-/* ── Styles ── */
+/* ═════════════════════════════════════════════════════════
+   STYLES
+   ═════════════════════════════════════════════════════════ */
 
 const s = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingBottom: 40, gap: 12 },
+  content: { paddingBottom: 48, gap: 20 },
   centered: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 4,
     padding: 20,
   },
@@ -1037,8 +1470,8 @@ const s = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   backButton: {
     marginTop: 16,
@@ -1047,18 +1480,18 @@ const s = StyleSheet.create({
     borderRadius: 14,
   },
   backButtonText: {
-    color: '#ffffff',
+    color: "#fffdf7",
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
   },
 
-
-
-  // Hero
+  /* ── HERO ── */
   hero: {
-    paddingTop: 130,
-    paddingBottom: 0,
-    overflow: 'hidden',
+    minHeight: 460,
+    paddingTop: 140,
+    paddingBottom: 48,
+    overflow: "hidden",
+    backgroundColor: Brand.green,
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
@@ -1067,296 +1500,423 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   heroBody: {
-    position: 'relative',
+    position: "relative",
     paddingHorizontal: 24,
-    paddingBottom: 24,
+    gap: 14,
+  },
+  heroOverlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
-  heroEmoji: {
-    fontSize: 44,
-    marginBottom: 2,
+  heroOverlineRule: {
+    width: 18,
+    height: 1,
+    backgroundColor: "rgba(248,251,105,0.6)",
+  },
+  heroOverline: {
+    color: Brand.accent,
+    fontSize: 10.5,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
   },
   heroTitle: {
-    color: '#ffffff',
-    fontSize: 28,
+    color: "#fffdf7",
+    fontSize: 40,
+    lineHeight: 44,
     fontFamily: FontFamily.headingBold,
-    lineHeight: 34,
-    letterSpacing: -0.3,
-  },
-  heroDurationBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  heroDurationText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.8,
+    marginTop: 2,
   },
   heroDescription: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 14,
+    color: "rgba(255,253,247,0.78)",
+    fontSize: 15,
+    lineHeight: 22,
     fontFamily: FontFamily.regular,
-    lineHeight: 20,
+    marginTop: -2,
+    maxWidth: 420,
   },
-  heroInfoStrip: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginTop: 4,
+  heroMetaRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 14,
+    marginTop: 18,
+    paddingTop: 18,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,253,247,0.25)",
   },
-  heroInfoStripInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  heroInfoChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  heroInfoIcon: {
-    fontSize: 13,
-  },
-  heroInfoText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-  },
-  heroInfoLink: {
-    textDecorationLine: 'underline',
-    textDecorationColor: 'rgba(255,255,255,0.4)',
-  },
-  heroInfoDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  heroBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 2,
-  },
-  heroCapacity: {
+  heroMetaCol: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    gap: 3,
   },
-  heroCapacityTrack: {
-    width: 48,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden',
-  },
-  heroCapacityFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  heroCapacityText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-  },
-  heroConfirmedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  heroConfirmedText: {
-    color: '#86efac',
-    fontSize: 13,
+  heroMetaLabel: {
+    color: "rgba(248,251,105,0.8)",
+    fontSize: 9.5,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.8,
+  },
+  heroMetaValue: {
+    color: "#fffdf7",
+    fontSize: 17,
+    lineHeight: 21,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  heroMetaValueSmall: {
+    fontSize: 12,
+    letterSpacing: 0,
+  },
+  heroMetaLink: {
+    textDecorationLine: "underline",
+    textDecorationColor: "rgba(255,253,247,0.35)",
+  },
+  heroMetaRule: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(255,253,247,0.25)",
   },
 
-  // Resources
-  resourceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+  /* ── STATUS STRIP (bridges hero + content) ── */
+  statusStripWrap: {
+    paddingHorizontal: 16,
+    marginTop: -36,
+    marginBottom: -4,
   },
-  resourceIcon: {
+  statusStrip: {
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+  statusConfirmed: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  statusConfirmedBadge: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 18,
+    backgroundColor: Brand.accent,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  resourceInfo: {
+  statusConfirmedTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+  },
+  statusConfirmedMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
+  },
+  statusBrowsing: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statusBrowsingLeft: {
     flex: 1,
     gap: 2,
+    alignItems: "center",
   },
-  resourceTitle: {
-    fontSize: 14,
+  statusBrowsingMid: {
+    flex: 1,
+    gap: 2,
+    alignItems: "center",
+  },
+  statusDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    backgroundColor: "rgba(128,128,128,0.22)",
+    marginHorizontal: 4,
+  },
+  statusCapacityNumber: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.8,
+  },
+  statusCapacitySlash: {
+    fontSize: 16,
+    fontFamily: FontFamily.heading,
+  },
+  statusSpotsNumber: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.4,
+  },
+  statusCapacityLabel: {
+    fontSize: 10,
     fontFamily: FontFamily.semiBold,
-  },
-  resourceDescription: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-  },
-  resourceMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  resourceSize: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
 
-  // Notes text
+  /* ── NOTES ── */
   notesText: {
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 23,
     fontFamily: FontFamily.regular,
-    lineHeight: 20,
-    marginHorizontal: 16,
   },
 
-  // CTA button
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 16,
-    minHeight: 56,
-  },
-  ctaText: {
-    color: '#ffffff',
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-  },
-
-  // Success banner
-  successBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 16,
-  },
-  successIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 16,
-  },
-  successSubtitle: {
-    fontFamily: FontFamily.regular,
-    fontSize: 13,
-    opacity: 0.7,
-    marginTop: 2,
-  },
-
-  // Sections
+  /* ── SECTION SHELL ── */
   section: {
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 18,
+    paddingHorizontal: 20,
     gap: 14,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  sectionHeaderBlock: {
+    gap: 4,
   },
-  sectionIconCircle: {
+  sectionOverlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  sectionOverlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  sectionOverline: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  sectionTitle: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.4,
+  },
+  sectionCaption: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: FontFamily.regular,
+  },
+
+  /* ── FRIENDS ── */
+  friendsStackRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  friendsStack: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  friendsStackItem: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2.5,
+    overflow: "hidden",
+  },
+  friendsStackImg: {
+    width: "100%",
+    height: "100%",
+  },
+  friendsStackFallback: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendsStackInitial: {
+    fontSize: 15,
+    fontFamily: FontFamily.headingBold,
+  },
+  friendsStackMore: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2.5,
+    marginLeft: -12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendsStackMoreText: {
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+  },
+
+  friendsGroup: {
+    gap: 6,
+    marginTop: 10,
+  },
+  friendsGroupHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 4,
+  },
+  friendsGroupRule: {
+    width: 12,
+    height: 1,
+    backgroundColor: "rgba(128,128,128,0.4)",
+  },
+  friendsGroupLabel: {
+    flex: 1,
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.8,
+  },
+  friendsGroupCount: {
+    fontSize: 12,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.3,
+  },
+  friendsList: {
+    gap: 2,
+  },
+  friendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 10,
+  },
+  friendRowAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: "hidden",
+  },
+  friendRowAvatarImg: {
+    width: "100%",
+    height: "100%",
+  },
+  friendRowAvatarFallback: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendRowInitial: {
+    fontSize: 18,
+    fontFamily: FontFamily.headingBold,
+  },
+  friendRowBody: {
+    flex: 1,
+    gap: 3,
+  },
+  friendRowName: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  friendRowRole: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  friendRowRoleDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  friendRowRoleText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 17,
+    fontFamily: FontFamily.medium,
+  },
+  friendRowMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendRowEmojiChip: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  sectionTitle: {
+  friendRowEmoji: {
+    fontSize: 18,
+  },
+
+  /* ── GLASS CTA ── */
+  ctaWrap: {
+    paddingHorizontal: 20,
+  },
+  glassButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 22,
+    borderRadius: 16,
+    minHeight: 56,
+    overflow: "hidden",
+  },
+  glassCtaText: {
+    color: "#fffdf7",
+    fontFamily: FontFamily.bold,
     fontSize: 16,
-    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
   },
-  sectionCaption: {
-    fontSize: 12,
+
+  /* ── CHECKED-IN BANNER ── */
+  checkedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.2)",
+  },
+  checkedBannerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Brand.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkedBannerTitle: {
+    fontFamily: FontFamily.heading,
+    fontSize: 17,
+    letterSpacing: -0.2,
+  },
+  checkedBannerSubtitle: {
     fontFamily: FontFamily.regular,
+    fontSize: 13,
+    opacity: 0.75,
     marginTop: 1,
   },
 
-  // Signup rows
-  signupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  /* ── CANCEL LINK ── */
+  cancelButton: {
+    alignSelf: "center",
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    minHeight: 44,
+    justifyContent: "center",
   },
-  signupAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  signupAvatarFallback: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signupInitial: {
-    fontSize: 14,
+  cancelText: {
     fontFamily: FontFamily.semiBold,
-  },
-  signupName: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: FontFamily.medium,
-  },
-  friendTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  friendTagText: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    textDecorationLine: "underline",
   },
 
-  // Crew
-  crewBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  crewBadgeText: {
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-  },
+  /* ── CREW ── */
   memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 12,
     borderRadius: 14,
     gap: 12,
@@ -1365,15 +1925,15 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   memberInitial: {
     fontSize: 16,
     fontFamily: FontFamily.bold,
   },
   gradeRing: {
-    position: 'absolute',
+    position: "absolute",
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -1396,81 +1956,65 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   awaitingDot: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
 
-  // Concurrent shifts
-  concurrentShiftGroup: {
-    gap: 8,
-  },
-  concurrentShiftHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  concurrentShiftEmoji: {
-    fontSize: 18,
-  },
-  concurrentShiftName: {
-    fontSize: 14,
-    fontFamily: FontFamily.semiBold,
-  },
-  concurrentShiftMeta: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    marginTop: 1,
-  },
-
-  // Photos
+  /* ── PHOTOS ── */
   photoScroll: { gap: 10, paddingVertical: 2 },
   addPhotoButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 14,
+    width: 108,
+    height: 108,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 4,
   },
   addPhotoText: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.3,
   },
   photoThumb: {
-    width: 100,
-    height: 100,
-    borderRadius: 14,
-    overflow: 'hidden',
+    width: 108,
+    height: 108,
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  photoImage: { width: '100%', height: '100%' },
-  photoRemove: { position: 'absolute', top: 4, right: 4 },
+  photoImage: { width: "100%", height: "100%" },
+  photoRemove: { position: "absolute", top: 4, right: 4 },
 
-  // Music
+  /* ── MUSIC QUEUE ── */
   musicRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   musicInputWrap: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    minHeight: 44,
+    minHeight: 46,
   },
   musicInput: {
     flex: 1,
@@ -1478,33 +2022,28 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   addSongButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   queueItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    gap: 10,
-  },
-  queueRank: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    gap: 14,
   },
   queueRankText: {
-    fontSize: 12,
-    fontFamily: FontFamily.bold,
+    fontSize: 20,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.5,
+    width: 28,
   },
   songInfo: { flex: 1, gap: 2 },
   songTitle: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontFamily: FontFamily.semiBold,
   },
   songMeta: {
@@ -1512,8 +2051,8 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.regular,
   },
   voteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1524,38 +2063,5 @@ const s = StyleSheet.create({
   voteCount: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-  },
-
-  // Full banner
-  fullBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 14,
-  },
-  fullText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: FontFamily.medium,
-    lineHeight: 20,
-  },
-
-  // Cancel button
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    minHeight: 50,
-  },
-  cancelText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 15,
   },
 });
