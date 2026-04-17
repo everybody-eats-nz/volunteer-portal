@@ -80,9 +80,11 @@ export default function LoginClient({ providers }: LoginClientProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [passkeySupported, setPasskeySupported] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
-  const [showReactivation, setShowReactivation] = useState(false);
-  const [reactivateLoading, setReactivateLoading] = useState(false);
   const searchParams = useSearchParams();
+  const [showReactivation, setShowReactivation] = useState(
+    () => searchParams.get("error") === "AccountArchived"
+  );
+  const [reactivateLoading, setReactivateLoading] = useState(false);
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -182,13 +184,6 @@ export default function LoginClient({ providers }: LoginClientProps) {
       }
     }
   });
-
-  // Show the reactivation banner whenever the URL carries ?error=AccountArchived
-  useEffect(() => {
-    if (searchParams.get("error") === "AccountArchived") {
-      setShowReactivation(true);
-    }
-  }, [searchParams]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
