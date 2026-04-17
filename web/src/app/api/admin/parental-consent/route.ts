@@ -15,10 +15,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Get all users under 16 who require parental consent
+    // Get all users under 16 who require parental consent (exclude archived)
     const usersRequiringConsent = await prisma.user.findMany({
       where: {
         requiresParentalConsent: true,
+        archivedAt: null,
       },
       select: {
         id: true,

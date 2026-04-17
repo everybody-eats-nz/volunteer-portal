@@ -22,7 +22,8 @@ import {
   getPasskeyMessage,
   getPasskeyErrorMessage,
 } from "@/lib/passkey-client";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, Archive } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface LoginClientProps {
   providers: Provider[];
@@ -79,6 +80,8 @@ export default function LoginClient({ providers }: LoginClientProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [passkeySupported, setPasskeySupported] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [showReactivation, setShowReactivation] = useState(false);
+  const [reactivateLoading, setReactivateLoading] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -124,6 +127,9 @@ export default function LoginClient({ providers }: LoginClientProps) {
     if (authError === "CredentialsSignin") {
       errorMsg =
         "Invalid credentials. Please check your email and password and try again.";
+    } else if (authError === "AccountArchived") {
+      // Pre-fill email if supplied via URL; ask user to re-enter password and reactivate
+      if (urlEmail) emailValue = urlEmail;
     }
 
     if (message === "registration-success") {
@@ -177,6 +183,13 @@ export default function LoginClient({ providers }: LoginClientProps) {
     }
   });
 
+  // Show the reactivation banner whenever the URL carries ?error=AccountArchived
+  useEffect(() => {
+    if (searchParams.get("error") === "AccountArchived") {
+      setShowReactivation(true);
+    }
+  }, [searchParams]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -204,11 +217,53 @@ export default function LoginClient({ providers }: LoginClientProps) {
         return;
       }
 
+      if (res.error === "AccountArchived") {
+        setShowReactivation(true);
+        return;
+      }
+
       setError("Invalid credentials");
     } else if (res?.ok) {
       // Add a small delay to ensure session is established
       await new Promise((resolve) => setTimeout(resolve, 1000));
       window.location.href = "/";
+    }
+  }
+
+  async function handleReactivate() {
+    if (!email || !password) {
+      setError(
+        "Please re-enter your email and password to reactivate your account."
+      );
+      return;
+    }
+    setError(null);
+    setSuccessMessage(null);
+    setReactivateLoading(true);
+
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
+    const res = await signIn("credentials", {
+      email,
+      password,
+      reactivate: "true",
+      redirect: false,
+      callbackUrl,
+    });
+
+    setReactivateLoading(false);
+
+    if (res?.error) {
+      setError(
+        "We couldn't reactivate your account. Please double-check your password and try again."
+      );
+      return;
+    }
+
+    if (res?.ok) {
+      setShowReactivation(false);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      window.location.href = callbackUrl;
     }
   }
 
@@ -560,6 +615,49 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   data-testid="password-input"
                 />
               </motion.div>
+
+              {showReactivation && (
+                <motion.div
+                  data-testid="reactivation-banner"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-100 [&>svg]:text-amber-600">
+                    <Archive className="h-5 w-5" />
+                    <AlertTitle>Your account is archived</AlertTitle>
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        Welcome back! Re-enter your password and tap{" "}
+                        <span className="font-semibold">
+                          Reactivate my account
+                        </span>{" "}
+                        to restore access — we&apos;ll keep all your history.
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={handleReactivate}
+                        disabled={
+                          reactivateLoading ||
+                          isLoading ||
+                          oauthLoading !== null
+                        }
+                        className="w-full bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
+                        data-testid="reactivate-account-button"
+                      >
+                        {reactivateLoading ? (
+                          <div className="flex items-center gap-2">
+                            <MotionSpinner size="sm" color="white" />
+                            Reactivating…
+                          </div>
+                        ) : (
+                          "Reactivate my account"
+                        )}
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
+              )}
 
               <MotionFormSuccess
                 show={!!successMessage}

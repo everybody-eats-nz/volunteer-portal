@@ -65,12 +65,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No users selected" }, { status: 400 });
     }
 
-    // Get users to send invitations to
+    // Get users to send invitations to (skip archived — never-migrated archived users should not be re-invited)
     const users = await prisma.user.findMany({
       where: {
         id: { in: userIds },
         profileCompleted: false,
         role: "VOLUNTEER",
+        archivedAt: null,
       },
       select: {
         id: true,

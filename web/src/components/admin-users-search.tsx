@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search, X, Archive } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,10 +14,14 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 
+type ArchivedFilter = "active" | "archived" | "all";
+
 interface AdminUsersSearchProps {
   initialSearch?: string;
   roleFilter?: string;
   locationFilter?: string;
+  archivedFilter?: ArchivedFilter;
+  archivedCount?: number;
   locations?: string[];
 }
 
@@ -25,6 +29,8 @@ export function AdminUsersSearch({
   initialSearch,
   roleFilter,
   locationFilter,
+  archivedFilter = "active",
+  archivedCount = 0,
   locations = [],
 }: AdminUsersSearchProps) {
   const [searchValue, setSearchValue] = useState(initialSearch || "");
@@ -41,28 +47,37 @@ export function AdminUsersSearch({
 
   // Helper to build URLs that preserve sorting parameters
   const buildFilterUrl = useMemo(
-    () => (role?: string, location?: string) => {
-      const params = new URLSearchParams();
+    () =>
+      (
+        role?: string,
+        location?: string,
+        archived: ArchivedFilter = archivedFilter
+      ) => {
+        const params = new URLSearchParams();
 
-      // Preserve sorting if exists
-      const currentSortBy = searchParams.get("sortBy");
-      const currentSortOrder = searchParams.get("sortOrder");
-      if (currentSortBy) params.set("sortBy", currentSortBy);
-      if (currentSortOrder) params.set("sortOrder", currentSortOrder);
+        // Preserve sorting if exists
+        const currentSortBy = searchParams.get("sortBy");
+        const currentSortOrder = searchParams.get("sortOrder");
+        if (currentSortBy) params.set("sortBy", currentSortBy);
+        if (currentSortOrder) params.set("sortOrder", currentSortOrder);
 
-      // Add search if exists
-      if (searchValue) params.set("search", searchValue);
+        // Add search if exists
+        if (searchValue) params.set("search", searchValue);
 
-      // Add role if specified
-      if (role) params.set("role", role);
+        // Add role if specified
+        if (role) params.set("role", role);
 
-      // Add location if specified
-      if (location) params.set("location", location);
+        // Add location if specified
+        if (location) params.set("location", location);
 
-      const queryString = params.toString();
-      return queryString ? `/admin/users?${queryString}` : "/admin/users";
-    },
-    [searchParams, searchValue]
+        // Archived filter — omit the default ("active") to keep URLs clean
+        if (archived === "archived") params.set("archived", "only");
+        else if (archived === "all") params.set("archived", "all");
+
+        const queryString = params.toString();
+        return queryString ? `/admin/users?${queryString}` : "/admin/users";
+      },
+    [searchParams, searchValue, archivedFilter]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -86,6 +101,11 @@ export function AdminUsersSearch({
     if (locationFilter) {
       params.set("location", locationFilter);
     }
+
+    // Preserve archived filter if it's not the default
+    if (archivedFilter === "archived") params.set("archived", "only");
+    else if (archivedFilter === "all") params.set("archived", "all");
+    else params.delete("archived");
 
     // Reset to page 1 when searching
     params.set("page", "1");
@@ -192,7 +212,69 @@ export function AdminUsersSearch({
             Admins
           </Button>
         </Link>
-        {(initialSearch || roleFilter || locationFilter) && (
+        <div
+          className="ml-auto flex flex-wrap gap-2"
+          data-testid="archived-filter-buttons"
+        >
+          <Link href={buildFilterUrl(roleFilter, locationFilter, "active")}>
+            <Button
+              variant={archivedFilter === "active" ? "default" : "outline"}
+              size="sm"
+              className={
+                archivedFilter === "active"
+                  ? "btn-primary shadow-sm"
+                  : "hover:bg-slate-50"
+              }
+              data-testid="filter-active-only"
+            >
+              Active
+            </Button>
+          </Link>
+          <Link href={buildFilterUrl(roleFilter, locationFilter, "archived")}>
+            <Button
+              variant={archivedFilter === "archived" ? "default" : "outline"}
+              size="sm"
+              className={
+                archivedFilter === "archived"
+                  ? "btn-primary shadow-sm gap-1.5"
+                  : "hover:bg-slate-50 gap-1.5"
+              }
+              data-testid="filter-archived-only"
+            >
+              <Archive className="h-3 w-3" />
+              Archived
+              {archivedCount > 0 && (
+                <span
+                  className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                    archivedFilter === "archived"
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                  }`}
+                >
+                  {archivedCount}
+                </span>
+              )}
+            </Button>
+          </Link>
+          <Link href={buildFilterUrl(roleFilter, locationFilter, "all")}>
+            <Button
+              variant={archivedFilter === "all" ? "default" : "outline"}
+              size="sm"
+              className={
+                archivedFilter === "all"
+                  ? "btn-primary shadow-sm"
+                  : "hover:bg-slate-50"
+              }
+              data-testid="filter-show-all"
+            >
+              Show all
+            </Button>
+          </Link>
+        </div>
+        {(initialSearch ||
+          roleFilter ||
+          locationFilter ||
+          archivedFilter !== "active") && (
           <Button
             asChild
             variant="ghost"

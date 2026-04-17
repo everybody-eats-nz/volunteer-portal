@@ -67,10 +67,10 @@ export async function AdminDashboardContent({
     recentAchievements,
     weeklyStats,
   ] = await Promise.all([
-    // User counts
-    prisma.user.count(),
-    prisma.user.count({ where: { role: "VOLUNTEER" } }),
-    prisma.user.count({ where: { role: "ADMIN" } }),
+    // User counts (active only)
+    prisma.user.count({ where: { archivedAt: null } }),
+    prisma.user.count({ where: { role: "VOLUNTEER", archivedAt: null } }),
+    prisma.user.count({ where: { role: "ADMIN", archivedAt: null } }),
 
     // Shift counts
     prisma.shift.count({ where: { start: { gte: now }, ...locationFilter } }),

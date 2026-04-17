@@ -31,6 +31,7 @@ export default async function AdminParentalConsentPage() {
       where: {
         role: "VOLUNTEER",
         requiresParentalConsent: true,
+        archivedAt: null,
       },
     }),
     // Pending approval (requiring consent but not yet received)
@@ -38,6 +39,7 @@ export default async function AdminParentalConsentPage() {
       where: {
         role: "VOLUNTEER",
         requiresParentalConsent: true,
+        archivedAt: null,
         parentalConsentReceived: false,
       },
     }),
@@ -46,6 +48,7 @@ export default async function AdminParentalConsentPage() {
       where: {
         role: "VOLUNTEER",
         requiresParentalConsent: true,
+        archivedAt: null,
         parentalConsentReceived: true,
       },
     }),

@@ -27,6 +27,7 @@ export async function DashboardImpactStats({
 
     prisma.user.count({
       where: {
+        archivedAt: null,
         signups: { some: { status: "CONFIRMED" } },
       },
     }),
