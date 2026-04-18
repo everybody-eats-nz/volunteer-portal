@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { signMobileToken, toMobileUser } from "@/lib/mobile-auth";
 import { unarchiveUser } from "@/lib/archive-service";
 import { ArchiveTriggerSource } from "@/generated/client";
+
+// Cached across invocations on the same server instance. `jose` handles key
+// rotation and stale-key refetch internally — see createRemoteJWKSet docs.
+const appleJWKS = createRemoteJWKSet(
+  new URL("https://appleid.apple.com/auth/keys"),
+);
 
 type Provider = "apple" | "google" | "facebook";
 
@@ -172,31 +179,33 @@ async function verifyGoogleToken(idToken: string): Promise<OAuthProfile> {
 }
 
 async function verifyAppleToken(idToken: string): Promise<OAuthProfile> {
-  // Decode JWT payload without verifying signature; verify via Apple's key.
-  const payload = decodeJwtPayload(idToken);
-  const iss = payload.iss as string | undefined;
-  const aud = payload.aud as string | undefined;
-
-  if (iss !== "https://appleid.apple.com") {
-    throw new Error(`Unexpected Apple issuer: ${iss}`);
-  }
-
   const expectedAud =
     process.env.APPLE_MOBILE_BUNDLE_ID || process.env.APPLE_CLIENT_ID;
-  if (expectedAud && aud !== expectedAud) {
-    throw new Error(`Apple token audience mismatch: ${aud}`);
+
+  if (!expectedAud) {
+    throw new Error(
+      "APPLE_MOBILE_BUNDLE_ID (or APPLE_CLIENT_ID) must be set to verify Apple tokens",
+    );
   }
 
-  // NOTE: Production should verify the JWT signature with Apple's public keys
-  // from https://appleid.apple.com/auth/keys — this simplified path trusts
-  // the iss+aud check + HTTPS. Upgrade to full JWS verification before launch.
+  // Full JWS verification: fetches Apple's public keys, picks the one whose
+  // kid matches the token header, validates signature + iss + aud + exp.
+  const { payload } = await jwtVerify(idToken, appleJWKS, {
+    issuer: "https://appleid.apple.com",
+    audience: expectedAud,
+  });
 
+  // Name is only included on the first auth; clients must persist it themselves.
+  // Apple's email_verified is a string ("true"/"false") in some responses and
+  // a boolean in others.
   return {
     email: (payload.email as string) ?? "",
-    name: null, // Apple only sends name on first auth — client must persist it
+    name: null,
     image: null,
     providerUserId: (payload.sub as string) ?? "",
-    emailVerified: payload.email_verified === true || payload.email_verified === "true",
+    emailVerified:
+      payload.email_verified === true ||
+      payload.email_verified === "true",
   };
 }
 
@@ -219,11 +228,4 @@ async function verifyFacebookToken(accessToken: string): Promise<OAuthProfile> {
     providerUserId: data.id ?? "",
     emailVerified: true, // Facebook emails are verified
   };
-}
-
-function decodeJwtPayload(token: string): Record<string, unknown> {
-  const parts = token.split(".");
-  if (parts.length !== 3) throw new Error("Invalid JWT");
-  const payload = Buffer.from(parts[1], "base64url").toString("utf8");
-  return JSON.parse(payload);
 }
