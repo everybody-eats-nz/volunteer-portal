@@ -27,6 +27,7 @@ import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
 import { type Achievement, type Friend } from "@/lib/dummy-data";
 import { api, apiUpload } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 const GRADE_CONFIG: Record<
   string,
@@ -100,6 +101,7 @@ export default function ProfileScreen() {
     refresh,
   } = useProfile();
   const { friends } = useFriends();
+  const logout = useAuth((s) => s.logout);
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -506,7 +508,13 @@ export default function ProfileScreen() {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           Alert.alert("Sign Out", "Are you sure you want to sign out?", [
             { text: "Cancel", style: "cancel" },
-            { text: "Sign Out", style: "destructive", onPress: () => {} },
+            {
+              text: "Sign Out",
+              style: "destructive",
+              onPress: () => {
+                logout();
+              },
+            },
           ]);
         }}
         style={({ pressed }) => [
