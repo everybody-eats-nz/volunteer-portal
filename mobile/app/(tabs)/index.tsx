@@ -26,10 +26,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ImageViewer } from "@/components/image-viewer";
 import { useFeed } from "@/hooks/use-feed";
 import { useFeedInteractions } from "@/hooks/use-feed-interactions";
 import { useProfile } from "@/hooks/use-profile";
-import { useShifts } from "@/hooks/use-shifts";
+import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
   type FeedComment,
   type FeedItem,
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const {
     myShifts,
     available,
+    periodFriends,
     isLoading: shiftsLoading,
     refresh: refreshShifts,
   } = useShifts();
@@ -65,6 +67,9 @@ export default function HomeScreen() {
   } = useFeedInteractions();
 
   const nextShift = myShifts[0] ?? null;
+  const nextShiftFriends: PeriodFriend[] = nextShift
+    ? periodFriends[getShiftPeriodKey(new Date(nextShift.start))] ?? []
+    : [];
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
@@ -74,6 +79,18 @@ export default function HomeScreen() {
   });
 
   const [likesSheetItem, setLikesSheetItem] = useState<FeedItem | null>(null);
+  const [viewerImages, setViewerImages] = useState<string[] | null>(null);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const openImageViewer = useCallback((images: string[], index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setViewerImages(images);
+    setViewerIndex(index);
+  }, []);
+
+  const closeImageViewer = useCallback(() => {
+    setViewerImages(null);
+  }, []);
 
   const toggleLike = useCallback(
     async (item: FeedItem) => {
@@ -208,6 +225,7 @@ export default function HomeScreen() {
       {nextShift && (
         <NextShiftHero
           shift={nextShift}
+          friends={nextShiftFriends}
           onPress={() => router.push(`/shift/${nextShift.id}` as Href)}
         />
       )}
@@ -260,6 +278,7 @@ export default function HomeScreen() {
               liked={item.likedByMe}
               onToggleLike={() => toggleLike(item)}
               onShowSheet={() => handleOpenSheet(item)}
+              onOpenImages={openImageViewer}
               commentCount={item.commentCount}
               isReported={hasReported(item.id)}
               onReport={() => {
@@ -306,8 +325,16 @@ export default function HomeScreen() {
           comments={getCommentsForItem(likesSheetItem.id)}
           isLoadingComments={getCommentState(likesSheetItem.id).isLoading}
           onAddComment={(text) => addComment(likesSheetItem.id, text)}
+          onOpenImages={openImageViewer}
         />
       )}
+
+      <ImageViewer
+        visible={viewerImages !== null}
+        images={viewerImages ?? []}
+        initialIndex={viewerIndex}
+        onClose={closeImageViewer}
+      />
 
       {/* ── Footer / aroha ── */}
       <View style={styles.footer}>
@@ -397,6 +424,13 @@ function resolveStatusKey(status?: string | null): ShiftStatusKey {
   return "CONFIRMED";
 }
 
+/** Day/evening cutoff matches the server (DAY_EVENING_CUTOFF_HOUR = 16 NZT). */
+function getShiftPeriodKey(start: Date): string {
+  const dateStr = formatNZT(start, "yyyy-MM-dd");
+  const hour = parseInt(formatNZT(start, "H"), 10);
+  return `${dateStr}-${hour < 16 ? "DAY" : "EVE"}`;
+}
+
 function formatCountdown(start: Date, now: Date): string | null {
   const minutes = differenceInMinutes(start, now);
   if (minutes <= 0) return "Starting now";
@@ -415,6 +449,7 @@ function formatCountdown(start: Date, now: Date): string | null {
 
 function NextShiftHero({
   shift,
+  friends,
   onPress,
 }: {
   shift: {
@@ -424,12 +459,14 @@ function NextShiftHero({
     location: string;
     status?: string | null;
   };
+  friends: PeriodFriend[];
   onPress: () => void;
 }) {
   const statusKey = resolveStatusKey(shift.status);
   const palette = HERO_PALETTE[statusKey];
   const start = new Date(shift.start);
   const countdown = formatCountdown(start, new Date());
+  const isEvening = parseInt(formatNZT(start, "H"), 10) >= 16;
 
   return (
     <Pressable
@@ -522,6 +559,34 @@ function NextShiftHero({
           </View>
         </View>
 
+        {/* Friends on this period */}
+        {friends.length > 0 && (
+          <View
+            style={[
+              heroStyles.friendsRow,
+              { borderTopColor: "rgba(255,255,255,0.08)" },
+            ]}
+          >
+            <HeroFriendAvatars friends={friends} />
+            <View style={heroStyles.friendsTextBlock}>
+              <Text
+                style={[
+                  heroStyles.friendsLabel,
+                  { color: palette.mutedText },
+                ]}
+              >
+                {isEvening ? "Evening crew" : "Day crew"}
+              </Text>
+              <Text
+                style={[heroStyles.friendsNames, { color: palette.heroText }]}
+                numberOfLines={1}
+              >
+                {formatFriendNames(friends)}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Countdown strip */}
         {countdown && (
           <View
@@ -555,6 +620,59 @@ function NextShiftHero({
         )}
       </View>
     </Pressable>
+  );
+}
+
+function formatFriendNames(friends: PeriodFriend[]): string {
+  const firsts = friends.map((f) => f.name.split(" ")[0]).filter(Boolean);
+  if (firsts.length === 0) return "";
+  if (firsts.length === 1) return `${firsts[0]} is volunteering too`;
+  if (firsts.length === 2) return `${firsts[0]} & ${firsts[1]}`;
+  const remaining = firsts.length - 2;
+  return `${firsts[0]}, ${firsts[1]} +${remaining} more`;
+}
+
+function HeroFriendAvatars({ friends }: { friends: PeriodFriend[] }) {
+  const maxShow = 4;
+  const shown = friends.slice(0, maxShow);
+  const overflow = friends.length - maxShow;
+
+  return (
+    <View style={heroStyles.friendsStack}>
+      {shown.map((friend, index) => (
+        <View
+          key={friend.id}
+          style={[
+            heroStyles.friendAvatarWrap,
+            { marginLeft: index === 0 ? 0 : -10, zIndex: maxShow - index },
+          ]}
+        >
+          {friend.profilePhotoUrl ? (
+            <Image
+              source={{ uri: friend.profilePhotoUrl }}
+              style={heroStyles.friendAvatar}
+            />
+          ) : (
+            <View
+              style={[heroStyles.friendAvatar, heroStyles.friendAvatarFallback]}
+            >
+              <Text style={heroStyles.friendInitial}>
+                {friend.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+      ))}
+      {overflow > 0 && (
+        <View style={[heroStyles.friendAvatarWrap, { marginLeft: -10, zIndex: 0 }]}>
+          <View
+            style={[heroStyles.friendAvatar, heroStyles.friendOverflowPill]}
+          >
+            <Text style={heroStyles.friendOverflowText}>+{overflow}</Text>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -672,6 +790,61 @@ const heroStyles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
+  },
+  friendsRow: {
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  friendsStack: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  friendAvatarWrap: {},
+  friendAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  friendAvatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  friendInitial: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    color: "#ffffff",
+  },
+  friendOverflowPill: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  friendOverflowText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: "#ffffff",
+  },
+  friendsTextBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  friendsLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
+  friendsNames: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.1,
   },
   countdown: {
     marginTop: 20,
@@ -822,6 +995,7 @@ function FeedCard({
   liked,
   onToggleLike,
   onShowSheet,
+  onOpenImages,
   commentCount,
   onReport,
   isReported = false,
@@ -832,6 +1006,7 @@ function FeedCard({
   liked: boolean;
   onToggleLike: () => void;
   onShowSheet: () => void;
+  onOpenImages: (images: string[], index: number) => void;
   commentCount: number;
   onReport: () => void;
   isReported?: boolean;
@@ -924,11 +1099,18 @@ function FeedCard({
       return (
         <>
           {item.imageUrl && (
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.announcementImage}
-              resizeMode="cover"
-            />
+            <Pressable
+              onPress={() => onOpenImages([item.imageUrl!], 0)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+              accessibilityLabel="View announcement image"
+              accessibilityRole="imagebutton"
+            >
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.announcementImage}
+                resizeMode="cover"
+              />
+            </Pressable>
           )}
           {item.imageUrl ? (
             <View style={styles.feedCard}>{iconAndBody}</View>
@@ -1053,14 +1235,18 @@ function FeedCard({
               contentContainerStyle={styles.feedPhotoStripContent}
             >
               {item.photos.slice(0, 3).map((uri, i) => (
-                <Image
+                <Pressable
                   key={`${item.id}-thumb-${i}`}
-                  source={{ uri }}
-                  style={styles.feedPhotoThumb}
-                />
+                  onPress={() => onOpenImages(item.photos, i)}
+                  accessibilityLabel="View photo"
+                  accessibilityRole="imagebutton"
+                >
+                  <Image source={{ uri }} style={styles.feedPhotoThumb} />
+                </Pressable>
               ))}
               {item.photos.length > 3 && (
-                <View
+                <Pressable
+                  onPress={() => onOpenImages(item.photos, 3)}
                   style={[
                     styles.feedPhotoThumb,
                     styles.feedPhotoMore,
@@ -1068,6 +1254,8 @@ function FeedCard({
                       backgroundColor: colors.border,
                     },
                   ]}
+                  accessibilityLabel={`View ${item.photos.length - 3} more photos`}
+                  accessibilityRole="imagebutton"
                 >
                   <Text
                     style={[
@@ -1077,7 +1265,7 @@ function FeedCard({
                   >
                     +{item.photos.length - 3}
                   </Text>
-                </View>
+                </Pressable>
               )}
             </ScrollView>
             <View style={styles.feedFooter}>
@@ -1282,6 +1470,7 @@ function FeedItemSheet({
   comments,
   isLoadingComments,
   onAddComment,
+  onOpenImages,
 }: {
   item: FeedItem;
   likers: LikeUser[];
@@ -1293,6 +1482,7 @@ function FeedItemSheet({
   comments: FeedComment[];
   isLoadingComments?: boolean;
   onAddComment: (text: string) => void;
+  onOpenImages: (images: string[], index: number) => void;
 }) {
   const insets = useSafeAreaInsets();
   const [commentText, setCommentText] = useState("");
@@ -1642,11 +1832,17 @@ function FeedItemSheet({
             {/* ── Photo gallery (for photo_post type) ── */}
             {/* Announcement image */}
             {item.type === "announcement" && item.imageUrl && (
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={[sheet.photoSingle, { borderRadius: 12, marginBottom: 12 }]}
-                resizeMode="cover"
-              />
+              <Pressable
+                onPress={() => onOpenImages([item.imageUrl!], 0)}
+                accessibilityLabel="View announcement image"
+                accessibilityRole="imagebutton"
+              >
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={[sheet.photoSingle, { borderRadius: 12, marginBottom: 12 }]}
+                  resizeMode="cover"
+                />
+              </Pressable>
             )}
 
             {item.type === "photo_post" && item.photos.length > 0 && (
@@ -1660,10 +1856,16 @@ function FeedItemSheet({
                 ]}
               >
                 {item.photos.length === 1 ? (
-                  <Image
-                    source={{ uri: item.photos[0] }}
-                    style={sheet.photoSingle}
-                  />
+                  <Pressable
+                    onPress={() => onOpenImages(item.photos, 0)}
+                    accessibilityLabel="View photo"
+                    accessibilityRole="imagebutton"
+                  >
+                    <Image
+                      source={{ uri: item.photos[0] }}
+                      style={sheet.photoSingle}
+                    />
+                  </Pressable>
                 ) : (
                   <ScrollView
                     horizontal
@@ -1671,11 +1873,17 @@ function FeedItemSheet({
                     contentContainerStyle={sheet.photoScrollContent}
                   >
                     {item.photos.map((uri, i) => (
-                      <Image
+                      <Pressable
                         key={`${item.id}-photo-${i}`}
-                        source={{ uri }}
-                        style={sheet.photoScrollItem}
-                      />
+                        onPress={() => onOpenImages(item.photos, i)}
+                        accessibilityLabel="View photo"
+                        accessibilityRole="imagebutton"
+                      >
+                        <Image
+                          source={{ uri }}
+                          style={sheet.photoScrollItem}
+                        />
+                      </Pressable>
                     ))}
                   </ScrollView>
                 )}
