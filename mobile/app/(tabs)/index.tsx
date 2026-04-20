@@ -406,7 +406,6 @@ export default function HomeScreen() {
           comments={getCommentsForItem(likesSheetItem.id)}
           isLoadingComments={getCommentState(likesSheetItem.id).isLoading}
           onAddComment={(text) => addComment(likesSheetItem.id, text)}
-          onOpenImages={openImageViewer}
           currentUserId={profile?.id ?? ""}
           onOpenUserProfile={(userId) => {
             if (!userId) return;
@@ -1626,7 +1625,6 @@ function FeedItemSheet({
   comments,
   isLoadingComments,
   onAddComment,
-  onOpenImages,
   currentUserId,
   onModeratePost,
   onModerateComment,
@@ -1642,7 +1640,6 @@ function FeedItemSheet({
   comments: FeedComment[];
   isLoadingComments?: boolean;
   onAddComment: (text: string) => void;
-  onOpenImages: (images: string[], index: number) => void;
   currentUserId: string;
   onModeratePost?: () => void;
   onModerateComment: (comment: FeedComment) => void;
@@ -1650,6 +1647,17 @@ function FeedItemSheet({
 }) {
   const insets = useSafeAreaInsets();
   const [commentText, setCommentText] = useState("");
+  const [sheetViewer, setSheetViewer] = useState<{
+    images: string[];
+    index: number;
+  } | null>(null);
+  const openSheetViewer = useCallback((images: string[], index: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSheetViewer({ images, index });
+  }, []);
+  const closeSheetViewer = useCallback(() => {
+    setSheetViewer(null);
+  }, []);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollToEnd = useCallback(() => {
     setTimeout(
@@ -1997,7 +2005,7 @@ function FeedItemSheet({
             {/* Announcement image */}
             {item.type === "announcement" && item.imageUrl && (
               <Pressable
-                onPress={() => onOpenImages([item.imageUrl!], 0)}
+                onPress={() => openSheetViewer([item.imageUrl!], 0)}
                 accessibilityLabel="View announcement image"
                 accessibilityRole="imagebutton"
               >
@@ -2021,7 +2029,7 @@ function FeedItemSheet({
               >
                 {item.photos.length === 1 ? (
                   <Pressable
-                    onPress={() => onOpenImages(item.photos, 0)}
+                    onPress={() => openSheetViewer(item.photos, 0)}
                     accessibilityLabel="View photo"
                     accessibilityRole="imagebutton"
                   >
@@ -2039,7 +2047,7 @@ function FeedItemSheet({
                     {item.photos.map((uri, i) => (
                       <Pressable
                         key={`${item.id}-photo-${i}`}
-                        onPress={() => onOpenImages(item.photos, i)}
+                        onPress={() => openSheetViewer(item.photos, i)}
                         accessibilityLabel="View photo"
                         accessibilityRole="imagebutton"
                       >
@@ -2456,6 +2464,12 @@ function FeedItemSheet({
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+      <ImageViewer
+        visible={sheetViewer !== null}
+        images={sheetViewer?.images ?? []}
+        initialIndex={sheetViewer?.index ?? 0}
+        onClose={closeSheetViewer}
+      />
     </Modal>
   );
 }

@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,15 +23,6 @@ import {
   type UserFriendshipStatus,
 } from "@/hooks/use-user-profile";
 import { api } from "@/lib/api";
-
-const GRADE_CONFIG: Record<
-  string,
-  { label: string; color: string; colorDark: string; emoji: string }
-> = {
-  GREEN: { label: "Green", color: "#22c55e", colorDark: "#86efac", emoji: "🌿" },
-  YELLOW: { label: "Yellow", color: "#eab308", colorDark: "#fde047", emoji: "⭐" },
-  PINK: { label: "Pink", color: "#ec4899", colorDark: "#f9a8d4", emoji: "💖" },
-};
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -181,6 +173,7 @@ export default function UserProfileScreen() {
           { backgroundColor: colors.background },
         ]}
       >
+        <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <ActivityIndicator size="large" color={Brand.green} />
       </View>
     );
@@ -195,6 +188,7 @@ export default function UserProfileScreen() {
           { backgroundColor: colors.background },
         ]}
       >
+        <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <Text style={{ fontSize: 48, marginBottom: 12 }}>😕</Text>
         <ThemedText type="heading">Volunteer not found</ThemedText>
         <Pressable onPress={() => router.back()} style={styles.backLink}>
@@ -211,174 +205,266 @@ export default function UserProfileScreen() {
     );
   }
 
-  const grade = GRADE_CONFIG[profile.grade] ?? GRADE_CONFIG.GREEN;
+  const heroHeight = insets.top + 128;
+  const avatarSize = 104;
+  const accentShapeSize = 220;
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{
-        paddingTop: insets.top + 44,
-        paddingBottom: Math.max(insets.bottom, 20) + 20,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── Profile Header ── */}
-      <View
-        style={[
-          styles.headerCard,
-          { backgroundColor: isDark ? Brand.greenDark : Brand.green },
-        ]}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          title: "",
+          headerTransparent: true,
+          headerTintColor: "#fffdf7",
+        }}
+      />
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: Math.max(insets.bottom, 24) + 32,
+        }}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.decoCircle, styles.decoCircle1]} />
-        <View style={[styles.decoCircle, styles.decoCircle2]} />
-        <View style={styles.headerContent}>
-          {profile.profilePhotoUrl ? (
-            <Image
-              source={{ uri: profile.profilePhotoUrl }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <View
-              style={[
-                styles.avatarFallback,
-                { backgroundColor: "rgba(255,255,255,0.2)" },
-              ]}
-            >
-              <Text style={styles.avatarInitial}>
-                {profile.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-
-          <ThemedText type="title" style={styles.headerName}>
-            {profile.name}
-          </ThemedText>
-
-          <View style={styles.gradePill}>
-            <Text style={{ fontSize: 12 }}>{grade.emoji}</Text>
-            <Text style={styles.gradePillText}>{grade.label} volunteer</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* ── Minimal Stats ── */}
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <Text style={styles.statEmoji}>🍽️</Text>
-          <Text
-            style={[
-              styles.statValue,
-              { color: isDark ? Brand.greenLight : Brand.green },
-            ]}
-          >
-            {profile.totalShifts}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Shifts
-          </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <Text style={styles.statEmoji}>⏱️</Text>
-          <Text
-            style={[
-              styles.statValue,
-              { color: isDark ? "#60a5fa" : "#2563eb" },
-            ]}
-          >
-            {profile.hoursVolunteered}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Hours
-          </Text>
-        </View>
-      </View>
-
-      {/* ── Friendship action ── */}
-      <View style={styles.section}>
-        <FriendshipAction
-          status={profile.friendshipStatus}
-          firstName={firstName}
-          allowFriendRequests={profile.allowFriendRequests}
-          isSending={isSendingRequest}
-          onAddFriend={handleAddFriend}
-          onViewFullProfile={() =>
-            router.replace({
-              pathname: "/friend/[id]",
-              params: { id: profile.id },
-            })
-          }
-          colors={colors}
-          isDark={isDark}
-        />
-      </View>
-
-      {/* ── Safety Actions ── */}
-      <View style={[styles.section, styles.safetyRow]}>
-        <Pressable
-          onPress={handleReport}
-          style={({ pressed }) => [
-            styles.safetyBtn,
-            {
-              borderColor: colors.border,
-              backgroundColor: colors.card,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-          accessibilityLabel="Report this volunteer"
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name={profile.hasReported ? "flag" : "flag-outline"}
-            size={16}
-            color={profile.hasReported ? "#dc2626" : colors.textSecondary}
+        {/* ── Hero canvas ────────────────────────────────── */}
+        <View style={[styles.hero, { height: heroHeight }]}>
+          <LinearGradient
+            colors={
+              isDark
+                ? ["#13311f", Brand.greenDark]
+                : [Brand.green, "#0b2c1a"]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
           />
-          <Text
+          <View
             style={[
-              styles.safetyBtnText,
+              styles.accentShape,
               {
-                color: profile.hasReported
-                  ? "#dc2626"
-                  : colors.textSecondary,
+                width: accentShapeSize,
+                height: accentShapeSize,
+                top: heroHeight - accentShapeSize * 0.55,
+                right: -accentShapeSize * 0.35,
+                backgroundColor: isDark ? "#2a3b1a" : Brand.accent,
+                opacity: isDark ? 0.55 : 0.85,
               },
             ]}
+          />
+          <View
+            style={[
+              styles.gridDot,
+              { top: insets.top + 8, left: 24, opacity: isDark ? 0.4 : 0.5 },
+            ]}
+          />
+          <View
+            style={[
+              styles.gridDot,
+              { top: insets.top + 8, left: 40, opacity: isDark ? 0.2 : 0.25 },
+            ]}
+          />
+          <View
+            style={[
+              styles.gridDot,
+              { top: insets.top + 24, left: 24, opacity: isDark ? 0.2 : 0.25 },
+            ]}
+          />
+        </View>
+
+        {/* ── Identity block ───────────────────────────── */}
+        <View style={[styles.identityBlock, { marginTop: -avatarSize / 2 }]}>
+          <View style={styles.avatarWrap}>
+            {profile.profilePhotoUrl ? (
+              <Image
+                source={{ uri: profile.profilePhotoUrl }}
+                style={[
+                  styles.avatar,
+                  {
+                    width: avatarSize,
+                    height: avatarSize,
+                    borderRadius: avatarSize / 2,
+                    borderColor: colors.background,
+                  },
+                ]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatarFallback,
+                  {
+                    width: avatarSize,
+                    height: avatarSize,
+                    borderRadius: avatarSize / 2,
+                    borderColor: colors.background,
+                    backgroundColor: isDark ? "#223524" : Brand.greenLight,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.avatarInitial,
+                    { color: isDark ? Brand.greenLight : Brand.green },
+                  ]}
+                >
+                  {profile.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={[styles.heroName, { color: colors.text }]}>
+            {profile.name}
+          </Text>
+          <Text style={[styles.heroTagline, { color: colors.textSecondary }]}>
+            Everybody Eats volunteer
+          </Text>
+        </View>
+
+        {/* ── Stats bento ──────────────────────────────── */}
+        <View style={styles.bento}>
+          <View
+            style={[
+              styles.bentoCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
           >
-            {profile.hasReported ? "Reported" : "Report"}
-          </Text>
-        </Pressable>
+            <Text
+              style={[styles.bentoLabel, { color: colors.textSecondary }]}
+            >
+              THEIR SHIFTS
+            </Text>
+            <Text style={[styles.bentoValue, { color: colors.text }]}>
+              {profile.totalShifts}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.bentoCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text
+              style={[styles.bentoLabel, { color: colors.textSecondary }]}
+            >
+              THEIR HOURS
+            </Text>
+            <Text style={[styles.bentoValue, { color: colors.text }]}>
+              {profile.hoursVolunteered}
+            </Text>
+          </View>
+        </View>
 
-        <Pressable
-          onPress={handleBlock}
-          disabled={isBlocking || profile.isBlocked}
-          style={({ pressed }) => [
-            styles.safetyBtn,
-            {
-              borderColor: "#fca5a5",
-              backgroundColor: isDark
-                ? "rgba(220,38,38,0.08)"
-                : "#fff5f5",
-              opacity: pressed || isBlocking || profile.isBlocked ? 0.6 : 1,
-            },
-          ]}
-          accessibilityLabel="Block this volunteer"
-          accessibilityRole="button"
-        >
-          <Ionicons name="ban-outline" size={16} color="#dc2626" />
-          <Text style={[styles.safetyBtnText, { color: "#dc2626" }]}>
-            {profile.isBlocked
-              ? "Blocked"
-              : isBlocking
-              ? "Blocking…"
-              : "Block"}
-          </Text>
-        </Pressable>
-      </View>
+        {/* ── Friendship action ────────────────────────── */}
+        <SectionHeading title="Connect" colors={colors} />
+        <View style={styles.section}>
+          <FriendshipAction
+            status={profile.friendshipStatus}
+            firstName={firstName}
+            allowFriendRequests={profile.allowFriendRequests}
+            isSending={isSendingRequest}
+            onAddFriend={handleAddFriend}
+            onViewFullProfile={() =>
+              router.replace({
+                pathname: "/friend/[id]",
+                params: { id: profile.id },
+              })
+            }
+            colors={colors}
+            isDark={isDark}
+          />
+        </View>
 
-      {/* ── Footer note ── */}
-      <Text style={[styles.footerNote, { color: colors.textSecondary }]}>
-        Kia tūpato — treat our whānau with manaakitanga. Reports are reviewed
-        within 24 hours.
-      </Text>
-    </ScrollView>
+        {/* ── Safety actions ───────────────────────────── */}
+        <View style={[styles.section, styles.safetyRow]}>
+          <Pressable
+            onPress={handleReport}
+            style={({ pressed }) => [
+              styles.safetyBtn,
+              {
+                borderColor: colors.border,
+                backgroundColor: "transparent",
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+            accessibilityLabel="Report this volunteer"
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name={profile.hasReported ? "flag" : "flag-outline"}
+              size={15}
+              color={profile.hasReported ? "#dc2626" : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.safetyBtnText,
+                {
+                  color: profile.hasReported
+                    ? "#dc2626"
+                    : colors.textSecondary,
+                },
+              ]}
+            >
+              {profile.hasReported ? "Reported" : "Report"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={handleBlock}
+            disabled={isBlocking || profile.isBlocked}
+            style={({ pressed }) => [
+              styles.safetyBtn,
+              {
+                borderColor: isDark ? "rgba(239,68,68,0.35)" : "#fecaca",
+                backgroundColor: "transparent",
+                opacity: pressed || isBlocking || profile.isBlocked ? 0.6 : 1,
+              },
+            ]}
+            accessibilityLabel="Block this volunteer"
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="ban-outline"
+              size={15}
+              color={isDark ? "#fca5a5" : "#dc2626"}
+            />
+            <Text
+              style={[
+                styles.safetyBtnText,
+                { color: isDark ? "#fca5a5" : "#dc2626" },
+              ]}
+            >
+              {profile.isBlocked
+                ? "Blocked"
+                : isBlocking
+                ? "Blocking…"
+                : "Block"}
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text style={[styles.footerNote, { color: colors.textSecondary }]}>
+          Kia tūpato — treat our whānau with manaakitanga. Reports are reviewed
+          within 24 hours.
+        </Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+/* ─── Sub-components ────────────────────────────────────────── */
+
+function SectionHeading({
+  title,
+  colors,
+}: {
+  title: string;
+  colors: (typeof Colors)["light"];
+}) {
+  return (
+    <View style={styles.sectionMarker}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <View
+        style={[styles.sectionMarkerRule, { backgroundColor: colors.border }]}
+      />
+    </View>
   );
 }
 
@@ -403,46 +489,40 @@ function FriendshipAction({
 }) {
   if (status === "FRIENDS") {
     return (
-      <View style={{ gap: 10 }}>
-        <View
-          style={[
-            styles.statusCard,
-            {
-              backgroundColor: isDark
-                ? "rgba(14,58,35,0.2)"
-                : Brand.greenLight,
-            },
-          ]}
-        >
-          <Ionicons
-            name="people"
-            size={18}
-            color={isDark ? Brand.greenLight : Brand.green}
-          />
-          <Text
-            style={[
-              styles.statusCardText,
-              { color: isDark ? Brand.greenLight : Brand.green },
-            ]}
-          >
-            You&apos;re friends 💚
-          </Text>
-        </View>
+      <View style={{ gap: 12 }}>
+        <StatusCard
+          eyebrow="YOU'RE CONNECTED"
+          title="You're friends 💚"
+          ruleColor={isDark ? Brand.accent : Brand.green}
+          colors={colors}
+          isDark={isDark}
+        />
         <Pressable
           onPress={onViewFullProfile}
           style={({ pressed }) => [
             styles.primaryBtn,
             {
-              backgroundColor: Brand.green,
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
+              backgroundColor: isDark ? Brand.accent : Brand.green,
+              opacity: pressed ? 0.9 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
             },
           ]}
           accessibilityLabel={`View full profile for ${firstName}`}
           accessibilityRole="button"
         >
-          <Ionicons name="person-circle-outline" size={18} color="#ffffff" />
-          <Text style={styles.primaryBtnText}>View full profile</Text>
+          <Ionicons
+            name="arrow-forward"
+            size={18}
+            color={isDark ? Brand.green : "#fffdf7"}
+          />
+          <Text
+            style={[
+              styles.primaryBtnText,
+              { color: isDark ? Brand.green : "#fffdf7" },
+            ]}
+          >
+            View full profile
+          </Text>
         </Pressable>
       </View>
     );
@@ -450,86 +530,38 @@ function FriendshipAction({
 
   if (status === "REQUEST_SENT") {
     return (
-      <View
-        style={[
-          styles.statusCard,
-          {
-            backgroundColor: isDark
-              ? "rgba(251, 191, 36, 0.12)"
-              : "#fffbeb",
-          },
-        ]}
-      >
-        <Ionicons
-          name="time-outline"
-          size={18}
-          color={isDark ? "#fde047" : "#b45309"}
-        />
-        <Text
-          style={[
-            styles.statusCardText,
-            { color: isDark ? "#fde047" : "#b45309" },
-          ]}
-        >
-          Request sent — hang tight ⏳
-        </Text>
-      </View>
+      <StatusCard
+        eyebrow="PENDING"
+        title={`Request sent — hang tight ⏳`}
+        ruleColor={isDark ? "#fde047" : "#b45309"}
+        colors={colors}
+        isDark={isDark}
+      />
     );
   }
 
   if (status === "REQUEST_RECEIVED") {
     return (
-      <View
-        style={[
-          styles.statusCard,
-          {
-            backgroundColor: isDark
-              ? "rgba(59, 130, 246, 0.12)"
-              : "#eff6ff",
-          },
-        ]}
-      >
-        <Ionicons
-          name="mail-unread-outline"
-          size={18}
-          color={isDark ? "#93c5fd" : "#1d4ed8"}
-        />
-        <Text
-          style={[
-            styles.statusCardText,
-            { color: isDark ? "#93c5fd" : "#1d4ed8" },
-          ]}
-        >
-          {firstName} sent you a friend request — check your friends tab 💌
-        </Text>
-      </View>
+      <StatusCard
+        eyebrow="INCOMING"
+        title={`${firstName} sent you a request — check your friends tab 💌`}
+        ruleColor={isDark ? "#93c5fd" : "#1d4ed8"}
+        colors={colors}
+        isDark={isDark}
+      />
     );
   }
 
   // NONE
   if (!allowFriendRequests) {
     return (
-      <View
-        style={[
-          styles.statusCard,
-          {
-            backgroundColor: isDark
-              ? "rgba(255,255,255,0.04)"
-              : "#f1f5f9",
-          },
-        ]}
-      >
-        <Ionicons
-          name="lock-closed-outline"
-          size={18}
-          color={colors.textSecondary}
-        />
-        <Text
-          style={[styles.statusCardText, { color: colors.textSecondary }]}
-        >
-          {firstName} isn&apos;t accepting new friend requests
-        </Text>
-      </View>
+      <StatusCard
+        eyebrow="PRIVATE"
+        title={`${firstName} isn't accepting new friend requests`}
+        ruleColor={colors.border}
+        colors={colors}
+        isDark={isDark}
+      />
     );
   }
 
@@ -540,25 +572,74 @@ function FriendshipAction({
       style={({ pressed }) => [
         styles.primaryBtn,
         {
-          backgroundColor: Brand.green,
-          opacity: pressed || isSending ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
+          backgroundColor: isDark ? Brand.accent : Brand.green,
+          opacity: pressed || isSending ? 0.9 : 1,
+          transform: [{ scale: pressed ? 0.985 : 1 }],
         },
       ]}
       accessibilityLabel={`Add ${firstName} as a friend`}
       accessibilityRole="button"
     >
       {isSending ? (
-        <ActivityIndicator size="small" color="#ffffff" />
+        <ActivityIndicator
+          size="small"
+          color={isDark ? Brand.green : "#fffdf7"}
+        />
       ) : (
-        <Ionicons name="person-add-outline" size={18} color="#ffffff" />
+        <Ionicons
+          name="person-add-outline"
+          size={18}
+          color={isDark ? Brand.green : "#fffdf7"}
+        />
       )}
-      <Text style={styles.primaryBtnText}>
+      <Text
+        style={[
+          styles.primaryBtnText,
+          { color: isDark ? Brand.green : "#fffdf7" },
+        ]}
+      >
         {isSending ? "Sending…" : "Add friend"}
       </Text>
     </Pressable>
   );
 }
+
+function StatusCard({
+  eyebrow,
+  title,
+  ruleColor,
+  colors,
+  isDark,
+}: {
+  eyebrow: string;
+  title: string;
+  ruleColor: string;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.statusCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <View style={[styles.statusRule, { backgroundColor: ruleColor }]} />
+      <View style={styles.statusBody}>
+        <Text style={[styles.statusEyebrow, { color: colors.textSecondary }]}>
+          {eyebrow}
+        </Text>
+        <Text style={[styles.statusTitle, { color: colors.text }]}>
+          {title}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/* ─── Styles ────────────────────────────────────────────────── */
+
+const HORIZONTAL = 22;
 
 const styles = StyleSheet.create({
   container: {
@@ -577,122 +658,139 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
   },
 
-  /* Header */
-  headerCard: {
-    marginHorizontal: 20,
-    borderRadius: 20,
-    overflow: "hidden",
+  /* Hero */
+  hero: {
+    width: "100%",
     position: "relative",
+    overflow: "hidden",
   },
-  decoCircle: {
+  accentShape: {
     position: "absolute",
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.06)",
   },
-  decoCircle1: {
-    width: 160,
-    height: 160,
-    top: -40,
-    right: -30,
+  gridDot: {
+    position: "absolute",
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#fffdf7",
   },
-  decoCircle2: {
-    width: 100,
-    height: 100,
-    bottom: -20,
-    left: -20,
-  },
-  headerContent: {
+  /* Identity */
+  identityBlock: {
     alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: HORIZONTAL,
   },
-  avatarImage: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.3)",
+  avatarWrap: {
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  avatar: {
+    borderWidth: 4,
   },
   avatarFallback: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.3)",
+    borderWidth: 4,
   },
   avatarInitial: {
-    color: "#ffffff",
-    fontSize: 34,
-    fontFamily: FontFamily.bold,
+    fontSize: 44,
+    fontFamily: FontFamily.headingBold,
   },
-  headerName: {
-    color: "#ffffff",
+  heroName: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontFamily: FontFamily.headingBold,
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  heroTagline: {
+    marginTop: 6,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    fontStyle: "italic",
     textAlign: "center",
   },
-  gradePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  gradePillText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-  },
 
-  /* Stats */
-  statsRow: {
+  /* Bento */
+  bento: {
     flexDirection: "row",
     gap: 10,
-    paddingHorizontal: 20,
-    marginTop: 16,
+    marginTop: 26,
+    marginHorizontal: HORIZONTAL,
   },
-  statCard: {
+  bentoCard: {
     flex: 1,
     borderRadius: 16,
     padding: 16,
-    alignItems: "center",
-    gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 8,
   },
-  statEmoji: {
-    fontSize: 22,
+  bentoLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.2,
   },
-  statValue: {
-    fontSize: 22,
-    fontFamily: FontFamily.bold,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-
-  /* Sections */
-  section: {
-    paddingHorizontal: 20,
-    marginTop: 20,
+  bentoValue: {
+    fontSize: 34,
+    lineHeight: 36,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
   },
 
-  /* Status card (friends / request sent / etc.) */
-  statusCard: {
+  /* Section heading */
+  sectionMarker: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    padding: 14,
-    borderRadius: 14,
+    gap: 14,
+    paddingHorizontal: HORIZONTAL,
+    marginTop: 32,
+    marginBottom: 14,
   },
-  statusCardText: {
+  sectionMarkerRule: {
+    height: StyleSheet.hairlineWidth,
     flex: 1,
-    fontSize: 14,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.3,
+  },
+
+  /* Section */
+  section: {
+    paddingHorizontal: HORIZONTAL,
+    gap: 12,
+  },
+
+  /* Status card */
+  statusCard: {
+    flexDirection: "row",
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  statusRule: {
+    width: 4,
+  },
+  statusBody: {
+    flex: 1,
+    padding: 14,
+    gap: 6,
+  },
+  statusEyebrow: {
+    fontSize: 10,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.1,
+  },
+  statusTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    lineHeight: 20,
   },
 
   /* Buttons */
@@ -701,19 +799,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 16,
+    borderRadius: 16,
   },
   primaryBtnText: {
-    color: "#ffffff",
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
   },
 
-  /* Safety actions */
+  /* Safety */
   safetyRow: {
     flexDirection: "row",
     gap: 10,
+    marginTop: 14,
   },
   safetyBtn: {
     flex: 1,
@@ -721,22 +820,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   safetyBtnText: {
     fontSize: 13,
     fontFamily: FontFamily.medium,
   },
 
-  /* Footer note */
+  /* Footer */
   footerNote: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: FontFamily.regular,
     textAlign: "center",
+    marginTop: 18,
     paddingHorizontal: 32,
-    marginTop: 20,
-    lineHeight: 18,
+    fontStyle: "italic",
+    lineHeight: 17,
   },
 });
