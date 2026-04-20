@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import {
   differenceInHours,
   differenceInMinutes,
@@ -70,6 +71,8 @@ export default function HomeScreen() {
     toggleLike: apiToggleLike,
     loadComments,
     addComment: apiAddComment,
+    editComment: apiEditComment,
+    deleteComment: apiDeleteComment,
     getCommentState,
     reportItem,
     hasReported,
@@ -185,6 +188,55 @@ export default function HomeScreen() {
       }
     },
     [apiAddComment, profile, feedItems, updateFeedItem]
+  );
+
+  const editComment = useCallback(
+    async (itemId: string, commentId: string, text: string) => {
+      Haptics.selectionAsync();
+      const result = await apiEditComment(itemId, commentId, text);
+      if (!result) {
+        Alert.alert(
+          "Couldn't save",
+          "We couldn't update your comment. Please try again."
+        );
+      }
+      return result;
+    },
+    [apiEditComment]
+  );
+
+  const deleteComment = useCallback(
+    (itemId: string, commentId: string) => {
+      Alert.alert(
+        "Delete comment?",
+        "This can't be undone.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const ok = await apiDeleteComment(itemId, commentId);
+              if (ok) {
+                const item = feedItems.find((i) => i.id === itemId);
+                if (item) {
+                  updateFeedItem(itemId, {
+                    commentCount: Math.max(0, item.commentCount - 1),
+                  });
+                }
+              } else {
+                Alert.alert(
+                  "Couldn't delete",
+                  "We couldn't delete your comment. Please try again."
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [apiDeleteComment, feedItems, updateFeedItem]
   );
 
   const confirmBlockUser = useCallback(
@@ -470,6 +522,16 @@ export default function HomeScreen() {
           comments={getCommentsForItem(likesSheetItem.id)}
           isLoadingComments={getCommentState(likesSheetItem.id).isLoading}
           onAddComment={(text) => addComment(likesSheetItem.id, text)}
+          onEditComment={(commentId, text) =>
+            editComment(likesSheetItem.id, commentId, text)
+          }
+          onDeleteComment={(commentId) =>
+            deleteComment(likesSheetItem.id, commentId)
+          }
+          hasReportedItem={hasReported}
+          hasBlockedUser={hasBlocked}
+          onReport={reportItem}
+          onConfirmBlock={confirmBlockUser}
           currentUserId={profile?.id ?? ""}
           onOpenUserProfile={(userId) => {
             if (!userId) return;
@@ -487,62 +549,6 @@ export default function HomeScreen() {
               ? () => openModerationSheet(likesSheetItem)
               : undefined
           }
-          onModerateComment={(comment) => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            const alreadyReportedComment = hasReported(comment.id);
-            const alreadyBlockedUser = hasBlocked(comment.userId);
-            const options: {
-              text: string;
-              style?: "default" | "cancel" | "destructive";
-              onPress?: () => void;
-            }[] = [];
-            if (alreadyReportedComment) {
-              options.push({
-                text: "Already reported — pending review",
-                style: "cancel",
-              });
-            } else {
-              options.push(
-                {
-                  text: "Offensive or abusive",
-                  onPress: () =>
-                    reportItem(
-                      "comment",
-                      comment.id,
-                      "Offensive or abusive content"
-                    ),
-                },
-                {
-                  text: "Harassment",
-                  onPress: () =>
-                    reportItem("comment", comment.id, "Harassment"),
-                },
-                {
-                  text: "Spam",
-                  onPress: () => reportItem("comment", comment.id, "Spam"),
-                }
-              );
-            }
-            if (!alreadyBlockedUser) {
-              options.push({
-                text: `Block ${comment.userName}`,
-                style: "destructive",
-                onPress: () =>
-                  confirmBlockUser(comment.userId, comment.userName),
-              });
-            } else {
-              options.push({
-                text: `${comment.userName} is blocked`,
-                style: "cancel",
-              });
-            }
-            options.push({ text: "Cancel", style: "cancel" });
-            Alert.alert(
-              "Moderate this comment",
-              "Help keep our whānau safe. Reports are reviewed within 24 hours.",
-              options
-            );
-          }}
         />
       )}
 
@@ -1692,9 +1698,14 @@ function FeedItemSheet({
   comments,
   isLoadingComments,
   onAddComment,
+  onEditComment,
+  onDeleteComment,
+  hasReportedItem,
+  hasBlockedUser,
+  onReport,
+  onConfirmBlock,
   currentUserId,
   onModeratePost,
-  onModerateComment,
   onOpenUserProfile,
 }: {
   item: FeedItem;
@@ -1707,13 +1718,128 @@ function FeedItemSheet({
   comments: FeedComment[];
   isLoadingComments?: boolean;
   onAddComment: (text: string) => void;
+  onEditComment: (commentId: string, text: string) => void;
+  onDeleteComment: (commentId: string) => void;
+  hasReportedItem: (id: string) => boolean;
+  hasBlockedUser: (userId: string) => boolean;
+  onReport: (type: string, id: string, reason: string) => void;
+  onConfirmBlock: (userId: string, name: string) => void;
   currentUserId: string;
   onModeratePost?: () => void;
-  onModerateComment: (comment: FeedComment) => void;
   onOpenUserProfile: (userId: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const [commentText, setCommentText] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+
+  const beginEdit = useCallback((comment: FeedComment) => {
+    Haptics.selectionAsync();
+    setEditingId(comment.id);
+    setEditDraft(comment.text);
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+    setEditDraft("");
+  }, []);
+
+  const saveEdit = useCallback(
+    (comment: FeedComment) => {
+      const trimmed = editDraft.trim();
+      if (!trimmed || trimmed === comment.text) {
+        cancelEdit();
+        return;
+      }
+      onEditComment(comment.id, trimmed);
+      cancelEdit();
+    },
+    [editDraft, onEditComment, cancelEdit]
+  );
+
+  const buildCommentMenuActions = useCallback(
+    (comment: FeedComment): MenuAction[] => {
+      const isOwn = comment.userId === currentUserId;
+      if (isOwn) {
+        return [
+          { id: "edit", title: "Edit", image: "pencil" },
+          {
+            id: "delete",
+            title: "Delete",
+            image: "trash",
+            attributes: { destructive: true },
+          },
+        ];
+      }
+      const alreadyReported = hasReportedItem(comment.id);
+      const alreadyBlocked = hasBlockedUser(comment.userId);
+      const actions: MenuAction[] = [];
+      if (alreadyReported) {
+        actions.push({
+          id: "reported",
+          title: "Reported — pending review",
+          attributes: { disabled: true },
+        });
+      } else {
+        actions.push({
+          id: "report",
+          title: "Report",
+          image: "flag",
+          subactions: [
+            {
+              id: "report:offensive",
+              title: "Offensive or abusive",
+            },
+            { id: "report:harassment", title: "Harassment" },
+            { id: "report:spam", title: "Spam" },
+          ],
+        });
+      }
+      if (alreadyBlocked) {
+        actions.push({
+          id: "blocked",
+          title: `${comment.userName} is blocked`,
+          attributes: { disabled: true },
+        });
+      } else {
+        actions.push({
+          id: "block",
+          title: `Block ${comment.userName}`,
+          image: "person.crop.circle.badge.xmark",
+          attributes: { destructive: true },
+        });
+      }
+      return actions;
+    },
+    [currentUserId, hasReportedItem, hasBlockedUser]
+  );
+
+  const handleCommentMenuAction = useCallback(
+    (comment: FeedComment, eventId: string) => {
+      Haptics.selectionAsync();
+      switch (eventId) {
+        case "edit":
+          beginEdit(comment);
+          return;
+        case "delete":
+          onDeleteComment(comment.id);
+          return;
+        case "report:offensive":
+          onReport("comment", comment.id, "Offensive or abusive content");
+          return;
+        case "report:harassment":
+          onReport("comment", comment.id, "Harassment");
+          return;
+        case "report:spam":
+          onReport("comment", comment.id, "Spam");
+          return;
+        case "block":
+          onConfirmBlock(comment.userId, comment.userName);
+          return;
+      }
+    },
+    [beginEdit, onDeleteComment, onReport, onConfirmBlock]
+  );
   const [sheetViewer, setSheetViewer] = useState<{
     images: string[];
     index: number;
@@ -2312,6 +2438,10 @@ function FeedItemSheet({
                       Haptics.selectionAsync();
                       onOpenUserProfile(comment.userId);
                     };
+                    const isOwn = comment.userId === currentUserId;
+                    const isEditing = editingId === comment.id;
+                    const editDisabled =
+                      !editDraft.trim() || editDraft.trim() === comment.text;
                     return (
                       <View key={comment.id} style={sheet.commentRow}>
                         <Pressable
@@ -2374,38 +2504,122 @@ function FeedItemSheet({
                                 { color: colors.textSecondary },
                               ]}
                             >
-                              {commentTimeAgo}
+                              {` · ${commentTimeAgo}`}
                             </Text>
                           </View>
-                          <Text
-                            style={[sheet.commentText, { color: colors.text }]}
-                          >
-                            {comment.text}
-                          </Text>
+                          {isEditing ? (
+                            <View style={sheet.commentEditBlock}>
+                              <TextInput
+                                value={editDraft}
+                                onChangeText={setEditDraft}
+                                autoFocus
+                                multiline
+                                maxLength={1000}
+                                style={[
+                                  sheet.commentEditInput,
+                                  {
+                                    color: colors.text,
+                                    backgroundColor: isDark
+                                      ? "rgba(255,255,255,0.05)"
+                                      : "#f8fafc",
+                                    borderColor: isDark
+                                      ? "rgba(255,255,255,0.1)"
+                                      : "#e2e8f0",
+                                  },
+                                ]}
+                                accessibilityLabel="Edit comment"
+                              />
+                              <View style={sheet.commentEditActions}>
+                                <Pressable
+                                  onPress={cancelEdit}
+                                  hitSlop={8}
+                                  style={({ pressed }) => [
+                                    sheet.commentEditBtn,
+                                    { opacity: pressed ? 0.6 : 1 },
+                                  ]}
+                                  accessibilityLabel="Cancel edit"
+                                  accessibilityRole="button"
+                                >
+                                  <Text
+                                    style={[
+                                      sheet.commentEditBtnText,
+                                      { color: colors.textSecondary },
+                                    ]}
+                                  >
+                                    Cancel
+                                  </Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => saveEdit(comment)}
+                                  disabled={editDisabled}
+                                  hitSlop={8}
+                                  style={({ pressed }) => [
+                                    sheet.commentEditBtn,
+                                    sheet.commentEditSaveBtn,
+                                    {
+                                      backgroundColor: editDisabled
+                                        ? isDark
+                                          ? "rgba(255,255,255,0.05)"
+                                          : "#e2e8f0"
+                                        : Brand.green,
+                                      opacity: pressed && !editDisabled ? 0.75 : 1,
+                                    },
+                                  ]}
+                                  accessibilityLabel="Save edit"
+                                  accessibilityRole="button"
+                                >
+                                  <Text
+                                    style={[
+                                      sheet.commentEditBtnText,
+                                      {
+                                        color: editDisabled
+                                          ? colors.textSecondary
+                                          : "#ffffff",
+                                      },
+                                    ]}
+                                  >
+                                    Save
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                          ) : (
+                            <Text
+                              style={[
+                                sheet.commentText,
+                                { color: colors.text },
+                              ]}
+                            >
+                              {comment.text}
+                            </Text>
+                          )}
                         </View>
-                        {comment.userId !== currentUserId && (
-                          <Pressable
-                            onPress={() => onModerateComment(comment)}
-                            onLongPress={() => onModerateComment(comment)}
-                            hitSlop={12}
-                            style={({ pressed }) => [
-                              sheet.commentModerateBtn,
-                              {
-                                backgroundColor: isDark
-                                  ? "rgba(255,255,255,0.06)"
-                                  : "rgba(148,163,184,0.15)",
-                                opacity: pressed ? 0.6 : 1,
-                              },
-                            ]}
-                            accessibilityLabel={`Report or block ${comment.userName}`}
-                            accessibilityRole="button"
+                        {!isEditing && (
+                          <MenuView
+                            onPressAction={({ nativeEvent }) =>
+                              handleCommentMenuAction(comment, nativeEvent.event)
+                            }
+                            actions={buildCommentMenuActions(comment)}
+                            shouldOpenOnLongPress={false}
+                            themeVariant={isDark ? "dark" : "light"}
+                            style={sheet.commentMoreBtn}
                           >
-                            <Ionicons
-                              name="flag-outline"
-                              size={12}
-                              color={colors.textSecondary}
-                            />
-                          </Pressable>
+                            <View
+                              style={sheet.commentMoreBtnInner}
+                              accessibilityLabel={
+                                isOwn
+                                  ? "Edit or delete comment"
+                                  : `Report or block ${comment.userName}`
+                              }
+                              accessibilityRole="button"
+                            >
+                              <Ionicons
+                                name="ellipsis-horizontal"
+                                size={16}
+                                color={colors.textSecondary}
+                              />
+                            </View>
+                          </MenuView>
                         )}
                       </View>
                     );
@@ -3106,31 +3320,66 @@ const sheet = StyleSheet.create({
   },
   commentHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
+    alignItems: "baseline",
+    flexWrap: "wrap",
   },
   commentUserName: {
     fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    flex: 1,
+    flexShrink: 1,
   },
   commentTime: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
+    flexShrink: 0,
   },
   commentText: {
     fontSize: 14,
     fontFamily: FontFamily.regular,
     lineHeight: 20,
   },
-  commentModerateBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  commentMoreBtn: {
+    marginTop: -2,
+    marginRight: -6,
+  },
+  commentMoreBtnInner: {
+    width: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
+  },
+  commentEditBlock: {
     marginTop: 4,
+    gap: 8,
+  },
+  commentEditInput: {
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    lineHeight: 20,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  commentEditActions: {
+    flexDirection: "row",
+    alignSelf: "flex-end",
+    gap: 8,
+  },
+  commentEditBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentEditSaveBtn: {
+    minWidth: 64,
+  },
+  commentEditBtnText: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
   },
   moderateCard: {
     flexDirection: "row",
