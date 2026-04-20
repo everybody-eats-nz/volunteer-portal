@@ -28,6 +28,17 @@ export async function GET(request: Request) {
   since.setDate(since.getDate() - 14);
   const now = new Date();
 
+  // Client-supplied IDs for items the API doesn't construct itself (e.g. dummy
+  // photo posts). We still fetch real interaction counts for them so the UI
+  // can show accurate like/comment state.
+  const url = new URL(request.url);
+  const extraIdsParam = url.searchParams.get("extraIds") ?? "";
+  const extraIds = extraIdsParam
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0 && id.length <= 200)
+    .slice(0, 50);
+
   // Get the user's profile, friendships, and blocks in parallel
   const [userProfile, friendships, blocks] = await Promise.all([
     prisma.user.findUnique({
@@ -479,12 +490,12 @@ export async function GET(request: Request) {
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  if (items.length === 0) {
-    return NextResponse.json({ items });
+  if (items.length === 0 && extraIds.length === 0) {
+    return NextResponse.json({ items, extraInteractions: {} });
   }
 
-  // Batch-fetch real like/comment data for all items
-  const itemIds = items.map((i) => i.id);
+  // Batch-fetch real like/comment data for all items (including client-supplied extras)
+  const itemIds = [...items.map((i) => i.id), ...extraIds];
 
   const [likeCounts, likedByMeRows, commentCounts, recentLikerRows] =
     await Promise.all([
@@ -555,5 +566,24 @@ export async function GET(request: Request) {
     item.recentLikers = recentLikersMap.get(item.id) ?? [];
   }
 
-  return NextResponse.json({ items });
+  // Build interaction data for client-supplied extra IDs (e.g. dummy photo posts)
+  const extraInteractions: Record<
+    string,
+    {
+      likeCount: number;
+      likedByMe: boolean;
+      commentCount: number;
+      recentLikers: Array<{ id: string; name: string; profilePhotoUrl?: string }>;
+    }
+  > = {};
+  for (const id of extraIds) {
+    extraInteractions[id] = {
+      likeCount: likeCountMap.get(id) ?? 0,
+      likedByMe: likedByMeSet.has(id),
+      commentCount: commentCountMap.get(id) ?? 0,
+      recentLikers: recentLikersMap.get(id) ?? [],
+    };
+  }
+
+  return NextResponse.json({ items, extraInteractions });
 }

@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import {
   FEED_ITEMS as DUMMY_PHOTO_POSTS,
   type FeedItem,
+  type LikeUser,
 } from "@/lib/dummy-data";
 
 /** Photo posts are the only items without a real data source. */
@@ -11,8 +12,21 @@ const DUMMY_ONLY_ITEMS = DUMMY_PHOTO_POSTS.filter(
   (item) => item.type === "photo_post"
 );
 
+const DUMMY_ITEM_IDS = DUMMY_ONLY_ITEMS.map((item) => item.id);
+
+type ExtraInteractions = Record<
+  string,
+  {
+    likeCount: number;
+    likedByMe: boolean;
+    commentCount: number;
+    recentLikers: LikeUser[];
+  }
+>;
+
 type FeedResponse = {
   items: FeedItem[];
+  extraInteractions?: ExtraInteractions;
 };
 
 type UseFeedReturn = {
@@ -35,17 +49,30 @@ type UseFeedReturn = {
  */
 export function useFeed(): UseFeedReturn {
   const [realItems, setRealItems] = useState<FeedItem[]>([]);
+  const [dummyItems, setDummyItems] = useState<FeedItem[]>(DUMMY_ONLY_ITEMS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchFeed = useCallback(async () => {
     try {
       setError(null);
-      const result = await api<FeedResponse>("/api/mobile/feed");
+      const qs = DUMMY_ITEM_IDS.length
+        ? `?extraIds=${encodeURIComponent(DUMMY_ITEM_IDS.join(","))}`
+        : "";
+      const result = await api<FeedResponse>(`/api/mobile/feed${qs}`);
       setRealItems(result.items);
+
+      const extras = result.extraInteractions ?? {};
+      setDummyItems(
+        DUMMY_ONLY_ITEMS.map((item) => {
+          const stats = extras[item.id];
+          return stats ? { ...item, ...stats } : item;
+        })
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load feed");
       setRealItems([]);
+      setDummyItems(DUMMY_ONLY_ITEMS);
     } finally {
       setIsLoading(false);
     }
@@ -63,6 +90,11 @@ export function useFeed(): UseFeedReturn {
   const updateItem = useCallback(
     (id: string, patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>) => {
       setRealItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, ...patch } : item
+        )
+      );
+      setDummyItems((prev) =>
         prev.map((item) =>
           item.id === id ? { ...item, ...patch } : item
         )
@@ -86,8 +118,9 @@ export function useFeed(): UseFeedReturn {
     item.type === "photo_post";
 
   // Merge real items with dummy photo posts, filter out blocked authors, sort by timestamp desc.
-  // Note: photo posts also go through the real interaction system (their IDs are stable).
-  const items = [...realItems, ...DUMMY_ONLY_ITEMS]
+  // Photo posts go through the real interaction system (stable IDs) and the API
+  // populates their like/comment counts via the extraInteractions payload.
+  const items = [...realItems, ...dummyItems]
     .filter((item) => {
       if (!hasAuthor(item)) return true;
       const uid = (item as { userId?: string }).userId;

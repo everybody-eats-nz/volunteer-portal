@@ -1199,6 +1199,12 @@ function FeedCard({
   onReport: () => void;
   isReported?: boolean;
 }) {
+  const canReport =
+    item.type === "achievement" ||
+    item.type === "milestone" ||
+    item.type === "friend_signup" ||
+    item.type === "photo_post" ||
+    item.type === "announcement";
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
   });
@@ -1239,6 +1245,29 @@ function FeedCard({
         color={colors.textSecondary}
         count={likeCount}
       />
+      {canReport && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            onReport();
+          }}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.reportBtn,
+            { opacity: pressed ? 0.5 : 1 },
+          ]}
+          accessibilityLabel={
+            isReported ? "Already reported" : "Report or block — moderation options"
+          }
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isReported ? "flag" : "flag-outline"}
+            size={15}
+            color={isReported ? "#f97316" : colors.textSecondary}
+          />
+        </Pressable>
+      )}
     </View>
   );
 
@@ -1553,39 +1582,6 @@ function FeedCard({
       accessibilityRole="button"
     >
       {renderContent()}
-      {/* Moderation button (report / block) — shown on every UGC item */}
-      {(item.type === "achievement" ||
-        item.type === "milestone" ||
-        item.type === "friend_signup" ||
-        item.type === "photo_post" ||
-        item.type === "announcement") && (
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            onReport();
-          }}
-          hitSlop={12}
-          style={({ pressed }) => [
-            styles.reportBtn,
-            {
-              backgroundColor: isReported
-                ? "rgba(249, 115, 22, 0.12)"
-                : "rgba(148, 163, 184, 0.15)",
-              opacity: pressed ? 0.6 : 1,
-            },
-          ]}
-          accessibilityLabel={
-            isReported ? "Already reported" : "Report or block — moderation options"
-          }
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name={isReported ? "flag" : "flag-outline"}
-            size={14}
-            color={isReported ? "#f97316" : colors.textSecondary}
-          />
-        </Pressable>
-      )}
     </Pressable>
   );
 }
@@ -2633,14 +2629,10 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   reportBtn: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   announcementImage: {
     width: "100%",
