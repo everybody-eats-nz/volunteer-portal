@@ -148,15 +148,15 @@ export default function UserProfileScreen() {
         ? [{ text: "OK", style: "cancel" }]
         : [
             {
-              text: "🚩 Offensive or abusive behaviour",
+              text: "Offensive or abusive behaviour",
               onPress: () => submitReport("Offensive or abusive content"),
             },
             {
-              text: "🚩 Harassment",
+              text: "Harassment",
               onPress: () => submitReport("Harassment"),
             },
             {
-              text: "🚩 Spam",
+              text: "Spam",
               onPress: () => submitReport("Spam"),
             },
             { text: "Cancel", style: "cancel" },

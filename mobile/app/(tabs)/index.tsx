@@ -1,5 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { differenceInHours, differenceInMinutes, endOfWeek, formatDistanceToNow, startOfWeek } from "date-fns";
+import {
+  differenceInHours,
+  differenceInMinutes,
+  endOfWeek,
+  formatDistanceToNow,
+  startOfWeek,
+} from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -84,7 +90,10 @@ export default function HomeScreen() {
     return start >= weekStart && start <= weekEnd;
   });
 
-  const [likesSheetItem, setLikesSheetItem] = useState<FeedItem | null>(null);
+  const [likesSheetItemId, setLikesSheetItemId] = useState<string | null>(null);
+  const likesSheetItem = likesSheetItemId
+    ? feedItems.find((i) => i.id === likesSheetItemId) ?? null
+    : null;
   const [viewerImages, setViewerImages] = useState<string[] | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
 
@@ -133,11 +142,13 @@ export default function HomeScreen() {
 
   const getLikersForItem = useCallback(
     (item: FeedItem): LikeUser[] => {
-      const likers = [...item.recentLikers];
-      if (item.likedByMe) likers.unshift(ME_AS_LIKER);
-      return likers;
+      const myId = profile?.id;
+      const others = myId
+        ? item.recentLikers.filter((l) => l.id !== myId)
+        : item.recentLikers;
+      return item.likedByMe ? [ME_AS_LIKER, ...others] : others;
     },
-    [ME_AS_LIKER]
+    [ME_AS_LIKER, profile?.id]
   );
 
   const getCommentsForItem = useCallback(
@@ -149,7 +160,7 @@ export default function HomeScreen() {
 
   const handleOpenSheet = useCallback(
     (item: FeedItem) => {
-      setLikesSheetItem(item);
+      setLikesSheetItemId(item.id);
       loadComments(item.id);
     },
     [loadComments]
@@ -217,8 +228,7 @@ export default function HomeScreen() {
     (item: FeedItem) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const authorId =
-        (item as { userId?: string }).userId ?? null;
+      const authorId = (item as { userId?: string }).userId ?? null;
       const authorName =
         (item as { userName?: string }).userName ?? "this user";
 
@@ -239,16 +249,16 @@ export default function HomeScreen() {
       } else {
         options.push(
           {
-            text: "🚩 Report — Offensive or abusive",
+            text: "Offensive or abusive",
             onPress: () =>
               reportItem("post", item.id, "Offensive or abusive content"),
           },
           {
-            text: "🚩 Report — Spam",
+            text: "Spam",
             onPress: () => reportItem("post", item.id, "Spam"),
           },
           {
-            text: "🚩 Report — Harassment",
+            text: "Harassment",
             onPress: () => reportItem("post", item.id, "Harassment"),
           }
         );
@@ -281,7 +291,10 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.content, Platform.OS === 'android' && { paddingTop: insets.top }]}
+      contentContainerStyle={[
+        styles.content,
+        Platform.OS === "android" && { paddingTop: insets.top },
+      ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
@@ -329,7 +342,11 @@ export default function HomeScreen() {
             }
           >
             <Ionicons
-              name={unreadNotifications > 0 ? "notifications" : "notifications-outline"}
+              name={
+                unreadNotifications > 0
+                  ? "notifications"
+                  : "notifications-outline"
+              }
               size={22}
               color={colors.text}
             />
@@ -354,10 +371,16 @@ export default function HomeScreen() {
             accessibilityLabel="View profile"
           >
             {profile?.image ? (
-              <Image source={{ uri: profile.image }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: profile.image }}
+                style={styles.avatarImage}
+              />
             ) : (
               <View
-                style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
+                style={[
+                  styles.avatarFallback,
+                  { backgroundColor: Brand.green },
+                ]}
               >
                 <Text style={styles.avatarText}>
                   {(profile?.firstName ?? "").charAt(0)}
@@ -441,7 +464,7 @@ export default function HomeScreen() {
           likers={getLikersForItem(likesSheetItem)}
           liked={likesSheetItem.likedByMe}
           onToggleLike={() => toggleLike(likesSheetItem)}
-          onClose={() => setLikesSheetItem(null)}
+          onClose={() => setLikesSheetItemId(null)}
           colors={colors}
           isDark={colorScheme === "dark"}
           comments={getCommentsForItem(likesSheetItem.id)}
@@ -451,14 +474,19 @@ export default function HomeScreen() {
           onOpenUserProfile={(userId) => {
             if (!userId) return;
             if (userId === profile?.id) {
-              setLikesSheetItem(null);
+              setLikesSheetItemId(null);
               router.push("/(tabs)/profile");
               return;
             }
-            setLikesSheetItem(null);
+            setLikesSheetItemId(null);
             router.push(`/user/${userId}` as Href);
           }}
-          onModeratePost={() => openModerationSheet(likesSheetItem)}
+          onModeratePost={
+            likesSheetItem.type === "photo_post" ||
+            likesSheetItem.type === "announcement"
+              ? () => openModerationSheet(likesSheetItem)
+              : undefined
+          }
           onModerateComment={(comment) => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             const alreadyReportedComment = hasReported(comment.id);
@@ -476,7 +504,7 @@ export default function HomeScreen() {
             } else {
               options.push(
                 {
-                  text: "🚩 Report — Offensive or abusive",
+                  text: "Offensive or abusive",
                   onPress: () =>
                     reportItem(
                       "comment",
@@ -485,21 +513,22 @@ export default function HomeScreen() {
                     ),
                 },
                 {
-                  text: "🚩 Report — Harassment",
+                  text: "Harassment",
                   onPress: () =>
                     reportItem("comment", comment.id, "Harassment"),
                 },
                 {
-                  text: "🚩 Report — Spam",
+                  text: "Spam",
                   onPress: () => reportItem("comment", comment.id, "Spam"),
                 }
               );
             }
             if (!alreadyBlockedUser) {
               options.push({
-                text: `⛔ Block ${comment.userName}`,
+                text: `Block ${comment.userName}`,
                 style: "destructive",
-                onPress: () => confirmBlockUser(comment.userId, comment.userName),
+                onPress: () =>
+                  confirmBlockUser(comment.userId, comment.userName),
               });
             } else {
               options.push({
@@ -675,12 +704,7 @@ function NextShiftHero({
 
       {/* Warm ambient glow (upper-right) */}
       <View style={[heroStyles.glow, { backgroundColor: palette.glow }]} />
-      <View
-        style={[
-          heroStyles.glowInner,
-          { backgroundColor: palette.glow },
-        ]}
-      />
+      <View style={[heroStyles.glowInner, { backgroundColor: palette.glow }]} />
 
       {/* Decorative concentric rings */}
       <View
@@ -701,9 +725,13 @@ function NextShiftHero({
       <View style={heroStyles.content}>
         {/* Top row — status pill + chevron */}
         <View style={heroStyles.topRow}>
-          <View style={[heroStyles.statusPill, { backgroundColor: palette.pillBg }]}>
+          <View
+            style={[heroStyles.statusPill, { backgroundColor: palette.pillBg }]}
+          >
             <Ionicons name={palette.icon} size={12} color={palette.pillText} />
-            <Text style={[heroStyles.statusPillText, { color: palette.pillText }]}>
+            <Text
+              style={[heroStyles.statusPillText, { color: palette.pillText }]}
+            >
               {palette.label}
             </Text>
           </View>
@@ -718,7 +746,9 @@ function NextShiftHero({
           <Text style={[heroStyles.heroTime, { color: palette.heroText }]}>
             {formatNZT(start, "h:mm a")}
           </Text>
-          <View style={[heroStyles.accentBar, { backgroundColor: palette.accent }]} />
+          <View
+            style={[heroStyles.accentBar, { backgroundColor: palette.accent }]}
+          />
           <Text style={[heroStyles.heroDate, { color: palette.bodyText }]}>
             {formatNZT(start, "EEEE · d MMMM")}
           </Text>
@@ -758,10 +788,7 @@ function NextShiftHero({
             <HeroFriendAvatars friends={friends} />
             <View style={heroStyles.friendsTextBlock}>
               <Text
-                style={[
-                  heroStyles.friendsLabel,
-                  { color: palette.mutedText },
-                ]}
+                style={[heroStyles.friendsLabel, { color: palette.mutedText }]}
               >
                 {isEvening ? "Evening crew" : "Day crew"}
               </Text>
@@ -852,7 +879,9 @@ function HeroFriendAvatars({ friends }: { friends: PeriodFriend[] }) {
         </View>
       ))}
       {overflow > 0 && (
-        <View style={[heroStyles.friendAvatarWrap, { marginLeft: -10, zIndex: 0 }]}>
+        <View
+          style={[heroStyles.friendAvatarWrap, { marginLeft: -10, zIndex: 0 }]}
+        >
           <View
             style={[heroStyles.friendAvatar, heroStyles.friendOverflowPill]}
           >
@@ -1199,15 +1228,25 @@ function FeedCard({
   onReport: () => void;
   isReported?: boolean;
 }) {
-  const canReport =
-    item.type === "achievement" ||
-    item.type === "milestone" ||
-    item.type === "friend_signup" ||
-    item.type === "photo_post" ||
-    item.type === "announcement";
+  // Only human-authored posts are reportable. System-generated items
+  // (achievement, milestone, friend_signup, shift_recap) have no author-written
+  // content to moderate — but comments on them are still reportable via the sheet.
+  const canReport = item.type === "photo_post" || item.type === "announcement";
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
   });
+  const markdownStyle = {
+    body: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      lineHeight: 20,
+      fontFamily: FontFamily.regular,
+    },
+    strong: { color: colors.text },
+    link: { color: colors.primary },
+    bullet_list: { marginVertical: 4 },
+    ordered_list: { marginVertical: 4 },
+  };
   const borderStyle = !isLast
     ? {
         borderBottomWidth: StyleSheet.hairlineWidth,
@@ -1239,34 +1278,13 @@ function FeedCard({
           </Text>
         </Pressable>
       )}
-      <LikeButton
-        liked={liked}
-        onPress={onToggleLike}
-        color={colors.textSecondary}
-        count={likeCount}
-      />
-      {canReport && (
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            onReport();
-          }}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.reportBtn,
-            { opacity: pressed ? 0.5 : 1 },
-          ]}
-          accessibilityLabel={
-            isReported ? "Already reported" : "Report or block — moderation options"
-          }
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name={isReported ? "flag" : "flag-outline"}
-            size={15}
-            color={isReported ? "#f97316" : colors.textSecondary}
-          />
-        </Pressable>
+      {likeCount > 0 && (
+        <LikeButton
+          liked={liked}
+          onPress={onToggleLike}
+          color={colors.textSecondary}
+          count={likeCount}
+        />
       )}
     </View>
   );
@@ -1282,12 +1300,7 @@ function FeedCard({
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               {item.title}
             </Text>
-            <Text
-              style={[styles.feedDescription, { color: colors.textSecondary }]}
-              numberOfLines={2}
-            >
-              {item.body}
-            </Text>
+            <Markdown style={markdownStyle}>{item.body}</Markdown>
             <View style={styles.feedFooter}>
               <View
                 style={[
@@ -1357,11 +1370,7 @@ function FeedCard({
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               Ka pai! {item.userName} earned &quot;{item.achievementName}&quot;
             </Text>
-            <Text
-              style={[styles.feedDescription, { color: colors.textSecondary }]}
-            >
-              {item.description}
-            </Text>
+            <Markdown style={markdownStyle}>{item.description}</Markdown>
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -1438,12 +1447,7 @@ function FeedCard({
               📍 {item.location} ·{" "}
               {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
             </Text>
-            <Text
-              style={[styles.feedDescription, { color: colors.textSecondary }]}
-              numberOfLines={2}
-            >
-              {item.caption}
-            </Text>
+            <Markdown style={markdownStyle}>{item.caption}</Markdown>
             {/* Inline photo preview */}
             <ScrollView
               horizontal
@@ -1471,7 +1475,9 @@ function FeedCard({
                       backgroundColor: colors.border,
                     },
                   ]}
-                  accessibilityLabel={`View ${item.photos.length - 3} more photos`}
+                  accessibilityLabel={`View ${
+                    item.photos.length - 3
+                  } more photos`}
                   accessibilityRole="imagebutton"
                 >
                   <Text
@@ -1567,8 +1573,7 @@ function FeedCard({
     return null;
   };
 
-  const hasAnnouncementImage =
-    item.type === "announcement" && !!item.imageUrl;
+  const hasAnnouncementImage = item.type === "announcement" && !!item.imageUrl;
 
   return (
     <Pressable
@@ -1582,6 +1587,31 @@ function FeedCard({
       accessibilityRole="button"
     >
       {renderContent()}
+      {canReport && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            onReport();
+          }}
+          hitSlop={12}
+          style={({ pressed }) => [
+            styles.reportBtn,
+            { opacity: pressed ? 0.5 : 1 },
+          ]}
+          accessibilityLabel={
+            isReported
+              ? "Already reported"
+              : "Report or block — moderation options"
+          }
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name={isReported ? "flag" : "flag-outline"}
+            size={14}
+            color={isReported ? "#f97316" : colors.textSecondary}
+          />
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -1707,6 +1737,10 @@ function FeedItemSheet({
   });
   const config = SHEET_TYPE_CONFIG[item.type];
   const accentColor = isDark ? config.accentDark : config.accent;
+  const heroEmoji =
+    item.type === "achievement" && item.achievementIcon
+      ? item.achievementIcon
+      : config.emoji;
 
   // Determine hero avatar for friend items
   const hasFriendAvatar =
@@ -1862,7 +1896,7 @@ function FeedItemSheet({
                     ]}
                   >
                     <Text style={sheet.heroAvatarBadgeEmoji}>
-                      {config.emoji}
+                      {heroEmoji}
                     </Text>
                   </View>
                 </View>
@@ -1877,7 +1911,7 @@ function FeedItemSheet({
                     },
                   ]}
                 >
-                  <Text style={sheet.heroEmoji}>{config.emoji}</Text>
+                  <Text style={sheet.heroEmoji}>{heroEmoji}</Text>
                 </View>
               )}
 
@@ -1915,7 +1949,12 @@ function FeedItemSheet({
               {item.type === "announcement" ? (
                 <Markdown
                   style={{
-                    body: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, fontFamily: FontFamily.regular },
+                    body: {
+                      color: colors.textSecondary,
+                      fontSize: 14,
+                      lineHeight: 20,
+                      fontFamily: FontFamily.regular,
+                    },
                     strong: { color: colors.text },
                     link: { color: colors.primary },
                     bullet_list: { marginVertical: 4 },
@@ -2048,7 +2087,10 @@ function FeedItemSheet({
               >
                 <Image
                   source={{ uri: item.imageUrl }}
-                  style={[sheet.photoSingle, { borderRadius: 12, marginBottom: 12 }]}
+                  style={[
+                    sheet.photoSingle,
+                    { borderRadius: 12, marginBottom: 12 },
+                  ]}
                   resizeMode="cover"
                 />
               </Pressable>
@@ -2088,10 +2130,7 @@ function FeedItemSheet({
                         accessibilityLabel="View photo"
                         accessibilityRole="imagebutton"
                       >
-                        <Image
-                          source={{ uri }}
-                          style={sheet.photoScrollItem}
-                        />
+                        <Image source={{ uri }} style={sheet.photoScrollItem} />
                       </Pressable>
                     ))}
                   </ScrollView>
@@ -2463,13 +2502,10 @@ function FeedItemSheet({
                   color={colors.textSecondary}
                 />
                 <Text
-                  style={[
-                    sheet.moderateText,
-                    { color: colors.textSecondary },
-                  ]}
+                  style={[sheet.moderateText, { color: colors.textSecondary }]}
                 >
-                  See something that doesn&apos;t belong? Report or block to keep
-                  our whānau safe.
+                  See something that doesn&apos;t belong? Report or block to
+                  keep our whānau safe.
                 </Text>
                 <Pressable
                   onPress={onModeratePost}
@@ -2488,10 +2524,7 @@ function FeedItemSheet({
                 >
                   <Ionicons name="flag-outline" size={13} color="#dc2626" />
                   <Text
-                    style={[
-                      sheet.moderateActionBtnText,
-                      { color: "#dc2626" },
-                    ]}
+                    style={[sheet.moderateActionBtnText, { color: "#dc2626" }]}
                   >
                     Report / Block
                   </Text>
@@ -2629,10 +2662,10 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   reportBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    position: "absolute",
+    top: 14,
+    right: 0,
+    zIndex: 10,
   },
   announcementImage: {
     width: "100%",

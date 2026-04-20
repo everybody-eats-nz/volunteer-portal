@@ -249,6 +249,8 @@ export default function ShiftDetailScreen() {
   const theme = getShiftThemeByName(shift.shiftType.name);
   const accent = isDark ? theme.colorDark : theme.color;
   const duration = getDuration(shift.start, shift.end);
+  const isPast = endDate.getTime() < Date.now();
+  const isCompleted = isMyShift && shift.status === "CONFIRMED" && isPast;
 
   const handleCheckIn = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -424,7 +426,11 @@ export default function ShiftDetailScreen() {
             <View style={s.heroOverlineRow}>
               <View style={s.heroOverlineRule} />
               <Text style={s.heroOverline}>
-                {isMyShift ? "You're in the whānau" : "Ngā mahi · A shift"}
+                {isCompleted
+                  ? "Completed · Ngā mihi"
+                  : isMyShift
+                  ? "You're in the whānau"
+                  : "Ngā mahi · A shift"}
               </Text>
               <View style={s.heroOverlineRule} />
             </View>
@@ -497,7 +503,56 @@ export default function ShiftDetailScreen() {
               { backgroundColor: isDark ? "#1a1d21" : "#ffffff" },
             ]}
           >
-            {isMyShift ? (
+            {isCompleted ? (
+              <View style={s.statusConfirmed}>
+                <View
+                  style={[
+                    s.statusConfirmedBadge,
+                    { backgroundColor: Brand.green },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-done"
+                    size={14}
+                    color={Brand.accent}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[s.statusConfirmedTitle, { color: colors.text }]}
+                  >
+                    Shift completed
+                  </Text>
+                  <Text
+                    style={[
+                      s.statusConfirmedMeta,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {formatNZT(date, "EEE d MMM")} · {duration} contributed
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    s.statusPastChip,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(248,251,105,0.12)"
+                        : "#f1ede4",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.statusPastChipText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    PAST
+                  </Text>
+                </View>
+              </View>
+            ) : isMyShift ? (
               <View style={s.statusConfirmed}>
                 <View style={s.statusConfirmedBadge}>
                   <Ionicons name="checkmark" size={12} color={Brand.green} />
@@ -604,7 +659,7 @@ export default function ShiftDetailScreen() {
           )}
 
         {/* ═══ Check-in CTA ═══ */}
-        {isMyShift && shift.status === "CONFIRMED" && !checkedIn && (
+        {isMyShift && shift.status === "CONFIRMED" && !checkedIn && !isCompleted && (
           <View style={s.ctaWrap}>
             <GlassButton
               onPress={handleCheckIn}
@@ -847,7 +902,7 @@ export default function ShiftDetailScreen() {
         )}
 
         {/* ═══ Cancel signup ═══ */}
-        {isMyShift && !checkedIn && (
+        {isMyShift && !checkedIn && !isCompleted && (
           <Pressable
             onPress={handleCancel}
             disabled={cancelLoading}
@@ -1530,6 +1585,16 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.regular,
     marginTop: 2,
+  },
+  statusPastChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusPastChipText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.2,
   },
   statusBrowsing: {
     flexDirection: "row",

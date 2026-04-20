@@ -134,6 +134,14 @@ const STATUS_CONFIG: Record<
     textDark: "#94a3b8",
     label: "Waitlisted",
   },
+  COMPLETED: {
+    icon: "checkmark-done",
+    bg: "#f1ede4",
+    bgDark: "rgba(255,255,255,0.06)",
+    text: "#57534e",
+    textDark: "#d6d3d1",
+    label: "Completed",
+  },
 };
 
 /* ── Main Screen ── */
@@ -1085,6 +1093,9 @@ function ShiftCard({
   const cardBg = isDark ? "#1a2026" : "#ffffff";
   const dividerColor = isDark ? "rgba(255,255,255,0.08)" : "#ebe5d9";
   const isUserSignedUp = !!(showStatus && shift.status);
+  const isPast = endDate.getTime() < Date.now();
+  const isCompleted = isUserSignedUp && shift.status === "CONFIRMED" && isPast;
+  const displayStatus = isCompleted ? "COMPLETED" : shift.status;
 
   return (
     <Pressable
@@ -1153,7 +1164,9 @@ function ShiftCard({
             </View>
           </View>
           {isUserSignedUp ? (
-            <StatusBadge status={shift.status!} isDark={isDark} />
+            <StatusBadge status={displayStatus!} isDark={isDark} />
+          ) : isPast ? (
+            <StatusBadge status="COMPLETED" isDark={isDark} />
           ) : (
             <SpotsBadge
               spotsLeft={spotsLeft}
@@ -1202,7 +1215,11 @@ function ShiftCard({
             style={[
               styles.capacityDot,
               {
-                backgroundColor: isFull
+                backgroundColor: isPast
+                  ? isDark
+                    ? "rgba(255,255,255,0.25)"
+                    : "#cbd5e1"
+                  : isFull
                   ? isDark
                     ? "#fca5a5"
                     : "#dc2626"
@@ -1217,23 +1234,28 @@ function ShiftCard({
             ]}
           />
           <Text style={[styles.capacityText, { color: colors.textSecondary }]}>
-            {shift.signedUp}/{shift.capacity} volunteers ·{" "}
-            <Text
-              style={{
-                color: isFull
-                  ? isDark
-                    ? "#fca5a5"
-                    : "#dc2626"
-                  : isUrgent
-                  ? isDark
-                    ? "#fbbf24"
-                    : "#d97706"
-                  : colors.textSecondary,
-                fontFamily: FontFamily.semiBold,
-              }}
-            >
-              {isFull ? "shift full" : `${spotsLeft} open`}
-            </Text>
+            {shift.signedUp}/{shift.capacity} volunteers
+            {!isPast && (
+              <>
+                {" · "}
+                <Text
+                  style={{
+                    color: isFull
+                      ? isDark
+                        ? "#fca5a5"
+                        : "#dc2626"
+                      : isUrgent
+                      ? isDark
+                        ? "#fbbf24"
+                        : "#d97706"
+                      : colors.textSecondary,
+                    fontFamily: FontFamily.semiBold,
+                  }}
+                >
+                  {isFull ? "shift full" : `${spotsLeft} open`}
+                </Text>
+              </>
+            )}
           </Text>
         </View>
 
