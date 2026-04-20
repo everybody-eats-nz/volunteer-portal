@@ -518,10 +518,10 @@ type FeedInteractions = {
 /** Feed item types */
 export type FeedItem =
   | ({ type: 'announcement'; id: string; title: string; body: string; imageUrl?: string; timestamp: string; author: string } & FeedInteractions)
-  | ({ type: 'achievement'; id: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean } & FeedInteractions)
-  | ({ type: 'milestone'; id: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean } & FeedInteractions)
-  | ({ type: 'photo_post'; id: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
-  | ({ type: 'friend_signup'; id: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'achievement'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'milestone'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'photo_post'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
+  | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string } & FeedInteractions);
 
 function hoursAgo(hours: number): string {

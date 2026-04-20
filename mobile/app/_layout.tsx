@@ -100,6 +100,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="user/[id]"
+            options={{
+              headerShown: true,
+              headerTransparent: true,
+              headerBackTitle: 'Back',
+              title: '',
+            }}
+          />
+          <Stack.Screen
             name="profile/edit"
             options={{
               headerShown: true,

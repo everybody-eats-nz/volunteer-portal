@@ -269,6 +269,7 @@ export async function GET(request: Request) {
     items.push({
       type: "achievement",
       id: `achievement-${ua.id}`,
+      userId: isMe ? undefined : ua.user.id,
       userName: displayName,
       profilePhotoUrl: isMe ? undefined : (ua.user.profilePhotoUrl ?? undefined),
       achievementName: ua.achievement.name,
@@ -308,6 +309,7 @@ export async function GET(request: Request) {
     items.push({
       type: "milestone",
       id: `milestone-${signup.userId}-${milestone}`,
+      userId: isMe ? undefined : signup.userId,
       userName: displayName,
       profilePhotoUrl: isMe ? undefined : (signup.user.profilePhotoUrl ?? undefined),
       count: milestone,
@@ -328,6 +330,7 @@ export async function GET(request: Request) {
     items.push({
       type: "friend_signup",
       id: `friend-signup-${signup.id}`,
+      userId: signup.userId,
       userName: displayName,
       profilePhotoUrl: signup.user.profilePhotoUrl ?? undefined,
       shiftTypeName: signup.shift.shiftType.name,

@@ -22,6 +22,7 @@ type CommentState = {
 };
 
 type ReportResponse = { ok: boolean };
+type BlockResponse = { ok: boolean; blocked: boolean };
 
 type UseFeedInteractionsReturn = {
   /** Toggle like on a feed item. Returns the new liked state and count. */
@@ -41,6 +42,15 @@ type UseFeedInteractionsReturn = {
 
   /** Returns true if the user has already reported this targetId in this session. */
   hasReported: (targetId: string) => boolean;
+
+  /** Block a user. Their content is removed from feed/comments server-side and notifies the admin. */
+  blockUser: (userId: string) => Promise<boolean>;
+
+  /** Returns true if the user has blocked this userId in this session. */
+  hasBlocked: (userId: string) => boolean;
+
+  /** Remove all cached comments from a blocked user (instant feed/comment cleanup). */
+  removeCommentsByUser: (userId: string) => void;
 };
 
 /**
@@ -57,6 +67,9 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
 
   // Track items reported this session so the UI can reflect the reported state
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
+
+  // Track users blocked this session for instant UI feedback
+  const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
 
   const toggleLike = useCallback(
     async (itemId: string): Promise<LikeResponse | null> => {
@@ -201,5 +214,49 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
     [reportedIds]
   );
 
-  return { toggleLike, loadComments, addComment, getCommentState, reportItem, hasReported };
+  const blockUser = useCallback(
+    async (userId: string): Promise<boolean> => {
+      try {
+        await api<BlockResponse>(
+          `/api/mobile/users/${encodeURIComponent(userId)}/block`,
+          { method: "POST" }
+        );
+        setBlockedUserIds((prev) => new Set(prev).add(userId));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
+
+  const hasBlocked = useCallback(
+    (userId: string) => blockedUserIds.has(userId),
+    [blockedUserIds]
+  );
+
+  const removeCommentsByUser = useCallback((userId: string) => {
+    setCommentStates((prev) => {
+      const next: Record<string, CommentState> = {};
+      for (const [itemId, state] of Object.entries(prev)) {
+        next[itemId] = {
+          ...state,
+          comments: state.comments.filter((c) => c.userId !== userId),
+        };
+      }
+      return next;
+    });
+  }, []);
+
+  return {
+    toggleLike,
+    loadComments,
+    addComment,
+    getCommentState,
+    reportItem,
+    hasReported,
+    blockUser,
+    hasBlocked,
+    removeCommentsByUser,
+  };
 }
