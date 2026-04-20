@@ -880,10 +880,12 @@ function AchievementSheet({
   const catBg = isDark ? cat.bgDark : cat.bg;
   const isUnlocked = !!achievement.unlockedAt;
   const unlockedByCount = achievement.unlockedByCount ?? 0;
-  const unlockPct =
-    totalVolunteers > 0
-      ? Math.round((unlockedByCount / totalVolunteers) * 100)
-      : 0;
+  const unlockPctDisplay = (() => {
+    if (totalVolunteers === 0 || unlockedByCount === 0) return "0";
+    const raw = (unlockedByCount / totalVolunteers) * 100;
+    if (raw < 1) return "<1";
+    return String(Math.round(raw));
+  })();
 
   const CATEGORY_LABELS: Record<string, string> = {
     MILESTONE: "Milestone",
@@ -1001,119 +1003,233 @@ function AchievementSheet({
             </View>
           </View>
 
-          <View
-            style={[
-              achieveSheet.card,
-              {
-                backgroundColor: colors.card,
-                shadowColor: isDark ? "#000" : "#64748b",
-              },
-            ]}
-          >
-            <Text style={[achieveSheet.title, { color: colors.text }]}>
-              {achievement.name}
-            </Text>
-            <Text
-              style={[achieveSheet.description, { color: colors.textSecondary }]}
+          <View style={achieveSheet.body}>
+            {/* ── Title card (overlaps hero) ── */}
+            <View
+              style={[
+                achieveSheet.titleCard,
+                {
+                  backgroundColor: colors.card,
+                  shadowColor: isDark ? "#000" : "#0f172a",
+                  borderColor: isDark ? colors.border : "#eef0ec",
+                },
+              ]}
             >
-              {achievement.description}
-            </Text>
-
-            <View style={achieveSheet.pillRow}>
-              <View style={[achieveSheet.pill, { backgroundColor: catBg }]}>
-                <Text style={{ fontSize: 12 }}>✨</Text>
-                <Text style={[achieveSheet.pillText, { color: catColor }]}>
-                  {achievement.points} points
-                </Text>
-              </View>
+              <Text style={[achieveSheet.title, { color: colors.text }]}>
+                {achievement.name}
+              </Text>
               <View
                 style={[
-                  achieveSheet.pill,
+                  achieveSheet.titleRule,
+                  { backgroundColor: catColor },
+                ]}
+              />
+              <Text
+                style={[
+                  achieveSheet.description,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {achievement.description}
+              </Text>
+
+              <View
+                style={[
+                  achieveSheet.metaStrip,
                   {
-                    backgroundColor: isUnlocked
-                      ? isDark
-                        ? "rgba(34,197,94,0.12)"
-                        : "#f0fdf4"
-                      : isDark
-                        ? "rgba(255,255,255,0.05)"
-                        : "#f8fafc",
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "#fafaf6",
+                    borderColor: isDark ? colors.border : "#eef0ec",
                   },
                 ]}
               >
-                <Text style={{ fontSize: 12 }}>
-                  {isUnlocked ? "✅" : "🔒"}
-                </Text>
-                <Text
+                <View style={achieveSheet.metaCell}>
+                  <Text style={[achieveSheet.metaNum, { color: catColor }]}>
+                    +{achievement.points}
+                  </Text>
+                  <Text
+                    style={[
+                      achieveSheet.metaLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Points
+                  </Text>
+                </View>
+                <View
                   style={[
-                    achieveSheet.pillText,
+                    achieveSheet.metaDivider,
                     {
-                      color: isUnlocked
-                        ? isDark
-                          ? "#86efac"
-                          : "#16a34a"
-                        : colors.textSecondary,
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "#e8eae4",
+                    },
+                  ]}
+                />
+                <View style={achieveSheet.metaCell}>
+                  <View style={achieveSheet.metaStatusRow}>
+                    <Ionicons
+                      name={
+                        isUnlocked ? "checkmark-circle" : "time-outline"
+                      }
+                      size={16}
+                      color={
+                        isUnlocked
+                          ? isDark
+                            ? "#86efac"
+                            : "#16a34a"
+                          : colors.textSecondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        achieveSheet.metaStatusText,
+                        {
+                          color: isUnlocked
+                            ? isDark
+                              ? "#86efac"
+                              : "#16a34a"
+                            : colors.text,
+                        },
+                      ]}
+                    >
+                      {isUnlocked ? "Unlocked" : "In progress"}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      achieveSheet.metaLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Status
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ── Milestone / Progress ── */}
+            {isUnlocked && achievement.unlockedAt ? (
+              <View style={achieveSheet.section}>
+                <View style={achieveSheet.sectionHeader}>
+                  <View
+                    style={[
+                      achieveSheet.sectionAccent,
+                      { backgroundColor: catColor },
+                    ]}
+                  />
+                  <Text
+                    style={[achieveSheet.sectionLabel, { color: catColor }]}
+                  >
+                    Milestone
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    achieveSheet.dataCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.border : "#eef0ec",
                     },
                   ]}
                 >
-                  {isUnlocked ? "Unlocked" : "In Progress"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={achieveSheet.section}>
-            {isUnlocked && achievement.unlockedAt ? (
-              <View
-                style={[
-                  achieveSheet.infoCard,
-                  { backgroundColor: colors.card },
-                ]}
-              >
-                <View style={achieveSheet.infoRow}>
-                  <Text style={{ fontSize: 16 }}>📅</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        achieveSheet.infoLabel,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Unlocked on
-                    </Text>
-                    <Text
-                      style={[achieveSheet.infoValue, { color: colors.text }]}
-                    >
-                      {formatNZT(
-                        new Date(achievement.unlockedAt),
-                        "d MMMM yyyy",
-                      )}
-                    </Text>
-                  </View>
+                  <Text
+                    style={[
+                      achieveSheet.dateDay,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {formatNZT(new Date(achievement.unlockedAt), "EEEE")}
+                  </Text>
+                  <Text
+                    style={[achieveSheet.dateMain, { color: colors.text }]}
+                  >
+                    {formatNZT(
+                      new Date(achievement.unlockedAt),
+                      "d MMMM yyyy",
+                    )}
+                  </Text>
+                  <Text
+                    style={[
+                      achieveSheet.dateMeta,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Earned this badge — Ka pai!
+                  </Text>
                 </View>
               </View>
             ) : achievement.progress != null ? (
-              <View
-                style={[
-                  achieveSheet.infoCard,
-                  { backgroundColor: colors.card },
-                ]}
-              >
-                <Text
+              <View style={achieveSheet.section}>
+                <View style={achieveSheet.sectionHeader}>
+                  <View
+                    style={[
+                      achieveSheet.sectionAccent,
+                      { backgroundColor: catColor },
+                    ]}
+                  />
+                  <Text
+                    style={[achieveSheet.sectionLabel, { color: catColor }]}
+                  >
+                    Progress
+                  </Text>
+                </View>
+                <View
                   style={[
-                    achieveSheet.infoLabel,
-                    { color: colors.textSecondary, marginBottom: 8 },
+                    achieveSheet.dataCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.border : "#eef0ec",
+                    },
                   ]}
                 >
-                  Your Progress
-                </Text>
-                <View style={achieveSheet.progressContainer}>
+                  <View style={achieveSheet.progressTopRow}>
+                    <Text
+                      style={[
+                        achieveSheet.progressBigNum,
+                        { color: colors.text },
+                      ]}
+                    >
+                      {Math.round(achievement.progress * 100)}
+                      <Text
+                        style={[
+                          achieveSheet.progressPct,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        %
+                      </Text>
+                    </Text>
+                    {achievement.target && (
+                      <View style={achieveSheet.progressGoal}>
+                        <Text
+                          style={[
+                            achieveSheet.progressGoalLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Toward
+                        </Text>
+                        <Text
+                          style={[
+                            achieveSheet.progressGoalText,
+                            { color: colors.text },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {achievement.target}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <View
                     style={[
                       achieveSheet.progressTrack,
                       {
                         backgroundColor: isDark
                           ? "rgba(255,255,255,0.06)"
-                          : "#e2e8f0",
+                          : "#f1f3ee",
                       },
                     ]}
                   >
@@ -1127,177 +1243,215 @@ function AchievementSheet({
                       ]}
                     />
                   </View>
-                  <Text
-                    style={[achieveSheet.progressText, { color: colors.text }]}
-                  >
-                    {Math.round(achievement.progress * 100)}%
-                  </Text>
                 </View>
-                {achievement.target && (
-                  <Text
-                    style={[
-                      achieveSheet.progressTarget,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Goal: {achievement.target}
-                  </Text>
-                )}
               </View>
             ) : null}
 
-            <View
-              style={[achieveSheet.infoCard, { backgroundColor: colors.card }]}
-            >
-              <Text
-                style={[
-                  achieveSheet.infoLabel,
-                  { color: colors.textSecondary, marginBottom: 10 },
-                ]}
-              >
-                Community
-              </Text>
-              <View style={achieveSheet.communityRow}>
-                <View style={achieveSheet.communityItem}>
-                  <Text style={{ fontSize: 22 }}>👥</Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityValue,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {unlockedByCount}
-                  </Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {unlockedByCount === 1 ? "Volunteer" : "Volunteers"}
-                  </Text>
-                </View>
+            {/* ── Rarity (with friends inline) ── */}
+            <View style={achieveSheet.section}>
+              <View style={achieveSheet.sectionHeader}>
                 <View
                   style={[
-                    achieveSheet.communityDivider,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.06)"
-                        : "#e2e8f0",
-                    },
+                    achieveSheet.sectionAccent,
+                    { backgroundColor: catColor },
                   ]}
                 />
-                <View style={achieveSheet.communityItem}>
-                  <Text style={{ fontSize: 22 }}>📊</Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityValue,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {unlockPct}%
-                  </Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    of whānau
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {achievement.friendsWhoEarned &&
-              achievement.friendsWhoEarned.length > 0 && (
-                <View
-                  style={[
-                    achieveSheet.infoCard,
-                    { backgroundColor: colors.card },
-                  ]}
+                <Text
+                  style={[achieveSheet.sectionLabel, { color: catColor }]}
                 >
-                  <Text
+                  Rarity
+                </Text>
+              </View>
+              <View
+                style={[
+                  achieveSheet.dataCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: isDark ? colors.border : "#eef0ec",
+                  },
+                ]}
+              >
+                <View style={achieveSheet.rarityRow}>
+                  <View style={achieveSheet.rarityCell}>
+                    <Text
+                      style={[
+                        achieveSheet.rarityNum,
+                        { color: colors.text },
+                      ]}
+                    >
+                      {unlockedByCount}
+                    </Text>
+                    <Text
+                      style={[
+                        achieveSheet.rarityLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {unlockedByCount === 1
+                        ? "volunteer\nhas earned this"
+                        : "volunteers\nhave earned this"}
+                    </Text>
+                  </View>
+                  <View
                     style={[
-                      achieveSheet.infoLabel,
-                      { color: colors.textSecondary, marginBottom: 10 },
+                      achieveSheet.rarityDivider,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.08)"
+                          : "#e8eae4",
+                      },
                     ]}
-                  >
-                    Friends who earned this
-                  </Text>
-                  <View style={achieveSheet.friendsList}>
-                    {achievement.friendsWhoEarned.slice(0, 6).map((f) => (
-                      <Pressable
-                        key={f.id}
-                        onPress={() => {
-                          onClose();
-                          router.push(`/friend/${f.id}` as never);
-                        }}
-                        style={({ pressed }) => [
-                          achieveSheet.friendItem,
-                          { opacity: pressed ? 0.7 : 1 },
+                  />
+                  <View style={achieveSheet.rarityCell}>
+                    <Text
+                      style={[
+                        achieveSheet.rarityNum,
+                        { color: colors.text },
+                      ]}
+                    >
+                      {unlockPctDisplay}
+                      <Text
+                        style={[
+                          achieveSheet.rarityPct,
+                          { color: colors.textSecondary },
                         ]}
-                        accessibilityLabel={`View ${f.name}'s profile`}
-                        accessibilityRole="button"
                       >
-                        {f.profilePhotoUrl ? (
-                          <Image
-                            source={{ uri: f.profilePhotoUrl }}
-                            style={achieveSheet.friendAvatar}
-                          />
-                        ) : (
-                          <View
-                            style={[
-                              achieveSheet.friendAvatarFallback,
-                              {
-                                backgroundColor: isDark
-                                  ? Brand.greenDark
-                                  : Brand.green,
-                              },
+                        %
+                      </Text>
+                    </Text>
+                    <Text
+                      style={[
+                        achieveSheet.rarityLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      of the{"\n"}whānau
+                    </Text>
+                  </View>
+                </View>
+
+                {achievement.friendsWhoEarned &&
+                  achievement.friendsWhoEarned.length > 0 && (
+                    <>
+                      <View
+                        style={[
+                          achieveSheet.rarityHRule,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "#e8eae4",
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          achieveSheet.friendsCaption,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Including {achievement.friendsWhoEarned.length} of your{" "}
+                        {achievement.friendsWhoEarned.length === 1
+                          ? "friend"
+                          : "friends"}
+                      </Text>
+                      <View style={achieveSheet.friendsList}>
+                        {achievement.friendsWhoEarned.slice(0, 6).map((f) => (
+                          <Pressable
+                            key={f.id}
+                            onPress={() => {
+                              onClose();
+                              router.push(`/friend/${f.id}` as never);
+                            }}
+                            style={({ pressed }) => [
+                              achieveSheet.friendItem,
+                              { opacity: pressed ? 0.7 : 1 },
                             ]}
+                            accessibilityLabel={`View ${f.name}'s profile`}
+                            accessibilityRole="button"
                           >
-                            <Text style={achieveSheet.friendInitial}>
-                              {f.name.charAt(0)}
+                            <View
+                              style={[
+                                achieveSheet.friendAvatarRing,
+                                { borderColor: catBg },
+                              ]}
+                            >
+                              {f.profilePhotoUrl ? (
+                                <Image
+                                  source={{ uri: f.profilePhotoUrl }}
+                                  style={achieveSheet.friendAvatar}
+                                />
+                              ) : (
+                                <View
+                                  style={[
+                                    achieveSheet.friendAvatarFallback,
+                                    {
+                                      backgroundColor: isDark
+                                        ? Brand.greenDark
+                                        : Brand.green,
+                                    },
+                                  ]}
+                                >
+                                  <Text style={achieveSheet.friendInitial}>
+                                    {f.name.charAt(0)}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text
+                              style={[
+                                achieveSheet.friendName,
+                                { color: colors.text },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {f.name.split(" ")[0]}
+                            </Text>
+                          </Pressable>
+                        ))}
+                        {achievement.friendsWhoEarned.length > 6 && (
+                          <View style={achieveSheet.friendItem}>
+                            <View
+                              style={[
+                                achieveSheet.friendAvatarRing,
+                                { borderColor: catBg },
+                              ]}
+                            >
+                              <View
+                                style={[
+                                  achieveSheet.friendAvatarFallback,
+                                  {
+                                    backgroundColor: isDark
+                                      ? "rgba(255,255,255,0.06)"
+                                      : "#f1f3ee",
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    achieveSheet.friendMoreText,
+                                    { color: colors.textSecondary },
+                                  ]}
+                                >
+                                  +{achievement.friendsWhoEarned.length - 6}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text
+                              style={[
+                                achieveSheet.friendName,
+                                { color: colors.textSecondary },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              more
                             </Text>
                           </View>
                         )}
-                        <Text
-                          style={[
-                            achieveSheet.friendName,
-                            { color: colors.text },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {f.name.split(" ")[0]}
-                        </Text>
-                      </Pressable>
-                    ))}
-                    {achievement.friendsWhoEarned.length > 6 && (
-                      <View style={achieveSheet.friendItem}>
-                        <View
-                          style={[
-                            achieveSheet.friendAvatarFallback,
-                            {
-                              backgroundColor: isDark
-                                ? "rgba(255,255,255,0.06)"
-                                : "#f1f5f9",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              achieveSheet.friendMoreText,
-                              { color: colors.textSecondary },
-                            ]}
-                          >
-                            +{achievement.friendsWhoEarned.length - 6}
-                          </Text>
-                        </View>
                       </View>
-                    )}
-                  </View>
-                </View>
-              )}
+                    </>
+                  )}
+              </View>
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -2037,153 +2191,278 @@ const achieveSheet = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
-  card: {
-    marginHorizontal: 16,
-    marginTop: -16,
-    borderRadius: 20,
+  body: {
+    paddingHorizontal: 16,
+    gap: 22,
+  },
+
+  /* Title card (overlaps hero) */
+  titleCard: {
+    marginTop: -18,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 20,
-    gap: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 2,
+    paddingBottom: 18,
+    alignItems: "center",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 22,
+    elevation: 3,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: FontFamily.headingBold,
-    lineHeight: 28,
+    lineHeight: 30,
     textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  titleRule: {
+    width: 28,
+    height: 2,
+    borderRadius: 1,
+    marginTop: 12,
+    marginBottom: 12,
+    opacity: 0.7,
   },
   description: {
     fontSize: 15,
     fontFamily: FontFamily.regular,
-    lineHeight: 23,
+    lineHeight: 22,
     textAlign: "center",
+    maxWidth: 320,
   },
-  pillRow: {
+
+  /* Meta strip — points + status */
+  metaStrip: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
+    alignItems: "stretch",
+    alignSelf: "stretch",
+    marginTop: 18,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 12,
+  },
+  metaCell: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  metaNum: {
+    fontSize: 22,
+    fontFamily: FontFamily.heading,
+    fontVariant: ["tabular-nums"],
+    lineHeight: 26,
+  },
+  metaStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    marginTop: 4,
+    height: 26,
   },
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+  metaStatusText: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
   },
-  pillText: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
+  metaLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginTop: 2,
   },
+  metaDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    marginVertical: 4,
+  },
+
+  /* Section header (label above each card) */
   section: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
+    gap: 10,
   },
-  infoCard: {
-    borderRadius: 16,
-    padding: 18,
-  },
-  infoRow: {
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 10,
+    paddingLeft: 4,
   },
-  infoLabel: {
+  sectionAccent: {
+    width: 18,
+    height: 2,
+    borderRadius: 1,
+  },
+  sectionLabel: {
     fontSize: 11,
     fontFamily: FontFamily.semiBold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.4,
   },
-  infoValue: {
-    fontSize: 16,
+
+  /* Generic data card */
+  dataCard: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 20,
+  },
+
+  /* Milestone date block */
+  dateDay: {
+    fontSize: 12,
     fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
   },
-  progressContainer: {
+  dateMain: {
+    fontSize: 26,
+    fontFamily: FontFamily.heading,
+    lineHeight: 32,
+    letterSpacing: -0.4,
+    marginTop: 4,
+    fontVariant: ["tabular-nums"],
+  },
+  dateMeta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginTop: 8,
+  },
+
+  /* Progress block */
+  progressTopRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    gap: 16,
+  },
+  progressBigNum: {
+    fontSize: 38,
+    fontFamily: FontFamily.heading,
+    lineHeight: 42,
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+  },
+  progressPct: {
+    fontSize: 22,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.5,
+  },
+  progressGoal: {
+    flex: 1,
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  progressGoalLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  progressGoalText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    textAlign: "right",
+    lineHeight: 17,
   },
   progressTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  progressText: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-    minWidth: 40,
-    textAlign: "right",
-  },
-  progressTarget: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    marginTop: 6,
-  },
-  communityRow: {
+
+  /* Rarity block */
+  rarityRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  communityItem: {
+  rarityCell: {
     flex: 1,
     alignItems: "center",
     gap: 4,
   },
-  communityValue: {
+  rarityNum: {
+    fontSize: 32,
+    fontFamily: FontFamily.heading,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+    fontVariant: ["tabular-nums"],
+  },
+  rarityPct: {
     fontSize: 22,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.4,
   },
-  communityLabel: {
+  rarityLabel: {
     fontSize: 12,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.regular,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: 2,
   },
-  communityDivider: {
-    width: 1,
-    height: 40,
+  rarityDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 56,
     marginHorizontal: 8,
   },
+  rarityHRule: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: 18,
+    marginBottom: 16,
+    marginHorizontal: -4,
+  },
+  friendsCaption: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    marginBottom: 12,
+  },
+
+  /* Friends */
   friendsList: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 14,
+    rowGap: 16,
   },
   friendItem: {
     alignItems: "center",
-    gap: 4,
-    width: 56,
+    gap: 6,
+    width: 52,
+  },
+  friendAvatarRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   friendAvatarFallback: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   friendInitial: {
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: FontFamily.bold,
   },
   friendName: {
     fontSize: 11,
     fontFamily: FontFamily.medium,
     textAlign: "center",
+    width: "100%",
   },
   friendMoreText: {
     fontSize: 13,
