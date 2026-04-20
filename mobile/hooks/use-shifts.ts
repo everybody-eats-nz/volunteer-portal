@@ -16,6 +16,7 @@ type ShiftsResponse = {
   pastNextCursor: string | null;
   userPreferredLocations: string[];
   periodFriends: Record<string, PeriodFriend[]>;
+  shiftFriends?: Record<string, PeriodFriend[]>;
 };
 
 type UseShiftsReturn = {
@@ -31,6 +32,8 @@ type UseShiftsReturn = {
   userPreferredLocations: string[];
   /** Friends keyed by "YYYY-MM-DD-DAY" or "YYYY-MM-DD-EVE" */
   periodFriends: Record<string, PeriodFriend[]>;
+  /** Friends keyed by shift ID — friends signed up for that specific role */
+  shiftFriends: Record<string, PeriodFriend[]>;
 };
 
 export function useShifts(): UseShiftsReturn {
@@ -42,6 +45,7 @@ export function useShifts(): UseShiftsReturn {
   const [error, setError] = useState<string | null>(null);
   const [userPreferredLocations, setUserPreferredLocations] = useState<string[]>([]);
   const [periodFriends, setPeriodFriends] = useState<Record<string, PeriodFriend[]>>({});
+  const [shiftFriends, setShiftFriends] = useState<Record<string, PeriodFriend[]>>({});
 
   const pastCursorRef = useRef<string | null>(null);
   const isLoadingMoreRef = useRef(false);
@@ -55,6 +59,7 @@ export function useShifts(): UseShiftsReturn {
       setPast(result.past);
       setUserPreferredLocations(result.userPreferredLocations ?? []);
       setPeriodFriends(result.periodFriends ?? {});
+      setShiftFriends(result.shiftFriends ?? {});
       pastCursorRef.current = result.pastNextCursor;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load shifts");
@@ -105,5 +110,6 @@ export function useShifts(): UseShiftsReturn {
     isLoadingMore,
     userPreferredLocations,
     periodFriends,
+    shiftFriends,
   };
 }

@@ -33,10 +33,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
-import {
-  getShiftThemeByName,
-  type Shift,
-} from "@/lib/dummy-data";
+import { getShiftThemeByName, type Shift } from "@/lib/dummy-data";
 
 /* ── Types ── */
 
@@ -72,10 +69,18 @@ function splitDayPeriods(shifts: Shift[], dateStr: string): PeriodSubGroup[] {
   const evePeriod = shifts.filter((s) => !isShiftDay(s));
   const periods: PeriodSubGroup[] = [];
   if (dayPeriod.length > 0) {
-    periods.push({ periodKey: `${dateStr}-DAY`, periodLabel: "Day", shifts: dayPeriod });
+    periods.push({
+      periodKey: `${dateStr}-DAY`,
+      periodLabel: "Day",
+      shifts: dayPeriod,
+    });
   }
   if (evePeriod.length > 0) {
-    periods.push({ periodKey: `${dateStr}-EVE`, periodLabel: "Evening", shifts: evePeriod });
+    periods.push({
+      periodKey: `${dateStr}-EVE`,
+      periodLabel: "Evening",
+      shifts: evePeriod,
+    });
   }
   return periods;
 }
@@ -150,6 +155,7 @@ export default function ShiftsScreen() {
     isLoadingMore,
     userPreferredLocations,
     periodFriends,
+    shiftFriends,
   } = useShifts();
 
   /* Silent location default — applies user's preferred location without surfacing a picker */
@@ -166,7 +172,9 @@ export default function ShiftsScreen() {
 
   const filteredAvailable = useMemo(
     () =>
-      locationFilter ? available.filter((s) => s.location === locationFilter) : available,
+      locationFilter
+        ? available.filter((s) => s.location === locationFilter)
+        : available,
     [available, locationFilter]
   );
 
@@ -179,7 +187,9 @@ export default function ShiftsScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
 
   /* Selected date (default today) */
-  const [selectedDate, setSelectedDate] = useState<Date>(() => startOfDay(new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    startOfDay(new Date())
+  );
   const selectedDateKey = formatDateKey(selectedDate);
 
   /* Calendar signals — merge available + signups (past + upcoming) for density dots */
@@ -226,7 +236,9 @@ export default function ShiftsScreen() {
     );
     const mineIds = new Set(mine.map((s) => s.id));
     const avail = filteredAvailable.filter(
-      (s) => formatDateKey(new Date(s.start)) === selectedDateKey && !mineIds.has(s.id)
+      (s) =>
+        formatDateKey(new Date(s.start)) === selectedDateKey &&
+        !mineIds.has(s.id)
     );
     return [...mine, ...avail];
   }, [myShifts, past, filteredAvailable, selectedDateKey]);
@@ -236,7 +248,10 @@ export default function ShiftsScreen() {
     [selectedDayShifts, selectedDateKey]
   );
 
-  const totalDayShifts = selectedDayPeriods.reduce((sum, p) => sum + p.shifts.length, 0);
+  const totalDayShifts = selectedDayPeriods.reduce(
+    (sum, p) => sum + p.shifts.length,
+    0
+  );
 
   /* Earliest upcoming signup — surfaces as a jump-to pill */
   const nextShift = useMemo(() => {
@@ -254,7 +269,9 @@ export default function ShiftsScreen() {
 
   const nudgeDay = useCallback((delta: number) => {
     Haptics.selectionAsync();
-    setSelectedDate((d) => (delta > 0 ? addDays(d, delta) : subDays(d, -delta)));
+    setSelectedDate((d) =>
+      delta > 0 ? addDays(d, delta) : subDays(d, -delta)
+    );
   }, []);
 
   /* Prefetch more past pages so the calendar has density signal across earlier months */
@@ -270,7 +287,11 @@ export default function ShiftsScreen() {
   }, [isLoading, loadMorePast]);
 
   const showInitialLoading =
-    isLoading && myShifts.length === 0 && available.length === 0 && past.length === 0 && !error;
+    isLoading &&
+    myShifts.length === 0 &&
+    available.length === 0 &&
+    past.length === 0 &&
+    !error;
 
   return (
     <ScrollView
@@ -281,7 +302,11 @@ export default function ShiftsScreen() {
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refresh} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={refresh}
+          tintColor={colors.primary}
+        />
       }
     >
       {/* Header */}
@@ -325,7 +350,12 @@ export default function ShiftsScreen() {
       {/* Error */}
       {error && !isLoading && (
         <View style={styles.emptyState}>
-          <View style={[styles.emptyIconCircle, { backgroundColor: "rgba(239, 68, 68, 0.1)" }]}>
+          <View
+            style={[
+              styles.emptyIconCircle,
+              { backgroundColor: "rgba(239, 68, 68, 0.1)" },
+            ]}
+          >
             <Ionicons name="cloud-offline-outline" size={32} color="#ef4444" />
           </View>
           <ThemedText type="subtitle" style={{ textAlign: "center" }}>
@@ -384,7 +414,11 @@ export default function ShiftsScreen() {
           </View>
 
           {/* Date nav */}
-          <DateNavHeader selectedDate={selectedDate} onNudge={nudgeDay} isDark={isDark} />
+          <DateNavHeader
+            selectedDate={selectedDate}
+            onNudge={nudgeDay}
+            isDark={isDark}
+          />
 
           {/* Day shifts */}
           {totalDayShifts === 0 ? (
@@ -399,12 +433,21 @@ export default function ShiftsScreen() {
                   },
                 ]}
               >
-                <Ionicons name="leaf-outline" size={22} color={colors.textSecondary} />
+                <Ionicons
+                  name="leaf-outline"
+                  size={22}
+                  color={colors.textSecondary}
+                />
               </View>
               <Text style={[styles.dayEmptyTitle, { color: colors.text }]}>
                 No shifts on this day
               </Text>
-              <Text style={[styles.dayEmptySubtitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.dayEmptySubtitle,
+                  { color: colors.textSecondary },
+                ]}
+              >
                 Try another day from the calendar above
               </Text>
             </View>
@@ -414,28 +457,19 @@ export default function ShiftsScreen() {
                 const friends = periodFriends[period.periodKey] ?? [];
                 return (
                   <View key={period.periodKey} style={styles.periodGroup}>
-                    <View style={styles.periodHeader}>
-                      <Ionicons
-                        name={period.periodLabel === "Day" ? "sunny-outline" : "moon-outline"}
-                        size={14}
-                        color={colors.textSecondary}
-                      />
-                      <Text style={[styles.periodLabel, { color: colors.textSecondary }]}>
-                        {period.periodLabel}
-                      </Text>
-                      <Text style={[styles.periodCount, { color: colors.textSecondary }]}>
-                        · {period.shifts.length}{" "}
-                        {period.shifts.length === 1 ? "shift" : "shifts"}
-                      </Text>
-                      {friends.length > 0 && (
-                        <FriendAvatarRow friends={friends} isDark={isDark} />
-                      )}
-                    </View>
+                    <PeriodHeader
+                      label={period.periodLabel}
+                      count={period.shifts.length}
+                      friends={friends}
+                      colors={colors}
+                      isDark={isDark}
+                    />
                     <View style={styles.dayCards}>
                       {period.shifts.map((shift) => (
                         <ShiftCard
                           key={shift.id}
                           shift={shift}
+                          friends={shiftFriends[shift.id] ?? []}
                           colors={colors}
                           isDark={isDark}
                           showStatus={!!shift.status}
@@ -454,7 +488,9 @@ export default function ShiftsScreen() {
       {isLoadingMore && (
         <View style={styles.loadingMore}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.loadingMoreText, { color: colors.textSecondary }]}>
+          <Text
+            style={[styles.loadingMoreText, { color: colors.textSecondary }]}
+          >
             Loading shifts...
           </Text>
         </View>
@@ -588,9 +624,7 @@ function LocationPickerSheet({
             style={({ pressed }) => [
               styles.sheetClose,
               {
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "#f1f5f9",
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
                 opacity: pressed ? 0.6 : 1,
               },
             ]}
@@ -618,10 +652,10 @@ function LocationPickerSheet({
                         ? "rgba(134, 239, 172, 0.12)"
                         : Brand.greenLight
                       : pressed
-                        ? isDark
-                          ? "rgba(255,255,255,0.04)"
-                          : "#f8fafc"
-                        : "transparent",
+                      ? isDark
+                        ? "rgba(255,255,255,0.04)"
+                        : "#f8fafc"
+                      : "transparent",
                   },
                 ]}
                 accessibilityRole="button"
@@ -705,10 +739,9 @@ function NextShiftPill({
         },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`Your next shift: ${shift.shiftType.name}, ${relative} at ${formatNZT(
-        date,
-        "h:mm a"
-      )}`}
+      accessibilityLabel={`Your next shift: ${
+        shift.shiftType.name
+      }, ${relative} at ${formatNZT(date, "h:mm a")}`}
     >
       <View style={[styles.nextShiftIcon, { backgroundColor: accentColor }]}>
         <Text style={styles.nextShiftEmoji}>{theme.emoji}</Text>
@@ -772,7 +805,9 @@ function DateNavHeader({
       </Pressable>
 
       <View style={styles.dateNavLabelContainer}>
-        <Text style={[styles.dateNavPrimary, { color: colors.text }]}>{primary}</Text>
+        <Text style={[styles.dateNavPrimary, { color: colors.text }]}>
+          {primary}
+        </Text>
         <View style={styles.dateNavRelativeRow}>
           <View
             style={[
@@ -783,8 +818,8 @@ function DateNavHeader({
                     ? "rgba(134, 239, 172, 0.15)"
                     : Brand.greenLight
                   : isDark
-                    ? "rgba(255,255,255,0.05)"
-                    : "rgba(14, 58, 35, 0.05)",
+                  ? "rgba(255,255,255,0.05)"
+                  : "rgba(14, 58, 35, 0.05)",
               },
             ]}
           >
@@ -827,76 +862,91 @@ function DateNavHeader({
   );
 }
 
-/* ── Friend Avatar Row ── */
+/* ── Friend Avatar Stack ── */
 
-function FriendAvatarRow({
+function FriendAvatarStack({
   friends,
   isDark,
+  size = 26,
+  maxShow = 4,
+  borderColor,
+  accentColor,
 }: {
   friends: PeriodFriend[];
   isDark: boolean;
+  size?: number;
+  maxShow?: number;
+  borderColor?: string;
+  accentColor?: string;
 }) {
-  const maxShow = 4;
   const shown = friends.slice(0, maxShow);
   const overflow = friends.length - maxShow;
+  const ring = borderColor ?? (isDark ? "#0f1114" : Brand.warmWhite);
+  const fallbackBg = isDark ? "rgba(14,58,35,0.4)" : Brand.greenLight;
+  const fallbackFg = accentColor ?? (isDark ? "#86efac" : Brand.green);
+  const overlap = Math.max(6, Math.round(size * 0.33));
 
   return (
     <View style={styles.friendAvatarRow}>
-      {shown.map((friend, index) => (
-        <View
-          key={friend.id}
-          style={[
-            styles.friendAvatarWrap,
-            { marginLeft: index === 0 ? 0 : -8, zIndex: maxShow - index },
-          ]}
-        >
-          {friend.profilePhotoUrl ? (
-            <Image
-              source={{ uri: friend.profilePhotoUrl }}
-              style={[
-                styles.friendAvatar,
-                { borderColor: isDark ? "#0f1114" : Brand.warmWhite },
-              ]}
-            />
-          ) : (
-            <View
-              style={[
-                styles.friendAvatar,
-                styles.friendAvatarFallback,
-                {
-                  borderColor: isDark ? "#0f1114" : Brand.warmWhite,
-                  backgroundColor: isDark ? "rgba(14,58,35,0.4)" : Brand.greenLight,
-                },
-              ]}
-            >
-              <Text
+      {shown.map((friend, index) => {
+        const dim = { width: size, height: size, borderRadius: size / 2 };
+        return (
+          <View
+            key={friend.id}
+            style={{
+              marginLeft: index === 0 ? 0 : -overlap,
+              zIndex: maxShow - index,
+            }}
+          >
+            {friend.profilePhotoUrl ? (
+              <Image
+                source={{ uri: friend.profilePhotoUrl }}
+                style={[styles.friendAvatar, dim, { borderColor: ring }]}
+              />
+            ) : (
+              <View
                 style={[
-                  styles.friendInitial,
-                  { color: isDark ? "#86efac" : Brand.green },
+                  styles.friendAvatar,
+                  styles.friendAvatarFallback,
+                  dim,
+                  { borderColor: ring, backgroundColor: fallbackBg },
                 ]}
               >
-                {friend.name.charAt(0)}
-              </Text>
-            </View>
-          )}
-        </View>
-      ))}
+                <Text
+                  style={[
+                    styles.friendInitial,
+                    { color: fallbackFg, fontSize: Math.round(size * 0.42) },
+                  ]}
+                >
+                  {friend.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+      })}
       {overflow > 0 && (
-        <View style={[styles.friendAvatarWrap, { marginLeft: -8, zIndex: 0 }]}>
+        <View style={{ marginLeft: -overlap, zIndex: 0 }}>
           <View
             style={[
               styles.friendAvatar,
               styles.friendAvatarFallback,
               {
-                borderColor: isDark ? "#0f1114" : Brand.warmWhite,
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderColor: ring,
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#eceae3",
               },
             ]}
           >
             <Text
               style={[
                 styles.friendOverflow,
-                { color: isDark ? "#94a3b8" : "#64748b" },
+                {
+                  color: isDark ? "#cbd5e1" : "#475569",
+                  fontSize: Math.round(size * 0.38),
+                },
               ]}
             >
               +{overflow}
@@ -908,15 +958,115 @@ function FriendAvatarRow({
   );
 }
 
+/* ── Period Header (Day / Evening) ── */
+
+function PeriodHeader({
+  label,
+  count,
+  friends,
+  colors,
+  isDark,
+}: {
+  label: "Day" | "Evening";
+  count: number;
+  friends: PeriodFriend[];
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  const isDay = label === "Day";
+  const iconName: keyof typeof Ionicons.glyphMap = isDay
+    ? "sunny-outline"
+    : "moon-outline";
+  const accent = isDay
+    ? isDark
+      ? "#fbbf24"
+      : "#d97706"
+    : isDark
+    ? "#c4b5fd"
+    : "#6d28d9";
+  const chipBg = isDay
+    ? isDark
+      ? "rgba(251, 191, 36, 0.12)"
+      : "rgba(217, 119, 6, 0.08)"
+    : isDark
+    ? "rgba(196, 181, 253, 0.14)"
+    : "rgba(109, 40, 217, 0.08)";
+  const ruleColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(14, 58, 35, 0.1)";
+
+  return (
+    <View style={styles.periodHeader}>
+      <View style={[styles.periodChip, { backgroundColor: chipBg }]}>
+        <Ionicons name={iconName} size={12} color={accent} />
+        <Text style={[styles.periodChipText, { color: accent }]}>
+          {isDay ? "Day shifts" : "Evening shifts"}
+        </Text>
+      </View>
+
+      <View style={[styles.periodRule, { backgroundColor: ruleColor }]} />
+
+      {friends.length > 0 ? (
+        <View style={styles.periodFriendsWrap}>
+          <FriendAvatarStack
+            friends={friends}
+            isDark={isDark}
+            size={22}
+            maxShow={3}
+          />
+          <Text
+            style={[styles.periodMetaText, { color: colors.textSecondary }]}
+          >
+            {friends.length === 1 ? "1 friend" : `${friends.length} friends`}
+          </Text>
+        </View>
+      ) : (
+        <Text style={[styles.periodMetaText, { color: colors.textSecondary }]}>
+          {count} {count === 1 ? "role" : "roles"}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 /* ── Shift Card ── */
+
+function formatTimeRange(start: Date, end: Date): { range: string } {
+  const startFormat = formatNZT(start, "h:mm");
+  const startSuffix = formatNZT(start, "a").toLowerCase();
+  const endFormat = formatNZT(end, "h:mm");
+  const endSuffix = formatNZT(end, "a").toLowerCase();
+  const range =
+    startSuffix === endSuffix
+      ? `${startFormat} – ${endFormat} ${endSuffix}`
+      : `${startFormat} ${startSuffix} – ${endFormat} ${endSuffix}`;
+  return { range };
+}
+
+function friendsLine(friends: PeriodFriend[], hasStatus: boolean): string {
+  if (friends.length === 0) return "";
+  const firstName = friends[0].name.split(" ")[0];
+  if (friends.length === 1) {
+    return hasStatus ? `With ${firstName}` : `${firstName} is going`;
+  }
+  if (friends.length === 2) {
+    const secondName = friends[1].name.split(" ")[0];
+    return hasStatus
+      ? `With ${firstName} & ${secondName}`
+      : `${firstName} & ${secondName} are going`;
+  }
+  return hasStatus
+    ? `With ${firstName} + ${friends.length - 1} more`
+    : `${firstName} + ${friends.length - 1} friends going`;
+}
 
 function ShiftCard({
   shift,
+  friends,
   colors,
   isDark,
   showStatus,
 }: {
   shift: Shift;
+  friends: PeriodFriend[];
   colors: (typeof Colors)["light"];
   isDark: boolean;
   showStatus?: boolean;
@@ -931,6 +1081,10 @@ function ShiftCard({
   const accentColor = isDark ? theme.colorDark : theme.color;
   const accentBg = isDark ? theme.bgDark : theme.bgLight;
   const duration = getDuration(shift.start, shift.end);
+  const { range: timeRange } = formatTimeRange(date, endDate);
+  const cardBg = isDark ? "#1a2026" : "#ffffff";
+  const dividerColor = isDark ? "rgba(255,255,255,0.08)" : "#ebe5d9";
+  const isUserSignedUp = !!(showStatus && shift.status);
 
   return (
     <Pressable
@@ -941,36 +1095,65 @@ function ShiftCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: isDark ? "#1e2328" : "#ffffff",
-          borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e4dfd7",
+          backgroundColor: cardBg,
+          borderColor: isDark ? "rgba(255,255,255,0.06)" : "#ece6d8",
           shadowColor: isDark ? "#000" : "#94a3b8",
-          opacity: pressed ? 0.95 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
+          opacity: pressed ? 0.97 : 1,
+          transform: [{ scale: pressed ? 0.985 : 1 }],
         },
       ]}
-      accessibilityLabel={`${shift.shiftType.name} at ${shift.location}, ${formatNZT(
-        date,
-        "EEEE d MMMM"
-      )}`}
+      accessibilityLabel={`${shift.shiftType.name} at ${
+        shift.location
+      }, ${formatNZT(date, "EEEE d MMMM")}, ${timeRange}${
+        friends.length > 0 ? `, ${friends.length} friends going` : ""
+      }`}
       accessibilityRole="button"
     >
-      <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
+      {/* Left station rail */}
+      <View
+        style={[styles.cardRail, { backgroundColor: accentColor }]}
+        accessibilityElementsHidden
+      />
 
       <View style={styles.cardBody}>
+        {/* Header: tile + name + status */}
         <View style={styles.typeRow}>
-          <View style={[styles.typeIconCircle, { backgroundColor: accentColor }]}>
+          <View
+            style={[
+              styles.typeIconTile,
+              {
+                backgroundColor: accentBg,
+                borderColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(14,58,35,0.06)",
+              },
+            ]}
+          >
             <Text style={styles.typeEmoji}>{theme.emoji}</Text>
           </View>
           <View style={styles.typeInfo}>
-            <Text style={[styles.typeName, { color: colors.text }]} numberOfLines={1}>
+            <Text
+              style={[styles.typeName, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {shift.shiftType.name}
             </Text>
-            <Text style={[styles.typeLocation, { color: colors.textSecondary }]}>
-              {shift.location}
-            </Text>
+            <View style={styles.locationRow}>
+              <Ionicons
+                name="location-outline"
+                size={11}
+                color={colors.textSecondary}
+              />
+              <Text
+                style={[styles.typeLocation, { color: colors.textSecondary }]}
+                numberOfLines={1}
+              >
+                {shift.location}
+              </Text>
+            </View>
           </View>
-          {showStatus && shift.status ? (
-            <StatusBadge status={shift.status} isDark={isDark} />
+          {isUserSignedUp ? (
+            <StatusBadge status={shift.status!} isDark={isDark} />
           ) : (
             <SpotsBadge
               spotsLeft={spotsLeft}
@@ -981,56 +1164,110 @@ function ShiftCard({
           )}
         </View>
 
-        <View style={styles.infoBoxRow}>
-          <View style={[styles.infoBox, { backgroundColor: accentBg }]}>
-            <Ionicons name="time-outline" size={15} color={accentColor} />
-            <View>
-              <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
-                {formatNZT(date, "h:mm a")}
-              </Text>
-              <Text style={[styles.infoBoxSecondary, { color: colors.textSecondary }]}>
-                to {formatNZT(endDate, "h:mm a")} · {duration}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.infoBox, { backgroundColor: accentBg }]}>
-            <Ionicons name="people-outline" size={15} color={accentColor} />
-            <View>
-              <Text style={[styles.infoBoxPrimary, { color: colors.text }]}>
-                {shift.signedUp}/{shift.capacity}
-              </Text>
-              <Text
-                style={[
-                  styles.infoBoxSecondary,
-                  {
-                    color: isFull
-                      ? isDark
-                        ? "#fca5a5"
-                        : "#dc2626"
-                      : isUrgent
-                        ? isDark
-                          ? "#fbbf24"
-                          : "#d97706"
-                        : isDark
-                          ? "#86efac"
-                          : "#16a34a",
-                    fontFamily: FontFamily.semiBold,
-                  },
-                ]}
-              >
-                {isFull ? "Full" : `${spotsLeft} spots left`}
-              </Text>
-            </View>
+        {/* Hero time row */}
+        <View style={styles.timeHeroRow}>
+          <Text
+            style={[styles.timeHeroText, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {timeRange}
+          </Text>
+          <View
+            style={[
+              styles.durationChip,
+              {
+                backgroundColor: isDark
+                  ? "rgba(248, 251, 105, 0.14)"
+                  : Brand.accentSubtle,
+                borderColor: isDark
+                  ? "rgba(248, 251, 105, 0.2)"
+                  : "rgba(14,58,35,0.08)",
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.durationChipText,
+                { color: isDark ? Brand.accent : Brand.green },
+              ]}
+            >
+              {duration}
+            </Text>
           </View>
         </View>
 
+        {/* Capacity meta line */}
+        <View style={styles.capacityRow}>
+          <View
+            style={[
+              styles.capacityDot,
+              {
+                backgroundColor: isFull
+                  ? isDark
+                    ? "#fca5a5"
+                    : "#dc2626"
+                  : isUrgent
+                  ? isDark
+                    ? "#fbbf24"
+                    : "#d97706"
+                  : isDark
+                  ? "#86efac"
+                  : "#16a34a",
+              },
+            ]}
+          />
+          <Text style={[styles.capacityText, { color: colors.textSecondary }]}>
+            {shift.signedUp}/{shift.capacity} volunteers ·{" "}
+            <Text
+              style={{
+                color: isFull
+                  ? isDark
+                    ? "#fca5a5"
+                    : "#dc2626"
+                  : isUrgent
+                  ? isDark
+                    ? "#fbbf24"
+                    : "#d97706"
+                  : colors.textSecondary,
+                fontFamily: FontFamily.semiBold,
+              }}
+            >
+              {isFull ? "shift full" : `${spotsLeft} open`}
+            </Text>
+          </Text>
+        </View>
+
+        {/* Notes — subtle quoted line */}
         {shift.notes && (
           <Text
             style={[styles.notesText, { color: colors.textSecondary }]}
             numberOfLines={2}
           >
-            {shift.notes}
+            “{shift.notes}”
           </Text>
+        )}
+
+        {/* Friends bar — only when there are friends on this exact role */}
+        {friends.length > 0 && (
+          <>
+            <View style={[styles.cardDivider, { borderColor: dividerColor }]} />
+            <View style={styles.friendsBar}>
+              <FriendAvatarStack
+                friends={friends}
+                isDark={isDark}
+                size={28}
+                maxShow={4}
+                borderColor={cardBg}
+                accentColor={accentColor}
+              />
+              <Text
+                style={[styles.friendsBarText, { color: colors.text }]}
+                numberOfLines={1}
+              >
+                {friendsLine(friends, isUserSignedUp)}
+              </Text>
+            </View>
+          </>
         )}
       </View>
     </Pressable>
@@ -1042,7 +1279,12 @@ function ShiftCard({
 function StatusBadge({ status, isDark }: { status: string; isDark: boolean }) {
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
   return (
-    <View style={[styles.badge, { backgroundColor: isDark ? config.bgDark : config.bg }]}>
+    <View
+      style={[
+        styles.badge,
+        { backgroundColor: isDark ? config.bgDark : config.bg },
+      ]}
+    >
       <Ionicons
         name={config.icon}
         size={12}
@@ -1344,34 +1586,49 @@ const styles = StyleSheet.create({
   },
 
   // Period sub-groups
-  periodGroup: { gap: 10 },
+  periodGroup: { gap: 12 },
   periodHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
     paddingVertical: 2,
   },
-  periodLabel: {
-    fontSize: 13,
+  periodChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  periodChipText: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  periodRule: {
+    flex: 1,
+    height: 1,
+  },
+  periodFriendsWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  periodMetaText: {
+    fontSize: 11,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.3,
   },
-  periodCount: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-  },
-  dayCards: { gap: 12 },
+  dayCards: { gap: 14 },
 
-  // Friend avatar row
+  // Friend avatars (shared)
   friendAvatarRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: 6,
   },
-  friendAvatarWrap: {},
   friendAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
     borderWidth: 2,
   },
   friendAvatarFallback: {
@@ -1379,83 +1636,140 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   friendInitial: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
   },
   friendOverflow: {
-    fontSize: 10,
     fontFamily: FontFamily.bold,
+    letterSpacing: 0.2,
   },
 
   // Card
   card: {
-    borderRadius: 18,
+    flexDirection: "row",
+    borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
+    shadowOpacity: 0.1,
+    shadowRadius: 22,
     elevation: 4,
   },
-  accentBar: { height: 4 },
-  cardBody: { padding: 18, gap: 16 },
+  cardRail: {
+    width: 4,
+  },
+  cardBody: {
+    flex: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    gap: 14,
+  },
 
   // Type row
   typeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
   },
-  typeIconCircle: {
+  typeIconTile: {
     width: 44,
     height: 44,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
-  typeEmoji: { fontSize: 20 },
+  typeEmoji: { fontSize: 22 },
   typeInfo: { flex: 1, gap: 3 },
   typeName: {
-    fontSize: 17,
-    fontFamily: FontFamily.semiBold,
-    lineHeight: 22,
+    fontSize: 19,
+    fontFamily: FontFamily.heading,
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   typeLocation: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    lineHeight: 18,
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    lineHeight: 16,
+    letterSpacing: 0.1,
   },
 
-  // Info box row
-  infoBoxRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  infoBox: {
-    flex: 1,
+  // Hero time row
+  timeHeroRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
+    marginTop: 2,
   },
-  infoBoxPrimary: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-    lineHeight: 20,
+  timeHeroText: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: FontFamily.heading,
+    lineHeight: 24,
+    letterSpacing: -0.2,
   },
-  infoBoxSecondary: {
+  durationChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  durationChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+
+  // Capacity row
+  capacityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: -4,
+  },
+  capacityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  capacityText: {
     fontSize: 12,
     fontFamily: FontFamily.regular,
-    lineHeight: 16,
-    marginTop: 1,
+    letterSpacing: 0.2,
   },
 
   notesText: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
     lineHeight: 18,
+    fontStyle: "italic",
+  },
+
+  // Divider between card body and friends bar
+  cardDivider: {
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    marginTop: 2,
+    marginHorizontal: -2,
+  },
+
+  // Friends bar at the base of each card
+  friendsBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: -2,
+  },
+  friendsBarText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.1,
   },
 
   // Badge

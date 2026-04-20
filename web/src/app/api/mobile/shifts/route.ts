@@ -182,7 +182,10 @@ export async function GET(request: Request) {
     friendIds.add(f.userId === userId ? f.friendId : f.userId);
   }
 
-  let periodFriends: Record<string, Array<{ id: string; name: string; profilePhotoUrl: string | null }>> = {};
+  type FriendSummary = { id: string; name: string; profilePhotoUrl: string | null };
+
+  let periodFriends: Record<string, FriendSummary[]> = {};
+  let shiftFriends: Record<string, FriendSummary[]> = {};
 
   if (friendIds.size > 0 && allUpcomingShiftIds.length > 0) {
     const friendSignups = await prisma.signup.findMany({
@@ -205,31 +208,37 @@ export async function GET(request: Request) {
       },
     });
 
-    // Group by period key, dedup by friend ID within each period
-    const periodMap = new Map<string, Map<string, { id: string; name: string; profilePhotoUrl: string | null }>>();
+    const periodMap = new Map<string, Map<string, FriendSummary>>();
+    const shiftMap = new Map<string, Map<string, FriendSummary>>();
 
     for (const signup of friendSignups) {
+      const friend: FriendSummary = {
+        id: signup.user.id,
+        name:
+          signup.user.name ??
+          [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ??
+          "Volunteer",
+        profilePhotoUrl: signup.user.profilePhotoUrl,
+      };
+
+      if (!shiftMap.has(signup.shiftId)) {
+        shiftMap.set(signup.shiftId, new Map());
+      }
+      shiftMap.get(signup.shiftId)!.set(friend.id, friend);
+
       const periodKey = shiftPeriodMap.get(signup.shiftId);
       if (!periodKey) continue;
-
       if (!periodMap.has(periodKey)) {
         periodMap.set(periodKey, new Map());
       }
-      const friendsInPeriod = periodMap.get(periodKey)!;
-      if (!friendsInPeriod.has(signup.user.id)) {
-        friendsInPeriod.set(signup.user.id, {
-          id: signup.user.id,
-          name:
-            signup.user.name ??
-            [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ??
-            "Volunteer",
-          profilePhotoUrl: signup.user.profilePhotoUrl,
-        });
-      }
+      periodMap.get(periodKey)!.set(friend.id, friend);
     }
 
     periodFriends = Object.fromEntries(
       Array.from(periodMap.entries()).map(([key, map]) => [key, Array.from(map.values())])
+    );
+    shiftFriends = Object.fromEntries(
+      Array.from(shiftMap.entries()).map(([key, map]) => [key, Array.from(map.values())])
     );
   }
 
@@ -246,5 +255,6 @@ export async function GET(request: Request) {
       : null,
     userPreferredLocations,
     periodFriends,
+    shiftFriends,
   });
 }

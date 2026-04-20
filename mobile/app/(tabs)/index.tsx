@@ -29,6 +29,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageViewer } from "@/components/image-viewer";
 import { useFeed } from "@/hooks/use-feed";
 import { useFeedInteractions } from "@/hooks/use-feed-interactions";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
@@ -57,6 +58,7 @@ export default function HomeScreen() {
     updateItem: updateFeedItem,
     removeItemsByUser,
   } = useFeed();
+  const { unreadCount: unreadNotifications } = useNotifications();
 
   const {
     toggleLike: apiToggleLike,
@@ -305,26 +307,65 @@ export default function HomeScreen() {
           </Text>
           <ThemedText type="title">{profile?.firstName ?? ""}</ThemedText>
         </View>
-        <Pressable
-          onPress={() => router.push("/(tabs)/profile")}
-          style={({ pressed }) => [
-            styles.avatarButton,
-            { opacity: pressed ? 0.85 : 1 },
-          ]}
-          accessibilityLabel="View profile"
-        >
-          {profile?.image ? (
-            <Image source={{ uri: profile.image }} style={styles.avatarImage} />
-          ) : (
-            <View
-              style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
-            >
-              <Text style={styles.avatarText}>
-                {(profile?.firstName ?? "").charAt(0)}
-              </Text>
-            </View>
-          )}
-        </Pressable>
+        <View style={styles.headerRight}>
+          <Pressable
+            onPress={() => router.push("/notifications" as Href)}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.bellButton,
+              {
+                backgroundColor:
+                  colorScheme === "dark"
+                    ? "rgba(255,255,255,0.06)"
+                    : "rgba(14, 58, 35, 0.06)",
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadNotifications > 0
+                ? `Notifications, ${unreadNotifications} unread`
+                : "Notifications"
+            }
+          >
+            <Ionicons
+              name={unreadNotifications > 0 ? "notifications" : "notifications-outline"}
+              size={22}
+              color={colors.text}
+            />
+            {unreadNotifications > 0 && (
+              <View
+                style={[
+                  styles.bellDot,
+                  {
+                    backgroundColor: Brand.accent,
+                    borderColor: colors.background,
+                  },
+                ]}
+              />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/(tabs)/profile")}
+            style={({ pressed }) => [
+              styles.avatarButton,
+              { opacity: pressed ? 0.85 : 1 },
+            ]}
+            accessibilityLabel="View profile"
+          >
+            {profile?.image ? (
+              <Image source={{ uri: profile.image }} style={styles.avatarImage} />
+            ) : (
+              <View
+                style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
+              >
+                <Text style={styles.avatarText}>
+                  {(profile?.firstName ?? "").charAt(0)}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {/* ── Next Shift Hero ── */}
@@ -2495,9 +2536,31 @@ const styles = StyleSheet.create({
   headerLeft: {
     gap: 2,
   },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   greeting: {
     fontSize: 15,
     marginBottom: 2,
+  },
+  bellButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  bellDot: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
   },
   avatarButton: {
     width: 48,

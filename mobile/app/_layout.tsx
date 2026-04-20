@@ -141,6 +141,14 @@ export default function RootLayout() {
               title: '',
             }}
           />
+          <Stack.Screen
+            name="notifications"
+            options={{
+              headerShown: true,
+              headerBackTitle: 'Back',
+              title: '',
+            }}
+          />
         </Stack>
       </AuthGate>
       <StatusBar style="auto" />
