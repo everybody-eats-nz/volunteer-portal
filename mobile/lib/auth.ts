@@ -2,6 +2,8 @@ import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
 import { api, ApiError } from './api';
+import type { PasskeyAuthResponse } from './passkey-client';
+import type { OAuthToken } from './oauth';
 
 export type User = {
   id: string;
@@ -12,32 +14,55 @@ export type User = {
   profileComplete: boolean;
 };
 
+type AuthResponse = { token: string; user: User };
+
 type AuthState = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 
-  login: (email: string, password: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  loginWithOAuth: (
+    provider: 'apple' | 'google' | 'facebook',
+    token: OAuthToken,
+  ) => Promise<void>;
+  loginWithPasskey: (response: PasskeyAuthResponse) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
 };
+
+async function persist(data: AuthResponse, set: (partial: Partial<AuthState>) => void) {
+  await SecureStore.setItemAsync('auth_token', data.token);
+  set({ user: data.user, isAuthenticated: true });
+}
 
 export const useAuth = create<AuthState>((set) => ({
   user: null,
   isLoading: true,
   isAuthenticated: false,
 
-  login: async (email: string, password: string) => {
-    const data = await api<{ token: string; user: User }>(
-      '/api/auth/mobile/login',
-      {
-        method: 'POST',
-        body: { email, password },
-      },
-    );
+  loginWithEmail: async (email, password) => {
+    const data = await api<AuthResponse>('/api/auth/mobile/login', {
+      method: 'POST',
+      body: { email, password },
+    });
+    await persist(data, set);
+  },
 
-    await SecureStore.setItemAsync('auth_token', data.token);
-    set({ user: data.user, isAuthenticated: true });
+  loginWithOAuth: async (provider, token) => {
+    const data = await api<AuthResponse>('/api/auth/mobile/oauth', {
+      method: 'POST',
+      body: { provider, ...token },
+    });
+    await persist(data, set);
+  },
+
+  loginWithPasskey: async (response) => {
+    const data = await api<AuthResponse>('/api/auth/mobile/passkey/verify', {
+      method: 'POST',
+      body: { authenticationResponse: response },
+    });
+    await persist(data, set);
   },
 
   logout: async () => {
@@ -56,7 +81,6 @@ export const useAuth = create<AuthState>((set) => ({
       const user = await api<User>('/api/auth/mobile/me');
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      // Token expired or invalid — clear it
       if (error instanceof ApiError && error.status === 401) {
         await SecureStore.deleteItemAsync('auth_token');
       }
