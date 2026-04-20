@@ -1,14 +1,14 @@
-import { useHeaderHeight } from '@react-navigation/elements';
-import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from "@react-navigation/elements";
+import { Ionicons } from "@expo/vector-icons";
 import {
   differenceInCalendarDays,
   formatDistanceToNowStrict,
   isToday,
   isYesterday,
-} from 'date-fns';
-import * as Haptics from 'expo-haptics';
-import { Stack, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+} from "date-fns";
+import * as Haptics from "expo-haptics";
+import { Stack, useRouter } from "expo-router";
+import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -17,22 +17,19 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { Brand, Colors, FontFamily } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemedText } from "@/components/themed-text";
+import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useNotifications,
   type AppNotification,
   type NotificationType,
-} from '@/hooks/use-notifications';
-import { navigateToNotificationTarget } from '@/lib/notification-routing';
+} from "@/hooks/use-notifications";
+import { navigateToNotificationTarget } from "@/lib/notification-routing";
 
 /* ─── Icon language ──────────────────────────────────────────── */
 
@@ -44,54 +41,54 @@ type IconSpec = {
 
 const ICON_MAP: Record<NotificationType, IconSpec> = {
   FRIEND_REQUEST_RECEIVED: {
-    name: 'person-add',
-    color: '#2563eb',
-    bg: 'rgba(37, 99, 235, 0.12)',
+    name: "person-add",
+    color: "#2563eb",
+    bg: "rgba(37, 99, 235, 0.12)",
   },
   FRIEND_REQUEST_ACCEPTED: {
-    name: 'people',
-    color: '#16a34a',
-    bg: 'rgba(22, 163, 74, 0.12)',
+    name: "people",
+    color: "#16a34a",
+    bg: "rgba(22, 163, 74, 0.12)",
   },
   SHIFT_CONFIRMED: {
-    name: 'checkmark-circle',
+    name: "checkmark-circle",
     color: Brand.green,
-    bg: 'rgba(14, 58, 35, 0.10)',
+    bg: "rgba(14, 58, 35, 0.10)",
   },
   SHIFT_WAITLISTED: {
-    name: 'time',
-    color: '#b45309',
-    bg: 'rgba(180, 83, 9, 0.12)',
+    name: "time",
+    color: "#b45309",
+    bg: "rgba(180, 83, 9, 0.12)",
   },
   SHIFT_CANCELED: {
-    name: 'close-circle',
-    color: '#b91c1c',
-    bg: 'rgba(185, 28, 28, 0.12)',
+    name: "close-circle",
+    color: "#b91c1c",
+    bg: "rgba(185, 28, 28, 0.12)",
   },
   ACHIEVEMENT_UNLOCKED: {
-    name: 'trophy',
-    color: '#a16207',
-    bg: 'rgba(161, 98, 7, 0.14)',
+    name: "trophy",
+    color: "#a16207",
+    bg: "rgba(161, 98, 7, 0.14)",
   },
   SHIFT_CANCELLATION_MANAGER: {
-    name: 'warning',
-    color: '#b91c1c',
-    bg: 'rgba(185, 28, 28, 0.12)',
+    name: "warning",
+    color: "#b91c1c",
+    bg: "rgba(185, 28, 28, 0.12)",
   },
   FLEXIBLE_PLACEMENT: {
-    name: 'swap-horizontal',
-    color: '#2563eb',
-    bg: 'rgba(37, 99, 235, 0.12)',
+    name: "swap-horizontal",
+    color: "#2563eb",
+    bg: "rgba(37, 99, 235, 0.12)",
   },
   UNDERAGE_USER_REGISTERED: {
-    name: 'alert-circle',
-    color: '#6d28d9',
-    bg: 'rgba(109, 40, 217, 0.12)',
+    name: "alert-circle",
+    color: "#6d28d9",
+    bg: "rgba(109, 40, 217, 0.12)",
   },
   SURVEY_ASSIGNED: {
-    name: 'document-text',
-    color: '#0e7490',
-    bg: 'rgba(14, 116, 144, 0.12)',
+    name: "document-text",
+    color: "#0e7490",
+    bg: "rgba(14, 116, 144, 0.12)",
   },
 };
 
@@ -107,12 +104,12 @@ type Section = {
 };
 
 function bucketLabel(date: Date): string {
-  if (isToday(date)) return 'Today';
-  if (isYesterday(date)) return 'Yesterday';
+  if (isToday(date)) return "Today";
+  if (isYesterday(date)) return "Yesterday";
   const diff = differenceInCalendarDays(new Date(), date);
-  if (diff <= 7) return 'This week';
-  if (diff <= 30) return 'Earlier this month';
-  return 'Earlier';
+  if (diff <= 7) return "This week";
+  if (diff <= 30) return "Earlier this month";
+  return "Earlier";
 }
 
 function groupByDate(notifications: AppNotification[]): Section[] {
@@ -125,11 +122,11 @@ function groupByDate(notifications: AppNotification[]): Section[] {
     byLabel.get(label)!.push(n);
   }
   const order = [
-    'Today',
-    'Yesterday',
-    'This week',
-    'Earlier this month',
-    'Earlier',
+    "Today",
+    "Yesterday",
+    "This week",
+    "Earlier this month",
+    "Earlier",
   ];
   const out: Section[] = [];
   for (const label of order) {
@@ -144,7 +141,7 @@ function groupByDate(notifications: AppNotification[]): Section[] {
 export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const router = useRouter();
@@ -167,7 +164,7 @@ export default function NotificationsScreen() {
       if (!n.isRead) markAsRead(n.id);
       if (n.actionUrl) navigateToNotificationTarget(n.actionUrl);
     },
-    [markAsRead],
+    [markAsRead]
   );
 
   const handleMarkAll = useCallback(() => {
@@ -193,16 +190,13 @@ export default function NotificationsScreen() {
         onPress={() => handleOpen(item)}
       />
     ),
-    [colors, isDark, handleOpen],
+    [colors, isDark, handleOpen]
   );
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: Section }) => (
       <View
-        style={[
-          styles.sectionHeader,
-          { backgroundColor: colors.background },
-        ]}
+        style={[styles.sectionHeader, { backgroundColor: colors.background }]}
       >
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
           {section.title.toUpperCase()}
@@ -212,7 +206,7 @@ export default function NotificationsScreen() {
         />
       </View>
     ),
-    [colors.background, colors.border, colors.textSecondary],
+    [colors.background, colors.border, colors.textSecondary]
   );
 
   const showHero = !isLoading && !error;
@@ -221,7 +215,7 @@ export default function NotificationsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: 'Notifications',
+          title: "Notifications",
           headerTransparent: true,
           headerTitleStyle: {
             fontFamily: FontFamily.heading,
@@ -239,7 +233,7 @@ export default function NotificationsScreen() {
                       styles.headerAction,
                       {
                         backgroundColor: isDark
-                          ? 'rgba(248, 251, 105, 0.16)'
+                          ? "rgba(248, 251, 105, 0.16)"
                           : Brand.accent,
                         opacity: pressed ? 0.75 : 1,
                       },
@@ -249,9 +243,7 @@ export default function NotificationsScreen() {
                       style={[
                         styles.headerActionText,
                         {
-                          color: isDark
-                            ? Brand.accent
-                            : Brand.nearBlack,
+                          color: isDark ? Brand.accent : Brand.nearBlack,
                         },
                       ]}
                     >
@@ -334,46 +326,38 @@ export default function NotificationsScreen() {
 type HeroProps = {
   unreadCount: number;
   total: number;
-  colors: (typeof Colors)['light'];
+  colors: (typeof Colors)["light"];
   isDark: boolean;
 };
 
 function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
   const hasUnread = unreadCount > 0;
   const subtitle = hasUnread
-    ? `Kia ora — ${unreadCount} new ${unreadCount === 1 ? 'update' : 'updates'} for you`
+    ? `Kia ora — ${unreadCount} new ${
+        unreadCount === 1 ? "update" : "updates"
+      } for you`
     : total > 0
-    ? 'You\u2019re all caught up, ka pai 🌿'
-    : 'Nothing new yet';
+    ? "You\u2019re all caught up, ka pai 🌿"
+    : "Nothing new yet";
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(220)}
-      style={styles.hero}
-    >
+    <Animated.View entering={FadeIn.duration(220)} style={styles.hero}>
       <View style={styles.heroEyebrowRow}>
         <View
           style={[
             styles.heroEyebrowDot,
             {
-              backgroundColor: hasUnread
-                ? Brand.accent
-                : colors.border,
+              backgroundColor: hasUnread ? Brand.accent : colors.border,
             },
           ]}
         />
-        <Text
-          style={[
-            styles.heroEyebrow,
-            { color: colors.textSecondary },
-          ]}
-        >
-          YOUR WHAKAWHETAI
+        <Text style={[styles.heroEyebrow, { color: colors.textSecondary }]}>
+          LATEST UPDATES
         </Text>
       </View>
 
       <ThemedText type="title" style={styles.heroTitle}>
-        {hasUnread ? 'Something new' : 'All quiet'}
+        {hasUnread ? "Something new" : "All quiet"}
       </ThemedText>
 
       <Text style={[styles.heroSub, { color: colors.textSecondary }]}>
@@ -387,16 +371,13 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
             styles.heroPill,
             {
               backgroundColor: isDark
-                ? 'rgba(248, 251, 105, 0.14)'
+                ? "rgba(248, 251, 105, 0.14)"
                 : Brand.accent,
             },
           ]}
         >
           <View
-            style={[
-              styles.heroPillDot,
-              { backgroundColor: Brand.green },
-            ]}
+            style={[styles.heroPillDot, { backgroundColor: Brand.green }]}
           />
           <Text
             style={[
@@ -418,7 +399,7 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
 
 type RowProps = {
   notification: AppNotification;
-  colors: (typeof Colors)['light'];
+  colors: (typeof Colors)["light"];
   isDark: boolean;
   isLast: boolean;
   onPress: () => void;
@@ -438,18 +419,20 @@ function NotificationRow({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${unread ? 'Unread, ' : ''}${notification.title}. ${notification.message}`}
+      accessibilityLabel={`${unread ? "Unread, " : ""}${notification.title}. ${
+        notification.message
+      }`}
       accessibilityHint={
-        notification.actionUrl ? 'Opens the related screen' : undefined
+        notification.actionUrl ? "Opens the related screen" : undefined
       }
       style={({ pressed }) => [
         styles.row,
         {
           backgroundColor: unread
             ? isDark
-              ? 'rgba(248, 251, 105, 0.05)'
-              : 'rgba(248, 251, 105, 0.22)'
-            : 'transparent',
+              ? "rgba(248, 251, 105, 0.05)"
+              : "rgba(248, 251, 105, 0.22)"
+            : "transparent",
           opacity: pressed ? 0.72 : 1,
         },
       ]}
@@ -459,7 +442,7 @@ function NotificationRow({
         style={[
           styles.accentBar,
           {
-            backgroundColor: unread ? Brand.green : 'transparent',
+            backgroundColor: unread ? Brand.green : "transparent",
           },
         ]}
       />
@@ -475,9 +458,7 @@ function NotificationRow({
               styles.title,
               {
                 color: colors.text,
-                fontFamily: unread
-                  ? FontFamily.bold
-                  : FontFamily.semiBold,
+                fontFamily: unread ? FontFamily.bold : FontFamily.semiBold,
               },
             ]}
             numberOfLines={2}
@@ -512,21 +493,18 @@ function EmptyState({
   colors,
   isDark,
 }: {
-  colors: (typeof Colors)['light'];
+  colors: (typeof Colors)["light"];
   isDark: boolean;
 }) {
   return (
-    <Animated.View
-      entering={FadeInDown.duration(300)}
-      style={styles.emptyWrap}
-    >
+    <Animated.View entering={FadeInDown.duration(300)} style={styles.emptyWrap}>
       <View
         style={[
           styles.emptyRingOuter,
           {
             backgroundColor: isDark
-              ? 'rgba(248, 251, 105, 0.06)'
-              : 'rgba(248, 251, 105, 0.35)',
+              ? "rgba(248, 251, 105, 0.06)"
+              : "rgba(248, 251, 105, 0.35)",
           },
         ]}
       >
@@ -534,9 +512,7 @@ function EmptyState({
           style={[
             styles.emptyRingInner,
             {
-              backgroundColor: isDark
-                ? 'rgba(14, 58, 35, 0.55)'
-                : Brand.green,
+              backgroundColor: isDark ? "rgba(14, 58, 35, 0.55)" : Brand.green,
             },
           ]}
         >
@@ -559,24 +535,24 @@ function EmptyState({
 function formatRelative(iso: string): string {
   try {
     const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return '';
+    if (Number.isNaN(date.getTime())) return "";
     return formatDistanceToNowStrict(date)
-      .replace(' seconds', 's')
-      .replace(' second', 's')
-      .replace(' minutes', 'm')
-      .replace(' minute', 'm')
-      .replace(' hours', 'h')
-      .replace(' hour', 'h')
-      .replace(' days', 'd')
-      .replace(' day', 'd')
-      .replace(' weeks', 'w')
-      .replace(' week', 'w')
-      .replace(' months', 'mo')
-      .replace(' month', 'mo')
-      .replace(' years', 'y')
-      .replace(' year', 'y');
+      .replace(" seconds", "s")
+      .replace(" second", "s")
+      .replace(" minutes", "m")
+      .replace(" minute", "m")
+      .replace(" hours", "h")
+      .replace(" hour", "h")
+      .replace(" days", "d")
+      .replace(" day", "d")
+      .replace(" weeks", "w")
+      .replace(" week", "w")
+      .replace(" months", "mo")
+      .replace(" month", "mo")
+      .replace(" years", "y")
+      .replace(" year", "y");
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -588,8 +564,8 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 32,
     gap: 12,
   },
@@ -608,8 +584,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroEyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 4,
   },
@@ -635,9 +611,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   heroPill: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -660,8 +636,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   sectionLabel: {
@@ -676,15 +652,15 @@ const styles = StyleSheet.create({
 
   /* Row */
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
-    position: 'relative',
+    position: "relative",
   },
   accentBar: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: 14,
     bottom: 14,
@@ -696,8 +672,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: 4,
   },
   body: {
@@ -706,8 +682,8 @@ const styles = StyleSheet.create({
     paddingTop: 1,
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 10,
   },
   title: {
@@ -719,7 +695,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: 12,
     lineHeight: 20,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
   message: {
     fontFamily: FontFamily.regular,
@@ -727,7 +703,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   rowSeparator: {
-    position: 'absolute',
+    position: "absolute",
     left: 72,
     right: 16,
     bottom: 0,
@@ -751,13 +727,13 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorBody: {
     fontFamily: FontFamily.regular,
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   retryButton: {
     paddingHorizontal: 18,
@@ -766,7 +742,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
   },
@@ -774,8 +750,8 @@ const styles = StyleSheet.create({
   /* Empty */
   emptyWrap: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 32,
     paddingTop: 48,
     gap: 14,
@@ -784,25 +760,25 @@ const styles = StyleSheet.create({
     width: 112,
     height: 112,
     borderRadius: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
   },
   emptyRingInner: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyHeading: {
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyBody: {
     fontFamily: FontFamily.regular,
     fontSize: 14,
     lineHeight: 20,
-    textAlign: 'center',
+    textAlign: "center",
     maxWidth: 320,
   },
 });
