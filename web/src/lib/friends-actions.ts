@@ -133,7 +133,8 @@ export async function sendFriendRequest(formData: FormData) {
       await createFriendRequestNotification(
         targetUser.id,
         senderName,
-        friendRequest.id
+        friendRequest.id,
+        user.id
       );
     } catch (notificationError) {
       // Don't fail the friend request if notification creation fails
@@ -235,7 +236,8 @@ export async function acceptFriendRequest(requestId: string) {
       await createFriendRequestAcceptedNotification(
         friendRequest.fromUserId,
         accepterName,
-        result.friendship1.id
+        result.friendship1.id,
+        user.id
       );
     } catch (notificationError) {
       // Don't fail the acceptance if notification creation fails
@@ -409,7 +411,8 @@ export async function sendFriendRequestByUserId(userId: string) {
       await createFriendRequestNotification(
         targetUser.id,
         senderName,
-        friendRequest.id
+        friendRequest.id,
+        user.id
       );
     } catch (notificationError) {
       // Don't fail the friend request if notification creation fails

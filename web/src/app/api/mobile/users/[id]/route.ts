@@ -54,8 +54,19 @@ export async function GET(
 
   const isSelf = target.id === userId;
 
-  // Friendship status
+  // Viewer's own email (needed to look up incoming FriendRequest rows, which
+  // are keyed by recipient email rather than user ID).
+  const viewer = isSelf
+    ? null
+    : await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+
+  // Friendship status + the FriendRequest id when the viewer has a pending
+  // incoming request — the mobile UI needs this id to accept or decline.
   let friendshipStatus: FriendshipStatus = "NONE";
+  let incomingRequestId: string | null = null;
   if (isSelf) {
     friendshipStatus = "SELF";
   } else {
@@ -75,8 +86,8 @@ export async function GET(
       friendshipStatus =
         friendship.initiatedBy === userId ? "REQUEST_SENT" : "REQUEST_RECEIVED";
     } else {
-      // Check for pending FriendRequest by email (used by the web flow)
-      const pendingRequest = await prisma.friendRequest.findFirst({
+      // Check the FriendRequest table used by both web and mobile send flows.
+      const outgoingRequest = await prisma.friendRequest.findFirst({
         where: {
           fromUserId: userId,
           toEmail: target.email,
@@ -85,7 +96,23 @@ export async function GET(
         },
         select: { id: true },
       });
-      if (pendingRequest) friendshipStatus = "REQUEST_SENT";
+      if (outgoingRequest) {
+        friendshipStatus = "REQUEST_SENT";
+      } else if (viewer?.email) {
+        const incomingRequest = await prisma.friendRequest.findFirst({
+          where: {
+            fromUserId: targetId,
+            toEmail: viewer.email,
+            status: "PENDING",
+            expiresAt: { gt: new Date() },
+          },
+          select: { id: true },
+        });
+        if (incomingRequest) {
+          friendshipStatus = "REQUEST_RECEIVED";
+          incomingRequestId = incomingRequest.id;
+        }
+      }
     }
   }
 
@@ -141,6 +168,7 @@ export async function GET(
       totalShifts,
       hoursVolunteered: Math.round(hoursResult[0].hours),
       friendshipStatus,
+      friendRequestId: incomingRequestId,
       allowFriendRequests: target.allowFriendRequests,
       isBlocked: Boolean(block),
       hasReported: Boolean(report),

@@ -1,3 +1,4 @@
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import {
   differenceInCalendarDays,
@@ -145,6 +146,7 @@ export default function NotificationsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const router = useRouter();
 
   const {
@@ -220,6 +222,7 @@ export default function NotificationsScreen() {
       <Stack.Screen
         options={{
           title: 'Notifications',
+          headerTransparent: true,
           headerTitleStyle: {
             fontFamily: FontFamily.heading,
             fontSize: 18,
@@ -296,7 +299,10 @@ export default function NotificationsScreen() {
           stickySectionHeadersEnabled={false}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: insets.bottom + 40 },
+            {
+              paddingTop: headerHeight,
+              paddingBottom: insets.bottom + 40,
+            },
             sections.length === 0 && styles.listContentEmpty,
           ]}
           ListHeaderComponent={

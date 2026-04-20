@@ -244,14 +244,19 @@ export async function getUnreadNotificationCount(userId: string) {
 export async function createFriendRequestNotification(
   recipientUserId: string,
   senderName: string,
-  friendRequestId: string
+  friendRequestId: string,
+  senderUserId?: string
 ) {
+  const actionUrl = senderUserId
+    ? `/friends?tab=requests&fromUserId=${senderUserId}`
+    : "/friends?tab=requests";
+
   return createNotification({
     userId: recipientUserId,
     type: "FRIEND_REQUEST_RECEIVED",
     title: "New friend request",
     message: `${senderName} sent you a friend request`,
-    actionUrl: "/friends?tab=requests",
+    actionUrl,
     relatedId: friendRequestId,
   });
 }
@@ -262,14 +267,19 @@ export async function createFriendRequestNotification(
 export async function createFriendRequestAcceptedNotification(
   recipientUserId: string,
   accepterName: string,
-  friendshipId: string
+  friendshipId: string,
+  accepterUserId?: string
 ) {
+  const actionUrl = accepterUserId
+    ? `/friends/${accepterUserId}`
+    : "/friends";
+
   return createNotification({
     userId: recipientUserId,
     type: "FRIEND_REQUEST_ACCEPTED",
     title: "Friend request accepted",
     message: `${accepterName} accepted your friend request`,
-    actionUrl: "/friends",
+    actionUrl,
     relatedId: friendshipId,
   });
 }
