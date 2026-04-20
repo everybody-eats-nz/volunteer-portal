@@ -13,10 +13,12 @@ const WEB_BASE_URL =
  * screen for — better than crashing the app on an unmapped path.
  */
 export function navigateToNotificationTarget(actionUrl: unknown) {
+  console.log('[notification-routing] actionUrl:', actionUrl);
   if (typeof actionUrl !== 'string' || !actionUrl.startsWith('/')) return;
 
   const [pathname, queryString = ''] = actionUrl.split('?');
   const query = new URLSearchParams(queryString);
+  console.log('[notification-routing] pathname:', pathname, 'query:', queryString);
 
   // /surveys/:token -> open the web survey page in an in-app browser.
   // Surveys aren't implemented natively on mobile, so we hand off to the
