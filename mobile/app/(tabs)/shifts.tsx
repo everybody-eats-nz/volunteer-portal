@@ -1045,7 +1045,7 @@ function friendsLine(friends: PeriodFriend[], hasStatus: boolean): string {
   if (friends.length === 0) return "";
   const firstName = friends[0].name.split(" ")[0];
   if (friends.length === 1) {
-    return hasStatus ? `With ${firstName}` : `${firstName} is going`;
+    return hasStatus ? `With ${firstName}` : `${firstName} is signed up`;
   }
   if (friends.length === 2) {
     const secondName = friends[1].name.split(" ")[0];

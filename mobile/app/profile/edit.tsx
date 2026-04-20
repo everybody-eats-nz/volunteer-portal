@@ -1,14 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import * as Notifications from "expo-notifications";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -19,11 +22,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { GlassButton } from "@/components/glass-button";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
 import { api, apiUpload } from "@/lib/api";
+import {
+  syncPushTokenWithServer,
+  unregisterPushTokenFromServer,
+} from "@/lib/push-notifications";
+
+const PUSH_TOKEN_KEY = "push_token";
 
 type FormData = {
   firstName: string;
@@ -91,7 +99,7 @@ const CHANNEL_OPTIONS: {
   {
     key: "push",
     label: "Push Notifications",
-    hint: "Coming soon",
+    hint: "Instant alerts on this device",
     icon: "phone-portrait-outline",
   },
 ];
@@ -119,7 +127,8 @@ export default function EditProfileScreen() {
     emailNewsletterSubscription: true,
     newsletterLists: [],
   });
-  const [pushNotifications, setPushNotifications] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
@@ -137,6 +146,68 @@ export default function EditProfileScreen() {
       .then(setNewsletterListOptions)
       .catch(() => {});
   }, []);
+
+  // Push toggle mirrors OS permission + whether this device has a registered
+  // token. Re-check on focus so flipping it in iOS Settings is reflected
+  // immediately when the user comes back.
+  const refreshPushStatus = useCallback(async () => {
+    const [{ status }, storedToken] = await Promise.all([
+      Notifications.getPermissionsAsync(),
+      SecureStore.getItemAsync(PUSH_TOKEN_KEY),
+    ]);
+    setPushEnabled(status === "granted" && !!storedToken);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPushStatus();
+    }, [refreshPushStatus])
+  );
+
+  const togglePushNotifications = async () => {
+    if (pushBusy) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPushBusy(true);
+    try {
+      if (pushEnabled) {
+        const token = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+        if (token) {
+          await unregisterPushTokenFromServer(token);
+          await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+        }
+        setPushEnabled(false);
+        return;
+      }
+
+      const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+      if (status === "denied" && !canAskAgain) {
+        Alert.alert(
+          "Enable in Settings",
+          "Turn on notifications for Everybody Eats in your device Settings to receive push alerts.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+
+      const token = await syncPushTokenWithServer();
+      if (token) {
+        await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token);
+        setPushEnabled(true);
+      } else {
+        setPushEnabled(false);
+      }
+    } catch {
+      Alert.alert(
+        "Something went wrong",
+        "Couldn't update push notifications. Please try again."
+      );
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   // Populate form once when profile first loads
   const [initialized, setInitialized] = useState(false);
@@ -354,15 +425,43 @@ export default function EditProfileScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={100}
     >
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={handleSave}
+              disabled={isSaving}
+              hitSlop={12}
+              style={({ pressed }) => ({
+                opacity: isSaving ? 0.5 : pressed ? 0.6 : 1,
+                padding: 4,
+              })}
+              accessibilityLabel="Save changes"
+            >
+              {isSaving ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#86efac" : Brand.green}
+                />
+              ) : (
+                <Ionicons
+                  name="checkmark"
+                  size={28}
+                  color={isDark ? "#86efac" : Brand.green}
+                />
+              )}
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[
           s.content,
           {
             paddingTop: insets.top + 56,
-            paddingBottom: Math.max(insets.bottom, 20) + 80,
+            paddingBottom: Math.max(insets.bottom, 20) + 24,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -530,26 +629,27 @@ export default function EditProfileScreen() {
             const channels = preferenceToChannels(form.notificationPreference);
             const isPush = ch.key === "push";
             const enabled = isPush
-              ? pushNotifications
+              ? pushEnabled
               : channels[ch.key as "email" | "sms"];
-            const isComingSoon = isPush;
+            const showSpinner = isPush && pushBusy;
 
             return (
               <Pressable
                 key={ch.key}
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   if (isPush) {
-                    setPushNotifications(!pushNotifications);
-                  } else {
-                    const k = ch.key as "email" | "sms";
-                    const updated = { ...channels, [k]: !channels[k] };
-                    updateField(
-                      "notificationPreference",
-                      channelsToPreference(updated)
-                    );
+                    togglePushNotifications();
+                    return;
                   }
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const k = ch.key as "email" | "sms";
+                  const updated = { ...channels, [k]: !channels[k] };
+                  updateField(
+                    "notificationPreference",
+                    channelsToPreference(updated)
+                  );
                 }}
+                disabled={showSpinner}
                 style={s.toggleRow}
               >
                 <Ionicons
@@ -564,50 +664,31 @@ export default function EditProfileScreen() {
                   }
                 />
                 <View style={{ flex: 1 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                  >
-                    <Text style={[s.toggleLabel, { color: colors.text }]}>
-                      {ch.label}
-                    </Text>
-                    {isComingSoon && (
-                      <View
-                        style={[
-                          s.badge,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(255,255,255,0.08)"
-                              : "#f1f5f9",
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[s.badgeText, { color: colors.textSecondary }]}
-                        >
-                          Coming soon
-                        </Text>
-                      </View>
-                    )}
-                  </View>
+                  <Text style={[s.toggleLabel, { color: colors.text }]}>
+                    {ch.label}
+                  </Text>
                   <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
                     {ch.hint}
                   </Text>
                 </View>
-                <Ionicons
-                  name={enabled ? "checkbox" : "square-outline"}
-                  size={26}
-                  color={
-                    enabled
-                      ? isDark
-                        ? "#86efac"
-                        : Brand.green
-                      : colors.textSecondary
-                  }
-                />
+                {showSpinner ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={isDark ? "#86efac" : Brand.green}
+                  />
+                ) : (
+                  <Ionicons
+                    name={enabled ? "checkbox" : "square-outline"}
+                    size={26}
+                    color={
+                      enabled
+                        ? isDark
+                          ? "#86efac"
+                          : Brand.green
+                        : colors.textSecondary
+                    }
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -816,91 +897,7 @@ export default function EditProfileScreen() {
             )}
         </View>
       </ScrollView>
-
-      {/* ── Footer ── */}
-      <View
-        style={[s.footerWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}
-      >
-        <FooterButtons
-          isSaving={isSaving}
-          isDark={isDark}
-          colors={colors}
-          onCancel={() => router.back()}
-          onSave={handleSave}
-        />
-      </View>
     </KeyboardAvoidingView>
-  );
-}
-
-/* ── Form Field Component ── */
-
-/* ── Footer Buttons Component ── */
-
-function FooterButtons({
-  isSaving,
-  isDark,
-  colors,
-  onCancel,
-  onSave,
-}: {
-  isSaving: boolean;
-  isDark: boolean;
-  colors: (typeof Colors)["light"];
-  onCancel: () => void;
-  onSave: () => void;
-}) {
-  return (
-    <>
-      <GlassButton
-        onPress={onCancel}
-        disabled={isSaving}
-        isDark={isDark}
-        style={
-          Platform.OS === "android"
-            ? {
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.1)"
-                  : "rgba(0,0,0,0.06)",
-                borderRadius: 12,
-              }
-            : undefined
-        }
-      >
-        <Text
-          style={[
-            s.glassButtonText,
-            { color: isDark ? "#e5e5e5" : colors.text },
-          ]}
-        >
-          Cancel
-        </Text>
-      </GlassButton>
-
-      <GlassButton
-        onPress={onSave}
-        disabled={isSaving}
-        isDark={isDark}
-        tintColor={isSaving ? "rgba(128,128,128,0.4)" : "rgba(14,58,35,0.55)"}
-        style={{
-          flex: 1,
-          ...(Platform.OS === "android"
-            ? {
-                backgroundColor: isSaving ? colors.textSecondary : Brand.green,
-                borderRadius: 12,
-              }
-            : {}),
-        }}
-      >
-        {isSaving ? (
-          <ActivityIndicator size="small" color="#ffffff" />
-        ) : (
-          <Text style={[s.glassButtonText, { color: "#ffffff" }]}>
-            Save Changes
-          </Text>
-        )}
-      </GlassButton>
-    </>
   );
 }
 
@@ -1058,17 +1055,6 @@ const s = StyleSheet.create({
     paddingTop: 12,
   },
 
-  // Badges
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-  },
-
   // Toggle rows
   toggleRow: {
     flexDirection: "row",
@@ -1109,21 +1095,4 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Footer
-  footerWrap: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-
-  // Glass buttons
-  glassButtonText: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-  },
 });
