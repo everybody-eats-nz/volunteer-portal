@@ -25,7 +25,10 @@ export default async function AchievementsPage() {
   });
 
   return (
-    <AdminPageWrapper title="Achievements">
+    <AdminPageWrapper
+      title="Achievements"
+      description="Create and manage volunteer achievements"
+    >
       <PageContainer>
         <AchievementsContent initialAchievements={achievements} />
       </PageContainer>
