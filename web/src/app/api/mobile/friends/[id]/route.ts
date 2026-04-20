@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { DAY_EVENING_CUTOFF_HOUR, shiftStartNZ } from "@/lib/concurrent-shifts";
+import { formatInNZT } from "@/lib/timezone";
 
 /**
  * GET /api/mobile/friends/[id]
@@ -246,12 +247,8 @@ export async function GET(
     const upcomingShifts = upcomingShiftsRaw.map((s) => ({
       id: s.shiftId,
       type: s.typeName,
-      date: s.start.toISOString().split("T")[0],
-      time: s.start.toLocaleTimeString("en-NZ", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }),
+      date: formatInNZT(s.start, "yyyy-MM-dd"),
+      time: formatInNZT(s.start, "h:mm a"),
       location: s.location ?? "TBC",
     }));
 
@@ -287,4 +284,56 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+/**
+ * DELETE /api/mobile/friends/[id]
+ *
+ * Removes an accepted friendship between the authenticated user and the target
+ * user. Deletes both directions so neither side sees the other as a friend.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireMobileUser(request);
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { userId } = auth;
+  const { id: friendId } = await params;
+
+  if (!friendId || friendId === userId) {
+    return NextResponse.json({ error: "Invalid friend ID" }, { status: 400 });
+  }
+
+  const existing = await prisma.friendship.findFirst({
+    where: {
+      status: "ACCEPTED",
+      OR: [
+        { userId, friendId },
+        { userId: friendId, friendId: userId },
+      ],
+    },
+  });
+
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Friendship not found" },
+      { status: 404 }
+    );
+  }
+
+  await prisma.friendship.deleteMany({
+    where: {
+      status: "ACCEPTED",
+      OR: [
+        { userId, friendId },
+        { userId: friendId, friendId: userId },
+      ],
+    },
+  });
+
+  return NextResponse.json({ ok: true, removed: true });
 }

@@ -3,8 +3,8 @@ import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -83,7 +83,13 @@ export default function ProfileScreen() {
     error,
     refresh,
   } = useProfile();
-  const { friends } = useFriends();
+  const { friends, refresh: refreshFriends } = useFriends();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshFriends();
+    }, [refreshFriends])
+  );
   const logout = useAuth((s) => s.logout);
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);

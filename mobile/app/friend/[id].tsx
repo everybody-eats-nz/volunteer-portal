@@ -3,7 +3,7 @@ import { differenceInDays } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -36,6 +36,40 @@ export default function FriendProfileScreen() {
 
   const { profile: friend, isLoading, error } = useFriendProfile(id);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const handleRemoveFriend = () => {
+    Alert.alert(
+      "Remove friend",
+      `Remove ${
+        friend?.name ?? "this person"
+      } from your friends? You can send a new friend request anytime.`,
+      [
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setIsRemoving(true);
+            try {
+              await api(`/api/mobile/friends/${id}`, { method: "DELETE" });
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+              router.back();
+            } catch {
+              Alert.alert(
+                "Error",
+                "Could not remove this friend. Please try again."
+              );
+            } finally {
+              setIsRemoving(false);
+            }
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
 
   const handleBlock = () => {
     Alert.alert(
@@ -622,62 +656,89 @@ export default function FriendProfileScreen() {
           )}
         </View>
 
-        {/* ── Coming up ──────────────────────────────────── */}
-        <SectionHeading title={`${firstName}'s coming up`} colors={colors} />
+        {/* ── Join them on a shift ─────────────────────────── */}
+        <SectionHeading title={`Join ${firstName}`} colors={colors} />
 
         <View style={styles.section}>
           {friend.upcomingShifts.length > 0 ? (
-            <View style={{ gap: 10 }}>
-              {friend.upcomingShifts.map((shift) => {
-                const theme = getShiftThemeByName(shift.type);
-                const date = new Date(shift.date);
-                return (
-                  <View
-                    key={shift.id}
-                    style={[
-                      styles.upcomingRow,
-                      {
-                        backgroundColor: colors.card,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.upcomingIcon,
+            <>
+              <Text
+                style={[styles.sectionHint, { color: colors.textSecondary }]}
+              >
+                Tap a shift to sign up alongside {firstName}.
+              </Text>
+              <View style={{ gap: 10 }}>
+                {friend.upcomingShifts.map((shift) => {
+                  const theme = getShiftThemeByName(shift.type);
+                  const date = new Date(shift.date);
+                  return (
+                    <Pressable
+                      key={shift.id}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push(`/shift/${shift.id}` as Href);
+                      }}
+                      style={({ pressed }) => [
+                        styles.upcomingRow,
                         {
-                          backgroundColor: isDark
-                            ? theme.bgDark
-                            : theme.bgLight,
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          opacity: pressed ? 0.85 : 1,
+                          transform: [{ scale: pressed ? 0.99 : 1 }],
                         },
                       ]}
+                      accessibilityLabel={`Sign up for ${shift.type} on ${formatNZT(date, "MMMM d")} with ${firstName}`}
+                      accessibilityRole="button"
                     >
-                      <Text style={{ fontSize: 22 }}>{theme.emoji}</Text>
-                    </View>
-                    <View style={styles.upcomingBody}>
-                      <Text
-                        style={[styles.upcomingType, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {shift.type}
-                      </Text>
-                      <Text
+                      <View
                         style={[
-                          styles.upcomingMeta,
-                          { color: colors.textSecondary },
+                          styles.upcomingIcon,
+                          {
+                            backgroundColor: isDark
+                              ? theme.bgDark
+                              : theme.bgLight,
+                          },
                         ]}
-                        numberOfLines={1}
                       >
-                        {shift.location} · {shift.time}
-                      </Text>
-                    </View>
-                    <Text style={[styles.upcomingDate, { color: colors.text }]}>
-                      {formatNZT(date, "MMM d")}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+                        <Text style={{ fontSize: 22 }}>{theme.emoji}</Text>
+                      </View>
+                      <View style={styles.upcomingBody}>
+                        <Text
+                          style={[styles.upcomingType, { color: colors.text }]}
+                          numberOfLines={1}
+                        >
+                          {shift.type}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.upcomingMeta,
+                            { color: colors.textSecondary },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {shift.location} · {shift.time}
+                        </Text>
+                      </View>
+                      <View style={styles.upcomingTrailing}>
+                        <Text
+                          style={[
+                            styles.upcomingDate,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {formatNZT(date, "MMM d")}
+                        </Text>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
           ) : (
             <EmptyCanvas
               title="Quiet for now"
@@ -688,37 +749,33 @@ export default function FriendProfileScreen() {
           )}
         </View>
 
-        {/* ── Primary CTA ────────────────────────────────── */}
+        {/* ── Remove friend ──────────────────────────────── */}
         <View style={[styles.section, { marginTop: 28 }]}>
           <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/(tabs)/shifts");
-            }}
+            onPress={handleRemoveFriend}
+            disabled={isRemoving}
             style={({ pressed }) => [
-              styles.ctaButton,
+              styles.removeFriendBtn,
               {
-                backgroundColor: isDark ? Brand.accent : Brand.green,
-                opacity: pressed ? 0.9 : 1,
-                transform: [{ scale: pressed ? 0.985 : 1 }],
+                borderColor: colors.border,
+                opacity: pressed || isRemoving ? 0.6 : 1,
               },
             ]}
-            accessibilityLabel="Browse shifts to volunteer together"
+            accessibilityLabel={`Remove ${firstName} from your friends`}
             accessibilityRole="button"
           >
             <Ionicons
-              name="arrow-forward"
-              size={18}
-              color={isDark ? Brand.green : "#fffdf7"}
-              style={{ marginRight: 2 }}
+              name="person-remove-outline"
+              size={16}
+              color={colors.textSecondary}
             />
             <Text
               style={[
-                styles.ctaText,
-                { color: isDark ? Brand.green : "#fffdf7" },
+                styles.removeFriendText,
+                { color: colors.textSecondary },
               ]}
             >
-              Browse shifts together
+              {isRemoving ? "Removing…" : `Remove ${firstName} from friends`}
             </Text>
           </Pressable>
         </View>
@@ -1254,10 +1311,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.regular,
   },
+  upcomingTrailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   upcomingDate: {
     fontSize: 13,
     fontFamily: FontFamily.headingBold,
     letterSpacing: -0.2,
+  },
+  sectionHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginBottom: 4,
+    marginTop: -4,
   },
 
   /* Empty canvas */
@@ -1283,19 +1351,19 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
 
-  /* CTA */
-  ctaButton: {
+  /* Remove friend */
+  removeFriendBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  ctaText: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
+  removeFriendText: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
   },
 
   /* Safety */
