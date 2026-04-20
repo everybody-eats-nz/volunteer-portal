@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -16,6 +16,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -27,7 +28,11 @@ import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
-import { type Achievement, type Friend } from "@/lib/dummy-data";
+import {
+  isCalendarSyncEnabled,
+  setCalendarSyncEnabled,
+} from "@/lib/calendar-sync";
+import { type Achievement, type Friend, type Shift } from "@/lib/dummy-data";
 import { api, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -94,6 +99,40 @@ export default function ProfileScreen() {
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [calSyncEnabled, setCalSyncEnabled] = useState(false);
+  const [calSyncBusy, setCalSyncBusy] = useState(false);
+
+  useEffect(() => {
+    isCalendarSyncEnabled().then(setCalSyncEnabled);
+  }, []);
+
+  const handleToggleCalendarSync = useCallback(async (next: boolean) => {
+    setCalSyncBusy(true);
+    try {
+      let shifts: Shift[] | undefined;
+      if (next) {
+        try {
+          const result = await api<{ myShifts: Shift[] }>("/api/mobile/shifts");
+          shifts = result.myShifts;
+        } catch {
+          // Skip initial sync if fetch fails; useShifts will reconcile later.
+        }
+      }
+      const ok = await setCalendarSyncEnabled(next, shifts);
+      if (!ok && next) {
+        setCalSyncEnabled(false);
+        Alert.alert(
+          "Calendar access needed",
+          "To sync your shifts, enable Calendar access for Everybody Eats in Settings."
+        );
+        return;
+      }
+      setCalSyncEnabled(next);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setCalSyncBusy(false);
+    }
+  }, []);
 
   const pickImage = async (source: "camera" | "library") => {
     const common: ImagePicker.ImagePickerOptions = {
@@ -571,6 +610,26 @@ export default function ProfileScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/(tabs)/shifts");
             }}
+          />
+          <View
+            style={[
+              styles.settingsDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(14,58,35,0.06)",
+              },
+            ]}
+          />
+          <SettingsToggleRow
+            icon="calendar-number-outline"
+            label="Sync shifts to calendar"
+            hint="Add upcoming shifts to your device calendar"
+            value={calSyncEnabled}
+            loading={calSyncBusy}
+            colors={colors}
+            isDark={isDark}
+            onToggle={handleToggleCalendarSync}
           />
         </Animated.View>
 
@@ -1609,6 +1668,68 @@ function SettingsRow({
         color={colors.textSecondary}
       />
     </Pressable>
+  );
+}
+
+/* ── Settings toggle row ── */
+
+function SettingsToggleRow({
+  icon,
+  label,
+  hint,
+  value,
+  loading,
+  colors,
+  isDark,
+  onToggle,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  hint: string;
+  value: boolean;
+  loading: boolean;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  onToggle: (next: boolean) => void;
+}) {
+  return (
+    <View style={styles.settingsRow} accessibilityRole="switch">
+      <View
+        style={[
+          styles.settingsIcon,
+          {
+            backgroundColor: isDark
+              ? "rgba(134,239,172,0.10)"
+              : Brand.greenLight,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={isDark ? "#86efac" : Brand.green}
+        />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.settingsLabel, { color: colors.text }]}>
+          {label}
+        </Text>
+        <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+          {hint}
+        </Text>
+      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.textSecondary} />
+      ) : (
+        <Switch
+          value={value}
+          onValueChange={onToggle}
+          trackColor={{ false: undefined, true: Brand.green }}
+          thumbColor={Platform.OS === "android" ? Brand.accent : undefined}
+          accessibilityLabel={label}
+        />
+      )}
+    </View>
   );
 }
 

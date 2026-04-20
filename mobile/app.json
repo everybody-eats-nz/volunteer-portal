@@ -80,6 +80,12 @@
           "savePhotosPermission": "Allow Everybody Eats to save shift photos to your library.",
           "isAccessMediaLocationEnabled": false
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Everybody Eats to add your upcoming shifts to your calendar so you never miss a mahi."
+        }
       ]
     ],
     "experiments": {

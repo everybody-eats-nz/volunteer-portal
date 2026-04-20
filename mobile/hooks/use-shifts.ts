@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { syncShifts } from "@/lib/calendar-sync";
 import type { Shift } from "@/lib/dummy-data";
 
 export type PeriodFriend = {
@@ -61,6 +62,12 @@ export function useShifts(): UseShiftsReturn {
       setPeriodFriends(result.periodFriends ?? {});
       setShiftFriends(result.shiftFriends ?? {});
       pastCursorRef.current = result.pastNextCursor;
+
+      // Reconcile device calendar with fresh shift data (picks up web signups
+      // and cancellations). No-op unless the user opted in.
+      syncShifts(result.myShifts).catch(() => {
+        // Swallow: calendar sync is best-effort, never block the UI on it.
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load shifts");
     } finally {
