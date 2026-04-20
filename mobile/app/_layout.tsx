@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +23,7 @@ import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
 import { AuthGate } from '@/components/auth-gate';
 import { EulaModal } from '@/components/eula-modal';
+import { navigateToNotificationTarget } from '@/lib/notification-routing';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +43,28 @@ export default function RootLayout() {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  // Tap handling: navigate when the user taps a push notification (both
+  // the runtime listener and any notification that launched the app from
+  // a cold start).
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        navigateToNotificationTarget(
+          response.notification.request.content.data?.actionUrl,
+        );
+      }
+    });
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        navigateToNotificationTarget(
+          response.notification.request.content.data?.actionUrl,
+        );
+      },
+    );
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     if (!isLoading && fontsLoaded) {

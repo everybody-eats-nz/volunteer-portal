@@ -4,6 +4,7 @@ import {
   sendNotificationToUser,
   updateUnreadCount,
 } from "./notification-helpers";
+import { sendPushToUser } from "./services/expo-push";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -47,8 +48,27 @@ export async function createNotification(params: CreateNotificationParams) {
 
     // Update unread count (fire-and-forget)
     getUnreadNotificationCount(params.userId)
-      .then((unreadCount) => updateUnreadCount(params.userId, unreadCount))
-      .catch((err) => console.error("Error sending SSE unread count update:", err));
+      .then((unreadCount) => {
+        updateUnreadCount(params.userId, unreadCount).catch((err) =>
+          console.error("Error sending SSE unread count update:", err)
+        );
+        // Dispatch to mobile push in parallel. The badge count is the current
+        // unread total so the app icon stays in sync with the in-app inbox.
+        sendPushToUser(params.userId, {
+          title: params.title,
+          body: params.message,
+          badge: unreadCount,
+          data: {
+            notificationId: notification.id,
+            type: params.type,
+            relatedId: params.relatedId,
+            actionUrl: params.actionUrl,
+          },
+        }).catch((err) =>
+          console.error("Error sending push notification:", err)
+        );
+      })
+      .catch((err) => console.error("Error computing unread count:", err));
 
     return notification;
   } catch (error) {

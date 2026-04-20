@@ -127,6 +127,9 @@ model User {
   // Passkey authentication
   passkeys Passkey[]
 
+  // Mobile push notification tokens
+  pushTokens PushToken[]
+
   // Survey system
   surveyAssignments SurveyAssignment[]
   createdSurveys    Survey[]           @relation("SurveyCreator")
@@ -177,6 +180,21 @@ model Passkey {
 
   @@index([userId])
   @@index([credentialId])
+}
+
+model PushToken {
+  id         String    @id @default(cuid())
+  userId     String
+  token      String    @unique // Expo push token (ExponentPushToken[...])
+  platform   String // "ios" | "android"
+  deviceName String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model WebAuthnChallenge {
