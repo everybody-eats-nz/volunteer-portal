@@ -4,6 +4,12 @@ import { create } from 'zustand';
 import { api, ApiError } from './api';
 import type { PasskeyAuthResponse } from './passkey-client';
 import type { OAuthToken } from './oauth';
+import {
+  syncPushTokenWithServer,
+  unregisterPushTokenFromServer,
+} from './push-notifications';
+
+const PUSH_TOKEN_KEY = 'push_token';
 
 export type User = {
   id: string;
@@ -34,6 +40,13 @@ type AuthState = {
 async function persist(data: AuthResponse, set: (partial: Partial<AuthState>) => void) {
   await SecureStore.setItemAsync('auth_token', data.token);
   set({ user: data.user, isAuthenticated: true });
+  // Register for push after auth so the POST carries a valid Bearer token.
+  // Fire-and-forget — permission prompts/network hiccups shouldn't block login.
+  void syncPushTokenWithServer().then(async (pushToken) => {
+    if (pushToken) {
+      await SecureStore.setItemAsync(PUSH_TOKEN_KEY, pushToken);
+    }
+  });
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -66,6 +79,13 @@ export const useAuth = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    // Unregister push token before dropping the auth token — the DELETE
+    // requires a Bearer so the server can scope deletion to this user.
+    const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+    if (pushToken) {
+      await unregisterPushTokenFromServer(pushToken);
+      await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+    }
     await SecureStore.deleteItemAsync('auth_token');
     set({ user: null, isAuthenticated: false });
   },
@@ -80,6 +100,13 @@ export const useAuth = create<AuthState>((set) => ({
 
       const user = await api<User>('/api/auth/mobile/me');
       set({ user, isAuthenticated: true, isLoading: false });
+      // Refresh the push token on every app start — the Expo token can
+      // rotate, and we want the server's copy to stay current.
+      void syncPushTokenWithServer().then(async (pushToken) => {
+        if (pushToken) {
+          await SecureStore.setItemAsync(PUSH_TOKEN_KEY, pushToken);
+        }
+      });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         await SecureStore.deleteItemAsync('auth_token');

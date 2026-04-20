@@ -15,7 +15,10 @@
         "webcredentials:volunteers.everybodyeats.nz"
       ],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -63,6 +66,13 @@
       "expo-image",
       "expo-web-browser",
       "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "color": "#0e3a23",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-media-library",
         {
