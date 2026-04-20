@@ -28,6 +28,11 @@ import { Colors, Brand, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
 import { api, ApiError } from "@/lib/api";
+import {
+  addShiftToCalendar,
+  isCalendarSyncEnabled,
+  removeShiftFromCalendar,
+} from "@/lib/calendar-sync";
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { GlassButton } from "@/components/glass-button";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
@@ -127,9 +132,18 @@ export default function ShiftDetailScreen() {
           "Your signup is pending approval. You'll be notified once it's confirmed."
         );
       }
+      if (
+        shift &&
+        (result.status === "CONFIRMED" || result.status === "PENDING") &&
+        (await isCalendarSyncEnabled())
+      ) {
+        addShiftToCalendar(shift).catch(() => {
+          // Best-effort: calendar sync runs again on next refresh.
+        });
+      }
       await refresh();
     },
-    [refresh]
+    [refresh, shift]
   );
 
   const handleCancel = useCallback(async () => {
@@ -151,6 +165,9 @@ export default function ShiftDetailScreen() {
               Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
               );
+              removeShiftFromCalendar(shift.id).catch(() => {
+                // Best-effort: the next reconcile will clean up anyway.
+              });
               Alert.alert("Canceled", "Your signup has been canceled.");
               await refresh();
             } catch (err) {

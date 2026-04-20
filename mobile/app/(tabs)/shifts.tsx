@@ -1259,13 +1259,10 @@ function ShiftCard({
           </Text>
         </View>
 
-        {/* Notes — subtle quoted line */}
+        {/* Notes — subtle line */}
         {shift.notes && (
-          <Text
-            style={[styles.notesText, { color: colors.textSecondary }]}
-            numberOfLines={2}
-          >
-            “{shift.notes}”
+          <Text style={[styles.notesText, { color: colors.textSecondary }]}>
+            {shift.notes}
           </Text>
         )}
 
