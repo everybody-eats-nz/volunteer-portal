@@ -35,6 +35,9 @@ export default function UserProfileScreen() {
   const { profile, isLoading, error, setProfile } = useUserProfile(id);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [respondingTo, setRespondingTo] = useState<"accept" | "decline" | null>(
+    null
+  );
 
   const firstName = profile?.firstName ?? profile?.name.split(" ")[0] ?? "them";
 
@@ -72,6 +75,72 @@ export default function UserProfileScreen() {
     } finally {
       setIsSendingRequest(false);
     }
+  };
+
+  const handleAcceptRequest = async () => {
+    if (!profile?.friendRequestId || respondingTo) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setRespondingTo("accept");
+    try {
+      await api(
+        `/api/mobile/friends/requests/${profile.friendRequestId}/accept`,
+        { method: "POST" }
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setProfile((prev) =>
+        prev
+          ? { ...prev, friendshipStatus: "FRIENDS", friendRequestId: null }
+          : prev
+      );
+    } catch {
+      Alert.alert(
+        "Couldn't accept request",
+        "Please try again in a moment."
+      );
+    } finally {
+      setRespondingTo(null);
+    }
+  };
+
+  const handleDeclineRequest = () => {
+    if (!profile?.friendRequestId || respondingTo) return;
+    Alert.alert(
+      "Decline request?",
+      `${firstName} won't be notified — you can still send them a request later if you change your mind.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Decline",
+          style: "destructive",
+          onPress: async () => {
+            if (!profile?.friendRequestId) return;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setRespondingTo("decline");
+            try {
+              await api(
+                `/api/mobile/friends/requests/${profile.friendRequestId}/decline`,
+                { method: "POST" }
+              );
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+              setProfile((prev) =>
+                prev
+                  ? { ...prev, friendshipStatus: "NONE", friendRequestId: null }
+                  : prev
+              );
+            } catch {
+              Alert.alert(
+                "Couldn't decline request",
+                "Please try again in a moment."
+              );
+            } finally {
+              setRespondingTo(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleReport = () => {
@@ -360,7 +429,10 @@ export default function UserProfileScreen() {
             firstName={firstName}
             allowFriendRequests={profile.allowFriendRequests}
             isSending={isSendingRequest}
+            respondingTo={respondingTo}
             onAddFriend={handleAddFriend}
+            onAcceptRequest={handleAcceptRequest}
+            onDeclineRequest={handleDeclineRequest}
             onViewFullProfile={() =>
               router.replace({
                 pathname: "/friend/[id]",
@@ -473,7 +545,10 @@ function FriendshipAction({
   firstName,
   allowFriendRequests,
   isSending,
+  respondingTo,
   onAddFriend,
+  onAcceptRequest,
+  onDeclineRequest,
   onViewFullProfile,
   colors,
   isDark,
@@ -482,7 +557,10 @@ function FriendshipAction({
   firstName: string;
   allowFriendRequests: boolean;
   isSending: boolean;
+  respondingTo: "accept" | "decline" | null;
   onAddFriend: () => void;
+  onAcceptRequest: () => void;
+  onDeclineRequest: () => void;
   onViewFullProfile: () => void;
   colors: (typeof Colors)["light"];
   isDark: boolean;
@@ -541,14 +619,83 @@ function FriendshipAction({
   }
 
   if (status === "REQUEST_RECEIVED") {
+    const isAccepting = respondingTo === "accept";
+    const isDeclining = respondingTo === "decline";
+    const isBusy = respondingTo !== null;
+
     return (
-      <StatusCard
-        eyebrow="INCOMING"
-        title={`${firstName} sent you a request — check your friends tab 💌`}
-        ruleColor={isDark ? "#93c5fd" : "#1d4ed8"}
-        colors={colors}
-        isDark={isDark}
-      />
+      <View style={{ gap: 12 }}>
+        <StatusCard
+          eyebrow="INCOMING"
+          title={`Kia ora — ${firstName} wants to connect 💌`}
+          ruleColor={isDark ? "#93c5fd" : "#1d4ed8"}
+          colors={colors}
+          isDark={isDark}
+        />
+        <Pressable
+          onPress={onAcceptRequest}
+          disabled={isBusy}
+          style={({ pressed }) => [
+            styles.primaryBtn,
+            {
+              backgroundColor: isDark ? Brand.accent : Brand.green,
+              opacity: pressed || isBusy ? 0.9 : 1,
+              transform: [{ scale: pressed ? 0.985 : 1 }],
+            },
+          ]}
+          accessibilityLabel={`Accept friend request from ${firstName}`}
+          accessibilityRole="button"
+        >
+          {isAccepting ? (
+            <ActivityIndicator
+              size="small"
+              color={isDark ? Brand.green : "#fffdf7"}
+            />
+          ) : (
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={18}
+              color={isDark ? Brand.green : "#fffdf7"}
+            />
+          )}
+          <Text
+            style={[
+              styles.primaryBtnText,
+              { color: isDark ? Brand.green : "#fffdf7" },
+            ]}
+          >
+            {isAccepting ? "Accepting…" : "Accept request"}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onDeclineRequest}
+          disabled={isBusy}
+          style={({ pressed }) => [
+            styles.declineBtn,
+            {
+              borderColor: colors.border,
+              opacity: pressed || isBusy ? 0.7 : 1,
+            },
+          ]}
+          accessibilityLabel={`Decline friend request from ${firstName}`}
+          accessibilityRole="button"
+        >
+          {isDeclining ? (
+            <ActivityIndicator size="small" color={colors.textSecondary} />
+          ) : (
+            <Ionicons
+              name="close-outline"
+              size={16}
+              color={colors.textSecondary}
+            />
+          )}
+          <Text
+            style={[styles.declineBtnText, { color: colors.textSecondary }]}
+          >
+            {isDeclining ? "Declining…" : "Decline"}
+          </Text>
+        </Pressable>
+      </View>
     );
   }
 
@@ -804,6 +951,20 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
+  },
+  declineBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.25,
+  },
+  declineBtnText: {
+    fontSize: 14,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.2,
   },

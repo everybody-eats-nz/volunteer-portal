@@ -105,7 +105,12 @@ export async function POST(
     const senderName =
       me.name ??
       ([me.firstName, me.lastName].filter(Boolean).join(" ") || me.email);
-    await createFriendRequestNotification(target.id, senderName, friendRequest.id);
+    await createFriendRequestNotification(
+      target.id,
+      senderName,
+      friendRequest.id,
+      userId
+    );
   } catch (err) {
     console.error("[friend-request] Notification failed:", err);
   }

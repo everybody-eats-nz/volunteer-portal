@@ -18,6 +18,7 @@ export type UserProfile = {
   totalShifts: number;
   hoursVolunteered: number;
   friendshipStatus: UserFriendshipStatus;
+  friendRequestId: string | null;
   allowFriendRequests: boolean;
   isBlocked: boolean;
   hasReported: boolean;
