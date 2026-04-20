@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
@@ -9,59 +9,62 @@ import {
   StyleSheet,
   TextInput,
   View,
-} from 'react-native';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+} from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import {
+  openBrowserAsync,
+  WebBrowserPresentationStyle,
+} from "expo-web-browser";
 import Animated, {
   Easing,
   FadeInDown,
   FadeInUp,
-} from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 
-import { ThemedText } from '@/components/themed-text';
-import { Brand, Colors, FontFamily } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/lib/auth';
-import { ApiError } from '@/lib/api';
-import {
-  isPasskeySupported,
-  signInWithPasskey,
-} from '@/lib/passkey-client';
+import { ThemedText } from "@/components/themed-text";
+import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
+import { isPasskeySupported, signInWithPasskey } from "@/lib/passkey-client";
 import {
   signInWithApple,
   signInWithGoogle,
   signInWithFacebook,
-} from '@/lib/oauth';
+} from "@/lib/oauth";
 
 const HERO_IMAGES = [
-  require('@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg'),
-  require('@/assets/photos/66da3c585f61f1e0ba83fbcc_03.png'),
+  require("@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg"),
+  require("@/assets/photos/66da3c585f61f1e0ba83fbcc_03.png"),
 ];
 
-type OAuthProvider = 'apple' | 'google' | 'facebook';
+type OAuthProvider = "apple" | "google" | "facebook";
+
+const SHOW_SOCIAL_LOGIN = false;
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const colors = Colors[isDark ? 'dark' : 'light'];
+  const isDark = colorScheme === "dark";
+  const colors = Colors[isDark ? "dark" : "light"];
   const insets = useSafeAreaInsets();
   const { loginWithEmail, loginWithOAuth, loginWithPasskey } = useAuth();
 
   const heroImage = useMemo(
     () => HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)],
-    [],
+    []
   );
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [busyProvider, setBusyProvider] = useState<
-    OAuthProvider | 'passkey' | null
+    OAuthProvider | "passkey" | null
   >(null);
   const [passkeyReady, setPasskeyReady] = useState(false);
   const passwordRef = useRef<TextInput>(null);
@@ -74,7 +77,7 @@ export default function LoginScreen() {
 
   function handleError(error: unknown, fallback: string) {
     const message = error instanceof ApiError ? error.message : fallback;
-    Alert.alert('Sign in failed', message);
+    Alert.alert("Sign in failed", message);
   }
 
   async function handleEmailLogin() {
@@ -84,7 +87,7 @@ export default function LoginScreen() {
     try {
       await loginWithEmail(email.trim(), password);
     } catch (error) {
-      handleError(error, 'Please check your email and password.');
+      handleError(error, "Please check your email and password.");
     } finally {
       setIsSubmitting(false);
     }
@@ -93,13 +96,16 @@ export default function LoginScreen() {
   async function handlePasskey() {
     if (anyBusy) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setBusyProvider('passkey');
+    setBusyProvider("passkey");
     try {
       const response = await signInWithPasskey();
       if (!response) return; // user cancelled
       await loginWithPasskey(response);
     } catch (error) {
-      handleError(error, "Couldn't sign in with passkey. Please try another method.");
+      handleError(
+        error,
+        "Couldn't sign in with passkey. Please try another method."
+      );
     } finally {
       setBusyProvider(null);
     }
@@ -111,30 +117,35 @@ export default function LoginScreen() {
     setBusyProvider(provider);
     try {
       let token: { idToken?: string; accessToken?: string } | null = null;
-      if (provider === 'apple') token = await signInWithApple();
-      if (provider === 'google') token = await signInWithGoogle();
-      if (provider === 'facebook') token = await signInWithFacebook();
+      if (provider === "apple") token = await signInWithApple();
+      if (provider === "google") token = await signInWithGoogle();
+      if (provider === "facebook") token = await signInWithFacebook();
       if (!token) return; // cancelled
       await loginWithOAuth(provider, token);
     } catch (error) {
-      handleError(error, `Couldn't sign in with ${provider}. Please try again.`);
+      handleError(
+        error,
+        `Couldn't sign in with ${provider}. Please try again.`
+      );
     } finally {
       setBusyProvider(null);
     }
   }
 
   // Card surface: warm white that sits on top of the photo.
-  const cardSurface = isDark ? 'rgba(16, 20, 24, 0.88)' : 'rgba(255, 253, 247, 0.96)';
-  const cardStroke = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(14,58,35,0.08)';
-  const inputBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(14,58,35,0.04)';
-  const inputStroke = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(14,58,35,0.12)';
-  const mutedText = isDark ? 'rgba(229,240,232,0.62)' : 'rgba(16,20,24,0.56)';
+  const cardSurface = isDark
+    ? "rgba(16, 20, 24, 0.88)"
+    : "rgba(255, 253, 247, 0.96)";
+  const cardStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(14,58,35,0.08)";
+  const inputBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(14,58,35,0.04)";
+  const inputStroke = isDark ? "rgba(255,255,255,0.10)" : "rgba(14,58,35,0.12)";
+  const mutedText = isDark ? "rgba(229,240,232,0.62)" : "rgba(16,20,24,0.56)";
 
-  const windowHeight = Dimensions.get('window').height;
+  const windowHeight = Dimensions.get("window").height;
   const heroHeight = Math.min(Math.max(windowHeight * 0.48, 320), 520);
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? '#0b0d10' : '#f1eadc' }}>
+    <View style={{ flex: 1, backgroundColor: isDark ? "#0b0d10" : "#f1eadc" }}>
       <StatusBar style="light" />
 
       {/* Hero image — full-bleed, absolutely positioned so the form can overlap */}
@@ -148,9 +159,9 @@ export default function LoginScreen() {
         {/* Dim + warm tint the photo so typography pops */}
         <LinearGradient
           colors={[
-            'rgba(14,58,35,0.55)',
-            'rgba(14,58,35,0.15)',
-            isDark ? 'rgba(11,13,16,0.85)' : 'rgba(241,234,220,0.98)',
+            "rgba(14,58,35,0.55)",
+            "rgba(14,58,35,0.15)",
+            isDark ? "rgba(11,13,16,0.85)" : "rgba(241,234,220,0.98)",
           ]}
           locations={[0, 0.45, 1]}
           style={StyleSheet.absoluteFill}
@@ -158,26 +169,36 @@ export default function LoginScreen() {
 
         {/* Greeting overlay */}
         <Animated.View
-          entering={FadeInDown.duration(700).delay(150).easing(Easing.out(Easing.cubic))}
+          entering={FadeInDown.duration(700)
+            .delay(150)
+            .easing(Easing.out(Easing.cubic))}
           style={[styles.greeting, { paddingTop: insets.top + 48 }]}
         >
           <View style={styles.greetingRow}>
-            <ThemedText style={styles.kiaOra} lightColor="#fffdf7" darkColor="#fffdf7">
+            <ThemedText
+              style={styles.kiaOra}
+              lightColor="#fffdf7"
+              darkColor="#fffdf7"
+            >
               Kia ora
             </ThemedText>
             {/* Lime accent curl under the greeting */}
             <View style={styles.accentCurl} />
           </View>
-          <ThemedText style={styles.tagline} lightColor="#fffdf7" darkColor="#fffdf7">
-            Welcome to the table
+          <ThemedText
+            style={styles.tagline}
+            lightColor="#fffdf7"
+            darkColor="#fffdf7"
+          >
+            Making a difference one plate at a time
           </ThemedText>
         </Animated.View>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
       >
         <ScrollView
           style={{ flex: 1 }}
@@ -190,7 +211,9 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
-            entering={FadeInUp.duration(600).delay(250).easing(Easing.out(Easing.cubic))}
+            entering={FadeInUp.duration(600)
+              .delay(250)
+              .easing(Easing.out(Easing.cubic))}
             style={[
               styles.card,
               {
@@ -203,7 +226,11 @@ export default function LoginScreen() {
             <View
               style={[
                 styles.grabHandle,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(14,58,35,0.18)' },
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.15)"
+                    : "rgba(14,58,35,0.18)",
+                },
               ]}
             />
 
@@ -238,63 +265,91 @@ export default function LoginScreen() {
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="Sign in with passkey"
-                  accessibilityState={{ busy: busyProvider === 'passkey' }}
+                  accessibilityState={{ busy: busyProvider === "passkey" }}
                 >
-                  <Ionicons name="finger-print" size={22} color={Brand.accent} />
+                  <Ionicons
+                    name="finger-print"
+                    size={22}
+                    color={Brand.accent}
+                  />
                   <ThemedText style={styles.primaryBtnText}>
-                    {busyProvider === 'passkey' ? 'Authenticating…' : 'Sign in with passkey'}
+                    {busyProvider === "passkey"
+                      ? "Authenticating…"
+                      : "Sign in with passkey"}
                   </ThemedText>
                 </Pressable>
               </Animated.View>
             )}
 
-            {/* Divider: "or continue with" */}
-            <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: inputStroke }]} />
-              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
-                {passkeyReady ? 'or continue with' : 'continue with'}
-              </ThemedText>
-              <View style={[styles.dividerLine, { backgroundColor: inputStroke }]} />
-            </View>
+            {SHOW_SOCIAL_LOGIN && (
+              <>
+                {/* Divider: "or continue with" */}
+                <View style={styles.divider}>
+                  <View
+                    style={[
+                      styles.dividerLine,
+                      { backgroundColor: inputStroke },
+                    ]}
+                  />
+                  <ThemedText
+                    style={[styles.dividerText, { color: mutedText }]}
+                  >
+                    {passkeyReady ? "or continue with" : "continue with"}
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.dividerLine,
+                      { backgroundColor: inputStroke },
+                    ]}
+                  />
+                </View>
 
-            {/* OAuth row — icon-only circles */}
-            <Animated.View
-              entering={FadeInUp.duration(400).delay(400)}
-              style={styles.oauthRow}
-            >
-              {Platform.OS === 'ios' && (
-                <OAuthCircle
-                  provider="apple"
-                  isBusy={busyProvider === 'apple'}
-                  disabled={anyBusy}
-                  onPress={() => handleOAuth('apple')}
-                  isDark={isDark}
+                {/* OAuth row — icon-only circles */}
+                <Animated.View
+                  entering={FadeInUp.duration(400).delay(400)}
+                  style={styles.oauthRow}
+                >
+                  {Platform.OS === "ios" && (
+                    <OAuthCircle
+                      provider="apple"
+                      isBusy={busyProvider === "apple"}
+                      disabled={anyBusy}
+                      onPress={() => handleOAuth("apple")}
+                      isDark={isDark}
+                    />
+                  )}
+                  <OAuthCircle
+                    provider="google"
+                    isBusy={busyProvider === "google"}
+                    disabled={anyBusy}
+                    onPress={() => handleOAuth("google")}
+                    isDark={isDark}
+                  />
+                  <OAuthCircle
+                    provider="facebook"
+                    isBusy={busyProvider === "facebook"}
+                    disabled={anyBusy}
+                    onPress={() => handleOAuth("facebook")}
+                    isDark={isDark}
+                  />
+                </Animated.View>
+              </>
+            )}
+
+            {(passkeyReady || SHOW_SOCIAL_LOGIN) && (
+              /* Divider before email */
+              <View style={[styles.divider, { marginTop: 22 }]}>
+                <View
+                  style={[styles.dividerLine, { backgroundColor: inputStroke }]}
                 />
-              )}
-              <OAuthCircle
-                provider="google"
-                isBusy={busyProvider === 'google'}
-                disabled={anyBusy}
-                onPress={() => handleOAuth('google')}
-                isDark={isDark}
-              />
-              <OAuthCircle
-                provider="facebook"
-                isBusy={busyProvider === 'facebook'}
-                disabled={anyBusy}
-                onPress={() => handleOAuth('facebook')}
-                isDark={isDark}
-              />
-            </Animated.View>
-
-            {/* Divider before email */}
-            <View style={[styles.divider, { marginTop: 22 }]}>
-              <View style={[styles.dividerLine, { backgroundColor: inputStroke }]} />
-              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
-                or use email
-              </ThemedText>
-              <View style={[styles.dividerLine, { backgroundColor: inputStroke }]} />
-            </View>
+                <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+                  or use email
+                </ThemedText>
+                <View
+                  style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+                />
+              </View>
+            )}
 
             {/* Email + password form */}
             <Animated.View
@@ -360,10 +415,12 @@ export default function LoginScreen() {
                 <Pressable
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={12}
-                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  accessibilityLabel={
+                    showPassword ? "Hide password" : "Show password"
+                  }
                 >
                   <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
                     size={20}
                     color={mutedText}
                   />
@@ -391,7 +448,7 @@ export default function LoginScreen() {
                 accessibilityState={{ busy: isSubmitting, disabled: anyBusy }}
               >
                 <ThemedText style={styles.primaryBtnText}>
-                  {isSubmitting ? 'Signing in…' : 'Sign in'}
+                  {isSubmitting ? "Signing in…" : "Sign in"}
                 </ThemedText>
               </Pressable>
             </Animated.View>
@@ -401,8 +458,20 @@ export default function LoginScreen() {
               <ThemedText style={[styles.footerText, { color: mutedText }]}>
                 New here?
               </ThemedText>
-              <Pressable hitSlop={8} onPress={() => Alert.alert('Create account', 'Registration flow lives on the web — coming soon to mobile.') }>
-                <ThemedText style={styles.footerLink}>Join our whānau</ThemedText>
+              <Pressable
+                hitSlop={8}
+                onPress={() =>
+                  openBrowserAsync(
+                    "https://volunteers.everybodyeats.nz/register",
+                    {
+                      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+                    }
+                  )
+                }
+              >
+                <ThemedText style={styles.footerLink}>
+                  Join our whānau
+                </ThemedText>
               </Pressable>
             </View>
 
@@ -452,9 +521,9 @@ function OAuthCircle({
     >
       {isBusy ? (
         <Ionicons name="ellipsis-horizontal" size={22} color={icon} />
-      ) : provider === 'apple' ? (
+      ) : provider === "apple" ? (
         <Ionicons name="logo-apple" size={26} color={icon} />
-      ) : provider === 'google' ? (
+      ) : provider === "google" ? (
         <GoogleGlyph />
       ) : (
         <Ionicons name="logo-facebook" size={26} color={icon} />
@@ -465,26 +534,26 @@ function OAuthCircle({
 
 function providerStyle(provider: OAuthProvider, isDark: boolean) {
   switch (provider) {
-    case 'apple':
+    case "apple":
       return {
-        bg: isDark ? '#f5f5f7' : '#0b0d10',
-        border: 'transparent',
-        icon: isDark ? '#0b0d10' : '#ffffff',
-        label: 'Apple',
+        bg: isDark ? "#f5f5f7" : "#0b0d10",
+        border: "transparent",
+        icon: isDark ? "#0b0d10" : "#ffffff",
+        label: "Apple",
       };
-    case 'google':
+    case "google":
       return {
-        bg: '#ffffff',
-        border: 'rgba(0,0,0,0.08)',
-        icon: '#0b0d10',
-        label: 'Google',
+        bg: "#ffffff",
+        border: "rgba(0,0,0,0.08)",
+        icon: "#0b0d10",
+        label: "Google",
       };
-    case 'facebook':
+    case "facebook":
       return {
-        bg: '#1877F2',
-        border: 'transparent',
-        icon: '#ffffff',
-        label: 'Facebook',
+        bg: "#1877F2",
+        border: "transparent",
+        icon: "#ffffff",
+        label: "Facebook",
       };
   }
 }
@@ -497,8 +566,8 @@ function GoogleGlyph() {
 
 const styles = StyleSheet.create({
   heroWrapper: {
-    width: '100%',
-    position: 'absolute',
+    width: "100%",
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -507,7 +576,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   greetingRow: {
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   kiaOra: {
     fontFamily: FontFamily.headingBold,
@@ -538,14 +607,14 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 24,
     // Soft elevation to lift card off the photo
-    shadowColor: '#0b0d10',
+    shadowColor: "#0b0d10",
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: -6 },
     elevation: 8,
   },
   grabHandle: {
-    alignSelf: 'center',
+    alignSelf: "center",
     width: 44,
     height: 5,
     borderRadius: 3,
@@ -562,9 +631,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 10,
     minHeight: 54,
     borderRadius: 16,
@@ -576,12 +645,12 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 16,
-    color: '#fffdf7',
+    color: "#fffdf7",
     letterSpacing: 0.2,
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginTop: 22,
   },
@@ -592,12 +661,12 @@ const styles = StyleSheet.create({
   dividerText: {
     fontFamily: FontFamily.medium,
     fontSize: 11,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 1.5,
   },
   oauthRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 14,
     marginTop: 18,
   },
@@ -605,13 +674,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
   },
   inputShell: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     borderWidth: 1,
     borderRadius: 14,
@@ -629,8 +698,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 22,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 6,
   },
   footerText: {
@@ -644,7 +713,7 @@ const styles = StyleSheet.create({
   },
   ngaMihi: {
     marginTop: 18,
-    alignSelf: 'center',
+    alignSelf: "center",
     fontFamily: FontFamily.heading,
     fontSize: 13,
     opacity: 0.6,

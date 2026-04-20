@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -18,6 +19,7 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -28,25 +30,6 @@ import { useProfile } from "@/hooks/use-profile";
 import { type Achievement, type Friend } from "@/lib/dummy-data";
 import { api, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-
-const GRADE_CONFIG: Record<
-  string,
-  { label: string; color: string; colorDark: string; emoji: string }
-> = {
-  GREEN: {
-    label: "Green",
-    color: "#22c55e",
-    colorDark: "#86efac",
-    emoji: "🌿",
-  },
-  YELLOW: {
-    label: "Yellow",
-    color: "#eab308",
-    colorDark: "#fde047",
-    emoji: "⭐",
-  },
-  PINK: { label: "Pink", color: "#ec4899", colorDark: "#f9a8d4", emoji: "💖" },
-};
 
 const CATEGORY_CONFIG: Record<
   string,
@@ -105,8 +88,6 @@ export default function ProfileScreen() {
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-
-  const grade = user ? GRADE_CONFIG[user.volunteerGrade] : GRADE_CONFIG.GREEN;
 
   const pickImage = async (source: "camera" | "library") => {
     const common: ImagePicker.ImagePickerOptions = {
@@ -223,8 +204,10 @@ export default function ProfileScreen() {
 
   const unlocked = achievements.filter((a) => a.unlockedAt);
   const inProgress = achievements.filter(
-    (a) => !a.unlockedAt && a.progress != null
+    (a) => !a.unlockedAt && a.progress != null,
   );
+  const latestUnlock = unlocked[0] ?? null;
+  const otherUnlocks = unlocked.slice(1, 3);
 
   if (isLoading && !user) {
     return (
@@ -254,6 +237,7 @@ export default function ProfileScreen() {
             justifyContent: "center",
             alignItems: "center",
             paddingTop: insets.top,
+            paddingHorizontal: 32,
           },
         ]}
       >
@@ -266,186 +250,229 @@ export default function ProfileScreen() {
 
   return (
     <>
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: insets.top + 60,
-          paddingBottom: Math.max(insets.bottom, 20) + 20,
-        },
-      ]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={showPhotoOptions}
-          disabled={isUploadingPhoto}
-          style={({ pressed }) => [
-            styles.avatarContainer,
-            { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
-          ]}
-          accessibilityLabel="Change profile photo"
-          accessibilityHint="Opens options to take a photo or choose from library"
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + 48,
+            paddingBottom: Math.max(insets.bottom, 20) + 28,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refresh}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {/* ── Editorial Hero ── */}
+        <Animated.View
+          entering={FadeInDown.duration(520)}
+          style={styles.hero}
         >
-          {user.image ? (
-            <Image source={{ uri: user.image }} style={styles.avatarImage} />
-          ) : (
-            <View
-              style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
-            >
-              <Text style={styles.avatarText}>{user.firstName.charAt(0)}</Text>
-            </View>
-          )}
-          {isUploadingPhoto ? (
+          <Pressable
+            onPress={showPhotoOptions}
+            disabled={isUploadingPhoto}
+            style={({ pressed }) => [
+              styles.avatarWrap,
+              { opacity: pressed ? 0.92 : 1 },
+            ]}
+            accessibilityLabel="Change profile photo"
+            accessibilityHint="Opens options to take a photo or choose from library"
+            accessibilityRole="button"
+          >
+            {/* Soft green halo */}
             <View
               style={[
-                styles.avatarEditBadge,
-                { backgroundColor: Brand.green },
+                styles.avatarHalo,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(134,239,172,0.10)"
+                    : "rgba(14,58,35,0.07)",
+                },
               ]}
-            >
-              <ActivityIndicator size={14} color="#ffffff" />
-            </View>
-          ) : (
+            />
             <View
               style={[
-                styles.avatarEditBadge,
-                { backgroundColor: Brand.green },
+                styles.avatarRing,
+                { borderColor: isDark ? colors.background : Brand.warmWhite },
               ]}
             >
-              <Ionicons name="camera" size={14} color="#ffffff" />
+              {user.image ? (
+                <Image source={{ uri: user.image }} style={styles.avatarImage} />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    { backgroundColor: Brand.green },
+                  ]}
+                >
+                  <Text style={styles.avatarInitial}>
+                    {user.firstName.charAt(0)}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </Pressable>
-        <ThemedText type="title">
-          {user.firstName} {user.lastName}
-        </ThemedText>
-        <View
-          style={[
-            styles.joinedBadge,
-            { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9" },
-          ]}
-        >
-          <Text style={[styles.joinedText, { color: colors.textSecondary }]}>
-            Volunteer since {formatNZT(new Date(user.memberSince), "MMM yyyy")}
-          </Text>
-        </View>
-      </View>
+            <View
+              style={[
+                styles.avatarBadge,
+                {
+                  backgroundColor: Brand.green,
+                  borderColor: isDark ? colors.background : Brand.warmWhite,
+                },
+              ]}
+            >
+              {isUploadingPhoto ? (
+                <ActivityIndicator size={12} color="#ffffff" />
+              ) : (
+                <Ionicons name="camera" size={13} color="#ffffff" />
+              )}
+            </View>
+          </Pressable>
 
-      {/* ── Stats Grid (matches web dashboard) ── */}
-      <View style={styles.statsGrid}>
-        <StatCard
-          emoji="🍽️"
-          value={stats.shiftsCompleted.toString()}
-          label="Shifts"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#16a34a"
-          accentColorDark="#86efac"
-        />
-        <StatCard
-          emoji="⏱️"
-          value={`${stats.hoursContributed}`}
-          label="Hours"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#d97706"
-          accentColorDark="#fbbf24"
-        />
-        <StatCard
-          emoji="🫶"
-          value={stats.peopleServed.toLocaleString()}
-          label="Served"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#2563eb"
-          accentColorDark="#60a5fa"
-        />
-        <StatCard
-          emoji="🔥"
-          value={`${stats.currentStreak}mo`}
-          label="Streak"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#dc2626"
-          accentColorDark="#f87171"
-        />
-      </View>
-
-      {/* ── Whānau (Friends) ── */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <View
+          <Text
             style={[
-              styles.sectionIconCircle,
-              { backgroundColor: isDark ? "rgba(37,99,235,0.12)" : "#eff6ff" },
+              styles.heroGreeting,
+              { color: isDark ? "#86efac" : Brand.greenDark },
             ]}
           >
-            <Text style={{ fontSize: 16 }}>👥</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Whānau
-            </Text>
-            <Text
-              style={[styles.sectionCaption, { color: colors.textSecondary }]}
-            >
-              {friends.length} friends
-            </Text>
-          </View>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.friendsScroll}
+            Kia ora,
+          </Text>
+          <Text style={[styles.heroName, { color: colors.text }]}>
+            {user.firstName} {user.lastName}
+          </Text>
+
+          <Text style={[styles.heroMeta, { color: colors.textSecondary }]}>
+            Volunteer since {formatNZT(new Date(user.memberSince), "MMMM yyyy")}
+          </Text>
+        </Animated.View>
+
+        {/* ── Your Mahi (Impact Panel) ── */}
+        <Animated.View
+          entering={FadeInDown.delay(80).duration(520)}
+          style={styles.mahiContainer}
         >
-          {friends.map((friend) => (
-            <FriendCard
-              key={friend.id}
-              friend={friend}
+          <LinearGradient
+            colors={
+              isDark
+                ? ["#0d2a1b", "#14422a"]
+                : [Brand.green, Brand.greenDark]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.mahiCard}
+          >
+            {/* Decorative bloom */}
+            <View style={styles.mahiBloomOuter} pointerEvents="none" />
+            <View style={styles.mahiBloomInner} pointerEvents="none" />
+
+            <View style={styles.mahiLabelRow}>
+              <View
+                style={[
+                  styles.mahiLabelLine,
+                  { backgroundColor: Brand.accent },
+                ]}
+              />
+              <Text style={styles.mahiLabel}>Your mahi</Text>
+            </View>
+
+            <View style={styles.mahiHero}>
+              <Text style={styles.mahiHeroNumber}>
+                {stats.peopleServed.toLocaleString()}
+              </Text>
+              <Text style={styles.mahiHeroCaption}>
+                meals served with aroha
+              </Text>
+            </View>
+
+            <View style={styles.mahiDivider} />
+
+            <View style={styles.mahiStatsRow}>
+              <MahiStat
+                value={stats.shiftsCompleted.toString()}
+                label="Shifts"
+              />
+              <View style={styles.mahiStatDivider} />
+              <MahiStat value={`${stats.hoursContributed}`} label="Hours" />
+              <View style={styles.mahiStatDivider} />
+              <MahiStat value={`${stats.currentStreak}mo`} label="Streak" />
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* ── Whānau ── */}
+        <Animated.View
+          entering={FadeInDown.delay(140).duration(520)}
+          style={styles.section}
+        >
+          <SectionHeader
+            title="Whānau"
+            subtitle={`${friends.length} ${friends.length === 1 ? "friend" : "friends"}`}
+            colors={colors}
+          />
+          {friends.length === 0 ? (
+            <View
+              style={[
+                styles.emptyFriendsCard,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <Text style={{ fontSize: 22 }}>🤝</Text>
+              <Text style={[styles.emptyFriendsText, { color: colors.text }]}>
+                Your whānau grows with every shift
+              </Text>
+              <Text
+                style={[
+                  styles.emptyFriendsMeta,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Connect with volunteers you’ve served alongside.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.friendsScroll}
+            >
+              {friends.map((friend) => (
+                <FriendCard
+                  key={friend.id}
+                  friend={friend}
+                  colors={colors}
+                  isDark={isDark}
+                  router={router}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </Animated.View>
+
+        {/* ── Achievements ── */}
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(520)}
+          style={styles.section}
+        >
+          <SectionHeader
+            title="Achievements"
+            subtitle={`${unlocked.length} unlocked · ${totalPoints} points`}
+            colors={colors}
+          />
+
+          {latestUnlock && (
+            <FeaturedUnlock
+              achievement={latestUnlock}
               colors={colors}
               isDark={isDark}
-              router={router}
+              onPress={() => setSelectedAchievement(latestUnlock)}
             />
-          ))}
-        </ScrollView>
-      </View>
+          )}
 
-      {/* ── Achievements ── */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <View
-            style={[
-              styles.sectionIconCircle,
-              { backgroundColor: isDark ? "rgba(245,158,11,0.12)" : "#fef3c7" },
-            ]}
-          >
-            <Text style={{ fontSize: 16 }}>🏆</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Achievements
-            </Text>
-            <Text
-              style={[styles.sectionCaption, { color: colors.textSecondary }]}
-            >
-              {unlocked.length} unlocked · {totalPoints} points
-            </Text>
-          </View>
-        </View>
-
-        {/* Recent unlocks */}
-        {unlocked
-          .slice(0, 3)
-          .map((achievement) => (
+          {otherUnlocks.map((achievement) => (
             <AchievementRow
               key={achievement.id}
               achievement={achievement}
@@ -456,137 +483,277 @@ export default function ProfileScreen() {
             />
           ))}
 
-        {/* Next goals */}
-        {inProgress.length > 0 && (
-          <>
-            <Text
-              style={[styles.subsectionLabel, { color: colors.textSecondary }]}
-            >
-              NEXT GOALS
-            </Text>
-            {inProgress.map((achievement) => (
-              <AchievementRow
-                key={achievement.id}
-                achievement={achievement}
-                colors={colors}
-                isDark={isDark}
-                type="progress"
-                onPress={() => setSelectedAchievement(achievement)}
-              />
-            ))}
-          </>
-        )}
-      </View>
+          {inProgress.length > 0 && (
+            <>
+              <View style={styles.subsectionHeader}>
+                <View
+                  style={[
+                    styles.subsectionLine,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(14,58,35,0.14)",
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.subsectionLabel,
+                    { color: isDark ? "#86efac" : Brand.greenDark },
+                  ]}
+                >
+                  NEXT GOALS
+                </Text>
+                <View
+                  style={[
+                    styles.subsectionLine,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(14,58,35,0.14)",
+                    },
+                  ]}
+                />
+              </View>
+              {inProgress.map((achievement) => (
+                <AchievementRow
+                  key={achievement.id}
+                  achievement={achievement}
+                  colors={colors}
+                  isDark={isDark}
+                  type="progress"
+                  onPress={() => setSelectedAchievement(achievement)}
+                />
+              ))}
+            </>
+          )}
+        </Animated.View>
 
-      {/* ── Quick Actions ── */}
-      <View style={styles.actionsGrid}>
-        <ActionButton
-          icon="create-outline"
-          label="Edit Profile"
-          colors={colors}
-          isDark={isDark}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/profile/edit");
-          }}
-        />
-        <ActionButton
-          icon="calendar-outline"
-          label="My Schedule"
-          colors={colors}
-          isDark={isDark}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/shifts");
-          }}
-        />
-      </View>
-
-      {/* ── Sign out ── */}
-      <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Sign Out",
-              style: "destructive",
-              onPress: () => {
-                logout();
+        {/* ── Account actions ── */}
+        <Animated.View
+          entering={FadeInDown.delay(260).duration(520)}
+          style={styles.settingsGroup}
+        >
+          <SettingsRow
+            icon="person-outline"
+            label="Edit profile"
+            hint="Details, pronouns, emergency contact"
+            colors={colors}
+            isDark={isDark}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/profile/edit");
+            }}
+          />
+          <View
+            style={[
+              styles.settingsDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(14,58,35,0.06)",
               },
-            },
-          ]);
-        }}
-        style={({ pressed }) => [
-          styles.signOutButton,
-          {
-            borderColor: isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)",
-            backgroundColor: isDark
-              ? "rgba(239,68,68,0.06)"
-              : "rgba(239,68,68,0.04)",
-            opacity: pressed ? 0.7 : 1,
-          },
-        ]}
-      >
-        <Ionicons name="log-out-outline" size={18} color={colors.destructive} />
-        <Text style={[styles.signOutText, { color: colors.destructive }]}>
-          Sign Out
-        </Text>
-      </Pressable>
+            ]}
+          />
+          <SettingsRow
+            icon="calendar-outline"
+            label="My schedule"
+            hint="Upcoming and past shifts"
+            colors={colors}
+            isDark={isDark}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/(tabs)/shifts");
+            }}
+          />
+        </Animated.View>
 
-      {/* ── Footer ── */}
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-          Ngā mihi nui for being part of the whānau 💚
-        </Text>
-      </View>
-    </ScrollView>
+        {/* ── Sign out ── */}
+        <Animated.View entering={FadeInDown.delay(320).duration(520)}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Alert.alert("Sign out", "Are you sure you want to sign out?", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Sign out",
+                  style: "destructive",
+                  onPress: () => {
+                    logout();
+                  },
+                },
+              ]);
+            }}
+            style={({ pressed }) => [
+              styles.signOutButton,
+              {
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={16}
+              color={colors.destructive}
+            />
+            <Text style={[styles.signOutText, { color: colors.destructive }]}>
+              Sign out
+            </Text>
+          </Pressable>
+        </Animated.View>
 
-    {selectedAchievement && (
-      <AchievementSheet
-        achievement={selectedAchievement}
-        totalVolunteers={totalVolunteers}
-        onClose={() => setSelectedAchievement(null)}
-        colors={colors}
-        isDark={isDark}
-      />
-    )}
-  </>
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <View
+            style={[
+              styles.footerOrnament,
+              {
+                backgroundColor: isDark
+                  ? "rgba(134,239,172,0.25)"
+                  : "rgba(14,58,35,0.2)",
+              },
+            ]}
+          />
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Ngā mihi nui for being part of the whānau
+          </Text>
+          <Text
+            style={[styles.footerSubtext, { color: colors.textSecondary }]}
+          >
+            Everybody Eats · Aotearoa
+          </Text>
+        </View>
+      </ScrollView>
+
+      {selectedAchievement && (
+        <AchievementSheet
+          achievement={selectedAchievement}
+          totalVolunteers={totalVolunteers}
+          onClose={() => setSelectedAchievement(null)}
+          colors={colors}
+          isDark={isDark}
+        />
+      )}
+    </>
   );
 }
 
-/* ── Stat Card ── */
+/* ── Mahi stat (on the dark green panel) ── */
 
-function StatCard({
-  emoji,
-  value,
-  label,
-  colors,
-  isDark,
-  accentColor,
-  accentColorDark,
-}: {
-  emoji: string;
-  value: string;
-  label: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
-  accentColor: string;
-  accentColorDark: string;
-}) {
-  const accent = isDark ? accentColorDark : accentColor;
+function MahiStat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-      <Text style={styles.statEmoji}>{emoji}</Text>
-      <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-        {label}
+    <View style={styles.mahiStatItem}>
+      <Text style={styles.mahiStatValue}>{value}</Text>
+      <Text style={styles.mahiStatLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/* ── Section header ── */
+
+function SectionHeader({
+  title,
+  subtitle,
+  colors,
+}: {
+  title: string;
+  subtitle: string;
+  colors: (typeof Colors)["light"];
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+        {subtitle}
       </Text>
     </View>
   );
 }
 
-/* ── Achievement Row ── */
+/* ── Featured latest unlock ── */
+
+function FeaturedUnlock({
+  achievement,
+  colors,
+  isDark,
+  onPress,
+}: {
+  achievement: Achievement;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  onPress: () => void;
+}) {
+  const cat =
+    CATEGORY_CONFIG[achievement.category] ?? CATEGORY_CONFIG.MILESTONE;
+  const catColor = isDark ? cat.colorDark : cat.color;
+  const catBg = isDark ? cat.bgDark : cat.bg;
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.featuredCard,
+        {
+          backgroundColor: colors.card,
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.995 : 1 }],
+          borderColor: isDark
+            ? "rgba(255,255,255,0.04)"
+            : "rgba(14,58,35,0.04)",
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${achievement.name} — latest achievement`}
+    >
+      <View style={styles.featuredMeta}>
+        <View style={[styles.featuredChip, { backgroundColor: catBg }]}>
+          <Text style={[styles.featuredChipText, { color: catColor }]}>
+            LATEST UNLOCK
+          </Text>
+        </View>
+        {achievement.unlockedAt && (
+          <Text
+            style={[styles.featuredDate, { color: colors.textSecondary }]}
+          >
+            {formatNZT(new Date(achievement.unlockedAt), "d MMM")}
+          </Text>
+        )}
+      </View>
+      <View style={styles.featuredBody}>
+        <View style={[styles.featuredIcon, { backgroundColor: catBg }]}>
+          <Text style={{ fontSize: 30 }}>{achievement.icon}</Text>
+        </View>
+        <View style={styles.featuredText}>
+          <Text style={[styles.featuredName, { color: colors.text }]}>
+            {achievement.name}
+          </Text>
+          <Text
+            style={[styles.featuredDesc, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {achievement.description}
+          </Text>
+          <View style={styles.featuredFooter}>
+            <Text style={[styles.featuredPoints, { color: catColor }]}>
+              ✨ {achievement.points} points earned
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textSecondary}
+            />
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+/* ── Achievement row ── */
 
 function AchievementRow({
   achievement,
@@ -615,8 +782,8 @@ function AchievementRow({
       style={({ pressed }) => [
         styles.achievementRow,
         {
-          backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "#fafafa",
-          opacity: pressed ? 0.7 : 1,
+          backgroundColor: colors.card,
+          opacity: pressed ? 0.85 : 1,
         },
       ]}
       accessibilityLabel={`${achievement.name} — ${achievement.description}`}
@@ -633,11 +800,9 @@ function AchievementRow({
           >
             {achievement.name}
           </Text>
-          <View style={[styles.categoryBadge, { backgroundColor: catBg }]}>
-            <Text style={[styles.categoryText, { color: catColor }]}>
-              {achievement.points}pt
-            </Text>
-          </View>
+          <Text style={[styles.achievementPoints, { color: catColor }]}>
+            +{achievement.points}
+          </Text>
         </View>
         <Text
           style={[styles.achievementDesc, { color: colors.textSecondary }]}
@@ -654,7 +819,7 @@ function AchievementRow({
                 {
                   backgroundColor: isDark
                     ? "rgba(255,255,255,0.06)"
-                    : "#e2e8f0",
+                    : "#eef2e8",
                 },
               ]}
             >
@@ -746,7 +911,6 @@ function AchievementSheet({
               { backgroundColor: isDark ? cat.bgDark : cat.bg },
             ]}
           >
-            {/* Handle bar */}
             <View
               style={[
                 achieveSheet.handleBar,
@@ -757,7 +921,6 @@ function AchievementSheet({
                 },
               ]}
             />
-            {/* Decorative rings */}
             <View
               style={[
                 achieveSheet.ring,
@@ -781,7 +944,6 @@ function AchievementSheet({
               ]}
             />
 
-            {/* Close pill */}
             <Pressable
               onPress={onClose}
               hitSlop={10}
@@ -804,7 +966,6 @@ function AchievementSheet({
               />
             </Pressable>
 
-            {/* Icon */}
             <View
               style={[
                 achieveSheet.iconCircle,
@@ -818,7 +979,6 @@ function AchievementSheet({
               <Text style={achieveSheet.iconEmoji}>{achievement.icon}</Text>
             </View>
 
-            {/* Category label */}
             <View
               style={[
                 achieveSheet.typeLabel,
@@ -835,7 +995,6 @@ function AchievementSheet({
             </View>
           </View>
 
-          {/* ── Content card ── */}
           <View
             style={[
               achieveSheet.card,
@@ -854,11 +1013,8 @@ function AchievementSheet({
               {achievement.description}
             </Text>
 
-            {/* Points + status pills */}
             <View style={achieveSheet.pillRow}>
-              <View
-                style={[achieveSheet.pill, { backgroundColor: catBg }]}
-              >
+              <View style={[achieveSheet.pill, { backgroundColor: catBg }]}>
                 <Text style={{ fontSize: 12 }}>✨</Text>
                 <Text style={[achieveSheet.pillText, { color: catColor }]}>
                   {achievement.points} points
@@ -899,7 +1055,6 @@ function AchievementSheet({
             </View>
           </View>
 
-          {/* ── Progress / Unlock date section ── */}
           <View style={achieveSheet.section}>
             {isUnlocked && achievement.unlockedAt ? (
               <View
@@ -922,7 +1077,10 @@ function AchievementSheet({
                     <Text
                       style={[achieveSheet.infoValue, { color: colors.text }]}
                     >
-                      {formatNZT(new Date(achievement.unlockedAt), "d MMMM yyyy")}
+                      {formatNZT(
+                        new Date(achievement.unlockedAt),
+                        "d MMMM yyyy",
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -964,10 +1122,7 @@ function AchievementSheet({
                     />
                   </View>
                   <Text
-                    style={[
-                      achieveSheet.progressText,
-                      { color: colors.text },
-                    ]}
+                    style={[achieveSheet.progressText, { color: colors.text }]}
                   >
                     {Math.round(achievement.progress * 100)}%
                   </Text>
@@ -985,7 +1140,6 @@ function AchievementSheet({
               </View>
             ) : null}
 
-            {/* ── Community stats ── */}
             <View
               style={[achieveSheet.infoCard, { backgroundColor: colors.card }]}
             >
@@ -1049,7 +1203,6 @@ function AchievementSheet({
               </View>
             </View>
 
-            {/* ── Friends who earned this ── */}
             {achievement.friendsWhoEarned &&
               achievement.friendsWhoEarned.length > 0 && (
                 <View
@@ -1148,12 +1301,6 @@ function AchievementSheet({
 
 /* ── Friend Card ── */
 
-const FRIEND_GRADE_DOT: Record<string, string> = {
-  GREEN: "#22c55e",
-  YELLOW: "#eab308",
-  PINK: "#ec4899",
-};
-
 function FriendCard({
   friend,
   colors,
@@ -1165,7 +1312,6 @@ function FriendCard({
   isDark: boolean;
   router: ReturnType<typeof useRouter>;
 }) {
-  const dotColor = FRIEND_GRADE_DOT[friend.grade] ?? "#94a3b8";
   return (
     <Pressable
       onPress={() => {
@@ -1176,68 +1322,89 @@ function FriendCard({
         styles.friendCard,
         {
           backgroundColor: colors.card,
-          opacity: pressed ? 0.85 : 1,
+          opacity: pressed ? 0.88 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
+          borderColor: isDark
+            ? "rgba(255,255,255,0.03)"
+            : "rgba(14,58,35,0.04)",
         },
       ]}
       accessibilityLabel={`${friend.name}, ${friend.shiftsTogether} shifts together`}
       accessibilityRole="button"
     >
-      {/* Avatar with grade dot */}
       <View style={styles.friendAvatarWrap}>
-        {friend.profilePhotoUrl ? (
-          <Image
-            source={{ uri: friend.profilePhotoUrl }}
-            style={styles.friendAvatar}
-          />
-        ) : (
-          <View
-            style={[
-              styles.friendAvatarFallback,
-              { backgroundColor: Brand.green },
-            ]}
-          >
-            <Text style={styles.friendAvatarInitial}>
-              {friend.name.charAt(0)}
-            </Text>
-          </View>
-        )}
         <View
           style={[
-            styles.friendGradeDot,
+            styles.friendAvatarRing,
             {
-              backgroundColor: dotColor,
-              borderColor: colors.card,
+              borderColor: isDark
+                ? "rgba(134,239,172,0.15)"
+                : "rgba(14,58,35,0.08)",
             },
           ]}
-        />
+        >
+          {friend.profilePhotoUrl ? (
+            <Image
+              source={{ uri: friend.profilePhotoUrl }}
+              style={styles.friendAvatar}
+            />
+          ) : (
+            <View
+              style={[
+                styles.friendAvatarFallback,
+                { backgroundColor: Brand.green },
+              ]}
+            >
+              <Text style={styles.friendAvatarInitial}>
+                {friend.name.charAt(0)}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      {/* Info */}
       <Text
         style={[styles.friendName, { color: colors.text }]}
         numberOfLines={1}
       >
         {friend.name.split(" ")[0]}
       </Text>
-      <Text style={[styles.friendMeta, { color: colors.textSecondary }]}>
-        {friend.shiftsTogether} shifts together
-      </Text>
+      <View
+        style={[
+          styles.friendMetaPill,
+          {
+            backgroundColor: isDark
+              ? "rgba(134,239,172,0.08)"
+              : "rgba(14,58,35,0.05)",
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.friendMeta,
+            { color: isDark ? "#86efac" : Brand.greenDark },
+          ]}
+        >
+          {friend.shiftsTogether} shifts
+        </Text>
+      </View>
     </Pressable>
   );
 }
 
-/* ── Action Button ── */
+/* ── Settings row ── */
 
-function ActionButton({
+function SettingsRow({
   icon,
   label,
+  hint,
   colors,
   isDark,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  hint: string;
   colors: (typeof Colors)["light"];
   isDark: boolean;
   onPress: () => void;
@@ -1246,29 +1413,41 @@ function ActionButton({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.actionButton,
-        {
-          backgroundColor: colors.card,
-          opacity: pressed ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-        },
+        styles.settingsRow,
+        { opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <View
         style={[
-          styles.actionIconCircle,
-          { backgroundColor: isDark ? "rgba(14,58,35,0.2)" : Brand.greenLight },
+          styles.settingsIcon,
+          {
+            backgroundColor: isDark
+              ? "rgba(134,239,172,0.10)"
+              : Brand.greenLight,
+          },
         ]}
       >
         <Ionicons
           name={icon}
-          size={20}
+          size={18}
           color={isDark ? "#86efac" : Brand.green}
         />
       </View>
-      <Text style={[styles.actionLabel, { color: colors.text }]}>{label}</Text>
-      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.settingsLabel, { color: colors.text }]}>
+          {label}
+        </Text>
+        <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+          {hint}
+        </Text>
+      </View>
+      <Ionicons
+        name="chevron-forward"
+        size={16}
+        color={colors.textSecondary}
+      />
     </Pressable>
   );
 }
@@ -1283,150 +1462,371 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  // Header
-  header: {
+  /* Hero */
+  hero: {
     alignItems: "center",
-    gap: 8,
-    marginBottom: 24,
+    marginBottom: 28,
   },
-  avatarContainer: {
-    marginBottom: 4,
+  avatarWrap: {
+    width: 120,
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  avatarHalo: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   avatarImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
   },
   avatarFallback: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: {
+  avatarInitial: {
     color: "#ffffff",
-    fontSize: 36,
-    fontFamily: FontFamily.bold,
+    fontSize: 38,
+    fontFamily: FontFamily.headingBold,
   },
-  avatarEditBadge: {
+  avatarBadge: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    bottom: 4,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 3,
-    borderColor: "#ffffff",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
     justifyContent: "center",
+    zIndex: 3,
   },
-  headerMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 2,
+  heroGreeting: {
+    fontSize: 14,
+    fontFamily: FontFamily.heading,
+    fontStyle: "italic",
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
-  gradeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 5,
+  heroName: {
+    fontSize: 30,
+    fontFamily: FontFamily.headingBold,
+    lineHeight: 36,
+    textAlign: "center",
+    marginBottom: 10,
   },
-  gradeEmoji: {
-    fontSize: 12,
-  },
-  gradeText: {
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-  },
-  joinedBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  joinedText: {
+  heroMeta: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
-  },
-
-  // Stats grid
-  statsGrid: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    alignItems: "center",
-    gap: 4,
-  },
-  statEmoji: {
-    fontSize: 20,
-  },
-  statValue: {
-    fontSize: 18,
-    fontFamily: FontFamily.bold,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-    textTransform: "uppercase",
     letterSpacing: 0.3,
   },
 
-  // Section
-  sectionContainer: {
-    marginBottom: 24,
-    gap: 10,
+  /* Your Mahi impact panel */
+  mahiContainer: {
+    marginBottom: 28,
   },
-  sectionHeaderRow: {
+  mahiCard: {
+    borderRadius: 24,
+    paddingVertical: 26,
+    paddingHorizontal: 24,
+    overflow: "hidden",
+  },
+  mahiBloomOuter: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: "rgba(248,251,105,0.06)",
+    top: -140,
+    right: -100,
+  },
+  mahiBloomInner: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(248,251,105,0.04)",
+    bottom: -60,
+    left: -40,
+  },
+  mahiLabelRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 4,
+    gap: 10,
+    marginBottom: 8,
   },
-  sectionIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  mahiLabelLine: {
+    width: 20,
+    height: 2,
+    borderRadius: 1,
+  },
+  mahiLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: Brand.accent,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+  },
+  mahiHero: {
+    marginTop: 2,
+    marginBottom: 22,
+  },
+  mahiHeroNumber: {
+    fontSize: 56,
+    lineHeight: 62,
+    fontFamily: FontFamily.headingBold,
+    color: "#ffffff",
+    letterSpacing: -1.5,
+  },
+  mahiHeroCaption: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+    color: "rgba(255,253,247,0.85)",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  mahiDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,253,247,0.14)",
+    marginBottom: 18,
+  },
+  mahiStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mahiStatItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  mahiStatValue: {
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+    color: "#ffffff",
+    letterSpacing: -0.3,
+  },
+  mahiStatLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    color: "rgba(255,253,247,0.7)",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  mahiStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "rgba(255,253,247,0.14)",
+  },
+
+  /* Section */
+  section: {
+    marginBottom: 28,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.2,
+  },
+
+  /* Whānau */
+  friendsScroll: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  friendCard: {
+    width: 114,
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    gap: 8,
+    borderWidth: 1,
+  },
+  friendAvatarWrap: {
+    position: "relative",
+  },
+  friendAvatarRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    padding: 3,
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionTitle: {
-    fontSize: 16,
+  friendAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+  },
+  friendAvatarFallback: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  friendAvatarInitial: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontFamily: FontFamily.headingBold,
+  },
+  friendName: {
+    fontSize: 14,
     fontFamily: FontFamily.semiBold,
+    textAlign: "center",
   },
-  sectionCaption: {
-    fontSize: 12,
+  friendMetaPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  friendMeta: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  emptyFriendsCard: {
+    borderRadius: 18,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    gap: 6,
+  },
+  emptyFriendsText: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  emptyFriendsMeta: {
+    fontSize: 12.5,
     fontFamily: FontFamily.regular,
-    marginTop: 1,
-  },
-  subsectionLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 0.8,
-    marginTop: 6,
-    marginBottom: -2,
-    paddingHorizontal: 4,
+    textAlign: "center",
   },
 
-  // Achievement row
+  /* Featured unlock */
+  featuredCard: {
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 10,
+    gap: 14,
+    borderWidth: 1,
+  },
+  featuredMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  featuredChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  featuredChipText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1,
+  },
+  featuredDate: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.3,
+  },
+  featuredBody: {
+    flexDirection: "row",
+    gap: 14,
+    alignItems: "center",
+  },
+  featuredIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  featuredText: {
+    flex: 1,
+    gap: 4,
+  },
+  featuredName: {
+    fontSize: 18,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.2,
+  },
+  featuredDesc: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+  },
+  featuredFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  featuredPoints: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+  },
+
+  /* Subsection divider */
+  subsectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 18,
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  subsectionLine: {
+    flex: 1,
+    height: 1,
+  },
+  subsectionLabel: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+  },
+
+  /* Achievement row */
   achievementRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
+    marginBottom: 8,
   },
   achievementIcon: {
     width: 44,
@@ -1454,27 +1854,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.regular,
   },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
+  achievementPoints: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.2,
   },
   unlockedDate: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
-    marginTop: 1,
+    marginTop: 2,
   },
 
-  // Progress bar
+  /* Progress bar */
   progressContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 4,
+    marginTop: 6,
   },
   progressTrack: {
     flex: 1,
@@ -1492,109 +1888,80 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
 
-  // Friends
-  friendsScroll: {
-    gap: 10,
-    paddingRight: 4,
-  },
-  friendCard: {
-    width: 110,
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 16,
-    gap: 6,
-  },
-  friendAvatarWrap: {
-    position: "relative",
-    marginBottom: 2,
-  },
-  friendAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  friendAvatarFallback: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendAvatarInitial: {
-    color: "#ffffff",
-    fontSize: 20,
-    fontFamily: FontFamily.bold,
-  },
-  friendGradeDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2.5,
-  },
-  friendName: {
-    fontSize: 13,
-    fontFamily: FontFamily.semiBold,
-    textAlign: "center",
-  },
-  friendMeta: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    textAlign: "center",
-    lineHeight: 14,
-  },
-  // Quick actions
-  actionsGrid: {
-    gap: 10,
+  /* Settings group */
+  settingsGroup: {
     marginBottom: 20,
+    borderRadius: 18,
+    backgroundColor: "transparent",
   },
-  actionButton: {
+  settingsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
-    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
   },
-  actionIconCircle: {
+  settingsIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  actionLabel: {
-    flex: 1,
+  settingsLabel: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
   },
+  settingsHint: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+  },
+  settingsDivider: {
+    height: 1,
+    marginLeft: 58,
+  },
 
-  // Sign out
+  /* Sign out */
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingVertical: 14,
+    marginTop: 4,
   },
   signOutText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 15,
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
 
-  // Footer
+  /* Footer */
   footer: {
     alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 32,
+    paddingTop: 28,
+    paddingBottom: 8,
+    gap: 6,
+  },
+  footerOrnament: {
+    width: 24,
+    height: 2,
+    borderRadius: 1,
+    marginBottom: 6,
   },
   footerText: {
     fontSize: 13,
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.heading,
     textAlign: "center",
+    fontStyle: "italic",
+  },
+  footerSubtext: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    textAlign: "center",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    opacity: 0.7,
   },
 });
 

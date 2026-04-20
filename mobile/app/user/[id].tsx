@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -47,10 +47,11 @@ export default function UserProfileScreen() {
   const firstName = profile?.firstName ?? profile?.name.split(" ")[0] ?? "them";
 
   // If the viewer opens their own profile, send them to the profile tab.
-  if (profile?.isSelf) {
-    router.replace("/(tabs)/profile");
-    return null;
-  }
+  useEffect(() => {
+    if (profile?.isSelf) {
+      router.replace("/(tabs)/profile");
+    }
+  }, [profile?.isSelf, router]);
 
   const handleAddFriend = async () => {
     if (!profile) return;
