@@ -145,7 +145,10 @@ export async function GET(
           sh.start
         FROM "Signup" s
         JOIN "Shift" sh ON s."shiftId" = sh.id
-        WHERE s."userId" = ${userId} AND s.status = 'CONFIRMED' AND sh.location IS NOT NULL
+        WHERE s."userId" = ${userId}
+          AND s.status = 'CONFIRMED'
+          AND sh.location IS NOT NULL
+          AND sh."end" <= NOW()
       ),
       friend_shifts AS (
         SELECT
@@ -155,7 +158,10 @@ export async function GET(
           sh.start
         FROM "Signup" s
         JOIN "Shift" sh ON s."shiftId" = sh.id
-        WHERE s."userId" = ${friendId} AND s.status = 'CONFIRMED' AND sh.location IS NOT NULL
+        WHERE s."userId" = ${friendId}
+          AND s.status = 'CONFIRMED'
+          AND sh.location IS NOT NULL
+          AND sh."end" <= NOW()
       )
       SELECT DISTINCT
         us.shift_date,

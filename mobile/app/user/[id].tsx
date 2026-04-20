@@ -68,10 +68,7 @@ export default function UserProfileScreen() {
         prev ? { ...prev, friendshipStatus: "REQUEST_SENT" } : prev
       );
     } catch {
-      Alert.alert(
-        "Couldn't send request",
-        "Please try again in a moment."
-      );
+      Alert.alert("Couldn't send request", "Please try again in a moment.");
     } finally {
       setIsSendingRequest(false);
     }
@@ -93,10 +90,7 @@ export default function UserProfileScreen() {
           : prev
       );
     } catch {
-      Alert.alert(
-        "Couldn't accept request",
-        "Please try again in a moment."
-      );
+      Alert.alert("Couldn't accept request", "Please try again in a moment.");
     } finally {
       setRespondingTo(null);
     }
@@ -214,11 +208,9 @@ export default function UserProfileScreen() {
               Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
               );
-              Alert.alert(
-                "User blocked",
-                `${firstName} has been blocked.`,
-                [{ text: "OK", onPress: () => router.back() }]
-              );
+              Alert.alert("User blocked", `${firstName} has been blocked.`, [
+                { text: "OK", onPress: () => router.back() },
+              ]);
             } catch {
               Alert.alert(
                 "Error",
@@ -297,9 +289,7 @@ export default function UserProfileScreen() {
         <View style={[styles.hero, { height: heroHeight }]}>
           <LinearGradient
             colors={
-              isDark
-                ? ["#13311f", Brand.greenDark]
-                : [Brand.green, "#0b2c1a"]
+              isDark ? ["#13311f", Brand.greenDark] : [Brand.green, "#0b2c1a"]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -395,9 +385,7 @@ export default function UserProfileScreen() {
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            <Text
-              style={[styles.bentoLabel, { color: colors.textSecondary }]}
-            >
+            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
               THEIR SHIFTS
             </Text>
             <Text style={[styles.bentoValue, { color: colors.text }]}>
@@ -410,9 +398,7 @@ export default function UserProfileScreen() {
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            <Text
-              style={[styles.bentoLabel, { color: colors.textSecondary }]}
-            >
+            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
               THEIR HOURS
             </Text>
             <Text style={[styles.bentoValue, { color: colors.text }]}>
@@ -468,9 +454,7 @@ export default function UserProfileScreen() {
               style={[
                 styles.safetyBtnText,
                 {
-                  color: profile.hasReported
-                    ? "#dc2626"
-                    : colors.textSecondary,
+                  color: profile.hasReported ? "#dc2626" : colors.textSecondary,
                 },
               ]}
             >
@@ -627,7 +611,7 @@ function FriendshipAction({
       <View style={{ gap: 12 }}>
         <StatusCard
           eyebrow="INCOMING"
-          title={`Kia ora — ${firstName} wants to connect 💌`}
+          title={`Kia ora — ${firstName} wants to connect`}
           ruleColor={isDark ? "#93c5fd" : "#1d4ed8"}
           colors={colors}
           isDark={isDark}

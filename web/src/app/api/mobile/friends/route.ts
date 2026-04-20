@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { DAY_EVENING_CUTOFF_HOUR, shiftStartNZ } from "@/lib/concurrent-shifts";
 
 /**
  * GET /api/mobile/friends
@@ -71,21 +72,45 @@ export async function GET(request: Request) {
       customGradeMap.set(gl.userId, gl.label.name);
     }
 
-    // 3. Count shifts together (both users CONFIRMED on the same shift)
+    // 3. Count shifts together — matched by day + AM/PM + location, past shifts only.
+    // Matches the definition used by /api/mobile/friends/[id] so counts are consistent.
     const shiftTogetherCounts = await prisma.$queryRaw<
       Array<{ friendId: string; count: bigint }>
     >`
+      WITH user_shifts AS (
+        SELECT
+          (${shiftStartNZ()})::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM ${shiftStartNZ()}) < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          sh.location
+        FROM "Signup" s
+        JOIN "Shift" sh ON s."shiftId" = sh.id
+        WHERE s."userId" = ${userId}
+          AND s.status = 'CONFIRMED'
+          AND sh.location IS NOT NULL
+          AND sh."end" <= NOW()
+      ),
+      friend_shifts AS (
+        SELECT
+          s."userId" as friend_id,
+          (${shiftStartNZ()})::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM ${shiftStartNZ()}) < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          sh.location
+        FROM "Signup" s
+        JOIN "Shift" sh ON s."shiftId" = sh.id
+        WHERE s."userId" = ANY(${friendIds}::text[])
+          AND s.status = 'CONFIRMED'
+          AND sh.location IS NOT NULL
+          AND sh."end" <= NOW()
+      )
       SELECT
-        s2."userId" as "friendId",
-        COUNT(DISTINCT s1."shiftId")::bigint as count
-      FROM "Signup" s1
-      JOIN "Signup" s2 ON s1."shiftId" = s2."shiftId"
-      WHERE s1."userId" = ${userId}
-        AND s2."userId" = ANY(${friendIds}::text[])
-        AND s1.status = 'CONFIRMED'
-        AND s2.status = 'CONFIRMED'
-        AND s1."userId" != s2."userId"
-      GROUP BY s2."userId"
+        fs.friend_id as "friendId",
+        COUNT(DISTINCT (us.shift_date, us.period, us.location))::bigint as count
+      FROM user_shifts us
+      JOIN friend_shifts fs
+        ON us.shift_date = fs.shift_date
+        AND us.period = fs.period
+        AND us.location = fs.location
+      GROUP BY fs.friend_id
     `;
 
     const shiftsTogetherMap = new Map<string, number>();
