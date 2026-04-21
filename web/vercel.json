@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/refresh-website-content",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/prune-chat-logs",
+      "schedule": "0 3 * * *"
     }
   ]
 }
