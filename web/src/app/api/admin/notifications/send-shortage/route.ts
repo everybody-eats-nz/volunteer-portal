@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
+import { createNotificationsForUsers } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -156,6 +157,34 @@ export async function POST(request: Request) {
     if (logEntries.length > 0) {
       await prisma.shortageNotificationLog.createMany({
         data: logEntries,
+      });
+    }
+
+    // Fan out in-app + push notifications to every volunteer the email
+    // reached. One createMany + one batched Expo call handles the whole
+    // group instead of N per-user requests.
+    const notifiedUserIds = allResults
+      .filter((r) => r.success && r.recipientId)
+      .map((r) => r.recipientId);
+
+    if (notifiedUserIds.length > 0) {
+      const firstShift = shiftsForEmail[0];
+      const pushTitle =
+        shifts.length === 1
+          ? `Shift needs volunteers: ${firstShift.shiftName}`
+          : `${shifts.length} shifts need volunteers`;
+      const pushMessage =
+        shifts.length === 1
+          ? `${firstShift.shiftName} on ${firstShift.shiftDate} at ${firstShift.location} — ${firstShift.neededVolunteers} more needed.`
+          : `Tap to see ${shifts.length} shifts across our locations that still need cover.`;
+
+      await createNotificationsForUsers({
+        userIds: notifiedUserIds,
+        type: "SHIFT_SHORTAGE",
+        title: pushTitle,
+        message: pushMessage,
+        actionUrl:
+          shifts.length === 1 ? `/shifts/${firstShift.shiftId}` : "/shifts",
       });
     }
 

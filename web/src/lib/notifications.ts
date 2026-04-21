@@ -4,7 +4,7 @@ import {
   sendNotificationToUser,
   updateUnreadCount,
 } from "./notification-helpers";
-import { sendPushToUser } from "./services/expo-push";
+import { sendPushToUser, sendPushToUsers } from "./services/expo-push";
 
 export interface CreateNotificationParams {
   userId: string;
@@ -73,6 +73,89 @@ export async function createNotification(params: CreateNotificationParams) {
     return notification;
   } catch (error) {
     console.error("Error creating notification:", error);
+    throw error;
+  }
+}
+
+export interface CreateNotificationsForUsersParams {
+  userIds: string[];
+  type: NotificationType;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  relatedId?: string;
+}
+
+/**
+ * Create the same notification for many users in one go. Uses a single
+ * `createMany` for the database inserts, a single batched Expo push call
+ * (with per-user badge counts), and per-user SSE fan-out in parallel.
+ *
+ * Caller is responsible for filtering `userIds` by any per-user opt-in flags.
+ */
+export async function createNotificationsForUsers(
+  params: CreateNotificationsForUsersParams
+) {
+  const userIds = Array.from(new Set(params.userIds));
+  if (userIds.length === 0) return { count: 0 };
+
+  try {
+    const result = await prisma.notification.createMany({
+      data: userIds.map((userId) => ({
+        userId,
+        type: params.type,
+        title: params.title,
+        message: params.message,
+        actionUrl: params.actionUrl,
+        relatedId: params.relatedId,
+      })),
+    });
+
+    // Fan out SSE + push. All fire-and-forget so the admin request returns
+    // quickly even if a subset of SSE writers hang on backpressure.
+    const unreadCounts = await prisma.notification.groupBy({
+      by: ["userId"],
+      where: { userId: { in: userIds }, isRead: false },
+      _count: { _all: true },
+    });
+    const badgeByUserId = new Map(
+      unreadCounts.map((row) => [row.userId, row._count._all])
+    );
+
+    for (const userId of userIds) {
+      const unreadCount = badgeByUserId.get(userId) ?? 0;
+      sendNotificationToUser(userId, {
+        title: params.title,
+        message: params.message,
+        type: "info",
+        actionUrl: params.actionUrl,
+        metadata: {
+          type: params.type,
+          relatedId: params.relatedId,
+        },
+      }).catch((err) => console.error("Error sending SSE notification:", err));
+      updateUnreadCount(userId, unreadCount).catch((err) =>
+        console.error("Error sending SSE unread count update:", err)
+      );
+    }
+
+    sendPushToUsers(
+      userIds,
+      {
+        title: params.title,
+        body: params.message,
+        data: {
+          type: params.type,
+          relatedId: params.relatedId,
+          actionUrl: params.actionUrl,
+        },
+      },
+      badgeByUserId
+    ).catch((err) => console.error("Error sending batched push:", err));
+
+    return result;
+  } catch (error) {
+    console.error("Error creating batched notifications:", error);
     throw error;
   }
 }
