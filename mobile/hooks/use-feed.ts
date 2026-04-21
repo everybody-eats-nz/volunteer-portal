@@ -1,32 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import {
-  FEED_ITEMS as DUMMY_PHOTO_POSTS,
-  type FeedItem,
-  type LikeUser,
-} from "@/lib/dummy-data";
-
-/** Photo posts are the only items without a real data source. */
-const DUMMY_ONLY_ITEMS = DUMMY_PHOTO_POSTS.filter(
-  (item) => item.type === "photo_post"
-);
-
-const DUMMY_ITEM_IDS = DUMMY_ONLY_ITEMS.map((item) => item.id);
-
-type ExtraInteractions = Record<
-  string,
-  {
-    likeCount: number;
-    likedByMe: boolean;
-    commentCount: number;
-    recentLikers: LikeUser[];
-  }
->;
+import type { FeedItem } from "@/lib/dummy-data";
 
 type FeedResponse = {
   items: FeedItem[];
-  extraInteractions?: ExtraInteractions;
 };
 
 type UseFeedReturn = {
@@ -35,44 +13,27 @@ type UseFeedReturn = {
   error: string | null;
   refresh: () => Promise<void>;
   /** Update a single item's interaction counts in-place (used by useFeedInteractions) */
-  updateItem: (id: string, patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>) => void;
+  updateItem: (
+    id: string,
+    patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>
+  ) => void;
   /** Instantly remove all feed items authored by a given user (after blocking). */
   removeItemsByUser: (userId: string) => void;
 };
 
-/**
- * Fetches real feed data from the API and merges it with
- * dummy photo posts (which don't have a real data source yet).
- *
- * The API now populates likeCount, likedByMe, recentLikers, commentCount
- * on every item, so all interaction data comes from the DB.
- */
 export function useFeed(): UseFeedReturn {
   const [realItems, setRealItems] = useState<FeedItem[]>([]);
-  const [dummyItems, setDummyItems] = useState<FeedItem[]>(DUMMY_ONLY_ITEMS);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchFeed = useCallback(async () => {
     try {
       setError(null);
-      const qs = DUMMY_ITEM_IDS.length
-        ? `?extraIds=${encodeURIComponent(DUMMY_ITEM_IDS.join(","))}`
-        : "";
-      const result = await api<FeedResponse>(`/api/mobile/feed${qs}`);
+      const result = await api<FeedResponse>("/api/mobile/feed");
       setRealItems(result.items);
-
-      const extras = result.extraInteractions ?? {};
-      setDummyItems(
-        DUMMY_ONLY_ITEMS.map((item) => {
-          const stats = extras[item.id];
-          return stats ? { ...item, ...stats } : item;
-        })
-      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load feed");
       setRealItems([]);
-      setDummyItems(DUMMY_ONLY_ITEMS);
     } finally {
       setIsLoading(false);
     }
@@ -88,24 +49,20 @@ export function useFeed(): UseFeedReturn {
   }, [fetchFeed]);
 
   const updateItem = useCallback(
-    (id: string, patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>) => {
+    (
+      id: string,
+      patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>
+    ) => {
       setRealItems((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, ...patch } : item
-        )
-      );
-      setDummyItems((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, ...patch } : item
-        )
+        prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
       );
     },
     []
   );
 
-  const [locallyBlockedUserIds, setLocallyBlockedUserIds] = useState<Set<string>>(
-    new Set()
-  );
+  const [locallyBlockedUserIds, setLocallyBlockedUserIds] = useState<
+    Set<string>
+  >(new Set());
 
   const removeItemsByUser = useCallback((userId: string) => {
     setLocallyBlockedUserIds((prev) => new Set(prev).add(userId));
@@ -117,17 +74,15 @@ export function useFeed(): UseFeedReturn {
     item.type === "friend_signup" ||
     item.type === "photo_post";
 
-  // Merge real items with dummy photo posts, filter out blocked authors, sort by timestamp desc.
-  // Photo posts go through the real interaction system (stable IDs) and the API
-  // populates their like/comment counts via the extraInteractions payload.
-  const items = [...realItems, ...dummyItems]
+  const items = realItems
     .filter((item) => {
       if (!hasAuthor(item)) return true;
       const uid = (item as { userId?: string }).userId;
       return !uid || !locallyBlockedUserIds.has(uid);
     })
     .sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
 
   return { items, isLoading, error, refresh, updateItem, removeItemsByUser };

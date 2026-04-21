@@ -524,12 +524,6 @@ export type FeedItem =
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string } & FeedInteractions);
 
-function hoursAgo(hours: number): string {
-  const d = new Date();
-  d.setHours(d.getHours() - hours);
-  return d.toISOString();
-}
-
 /* ── Profile Stats & Achievements ── */
 
 export type ProfileStats = {
@@ -829,73 +823,6 @@ export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
     ],
   },
 };
-
-// Photo posts are dummy-only items (no real data source yet).
-// Announcements, achievements, milestones, friend signups, and recaps all come from the API.
-// likeCount/likedByMe/commentCount start at 0 — the API will populate them for real items,
-// but dummy photo posts use the real interaction system via their stable IDs.
-export const FEED_ITEMS: FeedItem[] = [
-  {
-    type: 'photo_post',
-    id: 'photo-post-2b',
-    userName: 'James Tūhoe',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
-    caption: 'Beautiful night at the kitchen — whānau energy was next level tonight 🌿🍽️',
-    photos: [
-      'https://cdn.prod.website-files.com/66d7cb82647de44647142131/68089ca8ef4d2cdbcbf58aab_67199c852abab93f11eba964_Copy%20of%20_J5A8623.jpg',
-      'https://cdn.prod.website-files.com/66d7cb82647de44647142131/66da1b4267d61fe68398d065_280443354_2008401622656620_5596744644117168718_n.jpg',
-    ],
-    shiftDate: '2026-03-20',
-    period: 'PM',
-    location: 'Everybody Eats — Auckland CBD',
-    timestamp: hoursAgo(3),
-    isFriend: true,
-    likeCount: 0,
-    likedByMe: false,
-    recentLikers: [],
-    commentCount: 0,
-  },
-  {
-    type: 'photo_post',
-    id: 'photo-post-5b',
-    userName: 'Te Rina Kahurangi',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face',
-    caption: 'Service night vibes! So proud of the crew tonight 💚',
-    photos: [
-      'https://cdn.prod.website-files.com/66d7cb82647de44647142131/68089c9651aa56878d370e5d_66da1b61c565fbd49ef16956_302434741_2090189637811151_7570410469445469434_n.jpg',
-      'https://cdn.prod.website-files.com/66d7cb82647de44647142131/673bb0f16c9016df4a976e12_A.%20McVinnie-_K9A8730.jpg',
-      'https://cdn.prod.website-files.com/66d7cb82647de44647142131/67230e4c28b38726618cec45_Tommy.png',
-    ],
-    shiftDate: '2026-03-19',
-    period: 'PM',
-    location: 'Everybody Eats — Onehunga',
-    timestamp: hoursAgo(18),
-    isFriend: true,
-    likeCount: 0,
-    likedByMe: false,
-    recentLikers: [],
-    commentCount: 0,
-  },
-  {
-    type: 'photo_post',
-    id: 'photo-post-6b',
-    userName: 'Hana Patel',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face',
-    caption: 'Community kai at its finest — love this place 🌱',
-    photos: [
-      'https://cdn.prod.website-files.com/66d7cb82647de44647142131/6721b733173c3821c0cc7a50_HOMEPAGE%20-%204%20COMMUNITY.jpg',
-    ],
-    shiftDate: '2026-03-18',
-    period: 'AM',
-    location: 'Everybody Eats — Auckland CBD',
-    timestamp: hoursAgo(28),
-    isFriend: false,
-    likeCount: 0,
-    likedByMe: false,
-    recentLikers: [],
-    commentCount: 0,
-  },
-];
 
 /* ── Resources ── */
 
