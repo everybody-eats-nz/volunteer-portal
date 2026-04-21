@@ -151,6 +151,9 @@ model User {
   // Archive activity performed by this user (admin)
   archiveActions ArchiveLog[] @relation("ArchiveActor")
 
+  // Mobile chat assistant conversations
+  chatLogs ChatLog[]
+
   // Analytics queries filter heavily on role + createdAt
   @@index([role, createdAt])
   // Archive filters and scheduled job queries
@@ -987,6 +990,23 @@ enum ArchiveTriggerSource {
   CRON
   SELF_EXTENSION
   SELF_REACTIVATION
+}
+
+// Mobile AI chat assistant conversation log.
+// One row per user message + assistant reply pair. Pruned after 30 days by cron.
+model ChatLog {
+  id                String   @id @default(cuid())
+  userId            String
+  userMessage       String   // The latest user message in the turn
+  assistantResponse String   // The full assistant reply text
+  conversation      Json     // Full message history at time of request: [{role, content}, ...]
+  model             String   // OpenRouter model id used
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model ArchiveLog {
