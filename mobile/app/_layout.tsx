@@ -20,6 +20,7 @@ import {
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
+import { useNotificationsStore } from '@/hooks/use-notifications';
 import { Brand } from '@/constants/theme';
 import { AuthGate } from '@/components/auth-gate';
 import { EulaModal } from '@/components/eula-modal';
@@ -64,6 +65,19 @@ export default function RootLayout() {
       },
     );
     return () => subscription.remove();
+  }, []);
+
+  // Keep the OS app-icon badge in sync with the store's unreadCount.
+  // Push notifications increment the badge; only we can clear it once the
+  // user reads things in-app.
+  useEffect(() => {
+    const applyBadge = (count: number) => {
+      Notifications.setBadgeCountAsync(count).catch(() => {});
+    };
+    applyBadge(useNotificationsStore.getState().unreadCount);
+    return useNotificationsStore.subscribe((state, prev) => {
+      if (state.unreadCount !== prev.unreadCount) applyBadge(state.unreadCount);
+    });
   }, []);
 
   useEffect(() => {
