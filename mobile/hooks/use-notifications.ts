@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { create } from 'zustand';
 
 import { api } from '@/lib/api';
 
@@ -43,51 +44,63 @@ type UseNotificationsReturn = {
   remove: (id: string) => Promise<void>;
 };
 
-export function useNotifications(): UseNotificationsReturn {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+type NotificationState = {
+  notifications: AppNotification[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
+  hasFetched: boolean;
+  fetch: () => Promise<void>;
+  refresh: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  remove: (id: string) => Promise<void>;
+};
 
-  const fetchNotifications = useCallback(async () => {
+export const useNotificationsStore = create<NotificationState>((set, get) => ({
+  notifications: [],
+  unreadCount: 0,
+  isLoading: true,
+  error: null,
+  hasFetched: false,
+
+  fetch: async () => {
     try {
-      setError(null);
+      set({ error: null });
       const result = await api<ListResponse>('/api/mobile/notifications');
-      setNotifications(result.notifications);
-      setUnreadCount(result.unreadCount);
+      set({
+        notifications: result.notifications,
+        unreadCount: result.unreadCount,
+        hasFetched: true,
+      });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load notifications',
-      );
+      set({
+        error:
+          err instanceof Error ? err.message : 'Failed to load notifications',
+      });
     } finally {
-      setIsLoading(false);
+      set({ isLoading: false });
     }
-  }, []);
+  },
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  refresh: async () => {
+    set({ isLoading: true });
+    await get().fetch();
+  },
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchNotifications();
-  }, [fetchNotifications]);
+  markAsRead: async (id) => {
+    const target = get().notifications.find((n) => n.id === id);
+    if (!target) return;
+    const wasUnread = !target.isRead;
 
-  const markAsRead = useCallback(async (id: string) => {
-    // Optimistic update — roll back on failure.
-    let wasUnread = false;
-    setNotifications((prev) =>
-      prev.map((n) => {
-        if (n.id === id) {
-          wasUnread = !n.isRead;
-          return { ...n, isRead: true };
-        }
-        return n;
-      }),
-    );
-    if (wasUnread) {
-      setUnreadCount((c) => Math.max(0, c - 1));
-    }
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, isRead: true } : n,
+      ),
+      unreadCount: wasUnread
+        ? Math.max(0, state.unreadCount - 1)
+        : state.unreadCount,
+    }));
 
     try {
       await api(`/api/mobile/notifications/${id}`, {
@@ -96,20 +109,23 @@ export function useNotifications(): UseNotificationsReturn {
       });
     } catch (err) {
       console.warn('[NOTIFICATIONS] mark-as-read failed:', err);
-      if (wasUnread) {
-        setUnreadCount((c) => c + 1);
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
-        );
-      }
+      set((state) => ({
+        notifications: state.notifications.map((n) =>
+          n.id === id ? { ...n, isRead: false } : n,
+        ),
+        unreadCount: wasUnread ? state.unreadCount + 1 : state.unreadCount,
+      }));
     }
-  }, []);
+  },
 
-  const markAllAsRead = useCallback(async () => {
-    const previous = notifications;
-    const previousUnread = unreadCount;
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadCount(0);
+  markAllAsRead: async () => {
+    const previous = get().notifications;
+    const previousUnread = get().unreadCount;
+
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+      unreadCount: 0,
+    }));
 
     try {
       await api('/api/mobile/notifications', {
@@ -118,33 +134,52 @@ export function useNotifications(): UseNotificationsReturn {
       });
     } catch (err) {
       console.warn('[NOTIFICATIONS] mark-all-read failed:', err);
-      setNotifications(previous);
-      setUnreadCount(previousUnread);
+      set({ notifications: previous, unreadCount: previousUnread });
     }
-  }, [notifications, unreadCount]);
+  },
 
-  const remove = useCallback(
-    async (id: string) => {
-      const removed = notifications.find((n) => n.id === id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      if (removed && !removed.isRead) {
-        setUnreadCount((c) => Math.max(0, c - 1));
-      }
+  remove: async (id) => {
+    const removed = get().notifications.find((n) => n.id === id);
+    if (!removed) return;
 
-      try {
-        await api(`/api/mobile/notifications/${id}`, { method: 'DELETE' });
-      } catch (err) {
-        console.warn('[NOTIFICATIONS] delete failed:', err);
-        if (removed) {
-          setNotifications((prev) => [removed, ...prev]);
-          if (!removed.isRead) {
-            setUnreadCount((c) => c + 1);
-          }
-        }
-      }
-    },
-    [notifications],
-  );
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+      unreadCount: !removed.isRead
+        ? Math.max(0, state.unreadCount - 1)
+        : state.unreadCount,
+    }));
+
+    try {
+      await api(`/api/mobile/notifications/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('[NOTIFICATIONS] delete failed:', err);
+      set((state) => ({
+        notifications: [removed, ...state.notifications],
+        unreadCount: !removed.isRead
+          ? state.unreadCount + 1
+          : state.unreadCount,
+      }));
+    }
+  },
+}));
+
+export function useNotifications(): UseNotificationsReturn {
+  const notifications = useNotificationsStore((s) => s.notifications);
+  const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const isLoading = useNotificationsStore((s) => s.isLoading);
+  const error = useNotificationsStore((s) => s.error);
+  const hasFetched = useNotificationsStore((s) => s.hasFetched);
+  const fetchNotifications = useNotificationsStore((s) => s.fetch);
+  const refresh = useNotificationsStore((s) => s.refresh);
+  const markAsRead = useNotificationsStore((s) => s.markAsRead);
+  const markAllAsRead = useNotificationsStore((s) => s.markAllAsRead);
+  const remove = useNotificationsStore((s) => s.remove);
+
+  useEffect(() => {
+    if (!hasFetched) {
+      void fetchNotifications();
+    }
+  }, [hasFetched, fetchNotifications]);
 
   return {
     notifications,
