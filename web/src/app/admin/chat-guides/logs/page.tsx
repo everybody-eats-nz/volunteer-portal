@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChatLogsSearch } from "./chat-logs-search";
+import { VolunteerLink } from "./volunteer-link";
 
 const PAGE_SIZE = 50;
 
@@ -191,13 +192,9 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <Link
-                          href={`/admin/volunteers/${log.user.id}`}
-                          className="font-medium hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <VolunteerLink href={`/admin/volunteers/${log.user.id}`}>
                           {displayName}
-                        </Link>
+                        </VolunteerLink>
                         <span className="text-xs text-muted-foreground">{log.user.email}</span>
                         <Badge variant="secondary" className="ml-auto text-xs font-normal">
                           {formatInNZT(log.createdAt, "d MMM yyyy, h:mm a")}
