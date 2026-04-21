@@ -25,6 +25,7 @@ import {
   UserPlus,
   Award,
   Archive,
+  ScrollText,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -234,6 +235,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "chat-guides",
       },
       {
+        title: "Chat Logs",
+        href: "/admin/chat-guides/logs",
+        icon: ScrollText,
+        description: "View volunteer conversations with the AI assistant",
+        commandKey: "chat-logs",
+      },
+      {
         title: "Announcements",
         href: "/admin/announcements",
         icon: Megaphone,
@@ -345,6 +353,7 @@ export const getIconColor = (
     "Resource Hub": "text-blue-500",
     "Site Settings": "text-slate-600",
     "Chat Guides": "text-emerald-500",
+    "Chat Logs": "text-emerald-600",
     "Announcements": "text-orange-500",
 
     // Safety

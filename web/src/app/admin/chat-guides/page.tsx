@@ -1,11 +1,14 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
+import { ScrollText } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
+import { Button } from "@/components/ui/button";
 import { ChatGuidesContent } from "./chat-guides-content";
 
 export default async function ChatGuidesPage() {
@@ -69,6 +72,14 @@ export default async function ChatGuidesPage() {
     <AdminPageWrapper
       title="Chat Guides"
       description="Manage which resources are included as context for the mobile AI chat assistant. Volunteers can ask the assistant questions and it will answer based on these resources."
+      actions={
+        <Button variant="outline" asChild>
+          <Link href="/admin/chat-guides/logs">
+            <ScrollText className="mr-2 h-4 w-4" />
+            View Logs
+          </Link>
+        </Button>
+      }
     >
       <ChatGuidesContent
         initialChatResources={chatResources}

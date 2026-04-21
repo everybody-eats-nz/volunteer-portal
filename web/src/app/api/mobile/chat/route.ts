@@ -377,6 +377,9 @@ export async function POST(request: Request) {
       systemPromptLength: systemPrompt.length,
     });
 
+    const lastUserMessage =
+      [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+
     const result = streamText({
       model: openrouter(modelId),
       system: systemPrompt,
@@ -386,6 +389,21 @@ export async function POST(request: Request) {
       })),
       onError: ({ error }) => {
         console.error("[mobile-chat] streamText error:", error);
+      },
+      onFinish: async ({ text }) => {
+        try {
+          await prisma.chatLog.create({
+            data: {
+              userId: auth.userId,
+              userMessage: lastUserMessage,
+              assistantResponse: text,
+              conversation: messages,
+              model: modelId,
+            },
+          });
+        } catch (err) {
+          console.error("[mobile-chat] Failed to write ChatLog:", err);
+        }
       },
     });
 
