@@ -50,6 +50,40 @@ export async function sendPushToUser(
 }
 
 /**
+ * Send a push notification to every registered device across a set of users,
+ * in one batched Expo request (chunked to the 100-message limit).
+ *
+ * `badgeByUserId` lets callers set a per-user badge value (each recipient's
+ * own unread count) while sharing a single payload. Falls back to
+ * `payload.badge` when a user isn't in the map.
+ */
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: ExpoPushPayload,
+  badgeByUserId?: Map<string, number>
+): Promise<void> {
+  if (userIds.length === 0) return;
+
+  const tokens = await prisma.pushToken.findMany({
+    where: { userId: { in: userIds } },
+    select: { token: true, userId: true },
+  });
+
+  if (tokens.length === 0) return;
+
+  const messages = tokens
+    .filter((t) => isExpoPushToken(t.token))
+    .map((t) =>
+      buildMessage(t.token, {
+        ...payload,
+        badge: badgeByUserId?.get(t.userId) ?? payload.badge,
+      })
+    );
+
+  await dispatchMessages(messages);
+}
+
+/**
  * Send a push notification to a raw list of Expo tokens.
  * Handles chunking, Expo ticket errors, and invalid-token cleanup.
  */
@@ -60,7 +94,18 @@ export async function sendPushToTokens(
   const valid = tokens.filter(isExpoPushToken);
   if (valid.length === 0) return;
 
-  const messages: ExpoPushMessage[] = valid.map((token) => ({
+  const messages: ExpoPushMessage[] = valid.map((token) =>
+    buildMessage(token, payload)
+  );
+
+  await dispatchMessages(messages);
+}
+
+function buildMessage(
+  token: string,
+  payload: ExpoPushPayload
+): ExpoPushMessage {
+  return {
     to: token,
     title: payload.title,
     body: payload.body,
@@ -69,7 +114,11 @@ export async function sendPushToTokens(
     badge: payload.badge,
     // Android notification channel (configured on the client side)
     channelId: payload.channelId ?? "default",
-  }));
+  };
+}
+
+async function dispatchMessages(messages: ExpoPushMessage[]): Promise<void> {
+  if (messages.length === 0) return;
 
   const invalidTokens: string[] = [];
 
