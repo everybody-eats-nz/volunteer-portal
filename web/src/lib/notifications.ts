@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@/generated/client";
 import {
+  isUserConnected,
   sendNotificationToUser,
   updateUnreadCount,
 } from "./notification-helpers";
@@ -122,7 +123,11 @@ export async function createNotificationsForUsers(
       unreadCounts.map((row) => [row.userId, row._count._all])
     );
 
+    // Skip SSE for users with no active connection — this is a cheap
+    // in-memory check that avoids per-user log spam when most recipients
+    // aren't online (e.g. an admin sending a shortage blast at 2am).
     for (const userId of userIds) {
+      if (!isUserConnected(userId)) continue;
       const unreadCount = badgeByUserId.get(userId) ?? 0;
       sendNotificationToUser(userId, {
         title: params.title,
