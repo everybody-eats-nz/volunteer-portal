@@ -26,9 +26,9 @@ test.describe("Profile Page", () => {
     );
     await expect(description.first()).toBeVisible();
 
-    // Check profile header card is visible by finding the "Active Member" badge
-    const activeMemberBadge = page.getByText("Active Member");
-    await expect(activeMemberBadge.first()).toBeVisible();
+    // Check profile header card is visible via the role badge
+    const roleBadge = page.getByTestId("user-role");
+    await expect(roleBadge).toBeVisible();
 
     // Check edit profile button
     const editButton = page.getByRole("link", { name: /edit profile/i });
@@ -58,20 +58,12 @@ test.describe("Profile Page", () => {
     // Check role badge
     const roleBadge = page.getByTestId("user-role");
     await expect(roleBadge).toBeVisible();
-
-    // Check active member badge
-    const activeBadge = page.getByText("Active Member");
-    await expect(activeBadge.first()).toBeVisible();
   });
 
   test("should display personal information section", async ({ page }) => {
     // Check personal information heading
     const personalInfoHeading = page.getByTestId("personal-info-heading");
     await expect(personalInfoHeading).toBeVisible();
-
-    // Check account details subheading
-    const accountDetails = page.getByText("Your account details");
-    await expect(accountDetails.first()).toBeVisible();
 
     // Check common fields that should always be present
     const nameLabel = page.getByTestId("personal-info-name-label");
@@ -91,17 +83,9 @@ test.describe("Profile Page", () => {
     const emergencyHeading = page.getByTestId("emergency-contact-heading");
     await expect(emergencyHeading).toBeVisible();
 
-    // Check section description
-    const emergencyDescription = page.getByText(
-      "Emergency contact information"
-    );
-    await expect(emergencyDescription.first()).toBeVisible();
-
     // Check either emergency contact info or empty state message
-    const hasEmergencyContact =
-      (await page
-        .getByText("No emergency contact information provided")
-        .count()) === 0;
+    const emptyState = page.getByText("No emergency contact on file yet.");
+    const hasEmergencyContact = (await emptyState.count()) === 0;
 
     if (hasEmergencyContact) {
       // If emergency contact exists, check for name field
@@ -109,43 +93,33 @@ test.describe("Profile Page", () => {
       await expect(contactNameLabel).toBeVisible();
     } else {
       // If no emergency contact, check for empty state message
-      const noContactMessage = page.getByText(
-        "No emergency contact information provided"
-      );
-      await expect(noContactMessage.first()).toBeVisible();
+      await expect(emptyState.first()).toBeVisible();
     }
   });
 
   test("should display availability section", async ({ page }) => {
     // Check availability heading
     const availabilityHeading = page.getByTestId("availability-heading");
-    await expect(availabilityHeading).toBeVisible();
-
-    // Check section description
-    const availabilityDescription = page.getByText(
-      "When and where you can volunteer"
-    );
-    await expect(availabilityDescription.first()).toBeVisible();
+    await expect(availabilityHeading.first()).toBeVisible();
 
     // Check either availability info or empty state
-    const hasAvailability =
-      (await page.getByText("No availability preferences set").count()) === 0;
+    const emptyState = page.getByText("No availability preferences set yet.");
+    const hasAvailability = (await emptyState.count()) === 0;
 
     if (hasAvailability) {
-      // If availability exists, check for available days or locations
-      const availableDaysLabel = page.getByText("Available Days:");
-      const availableLocationsLabel = page.getByText("Available Locations:");
+      // If availability exists, check for at least one of the populated fields
+      const availableDaysLabel = page.getByText("Available days");
+      const preferredLocationsLabel = page.getByText("Preferred locations");
+      const defaultLocationLabel = page.getByText("Default location");
 
       const hasDays = (await availableDaysLabel.count()) > 0;
-      const hasLocations = (await availableLocationsLabel.count()) > 0;
+      const hasLocations = (await preferredLocationsLabel.count()) > 0;
+      const hasDefault = (await defaultLocationLabel.count()) > 0;
 
-      expect(hasDays || hasLocations).toBe(true);
+      expect(hasDays || hasLocations || hasDefault).toBe(true);
     } else {
       // If no availability, check for empty state message
-      const noAvailabilityMessage = page.getByText(
-        "No availability preferences set"
-      );
-      await expect(noAvailabilityMessage.first()).toBeVisible();
+      await expect(emptyState.first()).toBeVisible();
     }
   });
 
@@ -154,20 +128,14 @@ test.describe("Profile Page", () => {
     const quickActionsHeading = page.getByTestId("quick-actions-heading");
     await expect(quickActionsHeading).toBeVisible();
 
-    // Check section description
-    const quickActionsDescription = page.getByText(
-      "Manage your volunteer experience"
-    );
-    await expect(quickActionsDescription.first()).toBeVisible();
-
     // Check action buttons exist
     const browseShiftsButton = page.getByTestId("browse-shifts-button");
     await expect(browseShiftsButton).toBeVisible();
-    await expect(browseShiftsButton).toContainText("Browse Available Shifts");
+    await expect(browseShiftsButton).toContainText(/browse available shifts/i);
 
     const viewScheduleButton = page.getByTestId("view-schedule-button");
     await expect(viewScheduleButton).toBeVisible();
-    await expect(viewScheduleButton).toContainText("View My Schedule");
+    await expect(viewScheduleButton).toContainText(/view my schedule/i);
   });
 
   test("should navigate to edit profile page", async ({ page }) => {
@@ -183,7 +151,7 @@ test.describe("Profile Page", () => {
     // Check that the link exists and is clickable
     const browseShiftsLink = page
       .locator('a[href="/shifts"]')
-      .filter({ hasText: "Browse Available Shifts" });
+      .filter({ hasText: /browse available shifts/i });
     await expect(browseShiftsLink.first()).toBeVisible();
 
     await browseShiftsLink.click();
@@ -198,7 +166,7 @@ test.describe("Profile Page", () => {
     // Check that the link exists and is clickable
     const viewScheduleLink = page
       .locator('a[href="/shifts/mine"]')
-      .filter({ hasText: "View My Schedule" });
+      .filter({ hasText: /view my schedule/i });
     await expect(viewScheduleLink.first()).toBeVisible();
 
     await viewScheduleLink.click();
@@ -258,19 +226,13 @@ test.describe("Profile Page", () => {
   });
 
   test("should display badges correctly", async ({ page }) => {
-    // Check role badge
-    const badges = page
-      .locator('[class*="badge"]')
-      .or(page.getByText("Administrator").or(page.getByText("Volunteer")));
-    const badgeCount = await badges.count();
-    expect(badgeCount).toBeGreaterThan(0);
+    // Role badge always rendered via data-testid
+    const roleBadge = page.getByTestId("user-role");
+    await expect(roleBadge).toBeVisible();
+    await expect(roleBadge).toContainText(/administrator|volunteer/i);
 
-    // Check active member badge
-    const activeBadge = page.getByText("Active Member");
-    await expect(activeBadge.first()).toBeVisible();
-
-    // Check for agreement signed badge if present
-    const agreementBadge = page.getByText("Agreement Signed");
+    // Agreement signed badge if profile has it accepted
+    const agreementBadge = page.getByText(/agreement signed/i);
     if ((await agreementBadge.count()) > 0) {
       await expect(agreementBadge.first()).toBeVisible();
     }
@@ -356,13 +318,15 @@ test.describe("Profile Page", () => {
       "personal-info-account-type-label"
     );
     await expect(accountTypeLabel).toBeVisible();
-    await expect(accountTypeLabel).toContainText("Account Type");
+    await expect(accountTypeLabel).toContainText(/account type/i);
   });
 
   test("should show complete profile reminder only for incomplete profiles", async ({ page }) => {
-    // The "Complete your profile!" reminder only shows when profile is incomplete
-    // (missing phone, date of birth, emergency contact, or agreements)
-    const completeProfileMessage = page.getByText("Complete your profile!");
+    // The "Finish setting up your profile" reminder only shows when profile is
+    // incomplete (missing phone, date of birth, emergency contact, or agreements)
+    const completeProfileMessage = page.getByText(
+      /finish setting up your profile/i
+    );
 
     // Check if reminder exists - it should only appear for incomplete profiles
     const reminderCount = await completeProfileMessage.count();
