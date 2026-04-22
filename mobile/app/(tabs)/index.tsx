@@ -208,34 +208,30 @@ export default function HomeScreen() {
 
   const deleteComment = useCallback(
     (itemId: string, commentId: string) => {
-      Alert.alert(
-        "Delete comment?",
-        "This can't be undone.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              const ok = await apiDeleteComment(itemId, commentId);
-              if (ok) {
-                const item = feedItems.find((i) => i.id === itemId);
-                if (item) {
-                  updateFeedItem(itemId, {
-                    commentCount: Math.max(0, item.commentCount - 1),
-                  });
-                }
-              } else {
-                Alert.alert(
-                  "Couldn't delete",
-                  "We couldn't delete your comment. Please try again."
-                );
+      Alert.alert("Delete comment?", "This can't be undone.", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            const ok = await apiDeleteComment(itemId, commentId);
+            if (ok) {
+              const item = feedItems.find((i) => i.id === itemId);
+              if (item) {
+                updateFeedItem(itemId, {
+                  commentCount: Math.max(0, item.commentCount - 1),
+                });
               }
-            },
+            } else {
+              Alert.alert(
+                "Couldn't delete",
+                "We couldn't delete your comment. Please try again."
+              );
+            }
           },
-        ]
-      );
+        },
+      ]);
     },
     [apiDeleteComment, feedItems, updateFeedItem]
   );
@@ -1198,7 +1194,7 @@ const RECAP_TEMPLATES = [
   (meals: number, volunteers: number) =>
     `The whānau showed up! ${volunteers} volunteers served ${meals} meals 💪`,
   (meals: number, volunteers: number) =>
-    `Ka pai! ${volunteers} volunteers, ${meals} kai served with community love 🌱`,
+    `Ka pai! ${volunteers} volunteers, ${meals} people served with community love 🌱`,
   (meals: number, volunteers: number) =>
     `${meals} meals, ${volunteers} volunteers, endless aroha — that's Everybody Eats 💚`,
 ];
@@ -1643,11 +1639,7 @@ function FeedCard({
             <Text
               style={[styles.feedDescription, { color: colors.textSecondary }]}
             >
-              {getRecapMessage(
-                item.mealsServed,
-                item.volunteerCount,
-                item.id
-              )}
+              {getRecapMessage(item.mealsServed, item.volunteerCount, item.id)}
             </Text>
             <View style={styles.feedFooter}>
               <Text
@@ -2096,11 +2088,7 @@ function FeedItemSheet({
       new Date(item.date),
       "EEEE d MMM"
     )}`;
-    body = getRecapMessage(
-      item.mealsServed,
-      item.volunteerCount,
-      item.id
-    );
+    body = getRecapMessage(item.mealsServed, item.volunteerCount, item.id);
   } else if (item.type === "new_shift") {
     title =
       item.count === 1
@@ -2116,7 +2104,9 @@ function FeedItemSheet({
     body = `${dateText} · ${item.shiftTypes.join(", ")}`;
   } else if (item.type === "daily_menu") {
     const serviceDate = new Date(item.serviceDate);
-    title = `Menu for ${formatNZT(serviceDate, "EEEE d MMM")} at ${item.location}`;
+    title = `Menu for ${formatNZT(serviceDate, "EEEE d MMM")} at ${
+      item.location
+    }`;
     const sections: string[] = [];
     if (item.chefName) sections.push(`👨‍🍳 **${item.chefName}**`);
     if (item.announcement) sections.push(item.announcement);
@@ -2256,9 +2246,7 @@ function FeedItemSheet({
                       },
                     ]}
                   >
-                    <Text style={sheet.heroAvatarBadgeEmoji}>
-                      {heroEmoji}
-                    </Text>
+                    <Text style={sheet.heroAvatarBadgeEmoji}>{heroEmoji}</Text>
                   </View>
                 </View>
               ) : (
@@ -2439,138 +2427,143 @@ function FeedItemSheet({
             </View>
 
             {/* ── New shift preview list ── */}
-            {item.type === "new_shift" && item.preview && item.preview.length > 0 && (
-              <View
-                style={[
-                  sheet.shiftListCard,
-                  {
-                    backgroundColor: colors.card,
-                    shadowColor: isDark ? "#000" : "#64748b",
-                  },
-                ]}
-              >
-                <Text
+            {item.type === "new_shift" &&
+              item.preview &&
+              item.preview.length > 0 && (
+                <View
                   style={[
-                    sheet.shiftListHeader,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {item.count <= item.preview.length
-                    ? `Shift${item.count === 1 ? "" : "s"} available`
-                    : `Soonest ${item.preview.length} of ${item.count}`}
-                </Text>
-                {item.preview.map((s, idx) => {
-                  const start = new Date(s.start);
-                  return (
-                    <Pressable
-                      key={s.id}
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        onClose();
-                        router.push(`/shift/${s.id}` as Href);
-                      }}
-                      style={({ pressed }) => [
-                        sheet.shiftListRow,
-                        {
-                          borderTopWidth:
-                            idx === 0 ? 0 : StyleSheet.hairlineWidth,
-                          borderTopColor: colors.border,
-                          opacity: pressed ? 0.6 : 1,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${s.shiftTypeName} on ${formatNZT(start, "EEEE d MMMM")}`}
-                    >
-                      <View
-                        style={[
-                          sheet.shiftListDate,
-                          {
-                            backgroundColor: isDark
-                              ? "rgba(134, 239, 172, 0.10)"
-                              : Brand.greenLight,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            sheet.shiftListDay,
-                            { color: isDark ? "#86efac" : Brand.green },
-                          ]}
-                        >
-                          {formatNZT(start, "EEE").toUpperCase()}
-                        </Text>
-                        <Text
-                          style={[
-                            sheet.shiftListDayNum,
-                            { color: isDark ? "#86efac" : Brand.green },
-                          ]}
-                        >
-                          {formatNZT(start, "d")}
-                        </Text>
-                      </View>
-                      <View style={sheet.shiftListBody}>
-                        <Text
-                          style={[
-                            sheet.shiftListTitle,
-                            { color: colors.text },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {s.shiftTypeName}
-                        </Text>
-                        <Text
-                          style={[
-                            sheet.shiftListMeta,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {formatNZT(start, "MMM · h:mm a")}
-                        </Text>
-                      </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={16}
-                        color={colors.textSecondary}
-                      />
-                    </Pressable>
-                  );
-                })}
-                <Pressable
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    onClose();
-                    router.push("/(tabs)/shifts?tab=browse");
-                  }}
-                  style={({ pressed }) => [
-                    sheet.shiftListCTA,
+                    sheet.shiftListCard,
                     {
-                      backgroundColor: isDark
-                        ? "rgba(134, 239, 172, 0.12)"
-                        : Brand.greenLight,
-                      opacity: pressed ? 0.7 : 1,
+                      backgroundColor: colors.card,
+                      shadowColor: isDark ? "#000" : "#64748b",
                     },
                   ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Browse all shifts"
                 >
                   <Text
                     style={[
-                      sheet.shiftListCTAText,
-                      { color: isDark ? "#86efac" : Brand.green },
+                      sheet.shiftListHeader,
+                      { color: colors.textSecondary },
                     ]}
                   >
-                    {item.count > item.preview.length
-                      ? `Browse all ${item.count} shifts`
-                      : "Browse shifts"}
+                    {item.count <= item.preview.length
+                      ? `Shift${item.count === 1 ? "" : "s"} available`
+                      : `Soonest ${item.preview.length} of ${item.count}`}
                   </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={16}
-                    color={isDark ? "#86efac" : Brand.green}
-                  />
-                </Pressable>
-              </View>
-            )}
+                  {item.preview.map((s, idx) => {
+                    const start = new Date(s.start);
+                    return (
+                      <Pressable
+                        key={s.id}
+                        onPress={() => {
+                          Haptics.selectionAsync();
+                          onClose();
+                          router.push(`/shift/${s.id}` as Href);
+                        }}
+                        style={({ pressed }) => [
+                          sheet.shiftListRow,
+                          {
+                            borderTopWidth:
+                              idx === 0 ? 0 : StyleSheet.hairlineWidth,
+                            borderTopColor: colors.border,
+                            opacity: pressed ? 0.6 : 1,
+                          },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${s.shiftTypeName} on ${formatNZT(
+                          start,
+                          "EEEE d MMMM"
+                        )}`}
+                      >
+                        <View
+                          style={[
+                            sheet.shiftListDate,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(134, 239, 172, 0.10)"
+                                : Brand.greenLight,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              sheet.shiftListDay,
+                              { color: isDark ? "#86efac" : Brand.green },
+                            ]}
+                          >
+                            {formatNZT(start, "EEE").toUpperCase()}
+                          </Text>
+                          <Text
+                            style={[
+                              sheet.shiftListDayNum,
+                              { color: isDark ? "#86efac" : Brand.green },
+                            ]}
+                          >
+                            {formatNZT(start, "d")}
+                          </Text>
+                        </View>
+                        <View style={sheet.shiftListBody}>
+                          <Text
+                            style={[
+                              sheet.shiftListTitle,
+                              { color: colors.text },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {s.shiftTypeName}
+                          </Text>
+                          <Text
+                            style={[
+                              sheet.shiftListMeta,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {formatNZT(start, "MMM · h:mm a")}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                  <Pressable
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      onClose();
+                      router.push("/(tabs)/shifts?tab=browse");
+                    }}
+                    style={({ pressed }) => [
+                      sheet.shiftListCTA,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(134, 239, 172, 0.12)"
+                          : Brand.greenLight,
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Browse all shifts"
+                  >
+                    <Text
+                      style={[
+                        sheet.shiftListCTAText,
+                        { color: isDark ? "#86efac" : Brand.green },
+                      ]}
+                    >
+                      {item.count > item.preview.length
+                        ? `Browse all ${item.count} shifts`
+                        : "Browse shifts"}
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={isDark ? "#86efac" : Brand.green}
+                    />
+                  </Pressable>
+                </View>
+              )}
 
             {/* ── Photo gallery (for photo_post type) ── */}
             {/* Announcement image */}
@@ -2931,7 +2924,8 @@ function FeedItemSheet({
                                           ? "rgba(255,255,255,0.05)"
                                           : "#e2e8f0"
                                         : Brand.green,
-                                      opacity: pressed && !editDisabled ? 0.75 : 1,
+                                      opacity:
+                                        pressed && !editDisabled ? 0.75 : 1,
                                     },
                                   ]}
                                   accessibilityLabel="Save edit"
@@ -2966,7 +2960,10 @@ function FeedItemSheet({
                         {!isEditing && (
                           <MenuView
                             onPressAction={({ nativeEvent }) =>
-                              handleCommentMenuAction(comment, nativeEvent.event)
+                              handleCommentMenuAction(
+                                comment,
+                                nativeEvent.event
+                              )
                             }
                             actions={buildCommentMenuActions(comment)}
                             shouldOpenOnLongPress={false}

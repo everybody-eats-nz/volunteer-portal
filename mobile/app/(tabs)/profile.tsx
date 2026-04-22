@@ -150,7 +150,7 @@ export default function ProfileScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Camera access needed",
-          "Please enable camera access in Settings to take a profile photo.",
+          "Please enable camera access in Settings to take a profile photo."
         );
         return;
       }
@@ -161,7 +161,7 @@ export default function ProfileScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Photos access needed",
-          "Please enable photo library access in Settings to choose a profile photo.",
+          "Please enable photo library access in Settings to choose a profile photo."
         );
         return;
       }
@@ -173,7 +173,8 @@ export default function ProfileScreen() {
     const asset = result.assets[0];
     const uri = asset.uri;
     const mimeType = asset.mimeType ?? "image/jpeg";
-    const fileName = asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
+    const fileName =
+      asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
 
     const formData = new FormData();
     formData.append("photo", {
@@ -188,7 +189,10 @@ export default function ProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refresh();
     } catch {
-      Alert.alert("Upload failed", "Couldn't update your photo. Please try again.");
+      Alert.alert(
+        "Upload failed",
+        "Couldn't update your photo. Please try again."
+      );
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -228,7 +232,7 @@ export default function ProfileScreen() {
           if (index === 0) pickImage("camera");
           else if (index === 1) pickImage("library");
           else if (index === 2 && user?.image) removePhoto();
-        },
+        }
       );
     } else {
       Alert.alert("Profile Photo", undefined, [
@@ -250,7 +254,7 @@ export default function ProfileScreen() {
 
   const unlocked = achievements.filter((a) => a.unlockedAt);
   const inProgress = achievements.filter(
-    (a) => !a.unlockedAt && a.progress != null,
+    (a) => !a.unlockedAt && a.progress != null
   );
   const latestUnlock = unlocked[0] ?? null;
   const otherUnlocks = unlocked.slice(1, 3);
@@ -347,7 +351,10 @@ export default function ProfileScreen() {
               ]}
             >
               {user.image ? (
-                <Image source={{ uri: user.image }} style={styles.avatarImage} />
+                <Image
+                  source={{ uri: user.image }}
+                  style={styles.avatarImage}
+                />
               ) : (
                 <View
                   style={[
@@ -399,9 +406,7 @@ export default function ProfileScreen() {
         <View style={styles.mahiContainer}>
           <LinearGradient
             colors={
-              isDark
-                ? ["#0d2a1b", "#14422a"]
-                : [Brand.green, Brand.greenDark]
+              isDark ? ["#0d2a1b", "#14422a"] : [Brand.green, Brand.greenDark]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -449,7 +454,9 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <SectionHeader
             title="Whānau"
-            subtitle={`${friends.length} ${friends.length === 1 ? "friend" : "friends"}`}
+            subtitle={`${friends.length} ${
+              friends.length === 1 ? "friend" : "friends"
+            }`}
             colors={colors}
           />
           {friends.length === 0 ? (
@@ -671,9 +678,7 @@ export default function ProfileScreen() {
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
             Ngā mihi nui for being part of the whānau
           </Text>
-          <Text
-            style={[styles.footerSubtext, { color: colors.textSecondary }]}
-          >
+          <Text style={[styles.footerSubtext, { color: colors.textSecondary }]}>
             Everybody Eats · Aotearoa
           </Text>
         </View>
@@ -769,9 +774,7 @@ function FeaturedUnlock({
           </Text>
         </View>
         {achievement.unlockedAt && (
-          <Text
-            style={[styles.featuredDate, { color: colors.textSecondary }]}
-          >
+          <Text style={[styles.featuredDate, { color: colors.textSecondary }]}>
             {formatNZT(new Date(achievement.unlockedAt), "d MMM")}
           </Text>
         )}
@@ -949,9 +952,7 @@ function AchievementSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View
-        style={[achieveSheet.page, { backgroundColor: colors.background }]}
-      >
+      <View style={[achieveSheet.page, { backgroundColor: colors.background }]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
@@ -1066,10 +1067,7 @@ function AchievementSheet({
                 {achievement.name}
               </Text>
               <View
-                style={[
-                  achieveSheet.titleRule,
-                  { backgroundColor: catColor },
-                ]}
+                style={[achieveSheet.titleRule, { backgroundColor: catColor }]}
               />
               <Text
                 style={[
@@ -1117,9 +1115,7 @@ function AchievementSheet({
                 <View style={achieveSheet.metaCell}>
                   <View style={achieveSheet.metaStatusRow}>
                     <Ionicons
-                      name={
-                        isUnlocked ? "checkmark-circle" : "time-outline"
-                      }
+                      name={isUnlocked ? "checkmark-circle" : "time-outline"}
                       size={16}
                       color={
                         isUnlocked
@@ -1189,13 +1185,8 @@ function AchievementSheet({
                   >
                     {formatNZT(new Date(achievement.unlockedAt), "EEEE")}
                   </Text>
-                  <Text
-                    style={[achieveSheet.dateMain, { color: colors.text }]}
-                  >
-                    {formatNZT(
-                      new Date(achievement.unlockedAt),
-                      "d MMMM yyyy",
-                    )}
+                  <Text style={[achieveSheet.dateMain, { color: colors.text }]}>
+                    {formatNZT(new Date(achievement.unlockedAt), "d MMMM yyyy")}
                   </Text>
                   <Text
                     style={[
@@ -1303,9 +1294,7 @@ function AchievementSheet({
                     { backgroundColor: catColor },
                   ]}
                 />
-                <Text
-                  style={[achieveSheet.sectionLabel, { color: catColor }]}
-                >
+                <Text style={[achieveSheet.sectionLabel, { color: catColor }]}>
                   Rarity
                 </Text>
               </View>
@@ -1321,10 +1310,7 @@ function AchievementSheet({
                 <View style={achieveSheet.rarityRow}>
                   <View style={achieveSheet.rarityCell}>
                     <Text
-                      style={[
-                        achieveSheet.rarityNum,
-                        { color: colors.text },
-                      ]}
+                      style={[achieveSheet.rarityNum, { color: colors.text }]}
                     >
                       {unlockedByCount}
                     </Text>
@@ -1351,10 +1337,7 @@ function AchievementSheet({
                   />
                   <View style={achieveSheet.rarityCell}>
                     <Text
-                      style={[
-                        achieveSheet.rarityNum,
-                        { color: colors.text },
-                      ]}
+                      style={[achieveSheet.rarityNum, { color: colors.text }]}
                     >
                       {unlockPctDisplay}
                       <Text
@@ -1529,46 +1512,36 @@ function FriendCard({
         styles.friendCard,
         {
           backgroundColor: colors.card,
-          opacity: pressed ? 0.88 : 1,
+          opacity: pressed ? 0.92 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
           borderColor: isDark
-            ? "rgba(255,255,255,0.03)"
-            : "rgba(14,58,35,0.04)",
+            ? "rgba(255,255,255,0.05)"
+            : "rgba(14,58,35,0.06)",
+          shadowColor: isDark ? "#000" : Brand.green,
         },
       ]}
-      accessibilityLabel={`${friend.name}, ${friend.shiftsTogether} shifts together`}
+      accessibilityLabel={`${friend.name}, ${
+        friend.shiftsTogether
+      } shifts together, last shift ${friend.lastActive.toLowerCase()}`}
       accessibilityRole="button"
     >
-      <View style={styles.friendAvatarWrap}>
+      {friend.profilePhotoUrl ? (
+        <Image
+          source={{ uri: friend.profilePhotoUrl }}
+          style={styles.friendAvatar}
+        />
+      ) : (
         <View
           style={[
-            styles.friendAvatarRing,
-            {
-              borderColor: isDark
-                ? "rgba(134,239,172,0.15)"
-                : "rgba(14,58,35,0.08)",
-            },
+            styles.friendAvatarFallback,
+            { backgroundColor: Brand.green },
           ]}
         >
-          {friend.profilePhotoUrl ? (
-            <Image
-              source={{ uri: friend.profilePhotoUrl }}
-              style={styles.friendAvatar}
-            />
-          ) : (
-            <View
-              style={[
-                styles.friendAvatarFallback,
-                { backgroundColor: Brand.green },
-              ]}
-            >
-              <Text style={styles.friendAvatarInitial}>
-                {friend.name.charAt(0)}
-              </Text>
-            </View>
-          )}
+          <Text style={styles.friendAvatarInitial}>
+            {friend.name.charAt(0)}
+          </Text>
         </View>
-      </View>
+      )}
 
       <Text
         style={[styles.friendName, { color: colors.text }]}
@@ -1576,23 +1549,28 @@ function FriendCard({
       >
         {friend.name.split(" ")[0]}
       </Text>
-      <View
-        style={[
-          styles.friendMetaPill,
-          {
-            backgroundColor: isDark
-              ? "rgba(134,239,172,0.08)"
-              : "rgba(14,58,35,0.05)",
-          },
-        ]}
-      >
+
+      <View style={styles.friendMetaRow}>
+        <Ionicons
+          name="people-outline"
+          size={12}
+          color={colors.textSecondary}
+        />
         <Text
-          style={[
-            styles.friendMeta,
-            { color: isDark ? "#86efac" : Brand.greenDark },
-          ]}
+          style={[styles.friendMeta, { color: colors.textSecondary }]}
+          numberOfLines={1}
         >
           {friend.shiftsTogether} shifts
+        </Text>
+      </View>
+
+      <View style={styles.friendMetaRow}>
+        <Ionicons name="time-outline" size={11} color={colors.textSecondary} />
+        <Text
+          style={[styles.friendMeta, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
+          {friend.lastActive}
         </Text>
       </View>
     </Pressable>
@@ -1650,11 +1628,7 @@ function SettingsRow({
           {hint}
         </Text>
       </View>
-      <Ionicons
-        name="chevron-forward"
-        size={16}
-        color={colors.textSecondary}
-      />
+      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
     </Pressable>
   );
 }
@@ -1928,62 +1902,59 @@ const styles = StyleSheet.create({
 
   /* Whānau */
   friendsScroll: {
-    gap: 10,
+    gap: 12,
     paddingRight: 4,
+    paddingVertical: 4,
   },
   friendCard: {
-    width: 114,
+    width: 134,
     alignItems: "center",
-    paddingVertical: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
     paddingHorizontal: 10,
     borderRadius: 20,
-    gap: 8,
-    borderWidth: 1,
-  },
-  friendAvatarWrap: {
-    position: "relative",
-  },
-  friendAvatarRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    padding: 3,
-    alignItems: "center",
-    justifyContent: "center",
+    gap: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   friendAvatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 8,
   },
   friendAvatarFallback: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 8,
   },
   friendAvatarInitial: {
     color: "#ffffff",
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: FontFamily.headingBold,
   },
   friendName: {
-    fontSize: 14,
-    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    fontFamily: FontFamily.heading,
     textAlign: "center",
+    letterSpacing: -0.3,
+    marginBottom: 4,
   },
-  friendMetaPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+  friendMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   friendMeta: {
-    fontSize: 10.5,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.1,
   },
   emptyFriendsCard: {
     borderRadius: 18,

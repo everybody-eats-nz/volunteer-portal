@@ -76,7 +76,7 @@ export async function GET(
     const friendsSince = friendship.createdAt.toISOString();
 
     // 5. Get shift stats for the friend
-    const [totalShiftsResult, totalHoursResult, shiftsThisMonthResult, shiftsLast3MonthsResult] =
+    const [totalShiftsResult, totalHoursResult, shiftsThisMonthResult, shiftsLast6MonthsResult] =
       await Promise.all([
         // Total confirmed shifts
         prisma.signup.count({
@@ -101,31 +101,28 @@ export async function GET(
             AND sh.start >= date_trunc('month', NOW())
             AND sh.start < date_trunc('month', NOW()) + interval '1 month'
         `,
-        // Shifts in last 3 months (rolling average)
+        // Completed shifts in the last 6 months (for monthly rate)
         prisma.$queryRaw<[{ count: bigint }]>`
           SELECT COUNT(*)::bigint as count
           FROM "Signup" s
           JOIN "Shift" sh ON s."shiftId" = sh.id
           WHERE s."userId" = ${friendId}
             AND s.status = 'CONFIRMED'
-            AND sh.start >= NOW() - interval '3 months'
-            AND sh.start < NOW()
+            AND sh."end" >= NOW() - interval '6 months'
+            AND sh."end" < NOW()
         `,
       ]);
 
     const totalShifts = totalShiftsResult;
     const hoursVolunteered = Math.round(totalHoursResult[0].hours);
     const shiftsThisMonth = Number(shiftsThisMonthResult[0].count);
-    const shiftsLast3Months = Number(shiftsLast3MonthsResult[0].count);
+    const shiftsLast6Months = Number(shiftsLast6MonthsResult[0].count);
 
-    // 6. Avg shifts per month (rolling 3-month window, capped by friendship duration)
-    const daysSinceFriends = Math.max(
-      1,
-      Math.floor((Date.now() - friendship.createdAt.getTime()) / (1000 * 60 * 60 * 24))
-    );
-    const friendshipMonths = Math.max(1, Math.floor(daysSinceFriends / 30));
-    const monthsForAverage = Math.min(3, friendshipMonths);
-    const avgPerMonth = Math.round(shiftsLast3Months / monthsForAverage);
+    // 6. Average shifts per month over a fixed 6-month window — matches the
+    //    admin milestone analytics monthly-rate calculation so the number
+    //    reflects the volunteer's actual recent rhythm, independent of how
+    //    long the two users have been friends.
+    const avgPerMonth = Math.round(shiftsLast6Months / 6);
 
     // 7. Shared shifts (matched by day + AM/PM + location)
     // Single query returns all matches — we use the list for display and length for count

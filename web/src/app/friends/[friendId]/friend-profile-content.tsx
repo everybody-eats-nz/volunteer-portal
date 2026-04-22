@@ -100,7 +100,7 @@ export async function FriendProfileContent({
     friendCompletedShifts,
     friendTotalShifts,
     friendThisMonthShifts,
-    friendLast3MonthsShifts,
+    friendLast6MonthsShifts,
   ] = await Promise.all([
     // Get all user's shifts (confirmed or pending)
     prisma.signup.findMany({
@@ -207,14 +207,14 @@ export async function FriendProfileContent({
       },
     }),
 
-    // Friend's shifts in last 3 months (for rolling average)
+    // Friend's completed shifts in last 6 months (for monthly rate)
     prisma.signup.count({
       where: {
         userId: friendId,
         status: "CONFIRMED",
         shift: {
-          start: {
-            gte: subMonths(new Date(), 3),
+          end: {
+            gte: subMonths(new Date(), 6),
             lt: new Date(),
           },
         },
@@ -301,11 +301,11 @@ export async function FriendProfileContent({
     new Date(),
     friendship.createdAt
   );
-  const friendshipMonths = Math.max(1, Math.floor(daysSinceFriendship / 30));
 
-  // Calculate rolling average - use actual months if less than 3 months
-  const monthsForAverage = Math.min(3, friendshipMonths);
-  const avgPerMonth = Math.round(friendLast3MonthsShifts / monthsForAverage);
+  // Average shifts per month over a fixed 6-month window — matches the admin
+  // milestone analytics monthly-rate calculation so the number reflects the
+  // volunteer's actual recent rhythm, independent of friendship duration.
+  const avgPerMonth = Math.round(friendLast6MonthsShifts / 6);
 
   // Calculate friend's total hours
   const friendTotalHours = friendCompletedShifts.reduce((total, signup) => {
@@ -462,8 +462,7 @@ export async function FriendProfileContent({
                     {avgPerMonth}
                   </p>
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                    Avg/Month (Last {monthsForAverage}{" "}
-                    {monthsForAverage === 1 ? "Month" : "Months"})
+                    Avg/Month (Last 6 Months)
                   </p>
                 </div>
               </div>
