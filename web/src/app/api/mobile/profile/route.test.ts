@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({
     signup: { count: vi.fn(), findMany: vi.fn() },
     friendship: { findMany: vi.fn() },
     userAchievement: { groupBy: vi.fn(), findMany: vi.fn() },
+    location: { findMany: vi.fn() },
   },
 }));
 
@@ -47,6 +48,7 @@ const mockPrisma = prisma as unknown as {
     groupBy: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
   };
+  location: { findMany: ReturnType<typeof vi.fn> };
 };
 
 const MOCK_USER = {
@@ -132,6 +134,10 @@ describe("GET /api/mobile/profile", () => {
     mockPrisma.user.count.mockResolvedValue(10);
     mockPrisma.friendship.findMany.mockResolvedValue([]);
     mockPrisma.userAchievement.groupBy.mockResolvedValue([]);
+    mockPrisma.location.findMany.mockResolvedValue([
+      { name: "Wellington" },
+      { name: "Auckland" },
+    ]);
 
     const response = await GET(makeRequest());
     expect(response.status).toBe(200);
@@ -165,6 +171,7 @@ describe("GET /api/mobile/profile", () => {
     mockPrisma.user.count.mockResolvedValue(5);
     mockPrisma.friendship.findMany.mockResolvedValue([]);
     mockPrisma.userAchievement.groupBy.mockResolvedValue([]);
+    mockPrisma.location.findMany.mockResolvedValue([]);
 
     const response = await GET(makeRequest());
     const json = await response.json();
