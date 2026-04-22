@@ -51,6 +51,7 @@ interface User {
   medicalConditions?: string | null;
   availableDays?: string | null;
   availableLocations?: string | null;
+  defaultLocation?: string | null;
   profilePhotoUrl?: string | null;
 }
 
@@ -176,6 +177,7 @@ function AccountStepWithOAuth({
         howDidYouHearAboutUs: "migration",
         availableDays: formData.availableDays,
         availableLocations: formData.availableLocations,
+        defaultLocation: formData.defaultLocation || null,
         emailNewsletterSubscription: formData.emailNewsletterSubscription,
         newsletterLists: formData.newsletterLists || [],
         notificationPreference: formData.notificationPreference,
@@ -355,6 +357,7 @@ export function MigrationRegistrationForm({
     availableLocations: user.availableLocations
       ? safeParseAvailability(user.availableLocations)
       : [],
+    defaultLocation: user.defaultLocation || "",
 
     // Communication & agreements
     emailNewsletterSubscription: true,
@@ -451,12 +454,28 @@ export function MigrationRegistrationForm({
   };
 
   const handleLocationToggle = (location: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      availableLocations: prev.availableLocations.includes(location)
+    setFormData((prev) => {
+      const nextLocations = prev.availableLocations.includes(location)
         ? prev.availableLocations.filter((l) => l !== location)
-        : [...prev.availableLocations, location],
-    }));
+        : [...prev.availableLocations, location];
+
+      const candidates = nextLocations.filter(
+        (l) => l !== "Special Event Venue"
+      );
+      let nextDefault = prev.defaultLocation;
+      if (nextDefault && !candidates.includes(nextDefault)) {
+        nextDefault = "";
+      }
+      if (!nextDefault && candidates.length === 1) {
+        nextDefault = candidates[0];
+      }
+
+      return {
+        ...prev,
+        availableLocations: nextLocations,
+        defaultLocation: nextDefault,
+      };
+    });
   };
 
   const validateCurrentStep = (): boolean => {
@@ -653,6 +672,7 @@ export function MigrationRegistrationForm({
             <div className="border-t pt-8">
               <AvailabilityStep
                 formData={formData}
+                onInputChange={handleInputChange}
                 onDayToggle={handleDayToggle}
                 onLocationToggle={handleLocationToggle}
                 loading={loading}

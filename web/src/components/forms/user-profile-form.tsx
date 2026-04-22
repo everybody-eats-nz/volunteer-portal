@@ -74,6 +74,7 @@ export interface UserProfileFormData {
   // Availability
   availableDays: string[];
   availableLocations: string[];
+  defaultLocation: string;
 
   // Communication & agreements
   emailNewsletterSubscription: boolean;
@@ -740,17 +741,25 @@ export function MedicalInfoStep({
  */
 export function AvailabilityStep({
   formData,
+  onInputChange,
   onDayToggle,
   onLocationToggle,
   loading,
   locationOptions,
 }: {
   formData: UserProfileFormData;
+  onInputChange: (
+    field: string,
+    value: string | boolean | string[] | number
+  ) => void;
   onDayToggle: (day: string) => void;
   onLocationToggle: (location: string) => void;
   loading: boolean;
   locationOptions: Array<{ value: string; label: string }>;
 }) {
+  const defaultLocationCandidates = formData.availableLocations.filter(
+    (loc) => loc !== "Special Event Venue"
+  );
   return (
     <div className="space-y-8">
       <div className="space-y-4">
@@ -826,6 +835,51 @@ export function AvailabilityStep({
           ))}
         </div>
       </div>
+
+      {defaultLocationCandidates.length > 0 && (
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium mb-3 block">
+              Default location
+            </Label>
+            <p className="text-xs text-muted-foreground mb-4">
+              Which location should we show you first when browsing shifts?
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {defaultLocationCandidates.map((location) => {
+              const isSelected = formData.defaultLocation === location;
+              return (
+                <div
+                  key={location}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-primary/10 border-primary"
+                      : "bg-background border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <Label
+                    data-testid={`default-location-${location.toLowerCase().replace(/\s+/g, "-")}-label`}
+                    className="flex items-center space-x-3 text-sm font-medium cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name="defaultLocation"
+                      value={location}
+                      checked={isSelected}
+                      onChange={() => onInputChange("defaultLocation", location)}
+                      disabled={loading}
+                      className="h-4 w-4 accent-primary"
+                      data-testid={`default-location-${location.toLowerCase().replace(/\s+/g, "-")}`}
+                    />
+                    <span>{location}</span>
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

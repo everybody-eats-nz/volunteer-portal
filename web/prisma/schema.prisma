@@ -32,6 +32,7 @@ model User {
   howDidYouHearAboutUs         String?
   availableDays                String?
   availableLocations           String?
+  defaultLocation              String? // Primary restaurant location the volunteer wants to see first in shift browsing
   emailNewsletterSubscription  Boolean                @default(true)
   newsletterLists              String[]               @default([])
   notificationPreference       NotificationPreference @default(EMAIL)

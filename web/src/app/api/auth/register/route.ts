@@ -57,6 +57,7 @@ const registerSchema = z
     // Availability
     availableDays: z.array(z.string()).optional(),
     availableLocations: z.array(z.string()).optional(),
+    defaultLocation: z.string().nullable().optional(),
 
     // Communication & agreements
     emailNewsletterSubscription: z.boolean().optional(),
@@ -209,6 +210,7 @@ export async function POST(req: Request) {
       availableLocations: validatedData.availableLocations
         ? JSON.stringify(validatedData.availableLocations)
         : null,
+      defaultLocation: validatedData.defaultLocation || null,
 
       // Communication & agreements
       emailNewsletterSubscription:

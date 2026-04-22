@@ -75,6 +75,10 @@ export async function POST(request: NextRequest) {
         howDidYouHearAboutUs: data.howDidYouHearAboutUs,
         availableDays: availableDaysArray.join(","),
         availableLocations: availableLocationsArray.join(","),
+        defaultLocation:
+          typeof data.defaultLocation === "string" && data.defaultLocation
+            ? data.defaultLocation
+            : null,
         emailNewsletterSubscription: data.emailNewsletterSubscription,
         notificationPreference: data.notificationPreference,
         receiveShortageNotifications: data.receiveShortageNotifications,
