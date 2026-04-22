@@ -174,6 +174,7 @@ export async function GET(request: Request) {
         },
         shift: {
           select: {
+            id: true,
             start: true,
             location: true,
             shiftType: { select: { name: true } },
@@ -397,6 +398,7 @@ export async function GET(request: Request) {
       userId: signup.userId,
       userName: displayName,
       profilePhotoUrl: signup.user.profilePhotoUrl ?? undefined,
+      shiftId: signup.shift.id,
       shiftTypeName: signup.shift.shiftType.name,
       shiftDate: signup.shift.start.toISOString(),
       location: signup.shift.location ?? "",

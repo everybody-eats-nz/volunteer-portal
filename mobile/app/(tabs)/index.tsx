@@ -2759,22 +2759,24 @@ function FeedItemSheet({
       items: typeof item.mains | undefined
     ) => {
       if (!items || items.length === 0) return null;
-      const lines = items
-        .map((m) => {
-          if (!m?.name) return null;
-          return m.description
-            ? `- **${m.name}** — ${m.description}`
-            : `- ${m.name}`;
-        })
-        .filter((l): l is string => l !== null);
-      if (lines.length === 0) return null;
+      const valid = items.filter(
+        (m): m is NonNullable<typeof m> => Boolean(m?.name)
+      );
+      if (valid.length === 0) return null;
+      const isSingle = valid.length === 1;
+      const lines = valid.map((m) => {
+        const prefix = isSingle ? "" : "- ";
+        return m.description
+          ? `${prefix}**${m.name}** — ${m.description}`
+          : `${prefix}${m.name}`;
+      });
       return `**${heading}**\n${lines.join("\n")}`;
     };
     const courses = [
-      courseBlock("Starter", item.starter),
-      courseBlock("Main", item.mains),
-      courseBlock("Dessert", item.dessert),
-      courseBlock("Drinks", item.drink),
+      courseBlock("🥗 Starter", item.starter),
+      courseBlock("🍽️ Mains", item.mains),
+      courseBlock("🍷 Drinks", item.drink),
+      courseBlock("🍰 Dessert", item.dessert),
     ].filter((s): s is string => s !== null);
     sections.push(...courses);
     body = sections.join("\n\n");
@@ -3208,6 +3210,66 @@ function FeedItemSheet({
                   </Pressable>
                 </View>
               )}
+
+            {/* ── Daily menu CTA: browse shifts on that service day ── */}
+            {item.type === "daily_menu" && (
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  onClose();
+                  const dateKey = formatNZT(
+                    new Date(item.serviceDate),
+                    "yyyy-MM-dd"
+                  );
+                  router.push(
+                    `/(tabs)/shifts?date=${dateKey}` as Href
+                  );
+                }}
+                style={({ pressed }) => [
+                  sheet.shiftListCTA,
+                  {
+                    backgroundColor: Brand.green,
+                    opacity: pressed ? 0.85 : 1,
+                    marginHorizontal: 16,
+                    marginBottom: 12,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="See shifts available on this day"
+              >
+                <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
+                  See shifts for this day
+                </Text>
+                <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+              </Pressable>
+            )}
+
+            {/* ── Friend signup CTA: jump to that shift ── */}
+            {item.type === "friend_signup" && item.shiftId && (
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  onClose();
+                  router.push(`/shift/${item.shiftId}` as Href);
+                }}
+                style={({ pressed }) => [
+                  sheet.shiftListCTA,
+                  {
+                    backgroundColor: Brand.green,
+                    opacity: pressed ? 0.85 : 1,
+                    marginHorizontal: 16,
+                    marginBottom: 12,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Sign up for the ${item.shiftTypeName} shift`}
+              >
+                <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
+                  Sign up for this shift
+                </Text>
+                <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+              </Pressable>
+            )}
 
             {/* ── Photo gallery (for photo_post type) ── */}
             {/* Announcement image */}
@@ -4313,8 +4375,9 @@ const sheet = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     marginTop: 10,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 12,
+    minHeight: 48,
   },
   shiftListCTAText: {
     fontSize: 14,
