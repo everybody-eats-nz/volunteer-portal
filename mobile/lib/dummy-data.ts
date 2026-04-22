@@ -524,7 +524,9 @@ export type FeedItem =
   | ({ type: 'milestone'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; count: number; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'photo_post'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
-  | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerHours: number; volunteerCount: number; timestamp: string } & FeedInteractions);
+  | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerCount: number; timestamp: string } & FeedInteractions)
+  | ({ type: 'new_shift'; id: string; location: string; count: number; shiftIds: string[]; shiftTypes: string[]; earliestStart: string; latestStart: string; timestamp: string } & FeedInteractions)
+  | ({ type: 'daily_menu'; id: string; menuId: string; location: string; serviceDate: string; chefName?: string; announcement?: string; mains: string[]; timestamp: string } & FeedInteractions);
 
 /* ── Profile Stats & Achievements ── */
 
