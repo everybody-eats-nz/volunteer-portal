@@ -29,24 +29,11 @@ export async function GET(request: Request) {
   const now = new Date();
   const { userId } = auth;
 
-  // Fetch user's locations for the client to default the filter
+  // Fetch user's default location for the client to default the filter
   const userRecord = await prisma.user.findUnique({
     where: { id: userId },
-    select: { availableLocations: true, defaultLocation: true },
+    select: { defaultLocation: true },
   });
-  let userPreferredLocations: string[] = [];
-  if (userRecord?.availableLocations) {
-    try {
-      const parsed = JSON.parse(userRecord.availableLocations);
-      if (Array.isArray(parsed)) {
-        userPreferredLocations = parsed.filter(
-          (item: unknown) => typeof item === "string" && (item as string).trim()
-        );
-      }
-    } catch {
-      // Not valid JSON — ignore
-    }
-  }
   const userDefaultLocation = userRecord?.defaultLocation ?? null;
 
   const url = new URL(request.url);
@@ -254,7 +241,6 @@ export async function GET(request: Request) {
     pastNextCursor: hasMorePast
       ? pastSignups[pastSignups.length - 1]?.id ?? null
       : null,
-    userPreferredLocations,
     userDefaultLocation,
     periodFriends,
     shiftFriends,

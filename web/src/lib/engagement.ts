@@ -69,12 +69,12 @@ export async function getEngagementSummary(
     ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ()})::int IN (${Prisma.join(daysFilter)})`
     : Prisma.empty;
   // When location-filtered, include volunteers with shifts at this location
-  // OR who selected this location in preferences (for "never volunteered")
+  // OR who selected this location as their default (for "never volunteered")
   const excludeCond = isLocationFiltered
-    ? Prisma.sql`(total_shifts > 0 OR (all_completed = 0 AND has_preferred_location))`
+    ? Prisma.sql`(total_shifts > 0 OR (all_completed = 0 AND has_default_location))`
     : Prisma.sql`TRUE`;
   const neverCond = isLocationFiltered
-    ? Prisma.sql`all_completed = 0 AND has_preferred_location`
+    ? Prisma.sql`all_completed = 0 AND has_default_location`
     : Prisma.sql`all_completed = 0`;
 
   const safeMonths = Math.max(months, 1);
@@ -107,15 +107,15 @@ export async function getEngagementSummary(
           BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond}) as in_prior_period,
           BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}) as in_current_period,
           CASE
-            WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
+            WHEN u."defaultLocation" = ${location || ''}
             THEN TRUE
             ELSE FALSE
-          END as has_preferred_location
+          END as has_default_location
         FROM "User" u
         LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
         LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
         WHERE u.role = 'VOLUNTEER'::"Role"
-        GROUP BY u.id, u."availableLocations"
+        GROUP BY u.id, u."defaultLocation"
       )
       SELECT
         COUNT(*) FILTER (WHERE ${excludeCond})::bigint as "totalVolunteers",
@@ -497,9 +497,9 @@ export async function getEngagementVolunteers(params: {
     : Prisma.empty;
 
   // When location-filtered, skip volunteers with no association to this location
-  // (no shifts there AND didn't select it as a preferred location)
+  // (no shifts there AND this isn't their default location)
   const skipCond = isLocationFiltered
-    ? Prisma.sql`total_shifts = 0 AND NOT has_preferred_location`
+    ? Prisma.sql`total_shifts = 0 AND NOT has_default_location`
     : Prisma.sql`FALSE`;
 
   const statusCond =
@@ -531,10 +531,10 @@ export async function getEngagementVolunteers(params: {
         COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) as shifts_in_period,
         MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}) as last_shift_date,
         CASE
-          WHEN u."availableLocations" LIKE ${`%"${location || ''}"%`}
+          WHEN u."defaultLocation" = ${location || ''}
           THEN TRUE
           ELSE FALSE
-        END as has_preferred_location
+        END as has_default_location
       FROM "User" u
       LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
       LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
@@ -542,7 +542,7 @@ export async function getEngagementVolunteers(params: {
         ${searchCond}
       GROUP BY u.id, u.name, u."firstName", u."lastName", u.email,
         u."profilePhotoUrl", u."volunteerGrade", u."createdAt",
-        u."availableLocations"
+        u."defaultLocation"
     ),
     volunteer_stats AS (
       SELECT *,

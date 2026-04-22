@@ -146,7 +146,7 @@ async function getUserContext(userId: string) {
         name: true,
         volunteerGrade: true,
         availableDays: true,
-        availableLocations: true,
+        defaultLocation: true,
         completedShiftAdjustment: true,
         profileCompleted: true,
         volunteerAgreementAccepted: true,
@@ -229,8 +229,8 @@ async function getUserContext(userId: string) {
     `Name: ${volunteerName}`,
     `Grade: ${volunteer?.volunteerGrade ?? "GREEN"} (GREEN = new, YELLOW = experienced, PINK = shift leader)`,
     `Completed shifts: ${totalShifts}`,
-    volunteer?.availableLocations
-      ? `Preferred locations: ${volunteer.availableLocations}`
+    volunteer?.defaultLocation
+      ? `Default location: ${volunteer.defaultLocation}`
       : null,
     volunteer?.availableDays ? `Available days: ${volunteer.availableDays}` : null,
     nudges.length > 0

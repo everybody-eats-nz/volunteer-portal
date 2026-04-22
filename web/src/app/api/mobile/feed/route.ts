@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       where: { id: userId },
       select: {
         volunteerGrade: true,
-        availableLocations: true,
+        defaultLocation: true,
         customLabels: { select: { labelId: true } },
       },
     }),
@@ -74,9 +74,7 @@ export async function GET(request: Request) {
   );
 
   const userLabelIds = (userProfile?.customLabels ?? []).map((l) => l.labelId);
-  const userLocations = userProfile?.availableLocations
-    ? userProfile.availableLocations.split(",").map((l) => l.trim()).filter(Boolean)
-    : [];
+  const userDefaultLocation = userProfile?.defaultLocation ?? null;
   const userGrade = userProfile?.volunteerGrade ?? "GREEN";
 
   // Run all data queries in parallel
@@ -192,8 +190,7 @@ export async function GET(request: Request) {
 
     // Announcements: fetch all non-expired ones from the window, then filter by
     // user targeting in app code. Grade and label are pre-filtered at DB level;
-    // location targeting uses in-memory exact matching (availableLocations is a
-    // comma-separated string so we can't safely do it in Prisma without raw SQL).
+    // location targeting is matched against the user's defaultLocation.
     prisma.announcement.findMany({
       where: {
         createdAt: { gte: since },
@@ -238,7 +235,8 @@ export async function GET(request: Request) {
     // Location targeting: empty = all locations
     const locationMatch =
       ann.targetLocations.length === 0 ||
-      ann.targetLocations.some((loc) => userLocations.includes(loc));
+      (userDefaultLocation !== null &&
+        ann.targetLocations.includes(userDefaultLocation));
 
     // Grade targeting: empty = all grades
     const gradeMatch =

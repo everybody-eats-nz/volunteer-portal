@@ -69,7 +69,7 @@ export async function POST(request: Request) {
             name: true,
             volunteerGrade: true,
             availableDays: true,
-            availableLocations: true,
+            defaultLocation: true,
           },
         }),
         prisma.signup.findMany({

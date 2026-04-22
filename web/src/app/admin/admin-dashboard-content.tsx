@@ -271,7 +271,7 @@ export async function AdminDashboardContent({
         where: {
           createdAt: { gte: startOfWeek, lt: endOfWeek },
           ...(selectedLocation
-            ? { availableLocations: { contains: selectedLocation } }
+            ? { defaultLocation: selectedLocation }
             : {}),
         },
       }),
