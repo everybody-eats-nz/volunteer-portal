@@ -15,7 +15,6 @@ type ShiftsResponse = {
   available: Shift[];
   past: Shift[];
   pastNextCursor: string | null;
-  userPreferredLocations: string[];
   userDefaultLocation: string | null;
   periodFriends: Record<string, PeriodFriend[]>;
   shiftFriends?: Record<string, PeriodFriend[]>;
@@ -31,7 +30,6 @@ type UseShiftsReturn = {
   loadMorePast: () => Promise<void>;
   hasMorePast: boolean;
   isLoadingMore: boolean;
-  userPreferredLocations: string[];
   userDefaultLocation: string | null;
   /** Friends keyed by "YYYY-MM-DD-DAY" or "YYYY-MM-DD-EVE" */
   periodFriends: Record<string, PeriodFriend[]>;
@@ -46,7 +44,6 @@ export function useShifts(): UseShiftsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userPreferredLocations, setUserPreferredLocations] = useState<string[]>([]);
   const [userDefaultLocation, setUserDefaultLocation] = useState<string | null>(null);
   const [periodFriends, setPeriodFriends] = useState<Record<string, PeriodFriend[]>>({});
   const [shiftFriends, setShiftFriends] = useState<Record<string, PeriodFriend[]>>({});
@@ -61,7 +58,6 @@ export function useShifts(): UseShiftsReturn {
       setMyShifts(result.myShifts);
       setAvailable(result.available);
       setPast(result.past);
-      setUserPreferredLocations(result.userPreferredLocations ?? []);
       setUserDefaultLocation(result.userDefaultLocation ?? null);
       setPeriodFriends(result.periodFriends ?? {});
       setShiftFriends(result.shiftFriends ?? {});
@@ -119,7 +115,6 @@ export function useShifts(): UseShiftsReturn {
     loadMorePast,
     hasMorePast: pastCursorRef.current !== null,
     isLoadingMore,
-    userPreferredLocations,
     userDefaultLocation,
     periodFriends,
     shiftFriends,

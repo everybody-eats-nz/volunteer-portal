@@ -44,7 +44,7 @@ export interface Volunteer {
   name: string | null;
   firstName: string | null;
   lastName: string | null;
-  availableLocations: string[];
+  defaultLocation: string | null;
   availableDays: string[];
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
@@ -128,23 +128,17 @@ export const columns: ColumnDef<Volunteer>[] = [
     },
   },
   {
-    accessorKey: "availableLocations",
-    header: "Locations",
+    accessorKey: "defaultLocation",
+    header: "Default Location",
     cell: ({ row }) => {
-      const locations = row.getValue("availableLocations") as string[];
+      const location = row.getValue("defaultLocation") as string | null;
+      if (!location) {
+        return <span className="text-xs text-muted-foreground">—</span>;
+      }
       return (
-        <div className="flex gap-1 flex-wrap">
-          {locations?.slice(0, 2).map((location) => (
-            <Badge key={location} variant="outline" className="text-xs">
-              {location}
-            </Badge>
-          ))}
-          {locations?.length > 2 && (
-            <Badge variant="outline" className="text-xs">
-              +{locations.length - 2}
-            </Badge>
-          )}
-        </div>
+        <Badge variant="outline" className="text-xs">
+          {location}
+        </Badge>
       );
     },
   },

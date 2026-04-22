@@ -44,7 +44,6 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import type { SurveyQuestion } from "@/types/survey";
 import { formatDistanceToNow } from "date-fns";
-import { safeParseAvailability } from "@/lib/parse-availability";
 
 type SortDirection = "asc" | "desc";
 type SortConfig<T extends string> = { key: T; direction: SortDirection } | null;
@@ -107,7 +106,7 @@ interface UserData {
   id: string;
   name: string | null;
   email: string;
-  availableLocations?: string | null;
+  defaultLocation?: string | null;
   createdAt: Date | string;
   volunteerGrade?: string;
   completedShifts?: number;
@@ -184,8 +183,8 @@ export function ResponsesContent({
       if (key === "name") {
         cmp = (a.user.name || "").localeCompare(b.user.name || "");
       } else if (key === "location") {
-        cmp = (a.user.availableLocations || "").localeCompare(
-          b.user.availableLocations || ""
+        cmp = (a.user.defaultLocation || "").localeCompare(
+          b.user.defaultLocation || ""
         );
       } else if (key === "shifts") {
         cmp = (a.user.completedShifts || 0) - (b.user.completedShifts || 0);
@@ -211,8 +210,8 @@ export function ResponsesContent({
       if (key === "name") {
         cmp = (a.user.name || "").localeCompare(b.user.name || "");
       } else if (key === "location") {
-        cmp = (a.user.availableLocations || "").localeCompare(
-          b.user.availableLocations || ""
+        cmp = (a.user.defaultLocation || "").localeCompare(
+          b.user.defaultLocation || ""
         );
       } else if (key === "shifts") {
         cmp = (a.user.completedShifts || 0) - (b.user.completedShifts || 0);
@@ -712,7 +711,7 @@ export function ResponsesContent({
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
-                          {safeParseAvailability(response.user.availableLocations).join(", ") || "-"}
+                          {response.user.defaultLocation || "-"}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -870,7 +869,7 @@ export function ResponsesContent({
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
-                          {safeParseAvailability(assignment.user.availableLocations).join(", ") || "-"}
+                          {assignment.user.defaultLocation || "-"}
                         </span>
                       </TableCell>
                       <TableCell>

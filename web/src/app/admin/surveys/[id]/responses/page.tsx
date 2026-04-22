@@ -41,7 +41,7 @@ export default async function SurveyResponsesPage({
   // Build user filter from query params
   const userWhere: Record<string, unknown> = {};
   if (location) {
-    userWhere.availableLocations = { contains: location, mode: "insensitive" };
+    userWhere.defaultLocation = location;
   }
   if (grade) {
     userWhere.volunteerGrade = grade;
@@ -86,7 +86,7 @@ export default async function SurveyResponsesPage({
               id: true,
               name: true,
               email: true,
-              availableLocations: true,
+              defaultLocation: true,
               createdAt: true,
               volunteerGrade: true,
               completedShiftAdjustment: true,
@@ -237,7 +237,7 @@ export default async function SurveyResponsesPage({
               id: a.user.id,
               name: a.user.name,
               email: a.user.email,
-              availableLocations: a.user.availableLocations,
+              defaultLocation: a.user.defaultLocation,
               createdAt: a.user.createdAt,
               volunteerGrade: a.user.volunteerGrade,
               completedShifts:
@@ -262,7 +262,7 @@ export default async function SurveyResponsesPage({
               id: a.user.id,
               name: a.user.name,
               email: a.user.email,
-              availableLocations: a.user.availableLocations,
+              defaultLocation: a.user.defaultLocation,
               createdAt: a.user.createdAt,
               volunteerGrade: a.user.volunteerGrade,
               completedShifts:

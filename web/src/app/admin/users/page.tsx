@@ -82,7 +82,7 @@ export default async function AdminUsersPage({
   }
 
   if (locationFilter) {
-    whereClause.availableLocations = { contains: locationFilter };
+    whereClause.defaultLocation = locationFilter;
   }
 
   if (archivedFilter === "active") {
@@ -161,8 +161,7 @@ export default async function AdminUsersPage({
     }
 
     if (locationFilter) {
-      const locationPattern = `%"${locationFilter}"%`;
-      conditions.push(Prisma.sql`u."availableLocations" LIKE ${locationPattern}`);
+      conditions.push(Prisma.sql`u."defaultLocation" = ${locationFilter}`);
     }
 
     if (archivedFilter === "active") {

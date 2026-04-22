@@ -314,11 +314,7 @@ export function NotificationsContent({
 
     // Filter by location
     if (filterLocation !== "all") {
-      filtered = filtered.filter(
-        (v) =>
-          Array.isArray(v.availableLocations) &&
-          v.availableLocations.includes(filterLocation)
-      );
+      filtered = filtered.filter((v) => v.defaultLocation === filterLocation);
     }
 
     // Filter by shift type preference
