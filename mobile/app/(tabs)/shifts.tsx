@@ -11,7 +11,7 @@ import {
 } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
-import { useRouter, type Href } from "expo-router";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -168,15 +168,32 @@ export default function ShiftsScreen() {
 
   /* Silent location default — applies the user's explicit default location without surfacing a picker */
   const [locationFilter, setLocationFilter] = useState<string | null>(null);
-  const hasSetDefault = useRef(false);
+  const lastAppliedDefault = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    if (hasSetDefault.current) return;
+    // Apply the user's saved default location on first load and whenever it
+    // changes (e.g. after editing on the profile screen). Skip when unchanged
+    // so a manual filter choice isn't overwritten on refetch.
+    if (lastAppliedDefault.current === userDefaultLocation) return;
+    lastAppliedDefault.current = userDefaultLocation;
     if (userDefaultLocation) {
       setLocationFilter(userDefaultLocation);
-      hasSetDefault.current = true;
     }
   }, [userDefaultLocation]);
+
+  // Refetch shifts when the tab regains focus so profile edits (e.g. a new
+  // default location) propagate. Skip the initial focus — useShifts already
+  // fetches on mount.
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      refresh();
+    }, [refresh])
+  );
 
   const filteredAvailable = useMemo(
     () =>

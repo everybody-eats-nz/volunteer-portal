@@ -1921,6 +1921,7 @@ function FeedItemSheet({
   onOpenUserProfile: (userId: string) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [commentText, setCommentText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -2436,6 +2437,140 @@ function FeedItemSheet({
                 </View>
               </View>
             </View>
+
+            {/* ── New shift preview list ── */}
+            {item.type === "new_shift" && item.preview && item.preview.length > 0 && (
+              <View
+                style={[
+                  sheet.shiftListCard,
+                  {
+                    backgroundColor: colors.card,
+                    shadowColor: isDark ? "#000" : "#64748b",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    sheet.shiftListHeader,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  {item.count <= item.preview.length
+                    ? `Shift${item.count === 1 ? "" : "s"} available`
+                    : `Soonest ${item.preview.length} of ${item.count}`}
+                </Text>
+                {item.preview.map((s, idx) => {
+                  const start = new Date(s.start);
+                  return (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        onClose();
+                        router.push(`/shift/${s.id}` as Href);
+                      }}
+                      style={({ pressed }) => [
+                        sheet.shiftListRow,
+                        {
+                          borderTopWidth:
+                            idx === 0 ? 0 : StyleSheet.hairlineWidth,
+                          borderTopColor: colors.border,
+                          opacity: pressed ? 0.6 : 1,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${s.shiftTypeName} on ${formatNZT(start, "EEEE d MMMM")}`}
+                    >
+                      <View
+                        style={[
+                          sheet.shiftListDate,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(134, 239, 172, 0.10)"
+                              : Brand.greenLight,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            sheet.shiftListDay,
+                            { color: isDark ? "#86efac" : Brand.green },
+                          ]}
+                        >
+                          {formatNZT(start, "EEE").toUpperCase()}
+                        </Text>
+                        <Text
+                          style={[
+                            sheet.shiftListDayNum,
+                            { color: isDark ? "#86efac" : Brand.green },
+                          ]}
+                        >
+                          {formatNZT(start, "d")}
+                        </Text>
+                      </View>
+                      <View style={sheet.shiftListBody}>
+                        <Text
+                          style={[
+                            sheet.shiftListTitle,
+                            { color: colors.text },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {s.shiftTypeName}
+                        </Text>
+                        <Text
+                          style={[
+                            sheet.shiftListMeta,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {formatNZT(start, "MMM · h:mm a")}
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={colors.textSecondary}
+                      />
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onClose();
+                    router.push("/(tabs)/shifts?tab=browse");
+                  }}
+                  style={({ pressed }) => [
+                    sheet.shiftListCTA,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(134, 239, 172, 0.12)"
+                        : Brand.greenLight,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Browse all shifts"
+                >
+                  <Text
+                    style={[
+                      sheet.shiftListCTAText,
+                      { color: isDark ? "#86efac" : Brand.green },
+                    ]}
+                  >
+                    {item.count > item.preview.length
+                      ? `Browse all ${item.count} shifts`
+                      : "Browse shifts"}
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={isDark ? "#86efac" : Brand.green}
+                  />
+                </Pressable>
+              </View>
+            )}
 
             {/* ── Photo gallery (for photo_post type) ── */}
             {/* Announcement image */}
@@ -3497,6 +3632,77 @@ const sheet = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 16,
     elevation: 2,
+  },
+
+  // New-shift preview list (inside sheet)
+  shiftListCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  shiftListHeader: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    marginBottom: 6,
+  },
+  shiftListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 12,
+  },
+  shiftListDate: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 4,
+  },
+  shiftListDay: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.8,
+    lineHeight: 12,
+  },
+  shiftListDayNum: {
+    fontSize: 18,
+    fontFamily: FontFamily.bold,
+    lineHeight: 22,
+  },
+  shiftListBody: {
+    flex: 1,
+    gap: 2,
+  },
+  shiftListTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+  },
+  shiftListMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+  },
+  shiftListCTA: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  shiftListCTAText: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
   },
   photoSingle: {
     width: "100%",

@@ -411,11 +411,16 @@ export async function GET(request: Request) {
 
   // Aggregate new shifts by (creation-day-NZT + location). A bulk-publish of
   // many shifts on the same day collapses into one feed item.
+  type NewShiftEntry = {
+    id: string;
+    start: Date;
+    shiftTypeName: string;
+  };
   const newShiftGroups = new Map<
     string,
     {
       location: string;
-      shiftIds: string[];
+      shifts: NewShiftEntry[];
       shiftTypeNames: Set<string>;
       earliestStart: Date;
       latestStart: Date;
@@ -427,9 +432,14 @@ export async function GET(request: Request) {
     if (!shift.location) continue;
     const creationDay = formatInNZT(shift.createdAt, "yyyy-MM-dd");
     const key = `${shift.location}-${creationDay}`;
+    const entry: NewShiftEntry = {
+      id: shift.id,
+      start: shift.start,
+      shiftTypeName: shift.shiftType.name,
+    };
     const existing = newShiftGroups.get(key);
     if (existing) {
-      existing.shiftIds.push(shift.id);
+      existing.shifts.push(entry);
       existing.shiftTypeNames.add(shift.shiftType.name);
       if (shift.start < existing.earliestStart)
         existing.earliestStart = shift.start;
@@ -440,7 +450,7 @@ export async function GET(request: Request) {
     } else {
       newShiftGroups.set(key, {
         location: shift.location,
-        shiftIds: [shift.id],
+        shifts: [entry],
         shiftTypeNames: new Set([shift.shiftType.name]),
         earliestStart: shift.start,
         latestStart: shift.start,
@@ -450,15 +460,26 @@ export async function GET(request: Request) {
   }
 
   for (const [key, group] of newShiftGroups) {
+    // Preview: soonest 5 shifts by start date, for the feed sheet.
+    const preview = [...group.shifts]
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
+      .slice(0, 5)
+      .map((s) => ({
+        id: s.id,
+        start: s.start.toISOString(),
+        shiftTypeName: s.shiftTypeName,
+      }));
+
     items.push({
       type: "new_shift",
       id: `new-shift-${key}`,
       location: group.location,
-      count: group.shiftIds.length,
-      shiftIds: group.shiftIds,
+      count: group.shifts.length,
+      shiftIds: group.shifts.map((s) => s.id),
       shiftTypes: [...group.shiftTypeNames],
       earliestStart: group.earliestStart.toISOString(),
       latestStart: group.latestStart.toISOString(),
+      preview,
       timestamp: group.earliestCreatedAt.toISOString(),
       likeCount: 0,
       likedByMe: false,

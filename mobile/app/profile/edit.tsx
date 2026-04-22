@@ -12,6 +12,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -213,6 +214,7 @@ export default function EditProfileScreen() {
 
   // Populate form once when profile first loads
   const [initialized, setInitialized] = useState(false);
+  const [locationSheetVisible, setLocationSheetVisible] = useState(false);
   useEffect(() => {
     if (profile && !initialized) {
       setForm({
@@ -573,71 +575,58 @@ export default function EditProfileScreen() {
               browse.
             </Text>
 
-            <View
-              style={[
-                s.nestedSection,
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                setLocationSheetVisible(true);
+              }}
+              style={({ pressed }) => [
+                s.locationSelector,
                 {
                   backgroundColor: isDark
                     ? "rgba(255,255,255,0.04)"
-                    : "#f8fafc",
+                    : "#ffffff",
+                  borderColor: colors.border,
+                  opacity: pressed ? 0.7 : 1,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                form.defaultLocation
+                  ? `Default location: ${form.defaultLocation}. Tap to change.`
+                  : "No default location. Tap to choose."
+              }
             >
-              {availableLocations.map((location) => {
-                const selected = form.defaultLocation === location;
-                return (
-                  <Pressable
-                    key={location}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      updateField(
-                        "defaultLocation",
-                        selected ? "" : location
-                      );
-                    }}
-                    style={s.checkRow}
-                  >
-                    <Ionicons
-                      name={selected ? "radio-button-on" : "radio-button-off"}
-                      size={22}
-                      color={
-                        selected
-                          ? isDark
-                            ? "#86efac"
-                            : Brand.green
-                          : colors.textSecondary
-                      }
-                    />
-                    <Text style={[s.checkLabel, { color: colors.text }]}>
-                      {location}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              {form.defaultLocation !== "" && (
-                <Pressable
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    updateField("defaultLocation", "");
-                  }}
-                  style={[s.checkRow, { marginTop: 4 }]}
-                >
-                  <Ionicons
-                    name="close-circle-outline"
-                    size={22}
-                    color={colors.textSecondary}
-                  />
-                  <Text
-                    style={[
-                      s.checkLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Clear default
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+              <Ionicons
+                name={form.defaultLocation ? "location" : "location-outline"}
+                size={18}
+                color={
+                  form.defaultLocation
+                    ? isDark
+                      ? "#86efac"
+                      : Brand.green
+                    : colors.textSecondary
+                }
+              />
+              <Text
+                style={[
+                  s.locationSelectorText,
+                  {
+                    color: form.defaultLocation
+                      ? colors.text
+                      : colors.textSecondary,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {form.defaultLocation || "No default set"}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.textSecondary}
+              />
+            </Pressable>
           </View>
         )}
 
@@ -980,7 +969,173 @@ export default function EditProfileScreen() {
             )}
         </View>
       </ScrollView>
+
+      <DefaultLocationSheet
+        visible={locationSheetVisible}
+        locations={availableLocations}
+        selected={form.defaultLocation}
+        onSelect={(value) => {
+          Haptics.selectionAsync();
+          updateField("defaultLocation", value);
+          setLocationSheetVisible(false);
+        }}
+        onClose={() => setLocationSheetVisible(false)}
+        isDark={isDark}
+        colors={colors}
+      />
     </KeyboardAvoidingView>
+  );
+}
+
+/* ── Default Location Picker Sheet ── */
+
+function DefaultLocationSheet({
+  visible,
+  locations,
+  selected,
+  onSelect,
+  onClose,
+  isDark,
+  colors,
+}: {
+  visible: boolean;
+  locations: string[];
+  selected: string;
+  onSelect: (value: string) => void;
+  onClose: () => void;
+  isDark: boolean;
+  colors: (typeof Colors)["light"];
+}) {
+  const insets = useSafeAreaInsets();
+  const items: {
+    key: string;
+    label: string;
+    value: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[] = [
+    { key: "none", label: "No default", value: "", icon: "close-circle-outline" },
+    ...locations.map((loc) => ({
+      key: loc,
+      label: loc,
+      value: loc,
+      icon: "location" as const,
+    })),
+  ];
+
+  return (
+    <Modal
+      visible={visible}
+      presentationStyle="pageSheet"
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View
+        style={[
+          s.sheetPage,
+          {
+            backgroundColor: colors.background,
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
+        ]}
+      >
+        <View style={s.sheetHandleWrap}>
+          <View
+            style={[
+              s.sheetHandle,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.2)"
+                  : "rgba(0,0,0,0.15)",
+              },
+            ]}
+          />
+        </View>
+
+        <View style={s.sheetHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.sheetTitle, { color: colors.text }]}>
+              Default location
+            </Text>
+            <Text
+              style={[s.sheetSubtitle, { color: colors.textSecondary }]}
+            >
+              Pick your usual restaurant
+            </Text>
+          </View>
+          <Pressable
+            onPress={onClose}
+            hitSlop={10}
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              s.sheetClose,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "#f1f5f9",
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="close" size={18} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={s.sheetList}
+          showsVerticalScrollIndicator={false}
+        >
+          {items.map((item) => {
+            const active = item.value === selected;
+            const activeColor = isDark ? "#86efac" : Brand.green;
+            return (
+              <Pressable
+                key={item.key}
+                onPress={() => onSelect(item.value)}
+                style={({ pressed }) => [
+                  s.sheetItem,
+                  {
+                    backgroundColor: active
+                      ? isDark
+                        ? "rgba(134, 239, 172, 0.12)"
+                        : Brand.greenLight
+                      : pressed
+                      ? isDark
+                        ? "rgba(255,255,255,0.04)"
+                        : "#f8fafc"
+                      : "transparent",
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Ionicons
+                  name={item.icon}
+                  size={18}
+                  color={active ? activeColor : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    s.sheetItemText,
+                    {
+                      color: active ? activeColor : colors.text,
+                      fontFamily: active
+                        ? FontFamily.semiBold
+                        : FontFamily.regular,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </Text>
+                {active && (
+                  <Ionicons name="checkmark" size={18} color={activeColor} />
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -1154,6 +1309,80 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.regular,
     lineHeight: 18,
     marginTop: 2,
+  },
+
+  // Default location selector
+  locationSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  locationSelectorText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Default location sheet
+  sheetPage: { flex: 1 },
+  sheetHandleWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontFamily: FontFamily.heading,
+    letterSpacing: 0.2,
+    lineHeight: 26,
+  },
+  sheetSubtitle: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  sheetClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetList: {
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  sheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 12,
+    minHeight: 48,
+  },
+  sheetItemText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
   },
 
   // Nested checkbox sections

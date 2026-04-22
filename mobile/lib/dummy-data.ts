@@ -525,10 +525,16 @@ export type FeedItem =
   | ({ type: 'photo_post'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerCount: number; timestamp: string } & FeedInteractions)
-  | ({ type: 'new_shift'; id: string; location: string; count: number; shiftIds: string[]; shiftTypes: string[]; earliestStart: string; latestStart: string; timestamp: string } & FeedInteractions)
+  | ({ type: 'new_shift'; id: string; location: string; count: number; shiftIds: string[]; shiftTypes: string[]; earliestStart: string; latestStart: string; preview: NewShiftPreview[]; timestamp: string } & FeedInteractions)
   | ({ type: 'daily_menu'; id: string; menuId: string; location: string; serviceDate: string; chefName?: string; announcement?: string; starter: MenuCourseItem[]; mains: MenuCourseItem[]; drink: MenuCourseItem[]; dessert: MenuCourseItem[]; timestamp: string } & FeedInteractions);
 
 export type MenuCourseItem = { name: string; description?: string };
+
+export type NewShiftPreview = {
+  id: string;
+  start: string;
+  shiftTypeName: string;
+};
 
 /* ── Profile Stats & Achievements ── */
 
