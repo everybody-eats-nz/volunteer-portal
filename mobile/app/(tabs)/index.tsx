@@ -1178,28 +1178,27 @@ function FeedAvatar({
 }
 
 const RECAP_TEMPLATES = [
-  (meals: number, volunteers: number, hours: number) =>
-    `${meals} meals served by ${volunteers} volunteers across ${hours} hours of mahi 💚`,
-  (meals: number, volunteers: number, hours: number) =>
-    `${meals} people fed — ${volunteers} of the whānau showed up for ${hours} hours of aroha 🌿`,
-  (meals: number, volunteers: number, hours: number) =>
-    `Another beautiful night — ${volunteers} volunteers, ${meals} meals out the door, ${hours} hours of volunteer power ✨`,
-  (meals: number, volunteers: number, hours: number) =>
-    `${meals} plates, ${volunteers} volunteers, ${hours} hours, one big whānau 🍽️`,
-  (meals: number, volunteers: number, hours: number) =>
-    `${volunteers} volunteers put in ${hours} hours of mahi — ${meals} full bellies — ngā mihi nui 🙌`,
-  (meals: number, volunteers: number, hours: number) =>
-    `The whānau showed up! ${volunteers} volunteers served ${meals} meals across ${hours} hours 💪`,
-  (meals: number, volunteers: number, hours: number) =>
-    `Ka pai! ${volunteers} volunteers, ${meals} kai served — ${hours} hours of community love 🌱`,
-  (meals: number, volunteers: number, hours: number) =>
-    `${meals} meals, ${volunteers} volunteers, ${hours} hours, endless aroha — that's Everybody Eats 💚`,
+  (meals: number, volunteers: number) =>
+    `${meals} meals served by ${volunteers} volunteers 💚`,
+  (meals: number, volunteers: number) =>
+    `${meals} people fed — ${volunteers} of the whānau showed up with aroha 🌿`,
+  (meals: number, volunteers: number) =>
+    `Another beautiful night — ${volunteers} volunteers, ${meals} meals out the door ✨`,
+  (meals: number, volunteers: number) =>
+    `${meals} plates, ${volunteers} volunteers, one big whānau 🍽️`,
+  (meals: number, volunteers: number) =>
+    `${volunteers} volunteers, ${meals} full bellies — ngā mihi nui 🙌`,
+  (meals: number, volunteers: number) =>
+    `The whānau showed up! ${volunteers} volunteers served ${meals} meals 💪`,
+  (meals: number, volunteers: number) =>
+    `Ka pai! ${volunteers} volunteers, ${meals} kai served with community love 🌱`,
+  (meals: number, volunteers: number) =>
+    `${meals} meals, ${volunteers} volunteers, endless aroha — that's Everybody Eats 💚`,
 ];
 
 function getRecapMessage(
   meals: number,
   volunteers: number,
-  hours: number,
   id: string
 ): string {
   // Use id as a stable seed so the same recap always shows the same message
@@ -1208,7 +1207,7 @@ function getRecapMessage(
     hash = (hash * 31 + id.charCodeAt(i)) | 0;
   }
   const index = Math.abs(hash) % RECAP_TEMPLATES.length;
-  return RECAP_TEMPLATES[index](meals, volunteers, hours);
+  return RECAP_TEMPLATES[index](meals, volunteers);
 }
 
 function FeedCard({
@@ -1235,8 +1234,9 @@ function FeedCard({
   isReported?: boolean;
 }) {
   // Only human-authored posts are reportable. System-generated items
-  // (achievement, milestone, friend_signup, shift_recap) have no author-written
-  // content to moderate — but comments on them are still reportable via the sheet.
+  // (achievement, milestone, friend_signup, shift_recap, new_shift,
+  // daily_menu) have no author-written content to moderate — but comments
+  // on them are still reportable via the sheet.
   const canReport = item.type === "photo_post" || item.type === "announcement";
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
@@ -1559,10 +1559,86 @@ function FeedCard({
               {getRecapMessage(
                 item.mealsServed,
                 item.volunteerCount,
-                item.volunteerHours,
                 item.id
               )}
             </Text>
+            <View style={styles.feedFooter}>
+              <Text
+                style={[styles.feedMetaText, { color: colors.textSecondary }]}
+              >
+                {timeAgo}
+              </Text>
+              {socialButtons}
+            </View>
+          </View>
+        </>
+      );
+    }
+
+    if (item.type === "new_shift") {
+      const titleText =
+        item.count === 1
+          ? `New shift at ${item.location}`
+          : `${item.count} new shifts at ${item.location}`;
+      const earliest = new Date(item.earliestStart);
+      const latest = new Date(item.latestStart);
+      const sameDay =
+        formatNZT(earliest, "yyyy-MM-dd") === formatNZT(latest, "yyyy-MM-dd");
+      const dateText = sameDay
+        ? formatNZT(earliest, "EEEE d MMM")
+        : `${formatNZT(earliest, "d MMM")} – ${formatNZT(latest, "d MMM")}`;
+      return (
+        <>
+          <View style={[styles.feedIcon, { backgroundColor: "#ffedd5" }]}>
+            <Text style={styles.feedIconEmoji}>📅</Text>
+          </View>
+          <View style={styles.feedBody}>
+            <Text style={[styles.feedTitle, { color: colors.text }]}>
+              {titleText}
+            </Text>
+            <Text
+              style={[styles.feedDescription, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {dateText} · {item.shiftTypes.join(", ")}
+            </Text>
+            <View style={styles.feedFooter}>
+              <Text
+                style={[styles.feedMetaText, { color: colors.textSecondary }]}
+              >
+                {timeAgo}
+              </Text>
+              {socialButtons}
+            </View>
+          </View>
+        </>
+      );
+    }
+
+    if (item.type === "daily_menu") {
+      const serviceDate = new Date(item.serviceDate);
+      const dateText = formatNZT(serviceDate, "EEEE d MMM");
+      const mainsPreview = item.mains.slice(0, 2).join(" · ");
+      return (
+        <>
+          <View style={[styles.feedIcon, { backgroundColor: "#fef3c7" }]}>
+            <Text style={styles.feedIconEmoji}>🍲</Text>
+          </View>
+          <View style={styles.feedBody}>
+            <Text style={[styles.feedTitle, { color: colors.text }]}>
+              Menu for {dateText} · {item.location}
+            </Text>
+            {mainsPreview ? (
+              <Text
+                style={[
+                  styles.feedDescription,
+                  { color: colors.textSecondary },
+                ]}
+                numberOfLines={2}
+              >
+                {mainsPreview}
+              </Text>
+            ) : null}
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -1684,6 +1760,26 @@ const SHEET_TYPE_CONFIG = {
     accentDark: "#6ee7b7",
     accentSoft: "#ecfdf5",
     accentSoftDark: "rgba(16, 185, 129, 0.10)",
+  },
+  new_shift: {
+    emoji: "📅",
+    label: "New Shifts",
+    bg: "#ffedd5",
+    bgDark: "rgba(251, 146, 60, 0.12)",
+    accent: "#c2410c",
+    accentDark: "#fdba74",
+    accentSoft: "#fff7ed",
+    accentSoftDark: "rgba(251, 146, 60, 0.10)",
+  },
+  daily_menu: {
+    emoji: "🍲",
+    label: "Tonight's Menu",
+    bg: "#fef3c7",
+    bgDark: "rgba(245, 158, 11, 0.12)",
+    accent: "#b45309",
+    accentDark: "#fcd34d",
+    accentSoft: "#fffbeb",
+    accentSoftDark: "rgba(245, 158, 11, 0.10)",
   },
 } as const;
 
@@ -1906,9 +2002,29 @@ function FeedItemSheet({
     body = getRecapMessage(
       item.mealsServed,
       item.volunteerCount,
-      item.volunteerHours,
       item.id
     );
+  } else if (item.type === "new_shift") {
+    title =
+      item.count === 1
+        ? `New shift at ${item.location}`
+        : `${item.count} new shifts at ${item.location}`;
+    const earliest = new Date(item.earliestStart);
+    const latest = new Date(item.latestStart);
+    const sameDay =
+      formatNZT(earliest, "yyyy-MM-dd") === formatNZT(latest, "yyyy-MM-dd");
+    const dateText = sameDay
+      ? formatNZT(earliest, "EEEE d MMM")
+      : `${formatNZT(earliest, "d MMM")} – ${formatNZT(latest, "d MMM")}`;
+    body = `${dateText} · ${item.shiftTypes.join(", ")}`;
+  } else if (item.type === "daily_menu") {
+    const serviceDate = new Date(item.serviceDate);
+    title = `Menu for ${formatNZT(serviceDate, "EEEE d MMM")} at ${item.location}`;
+    const parts: string[] = [];
+    if (item.chefName) parts.push(`👨‍🍳 ${item.chefName}`);
+    if (item.mains.length > 0) parts.push(item.mains.join("\n"));
+    if (item.announcement) parts.push(item.announcement);
+    body = parts.join("\n\n");
   }
 
   const likeCount = likers.length;

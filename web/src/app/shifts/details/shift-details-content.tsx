@@ -343,7 +343,7 @@ export async function ShiftDetailsContent({
   if (session?.user?.email) {
     currentUser = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, availableLocations: true },
+      select: { id: true },
     });
 
     if (currentUser?.id) {

@@ -13,6 +13,8 @@ import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
  * - Milestone events (volunteers crossing shift count thresholds)
  * - Friend signups (friends signing up for shifts)
  * - Shift recaps (aggregate stats for completed shifts at user's locations)
+ * - New shifts published for the user's default location
+ * - Daily menus published for the user's default location
  *
  * Every item includes likeCount, likedByMe, recentLikers, commentCount.
  * Items are sorted by timestamp descending and limited to the last 14 days.
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
       where: { id: userId },
       select: {
         volunteerGrade: true,
-        availableLocations: true,
+        defaultLocation: true,
         customLabels: { select: { labelId: true } },
       },
     }),
@@ -74,10 +76,11 @@ export async function GET(request: Request) {
   );
 
   const userLabelIds = (userProfile?.customLabels ?? []).map((l) => l.labelId);
-  const userLocations = userProfile?.availableLocations
-    ? userProfile.availableLocations.split(",").map((l) => l.trim()).filter(Boolean)
-    : [];
+  const userDefaultLocation = userProfile?.defaultLocation ?? null;
   const userGrade = userProfile?.volunteerGrade ?? "GREEN";
+
+  // Today at NZ midnight UTC — used as the lower bound for upcoming menus.
+  const todayNZT = getStartOfDayUTC(now);
 
   // Run all data queries in parallel
   const [
@@ -86,6 +89,8 @@ export async function GET(request: Request) {
     friendSignups,
     userSignupLocations,
     announcements,
+    newShifts,
+    dailyMenus,
   ] = await Promise.all([
     // Recent achievement unlocks (friends + own, last 14 days)
     prisma.userAchievement.findMany({
@@ -192,8 +197,7 @@ export async function GET(request: Request) {
 
     // Announcements: fetch all non-expired ones from the window, then filter by
     // user targeting in app code. Grade and label are pre-filtered at DB level;
-    // location targeting uses in-memory exact matching (availableLocations is a
-    // comma-separated string so we can't safely do it in Prisma without raw SQL).
+    // location targeting is matched against the user's defaultLocation.
     prisma.announcement.findMany({
       where: {
         createdAt: { gte: since },
@@ -220,6 +224,51 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "desc" },
     }),
+
+    // New shifts published at the user's default location. Only upcoming shifts
+    // created in the last 14 days. We aggregate by creation day + location in
+    // app code so a bulk-publish of a month of shifts becomes one feed item.
+    userDefaultLocation
+      ? prisma.shift.findMany({
+          where: {
+            location: userDefaultLocation,
+            createdAt: { gte: since },
+            start: { gt: now },
+          },
+          select: {
+            id: true,
+            start: true,
+            createdAt: true,
+            location: true,
+            shiftType: { select: { name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        })
+      : Promise.resolve([]),
+
+    // Daily menus published for the user's default location, for upcoming
+    // service dates. Volunteers get a heads-up about what's on the menu.
+    userDefaultLocation
+      ? prisma.dailyMenu.findMany({
+          where: {
+            location: userDefaultLocation,
+            date: { gte: todayNZT },
+            createdAt: { gte: since },
+          },
+          select: {
+            id: true,
+            date: true,
+            location: true,
+            chefName: true,
+            announcement: true,
+            mains: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        })
+      : Promise.resolve([]),
   ]);
 
   type FeedItem = {
@@ -238,7 +287,8 @@ export async function GET(request: Request) {
     // Location targeting: empty = all locations
     const locationMatch =
       ann.targetLocations.length === 0 ||
-      ann.targetLocations.some((loc) => userLocations.includes(loc));
+      (userDefaultLocation !== null &&
+        ann.targetLocations.includes(userDefaultLocation));
 
     // Grade targeting: empty = all grades
     const gradeMatch =
@@ -356,6 +406,90 @@ export async function GET(request: Request) {
     });
   }
 
+  // Aggregate new shifts by (creation-day-NZT + location). A bulk-publish of
+  // many shifts on the same day collapses into one feed item.
+  const newShiftGroups = new Map<
+    string,
+    {
+      location: string;
+      shiftIds: string[];
+      shiftTypeNames: Set<string>;
+      earliestStart: Date;
+      latestStart: Date;
+      earliestCreatedAt: Date;
+    }
+  >();
+
+  for (const shift of newShifts) {
+    if (!shift.location) continue;
+    const creationDay = formatInNZT(shift.createdAt, "yyyy-MM-dd");
+    const key = `${shift.location}-${creationDay}`;
+    const existing = newShiftGroups.get(key);
+    if (existing) {
+      existing.shiftIds.push(shift.id);
+      existing.shiftTypeNames.add(shift.shiftType.name);
+      if (shift.start < existing.earliestStart)
+        existing.earliestStart = shift.start;
+      if (shift.start > existing.latestStart)
+        existing.latestStart = shift.start;
+      if (shift.createdAt < existing.earliestCreatedAt)
+        existing.earliestCreatedAt = shift.createdAt;
+    } else {
+      newShiftGroups.set(key, {
+        location: shift.location,
+        shiftIds: [shift.id],
+        shiftTypeNames: new Set([shift.shiftType.name]),
+        earliestStart: shift.start,
+        latestStart: shift.start,
+        earliestCreatedAt: shift.createdAt,
+      });
+    }
+  }
+
+  for (const [key, group] of newShiftGroups) {
+    items.push({
+      type: "new_shift",
+      id: `new-shift-${key}`,
+      location: group.location,
+      count: group.shiftIds.length,
+      shiftIds: group.shiftIds,
+      shiftTypes: [...group.shiftTypeNames],
+      earliestStart: group.earliestStart.toISOString(),
+      latestStart: group.latestStart.toISOString(),
+      timestamp: group.earliestCreatedAt.toISOString(),
+      likeCount: 0,
+      likedByMe: false,
+      recentLikers: [],
+      commentCount: 0,
+    });
+  }
+
+  // Daily menus — one feed item per published menu at the user's location.
+  type MenuItem = { name: string; description?: string };
+  for (const menu of dailyMenus) {
+    const mains = Array.isArray(menu.mains)
+      ? (menu.mains as unknown as MenuItem[])
+          .map((m) => m?.name)
+          .filter((n): n is string => typeof n === "string" && n.length > 0)
+      : [];
+
+    items.push({
+      type: "daily_menu",
+      id: `daily-menu-${menu.id}`,
+      menuId: menu.id,
+      location: menu.location,
+      serviceDate: menu.date.toISOString(),
+      chefName: menu.chefName ?? undefined,
+      announcement: menu.announcement ?? undefined,
+      mains,
+      timestamp: menu.createdAt.toISOString(),
+      likeCount: 0,
+      likedByMe: false,
+      recentLikers: [],
+      commentCount: 0,
+    });
+  }
+
   // Build shift recaps
   const mySignupLocations = new Set(
     userSignupLocations
@@ -365,57 +499,49 @@ export async function GET(request: Request) {
 
   if (mySignupLocations.size > 0) {
     const locationsList = [...mySignupLocations];
-    const [recapShifts, mealsServedRecords, locationDefaults] =
-      await Promise.all([
-        prisma.shift.findMany({
-          where: {
-            end: { lt: now, gte: since },
-            location: { in: locationsList },
+    const [recapShifts, mealsServedRecords] = await Promise.all([
+      prisma.shift.findMany({
+        where: {
+          end: { lt: now, gte: since },
+          location: { in: locationsList },
+        },
+        select: {
+          id: true,
+          start: true,
+          end: true,
+          location: true,
+          signups: {
+            where: { status: "CONFIRMED" },
+            select: { userId: true },
           },
-          select: {
-            id: true,
-            start: true,
-            end: true,
-            location: true,
-            signups: {
-              where: { status: "CONFIRMED" },
-              select: { userId: true },
-            },
-            _count: {
-              select: { signups: { where: { status: "CONFIRMED" } } },
-            },
+          _count: {
+            select: { signups: { where: { status: "CONFIRMED" } } },
           },
-          orderBy: { start: "desc" },
-        }),
-        prisma.mealsServed.findMany({
-          where: {
-            date: { gte: since },
-            location: { in: locationsList },
-          },
-          select: { date: true, location: true, mealsServed: true },
-        }),
-        prisma.location.findMany({
-          where: { name: { in: locationsList } },
-          select: { name: true, defaultMealsServed: true },
-        }),
-      ]);
+        },
+        orderBy: { start: "desc" },
+      }),
+      prisma.mealsServed.findMany({
+        where: {
+          date: { gte: since },
+          location: { in: locationsList },
+        },
+        select: { date: true, location: true, mealsServed: true },
+      }),
+    ]);
 
+    // Only emit recaps for (location, day) pairs with an explicit MealsServed
+    // record — otherwise we'd be making up numbers from the location default.
     const mealsMap = new Map<string, number>();
     for (const record of mealsServedRecords) {
       const key = `${record.location}-${record.date.toISOString()}`;
       mealsMap.set(key, record.mealsServed);
     }
 
-    const defaultsMap = new Map(
-      locationDefaults.map((loc) => [loc.name, loc.defaultMealsServed])
-    );
-
     const recapGroups = new Map<
       string,
       {
         location: string;
         displayDate: string;
-        volunteerHours: number;
         volunteerCount: number;
         mealsServed: number;
         latestStart: Date;
@@ -429,12 +555,11 @@ export async function GET(request: Request) {
 
       const nzStartOfDay = getStartOfDayUTC(shift.start);
       const mealsKey = `${shift.location}-${nzStartOfDay.toISOString()}`;
+      const meals = mealsMap.get(mealsKey);
+      if (meals === undefined) continue;
+
       const displayDate = formatInNZT(shift.start, "yyyy-MM-dd");
       const groupKey = `${shift.location}-${displayDate}`;
-
-      const shiftDurationHours =
-        (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
-      const totalHours = shiftDurationHours * shift._count.signups;
 
       if (!recapVolunteers.has(groupKey)) {
         recapVolunteers.set(groupKey, new Set());
@@ -446,19 +571,14 @@ export async function GET(request: Request) {
 
       const existing = recapGroups.get(groupKey);
       if (existing) {
-        existing.volunteerHours += totalHours;
         existing.volunteerCount = volunteerSet.size;
         if (shift.start > existing.latestStart) {
           existing.latestStart = shift.start;
         }
       } else {
-        const meals =
-          mealsMap.get(mealsKey) ?? defaultsMap.get(shift.location) ?? 0;
-
         recapGroups.set(groupKey, {
           location: shift.location,
           displayDate,
-          volunteerHours: totalHours,
           volunteerCount: volunteerSet.size,
           mealsServed: meals,
           latestStart: shift.start,
@@ -473,7 +593,6 @@ export async function GET(request: Request) {
         location: recap.location,
         date: recap.displayDate,
         mealsServed: recap.mealsServed,
-        volunteerHours: Math.round(recap.volunteerHours),
         volunteerCount: recap.volunteerCount,
         timestamp: recap.latestStart.toISOString(),
         likeCount: 0,

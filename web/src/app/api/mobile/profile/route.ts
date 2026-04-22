@@ -50,6 +50,7 @@ export async function GET(request: Request) {
         excludedShortageNotificationTypes: true,
         emailNewsletterSubscription: true,
         newsletterLists: true,
+        defaultLocation: true,
         createdAt: true,
         customLabels: {
           select: {
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
 
     // Fetch achievements
     await checkAndUnlockAchievements(userId);
-    const [userAchievements, availableAchievements, totalVolunteers] =
+    const [userAchievements, availableAchievements, totalVolunteers, locationRows] =
       await Promise.all([
         getUserAchievements(userId),
         getAvailableAchievements(userId),
@@ -115,7 +116,18 @@ export async function GET(request: Request) {
             signups: { some: { status: "CONFIRMED" } },
           },
         }),
+        prisma.location.findMany({
+          where: { isActive: true },
+          select: { name: true },
+          orderBy: { name: "asc" },
+        }),
       ]);
+
+    // Exclude "Special Event Venue" — it isn't a regular working location
+    // and we don't want it offered as a default.
+    const availableLocations = locationRows
+      .map((l) => l.name)
+      .filter((n) => n !== "Special Event Venue");
 
     // Count how many users have unlocked each achievement
     const allAchievementIds = [
@@ -252,7 +264,9 @@ export async function GET(request: Request) {
         excludedShortageNotificationTypes: user.excludedShortageNotificationTypes,
         emailNewsletterSubscription: user.emailNewsletterSubscription,
         newsletterLists: user.newsletterLists,
+        defaultLocation: user.defaultLocation,
       },
+      availableLocations,
       stats: {
         shiftsCompleted: completedSignups,
         hoursContributed: Math.round(hoursContributed),
@@ -316,6 +330,7 @@ const updateMobileProfileSchema = z.object({
   excludedShortageNotificationTypes: z.array(z.string()).optional(),
   emailNewsletterSubscription: z.boolean().optional(),
   newsletterLists: z.array(z.string()).optional(),
+  defaultLocation: z.string().nullable().optional(),
 });
 
 export async function PUT(request: Request) {
@@ -338,6 +353,11 @@ export async function PUT(request: Request) {
     const profileFields = parsed.data;
 
     const data: Record<string, unknown> = { ...profileFields };
+
+    // Normalize empty string to null so "no default" clears the column.
+    if (profileFields.defaultLocation !== undefined) {
+      data.defaultLocation = profileFields.defaultLocation || null;
+    }
 
     // Update name field for display consistency
     if (profileFields.firstName || profileFields.lastName) {

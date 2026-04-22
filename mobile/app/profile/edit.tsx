@@ -47,6 +47,7 @@ type FormData = {
   excludedShortageNotificationTypes: string[];
   emailNewsletterSubscription: boolean;
   newsletterLists: string[];
+  defaultLocation: string;
 };
 
 type ShiftType = { id: string; name: string };
@@ -110,7 +111,7 @@ export default function EditProfileScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { profile, refresh } = useProfile();
+  const { profile, availableLocations, refresh } = useProfile();
 
   const [form, setForm] = useState<FormData>({
     firstName: "",
@@ -126,6 +127,7 @@ export default function EditProfileScreen() {
     excludedShortageNotificationTypes: [],
     emailNewsletterSubscription: true,
     newsletterLists: [],
+    defaultLocation: "",
   });
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
@@ -228,6 +230,7 @@ export default function EditProfileScreen() {
           profile.excludedShortageNotificationTypes,
         emailNewsletterSubscription: profile.emailNewsletterSubscription,
         newsletterLists: profile.newsletterLists,
+        defaultLocation: profile.defaultLocation ?? "",
       });
       setLocalImage(profile.image ?? null);
       setInitialized(true);
@@ -393,6 +396,7 @@ export default function EditProfileScreen() {
           newsletterLists: form.emailNewsletterSubscription
             ? form.newsletterLists
             : [],
+          defaultLocation: form.defaultLocation || null,
         },
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -557,6 +561,85 @@ export default function EditProfileScreen() {
             isDark={isDark}
           />
         </View>
+
+        {/* ── Default Location ── */}
+        {availableLocations.length > 0 && (
+          <View style={s.section}>
+            <Text style={[s.sectionTitle, { color: colors.text }]}>
+              Default Location
+            </Text>
+            <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+              Your usual restaurant — we&apos;ll show shifts here first when you
+              browse.
+            </Text>
+
+            <View
+              style={[
+                s.nestedSection,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.04)"
+                    : "#f8fafc",
+                },
+              ]}
+            >
+              {availableLocations.map((location) => {
+                const selected = form.defaultLocation === location;
+                return (
+                  <Pressable
+                    key={location}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateField(
+                        "defaultLocation",
+                        selected ? "" : location
+                      );
+                    }}
+                    style={s.checkRow}
+                  >
+                    <Ionicons
+                      name={selected ? "radio-button-on" : "radio-button-off"}
+                      size={22}
+                      color={
+                        selected
+                          ? isDark
+                            ? "#86efac"
+                            : Brand.green
+                          : colors.textSecondary
+                      }
+                    />
+                    <Text style={[s.checkLabel, { color: colors.text }]}>
+                      {location}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {form.defaultLocation !== "" && (
+                <Pressable
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    updateField("defaultLocation", "");
+                  }}
+                  style={[s.checkRow, { marginTop: 4 }]}
+                >
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={22}
+                    color={colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      s.checkLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Clear default
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* ── Emergency Contact ── */}
         <View style={s.section}>
