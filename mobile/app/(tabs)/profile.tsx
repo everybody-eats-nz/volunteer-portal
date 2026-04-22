@@ -20,7 +20,6 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -318,10 +317,7 @@ export default function ProfileScreen() {
         }
       >
         {/* ── Editorial Hero ── */}
-        <Animated.View
-          entering={FadeInDown.duration(520)}
-          style={styles.hero}
-        >
+        <View style={styles.hero}>
           <Pressable
             onPress={showPhotoOptions}
             disabled={isUploadingPhoto}
@@ -397,13 +393,10 @@ export default function ProfileScreen() {
           <Text style={[styles.heroMeta, { color: colors.textSecondary }]}>
             Volunteer since {formatNZT(new Date(user.memberSince), "MMMM yyyy")}
           </Text>
-        </Animated.View>
+        </View>
 
         {/* ── Your Mahi (Impact Panel) ── */}
-        <Animated.View
-          entering={FadeInDown.delay(80).duration(520)}
-          style={styles.mahiContainer}
-        >
+        <View style={styles.mahiContainer}>
           <LinearGradient
             colors={
               isDark
@@ -450,13 +443,10 @@ export default function ProfileScreen() {
               <MahiStat value={`${stats.currentStreak}mo`} label="Streak" />
             </View>
           </LinearGradient>
-        </Animated.View>
+        </View>
 
         {/* ── Whānau ── */}
-        <Animated.View
-          entering={FadeInDown.delay(140).duration(520)}
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <SectionHeader
             title="Whānau"
             subtitle={`${friends.length} ${friends.length === 1 ? "friend" : "friends"}`}
@@ -499,13 +489,10 @@ export default function ProfileScreen() {
               ))}
             </ScrollView>
           )}
-        </Animated.View>
+        </View>
 
         {/* ── Achievements ── */}
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(520)}
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <SectionHeader
             title="Achievements"
             subtitle={`${unlocked.length} unlocked · ${totalPoints} points`}
@@ -576,13 +563,10 @@ export default function ProfileScreen() {
               ))}
             </>
           )}
-        </Animated.View>
+        </View>
 
         {/* ── Account actions ── */}
-        <Animated.View
-          entering={FadeInDown.delay(260).duration(520)}
-          style={styles.settingsGroup}
-        >
+        <View style={styles.settingsGroup}>
           <SettingsRow
             icon="person-outline"
             label="Edit profile"
@@ -635,10 +619,10 @@ export default function ProfileScreen() {
               showOnboarding();
             }}
           />
-        </Animated.View>
+        </View>
 
         {/* ── Sign out ── */}
-        <Animated.View entering={FadeInDown.delay(320).duration(520)}>
+        <View>
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -670,7 +654,7 @@ export default function ProfileScreen() {
               Sign out
             </Text>
           </Pressable>
-        </Animated.View>
+        </View>
 
         {/* ── Footer ── */}
         <View style={styles.footer}>
