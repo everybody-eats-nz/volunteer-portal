@@ -36,12 +36,23 @@ async function getProjectId(): Promise<string | undefined> {
   );
 }
 
+export type PushRegisterOptions = {
+  /**
+   * When true, prompt the OS for permission if it isn't already granted.
+   * Default false so background token syncs (on login / app start) never
+   * surface the permission dialog — only the onboarding step does that.
+   */
+  requestIfNeeded?: boolean;
+};
+
 /**
  * Request notification permission and return the Expo push token.
  * Returns null if permission is denied, the device is a simulator without
  * push capability, or the project isn't configured for push.
  */
-export async function registerForPushTokenAsync(): Promise<string | null> {
+export async function registerForPushTokenAsync(
+  opts: PushRegisterOptions = {},
+): Promise<string | null> {
   if (!Device.isDevice) {
     // Push notifications require a physical device (APNs/FCM don't deliver to
     // simulators).
@@ -53,6 +64,7 @@ export async function registerForPushTokenAsync(): Promise<string | null> {
   const { status: existing } = await Notifications.getPermissionsAsync();
   let finalStatus = existing;
   if (existing !== 'granted') {
+    if (!opts.requestIfNeeded) return null;
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
@@ -79,10 +91,15 @@ export async function registerForPushTokenAsync(): Promise<string | null> {
 
 /**
  * Register the device's push token with the web API.
- * Safe to call on every login / app start — the server upserts.
+ * Safe to call on every login / app start — the server upserts. By default
+ * this is silent: it only returns a token when the user has already granted
+ * permission. Onboarding passes `{ requestIfNeeded: true }` to surface the
+ * OS prompt once, in context.
  */
-export async function syncPushTokenWithServer(): Promise<string | null> {
-  const token = await registerForPushTokenAsync();
+export async function syncPushTokenWithServer(
+  opts: PushRegisterOptions = {},
+): Promise<string | null> {
+  const token = await registerForPushTokenAsync(opts);
   if (!token) return null;
 
   try {

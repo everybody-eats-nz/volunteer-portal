@@ -9,19 +9,22 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {

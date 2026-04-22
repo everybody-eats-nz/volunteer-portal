@@ -4,7 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import {
@@ -23,7 +23,7 @@ import { useAuth } from '@/lib/auth';
 import { useNotificationsStore } from '@/hooks/use-notifications';
 import { Brand } from '@/constants/theme';
 import { AuthGate } from '@/components/auth-gate';
-import { EulaModal } from '@/components/eula-modal';
+import { OnboardingFlow } from '@/components/onboarding-flow';
 import { navigateToNotificationTarget } from '@/lib/notification-routing';
 
 SplashScreen.preventAutoHideAsync();
@@ -106,16 +106,14 @@ export default function RootLayout() {
     },
   }), []);
 
-  const handleEulaAccepted = useCallback(() => {}, []);
-
   if (isLoading || !fontsLoaded) {
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
-      <EulaModal onAccepted={handleEulaAccepted} />
       <AuthGate>
+        <OnboardingFlow />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />

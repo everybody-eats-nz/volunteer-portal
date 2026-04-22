@@ -32,6 +32,7 @@ import {
   isCalendarSyncEnabled,
   setCalendarSyncEnabled,
 } from "@/lib/calendar-sync";
+import { useOnboarding } from "@/lib/onboarding";
 import { type Achievement, type Friend, type Shift } from "@/lib/dummy-data";
 import { api, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -96,6 +97,7 @@ export default function ProfileScreen() {
     }, [refreshFriends])
   );
   const logout = useAuth((s) => s.logout);
+  const showOnboarding = useOnboarding((s) => s.show);
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -630,6 +632,27 @@ export default function ProfileScreen() {
             colors={colors}
             isDark={isDark}
             onToggle={handleToggleCalendarSync}
+          />
+          <View
+            style={[
+              styles.settingsDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(14,58,35,0.06)",
+              },
+            ]}
+          />
+          <SettingsRow
+            icon="sparkles-outline"
+            label="See the intro again"
+            hint="Replay the welcome tour"
+            colors={colors}
+            isDark={isDark}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              showOnboarding();
+            }}
           />
         </Animated.View>
 

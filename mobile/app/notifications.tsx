@@ -229,22 +229,15 @@ export default function NotificationsScreen() {
                     hitSlop={12}
                     accessibilityRole="button"
                     accessibilityLabel={`Mark all ${unreadCount} notifications as read`}
-                    style={({ pressed }) => [
-                      styles.headerAction,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(248, 251, 105, 0.16)"
-                          : Brand.accent,
-                        opacity: pressed ? 0.75 : 1,
-                      },
-                    ]}
+                    style={({ pressed }) => ({
+                      opacity: pressed ? 0.6 : 1,
+                      padding: 4,
+                    })}
                   >
                     <Text
                       style={[
                         styles.headerActionText,
-                        {
-                          color: isDark ? Brand.accent : Brand.nearBlack,
-                        },
+                        { color: colors.text },
                       ]}
                     >
                       Mark all read
@@ -711,15 +704,9 @@ const styles = StyleSheet.create({
   },
 
   /* Header action */
-  headerAction: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    marginRight: 4,
-  },
   headerActionText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 13,
+    fontSize: 15,
     letterSpacing: 0.2,
   },
 
