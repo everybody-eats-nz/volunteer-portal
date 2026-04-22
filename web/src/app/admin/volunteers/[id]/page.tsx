@@ -99,6 +99,7 @@ export default async function AdminVolunteerPage({
       howDidYouHearAboutUs: true,
       availableDays: true,
       availableLocations: true,
+      defaultLocation: true,
       emailNewsletterSubscription: true,
       notificationPreference: true,
       volunteerAgreementAccepted: true,
@@ -867,6 +868,25 @@ export default async function AdminVolunteerPage({
                       </span>
                     )}
                   </div>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">
+                    Default Location
+                  </label>
+                  {volunteer.defaultLocation ? (
+                    <Badge
+                      variant="outline"
+                      className="border-primary/30 text-primary bg-primary/5"
+                    >
+                      <MapPin className="h-3 w-3 mr-1" />
+                      {locationLabels[volunteer.defaultLocation] ||
+                        volunteer.defaultLocation}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground italic">
+                      Not set
+                    </span>
+                  )}
                 </div>
                 <div className="pt-4 border-t space-y-1">
                   <label className="text-sm font-medium">

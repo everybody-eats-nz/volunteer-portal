@@ -161,22 +161,22 @@ export default function ShiftsScreen() {
     refresh,
     loadMorePast,
     isLoadingMore,
-    userPreferredLocations,
+    userDefaultLocation,
     periodFriends,
     shiftFriends,
   } = useShifts();
 
-  /* Silent location default — applies user's preferred location without surfacing a picker */
+  /* Silent location default — applies the user's explicit default location without surfacing a picker */
   const [locationFilter, setLocationFilter] = useState<string | null>(null);
   const hasSetDefault = useRef(false);
 
   useEffect(() => {
-    if (hasSetDefault.current || userPreferredLocations.length === 0) return;
-    if (userPreferredLocations.length === 1) {
-      setLocationFilter(userPreferredLocations[0]);
+    if (hasSetDefault.current) return;
+    if (userDefaultLocation) {
+      setLocationFilter(userDefaultLocation);
+      hasSetDefault.current = true;
     }
-    hasSetDefault.current = true;
-  }, [userPreferredLocations]);
+  }, [userDefaultLocation]);
 
   const filteredAvailable = useMemo(
     () =>
