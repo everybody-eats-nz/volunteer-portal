@@ -262,7 +262,10 @@ export async function GET(request: Request) {
             location: true,
             chefName: true,
             announcement: true,
+            starter: true,
             mains: true,
+            drink: true,
+            dessert: true,
             createdAt: true,
           },
           orderBy: { createdAt: "desc" },
@@ -466,12 +469,37 @@ export async function GET(request: Request) {
 
   // Daily menus — one feed item per published menu at the user's location.
   type MenuItem = { name: string; description?: string };
+  const extractCourse = (field: unknown): MenuItem[] => {
+    if (!Array.isArray(field)) return [];
+    const result: MenuItem[] = [];
+    for (const raw of field) {
+      if (!raw || typeof raw !== "object") continue;
+      const obj = raw as { name?: unknown; description?: unknown };
+      if (typeof obj.name !== "string" || obj.name.length === 0) continue;
+      const entry: MenuItem = { name: obj.name };
+      if (typeof obj.description === "string" && obj.description.length > 0) {
+        entry.description = obj.description;
+      }
+      result.push(entry);
+    }
+    return result;
+  };
+
   for (const menu of dailyMenus) {
-    const mains = Array.isArray(menu.mains)
-      ? (menu.mains as unknown as MenuItem[])
-          .map((m) => m?.name)
-          .filter((n): n is string => typeof n === "string" && n.length > 0)
-      : [];
+    const starter = extractCourse(menu.starter);
+    const mains = extractCourse(menu.mains);
+    const drink = extractCourse(menu.drink);
+    const dessert = extractCourse(menu.dessert);
+
+    if (
+      starter.length === 0 &&
+      mains.length === 0 &&
+      drink.length === 0 &&
+      dessert.length === 0 &&
+      !menu.announcement
+    ) {
+      continue;
+    }
 
     items.push({
       type: "daily_menu",
@@ -481,7 +509,10 @@ export async function GET(request: Request) {
       serviceDate: menu.date.toISOString(),
       chefName: menu.chefName ?? undefined,
       announcement: menu.announcement ?? undefined,
+      starter,
       mains,
+      drink,
+      dessert,
       timestamp: menu.createdAt.toISOString(),
       likeCount: 0,
       likedByMe: false,

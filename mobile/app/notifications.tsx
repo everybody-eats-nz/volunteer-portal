@@ -304,7 +304,9 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={isLoading}
               onRefresh={refresh}
-              tintColor={colors.primary}
+              tintColor={colors.tint}
+              colors={[colors.tint]}
+              progressBackgroundColor={colors.card}
             />
           }
           ListEmptyComponent={<EmptyState colors={colors} isDark={isDark} />}
@@ -363,14 +365,15 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
           style={[
             styles.heroPill,
             {
-              backgroundColor: isDark
-                ? "rgba(248, 251, 105, 0.14)"
-                : Brand.accent,
+              backgroundColor: isDark ? colors.accent : Brand.accent,
             },
           ]}
         >
           <View
-            style={[styles.heroPillDot, { backgroundColor: Brand.green }]}
+            style={[
+              styles.heroPillDot,
+              { backgroundColor: isDark ? Brand.accent : Brand.green },
+            ]}
           />
           <Text
             style={[

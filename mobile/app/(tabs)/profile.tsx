@@ -311,7 +311,9 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={isLoading}
             onRefresh={refresh}
-            tintColor={colors.primary}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
           />
         }
       >
@@ -428,10 +430,10 @@ export default function ProfileScreen() {
 
             <View style={styles.mahiHero}>
               <Text style={styles.mahiHeroNumber}>
-                {stats.peopleServed.toLocaleString()}
+                {stats.shiftsCompleted.toLocaleString()}
               </Text>
               <Text style={styles.mahiHeroCaption}>
-                meals served with aroha
+                shifts served with aroha
               </Text>
             </View>
 
@@ -439,8 +441,8 @@ export default function ProfileScreen() {
 
             <View style={styles.mahiStatsRow}>
               <MahiStat
-                value={stats.shiftsCompleted.toString()}
-                label="Shifts"
+                value={stats.peopleServed.toLocaleString()}
+                label="Meals"
               />
               <View style={styles.mahiStatDivider} />
               <MahiStat value={`${stats.hoursContributed}`} label="Hours" />
@@ -590,27 +592,6 @@ export default function ProfileScreen() {
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/profile/edit");
-            }}
-          />
-          <View
-            style={[
-              styles.settingsDivider,
-              {
-                backgroundColor: isDark
-                  ? "rgba(255,255,255,0.06)"
-                  : "rgba(14,58,35,0.06)",
-              },
-            ]}
-          />
-          <SettingsRow
-            icon="calendar-outline"
-            label="My schedule"
-            hint="Upcoming and past shifts"
-            colors={colors}
-            isDark={isDark}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/(tabs)/shifts");
             }}
           />
           <View

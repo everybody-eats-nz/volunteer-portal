@@ -313,7 +313,9 @@ export default function ShiftsScreen() {
         <RefreshControl
           refreshing={isLoading}
           onRefresh={refresh}
-          tintColor={colors.primary}
+          tintColor={colors.tint}
+          colors={[colors.tint]}
+          progressBackgroundColor={colors.card}
         />
       }
     >

@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const { userId } = auth;
 
   try {
-    // 1. Get all accepted friendships for the current user
+    // 1. Get all accepted friendships for the current user, newest first
     const friendsRaw = await prisma.$queryRaw<
       Array<{
         friendId: string;
@@ -28,22 +28,30 @@ export async function GET(request: Request) {
         lastName: string | null;
         profilePhotoUrl: string | null;
         volunteerGrade: string;
+        friendedAt: Date;
       }>
     >`
-      SELECT DISTINCT
+      SELECT DISTINCT ON (u.id)
         u.id as "friendId",
         u.name,
         u."firstName",
         u."lastName",
         u."profilePhotoUrl",
-        u."volunteerGrade"
+        u."volunteerGrade",
+        f."createdAt" as "friendedAt"
       FROM "Friendship" f
       JOIN "User" u ON (
         (f."userId" = ${userId} AND u.id = f."friendId") OR
         (f."friendId" = ${userId} AND u.id = f."userId")
       )
       WHERE f.status = 'ACCEPTED' AND u.id != ${userId}
+      ORDER BY u.id, f."createdAt" DESC
     `;
+
+    // Re-sort in JS because DISTINCT ON requires ordering by the distinct key first.
+    friendsRaw.sort(
+      (a, b) => b.friendedAt.getTime() - a.friendedAt.getTime()
+    );
 
     if (friendsRaw.length === 0) {
       return NextResponse.json({ friends: [] });

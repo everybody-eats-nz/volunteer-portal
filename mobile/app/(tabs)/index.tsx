@@ -11,11 +11,12 @@ import { formatNZT } from "@/lib/dates";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-native-markdown-display";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -355,7 +356,9 @@ export default function HomeScreen() {
             refreshShifts();
             refreshFeed();
           }}
-          tintColor={colors.primary}
+          tintColor={colors.tint}
+          colors={[colors.tint]}
+          progressBackgroundColor={colors.card}
         />
       }
     >
@@ -490,23 +493,27 @@ export default function HomeScreen() {
           What&apos;s happening 🌿
         </ThemedText>
 
-        <View style={styles.feedList}>
-          {feedItems.map((item, index) => (
-            <FeedCard
-              key={item.id}
-              item={item}
-              colors={colors}
-              isLast={index === feedItems.length - 1}
-              liked={item.likedByMe}
-              onToggleLike={() => toggleLike(item)}
-              onShowSheet={() => handleOpenSheet(item)}
-              onOpenImages={openImageViewer}
-              commentCount={item.commentCount}
-              isReported={hasReported(item.id)}
-              onReport={() => openModerationSheet(item)}
-            />
-          ))}
-        </View>
+        {feedLoading && feedItems.length === 0 ? (
+          <FeedSkeleton colors={colors} />
+        ) : (
+          <View style={styles.feedList}>
+            {feedItems.map((item, index) => (
+              <FeedCard
+                key={item.id}
+                item={item}
+                colors={colors}
+                isLast={index === feedItems.length - 1}
+                liked={item.likedByMe}
+                onToggleLike={() => toggleLike(item)}
+                onShowSheet={() => handleOpenSheet(item)}
+                onOpenImages={openImageViewer}
+                commentCount={item.commentCount}
+                isReported={hasReported(item.id)}
+                onReport={() => openModerationSheet(item)}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* ── Likes Sheet ── */}
@@ -1210,6 +1217,86 @@ function getRecapMessage(
   return RECAP_TEMPLATES[index](meals, volunteers);
 }
 
+const SKELETON_ROWS: Array<{ title: number; body: number[] }> = [
+  { title: 55, body: [92, 68] },
+  { title: 45, body: [88] },
+  { title: 60, body: [94, 74, 40] },
+];
+
+function FeedSkeleton({ colors }: { colors: (typeof Colors)["light"] }) {
+  const pulse = useRef(new Animated.Value(0.45)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 0.9,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0.45,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
+
+  return (
+    <View style={styles.feedList} accessibilityLabel="Loading activity feed">
+      {SKELETON_ROWS.map((row, i) => (
+        <View
+          key={i}
+          style={[
+            styles.feedCard,
+            i < SKELETON_ROWS.length - 1 && {
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.feedIcon,
+              { backgroundColor: colors.border, opacity: pulse },
+            ]}
+          />
+          <View style={[styles.feedBody, { gap: 8, paddingTop: 4 }]}>
+            <Animated.View
+              style={[
+                styles.skeletonBar,
+                {
+                  width: `${row.title}%`,
+                  height: 13,
+                  backgroundColor: colors.border,
+                  opacity: pulse,
+                },
+              ]}
+            />
+            {row.body.map((w, j) => (
+              <Animated.View
+                key={j}
+                style={[
+                  styles.skeletonBar,
+                  {
+                    width: `${w}%`,
+                    height: 11,
+                    backgroundColor: colors.border,
+                    opacity: pulse,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function FeedCard({
   item,
   colors,
@@ -1618,7 +1705,16 @@ function FeedCard({
     if (item.type === "daily_menu") {
       const serviceDate = new Date(item.serviceDate);
       const dateText = formatNZT(serviceDate, "EEEE d MMM");
-      const mainsPreview = item.mains.slice(0, 2).join(" · ");
+      const previewNames = [
+        ...(item.mains ?? []),
+        ...(item.starter ?? []),
+        ...(item.dessert ?? []),
+        ...(item.drink ?? []),
+      ]
+        .map((m) => m?.name)
+        .filter((n): n is string => typeof n === "string" && n.length > 0)
+        .slice(0, 2);
+      const mainsPreview = previewNames.join(" · ");
       return (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#fef3c7" }]}>
@@ -2020,11 +2116,33 @@ function FeedItemSheet({
   } else if (item.type === "daily_menu") {
     const serviceDate = new Date(item.serviceDate);
     title = `Menu for ${formatNZT(serviceDate, "EEEE d MMM")} at ${item.location}`;
-    const parts: string[] = [];
-    if (item.chefName) parts.push(`👨‍🍳 ${item.chefName}`);
-    if (item.mains.length > 0) parts.push(item.mains.join("\n"));
-    if (item.announcement) parts.push(item.announcement);
-    body = parts.join("\n\n");
+    const sections: string[] = [];
+    if (item.chefName) sections.push(`👨‍🍳 **${item.chefName}**`);
+    if (item.announcement) sections.push(item.announcement);
+    const courseBlock = (
+      heading: string,
+      items: typeof item.mains | undefined
+    ) => {
+      if (!items || items.length === 0) return null;
+      const lines = items
+        .map((m) => {
+          if (!m?.name) return null;
+          return m.description
+            ? `- **${m.name}** — ${m.description}`
+            : `- ${m.name}`;
+        })
+        .filter((l): l is string => l !== null);
+      if (lines.length === 0) return null;
+      return `**${heading}**\n${lines.join("\n")}`;
+    };
+    const courses = [
+      courseBlock("Starter", item.starter),
+      courseBlock("Main", item.mains),
+      courseBlock("Dessert", item.dessert),
+      courseBlock("Drinks", item.drink),
+    ].filter((s): s is string => s !== null);
+    sections.push(...courses);
+    body = sections.join("\n\n");
   }
 
   const likeCount = likers.length;
@@ -2187,8 +2305,8 @@ function FeedItemSheet({
               {/* Title */}
               <Text style={[sheet.title, { color: colors.text }]}>{title}</Text>
 
-              {/* Body text — use Markdown renderer for announcements */}
-              {item.type === "announcement" ? (
+              {/* Body text — use Markdown renderer for announcements and menus */}
+              {item.type === "announcement" || item.type === "daily_menu" ? (
                 <Markdown
                   style={{
                     body: {
@@ -2980,6 +3098,9 @@ const styles = StyleSheet.create({
   },
   feedList: {
     backgroundColor: "transparent",
+  },
+  skeletonBar: {
+    borderRadius: 4,
   },
   feedCard: {
     flexDirection: "row",
