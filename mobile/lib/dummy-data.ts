@@ -29,6 +29,7 @@ export type UserProfile = User & {
   excludedShortageNotificationTypes: string[];
   emailNewsletterSubscription: boolean;
   newsletterLists: string[];
+  defaultLocation: string | null;
   totalShifts: number;
   memberSince: string;
 };
@@ -49,6 +50,7 @@ export const DUMMY_PROFILE: UserProfile = {
   excludedShortageNotificationTypes: [],
   emailNewsletterSubscription: true,
   newsletterLists: [],
+  defaultLocation: null,
   totalShifts: 23,
   memberSince: '2025-06-15',
 };
