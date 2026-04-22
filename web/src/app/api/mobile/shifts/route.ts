@@ -29,10 +29,10 @@ export async function GET(request: Request) {
   const now = new Date();
   const { userId } = auth;
 
-  // Fetch user's preferred locations for the client to default the filter
+  // Fetch user's locations for the client to default the filter
   const userRecord = await prisma.user.findUnique({
     where: { id: userId },
-    select: { availableLocations: true },
+    select: { availableLocations: true, defaultLocation: true },
   });
   let userPreferredLocations: string[] = [];
   if (userRecord?.availableLocations) {
@@ -47,6 +47,7 @@ export async function GET(request: Request) {
       // Not valid JSON — ignore
     }
   }
+  const userDefaultLocation = userRecord?.defaultLocation ?? null;
 
   const url = new URL(request.url);
   const limit = Math.min(
@@ -254,6 +255,7 @@ export async function GET(request: Request) {
       ? pastSignups[pastSignups.length - 1]?.id ?? null
       : null,
     userPreferredLocations,
+    userDefaultLocation,
     periodFriends,
     shiftFriends,
   });

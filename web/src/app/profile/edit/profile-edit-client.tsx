@@ -134,6 +134,7 @@ export default function ProfileEditClient({
     customHowDidYouHearAboutUs: "",
     availableDays: [],
     availableLocations: [],
+    defaultLocation: "",
     emailNewsletterSubscription: true,
     newsletterLists: [],
     notificationPreference: "EMAIL",
@@ -188,6 +189,7 @@ export default function ProfileEditClient({
               profileData.customHowDidYouHearAboutUs || "",
             availableDays: profileData.availableDays || [],
             availableLocations: profileData.availableLocations || [],
+            defaultLocation: profileData.defaultLocation || "",
             emailNewsletterSubscription:
               profileData.emailNewsletterSubscription !== false,
             newsletterLists: profileData.newsletterLists || [],
@@ -388,12 +390,28 @@ export default function ProfileEditClient({
   }, []);
 
   const handleLocationToggle = useCallback((location: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      availableLocations: prev.availableLocations.includes(location)
+    setFormData((prev) => {
+      const nextLocations = prev.availableLocations.includes(location)
         ? prev.availableLocations.filter((l) => l !== location)
-        : [...prev.availableLocations, location],
-    }));
+        : [...prev.availableLocations, location];
+
+      const candidates = nextLocations.filter(
+        (l) => l !== "Special Event Venue"
+      );
+      let nextDefault = prev.defaultLocation;
+      if (nextDefault && !candidates.includes(nextDefault)) {
+        nextDefault = "";
+      }
+      if (!nextDefault && candidates.length === 1) {
+        nextDefault = candidates[0];
+      }
+
+      return {
+        ...prev,
+        availableLocations: nextLocations,
+        defaultLocation: nextDefault,
+      };
+    });
   }, []);
 
   const nextSection = useCallback(() => {
@@ -442,6 +460,7 @@ export default function ProfileEditClient({
         return (
           <AvailabilityStep
             formData={formData}
+            onInputChange={handleInputChange}
             onDayToggle={handleDayToggle}
             onLocationToggle={handleLocationToggle}
             loading={loading}
