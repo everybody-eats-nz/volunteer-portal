@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import {
+  differenceInDays,
   differenceInHours,
   differenceInMinutes,
   endOfWeek,
   formatDistanceToNow,
+  startOfDay,
   startOfWeek,
 } from "date-fns";
 import { formatNZT } from "@/lib/dates";
@@ -41,9 +43,11 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
+  getShiftThemeByName,
   type FeedComment,
   type FeedItem,
   type LikeUser,
+  type Shift,
 } from "@/lib/dummy-data";
 
 export default function HomeScreen() {
@@ -56,6 +60,7 @@ export default function HomeScreen() {
     myShifts,
     available,
     periodFriends,
+    userDefaultLocation,
     isLoading: shiftsLoading,
     refresh: refreshShifts,
   } = useShifts();
@@ -89,9 +94,14 @@ export default function HomeScreen() {
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+  /* Scope the "volunteers needed" card to the user's home restaurant when they
+     have one set — shifts elsewhere aren't actionable for most volunteers.
+     Falls back to every location when no default is configured. */
   const thisWeekAvailable = available.filter((s) => {
     const start = new Date(s.start);
-    return start >= weekStart && start <= weekEnd;
+    if (start < weekStart || start > weekEnd) return false;
+    if (userDefaultLocation && s.location !== userDefaultLocation) return false;
+    return true;
   });
 
   const [likesSheetItemId, setLikesSheetItemId] = useState<string | null>(null);
@@ -451,37 +461,19 @@ export default function HomeScreen() {
         />
       )}
 
-      {/* ── Open Shifts CTA ── */}
-      {thisWeekAvailable.length > 0 && (
-        <Pressable
-          onPress={() => router.push("/(tabs)/shifts?tab=browse")}
-          style={({ pressed }) => [
-            styles.openShiftsBanner,
-            {
-              backgroundColor: Brand.accent,
-              opacity: pressed ? 0.9 : 1,
-              marginTop: nextShift ? 20 : 0,
-            },
-          ]}
-          accessibilityLabel="Browse available shifts"
-        >
-          <View style={styles.openShiftsContent}>
-            <Text style={styles.openShiftsEmoji}>✋</Text>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[styles.openShiftsTitle, { color: Brand.nearBlack }]}
-              >
-                Volunteers needed!
-              </Text>
-              <Text style={[styles.openShiftsBody, { color: Brand.nearBlack }]}>
-                {thisWeekAvailable.length} open{" "}
-                {thisWeekAvailable.length === 1 ? "shift" : "shifts"} this week
-              </Text>
-            </View>
-            <Ionicons name="arrow-forward" size={20} color={Brand.nearBlack} />
-          </View>
-        </Pressable>
-      )}
+      {/* ── Volunteers Needed ──
+           Collapses to a slim reminder when the user already has a confirmed
+           shift this week — they've done their part; just surface the wider
+           roster gap as an easy tap-in for picking up more. */}
+      <VolunteersNeededCard
+        shifts={thisWeekAvailable}
+        marginTop={nextShift ? 20 : 0}
+        collapsible={nextShift?.status === "CONFIRMED"}
+        onShiftPress={(id) => router.push(`/shift/${id}` as Href)}
+        onBrowseDay={(dateKey) =>
+          router.push(`/(tabs)/shifts?date=${dateKey}` as Href)
+        }
+      />
 
       {/* ── Activity Feed ── */}
       <View style={styles.feedSection}>
@@ -1100,6 +1092,658 @@ const heroStyles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.2,
+  },
+});
+
+/* ── Volunteers Needed Card ── */
+
+type ShortShift = Shift & { open: number };
+
+type NeedPalette = {
+  cardBg: string;
+  cardBorder: string;
+  glow: string;
+  shadow: string;
+  eyebrow: string;
+  displayText: string;
+  supportText: string;
+  chipBg: string;
+  chipDate: string;
+  chipName: string;
+  chipLocation: string;
+  chipNeedsBg: string;
+  chipNeedsText: string;
+  ctaBorder: string;
+  ctaText: string;
+  ctaArrowBg: string;
+  ctaArrowIcon: string;
+};
+
+const NEED_PALETTE_LIGHT: NeedPalette = {
+  cardBg: "#fffdf4",
+  cardBorder: "rgba(14, 58, 35, 0.08)",
+  glow: "rgba(248, 251, 105, 0.35)",
+  shadow: "#0e3a23",
+  eyebrow: Brand.green,
+  displayText: Brand.green,
+  supportText: "rgba(16, 20, 24, 0.72)",
+  chipBg: Brand.green,
+  chipDate: Brand.accent,
+  chipName: Brand.warmWhite,
+  chipLocation: "rgba(255, 253, 247, 0.65)",
+  chipNeedsBg: Brand.accent,
+  chipNeedsText: Brand.nearBlack,
+  ctaBorder: "rgba(14, 58, 35, 0.18)",
+  ctaText: Brand.green,
+  ctaArrowBg: Brand.green,
+  ctaArrowIcon: Brand.warmWhite,
+};
+
+const NEED_PALETTE_DARK: NeedPalette = {
+  // Deep warm forest — reads as a dark notice board behind paper chips
+  cardBg: "#15231b",
+  cardBorder: "rgba(248, 251, 105, 0.18)",
+  glow: "rgba(248, 251, 105, 0.22)",
+  shadow: "#000000",
+  eyebrow: Brand.accent,
+  displayText: "#f3f1e3",
+  supportText: "rgba(243, 241, 227, 0.72)",
+  // Chips are muted cream — dimmer than paper so they don't glow against dark
+  chipBg: "#d9d3be",
+  chipDate: Brand.green,
+  chipName: Brand.nearBlack,
+  chipLocation: "rgba(16, 20, 24, 0.62)",
+  chipNeedsBg: Brand.green,
+  chipNeedsText: Brand.accent,
+  ctaBorder: "rgba(248, 251, 105, 0.22)",
+  ctaText: Brand.accent,
+  ctaArrowBg: Brand.accent,
+  ctaArrowIcon: Brand.green,
+};
+
+function VolunteersNeededCard({
+  shifts,
+  marginTop,
+  collapsible = false,
+  onShiftPress,
+  onBrowseDay,
+}: {
+  shifts: Shift[];
+  marginTop: number;
+  /** When true, start collapsed with a tap-to-expand slim header. */
+  collapsible?: boolean;
+  onShiftPress: (id: string) => void;
+  /** Navigate to the shifts tab, scoped to this day (YYYY-MM-DD NZ time). */
+  onBrowseDay: (dateKey: string) => void;
+}) {
+  const colorScheme = useColorScheme();
+  const palette =
+    colorScheme === "dark" ? NEED_PALETTE_DARK : NEED_PALETTE_LIGHT;
+
+  const [expanded, setExpanded] = useState(false);
+  const toggleExpanded = useCallback(() => {
+    Haptics.selectionAsync();
+    setExpanded((prev) => !prev);
+  }, []);
+
+  const short: ShortShift[] = shifts
+    .map((s) => ({ ...s, open: Math.max(s.capacity - s.signedUp, 0) }))
+    .filter((s) => s.open > 0)
+    .sort(
+      (a, b) =>
+        b.open - a.open ||
+        new Date(a.start).getTime() - new Date(b.start).getTime()
+    );
+
+  if (short.length === 0) return null;
+
+  const totalSpots = short.reduce((sum, s) => sum + s.open, 0);
+  const topShifts = short.slice(0, 6);
+
+  /* Earliest upcoming day with open shifts — the CTA jumps straight there. */
+  const firstDayKey = short
+    .map((s) => ({
+      key: formatNZT(new Date(s.start), "yyyy-MM-dd"),
+      time: new Date(s.start).getTime(),
+    }))
+    .sort((a, b) => a.time - b.time)[0].key;
+
+  if (collapsible) {
+    return (
+      <View
+        style={[
+          needStyles.collapsibleCard,
+          {
+            marginTop,
+            backgroundColor: palette.cardBg,
+            borderColor: palette.cardBorder,
+            shadowColor: palette.shadow,
+          },
+        ]}
+      >
+        {/* Slim header — always visible, tap to expand/collapse */}
+        <Pressable
+          onPress={toggleExpanded}
+          style={({ pressed }) => [
+            needStyles.collapsibleHeader,
+            { opacity: pressed ? 0.85 : 1 },
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          accessibilityLabel={
+            expanded
+              ? "Hide open shifts"
+              : `Show ${totalSpots} ${
+                  totalSpots === 1 ? "spot" : "spots"
+                } still open this week`
+          }
+          hitSlop={6}
+        >
+          <Text style={needStyles.compactEmoji}>🙌</Text>
+          <View style={needStyles.compactTextBlock}>
+            <Text
+              style={[needStyles.compactEyebrow, { color: palette.eyebrow }]}
+              numberOfLines={1}
+            >
+              Help needed
+            </Text>
+            <Text
+              style={[needStyles.compactBody, { color: palette.displayText }]}
+              numberOfLines={1}
+            >
+              {totalSpots} more {totalSpots === 1 ? "spot" : "spots"} open this
+              week
+            </Text>
+          </View>
+          <View
+            style={[
+              needStyles.collapsibleChevron,
+              { backgroundColor: palette.ctaArrowBg },
+            ]}
+          >
+            <Ionicons
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={14}
+              color={palette.ctaArrowIcon}
+            />
+          </View>
+        </Pressable>
+
+        {/* Expanded body — chips + browse CTA */}
+        {expanded && (
+          <View style={needStyles.collapsibleBody}>
+            <View
+              style={[
+                needStyles.collapsibleDivider,
+                { backgroundColor: palette.ctaBorder },
+              ]}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={needStyles.chipsRow}
+            >
+              {topShifts.map((shift) => (
+                <ShortShiftChip
+                  key={shift.id}
+                  shift={shift}
+                  palette={palette}
+                  onPress={() => onShiftPress(shift.id)}
+                />
+              ))}
+            </ScrollView>
+
+            <Pressable
+              onPress={() => onBrowseDay(firstDayKey)}
+              style={({ pressed }) => [
+                needStyles.collapsibleCta,
+                { opacity: pressed ? 0.85 : 1 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Browse ${short.length} open shifts starting with the next day that needs help`}
+              hitSlop={8}
+            >
+              <Text style={[needStyles.ctaText, { color: palette.ctaText }]}>
+                {short.length > topShifts.length
+                  ? `See all ${short.length} open shifts`
+                  : "Browse open shifts"}
+              </Text>
+              <View
+                style={[
+                  needStyles.ctaArrow,
+                  { backgroundColor: palette.ctaArrowBg },
+                ]}
+              >
+                <Ionicons
+                  name="arrow-forward"
+                  size={16}
+                  color={palette.ctaArrowIcon}
+                />
+              </View>
+            </Pressable>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        needStyles.card,
+        {
+          marginTop,
+          backgroundColor: palette.cardBg,
+          borderColor: palette.cardBorder,
+          shadowColor: palette.shadow,
+        },
+      ]}
+    >
+      {/* Soft accent glow */}
+      <View style={[needStyles.glow, { backgroundColor: palette.glow }]} />
+
+      {/* Header: eyebrow + emoji */}
+      <View style={needStyles.headerRow}>
+        <Text style={[needStyles.eyebrow, { color: palette.eyebrow }]}>
+          Help needed this week
+        </Text>
+        <Text style={needStyles.handsEmoji}>🙌</Text>
+      </View>
+
+      {/* Display number */}
+      <View style={needStyles.displayRow}>
+        <Text
+          style={[needStyles.displayNumber, { color: palette.displayText }]}
+        >
+          {totalSpots}
+        </Text>
+        <Text style={[needStyles.displayUnit, { color: palette.displayText }]}>
+          {totalSpots === 1 ? "spot" : "spots"}
+        </Text>
+      </View>
+
+      <Text style={[needStyles.supportLine, { color: palette.supportText }]}>
+        {short.length === 1
+          ? "open on one shift · can you spare a few hours?"
+          : `open across ${short.length} shifts · can you lend a hand?`}
+      </Text>
+
+      {/* Shift chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={needStyles.chipsScroll}
+        contentContainerStyle={needStyles.chipsRow}
+      >
+        {topShifts.map((shift) => (
+          <ShortShiftChip
+            key={shift.id}
+            shift={shift}
+            palette={palette}
+            onPress={() => onShiftPress(shift.id)}
+          />
+        ))}
+      </ScrollView>
+
+      {/* CTA row — jumps to the first day that needs crew */}
+      <Pressable
+        onPress={() => onBrowseDay(firstDayKey)}
+        style={({ pressed }) => [
+          needStyles.ctaRow,
+          { borderTopColor: palette.ctaBorder },
+          { opacity: pressed ? 0.85 : 1 },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`Browse ${short.length} open shifts starting with the next day that needs help`}
+        hitSlop={8}
+      >
+        <Text style={[needStyles.ctaText, { color: palette.ctaText }]}>
+          {short.length > topShifts.length
+            ? `See all ${short.length} open shifts`
+            : "Browse open shifts"}
+        </Text>
+        <View
+          style={[needStyles.ctaArrow, { backgroundColor: palette.ctaArrowBg }]}
+        >
+          <Ionicons
+            name="arrow-forward"
+            size={16}
+            color={palette.ctaArrowIcon}
+          />
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+/** "Today" / "Tomorrow" / "In 3 days" — falls back to a date for the far future. */
+function relativeDayLabel(start: Date): string {
+  const days = differenceInDays(startOfDay(start), startOfDay(new Date()));
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days > 1 && days < 14) return `In ${days} days`;
+  return formatNZT(start, "EEE · d MMM");
+}
+
+function ShortShiftChip({
+  shift,
+  palette,
+  onPress,
+}: {
+  shift: ShortShift;
+  palette: NeedPalette;
+  onPress: () => void;
+}) {
+  const theme = getShiftThemeByName(shift.shiftType.name);
+  const start = new Date(shift.start);
+  const dayLabel = relativeDayLabel(start);
+  const isEvening = parseInt(formatNZT(start, "H"), 10) >= 16;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        needStyles.chip,
+        { backgroundColor: palette.chipBg },
+        { transform: [{ scale: pressed ? 0.97 : 1 }] },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${shift.shiftType.name} on ${formatNZT(
+        start,
+        "EEEE d MMMM"
+      )} at ${shift.location}, needs ${shift.open} more ${
+        shift.open === 1 ? "volunteer" : "volunteers"
+      }`}
+    >
+      <View style={needStyles.chipInner}>
+        {/* Top: date eyebrow + big emoji + shift name (reserves 2 lines) */}
+        <View style={needStyles.chipTop}>
+          <View style={needStyles.chipDateRow}>
+            <Text style={[needStyles.chipDate, { color: palette.chipDate }]}>
+              {dayLabel.toUpperCase()}
+            </Text>
+            <View
+              style={[
+                needStyles.chipPeriodDot,
+                { backgroundColor: palette.chipDate },
+              ]}
+            />
+            <Text
+              style={[needStyles.chipPeriodLabel, { color: palette.chipDate }]}
+            >
+              {isEvening ? "EVE" : "DAY"}
+            </Text>
+          </View>
+
+          <Text style={needStyles.chipEmoji}>{theme.emoji}</Text>
+
+          <Text
+            style={[needStyles.chipName, { color: palette.chipName }]}
+            numberOfLines={2}
+          >
+            {shift.shiftType.name}
+          </Text>
+        </View>
+
+        {/* Bottom: location + Needs N pill — anchored at chip bottom so pills
+            line up vertically across all chips regardless of name length. */}
+        <View style={needStyles.chipBottom}>
+          <View style={needStyles.chipLocationRow}>
+            <Ionicons
+              name="location-outline"
+              size={11}
+              color={palette.chipLocation}
+            />
+            <Text
+              style={[needStyles.chipLocation, { color: palette.chipLocation }]}
+              numberOfLines={1}
+            >
+              {shift.location}
+            </Text>
+          </View>
+
+          <View
+            style={[
+              needStyles.chipNeedsPill,
+              { backgroundColor: palette.chipNeedsBg },
+            ]}
+          >
+            <Text
+              style={[
+                needStyles.chipNeedsText,
+                { color: palette.chipNeedsText },
+              ]}
+            >
+              Needs {shift.open} more
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+const needStyles = StyleSheet.create({
+  card: {
+    marginHorizontal: 20,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    paddingTop: 24,
+    paddingBottom: 18,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
+  },
+  glow: {
+    position: "absolute",
+    top: -80,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 22,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
+  },
+  handsEmoji: {
+    fontSize: 22,
+  },
+  displayRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    paddingHorizontal: 22,
+    marginTop: 12,
+  },
+  displayNumber: {
+    fontSize: 56,
+    lineHeight: 58,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -1,
+  },
+  displayUnit: {
+    fontSize: 22,
+    lineHeight: 32,
+    fontFamily: FontFamily.heading,
+    marginBottom: 4,
+  },
+  supportLine: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: FontFamily.medium,
+    paddingHorizontal: 22,
+    marginTop: 6,
+  },
+  chipsScroll: {
+    marginTop: 18,
+  },
+  chipsRow: {
+    paddingHorizontal: 22,
+    gap: 10,
+    paddingRight: 22,
+  },
+  chip: {
+    width: 172,
+    height: 170,
+    borderRadius: 20,
+    overflow: "hidden",
+    flexDirection: "row",
+  },
+  chipInner: {
+    flex: 1,
+    padding: 14,
+    justifyContent: "space-between",
+  },
+  chipTop: {
+    gap: 8,
+  },
+  chipDateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  chipDate: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.2,
+  },
+  chipPeriodDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    opacity: 0.7,
+  },
+  chipPeriodLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.2,
+    opacity: 0.75,
+  },
+  chipEmoji: {
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  chipName: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontFamily: FontFamily.semiBold,
+    minHeight: 34, // reserve 2 lines so bottom rows line up across chips
+  },
+  chipBottom: {
+    gap: 8,
+  },
+  chipLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  chipLocation: {
+    fontSize: 11,
+    fontFamily: FontFamily.regular,
+    flexShrink: 1,
+  },
+  chipNeedsPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  chipNeedsText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.1,
+  },
+  ctaRow: {
+    marginTop: 18,
+    marginHorizontal: 22,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  ctaText: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.1,
+  },
+  ctaArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Collapsible variant — shown when the user already has a confirmed shift
+  // this week. Slim header is always visible; tapping expands the chips + CTA.
+  collapsibleCard: {
+    marginHorizontal: 20,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  collapsibleHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  compactEmoji: {
+    fontSize: 22,
+  },
+  compactTextBlock: {
+    flex: 1,
+    gap: 1,
+  },
+  compactEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.3,
+    textTransform: "uppercase",
+  },
+  compactBody: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontFamily: FontFamily.semiBold,
+  },
+  collapsibleChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  collapsibleBody: {
+    paddingBottom: 14,
+  },
+  collapsibleDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
+    marginBottom: 14,
+  },
+  collapsibleCta: {
+    marginTop: 14,
+    marginHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });
 
@@ -3193,31 +3837,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 20,
     fontFamily: FontFamily.bold,
-  },
-
-  // Open shifts banner
-  openShiftsBanner: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
-  },
-  openShiftsContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  openShiftsEmoji: {
-    fontSize: 24,
-  },
-  openShiftsTitle: {
-    fontSize: 15,
-    fontFamily: FontFamily.semiBold,
-  },
-  openShiftsBody: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    opacity: 0.8,
-    marginTop: 1,
   },
 
   // Feed

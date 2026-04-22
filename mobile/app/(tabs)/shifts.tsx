@@ -11,7 +11,12 @@ import {
 } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect, useRouter, type Href } from "expo-router";
+import {
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+  type Href,
+} from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -62,6 +67,16 @@ function isShiftDay(shift: Shift): boolean {
 
 function formatDateKey(date: Date): string {
   return formatNZT(date, "yyyy-MM-dd");
+}
+
+function parseDateKey(key: string | undefined): Date | null {
+  if (!key) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  if (!match) return null;
+  const [, y, m, d] = match;
+  const date = new Date(Number(y), Number(m) - 1, Number(d));
+  if (Number.isNaN(date.getTime())) return null;
+  return startOfDay(date);
 }
 
 function splitDayPeriods(shifts: Shift[], dateStr: string): PeriodSubGroup[] {
@@ -211,10 +226,24 @@ export default function ShiftsScreen() {
 
   const [pickerVisible, setPickerVisible] = useState(false);
 
-  /* Selected date (default today) */
-  const [selectedDate, setSelectedDate] = useState<Date>(() =>
-    startOfDay(new Date())
-  );
+  /* Selected date — respects ?date=YYYY-MM-DD deep links (e.g. from the
+     "volunteers needed" home card), falling back to today. */
+  const params = useLocalSearchParams<{ date?: string }>();
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const parsed = parseDateKey(params.date);
+    return parsed ?? startOfDay(new Date());
+  });
+
+  /* If the deep link date changes (e.g. user taps the CTA again for a new
+     day without unmounting the tab), jump to that date. */
+  useEffect(() => {
+    const parsed = parseDateKey(params.date);
+    if (parsed && formatDateKey(parsed) !== formatDateKey(selectedDate)) {
+      setSelectedDate(parsed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.date]);
+
   const selectedDateKey = formatDateKey(selectedDate);
 
   /* Calendar signals — merge available + signups (past + upcoming) for density dots */

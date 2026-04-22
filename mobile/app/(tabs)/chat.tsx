@@ -63,7 +63,10 @@ const FLOATING_BAR_HEIGHT = 60;
 
 /* ─── Editorial palette (derived from theme) ────────────────── */
 
-function usePaperTint(isDark: boolean, colors: (typeof Colors)["light"]): PaperTint {
+function usePaperTint(
+  isDark: boolean,
+  colors: (typeof Colors)["light"]
+): PaperTint {
   return {
     paper: colors.background,
     ink: isDark ? colors.text : Brand.green,
@@ -76,7 +79,11 @@ function usePaperTint(isDark: boolean, colors: (typeof Colors)["light"]): PaperT
 
 /* ─── Animated Typing Dots ──────────────────────────────────── */
 
-const TypingDots = React.memo(function TypingDots({ color }: { color: string }) {
+const TypingDots = React.memo(function TypingDots({
+  color,
+}: {
+  color: string;
+}) {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
@@ -87,8 +94,16 @@ const TypingDots = React.memo(function TypingDots({ color }: { color: string }) 
       Animated.loop(
         Animated.sequence([
           Animated.delay(i * 160),
-          Animated.timing(dot, { toValue: 1, duration: 280, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0, duration: 280, useNativeDriver: true }),
+          Animated.timing(dot, {
+            toValue: 1,
+            duration: 280,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dot, {
+            toValue: 0,
+            duration: 280,
+            useNativeDriver: true,
+          }),
           Animated.delay((2 - i) * 160),
         ])
       )
@@ -107,7 +122,10 @@ const TypingDots = React.memo(function TypingDots({ color }: { color: string }) 
             styles.dot,
             {
               backgroundColor: color,
-              opacity: dot.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }),
+              opacity: dot.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 1],
+              }),
               transform: [
                 {
                   translateY: dot.interpolate({
@@ -168,7 +186,13 @@ const MessageBubble = React.memo(function MessageBubble({
 
   if (isUser) {
     return (
-      <View style={[styles.messageRow, styles.userRow, { marginTop: isFirstInGroup ? 18 : 4 }]}>
+      <View
+        style={[
+          styles.messageRow,
+          styles.userRow,
+          { marginTop: isFirstInGroup ? 18 : 4 },
+        ]}
+      >
         <View style={[styles.userBubble, { backgroundColor: Brand.green }]}>
           <Text style={styles.userText}>{item.content}</Text>
         </View>
@@ -177,11 +201,15 @@ const MessageBubble = React.memo(function MessageBubble({
   }
 
   return (
-    <View style={[styles.assistantBlock, { marginTop: isFirstInGroup ? 24 : 10 }]}>
+    <View
+      style={[styles.assistantBlock, { marginTop: isFirstInGroup ? 24 : 10 }]}
+    >
       {isFirstInGroup && (
         <View style={styles.assistantMeta}>
           <LeafSeal size={22} isDark={isDark} />
-          <Text style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}>
+          <Text
+            style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}
+          >
             EE ASSISTANT
           </Text>
         </View>
@@ -200,7 +228,10 @@ const MessageBubble = React.memo(function MessageBubble({
             bullet_list: { marginVertical: 6 },
             ordered_list: { marginVertical: 6 },
             list_item: { marginVertical: 2 },
-            link: { color: isDark ? Brand.greenLight : Brand.green, fontFamily: FontFamily.semiBold },
+            link: {
+              color: isDark ? Brand.greenLight : Brand.green,
+              fontFamily: FontFamily.semiBold,
+            },
             paragraph: { marginTop: 0, marginBottom: 10 },
             heading1: {
               fontFamily: FontFamily.headingBold,
@@ -281,7 +312,7 @@ function WelcomeHero({
     >
       {/* Eyebrow label */}
       <Text style={[styles.eyebrow, { color: paperTint.eyebrow }]}>
-        HE ĀWHINA · HELP
+        EVERYBODY EATS HELP
       </Text>
 
       {/* Hero block */}
@@ -353,13 +384,13 @@ function WelcomeHero({
 
       {/* Footer colophon */}
       <View style={styles.welcomeFooter}>
-        <View style={[styles.hairline, { backgroundColor: paperTint.rule, marginBottom: 14 }]} />
-        <Text
+        <View
           style={[
-            styles.eyebrowCentered,
-            { color: colors.textSecondary },
+            styles.hairline,
+            { backgroundColor: paperTint.rule, marginBottom: 14 },
           ]}
-        >
+        />
+        <Text style={[styles.eyebrowCentered, { color: colors.textSecondary }]}>
           NGĀ MIHI · POWERED BY THE RESOURCE HUB
         </Text>
       </View>
@@ -602,7 +633,7 @@ export default function ChatScreen() {
           <View style={styles.headerLeft}>
             <LeafSeal size={22} isDark={isDark} />
             <Text style={[styles.headerTitle, { color: paperTint.eyebrow }]}>
-              HE ĀWHINA
+              EVERYBODY EATS HELP
             </Text>
             <View style={[styles.statusDot, { backgroundColor: "#22c55e" }]} />
           </View>
@@ -616,7 +647,11 @@ export default function ChatScreen() {
             accessibilityRole="button"
             hitSlop={12}
           >
-            <Ionicons name="create-outline" size={16} color={paperTint.eyebrow} />
+            <Ionicons
+              name="create-outline"
+              size={16}
+              color={paperTint.eyebrow}
+            />
             <Text style={[styles.newChatLabel, { color: paperTint.eyebrow }]}>
               NEW
             </Text>
@@ -654,7 +689,10 @@ export default function ChatScreen() {
                 <View style={styles.assistantMeta}>
                   <LeafSeal size={22} isDark={isDark} />
                   <Text
-                    style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}
+                    style={[
+                      styles.assistantMetaLabel,
+                      { color: paperTint.eyebrow },
+                    ]}
                   >
                     EE ASSISTANT
                   </Text>
