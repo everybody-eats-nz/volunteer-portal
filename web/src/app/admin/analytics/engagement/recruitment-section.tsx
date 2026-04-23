@@ -27,7 +27,11 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { RecruitmentData } from "@/lib/recruitment";
+import type {
+  RecruitmentData,
+  RecruitmentFunnelBreakdown,
+} from "@/lib/recruitment-types";
+import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -37,6 +41,33 @@ const MONTHS_LABELS: Record<string, string> = {
   "6": "6 months",
   "12": "12 months",
 };
+
+// Stable per-location color palette. Well-known locations get fixed colors so
+// the stacking stays consistent across pages; anything else cycles through
+// `FALLBACK_COLORS`. "Unspecified" is muted so it doesn't dominate.
+const LOCATION_COLORS: Record<string, string> = {
+  Wellington: "#3b82f6",
+  "Glen Innes": "#8b5cf6",
+  Onehunga: "#10b981",
+  "Special Event Venue": "#f59e0b",
+  [UNSPECIFIED_LOCATION]: "#94a3b8",
+};
+
+const FALLBACK_COLORS = [
+  "#ec4899",
+  "#14b8a6",
+  "#fb923c",
+  "#6366f1",
+  "#f43f5e",
+  "#22c55e",
+];
+
+function colorForLocation(location: string, index: number): string {
+  return (
+    LOCATION_COLORS[location] ??
+    FALLBACK_COLORS[index % FALLBACK_COLORS.length]
+  );
+}
 
 function pct(num: number, total: number) {
   if (total === 0) return 0;
@@ -79,42 +110,71 @@ interface Props {
   location: string;
 }
 
+type FunnelStageKey =
+  | "totalRegistrations"
+  | "profileComplete"
+  | "signedUp"
+  | "completedShift";
+
+function stageValue(
+  row: RecruitmentFunnelBreakdown,
+  key: FunnelStageKey
+): number {
+  switch (key) {
+    case "totalRegistrations":
+      return row.totalRegistrations;
+    case "profileComplete":
+      return row.totalRegistrations - row.incompleteProfiles;
+    case "signedUp":
+      return row.signedUpNoShift + row.completedShift;
+    case "completedShift":
+      return row.completedShift;
+  }
+}
+
 export function RecruitmentSection({ data, months, location }: Props) {
   const { resolvedTheme } = useTheme();
   const chartMode = (resolvedTheme === "dark" ? "dark" : "light") as
     | "dark"
     | "light";
 
-  const { funnel, registrationTrend } = data;
+  const { funnel, registrationTrend, locations } = data;
   const total = funnel.totalRegistrations;
   const periodLabel = MONTHS_LABELS[months] ?? `${months} months`;
+
+  const locationColors = locations.map((loc, i) => colorForLocation(loc, i));
 
   // Funnel stages — strictly decreasing from total → first shift
   const profileComplete = total - funnel.incompleteProfiles;
   const signedUp = funnel.signedUpNoShift + funnel.completedShift;
-  const funnelStages = [
+  const funnelStages: Array<{
+    name: string;
+    key: FunnelStageKey;
+    value: number;
+    desc: string;
+  }> = [
     {
       name: "Registered",
+      key: "totalRegistrations",
       value: total,
-      color: "#3b82f6",
       desc: "Created an account",
     },
     {
       name: "Profile Complete",
+      key: "profileComplete",
       value: profileComplete,
-      color: "#8b5cf6",
       desc: "Finished profile setup",
     },
     {
       name: "Signed Up for a Shift",
+      key: "signedUp",
       value: signedUp,
-      color: "#f59e0b",
       desc: "At least one shift signup",
     },
     {
       name: "Completed First Shift",
+      key: "completedShift",
       value: funnel.completedShift,
-      color: "#10b981",
       desc: "First confirmed shift done",
     },
   ];
@@ -130,7 +190,8 @@ export function RecruitmentSection({ data, months, location }: Props) {
       bg: "bg-blue-50 dark:bg-blue-950/20",
       iconBg: "bg-blue-100 dark:bg-blue-900/30",
       iconColor: "text-blue-600 dark:text-blue-400",
-      tooltip: "Total new volunteer accounts created during the selected period",
+      tooltip:
+        "Total new volunteer accounts created during the selected period",
     },
     {
       label: "Profile Incomplete",
@@ -178,6 +239,55 @@ export function RecruitmentSection({ data, months, location }: Props) {
         "Average number of days between a volunteer registering and completing their very first shift, among those registered in this period",
     },
   ];
+
+  // One ApexCharts series per location so all three bar charts stack by
+  // restaurant. `locations` is sorted so colours line up consistently.
+  const registrationSeries =
+    locations.length > 0
+      ? locations.map((loc) => ({
+          name: loc,
+          data: registrationTrend.map((t) => t.byLocation[loc] ?? 0),
+        }))
+      : [
+          {
+            name: "New Registrations",
+            data: registrationTrend.map((t) => t.count),
+          },
+        ];
+
+  const timeToFirstShiftBuckets: Array<
+    [
+      label: string,
+      key: keyof Pick<
+        RecruitmentFunnelBreakdown,
+        | "sameDay"
+        | "within3Days"
+        | "within7Days"
+        | "within14Days"
+        | "within30Days"
+        | "within60Days"
+        | "within90Days"
+        | "over90Days"
+      >,
+    ]
+  > = [
+    ["Same day", "sameDay"],
+    ["1–3 days", "within3Days"],
+    ["4–7 days", "within7Days"],
+    ["8–14 days", "within14Days"],
+    ["15–30 days", "within30Days"],
+    ["31–60 days", "within60Days"],
+    ["61–90 days", "within90Days"],
+    ["> 90 days", "over90Days"],
+  ];
+
+  const timeToFirstShiftSeries = locations.map((loc) => {
+    const row = funnel.byLocation.find((b) => b.location === loc);
+    return {
+      name: loc,
+      data: timeToFirstShiftBuckets.map(([, key]) => (row ? row[key] : 0)),
+    };
+  });
 
   return (
     <motion.div
@@ -240,11 +350,12 @@ export function RecruitmentSection({ data, months, location }: Props) {
                 New Registrations
                 <InfoDialog
                   title="New Registrations Over Time"
-                  description="Monthly volunteer sign-ups over the past 12 months"
+                  description="Monthly volunteer sign-ups over the past 12 months, stacked by restaurant"
                 >
                   <p>
                     Shows how many new volunteer accounts were created each
-                    month over the past 12 months.
+                    month over the past 12 months, split by the volunteer&rsquo;s
+                    primary restaurant (their default location).
                   </p>
                   {location && location !== "all" && (
                     <p>
@@ -253,8 +364,10 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     </p>
                   )}
                   <p className="text-muted-foreground">
-                    The chart always shows 12 months for context — the time
-                    period filter above affects the stat cards only.
+                    Volunteers without a primary restaurant set are grouped as
+                    &ldquo;{UNSPECIFIED_LOCATION}&rdquo;. The chart always shows
+                    12 months for context — the time period filter above affects
+                    the stat cards only.
                   </p>
                 </InfoDialog>
               </CardTitle>
@@ -265,6 +378,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                   options={{
                     chart: {
                       type: "bar" as const,
+                      stacked: true,
                       toolbar: { show: false },
                       background: "transparent",
                     },
@@ -301,8 +415,16 @@ export function RecruitmentSection({ data, months, location }: Props) {
                         formatter: (v: number) => String(Math.round(v)),
                       },
                     },
-                    colors: ["#3b82f6"],
+                    colors: locationColors.length ? locationColors : ["#3b82f6"],
                     dataLabels: { enabled: false },
+                    legend: {
+                      show: locations.length > 1,
+                      position: "bottom",
+                      fontFamily: "var(--font-libre-franklin), sans-serif",
+                      fontSize: "12px",
+                      markers: { size: 6 },
+                      itemMargin: { horizontal: 8, vertical: 4 },
+                    },
                     grid: {
                       borderColor: "#e5e7eb",
                       strokeDashArray: 4,
@@ -316,12 +438,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     },
                     theme: { mode: chartMode },
                   }}
-                  series={[
-                    {
-                      name: "New Registrations",
-                      data: registrationTrend.map((t) => t.count),
-                    },
-                  ]}
+                  series={registrationSeries}
                   type="bar"
                   height={320}
                 />
@@ -343,19 +460,18 @@ export function RecruitmentSection({ data, months, location }: Props) {
                 Onboarding Funnel
                 <InfoDialog
                   title="Onboarding Funnel"
-                  description="How new volunteers progress through onboarding"
+                  description="How new volunteers progress through onboarding, stacked by restaurant"
                 >
                   <p>
                     Shows how many volunteers registered in the selected period
                     progressed through each stage of their onboarding journey.
+                    Each bar is split by the volunteer&rsquo;s primary
+                    restaurant.
                   </p>
                   <div className="space-y-2 pt-1">
                     {funnelStages.map((s) => (
                       <div key={s.name} className="flex gap-2">
-                        <span
-                          className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0"
-                          style={{ background: s.color }}
-                        />
+                        <span className="inline-block w-2 h-2 rounded-full mt-1.5 shrink-0 bg-muted-foreground" />
                         <p>
                           <span className="font-medium">{s.name}</span> —{" "}
                           {s.desc}.
@@ -374,6 +490,23 @@ export function RecruitmentSection({ data, months, location }: Props) {
             <CardContent>
               {total > 0 ? (
                 <div className="space-y-4 py-2">
+                  {locations.length > 1 && (
+                    <div className="flex flex-wrap gap-3 pb-1">
+                      {locations.map((loc, i) => (
+                        <div
+                          key={loc}
+                          className="flex items-center gap-1.5 text-xs"
+                        >
+                          <span
+                            className="inline-block w-2.5 h-2.5 rounded-full"
+                            style={{ background: locationColors[i] }}
+                          />
+                          <span className="text-muted-foreground">{loc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {funnelStages.map((stage, i) => {
                     const stagePct = pct(stage.value, total);
                     const nextStage = funnelStages[i + 1];
@@ -386,14 +519,28 @@ export function RecruitmentSection({ data, months, location }: Props) {
                         ? pct(dropOff, stage.value)
                         : null;
 
+                    // Segment widths are relative to `total` so all bars share
+                    // the same scale, and a location's segment reflects its
+                    // share of the whole registered cohort — not just the stage.
+                    const segments = locations
+                      .map((loc, li) => {
+                        const row = funnel.byLocation.find(
+                          (b) => b.location === loc
+                        );
+                        const value = row ? stageValue(row, stage.key) : 0;
+                        return {
+                          loc,
+                          value,
+                          color: locationColors[li],
+                          widthPct: total > 0 ? (value / total) * 100 : 0,
+                        };
+                      })
+                      .filter((s) => s.value > 0);
+
                     return (
                       <div key={stage.name} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className="inline-block w-2 h-2 rounded-full shrink-0"
-                              style={{ background: stage.color }}
-                            />
                             <span className="font-medium truncate">
                               {stage.name}
                             </span>
@@ -402,26 +549,34 @@ export function RecruitmentSection({ data, months, location }: Props) {
                             <span className="text-muted-foreground tabular-nums text-xs">
                               {stage.value.toLocaleString()}
                             </span>
-                            <span
-                              className="font-semibold tabular-nums w-9 text-right text-sm"
-                              style={{ color: stage.color }}
-                            >
+                            <span className="font-semibold tabular-nums w-9 text-right text-sm">
                               {stagePct}%
                             </span>
                           </div>
                         </div>
-                        <div className="h-5 bg-muted/30 rounded overflow-hidden">
-                          <motion.div
-                            className="h-full rounded"
-                            style={{ background: stage.color }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${stagePct}%` }}
-                            transition={{
-                              duration: 0.6,
-                              delay: 0.1 + i * 0.12,
-                              ease: [0.4, 0, 0.2, 1],
-                            }}
-                          />
+                        <div className="h-5 bg-muted/30 rounded overflow-hidden flex">
+                          {segments.map((seg, si) => (
+                            <Tooltip key={seg.loc}>
+                              <TooltipTrigger asChild>
+                                <motion.div
+                                  className="h-full"
+                                  style={{ background: seg.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${seg.widthPct}%` }}
+                                  transition={{
+                                    duration: 0.6,
+                                    delay: 0.1 + i * 0.12 + si * 0.04,
+                                    ease: [0.4, 0, 0.2, 1],
+                                  }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <span className="font-medium">{seg.loc}</span>:{" "}
+                                {seg.value.toLocaleString()} (
+                                {pct(seg.value, stage.value)}% of stage)
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
                         </div>
                         {dropOff != null && dropOff > 0 && (
                           <p className="text-xs text-muted-foreground pl-4">
@@ -453,13 +608,14 @@ export function RecruitmentSection({ data, months, location }: Props) {
                 Time to First Shift Distribution
                 <InfoDialog
                   title="Time to First Shift"
-                  description="How quickly new volunteers complete their first shift"
+                  description="How quickly new volunteers complete their first shift, stacked by restaurant"
                 >
                   <p>
                     Among volunteers registered in the selected period who have
                     completed at least one confirmed shift, this shows how many
                     days elapsed between their registration date and their first
-                    completed shift.
+                    completed shift. Bars are stacked by the volunteer&rsquo;s
+                    primary restaurant.
                   </p>
                   <p>
                     A large proportion in the first bar (≤ 7 days) suggests
@@ -474,6 +630,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                 options={{
                   chart: {
                     type: "bar" as const,
+                    stacked: true,
                     toolbar: { show: false },
                     background: "transparent",
                   },
@@ -483,20 +640,10 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       borderRadius: 4,
                       borderRadiusApplication: "end" as const,
                       barHeight: "55%",
-                      distributed: true,
                     },
                   },
                   xaxis: {
-                    categories: [
-                      "Same day",
-                      "1–3 days",
-                      "4–7 days",
-                      "8–14 days",
-                      "15–30 days",
-                      "31–60 days",
-                      "61–90 days",
-                      "> 90 days",
-                    ],
+                    categories: timeToFirstShiftBuckets.map(([label]) => label),
                     labels: {
                       style: {
                         fontFamily: "var(--font-libre-franklin), sans-serif",
@@ -522,16 +669,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       },
                     },
                   },
-                  colors: [
-                    "#10b981", // same day
-                    "#34d399", // 1–3 days
-                    "#3b82f6", // 4–7 days
-                    "#60a5fa", // 8–14 days
-                    "#f59e0b", // 15–30 days
-                    "#fb923c", // 31–60 days
-                    "#ef4444", // 61–90 days
-                    "#dc2626", // >90 days
-                  ],
+                  colors: locationColors.length ? locationColors : ["#10b981"],
                   dataLabels: {
                     enabled: true,
                     formatter: (val: number) => (val > 0 ? String(val) : ""),
@@ -541,7 +679,14 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       fontWeight: 600,
                     },
                   },
-                  legend: { show: false },
+                  legend: {
+                    show: locations.length > 1,
+                    position: "bottom",
+                    fontFamily: "var(--font-libre-franklin), sans-serif",
+                    fontSize: "12px",
+                    markers: { size: 6 },
+                    itemMargin: { horizontal: 8, vertical: 4 },
+                  },
                   grid: {
                     borderColor: "#e5e7eb",
                     strokeDashArray: 4,
@@ -555,21 +700,18 @@ export function RecruitmentSection({ data, months, location }: Props) {
                   },
                   theme: { mode: chartMode },
                 }}
-                series={[
-                  {
-                    name: "Volunteers",
-                    data: [
-                      funnel.sameDay,
-                      funnel.within3Days,
-                      funnel.within7Days,
-                      funnel.within14Days,
-                      funnel.within30Days,
-                      funnel.within60Days,
-                      funnel.within90Days,
-                      funnel.over90Days,
-                    ],
-                  },
-                ]}
+                series={
+                  timeToFirstShiftSeries.length > 0
+                    ? timeToFirstShiftSeries
+                    : [
+                        {
+                          name: "Volunteers",
+                          data: timeToFirstShiftBuckets.map(
+                            ([, key]) => funnel[key]
+                          ),
+                        },
+                      ]
+                }
                 type="bar"
                 height={300}
               />

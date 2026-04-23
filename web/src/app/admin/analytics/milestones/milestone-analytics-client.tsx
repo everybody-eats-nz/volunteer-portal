@@ -23,7 +23,10 @@ import {
   Loader2,
   Info,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import dynamic from "next/dynamic";
 import {
   Tooltip,
@@ -40,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import Link from "next/link";
 import type { MilestoneData } from "@/lib/milestone-analytics";
+import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -67,6 +71,33 @@ const MILESTONE_COLORS: Record<number, string> = {
   200: "#10b981",
   500: "#3b82f6",
 };
+
+// Stable per-restaurant colour palette. Matches the recruitment analytics
+// section so stacks line up across pages. "Unspecified" is muted on purpose
+// so it doesn't dominate the visual.
+const LOCATION_COLORS: Record<string, string> = {
+  Wellington: "#3b82f6",
+  "Glen Innes": "#8b5cf6",
+  Onehunga: "#10b981",
+  "Special Event Venue": "#f59e0b",
+  [UNSPECIFIED_LOCATION]: "#94a3b8",
+};
+
+const FALLBACK_LOCATION_COLORS = [
+  "#ec4899",
+  "#14b8a6",
+  "#fb923c",
+  "#6366f1",
+  "#f43f5e",
+  "#22c55e",
+];
+
+function colorForLocation(location: string, index: number): string {
+  return (
+    LOCATION_COLORS[location] ??
+    FALLBACK_LOCATION_COLORS[index % FALLBACK_LOCATION_COLORS.length]
+  );
+}
 
 function MilestoneCard({
   threshold,
@@ -122,6 +153,8 @@ export function MilestoneAnalyticsClient({
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
   const [selectedMilestone, setSelectedMilestone] = useState<number>(100);
+  const [recentThresholdFilter, setRecentThresholdFilter] =
+    useState<string>("all");
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
     | "dark"
     | "light";
@@ -140,19 +173,50 @@ export function MilestoneAnalyticsClient({
     (p) => p.threshold === selectedMilestone
   );
 
-  // Distribution chart data (sorted by minShifts)
+  const restaurantList = data.locations;
+  const hasMultipleRestaurants = restaurantList.length > 1;
+  const locationColors = restaurantList.map((loc, i) =>
+    colorForLocation(loc, i)
+  );
+
+  // Distribution chart — horizontal bars, stacked by restaurant
   const distCategories = data.distribution.map((b) => b.label);
   const distCounts = data.distribution.map((b) => b.count);
+  const distSeriesByLocation = restaurantList.map((loc) => ({
+    name: loc,
+    data: data.distribution.map((b) => b.byLocation[loc] ?? 0),
+  }));
 
-  // Milestone hits chart
+  // Milestone hits chart — vertical bars showing "hit in period", stacked by
+  // restaurant. All-time totals remain visible on the summary cards above.
   const hitsCategories = data.milestoneHits.map((m) => `${m.threshold}`);
-  const hitsInPeriod = data.milestoneHits.map((m) => m.hitInPeriod);
-  const hitsAllTime = data.milestoneHits.map((m) => m.allTimeTotal);
+  const hitsSeriesByLocation = restaurantList.map((loc) => ({
+    name: loc,
+    data: data.milestoneHits.map((m) => m.byLocation[loc]?.hitInPeriod ?? 0),
+  }));
+  const hitsAnyValue = data.milestoneHits.some((m) => m.hitInPeriod > 0);
 
-  // Projection chart
+  // Projection chart — bars per threshold showing "projected in next 12
+  // months", stacked by primary restaurant. All-time totals per threshold are
+  // already visible on the summary cards at the top of the page.
   const projCategories = data.projections.map((p) => `${p.threshold} shifts`);
-  const projAlready = data.projections.map((p) => p.alreadyHit);
-  const projAdditional = data.projections.map((p) => p.projectedAdditional);
+  const projProjectedSeries = restaurantList.map((loc) => ({
+    name: loc,
+    data: data.projections.map(
+      (p) => p.byLocation[loc]?.projectedAdditional ?? 0
+    ),
+  }));
+  const projHasAdditional = data.projections.some(
+    (p) => p.projectedAdditional > 0
+  );
+
+  // Recent achievements (filtered by threshold)
+  const filteredRecentAchievements =
+    recentThresholdFilter === "all"
+      ? data.recentAchievements
+      : data.recentAchievements.filter(
+          (a) => String(a.threshold) === recentThresholdFilter
+        );
 
   return (
     <div className="space-y-6">
@@ -269,9 +333,12 @@ export function MilestoneAnalyticsClient({
                           crossed the threshold for the first time.
                         </p>
                         <p>
-                          The darker bars show all-time totals (everyone who has
-                          ever reached that milestone). The bright bars show how
-                          many crossed it during the selected period.
+                          Each bar shows milestone crossings in the selected
+                          period, split by the volunteer&rsquo;s primary
+                          restaurant (their default location). Volunteers
+                          without a primary restaurant set are grouped as
+                          &ldquo;{UNSPECIFIED_LOCATION}&rdquo;. All-time totals
+                          remain visible on the summary cards above.
                         </p>
                       </div>
                     </DialogContent>
@@ -279,11 +346,12 @@ export function MilestoneAnalyticsClient({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {hitsAllTime.some((v) => v > 0) ? (
+                {hitsAnyValue ? (
                   <Chart
                     options={{
                       chart: {
                         type: "bar" as const,
+                        stacked: true,
                         toolbar: { show: false },
                         background: "transparent",
                       },
@@ -315,17 +383,10 @@ export function MilestoneAnalyticsClient({
                           },
                         },
                       },
-                      colors: ["#f59e0b", "#f59e0b33"],
-                      dataLabels: {
-                        enabled: true,
-                        formatter: (val: number) =>
-                          val > 0 ? String(val) : "",
-                        style: {
-                          fontSize: "11px",
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
-                          fontWeight: 600,
-                        },
-                      },
+                      colors: locationColors.length
+                        ? locationColors
+                        : ["#f59e0b"],
+                      dataLabels: { enabled: false },
                       grid: {
                         borderColor: "#e5e7eb",
                         strokeDashArray: 4,
@@ -340,26 +401,33 @@ export function MilestoneAnalyticsClient({
                         },
                       },
                       legend: {
-                        position: "top" as const,
+                        show: hasMultipleRestaurants,
+                        position: "bottom" as const,
                         fontSize: "12px",
                         fontFamily: "var(--font-libre-franklin), sans-serif",
                         markers: { size: 6, offsetX: -2 },
+                        itemMargin: { horizontal: 8, vertical: 4 },
                       },
                       theme: { mode: chartThemeMode },
                     }}
-                    series={[
-                      {
-                        name: `Hit in last ${periodLabel}`,
-                        data: hitsInPeriod,
-                      },
-                      { name: "All-time total", data: hitsAllTime },
-                    ]}
+                    series={
+                      hitsSeriesByLocation.length > 0
+                        ? hitsSeriesByLocation
+                        : [
+                            {
+                              name: `Hit in last ${periodLabel}`,
+                              data: data.milestoneHits.map(
+                                (m) => m.hitInPeriod
+                              ),
+                            },
+                          ]
+                    }
                     type="bar"
                     height={300}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                    No milestone data available
+                    No milestones crossed in the last {periodLabel}
                   </div>
                 )}
               </CardContent>
@@ -381,7 +449,7 @@ export function MilestoneAnalyticsClient({
                     </TooltipTrigger>
                     <TooltipContent side="top" className="w-auto max-w-56">
                       How many volunteers currently sit in each shift-count band
-                      (all-time completed shifts)
+                      (all-time completed shifts), stacked by primary restaurant
                     </TooltipContent>
                   </Tooltip>
                 </CardTitle>
@@ -392,6 +460,7 @@ export function MilestoneAnalyticsClient({
                     options={{
                       chart: {
                         type: "bar" as const,
+                        stacked: true,
                         toolbar: { show: false },
                         background: "transparent",
                       },
@@ -433,32 +502,38 @@ export function MilestoneAnalyticsClient({
                           },
                         },
                       },
-                      colors: ["#3b82f6"],
-                      dataLabels: {
-                        enabled: true,
-                        formatter: (val: number) =>
-                          val > 0 ? String(val) : "",
-                        style: {
-                          fontSize: "11px",
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
-                          fontWeight: 600,
-                        },
-                      },
+                      colors: locationColors.length
+                        ? locationColors
+                        : ["#3b82f6"],
+                      dataLabels: { enabled: false },
                       grid: {
                         borderColor: "#e5e7eb",
                         strokeDashArray: 4,
                         yaxis: { lines: { show: false } },
                       },
                       tooltip: {
+                        shared: true,
+                        intersect: false,
                         y: {
                           formatter: (val: number) =>
                             `${val} volunteer${val !== 1 ? "s" : ""}`,
                         },
                       },
-                      legend: { show: false },
+                      legend: {
+                        show: hasMultipleRestaurants,
+                        position: "bottom" as const,
+                        fontSize: "12px",
+                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        markers: { size: 6, offsetX: -2 },
+                        itemMargin: { horizontal: 8, vertical: 4 },
+                      },
                       theme: { mode: chartThemeMode },
                     }}
-                    series={[{ name: "Volunteers", data: distCounts }]}
+                    series={
+                      distSeriesByLocation.length > 0
+                        ? distSeriesByLocation
+                        : [{ name: "Volunteers", data: distCounts }]
+                    }
                     type="bar"
                     height={300}
                   />
@@ -506,10 +581,17 @@ export function MilestoneAnalyticsClient({
                         counted in the &ldquo;Projected&rdquo; total.
                       </p>
                       <p>
+                        Each bar is stacked by the volunteer&rsquo;s primary
+                        restaurant, so you can see which locations are
+                        trending toward each level of recognition. All-time
+                        totals (who has already crossed each threshold) live
+                        on the summary cards at the top of the page.
+                      </p>
+                      <p>
                         Volunteers with no shifts in the past 6 months are not
                         projected — they&rsquo;re considered inactive. Use the
-                        approaching volunteers list below to view everyone close
-                        to a milestone regardless of recent activity.
+                        approaching volunteers list below to view everyone
+                        close to a milestone regardless of recent activity.
                       </p>
                       <p>
                         These projections are useful for planning recognition
@@ -522,8 +604,7 @@ export function MilestoneAnalyticsClient({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {projAlready.some((v) => v > 0) ||
-              projAdditional.some((v) => v > 0) ? (
+              {projHasAdditional ? (
                 <Chart
                   options={{
                     chart: {
@@ -553,7 +634,7 @@ export function MilestoneAnalyticsClient({
                     },
                     yaxis: {
                       title: {
-                        text: "Volunteers",
+                        text: "Volunteers projected",
                         style: {
                           fontFamily: "var(--font-libre-franklin), sans-serif",
                           fontSize: "11px",
@@ -567,16 +648,10 @@ export function MilestoneAnalyticsClient({
                         },
                       },
                     },
-                    colors: ["#10b981", "#6366f1"],
-                    dataLabels: {
-                      enabled: true,
-                      formatter: (val: number) => (val > 0 ? String(val) : ""),
-                      style: {
-                        fontSize: "11px",
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
-                        fontWeight: 600,
-                      },
-                    },
+                    colors: locationColors.length
+                      ? locationColors
+                      : ["#6366f1"],
+                    dataLabels: { enabled: false },
                     grid: {
                       borderColor: "#e5e7eb",
                       strokeDashArray: 4,
@@ -591,26 +666,34 @@ export function MilestoneAnalyticsClient({
                       },
                     },
                     legend: {
-                      position: "top" as const,
+                      show: hasMultipleRestaurants,
+                      position: "bottom" as const,
                       fontSize: "12px",
                       fontFamily: "var(--font-libre-franklin), sans-serif",
                       markers: { size: 6, offsetX: -2 },
+                      itemMargin: { horizontal: 8, vertical: 4 },
                     },
                     theme: { mode: chartThemeMode },
                   }}
-                  series={[
-                    { name: "Already achieved", data: projAlready },
-                    {
-                      name: "Projected in next 12 months",
-                      data: projAdditional,
-                    },
-                  ]}
+                  series={
+                    projProjectedSeries.length > 0
+                      ? projProjectedSeries
+                      : [
+                          {
+                            name: "Projected in next 12 months",
+                            data: data.projections.map(
+                              (p) => p.projectedAdditional
+                            ),
+                          },
+                        ]
+                  }
                   type="bar"
                   height={300}
                 />
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
-                  No projection data available
+                  No volunteers are projected to cross a milestone in the next
+                  12 months
                 </div>
               )}
             </CardContent>
@@ -688,9 +771,14 @@ export function MilestoneAnalyticsClient({
                         className="flex items-center gap-4 py-2 border-b last:border-0"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {v.name}
-                          </p>
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {v.name}
+                            </p>
+                            <span className="text-xs text-muted-foreground truncate">
+                              · {v.location}
+                            </span>
+                          </div>
                           <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all"
@@ -745,6 +833,140 @@ export function MilestoneAnalyticsClient({
                   {selectedProjection
                     ? `No volunteers are currently approaching the ${selectedMilestone}-shift milestone`
                     : "Select a milestone to view approaching volunteers"}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Recent Milestone Achievements */}
+        <motion.div variants={staggerItem}>
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  Recent Milestone Achievements
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="w-auto max-w-64">
+                      Volunteers whose Nth completed shift landed inside the
+                      selected time period. Newest achievements first. Useful
+                      for recognition — reach out while it&rsquo;s still fresh.
+                    </TooltipContent>
+                  </Tooltip>
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="recent-threshold-select"
+                    className="text-sm shrink-0"
+                  >
+                    Milestone:
+                  </Label>
+                  <Select
+                    value={recentThresholdFilter}
+                    onValueChange={setRecentThresholdFilter}
+                  >
+                    <SelectTrigger
+                      id="recent-threshold-select"
+                      className="w-36"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All milestones</SelectItem>
+                      {data.projections.map((p) => (
+                        <SelectItem
+                          key={p.threshold}
+                          value={String(p.threshold)}
+                        >
+                          {p.threshold} shifts
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredRecentAchievements.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground pb-1">
+                    <span className="flex-1">Volunteer</span>
+                    <span className="w-28">Milestone</span>
+                    <span className="w-20 text-right">Total</span>
+                    <span className="w-32 text-right">Achieved</span>
+                    <span className="w-8" />
+                  </div>
+                  {filteredRecentAchievements.map((a) => {
+                    const color = MILESTONE_COLORS[a.threshold] ?? "#6b7280";
+                    const absoluteDate = formatInNZT(
+                      a.achievedAt,
+                      "d MMM yyyy"
+                    );
+                    const relative = formatDistanceToNow(
+                      new Date(a.achievedAt),
+                      { addSuffix: true }
+                    );
+                    return (
+                      <div
+                        key={`${a.userId}-${a.threshold}`}
+                        className="flex items-center gap-4 py-2 border-b last:border-0"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {a.name}
+                            </p>
+                            <span className="text-xs text-muted-foreground truncate">
+                              · {a.location}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="w-28">
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                            style={{
+                              backgroundColor: color + "20",
+                              color,
+                            }}
+                          >
+                            <Trophy className="h-3 w-3" />
+                            {a.threshold} shifts
+                          </span>
+                        </span>
+                        <span className="w-20 text-right text-sm tabular-nums font-medium">
+                          {a.totalShifts}
+                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-32 text-right text-sm text-muted-foreground tabular-nums cursor-default">
+                              {relative}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {absoluteDate}
+                          </TooltipContent>
+                        </Tooltip>
+                        <Link
+                          href={`/admin/volunteers/${a.userId}`}
+                          className="w-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
+                  {data.recentAchievements.length === 0
+                    ? `No volunteers crossed a milestone in the last ${periodLabel}`
+                    : `No ${recentThresholdFilter}-shift milestones were crossed in the last ${periodLabel}`}
                 </div>
               )}
             </CardContent>

@@ -1,33 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
 import { nowInNZT, toNZT } from "@/lib/timezone";
+import {
+  UNSPECIFIED_LOCATION,
+  type RecruitmentData,
+  type RecruitmentFunnelBreakdown,
+  type RecruitmentTrendPoint,
+} from "@/lib/recruitment-types";
 
-export interface RecruitmentFunnel {
-  totalRegistrations: number;
-  /** Registered but profileCompleted = false */
-  incompleteProfiles: number;
-  /** profileCompleted = true, zero signups ever */
-  completedProfileNoSignup: number;
-  /** Has at least one signup record, but zero confirmed shifts */
-  signedUpNoShift: number;
-  /** Has at least one confirmed completed shift */
-  completedShift: number;
-  /** Average days from registration to first completed shift (null if no data) */
-  avgDaysToFirstShift: number | null;
-  sameDay: number;     // 0 days
-  within3Days: number; // 1–3 days
-  within7Days: number; // 4–7 days
-  within14Days: number; // 8–14 days
-  within30Days: number; // 15–30 days
-  within60Days: number; // 31–60 days
-  within90Days: number; // 61–90 days
-  over90Days: number;   // 91+ days
-}
+export {
+  UNSPECIFIED_LOCATION,
+  type RecruitmentData,
+  type RecruitmentFunnel,
+  type RecruitmentFunnelBreakdown,
+  type RecruitmentTrendPoint,
+} from "@/lib/recruitment-types";
 
-export interface RecruitmentData {
-  funnel: RecruitmentFunnel;
-  /** 12-month rolling monthly registration counts (filled with 0 for empty months) */
-  registrationTrend: Array<{ month: string; count: number }>;
+function sortLocations(names: Iterable<string>): string[] {
+  const list = Array.from(new Set(names)).filter(Boolean);
+  list.sort((a, b) => {
+    if (a === UNSPECIFIED_LOCATION && b !== UNSPECIFIED_LOCATION) return 1;
+    if (b === UNSPECIFIED_LOCATION && a !== UNSPECIFIED_LOCATION) return -1;
+    return a.localeCompare(b);
+  });
+  return list;
 }
 
 export async function getRecruitmentData(
@@ -55,16 +51,16 @@ export async function getRecruitmentData(
     ? Prisma.sql`AND u."availableLocations" LIKE ${`%"${location}"%`}`
     : Prisma.empty;
 
-  const [funnelResult, trendResult] = await Promise.all([
-    // ── Funnel query (scoped to the selected period) ──────────────────────────
+  const [funnelRows, avgResult, trendResult] = await Promise.all([
+    // ── Funnel query: one row per defaultLocation bucket ─────────────────────
     prisma.$queryRaw<
       Array<{
+        location: string;
         totalRegistrations: bigint;
         incompleteProfiles: bigint;
         completedProfileNoSignup: bigint;
         signedUpNoShift: bigint;
         completedShift: bigint;
-        avgDaysToFirstShift: number | null;
         sameDay: bigint;
         within3Days: bigint;
         within7Days: bigint;
@@ -76,7 +72,11 @@ export async function getRecruitmentData(
       }>
     >`
       WITH user_base AS (
-        SELECT u.id, u."profileCompleted", u."createdAt"
+        SELECT
+          u.id,
+          u."profileCompleted",
+          u."createdAt",
+          COALESCE(NULLIF(u."defaultLocation", ''), ${UNSPECIFIED_LOCATION}) AS location
         FROM "User" u
         WHERE u.role = 'VOLUNTEER'::"Role"
           AND u."createdAt" >= ${periodStart}
@@ -86,6 +86,7 @@ export async function getRecruitmentData(
       user_stats AS (
         SELECT
           ub.id,
+          ub.location,
           ub."profileCompleted",
           ub."createdAt",
           COUNT(sg.id)                                                                  AS total_signups,
@@ -98,17 +99,15 @@ export async function getRecruitmentData(
         FROM user_base ub
         LEFT JOIN "Signup" sg ON sg."userId" = ub.id
         LEFT JOIN "Shift"  sh ON sh.id = sg."shiftId"
-        GROUP BY ub.id, ub."profileCompleted", ub."createdAt"
+        GROUP BY ub.id, ub.location, ub."profileCompleted", ub."createdAt"
       )
       SELECT
+        location                                                                       AS "location",
         COUNT(*)::bigint                                                               AS "totalRegistrations",
-        COUNT(*) FILTER (WHERE NOT "profileCompleted")::bigint                        AS "incompleteProfiles",
-        COUNT(*) FILTER (WHERE "profileCompleted" AND total_signups = 0)::bigint      AS "completedProfileNoSignup",
-        COUNT(*) FILTER (WHERE total_signups > 0 AND confirmed_shifts = 0)::bigint    AS "signedUpNoShift",
-        COUNT(*) FILTER (WHERE confirmed_shifts > 0)::bigint                          AS "completedShift",
-        AVG(
-          EXTRACT(EPOCH FROM (first_shift_date - "createdAt")) / 86400.0
-        ) FILTER (WHERE first_shift_date IS NOT NULL)::float                          AS "avgDaysToFirstShift",
+        COUNT(*) FILTER (WHERE NOT "profileCompleted")::bigint                         AS "incompleteProfiles",
+        COUNT(*) FILTER (WHERE "profileCompleted" AND total_signups = 0)::bigint       AS "completedProfileNoSignup",
+        COUNT(*) FILTER (WHERE total_signups > 0 AND confirmed_shifts = 0)::bigint     AS "signedUpNoShift",
+        COUNT(*) FILTER (WHERE confirmed_shifts > 0)::bigint                           AS "completedShift",
         COUNT(*) FILTER (
           WHERE first_shift_date IS NOT NULL
             AND EXTRACT(EPOCH FROM (first_shift_date - "createdAt")) / 86400.0 < 1
@@ -148,68 +147,145 @@ export async function getRecruitmentData(
             AND EXTRACT(EPOCH FROM (first_shift_date - "createdAt")) / 86400.0 > 90
         )::bigint                                                                      AS "over90Days"
       FROM user_stats
+      GROUP BY location
+      ORDER BY location
     `,
 
-    // ── 12-month trend (always full year for chart context) ───────────────────
+    // ── Overall average days to first shift (one number across all locations) ─
+    prisma.$queryRaw<Array<{ avgDaysToFirstShift: number | null }>>`
+      WITH user_base AS (
+        SELECT u.id, u."createdAt"
+        FROM "User" u
+        WHERE u.role = 'VOLUNTEER'::"Role"
+          AND u."createdAt" >= ${periodStart}
+          AND u."createdAt" < ${now}
+          ${locationCond}
+      ),
+      first_shift AS (
+        SELECT
+          ub.id,
+          ub."createdAt",
+          MIN(sh."end") FILTER (
+            WHERE sg.status = 'CONFIRMED'::"SignupStatus" AND sh."end" < ${now}
+          ) AS first_shift_date
+        FROM user_base ub
+        LEFT JOIN "Signup" sg ON sg."userId" = ub.id
+        LEFT JOIN "Shift"  sh ON sh.id = sg."shiftId"
+        GROUP BY ub.id, ub."createdAt"
+      )
+      SELECT
+        AVG(
+          EXTRACT(EPOCH FROM (first_shift_date - "createdAt")) / 86400.0
+        ) FILTER (WHERE first_shift_date IS NOT NULL)::float AS "avgDaysToFirstShift"
+      FROM first_shift
+    `,
+
+    // ── 12-month trend grouped by month AND defaultLocation ──────────────────
     // Convert createdAt from UTC to NZ time before truncating to month so that
     // registrations are grouped into the NZ calendar month they actually occurred in.
-    prisma.$queryRaw<Array<{ month: string; count: bigint }>>`
+    prisma.$queryRaw<
+      Array<{ month: string; location: string; count: bigint }>
+    >`
       SELECT
         to_char(
           date_trunc('month', (u."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Pacific/Auckland'),
           'YYYY-MM'
-        )                AS month,
-        COUNT(*)::bigint AS count
+        )                                                                      AS month,
+        COALESCE(NULLIF(u."defaultLocation", ''), ${UNSPECIFIED_LOCATION})     AS location,
+        COUNT(*)::bigint                                                        AS count
       FROM "User" u
       WHERE u.role = 'VOLUNTEER'::"Role"
         AND u."createdAt" >= ${trendStart}
         AND u."createdAt" < ${now}
         ${locationCond}
-      GROUP BY date_trunc('month', (u."createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Pacific/Auckland')
+      GROUP BY month, location
       ORDER BY month
     `,
   ]);
 
-  const f = funnelResult[0];
-  const trendMap = new Map(trendResult.map((r) => [r.month, Number(r.count)]));
+  // Build per-location funnel rows and aggregate totals.
+  const byLocation: RecruitmentFunnelBreakdown[] = funnelRows.map((r) => ({
+    location: r.location ?? UNSPECIFIED_LOCATION,
+    totalRegistrations: Number(r.totalRegistrations ?? 0),
+    incompleteProfiles: Number(r.incompleteProfiles ?? 0),
+    completedProfileNoSignup: Number(r.completedProfileNoSignup ?? 0),
+    signedUpNoShift: Number(r.signedUpNoShift ?? 0),
+    completedShift: Number(r.completedShift ?? 0),
+    sameDay: Number(r.sameDay ?? 0),
+    within3Days: Number(r.within3Days ?? 0),
+    within7Days: Number(r.within7Days ?? 0),
+    within14Days: Number(r.within14Days ?? 0),
+    within30Days: Number(r.within30Days ?? 0),
+    within60Days: Number(r.within60Days ?? 0),
+    within90Days: Number(r.within90Days ?? 0),
+    over90Days: Number(r.over90Days ?? 0),
+  }));
+
+  const sumKey = (
+    key: keyof Omit<RecruitmentFunnelBreakdown, "location">
+  ): number => byLocation.reduce((acc, row) => acc + row[key], 0);
+
+  const rawAvg = avgResult[0]?.avgDaysToFirstShift;
+
+  // Build 12-month trend with per-location buckets.
+  type MonthBuckets = { count: number; byLocation: Record<string, number> };
+  const trendMap = new Map<string, MonthBuckets>();
+  for (const row of trendResult) {
+    const key = row.month;
+    const loc = row.location ?? UNSPECIFIED_LOCATION;
+    const add = Number(row.count);
+    const bucket = trendMap.get(key) ?? { count: 0, byLocation: {} };
+    bucket.count += add;
+    bucket.byLocation[loc] = (bucket.byLocation[loc] ?? 0) + add;
+    trendMap.set(key, bucket);
+  }
 
   // Iterate NZ months so that keys match the NZ-grouped SQL output.
   // toNZT() returns a TZDate whose getMonth()/setMonth() operate in NZ timezone.
-  const registrationTrend: Array<{ month: string; count: number }> = [];
+  const registrationTrend: RecruitmentTrendPoint[] = [];
   const nzCursor = toNZT(trendStart);
   nzCursor.setDate(1);
   while (nzCursor.getTime() < now.getTime()) {
-    const key = `${nzCursor.getFullYear()}-${String(nzCursor.getMonth() + 1).padStart(2, "0")}`;
+    const key = `${nzCursor.getFullYear()}-${String(
+      nzCursor.getMonth() + 1
+    ).padStart(2, "0")}`;
+    const bucket = trendMap.get(key);
     registrationTrend.push({
       month: nzCursor.toLocaleDateString("en-NZ", {
         month: "short",
         year: "2-digit",
       }),
-      count: trendMap.get(key) ?? 0,
+      count: bucket?.count ?? 0,
+      byLocation: bucket?.byLocation ?? {},
     });
     nzCursor.setMonth(nzCursor.getMonth() + 1);
   }
 
-  const rawAvg = f?.avgDaysToFirstShift;
+  const locations = sortLocations([
+    ...byLocation.map((b) => b.location),
+    ...registrationTrend.flatMap((t) => Object.keys(t.byLocation)),
+  ]);
 
   return {
     funnel: {
-      totalRegistrations:        Number(f?.totalRegistrations        ?? 0),
-      incompleteProfiles:        Number(f?.incompleteProfiles        ?? 0),
-      completedProfileNoSignup:  Number(f?.completedProfileNoSignup  ?? 0),
-      signedUpNoShift:           Number(f?.signedUpNoShift           ?? 0),
-      completedShift:            Number(f?.completedShift            ?? 0),
+      totalRegistrations: sumKey("totalRegistrations"),
+      incompleteProfiles: sumKey("incompleteProfiles"),
+      completedProfileNoSignup: sumKey("completedProfileNoSignup"),
+      signedUpNoShift: sumKey("signedUpNoShift"),
+      completedShift: sumKey("completedShift"),
       avgDaysToFirstShift:
         rawAvg != null ? Math.round(Number(rawAvg) * 10) / 10 : null,
-      sameDay:       Number(f?.sameDay      ?? 0),
-      within3Days:   Number(f?.within3Days  ?? 0),
-      within7Days:   Number(f?.within7Days  ?? 0),
-      within14Days:  Number(f?.within14Days ?? 0),
-      within30Days:  Number(f?.within30Days ?? 0),
-      within60Days:  Number(f?.within60Days ?? 0),
-      within90Days:  Number(f?.within90Days ?? 0),
-      over90Days:    Number(f?.over90Days   ?? 0),
+      sameDay: sumKey("sameDay"),
+      within3Days: sumKey("within3Days"),
+      within7Days: sumKey("within7Days"),
+      within14Days: sumKey("within14Days"),
+      within30Days: sumKey("within30Days"),
+      within60Days: sumKey("within60Days"),
+      within90Days: sumKey("within90Days"),
+      over90Days: sumKey("over90Days"),
+      byLocation,
     },
     registrationTrend,
+    locations,
   };
 }
