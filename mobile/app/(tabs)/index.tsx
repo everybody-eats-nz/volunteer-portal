@@ -1437,7 +1437,7 @@ function ShortShiftChip({
   const theme = getShiftThemeByName(shift.shiftType.name);
   const start = new Date(shift.start);
   const dayLabel = relativeDayLabel(start);
-  const isEvening = parseInt(formatNZT(start, "H"), 10) >= 16;
+  const startTime = formatNZT(start, "h:mm a");
 
   return (
     <Pressable
@@ -1451,7 +1451,7 @@ function ShortShiftChip({
       accessibilityLabel={`${shift.shiftType.name} on ${formatNZT(
         start,
         "EEEE d MMMM"
-      )} at ${shift.location}, needs ${shift.open} more ${
+      )} at ${startTime}, ${shift.location}, needs ${shift.open} more ${
         shift.open === 1 ? "volunteer" : "volunteers"
       }`}
     >
@@ -1471,7 +1471,7 @@ function ShortShiftChip({
             <Text
               style={[needStyles.chipPeriodLabel, { color: palette.chipDate }]}
             >
-              {isEvening ? "EVE" : "DAY"}
+              {startTime}
             </Text>
           </View>
 

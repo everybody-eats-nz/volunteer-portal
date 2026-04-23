@@ -8,6 +8,8 @@ import {
   FlatList,
   Keyboard,
   LayoutAnimation,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -414,8 +416,16 @@ export default function ChatScreen() {
     DEFAULT_SUGGESTED_QUESTIONS
   );
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
+  const pendingScrollIndexRef = useRef<number | null>(null);
+  const scrollMetricsRef = useRef({
+    offset: 0,
+    contentHeight: 0,
+    layoutHeight: 0,
+  });
 
   const showWelcome = messages.length <= 1;
   const keyboardVisible = keyboardHeight > 0;
@@ -471,6 +481,8 @@ export default function ChatScreen() {
     setMessages([WELCOME_MESSAGE]);
     setInput("");
     setIsLoading(false);
+    setShowScrollToBottom(false);
+    pendingScrollIndexRef.current = null;
   }, []);
 
   /* ── Send ── */
@@ -494,6 +506,7 @@ export default function ChatScreen() {
       const allMessages = [...messages, userMessage]
         .filter((m) => m.id !== "welcome")
         .map((m) => ({ role: m.role, content: m.content }));
+      pendingScrollIndexRef.current = messages.length;
       setMessages((prev) => [...prev, userMessage]);
 
       try {
@@ -547,6 +560,61 @@ export default function ChatScreen() {
     [input, isLoading, messages]
   );
 
+  /* ── Floating bar vertical position ── */
+  const floatingBottom = keyboardVisible
+    ? keyboardHeight + 8
+    : insets.bottom + 8;
+
+  /* ── Scroll tracking: show button when not at bottom and list is scrollable ── */
+  const updateScrollButton = useCallback(() => {
+    const { offset, contentHeight, layoutHeight } = scrollMetricsRef.current;
+    if (layoutHeight === 0) return;
+    const distanceFromBottom = contentHeight - (offset + layoutHeight);
+    const scrollable = contentHeight > layoutHeight + 20;
+    setShowScrollToBottom(scrollable && distanceFromBottom > 40);
+  }, []);
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollMetricsRef.current.offset = e.nativeEvent.contentOffset.y;
+      scrollMetricsRef.current.contentHeight = e.nativeEvent.contentSize.height;
+      scrollMetricsRef.current.layoutHeight =
+        e.nativeEvent.layoutMeasurement.height;
+      updateScrollButton();
+    },
+    [updateScrollButton]
+  );
+
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number) => {
+      scrollMetricsRef.current.contentHeight = h;
+      // If a send was just triggered, pin the user's message to the top.
+      if (pendingScrollIndexRef.current !== null) {
+        const idx = pendingScrollIndexRef.current;
+        pendingScrollIndexRef.current = null;
+        requestAnimationFrame(() => {
+          flatListRef.current?.scrollToIndex({
+            index: idx,
+            viewPosition: 0,
+            animated: true,
+          });
+        });
+        return;
+      }
+      updateScrollButton();
+    },
+    [updateScrollButton]
+  );
+
+  const scrollToBottom = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Force-scroll to the exact bottom using tracked metrics (RN's
+    // scrollToEnd can be off when content is still settling).
+    const { contentHeight, layoutHeight } = scrollMetricsRef.current;
+    const target = Math.max(0, contentHeight - layoutHeight);
+    flatListRef.current?.scrollToOffset({ offset: target, animated: true });
+  }, []);
+
   /* ── Render message with grouping awareness ── */
   const renderMessage = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
@@ -563,11 +631,6 @@ export default function ChatScreen() {
     },
     [messages, colors, isDark, paperTint]
   );
-
-  /* ── Floating bar vertical position ── */
-  const floatingBottom = keyboardVisible
-    ? keyboardHeight + 8
-    : insets.bottom + 8;
 
   /* ── Composer state ── */
   const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
@@ -677,12 +740,25 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.messageList,
-            { paddingBottom: FLOATING_BAR_HEIGHT + 100 },
+            { paddingBottom: composerHeight + floatingBottom },
           ]}
           keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
+          onScroll={handleScroll}
+          scrollEventThrottle={32}
+          onContentSizeChange={handleContentSizeChange}
+          onLayout={(e) => {
+            scrollMetricsRef.current.layoutHeight = e.nativeEvent.layout.height;
+            updateScrollButton();
+          }}
+          onScrollToIndexFailed={(info) => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToIndex({
+                index: Math.min(info.index, info.highestMeasuredFrameIndex),
+                viewPosition: 0,
+                animated: true,
+              });
+            }, 80);
+          }}
           ListFooterComponent={
             isLoading ? (
               <View style={[styles.assistantBlock, { marginTop: 24 }]}>
@@ -707,8 +783,37 @@ export default function ChatScreen() {
         />
       )}
 
+      {/* ── Floating scroll-to-bottom button ── */}
+      {!showWelcome && showScrollToBottom && (
+        <Pressable
+          onPress={scrollToBottom}
+          style={({ pressed }) => [
+            styles.scrollToBottomBtn,
+            {
+              bottom: floatingBottom + FLOATING_BAR_HEIGHT + 14,
+              backgroundColor: isDark ? "#1a1d21" : "#ffffff",
+              borderColor: isDark
+                ? "rgba(255,255,255,0.14)"
+                : "rgba(14,58,35,0.14)",
+              transform: [{ scale: pressed ? 0.9 : 1 }],
+            },
+          ]}
+          accessibilityLabel="Scroll to latest message"
+          accessibilityRole="button"
+          hitSlop={8}
+        >
+          <Ionicons name="arrow-down" size={18} color={paperTint.eyebrow} />
+        </Pressable>
+      )}
+
       {/* ── Floating composer ── */}
       <View
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h > 0 && Math.abs(h - composerHeight) > 0.5) {
+            setComposerHeight(h);
+          }
+        }}
         style={[
           styles.floatingWrap,
           { bottom: floatingBottom },
@@ -987,5 +1092,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  /* Scroll-to-bottom floating button */
+  scrollToBottomBtn: {
+    position: "absolute",
+    alignSelf: "center",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    zIndex: 11,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 6,
   },
 });
