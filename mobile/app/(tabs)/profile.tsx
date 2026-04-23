@@ -1152,6 +1152,71 @@ function AchievementSheet({
               </View>
             </View>
 
+            {/* ── How to unlock / criteria ── */}
+            {achievement.criteria ? (
+              <View style={achieveSheet.section}>
+                <View style={achieveSheet.sectionHeader}>
+                  <View
+                    style={[
+                      achieveSheet.sectionAccent,
+                      { backgroundColor: catColor },
+                    ]}
+                  />
+                  <Text
+                    style={[achieveSheet.sectionLabel, { color: catColor }]}
+                  >
+                    {isUnlocked ? "You completed" : "How to unlock"}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    achieveSheet.dataCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.border : "#eef0ec",
+                    },
+                  ]}
+                >
+                  <View style={achieveSheet.criteriaRow}>
+                    <View
+                      style={[
+                        achieveSheet.criteriaBadge,
+                        {
+                          backgroundColor: isUnlocked
+                            ? isDark
+                              ? "rgba(134,239,172,0.14)"
+                              : "#dcfce7"
+                            : catBg,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          isUnlocked ? "checkmark-circle" : "flag-outline"
+                        }
+                        size={22}
+                        color={
+                          isUnlocked
+                            ? isDark
+                              ? "#86efac"
+                              : "#16a34a"
+                            : catColor
+                        }
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        achieveSheet.criteriaText,
+                        { color: colors.text },
+                      ]}
+                    >
+                      {achievement.criteria}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
             {/* ── Milestone / Progress ── */}
             {isUnlocked && achievement.unlockedAt ? (
               <View style={achieveSheet.section}>
@@ -2387,6 +2452,27 @@ const achieveSheet = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 20,
+  },
+
+  /* Criteria block */
+  criteriaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  criteriaBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  criteriaText: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: -0.1,
   },
 
   /* Milestone date block */

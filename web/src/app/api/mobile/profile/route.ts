@@ -8,6 +8,7 @@ import {
   calculateUserProgress,
   type UserProgress,
 } from "@/lib/achievements";
+import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import { z } from "zod";
 
 /**
@@ -197,6 +198,36 @@ export async function GET(request: Request) {
       0
     );
 
+    // Resolve shift-type names referenced by any achievement criteria so we
+    // can build human-readable criteria strings (e.g. "Complete 5 Kitchen Prep shifts").
+    const criteriaShiftTypeIds = new Set<string>();
+    for (const ua of userAchievements) {
+      const parsed = parseCriteria(ua.achievement.criteria);
+      if (parsed?.shiftType) criteriaShiftTypeIds.add(parsed.shiftType);
+    }
+    for (const a of availableAchievements) {
+      const parsed = parseCriteria(a.criteria);
+      if (parsed?.shiftType) criteriaShiftTypeIds.add(parsed.shiftType);
+    }
+    const shiftTypeRows =
+      criteriaShiftTypeIds.size > 0
+        ? await prisma.shiftType.findMany({
+            where: { id: { in: Array.from(criteriaShiftTypeIds) } },
+            select: { id: true, name: true },
+          })
+        : [];
+    const shiftTypeNameById = new Map(
+      shiftTypeRows.map((st) => [st.id, st.name])
+    );
+
+    const formatCriteria = (criteriaJson: string) => {
+      const parsed = parseCriteria(criteriaJson);
+      const name = parsed?.shiftType
+        ? shiftTypeNameById.get(parsed.shiftType)
+        : undefined;
+      return formatAchievementCriteria(criteriaJson, name);
+    };
+
     // Map achievements to mobile shape
     // Unlocked: most recently unlocked first
     const unlocked = userAchievements
@@ -209,6 +240,7 @@ export async function GET(request: Request) {
         icon: ua.achievement.icon || "🏆",
         category: ua.achievement.category,
         points: ua.achievement.points,
+        criteria: formatCriteria(ua.achievement.criteria),
         unlockedAt: ua.unlockedAt.toISOString(),
         unlockedByCount: unlockCountMap.get(ua.achievement.id) ?? 0,
         friendsWhoEarned:
@@ -219,6 +251,9 @@ export async function GET(request: Request) {
     const inProgressList = availableAchievements
       .map((a) => {
         const parsed = parseCriteria(a.criteria);
+        const shiftTypeName = parsed?.shiftType
+          ? shiftTypeNameById.get(parsed.shiftType)
+          : undefined;
         return {
           id: a.id,
           name: a.name,
@@ -226,13 +261,11 @@ export async function GET(request: Request) {
           icon: a.icon || "🔒",
           category: a.category,
           points: a.points,
+          criteria: formatCriteria(a.criteria),
           progress: parsed
             ? getProgressForCriteria(parsed, progress)
             : undefined,
-          target: parsed
-            ? `${parsed.value} ${parsed.type === "shifts_completed" ? "shifts" : parsed.type === "hours_volunteered" ? "hours" : ""}`
-                .trim()
-            : undefined,
+          target: buildTargetLabel(parsed, shiftTypeName),
           unlockedByCount: unlockCountMap.get(a.id) ?? 0,
           friendsWhoEarned: friendsByAchievement.get(a.id) ?? [],
         };
@@ -288,15 +321,49 @@ export async function GET(request: Request) {
 
 function parseCriteria(
   criteria: string
-): { type: string; value: number } | null {
+): { type: string; value: number; shiftType?: string } | null {
   try {
     const parsed = JSON.parse(criteria);
     if (typeof parsed.type === "string" && typeof parsed.value === "number") {
-      return parsed;
+      return {
+        type: parsed.type,
+        value: parsed.value,
+        shiftType:
+          typeof parsed.shiftType === "string" ? parsed.shiftType : undefined,
+      };
     }
     return null;
   } catch {
     return null;
+  }
+}
+
+function buildTargetLabel(
+  parsed: { type: string; value: number; shiftType?: string } | null,
+  shiftTypeName: string | undefined
+): string | undefined {
+  if (!parsed) return undefined;
+  switch (parsed.type) {
+    case "shifts_completed":
+      return `${parsed.value} shift${parsed.value !== 1 ? "s" : ""}`;
+    case "hours_volunteered":
+      return `${parsed.value} hour${parsed.value !== 1 ? "s" : ""}`;
+    case "consecutive_months":
+      return `${parsed.value} month${parsed.value !== 1 ? "s" : ""}`;
+    case "years_volunteering":
+      return `${parsed.value} year${parsed.value !== 1 ? "s" : ""}`;
+    case "community_impact":
+      return `${parsed.value} meal${parsed.value !== 1 ? "s" : ""}`;
+    case "friends_count":
+      return `${parsed.value} friend${parsed.value !== 1 ? "s" : ""}`;
+    case "passkeys_added":
+      return `${parsed.value} passkey${parsed.value !== 1 ? "s" : ""}`;
+    case "specific_shift_type":
+      return shiftTypeName
+        ? `${parsed.value} ${shiftTypeName} shift${parsed.value !== 1 ? "s" : ""}`
+        : `${parsed.value} shift${parsed.value !== 1 ? "s" : ""}`;
+    default:
+      return undefined;
   }
 }
 

@@ -559,6 +559,7 @@ export type Achievement = {
   icon: string; // emoji
   category: 'MILESTONE' | 'DEDICATION' | 'SPECIALIZATION' | 'IMPACT' | 'COMMUNITY';
   points: number;
+  criteria?: string; // human-readable unlock rule, e.g. "Complete 5 volunteer shifts"
   unlockedAt?: string; // ISO date — if set, it's unlocked
   progress?: number; // 0-1, for in-progress achievements
   target?: string; // e.g. "50 shifts"
@@ -579,6 +580,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '👣',
     category: 'MILESTONE',
     points: 10,
+    criteria: 'Complete 1 volunteer shift',
     unlockedAt: '2025-06-20T00:00:00Z',
   },
   {
@@ -588,6 +590,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '⭐',
     category: 'MILESTONE',
     points: 50,
+    criteria: 'Complete 10 volunteer shifts',
     unlockedAt: '2025-09-15T00:00:00Z',
   },
   {
@@ -597,6 +600,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '🔥',
     category: 'DEDICATION',
     points: 75,
+    criteria: 'Volunteer for 3 consecutive months',
     unlockedAt: '2025-10-01T00:00:00Z',
   },
   {
@@ -606,6 +610,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '🌟',
     category: 'SPECIALIZATION',
     points: 40,
+    criteria: 'Complete 5 "Front of House" shifts',
     unlockedAt: '2025-11-10T00:00:00Z',
   },
   {
@@ -615,6 +620,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '🍽️',
     category: 'IMPACT',
     points: 100,
+    criteria: 'Help prepare an estimated 1000 meals',
     unlockedAt: '2026-01-20T00:00:00Z',
   },
   // In progress
@@ -625,6 +631,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '🔪',
     category: 'SPECIALIZATION',
     points: 40,
+    criteria: 'Complete 5 "Kitchen Prep" shifts',
     progress: 0.6,
     target: '3 / 5 shifts',
   },
@@ -635,6 +642,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '🏆',
     category: 'MILESTONE',
     points: 200,
+    criteria: 'Complete 50 volunteer shifts',
     progress: 0.46,
     target: '23 / 50 shifts',
   },
@@ -645,6 +653,7 @@ export const DUMMY_ACHIEVEMENTS: Achievement[] = [
     icon: '💪',
     category: 'DEDICATION',
     points: 150,
+    criteria: 'Volunteer for 6 consecutive months',
     progress: 0.67,
     target: '4 / 6 months',
   },
