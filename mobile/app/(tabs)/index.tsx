@@ -1,13 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { MenuView, type MenuAction } from "@react-native-menu/menu";
 import {
+  addDays,
   differenceInDays,
   differenceInHours,
   differenceInMinutes,
-  endOfWeek,
   formatDistanceToNow,
   startOfDay,
-  startOfWeek,
 } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 import { LinearGradient } from "expo-linear-gradient";
@@ -92,14 +91,17 @@ export default function HomeScreen() {
     ? periodFriends[getShiftPeriodKey(new Date(nextShift.start))] ?? []
     : [];
 
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+  /* Rolling 7-day window from today — keeps the card relevant regardless of
+     where we are in the week, so volunteers always see the next stretch of
+     needs rather than losing visibility late in the week. */
+  const windowStart = startOfDay(new Date());
+  const windowEnd = addDays(windowStart, 7);
   /* Scope the "volunteers needed" card to the user's home restaurant when they
      have one set — shifts elsewhere aren't actionable for most volunteers.
      Falls back to every location when no default is configured. */
-  const thisWeekAvailable = available.filter((s) => {
+  const upcomingAvailable = available.filter((s) => {
     const start = new Date(s.start);
-    if (start < weekStart || start > weekEnd) return false;
+    if (start < windowStart || start >= windowEnd) return false;
     if (userDefaultLocation && s.location !== userDefaultLocation) return false;
     return true;
   });
@@ -463,16 +465,17 @@ export default function HomeScreen() {
 
       {/* ── Volunteers Needed ──
            Collapses to a slim reminder when the user already has a confirmed
-           shift this week — they've done their part; just surface the wider
+           shift coming up — they've done their part; just surface the wider
            roster gap as an easy tap-in for picking up more. */}
       <VolunteersNeededCard
-        shifts={thisWeekAvailable}
+        shifts={upcomingAvailable}
         marginTop={nextShift ? 20 : 0}
         collapsible={nextShift?.status === "CONFIRMED"}
         onShiftPress={(id) => router.push(`/shift/${id}` as Href)}
         onBrowseDay={(dateKey) =>
           router.push(`/(tabs)/shifts?date=${dateKey}` as Href)
         }
+        onBrowseAll={() => router.push("/(tabs)/shifts" as Href)}
       />
 
       {/* ── Activity Feed ── */}
@@ -1117,6 +1120,15 @@ type NeedPalette = {
   ctaText: string;
   ctaArrowBg: string;
   ctaArrowIcon: string;
+  /* See-all end-cap — deliberately off-brand from the green/cream shift
+     chips so it reads as an opening rather than another shift. */
+  seeAllBg: string;
+  seeAllBorder: string;
+  seeAllTitle: string;
+  seeAllHint: string;
+  seeAllArrowBg: string;
+  seeAllArrowIcon: string;
+  seeAllAccent: string;
 };
 
 const NEED_PALETTE_LIGHT: NeedPalette = {
@@ -1137,6 +1149,13 @@ const NEED_PALETTE_LIGHT: NeedPalette = {
   ctaText: Brand.green,
   ctaArrowBg: Brand.green,
   ctaArrowIcon: Brand.warmWhite,
+  seeAllBg: "#f7f2e0",
+  seeAllBorder: "rgba(14, 58, 35, 0.14)",
+  seeAllTitle: Brand.green,
+  seeAllHint: "rgba(14, 58, 35, 0.58)",
+  seeAllArrowBg: Brand.green,
+  seeAllArrowIcon: Brand.accent,
+  seeAllAccent: Brand.accent,
 };
 
 const NEED_PALETTE_DARK: NeedPalette = {
@@ -1159,6 +1178,13 @@ const NEED_PALETTE_DARK: NeedPalette = {
   ctaText: Brand.accent,
   ctaArrowBg: Brand.accent,
   ctaArrowIcon: Brand.green,
+  seeAllBg: "#1d2f24",
+  seeAllBorder: "rgba(248, 251, 105, 0.28)",
+  seeAllTitle: Brand.accent,
+  seeAllHint: "rgba(248, 251, 105, 0.62)",
+  seeAllArrowBg: Brand.accent,
+  seeAllArrowIcon: Brand.green,
+  seeAllAccent: Brand.accent,
 };
 
 function VolunteersNeededCard({
@@ -1167,6 +1193,7 @@ function VolunteersNeededCard({
   collapsible = false,
   onShiftPress,
   onBrowseDay,
+  onBrowseAll,
 }: {
   shifts: Shift[];
   marginTop: number;
@@ -1175,6 +1202,8 @@ function VolunteersNeededCard({
   onShiftPress: (id: string) => void;
   /** Navigate to the shifts tab, scoped to this day (YYYY-MM-DD NZ time). */
   onBrowseDay: (dateKey: string) => void;
+  /** Navigate to the shifts tab with no date filter. */
+  onBrowseAll: () => void;
 }) {
   const colorScheme = useColorScheme();
   const palette =
@@ -1191,8 +1220,8 @@ function VolunteersNeededCard({
     .filter((s) => s.open > 0)
     .sort(
       (a, b) =>
-        b.open - a.open ||
-        new Date(a.start).getTime() - new Date(b.start).getTime()
+        new Date(a.start).getTime() - new Date(b.start).getTime() ||
+        b.open - a.open
     );
 
   if (short.length === 0) return null;
@@ -1235,7 +1264,7 @@ function VolunteersNeededCard({
               ? "Hide open shifts"
               : `Show ${totalSpots} ${
                   totalSpots === 1 ? "spot" : "spots"
-                } still open this week`
+                } still open in the next 7 days`
           }
           hitSlop={6}
         >
@@ -1251,8 +1280,8 @@ function VolunteersNeededCard({
               style={[needStyles.compactBody, { color: palette.displayText }]}
               numberOfLines={1}
             >
-              {totalSpots} more {totalSpots === 1 ? "spot" : "spots"} open this
-              week
+              {totalSpots} more {totalSpots === 1 ? "spot" : "spots"} open in
+              the next 7 days
             </Text>
           </View>
           <View
@@ -1291,6 +1320,7 @@ function VolunteersNeededCard({
                   onPress={() => onShiftPress(shift.id)}
                 />
               ))}
+              <SeeAllShiftsChip palette={palette} onPress={onBrowseAll} />
             </ScrollView>
 
             <Pressable
@@ -1345,22 +1375,21 @@ function VolunteersNeededCard({
       {/* Header: eyebrow + emoji */}
       <View style={needStyles.headerRow}>
         <Text style={[needStyles.eyebrow, { color: palette.eyebrow }]}>
-          Help needed this week
+          Help needed soon
         </Text>
         <Text style={needStyles.handsEmoji}>🙌</Text>
       </View>
 
-      {/* Display number */}
-      <View style={needStyles.displayRow}>
-        <Text
-          style={[needStyles.displayNumber, { color: palette.displayText }]}
-        >
-          {totalSpots}
-        </Text>
-        <Text style={[needStyles.displayUnit, { color: palette.displayText }]}>
+      {/* Display number — unit nested inside the number's Text so RN lays
+          them out on the same text baseline (flex-end aligns boxes, not
+          baselines, which is why sizes of 56 / 22 drift apart otherwise). */}
+      <Text style={[needStyles.displayNumber, { color: palette.displayText }]}>
+        {totalSpots}
+        <Text style={needStyles.displayUnit}>
+          {" "}
           {totalSpots === 1 ? "spot" : "spots"}
         </Text>
-      </View>
+      </Text>
 
       <Text style={[needStyles.supportLine, { color: palette.supportText }]}>
         {short.length === 1
@@ -1383,6 +1412,7 @@ function VolunteersNeededCard({
             onPress={() => onShiftPress(shift.id)}
           />
         ))}
+        <SeeAllShiftsChip palette={palette} onPress={onBrowseAll} />
       </ScrollView>
 
       {/* CTA row — jumps to the first day that needs crew */}
@@ -1523,6 +1553,93 @@ function ShortShiftChip({
   );
 }
 
+/** Trailing end-cap of the shortage carousel — visually distinct from the
+ *  shift chips (warm paper on green, or accent-on-deep-green in dark) so it
+ *  reads as an invitation to keep going rather than another shift. */
+function SeeAllShiftsChip({
+  palette,
+  onPress,
+}: {
+  palette: NeedPalette;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        needStyles.seeAllChip,
+        {
+          backgroundColor: palette.seeAllBg,
+          borderColor: palette.seeAllBorder,
+        },
+        { transform: [{ scale: pressed ? 0.97 : 1 }] },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel="See all shifts"
+    >
+      {/* Ticker-tape corner accent — tiny dot cluster in the top-right
+          hints at "more" without competing with the title. */}
+      <View pointerEvents="none" style={needStyles.seeAllDots}>
+        <View
+          style={[
+            needStyles.seeAllDot,
+            { backgroundColor: palette.seeAllAccent },
+          ]}
+        />
+        <View
+          style={[
+            needStyles.seeAllDot,
+            { backgroundColor: palette.seeAllAccent, opacity: 0.55 },
+          ]}
+        />
+        <View
+          style={[
+            needStyles.seeAllDot,
+            { backgroundColor: palette.seeAllAccent, opacity: 0.25 },
+          ]}
+        />
+      </View>
+
+      <View style={needStyles.seeAllInner}>
+        <Text style={[needStyles.seeAllEyebrow, { color: palette.seeAllHint }]}>
+          More mahi
+        </Text>
+
+        <Text
+          style={[needStyles.seeAllTitle, { color: palette.seeAllTitle }]}
+          numberOfLines={2}
+        >
+          See all{"\n"}shifts
+        </Text>
+
+        <View style={needStyles.seeAllBottomRow}>
+          <Text
+            style={[needStyles.seeAllHint, { color: palette.seeAllHint }]}
+            numberOfLines={2}
+          >
+            Every shift matters
+          </Text>
+          <View
+            style={[
+              needStyles.seeAllArrow,
+              {
+                backgroundColor: palette.seeAllArrowBg,
+                shadowColor: palette.seeAllArrowBg,
+              },
+            ]}
+          >
+            <Ionicons
+              name="arrow-forward"
+              size={20}
+              color={palette.seeAllArrowIcon}
+            />
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 const needStyles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
@@ -1559,24 +1676,18 @@ const needStyles = StyleSheet.create({
   handsEmoji: {
     fontSize: 22,
   },
-  displayRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
+  displayNumber: {
+    fontSize: 56,
+    lineHeight: 62,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -1,
     paddingHorizontal: 22,
     marginTop: 12,
   },
-  displayNumber: {
-    fontSize: 56,
-    lineHeight: 58,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -1,
-  },
   displayUnit: {
     fontSize: 22,
-    lineHeight: 32,
     fontFamily: FontFamily.heading,
-    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   supportLine: {
     fontSize: 14,
@@ -1664,6 +1775,68 @@ const needStyles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     letterSpacing: 0.1,
   },
+  seeAllChip: {
+    width: 172,
+    height: 170,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    overflow: "hidden",
+    position: "relative",
+  },
+  seeAllDots: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    flexDirection: "row",
+    gap: 4,
+  },
+  seeAllDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  seeAllInner: {
+    flex: 1,
+    padding: 16,
+    justifyContent: "space-between",
+  },
+  seeAllEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+  },
+  seeAllTitle: {
+    fontSize: 22,
+    lineHeight: 24,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.4,
+    marginTop: -2,
+  },
+  seeAllBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  seeAllHint: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.1,
+  },
+  seeAllArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   ctaRow: {
     marginTop: 18,
     marginHorizontal: 22,
@@ -1687,7 +1860,7 @@ const needStyles = StyleSheet.create({
   },
 
   // Collapsible variant — shown when the user already has a confirmed shift
-  // this week. Slim header is always visible; tapping expands the chips + CTA.
+  // coming up. Slim header is always visible; tapping expands the chips + CTA.
   collapsibleCard: {
     marginHorizontal: 20,
     borderRadius: 18,
@@ -2764,8 +2937,8 @@ function FeedItemSheet({
       items: typeof item.mains | undefined
     ) => {
       if (!items || items.length === 0) return null;
-      const valid = items.filter(
-        (m): m is NonNullable<typeof m> => Boolean(m?.name)
+      const valid = items.filter((m): m is NonNullable<typeof m> =>
+        Boolean(m?.name)
       );
       if (valid.length === 0) return null;
       const isSingle = valid.length === 1;
@@ -3220,65 +3393,63 @@ function FeedItemSheet({
             {item.type === "daily_menu" &&
               formatNZT(new Date(item.serviceDate), "yyyy-MM-dd") >=
                 formatNZT(new Date(), "yyyy-MM-dd") && (
-              <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  onClose();
-                  const dateKey = formatNZT(
-                    new Date(item.serviceDate),
-                    "yyyy-MM-dd"
-                  );
-                  router.push(
-                    `/(tabs)/shifts?date=${dateKey}` as Href
-                  );
-                }}
-                style={({ pressed }) => [
-                  sheet.shiftListCTA,
-                  {
-                    backgroundColor: Brand.green,
-                    opacity: pressed ? 0.85 : 1,
-                    marginHorizontal: 16,
-                    marginBottom: 12,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="See shifts available on this day"
-              >
-                <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
-                  See shifts for this day
-                </Text>
-                <Ionicons name="arrow-forward" size={16} color="#ffffff" />
-              </Pressable>
-            )}
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onClose();
+                    const dateKey = formatNZT(
+                      new Date(item.serviceDate),
+                      "yyyy-MM-dd"
+                    );
+                    router.push(`/(tabs)/shifts?date=${dateKey}` as Href);
+                  }}
+                  style={({ pressed }) => [
+                    sheet.shiftListCTA,
+                    {
+                      backgroundColor: Brand.green,
+                      opacity: pressed ? 0.85 : 1,
+                      marginHorizontal: 16,
+                      marginBottom: 12,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="See shifts available on this day"
+                >
+                  <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
+                    See shifts for this day
+                  </Text>
+                  <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+                </Pressable>
+              )}
 
             {/* ── Friend signup CTA: jump to that shift (only if upcoming) ── */}
             {item.type === "friend_signup" &&
               item.shiftId &&
               new Date(item.shiftDate).getTime() > Date.now() && (
-              <Pressable
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  onClose();
-                  router.push(`/shift/${item.shiftId}` as Href);
-                }}
-                style={({ pressed }) => [
-                  sheet.shiftListCTA,
-                  {
-                    backgroundColor: Brand.green,
-                    opacity: pressed ? 0.85 : 1,
-                    marginHorizontal: 16,
-                    marginBottom: 12,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={`Sign up for the ${item.shiftTypeName} shift`}
-              >
-                <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
-                  Sign up for this shift
-                </Text>
-                <Ionicons name="arrow-forward" size={16} color="#ffffff" />
-              </Pressable>
-            )}
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    onClose();
+                    router.push(`/shift/${item.shiftId}` as Href);
+                  }}
+                  style={({ pressed }) => [
+                    sheet.shiftListCTA,
+                    {
+                      backgroundColor: Brand.green,
+                      opacity: pressed ? 0.85 : 1,
+                      marginHorizontal: 16,
+                      marginBottom: 12,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sign up for the ${item.shiftTypeName} shift`}
+                >
+                  <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
+                    Sign up for this shift
+                  </Text>
+                  <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+                </Pressable>
+              )}
 
             {/* ── Photo gallery (for photo_post type) ── */}
             {/* Announcement image */}
