@@ -23,7 +23,10 @@ import {
   Loader2,
   Info,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import dynamic from "next/dynamic";
 import {
   Tooltip,
@@ -122,6 +125,8 @@ export function MilestoneAnalyticsClient({
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
   const [selectedMilestone, setSelectedMilestone] = useState<number>(100);
+  const [recentThresholdFilter, setRecentThresholdFilter] =
+    useState<string>("all");
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
     | "dark"
     | "light";
@@ -153,6 +158,14 @@ export function MilestoneAnalyticsClient({
   const projCategories = data.projections.map((p) => `${p.threshold} shifts`);
   const projAlready = data.projections.map((p) => p.alreadyHit);
   const projAdditional = data.projections.map((p) => p.projectedAdditional);
+
+  // Recent achievements (filtered by threshold)
+  const filteredRecentAchievements =
+    recentThresholdFilter === "all"
+      ? data.recentAchievements
+      : data.recentAchievements.filter(
+          (a) => String(a.threshold) === recentThresholdFilter
+        );
 
   return (
     <div className="space-y-6">
@@ -745,6 +758,135 @@ export function MilestoneAnalyticsClient({
                   {selectedProjection
                     ? `No volunteers are currently approaching the ${selectedMilestone}-shift milestone`
                     : "Select a milestone to view approaching volunteers"}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Recent Milestone Achievements */}
+        <motion.div variants={staggerItem}>
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  Recent Milestone Achievements
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="w-auto max-w-64">
+                      Volunteers whose Nth completed shift landed inside the
+                      selected time period. Newest achievements first. Useful
+                      for recognition — reach out while it&rsquo;s still fresh.
+                    </TooltipContent>
+                  </Tooltip>
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="recent-threshold-select"
+                    className="text-sm shrink-0"
+                  >
+                    Milestone:
+                  </Label>
+                  <Select
+                    value={recentThresholdFilter}
+                    onValueChange={setRecentThresholdFilter}
+                  >
+                    <SelectTrigger
+                      id="recent-threshold-select"
+                      className="w-36"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All milestones</SelectItem>
+                      {data.projections.map((p) => (
+                        <SelectItem
+                          key={p.threshold}
+                          value={String(p.threshold)}
+                        >
+                          {p.threshold} shifts
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredRecentAchievements.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground pb-1">
+                    <span className="flex-1">Volunteer</span>
+                    <span className="w-28">Milestone</span>
+                    <span className="w-20 text-right">Total</span>
+                    <span className="w-32 text-right">Achieved</span>
+                    <span className="w-8" />
+                  </div>
+                  {filteredRecentAchievements.map((a) => {
+                    const color = MILESTONE_COLORS[a.threshold] ?? "#6b7280";
+                    const absoluteDate = formatInNZT(
+                      a.achievedAt,
+                      "d MMM yyyy"
+                    );
+                    const relative = formatDistanceToNow(
+                      new Date(a.achievedAt),
+                      { addSuffix: true }
+                    );
+                    return (
+                      <div
+                        key={`${a.userId}-${a.threshold}`}
+                        className="flex items-center gap-4 py-2 border-b last:border-0"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {a.name}
+                          </p>
+                        </div>
+                        <span className="w-28">
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                            style={{
+                              backgroundColor: color + "20",
+                              color,
+                            }}
+                          >
+                            <Trophy className="h-3 w-3" />
+                            {a.threshold} shifts
+                          </span>
+                        </span>
+                        <span className="w-20 text-right text-sm tabular-nums font-medium">
+                          {a.totalShifts}
+                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="w-32 text-right text-sm text-muted-foreground tabular-nums cursor-default">
+                              {relative}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {absoluteDate}
+                          </TooltipContent>
+                        </Tooltip>
+                        <Link
+                          href={`/admin/volunteers/${a.userId}`}
+                          className="w-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
+                  {data.recentAchievements.length === 0
+                    ? `No volunteers crossed a milestone in the last ${periodLabel}`
+                    : `No ${recentThresholdFilter}-shift milestones were crossed in the last ${periodLabel}`}
                 </div>
               )}
             </CardContent>

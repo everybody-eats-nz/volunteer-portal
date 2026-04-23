@@ -34,10 +34,19 @@ export interface MilestoneProjection {
   approaching: ApproachingVolunteer[];
 }
 
+export interface RecentMilestoneAchievement {
+  userId: string;
+  name: string;
+  threshold: number;
+  achievedAt: string;
+  totalShifts: number;
+}
+
 export interface MilestoneData {
   milestoneHits: MilestoneHit[];
   distribution: DistributionBucket[];
   projections: MilestoneProjection[];
+  recentAchievements: RecentMilestoneAchievement[];
 }
 
 export async function getMilestoneData(
@@ -60,8 +69,12 @@ export async function getMilestoneData(
     ? Prisma.sql`AND u."availableLocations" LIKE ${`%"${location}"%`}`
     : Prisma.empty;
 
-  const [hitsInPeriodResult, totalsResult, volunteerStatsResult] =
-    await Promise.all([
+  const [
+    hitsInPeriodResult,
+    totalsResult,
+    volunteerStatsResult,
+    recentAchievementsResult,
+  ] = await Promise.all([
       // How many volunteers crossed each milestone threshold in the selected period
       prisma.$queryRaw<Array<{ milestone: bigint; count: bigint }>>`
         WITH ranked AS (
@@ -158,6 +171,45 @@ export async function getMilestoneData(
         GROUP BY sg."userId", u.name
         HAVING COUNT(*) > 0
         ORDER BY COUNT(*) DESC
+      `,
+
+      // Volunteers who crossed a milestone during the selected period,
+      // along with the shift that tipped them over and their current total.
+      prisma.$queryRaw<
+        Array<{
+          userId: string;
+          name: string | null;
+          threshold: bigint;
+          achieved_at: Date;
+          total_shifts: bigint;
+        }>
+      >`
+        WITH ranked AS (
+          SELECT
+            sg."userId",
+            u.name,
+            sh."end" AS shift_end,
+            ROW_NUMBER() OVER (PARTITION BY sg."userId" ORDER BY sh."end") AS rn,
+            COUNT(*) OVER (PARTITION BY sg."userId") AS total_shifts
+          FROM "Signup" sg
+          JOIN "Shift" sh ON sh.id = sg."shiftId"
+          JOIN "User"  u  ON u.id  = sg."userId"
+          WHERE sg.status = 'CONFIRMED'::"SignupStatus"
+            AND sh."end" < ${now}
+            AND u.role   = 'VOLUNTEER'::"Role"
+            ${locationCond}
+        )
+        SELECT
+          "userId",
+          name,
+          rn::bigint        AS threshold,
+          shift_end         AS achieved_at,
+          total_shifts::bigint AS total_shifts
+        FROM ranked
+        WHERE shift_end >= ${periodStart}
+          AND shift_end <  ${now}
+          AND rn IN (10, 25, 50, 100, 200, 500)
+        ORDER BY shift_end DESC
       `,
     ]);
 
@@ -284,5 +336,15 @@ export async function getMilestoneData(
     }
   );
 
-  return { milestoneHits, distribution, projections };
+  // ── Recent milestone achievements ─────────────────────────────────────────
+  const recentAchievements: RecentMilestoneAchievement[] =
+    recentAchievementsResult.map((r) => ({
+      userId: r.userId,
+      name: r.name ?? "Unknown",
+      threshold: Number(r.threshold),
+      achievedAt: r.achieved_at.toISOString(),
+      totalShifts: Number(r.total_shifts),
+    }));
+
+  return { milestoneHits, distribution, projections, recentAchievements };
 }
