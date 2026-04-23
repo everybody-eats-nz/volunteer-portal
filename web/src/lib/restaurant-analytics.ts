@@ -43,7 +43,11 @@ interface PeriodResult {
 
 function processPeriod(
   shifts: Array<{ start: Date; location: string | null }>,
-  mealsRecords: Array<{ date: Date; location: string; mealsServed: number }>,
+  mealsRecords: Array<{
+    date: Date;
+    location: string;
+    mealsServed: number | null;
+  }>,
   locationDefaults: Record<string, number>,
   daysFilter: number[] | null
 ): PeriodResult {
@@ -62,6 +66,7 @@ function processPeriod(
 
   const recordedMeals = new Map<string, number>();
   mealsRecords.forEach((r) => {
+    if (r.mealsServed === null) return;
     const key = `${r.date.toISOString().substring(0, 10)}|${r.location}`;
     recordedMeals.set(key, r.mealsServed);
   });
