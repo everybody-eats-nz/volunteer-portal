@@ -79,9 +79,6 @@ export async function GET(request: Request) {
   const userDefaultLocation = userProfile?.defaultLocation ?? null;
   const userGrade = userProfile?.volunteerGrade ?? "GREEN";
 
-  // Today at NZ midnight UTC — used as the lower bound for upcoming menus.
-  const todayNZT = getStartOfDayUTC(now);
-
   // Run all data queries in parallel
   const [
     recentAchievements,
@@ -248,13 +245,14 @@ export async function GET(request: Request) {
         })
       : Promise.resolve([]),
 
-    // Daily menus published for the user's default location, for upcoming
-    // service dates. Volunteers get a heads-up about what's on the menu.
+    // Daily menus published for the user's default location. Includes both
+    // upcoming and recent past service dates so volunteers can still see what
+    // was on the menu after the fact — the 14-day createdAt window keeps the
+    // feed fresh.
     userDefaultLocation
       ? prisma.dailyMenu.findMany({
           where: {
             location: userDefaultLocation,
-            date: { gte: todayNZT },
             createdAt: { gte: since },
           },
           select: {
