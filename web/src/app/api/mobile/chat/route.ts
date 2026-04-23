@@ -60,11 +60,15 @@ async function getStaticContext(): Promise<StaticContext> {
       }),
       prisma.user.count({ where: { role: "VOLUNTEER" } }),
       prisma.mealsServed.aggregate({
-        where: { date: { gte: thirtyDaysAgo } },
+        where: {
+          date: { gte: thirtyDaysAgo },
+          mealsServed: { not: null },
+        },
         _sum: { mealsServed: true },
         _count: true,
       }),
       prisma.mealsServed.aggregate({
+        where: { mealsServed: { not: null } },
         _sum: { mealsServed: true },
       }),
       // Count recent shifts for fallback estimate

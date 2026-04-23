@@ -78,9 +78,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { date, location, mealsServed, notes } = body;
 
-    if (!date || !location || mealsServed === undefined) {
+    if (!date || !location) {
       return NextResponse.json(
-        { error: "Date, location, and mealsServed are required" },
+        { error: "Date and location are required" },
+        { status: 400 }
+      );
+    }
+
+    const hasMealsCount =
+      mealsServed !== undefined && mealsServed !== null && mealsServed !== "";
+    const trimmedNotes = typeof notes === "string" ? notes.trim() : "";
+
+    if (!hasMealsCount && !trimmedNotes) {
+      return NextResponse.json(
+        { error: "Enter a meals count, a note, or both" },
+        { status: 400 }
+      );
+    }
+
+    const parsedMeals = hasMealsCount ? parseInt(mealsServed, 10) : null;
+    if (hasMealsCount && (parsedMeals === null || Number.isNaN(parsedMeals))) {
+      return NextResponse.json(
+        { error: "Meals count must be a number" },
         { status: 400 }
       );
     }
@@ -99,15 +118,15 @@ export async function POST(request: NextRequest) {
         },
       },
       update: {
-        mealsServed: parseInt(mealsServed),
-        notes: notes || null,
+        mealsServed: parsedMeals,
+        notes: trimmedNotes || null,
         createdBy: session.user.id,
       },
       create: {
         date: startOfDayUTC,
         location,
-        mealsServed: parseInt(mealsServed),
-        notes: notes || null,
+        mealsServed: parsedMeals,
+        notes: trimmedNotes || null,
         createdBy: session.user.id,
       },
     });
