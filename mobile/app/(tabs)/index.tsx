@@ -2696,6 +2696,11 @@ function FeedItemSheet({
     item.type === "achievement" && item.achievementIcon
       ? item.achievementIcon
       : config.emoji;
+  const isPastDailyMenu =
+    item.type === "daily_menu" &&
+    formatNZT(new Date(item.serviceDate), "yyyy-MM-dd") <
+      formatNZT(new Date(), "yyyy-MM-dd");
+  const headerLabel = isPastDailyMenu ? "Past Menu" : config.label;
 
   // Determine hero avatar for friend items
   const hasFriendAvatar =
@@ -2922,7 +2927,7 @@ function FeedItemSheet({
                 ]}
               >
                 <Text style={[sheet.heroLabelText, { color: accentColor }]}>
-                  {config.label}
+                  {headerLabel}
                 </Text>
               </View>
             </View>
@@ -3211,8 +3216,10 @@ function FeedItemSheet({
                 </View>
               )}
 
-            {/* ── Daily menu CTA: browse shifts on that service day ── */}
-            {item.type === "daily_menu" && (
+            {/* ── Daily menu CTA: browse shifts on that service day (only if today or upcoming) ── */}
+            {item.type === "daily_menu" &&
+              formatNZT(new Date(item.serviceDate), "yyyy-MM-dd") >=
+                formatNZT(new Date(), "yyyy-MM-dd") && (
               <Pressable
                 onPress={() => {
                   Haptics.selectionAsync();
@@ -3244,8 +3251,10 @@ function FeedItemSheet({
               </Pressable>
             )}
 
-            {/* ── Friend signup CTA: jump to that shift ── */}
-            {item.type === "friend_signup" && item.shiftId && (
+            {/* ── Friend signup CTA: jump to that shift (only if upcoming) ── */}
+            {item.type === "friend_signup" &&
+              item.shiftId &&
+              new Date(item.shiftDate).getTime() > Date.now() && (
               <Pressable
                 onPress={() => {
                   Haptics.selectionAsync();

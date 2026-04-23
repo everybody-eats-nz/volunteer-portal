@@ -1165,7 +1165,7 @@ function AchievementSheet({
                   <Text
                     style={[achieveSheet.sectionLabel, { color: catColor }]}
                   >
-                    Milestone
+                    Achived
                   </Text>
                 </View>
                 <View
@@ -1373,110 +1373,113 @@ function AchievementSheet({
                           },
                         ]}
                       />
-                      <Text
-                        style={[
-                          achieveSheet.friendsCaption,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        Including {achievement.friendsWhoEarned.length} of your{" "}
-                        {achievement.friendsWhoEarned.length === 1
-                          ? "friend"
-                          : "friends"}
-                      </Text>
-                      <View style={achieveSheet.friendsList}>
-                        {achievement.friendsWhoEarned.slice(0, 6).map((f) => (
-                          <Pressable
-                            key={f.id}
-                            onPress={() => {
-                              onClose();
-                              router.push(`/friend/${f.id}` as never);
-                            }}
-                            style={({ pressed }) => [
-                              achieveSheet.friendItem,
-                              { opacity: pressed ? 0.7 : 1 },
-                            ]}
-                            accessibilityLabel={`View ${f.name}'s profile`}
-                            accessibilityRole="button"
-                          >
-                            <View
-                              style={[
-                                achieveSheet.friendAvatarRing,
-                                { borderColor: catBg },
+                      <View style={{ alignItems: "center" }}>
+                        <Text
+                          style={[
+                            achieveSheet.friendsCaption,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Achieved by {achievement.friendsWhoEarned.length} of
+                          your{" "}
+                          {achievement.friendsWhoEarned.length === 1
+                            ? "friend"
+                            : "friends"}
+                        </Text>
+                        <View style={achieveSheet.friendsList}>
+                          {achievement.friendsWhoEarned.slice(0, 6).map((f) => (
+                            <Pressable
+                              key={f.id}
+                              onPress={() => {
+                                onClose();
+                                router.push(`/friend/${f.id}` as never);
+                              }}
+                              style={({ pressed }) => [
+                                achieveSheet.friendItem,
+                                { opacity: pressed ? 0.7 : 1 },
                               ]}
+                              accessibilityLabel={`View ${f.name}'s profile`}
+                              accessibilityRole="button"
                             >
-                              {f.profilePhotoUrl ? (
-                                <Image
-                                  source={{ uri: f.profilePhotoUrl }}
-                                  style={achieveSheet.friendAvatar}
-                                />
-                              ) : (
+                              <View
+                                style={[
+                                  achieveSheet.friendAvatarRing,
+                                  { borderColor: catBg },
+                                ]}
+                              >
+                                {f.profilePhotoUrl ? (
+                                  <Image
+                                    source={{ uri: f.profilePhotoUrl }}
+                                    style={achieveSheet.friendAvatar}
+                                  />
+                                ) : (
+                                  <View
+                                    style={[
+                                      achieveSheet.friendAvatarFallback,
+                                      {
+                                        backgroundColor: isDark
+                                          ? Brand.greenDark
+                                          : Brand.green,
+                                      },
+                                    ]}
+                                  >
+                                    <Text style={achieveSheet.friendInitial}>
+                                      {f.name.charAt(0)}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text
+                                style={[
+                                  achieveSheet.friendName,
+                                  { color: colors.text },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {f.name.split(" ")[0]}
+                              </Text>
+                            </Pressable>
+                          ))}
+                          {achievement.friendsWhoEarned.length > 6 && (
+                            <View style={achieveSheet.friendItem}>
+                              <View
+                                style={[
+                                  achieveSheet.friendAvatarRing,
+                                  { borderColor: catBg },
+                                ]}
+                              >
                                 <View
                                   style={[
                                     achieveSheet.friendAvatarFallback,
                                     {
                                       backgroundColor: isDark
-                                        ? Brand.greenDark
-                                        : Brand.green,
+                                        ? "rgba(255,255,255,0.06)"
+                                        : "#f1f3ee",
                                     },
                                   ]}
                                 >
-                                  <Text style={achieveSheet.friendInitial}>
-                                    {f.name.charAt(0)}
+                                  <Text
+                                    style={[
+                                      achieveSheet.friendMoreText,
+                                      { color: colors.textSecondary },
+                                    ]}
+                                  >
+                                    +{achievement.friendsWhoEarned.length - 6}
                                   </Text>
                                 </View>
-                              )}
-                            </View>
-                            <Text
-                              style={[
-                                achieveSheet.friendName,
-                                { color: colors.text },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {f.name.split(" ")[0]}
-                            </Text>
-                          </Pressable>
-                        ))}
-                        {achievement.friendsWhoEarned.length > 6 && (
-                          <View style={achieveSheet.friendItem}>
-                            <View
-                              style={[
-                                achieveSheet.friendAvatarRing,
-                                { borderColor: catBg },
-                              ]}
-                            >
-                              <View
-                                style={[
-                                  achieveSheet.friendAvatarFallback,
-                                  {
-                                    backgroundColor: isDark
-                                      ? "rgba(255,255,255,0.06)"
-                                      : "#f1f3ee",
-                                  },
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    achieveSheet.friendMoreText,
-                                    { color: colors.textSecondary },
-                                  ]}
-                                >
-                                  +{achievement.friendsWhoEarned.length - 6}
-                                </Text>
                               </View>
+                              <Text
+                                style={[
+                                  achieveSheet.friendName,
+                                  { color: colors.textSecondary },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                more
+                              </Text>
                             </View>
-                            <Text
-                              style={[
-                                achieveSheet.friendName,
-                                { color: colors.textSecondary },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              more
-                            </Text>
-                          </View>
-                        )}
+                          )}
+                        </View>
                       </View>
                     </>
                   )}
@@ -1517,7 +1520,9 @@ function FriendCard({
           borderColor: isDark
             ? "rgba(255,255,255,0.05)"
             : "rgba(14,58,35,0.06)",
-          shadowColor: isDark ? "#000" : Brand.green,
+          shadowColor: "#000",
+          shadowOpacity: isDark ? 0.06 : 0,
+          elevation: isDark ? 2 : 0,
         },
       ]}
       accessibilityLabel={`${friend.name}, ${
@@ -1916,9 +1921,7 @@ const styles = StyleSheet.create({
     gap: 2,
     borderWidth: StyleSheet.hairlineWidth,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
     shadowRadius: 12,
-    elevation: 2,
   },
   friendAvatar: {
     width: 60,

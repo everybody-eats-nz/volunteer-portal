@@ -949,7 +949,26 @@ export default function ShiftDetailScreen() {
           ]}
           pointerEvents="box-none"
         >
-          {spotsLeft > 0 ? (
+          {isPast ? (
+            <View
+              style={[
+                s.pastPill,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="time-outline"
+                size={18}
+                color={colors.textSecondary}
+              />
+              <Text style={[s.pastPillText, { color: colors.textSecondary }]}>
+                This shift was in the past
+              </Text>
+            </View>
+          ) : spotsLeft > 0 ? (
             <GlassButton
               onPress={() => openSignupSheet(false)}
               isDark={isDark}
@@ -1865,6 +1884,21 @@ const s = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 20,
     paddingTop: 8,
+  },
+  pastPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  pastPillText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    letterSpacing: -0.1,
   },
 
   /* ── CHECKED-IN BANNER ── */
