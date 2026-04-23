@@ -38,7 +38,7 @@ export async function ShiftDetailsDialog({
     const startOfDayUTC = getStartOfDayUTC(shift.shift.start);
 
     // First try to get actual meals served
-    mealsServedData = await prisma.mealsServed.findUnique({
+    const record = await prisma.mealsServed.findUnique({
       where: {
         date_location: {
           date: startOfDayUTC,
@@ -47,8 +47,11 @@ export async function ShiftDetailsDialog({
       },
     });
 
-    // If no actual data, get the location's default
-    if (!mealsServedData) {
+    // Treat note-only records (mealsServed === null) the same as "no data"
+    // — we still need a number to display, so fall back to the location default.
+    if (record && record.mealsServed !== null) {
+      mealsServedData = record;
+    } else {
       const locationData = await prisma.location.findUnique({
         where: { name: shift.shift.location },
         select: { defaultMealsServed: true },

@@ -735,7 +735,7 @@ model MealsServed {
   id          String   @id @default(cuid())
   date        DateTime // Date for this record (stored as start of day in UTC)
   location    String // Location name (Wellington, Glen Innes, Onehunga)
-  mealsServed Int // Actual number of meals served that day
+  mealsServed Int? // Actual number of meals served that day (nullable — admins may save notes without a count)
   notes       String? // Optional notes about the day
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -320,6 +320,7 @@ export async function AdminDashboardContent({
   // Calculate meals served with fallback to location defaults
   const actualMealsMap = new Map<string, number>();
   for (const record of weekMealsRecords) {
+    if (record.mealsServed === null) continue;
     const key = `${record.date.toISOString()}-${record.location}`;
     actualMealsMap.set(key, record.mealsServed);
   }

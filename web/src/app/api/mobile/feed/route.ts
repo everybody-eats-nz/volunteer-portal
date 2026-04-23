@@ -582,9 +582,10 @@ export async function GET(request: Request) {
     ]);
 
     // Only emit recaps for (location, day) pairs with an explicit MealsServed
-    // record — otherwise we'd be making up numbers from the location default.
+    // count — notes-only rows don't give us a number to share.
     const mealsMap = new Map<string, number>();
     for (const record of mealsServedRecords) {
+      if (record.mealsServed === null) continue;
       const key = `${record.location}-${record.date.toISOString()}`;
       mealsMap.set(key, record.mealsServed);
     }

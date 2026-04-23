@@ -109,7 +109,10 @@ export async function POST(request: Request) {
         }),
         prisma.user.count({ where: { role: "VOLUNTEER" } }),
         prisma.mealsServed.aggregate({
-          where: { date: { gte: thirtyDaysAgo } },
+          where: {
+            date: { gte: thirtyDaysAgo },
+            mealsServed: { not: null },
+          },
           _sum: { mealsServed: true },
           _count: true,
         }),
