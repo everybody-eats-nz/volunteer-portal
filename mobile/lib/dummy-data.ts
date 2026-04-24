@@ -152,7 +152,7 @@ export function getShiftThemeByName(name: string): ShiftTypeTheme {
   return SHIFT_TYPE_THEMES_BY_NAME[name] ?? DEFAULT_SHIFT_TYPE_THEME;
 }
 
-/** Volunteer signup info for display on shift detail (before check-in) */
+/** Volunteer signup info for display on shift detail */
 export type ShiftSignup = {
   id: string;
   name: string;
@@ -240,46 +240,6 @@ export const SHIFT_TYPES: ShiftType[] = [
   { id: 'st-prep', name: 'Kitchen Prep', description: 'Preparing ingredients and cooking' },
   { id: 'st-service', name: 'Kitchen Service & Pack Down', description: 'Plating, serving from kitchen, and cleanup' },
 ];
-
-export type CrewMember = {
-  id: string;
-  name: string;
-  role: string;
-  grade: 'GREEN' | 'YELLOW' | 'PINK';
-  checkedIn: boolean;
-  isYou?: boolean;
-};
-
-/** Dummy crew for shift-1 (and reused for others) */
-export const SHIFT_CREW: Record<string, CrewMember[]> = {
-  'shift-1b': [
-    { id: 'u-7', name: 'Hana Patel', role: 'Kitchen Prep', grade: 'GREEN', checkedIn: true },
-    { id: 'u-8', name: 'Wiremu Davis', role: 'Kitchen Prep', grade: 'PINK', checkedIn: false },
-    { id: 'u-9', name: 'Olivia Ma', role: 'Kitchen Prep', grade: 'GREEN', checkedIn: true },
-    { id: 'u-10', name: 'Rangi Hohepa', role: 'Kitchen Prep', grade: 'YELLOW', checkedIn: false },
-  ],
-  'shift-1c': [
-    { id: 'u-4', name: 'Mia Johnson', role: 'Kitchen Service', grade: 'GREEN', checkedIn: true },
-    { id: 'u-11', name: 'Tom Rivers', role: 'Kitchen Service', grade: 'YELLOW', checkedIn: false },
-    { id: 'u-12', name: 'Kara Lee', role: 'Kitchen Service', grade: 'GREEN', checkedIn: true },
-    { id: 'u-13', name: 'Rahi Moana', role: 'Kitchen Service', grade: 'PINK', checkedIn: false },
-    { id: 'u-14', name: 'Ella Wright', role: 'Kitchen Service', grade: 'GREEN', checkedIn: true },
-  ],
-  'shift-1': [
-    { id: 'u-1', name: 'Aroha Williams', role: 'Front of House', grade: 'YELLOW', checkedIn: true, isYou: true },
-    { id: 'u-2', name: 'Sarah Chen', role: 'Front of House', grade: 'GREEN', checkedIn: true },
-    { id: 'u-3', name: 'James Tūhoe', role: 'Front of House', grade: 'PINK', checkedIn: true },
-    { id: 'u-4', name: 'Mia Johnson', role: 'Front of House', grade: 'GREEN', checkedIn: false },
-    { id: 'u-5', name: 'Liam Patel', role: 'Front of House', grade: 'GREEN', checkedIn: false },
-    { id: 'u-6', name: 'Te Rina Kahurangi', role: 'Front of House', grade: 'YELLOW', checkedIn: false },
-  ],
-  'shift-2': [
-    { id: 'u-1', name: 'Aroha Williams', role: 'Kitchen Prep', grade: 'YELLOW', checkedIn: false, isYou: true },
-    { id: 'u-7', name: 'Hana Patel', role: 'Kitchen Prep', grade: 'GREEN', checkedIn: false },
-    { id: 'u-8', name: 'Wiremu Davis', role: 'Kitchen Prep', grade: 'PINK', checkedIn: false },
-    { id: 'u-9', name: 'Olivia Ma', role: 'Kitchen Prep', grade: 'GREEN', checkedIn: false },
-  ],
-};
 
 export type Shift = {
   id: string;

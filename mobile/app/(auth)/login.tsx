@@ -32,20 +32,14 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { isPasskeySupported, signInWithPasskey } from "@/lib/passkey-client";
-import {
-  signInWithApple,
-  signInWithGoogle,
-  signInWithFacebook,
-} from "@/lib/oauth";
+import { signInWithApple, useGoogleAuth } from "@/lib/oauth";
 
 const HERO_IMAGES = [
   require("@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg"),
   require("@/assets/photos/66da3c585f61f1e0ba83fbcc_03.png"),
 ];
 
-type OAuthProvider = "apple" | "google" | "facebook";
-
-const SHOW_SOCIAL_LOGIN = false;
+type OAuthProvider = "apple" | "google";
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
@@ -68,6 +62,7 @@ export default function LoginScreen() {
   >(null);
   const [passkeyReady, setPasskeyReady] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+  const [googleRequest, , promptGoogle] = useGoogleAuth();
 
   useEffect(() => {
     isPasskeySupported().then(setPasskeyReady);
@@ -111,22 +106,42 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleOAuth(provider: OAuthProvider) {
+  async function handleGoogle() {
+    if (anyBusy) return;
+    if (!googleRequest) {
+      Alert.alert(
+        "Sign in failed",
+        "Google sign-in isn't ready yet — try again in a moment."
+      );
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setBusyProvider("google");
+    try {
+      const result = await promptGoogle();
+      if (result.type !== "success") return; // cancelled / dismissed
+      const idToken =
+        result.authentication?.idToken ??
+        (result.params as Record<string, string>)?.id_token;
+      if (!idToken) throw new Error("Google did not return an id_token.");
+      await loginWithOAuth("google", { idToken });
+    } catch (error) {
+      handleError(error, "Couldn't sign in with Google. Please try again.");
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
+  async function handleApple() {
     if (anyBusy) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setBusyProvider(provider);
+    setBusyProvider("apple");
     try {
-      let token: { idToken?: string; accessToken?: string } | null = null;
-      if (provider === "apple") token = await signInWithApple();
-      if (provider === "google") token = await signInWithGoogle();
-      if (provider === "facebook") token = await signInWithFacebook();
+      const token = await signInWithApple();
       if (!token) return; // cancelled
-      await loginWithOAuth(provider, token);
+      await loginWithOAuth("apple", token);
     } catch (error) {
-      handleError(
-        error,
-        `Couldn't sign in with ${provider}. Please try again.`
-      );
+      handleError(error, "Couldn't sign in with Apple. Please try again.");
     } finally {
       setBusyProvider(null);
     }
@@ -281,75 +296,54 @@ export default function LoginScreen() {
               </Animated.View>
             )}
 
-            {SHOW_SOCIAL_LOGIN && (
-              <>
-                {/* Divider: "or continue with" */}
-                <View style={styles.divider}>
-                  <View
-                    style={[
-                      styles.dividerLine,
-                      { backgroundColor: inputStroke },
-                    ]}
-                  />
-                  <ThemedText
-                    style={[styles.dividerText, { color: mutedText }]}
-                  >
-                    {passkeyReady ? "or continue with" : "continue with"}
-                  </ThemedText>
-                  <View
-                    style={[
-                      styles.dividerLine,
-                      { backgroundColor: inputStroke },
-                    ]}
-                  />
-                </View>
+            {/* Divider: "or continue with" */}
+            <View style={styles.divider}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+              />
+              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+                {passkeyReady ? "or continue with" : "continue with"}
+              </ThemedText>
+              <View
+                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+              />
+            </View>
 
-                {/* OAuth row — icon-only circles */}
-                <Animated.View
-                  entering={FadeInUp.duration(400).delay(400)}
-                  style={styles.oauthRow}
-                >
-                  {Platform.OS === "ios" && (
-                    <OAuthCircle
-                      provider="apple"
-                      isBusy={busyProvider === "apple"}
-                      disabled={anyBusy}
-                      onPress={() => handleOAuth("apple")}
-                      isDark={isDark}
-                    />
-                  )}
-                  <OAuthCircle
-                    provider="google"
-                    isBusy={busyProvider === "google"}
-                    disabled={anyBusy}
-                    onPress={() => handleOAuth("google")}
-                    isDark={isDark}
-                  />
-                  <OAuthCircle
-                    provider="facebook"
-                    isBusy={busyProvider === "facebook"}
-                    disabled={anyBusy}
-                    onPress={() => handleOAuth("facebook")}
-                    isDark={isDark}
-                  />
-                </Animated.View>
-              </>
-            )}
+            {/* OAuth row — icon-only circles */}
+            <Animated.View
+              entering={FadeInUp.duration(400).delay(400)}
+              style={styles.oauthRow}
+            >
+              {Platform.OS === "ios" && (
+                <OAuthCircle
+                  provider="apple"
+                  isBusy={busyProvider === "apple"}
+                  disabled={anyBusy}
+                  onPress={handleApple}
+                  isDark={isDark}
+                />
+              )}
+              <OAuthCircle
+                provider="google"
+                isBusy={busyProvider === "google"}
+                disabled={anyBusy || !googleRequest}
+                onPress={handleGoogle}
+                isDark={isDark}
+              />
+            </Animated.View>
 
-            {(passkeyReady || SHOW_SOCIAL_LOGIN) && (
-              /* Divider before email */
-              <View style={[styles.divider, { marginTop: 22 }]}>
-                <View
-                  style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-                />
-                <ThemedText style={[styles.dividerText, { color: mutedText }]}>
-                  or use email
-                </ThemedText>
-                <View
-                  style={[styles.dividerLine, { backgroundColor: inputStroke }]}
-                />
-              </View>
-            )}
+            {/* Divider before email */}
+            <View style={[styles.divider, { marginTop: 22 }]}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+              />
+              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+                or use email
+              </ThemedText>
+              <View
+                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+              />
+            </View>
 
             {/* Email + password form */}
             <Animated.View
@@ -501,67 +495,46 @@ function OAuthCircle({
   onPress: () => void;
   isDark: boolean;
 }) {
-  const { bg, border, icon, label } = providerStyle(provider, isDark);
+  const style =
+    provider === "apple"
+      ? {
+          bg: isDark ? "#f5f5f7" : "#0b0d10",
+          border: "transparent",
+          icon: isDark ? "#0b0d10" : "#ffffff",
+          label: "Apple",
+        }
+      : {
+          bg: "#ffffff",
+          border: "rgba(0,0,0,0.08)",
+          icon: "#0b0d10",
+          label: "Google",
+        };
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={`Sign in with ${label}`}
+      accessibilityLabel={`Sign in with ${style.label}`}
       accessibilityState={{ busy: isBusy, disabled }}
       style={({ pressed }) => [
         styles.oauthCircle,
         {
-          backgroundColor: bg,
-          borderColor: border,
+          backgroundColor: style.bg,
+          borderColor: style.border,
           opacity: disabled && !isBusy ? 0.6 : pressed ? 0.85 : 1,
           transform: [{ scale: pressed ? 0.96 : 1 }],
         },
       ]}
     >
       {isBusy ? (
-        <Ionicons name="ellipsis-horizontal" size={22} color={icon} />
+        <Ionicons name="ellipsis-horizontal" size={22} color={style.icon} />
       ) : provider === "apple" ? (
-        <Ionicons name="logo-apple" size={26} color={icon} />
-      ) : provider === "google" ? (
-        <GoogleGlyph />
+        <Ionicons name="logo-apple" size={26} color={style.icon} />
       ) : (
-        <Ionicons name="logo-facebook" size={26} color={icon} />
+        <Ionicons name="logo-google" size={26} color="#4285F4" />
       )}
     </Pressable>
   );
-}
-
-function providerStyle(provider: OAuthProvider, isDark: boolean) {
-  switch (provider) {
-    case "apple":
-      return {
-        bg: isDark ? "#f5f5f7" : "#0b0d10",
-        border: "transparent",
-        icon: isDark ? "#0b0d10" : "#ffffff",
-        label: "Apple",
-      };
-    case "google":
-      return {
-        bg: "#ffffff",
-        border: "rgba(0,0,0,0.08)",
-        icon: "#0b0d10",
-        label: "Google",
-      };
-    case "facebook":
-      return {
-        bg: "#1877F2",
-        border: "transparent",
-        icon: "#ffffff",
-        label: "Facebook",
-      };
-  }
-}
-
-// Google's multi-color G mark — doing it as inline SVG-equivalent shapes via simple View layering
-// is fiddly; use the brand-neutral monochrome logo from Ionicons at brand tint to avoid licensing issues.
-function GoogleGlyph() {
-  return <Ionicons name="logo-google" size={26} color="#4285F4" />;
 }
 
 const styles = StyleSheet.create({

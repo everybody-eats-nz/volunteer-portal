@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import type {
-  Shift,
-  ShiftSignup,
-  CrewMember,
-} from "@/lib/dummy-data";
+import type { Shift, ShiftSignup } from "@/lib/dummy-data";
 
 /** Raw shape returned by GET /api/mobile/shifts/[id] */
 type ShiftDetailResponse = {
@@ -27,15 +23,6 @@ type ShiftDetailResponse = {
     name: string;
     profilePhotoUrl: string | null;
     isFriend: boolean;
-  }[];
-  crew: {
-    id: string;
-    name: string;
-    profilePhotoUrl: string | null;
-    role: string;
-    grade: "GREEN" | "YELLOW" | "PINK";
-    checkedIn: boolean;
-    isYou: boolean;
   }[];
 };
 
@@ -66,7 +53,6 @@ export type PeriodFriend = {
 type UseShiftDetailReturn = {
   shift: Shift | null;
   signups: ShiftSignup[];
-  crew: CrewMember[];
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
   periodFriends: PeriodFriend[];
   isLoading: boolean;
@@ -77,7 +63,6 @@ type UseShiftDetailReturn = {
 export function useShiftDetail(shiftId: string | undefined): UseShiftDetailReturn {
   const [shift, setShift] = useState<Shift | null>(null);
   const [signups, setSignups] = useState<ShiftSignup[]>([]);
-  const [crew, setCrew] = useState<CrewMember[]>([]);
   const [periodFriends, setPeriodFriends] = useState<PeriodFriend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,15 +105,6 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
         isFriend: s.isFriend,
       }));
 
-      const mappedCrew: CrewMember[] = data.crew.map((c) => ({
-        id: c.id,
-        name: c.name,
-        role: c.role,
-        grade: c.grade,
-        checkedIn: c.checkedIn,
-        isYou: c.isYou,
-      }));
-
       const mappedPeriodFriends: PeriodFriend[] = (concurrent?.friends ?? []).map(
         (f) => ({
           id: f.id,
@@ -140,7 +116,6 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
 
       setShift(mappedShift);
       setSignups(mappedSignups);
-      setCrew(mappedCrew);
       setPeriodFriends(mappedPeriodFriends);
     } catch (err) {
       setError(
@@ -163,7 +138,6 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
   return {
     shift,
     signups,
-    crew,
     periodFriends,
     isLoading,
     error,

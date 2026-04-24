@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { getEffectiveConfirmedCount } from "./placeholder-utils";
+import {
+  getEffectiveConfirmedCount,
+  getShiftConfirmedCount,
+} from "./placeholder-utils";
 
 describe("getEffectiveConfirmedCount", () => {
   it("should add confirmed signups and placeholder count", () => {
@@ -20,5 +23,43 @@ describe("getEffectiveConfirmedCount", () => {
 
   it("should handle large values", () => {
     expect(getEffectiveConfirmedCount(100, 50)).toBe(150);
+  });
+});
+
+describe("getShiftConfirmedCount", () => {
+  it("counts CONFIRMED signups plus unregistered placeholders", () => {
+    expect(
+      getShiftConfirmedCount({
+        signups: [
+          { status: "CONFIRMED" },
+          { status: "CONFIRMED" },
+          { status: "PENDING" },
+          { status: "CANCELED" },
+          { status: "WAITLISTED" },
+        ],
+        _count: { placeholders: 3 },
+      })
+    ).toBe(5);
+  });
+
+  it("ignores non-CONFIRMED signup statuses", () => {
+    expect(
+      getShiftConfirmedCount({
+        signups: [
+          { status: "PENDING" },
+          { status: "WAITLISTED" },
+          { status: "NO_SHOW" },
+          { status: "CANCELED" },
+          { status: "REGULAR_PENDING" },
+        ],
+        _count: { placeholders: 2 },
+      })
+    ).toBe(2);
+  });
+
+  it("returns 0 when there are no signups or placeholders", () => {
+    expect(
+      getShiftConfirmedCount({ signups: [], _count: { placeholders: 0 } })
+    ).toBe(0);
   });
 });

@@ -47,9 +47,9 @@ interface Shift {
   end: string;
   location: string;
   capacity: number;
-  placeholderCount: number;
   _count: {
     signups: number;
+    placeholders: number;
   };
 }
 
@@ -289,7 +289,7 @@ export function NotificationsContent({
       const summary = summariesMap.get(dateKey)!;
       summary.count++;
       summary.totalCapacity += shift.capacity;
-      summary.totalConfirmed += shift._count.signups + (shift.placeholderCount || 0);
+      summary.totalConfirmed += shift._count.signups + (shift._count.placeholders || 0);
 
       if (!summary.locations.includes(location)) {
         summary.locations.push(location);
@@ -559,7 +559,7 @@ export function NotificationsContent({
   };
 
   const getShiftShortageInfo = (shift: Shift) => {
-    const effectiveConfirmed = shift._count.signups + (shift.placeholderCount || 0);
+    const effectiveConfirmed = shift._count.signups + (shift._count.placeholders || 0);
     const shortage = shift.capacity - effectiveConfirmed;
     const percentFilled = (effectiveConfirmed / shift.capacity) * 100;
     return { shortage, percentFilled };
@@ -693,7 +693,7 @@ export function NotificationsContent({
                           <div className="text-sm text-muted-foreground">
                             {formatInNZT(new Date(shift.start), "h:mm a")} -{" "}
                             {formatInNZT(new Date(shift.end), "h:mm a")} •{" "}
-                            {shift.location} • {shift._count.signups + (shift.placeholderCount || 0)}/
+                            {shift.location} • {shift._count.signups + (shift._count.placeholders || 0)}/
                             {shift.capacity} ({percentFilled.toFixed(0)}%)
                           </div>
                         </div>

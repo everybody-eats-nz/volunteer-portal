@@ -12,7 +12,11 @@ interface Shift {
   location: string | null;
   capacity: number;
   notes: string | null;
-  placeholderCount: number;
+  placeholders: Array<{
+    id: string;
+    name: string;
+    notes: string | null;
+  }>;
   shiftType: {
     id: string;
     name: string;

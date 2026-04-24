@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
+import { deleteUserCascade } from "@/lib/user-service";
 
 const deleteUserSchema = z.object({
   confirmEmail: z.string().email("Please enter a valid email address"),
@@ -63,64 +64,7 @@ export async function DELETE(
       );
     }
 
-    // Delete related records first, then the user
-    // Use a transaction to ensure all deletions succeed or fail together
-    await prisma.$transaction(async (tx) => {
-      // Delete signups first
-      await tx.signup.deleteMany({
-        where: { userId: userId },
-      });
-
-      // Delete admin notes about this user
-      await tx.adminNote.deleteMany({
-        where: { volunteerId: userId },
-      });
-
-      // Delete admin notes created by this user (if they're an admin)
-      await tx.adminNote.deleteMany({
-        where: { createdBy: userId },
-      });
-
-      // Delete user achievements
-      await tx.userAchievement.deleteMany({
-        where: { userId: userId },
-      });
-
-      // Delete custom label assignments
-      await tx.userCustomLabel.deleteMany({
-        where: { userId: userId },
-      });
-
-      // Delete friend requests sent by this user
-      await tx.friendRequest.deleteMany({
-        where: { fromUserId: userId },
-      });
-
-      // Delete friendships where this user is involved
-      await tx.friendship.deleteMany({
-        where: {
-          OR: [
-            { userId: userId },
-            { friendId: userId }
-          ]
-        },
-      });
-
-      // Delete notifications for this user
-      await tx.notification.deleteMany({
-        where: { userId: userId },
-      });
-
-      // Delete notification group memberships
-      await tx.notificationGroupMember.deleteMany({
-        where: { userId: userId },
-      });
-
-      // Finally delete the user
-      await tx.user.delete({
-        where: { id: userId },
-      });
-    });
+    await deleteUserCascade(userId);
 
     return NextResponse.json({
       message: "User deleted successfully",

@@ -33,7 +33,7 @@ import {
 } from "@/lib/calendar-sync";
 import { useOnboarding } from "@/lib/onboarding";
 import { type Achievement, type Friend, type Shift } from "@/lib/dummy-data";
-import { api, apiUpload } from "@/lib/api";
+import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const CATEGORY_CONFIG: Record<
@@ -96,6 +96,7 @@ export default function ProfileScreen() {
     }, [refreshFriends])
   );
   const logout = useAuth((s) => s.logout);
+  const deleteAccount = useAuth((s) => s.deleteAccount);
   const showOnboarding = useOnboarding((s) => s.show);
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
@@ -659,6 +660,66 @@ export default function ProfileScreen() {
             />
             <Text style={[styles.signOutText, { color: colors.destructive }]}>
               Sign out
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* ── Delete account ── */}
+        <View>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Alert.alert(
+                "Delete your account?",
+                "This will permanently delete your account, your shift history, achievements, friendships, and all other data. This can't be undone.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Delete account",
+                    style: "destructive",
+                    onPress: () => {
+                      Alert.alert(
+                        "Are you absolutely sure?",
+                        "Your account and all your data will be removed immediately. There's no way to recover it.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Delete forever",
+                            style: "destructive",
+                            onPress: async () => {
+                              try {
+                                await deleteAccount();
+                              } catch (error) {
+                                const message =
+                                  error instanceof ApiError
+                                    ? error.message
+                                    : "Something went wrong. Please try again or email us for help.";
+                                Alert.alert("Couldn't delete account", message);
+                              }
+                            },
+                          },
+                        ]
+                      );
+                    },
+                  },
+                ]
+              );
+            }}
+            style={({ pressed }) => [
+              styles.deleteAccountButton,
+              {
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+          >
+            <Text
+              style={[
+                styles.deleteAccountText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Delete account
             </Text>
           </Pressable>
         </View>
@@ -2242,6 +2303,20 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontSize: 14,
     letterSpacing: 0.3,
+  },
+
+  /* Delete account — intentionally quieter than Sign out so it's
+     findable but not the dominant action */
+  deleteAccountButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
+  deleteAccountText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    letterSpacing: 0.2,
+    textDecorationLine: "underline",
   },
 
   /* Footer */

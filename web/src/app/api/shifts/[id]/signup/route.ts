@@ -7,6 +7,7 @@ import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { checkForBot } from "@/lib/bot-protection";
 import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
+import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import sanitizeHtml from "sanitize-html";
 
 /**
@@ -81,15 +82,15 @@ export async function POST(
     include: {
       signups: true,
       shiftType: true,
+      _count: {
+        select: { placeholders: true },
+      },
     },
   });
   if (!shift)
     return NextResponse.json({ error: "Shift not found" }, { status: 404 });
 
-  let confirmedCount = shift.placeholderCount;
-  for (const signup of shift.signups) {
-    if (signup.status === "CONFIRMED") confirmedCount += 1;
-  }
+  const confirmedCount = getShiftConfirmedCount(shift);
 
   // Read optional waitlist flag, backup shift IDs, and note from form body
   let waitlistRequested = false;
