@@ -63,11 +63,47 @@ export default function LoginScreen() {
   >(null);
   const [passkeyReady, setPasskeyReady] = useState(false);
   const passwordRef = useRef<TextInput>(null);
-  const [googleRequest, , promptGoogle] = useGoogleAuth();
+  const [googleRequest, googleResponse, promptGoogle] = useGoogleAuth();
+  // On native, the Google provider uses the auth-code flow and exchanges the
+  // code for tokens in a post-prompt effect — so `promptAsync` resolves before
+  // the id_token is available. This ref tracks an in-flight sign-in so the
+  // effect below can finish the login once the exchanged response lands.
+  const googleInFlight = useRef(false);
 
   useEffect(() => {
     isPasskeySupported().then(setPasskeyReady);
   }, []);
+
+  useEffect(() => {
+    if (!googleResponse || !googleInFlight.current) return;
+
+    if (googleResponse.type !== "success") {
+      googleInFlight.current = false;
+      setBusyProvider(null);
+      return;
+    }
+
+    const idToken =
+      googleResponse.authentication?.idToken ??
+      (googleResponse.params as Record<string, string>)?.id_token;
+
+    // First fire has params.code only; wait for the post-exchange update.
+    if (!idToken) return;
+
+    googleInFlight.current = false;
+
+    (async () => {
+      try {
+        await loginWithOAuth("google", { idToken });
+      } catch (error) {
+        handleError(error, "Couldn't sign in with Google. Please try again.");
+        posthog?.capture("login_failed", { method: "oauth_google" });
+      } finally {
+        setBusyProvider(null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleResponse]);
 
   const anyBusy = isSubmitting || busyProvider !== null;
 
@@ -120,18 +156,15 @@ export default function LoginScreen() {
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBusyProvider("google");
+    googleInFlight.current = true;
     try {
-      const result = await promptGoogle();
-      if (result.type !== "success") return; // cancelled / dismissed
-      const idToken =
-        result.authentication?.idToken ??
-        (result.params as Record<string, string>)?.id_token;
-      if (!idToken) throw new Error("Google did not return an id_token.");
-      await loginWithOAuth("google", { idToken });
+      // Completion is handled by the useEffect watching googleResponse — on
+      // native, the id_token only arrives after a post-prompt code exchange.
+      await promptGoogle();
     } catch (error) {
+      googleInFlight.current = false;
       handleError(error, "Couldn't sign in with Google. Please try again.");
       posthog?.capture("login_failed", { method: "oauth_google" });
-    } finally {
       setBusyProvider(null);
     }
   }
