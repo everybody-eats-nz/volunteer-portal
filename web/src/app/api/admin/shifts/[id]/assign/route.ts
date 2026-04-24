@@ -60,6 +60,9 @@ export async function POST(
             status: "CONFIRMED",
           },
         },
+        _count: {
+          select: { placeholders: true },
+        },
       },
     });
 
@@ -114,7 +117,7 @@ export async function POST(
     }
 
     // Check capacity (warn if over capacity for CONFIRMED assignments)
-    const confirmedCount = shift.signups.length + shift.placeholderCount;
+    const confirmedCount = shift.signups.length + shift._count.placeholders;
     const isOverCapacity = confirmedCount >= shift.capacity;
 
     // Check if volunteer already has a confirmed or pending signup for the same date and period (AM/PM)

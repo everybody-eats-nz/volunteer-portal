@@ -10,7 +10,6 @@ import { requireMobileUser } from "@/lib/mobile-auth";
  * - signedUp count (CONFIRMED signups)
  * - The current user's signup status for this shift (if any)
  * - List of signups with friend status
- * - Crew members (confirmed signups) with role, grade, and check-in status
  */
 export async function GET(
   request: Request,
@@ -43,7 +42,6 @@ export async function GET(
               firstName: true,
               lastName: true,
               profilePhotoUrl: true,
-              volunteerGrade: true,
             },
           },
         },
@@ -82,10 +80,9 @@ export async function GET(
   const userStatus = userSignup?.status ?? null;
 
   // Count confirmed signups
-  const confirmedSignups = shift.signups.filter(
+  const signedUpCount = shift.signups.filter(
     (s) => s.status === "CONFIRMED"
-  );
-  const signedUpCount = confirmedSignups.length;
+  ).length;
 
   // Build signups list (all active signups) for the "Who's on this mahi" section
   const signups = shift.signups.map((s) => {
@@ -99,24 +96,6 @@ export async function GET(
       name: s.user.id === userId ? "You" : displayName,
       profilePhotoUrl: s.user.profilePhotoUrl,
       isFriend: friendIds.has(s.user.id),
-    };
-  });
-
-  // Build crew list (confirmed signups only) for the post-check-in section
-  const crew = confirmedSignups.map((s) => {
-    const displayName =
-      s.user.name ??
-      [s.user.firstName, s.user.lastName].filter(Boolean).join(" ") ??
-      "Volunteer";
-
-    return {
-      id: s.user.id,
-      name: displayName,
-      profilePhotoUrl: s.user.profilePhotoUrl,
-      role: shift.shiftType.name,
-      grade: s.user.volunteerGrade as "GREEN" | "YELLOW" | "PINK",
-      checkedIn: false, // TODO: integrate with a real check-in system
-      isYou: s.user.id === userId,
     };
   });
 
@@ -135,6 +114,5 @@ export async function GET(
     status: userStatus,
     notes: shift.notes,
     signups,
-    crew,
   });
 }

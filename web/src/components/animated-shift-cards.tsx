@@ -72,6 +72,8 @@ import {
   X,
   UserPlus,
   ArrowRightLeft,
+  UserRound,
+  Pencil,
 } from "lucide-react";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -81,7 +83,8 @@ import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { AdminNotesDialog } from "@/components/admin-notes-dialog";
 import { calculateAge } from "@/lib/utils";
 import { AssignVolunteerDialog } from "@/components/assign-volunteer-dialog";
-import { PlaceholderCountControl } from "@/components/placeholder-count-control";
+import { UnregisteredVolunteerDialog } from "@/components/unregistered-volunteer-dialog";
+import { DeleteUnregisteredVolunteerButton } from "@/components/delete-unregistered-volunteer-button";
 import { getEffectiveConfirmedCount } from "@/lib/placeholder-utils";
 
 
@@ -100,7 +103,11 @@ interface Shift {
   location: string | null;
   capacity: number;
   notes: string | null;
-  placeholderCount: number;
+  placeholders: Array<{
+    id: string;
+    name: string;
+    notes: string | null;
+  }>;
   shiftType: {
     id: string;
     name: string;
@@ -498,6 +505,87 @@ function VolunteerStatusGroups({
   );
 }
 
+// Unregistered volunteers — admin-entered names (with optional notes) for
+// people who showed up without an account. Rendered as a status group; each
+// row supports edit/delete.
+function UnregisteredVolunteerGroup({
+  shiftId,
+  placeholders,
+}: {
+  shiftId: string;
+  placeholders: Array<{ id: string; name: string; notes: string | null }>;
+}) {
+  return (
+    <div className="space-y-2" data-testid={`unregistered-volunteers-${shiftId}`}>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-100">
+        <UserRound className="h-4 w-4" />
+        <span className="text-sm font-semibold">Unregistered</span>
+        <span className="text-xs opacity-75">({placeholders.length})</span>
+      </div>
+      <div className="space-y-2">
+        {placeholders.map((placeholder) => {
+          const initial =
+            placeholder.name.trim().charAt(0).toUpperCase() || "?";
+          return (
+            <div
+              key={placeholder.id}
+              className="flex items-start gap-3 p-3 bg-white dark:bg-slate-800/50 border border-dashed border-amber-300 dark:border-amber-700 rounded-xl min-w-0 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-colors"
+              data-testid={`unregistered-volunteer-${placeholder.id}`}
+            >
+              <div
+                aria-hidden="true"
+                className="flex-shrink-0 h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-100 border-2 border-amber-200 dark:border-amber-800 flex items-center justify-center font-bold text-base"
+              >
+                {initial}
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0"
+                    data-testid={`unregistered-name-${placeholder.id}`}
+                  >
+                    {placeholder.name}
+                  </span>
+                  <div className="flex-shrink-0 flex items-center gap-1">
+                    <UnregisteredVolunteerDialog
+                      shiftId={shiftId}
+                      mode="edit"
+                      placeholder={placeholder}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-slate-500 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                        aria-label={`Edit unregistered volunteer ${placeholder.name}`}
+                        data-testid={`unregistered-edit-${placeholder.id}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </UnregisteredVolunteerDialog>
+                    <DeleteUnregisteredVolunteerButton
+                      shiftId={shiftId}
+                      placeholderId={placeholder.id}
+                      name={placeholder.name}
+                    />
+                  </div>
+                </div>
+                {placeholder.notes && (
+                  <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-amber-50/60 dark:bg-amber-900/10 border-l-2 border-amber-400 dark:border-amber-600 rounded">
+                    <span className="font-semibold text-amber-700 dark:text-amber-300">
+                      Notes:{" "}
+                    </span>
+                    {placeholder.notes}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftCardsProps) {
   // Determine column count based on screen size (we'll use a simple approach)
   const [columnCount, setColumnCount] = useState(1);
@@ -536,7 +624,8 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
             const confirmedSignups = shift.signups.filter(
               (s) => s.status === "CONFIRMED"
             ).length;
-            const confirmed = getEffectiveConfirmedCount(confirmedSignups, shift.placeholderCount);
+            const unregisteredCount = shift.placeholders.length;
+            const confirmed = getEffectiveConfirmedCount(confirmedSignups, unregisteredCount);
             const isCompleted = isShiftCompleted(shift.end);
             const staffingStatus = isCompleted
               ? { color: "bg-slate-400 dark:bg-slate-600", text: "Completed", icon: CheckCircle2 }
@@ -583,8 +672,8 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             data-testid={`shift-capacity-${shift.id}`}
                             className={`${staffingStatus.color} text-white text-base px-3 py-1.5 font-bold shadow-sm`}
                           >
-                            {shift.placeholderCount > 0
-                              ? `${confirmedSignups}+${shift.placeholderCount}/${shift.capacity}`
+                            {unregisteredCount > 0
+                              ? `${confirmedSignups}+${unregisteredCount}/${shift.capacity}`
                               : `${confirmed}/${shift.capacity}`}
                           </Badge>
                           {!isCompleted && (
@@ -600,9 +689,9 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                     {/* Volunteers List - Grouped by Status */}
                     <div
                       data-testid={`volunteer-list-${shift.id}`}
-                      className="px-4 py-3"
+                      className="px-4 py-3 space-y-4"
                     >
-                      {shift.signups.length === 0 ? (
+                      {shift.signups.length === 0 && shift.placeholders.length === 0 ? (
                         <div
                           data-testid={`no-volunteers-${shift.id}`}
                           className="py-8 text-center bg-slate-50 dark:bg-slate-800/70 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg"
@@ -612,48 +701,66 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             No volunteers yet
                           </p>
                         </div>
-                      ) : (() => {
-                        // Group signups by status
-                        const groupedSignups = shift.signups.reduce((acc, signup) => {
-                          const status = signup.status;
-                          if (!acc[status]) {
-                            acc[status] = [];
-                          }
-                          acc[status].push(signup);
-                          return acc;
-                        }, {} as Record<string, typeof shift.signups>);
+                      ) : (
+                        <>
+                          {shift.signups.length > 0 && (() => {
+                            // Group signups by status
+                            const groupedSignups = shift.signups.reduce((acc, signup) => {
+                              const status = signup.status;
+                              if (!acc[status]) {
+                                acc[status] = [];
+                              }
+                              acc[status].push(signup);
+                              return acc;
+                            }, {} as Record<string, typeof shift.signups>);
 
-                        // Define status order and display info
-                        const statusOrder = [
-                          { status: "PENDING", label: "Pending", icon: Clock, color: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100" },
-                          { status: "REGULAR_PENDING", label: "Pending", icon: Clock, color: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100" },
-                          { status: "CONFIRMED", label: isCompleted ? "Attended" : "Confirmed", icon: CheckCircle2, color: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100" },
-                          { status: "WAITLISTED", label: "Waitlisted", icon: AlertCircle, color: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-100" },
-                          { status: "NO_SHOW", label: "No Show", icon: UserX, color: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100" },
-                          { status: "CANCELED", label: "Canceled", icon: X, color: "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" },
-                        ];
+                            // Define status order and display info
+                            const statusOrder = [
+                              { status: "PENDING", label: "Pending", icon: Clock, color: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100" },
+                              { status: "REGULAR_PENDING", label: "Pending", icon: Clock, color: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-900 dark:text-orange-100" },
+                              { status: "CONFIRMED", label: isCompleted ? "Attended" : "Confirmed", icon: CheckCircle2, color: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100" },
+                              { status: "WAITLISTED", label: "Waitlisted", icon: AlertCircle, color: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-900 dark:text-purple-100" },
+                              { status: "NO_SHOW", label: "No Show", icon: UserX, color: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100" },
+                              { status: "CANCELED", label: "Canceled", icon: X, color: "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" },
+                            ];
 
-                        return (
-                          <VolunteerStatusGroups
-                            key={shift.id}
-                            statusOrder={statusOrder}
-                            groupedSignups={groupedSignups}
-                            shift={shift}
-                            shiftIdToTypeName={shiftIdToTypeName}
-                            triggerLayoutUpdate={triggerLayoutUpdate}
-                          />
-                        );
-                      })()}
+                            return (
+                              <VolunteerStatusGroups
+                                key={shift.id}
+                                statusOrder={statusOrder}
+                                groupedSignups={groupedSignups}
+                                shift={shift}
+                                shiftIdToTypeName={shiftIdToTypeName}
+                                triggerLayoutUpdate={triggerLayoutUpdate}
+                              />
+                            );
+                          })()}
+
+                          {shift.placeholders.length > 0 && (
+                            <UnregisteredVolunteerGroup
+                              shiftId={shift.id}
+                              placeholders={shift.placeholders}
+                            />
+                          )}
+                        </>
+                      )}
                     </div>
 
                     {/* Action Buttons Footer */}
                     <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-700">
                       <div className="flex flex-col gap-2">
-                        {/* Placeholder (Walk-in) Count Control */}
-                        <PlaceholderCountControl
-                          shiftId={shift.id}
-                          initialCount={shift.placeholderCount}
-                        />
+                        {/* Unregistered volunteer quick-add */}
+                        <UnregisteredVolunteerDialog shiftId={shift.id} mode="create">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-800/50 border-amber-300 dark:border-amber-700"
+                            data-testid={`add-unregistered-button-${shift.id}`}
+                          >
+                            <UserRound className="h-4 w-4 mr-2" />
+                            Add unregistered volunteer
+                          </Button>
+                        </UnregisteredVolunteerDialog>
                         {/* Assign Volunteer Button - Always visible for past/present/future shifts */}
                         <AssignVolunteerDialog
                           shift={{

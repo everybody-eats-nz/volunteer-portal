@@ -69,6 +69,7 @@ export default async function ShiftDetailPage({
               status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
             },
           },
+          placeholders: true,
         },
       },
     },
@@ -145,7 +146,7 @@ export default async function ShiftDetailPage({
 
   const isPastShift = new Date(shift.end) < new Date();
 
-  const confirmedCount = shift._count.signups + shift.placeholderCount;
+  const confirmedCount = shift._count.signups + shift._count.placeholders;
   const isWaitlist = confirmedCount >= shift.capacity;
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
   const theme = getShiftTheme(shift.shiftType.name);

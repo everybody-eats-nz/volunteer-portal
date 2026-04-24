@@ -2,7 +2,7 @@
   "expo": {
     "name": "Everybody Eats",
     "slug": "everybody-eats",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "everybody-eats",
@@ -11,10 +11,19 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.malinmw.everybody-eats",
       "buildNumber": "2",
+      "usesAppleSignIn": true,
       "associatedDomains": ["webcredentials:volunteers.everybodyeats.nz"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "com.googleusercontent.apps",
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.165743067386-g5qe3p9bge7qtcfb1g8aqbom78lnoeqd"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -27,9 +36,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
-      ]
+      "permissions": ["android.permission.READ_MEDIA_VISUAL_USER_SELECTED"]
     },
     "web": {
       "output": "static",

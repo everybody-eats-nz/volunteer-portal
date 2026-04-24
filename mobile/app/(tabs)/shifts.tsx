@@ -177,7 +177,6 @@ export default function ShiftsScreen() {
     loadMorePast,
     isLoadingMore,
     userDefaultLocation,
-    periodFriends,
     shiftFriends,
   } = useShifts();
 
@@ -262,14 +261,19 @@ export default function ShiftsScreen() {
     return map;
   }, [filteredAvailable, myShifts, past]);
 
+  /* Calendar friend dots — only count shifts visible under the active location
+     filter, otherwise a Wellington friend-signup would dot an Auckland-filtered
+     calendar. myShifts/past stay unfiltered (user always sees their own). */
   const friendDates = useMemo(() => {
     const set = new Set<string>();
-    for (const periodKey of Object.keys(periodFriends)) {
-      if (periodFriends[periodKey].length === 0) continue;
-      set.add(periodKey.slice(0, 10));
+    const visible = [...myShifts, ...past, ...filteredAvailable];
+    for (const shift of visible) {
+      const friends = shiftFriends[shift.id];
+      if (!friends || friends.length === 0) continue;
+      set.add(formatDateKey(new Date(shift.start)));
     }
     return set;
-  }, [periodFriends]);
+  }, [myShifts, past, filteredAvailable, shiftFriends]);
 
   const signedUpDates = useMemo(() => {
     const set = new Set<string>();
@@ -510,7 +514,18 @@ export default function ShiftsScreen() {
           ) : (
             <View style={styles.shiftList}>
               {selectedDayPeriods.map((period) => {
-                const friends = periodFriends[period.periodKey] ?? [];
+                // Union friends across the shifts actually rendered in this
+                // period — keeps the header in sync with the location filter
+                // (the server-returned periodFriends map is not location-scoped).
+                const seen = new Set<string>();
+                const friends: PeriodFriend[] = [];
+                for (const shift of period.shifts) {
+                  for (const friend of shiftFriends[shift.id] ?? []) {
+                    if (seen.has(friend.id)) continue;
+                    seen.add(friend.id);
+                    friends.push(friend);
+                  }
+                }
                 return (
                   <View key={period.periodKey} style={styles.periodGroup}>
                     <PeriodHeader
