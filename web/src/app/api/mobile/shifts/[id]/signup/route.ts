@@ -4,6 +4,7 @@ import { requireMobileUser } from "@/lib/mobile-auth";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getNotificationService } from "@/lib/notification-service";
+import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 
 /**
  * POST /api/mobile/shifts/[id]/signup
@@ -108,10 +109,7 @@ export async function POST(
   }
 
   // Count confirmed signups + unregistered volunteers
-  let confirmedCount = shift._count.placeholders;
-  for (const signup of shift.signups) {
-    if (signup.status === "CONFIRMED") confirmedCount += 1;
-  }
+  const confirmedCount = getShiftConfirmedCount(shift);
 
   // Check for existing signup on this shift
   const existing = await prisma.signup.findUnique({
