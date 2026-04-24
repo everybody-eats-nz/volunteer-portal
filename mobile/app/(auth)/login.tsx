@@ -33,6 +33,7 @@ import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { isPasskeySupported, signInWithPasskey } from "@/lib/passkey-client";
 import { signInWithApple, useGoogleAuth } from "@/lib/oauth";
+import { posthog } from "@/lib/posthog";
 
 const HERO_IMAGES = [
   require("@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg"),
@@ -83,6 +84,7 @@ export default function LoginScreen() {
       await loginWithEmail(email.trim(), password);
     } catch (error) {
       handleError(error, "Please check your email and password.");
+      posthog?.capture("login_failed", { method: "email" });
     } finally {
       setIsSubmitting(false);
     }
@@ -101,6 +103,7 @@ export default function LoginScreen() {
         error,
         "Couldn't sign in with passkey. Please try another method."
       );
+      posthog?.capture("login_failed", { method: "passkey" });
     } finally {
       setBusyProvider(null);
     }
@@ -127,6 +130,7 @@ export default function LoginScreen() {
       await loginWithOAuth("google", { idToken });
     } catch (error) {
       handleError(error, "Couldn't sign in with Google. Please try again.");
+      posthog?.capture("login_failed", { method: "oauth_google" });
     } finally {
       setBusyProvider(null);
     }
@@ -142,6 +146,7 @@ export default function LoginScreen() {
       await loginWithOAuth("apple", token);
     } catch (error) {
       handleError(error, "Couldn't sign in with Apple. Please try again.");
+      posthog?.capture("login_failed", { method: "oauth_apple" });
     } finally {
       setBusyProvider(null);
     }

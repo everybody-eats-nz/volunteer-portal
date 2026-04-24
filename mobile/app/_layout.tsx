@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { PostHogProvider } from 'posthog-react-native';
 import React, { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
@@ -25,6 +26,7 @@ import { Brand } from '@/constants/theme';
 import { AuthGate } from '@/components/auth-gate';
 import { OnboardingFlow } from '@/components/onboarding-flow';
 import { navigateToNotificationTarget } from '@/lib/notification-routing';
+import { posthog } from '@/lib/posthog';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,6 +53,10 @@ export default function RootLayout() {
   useEffect(() => {
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (response) {
+        posthog?.capture('notification_tapped', {
+          action_url: (response.notification.request.content.data?.actionUrl as string) ?? null,
+          cold_start: true,
+        });
         navigateToNotificationTarget(
           response.notification.request.content.data?.actionUrl,
         );
@@ -59,6 +65,10 @@ export default function RootLayout() {
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
+        posthog?.capture('notification_tapped', {
+          action_url: (response.notification.request.content.data?.actionUrl as string) ?? null,
+          cold_start: false,
+        });
         navigateToNotificationTarget(
           response.notification.request.content.data?.actionUrl,
         );
@@ -110,7 +120,7 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
+  const appTree = (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
       <AuthGate>
         <OnboardingFlow />
@@ -166,4 +176,10 @@ export default function RootLayout() {
       <StatusBar style="auto" />
     </ThemeProvider>
   );
+
+  if (!posthog) {
+    return appTree;
+  }
+
+  return <PostHogProvider client={posthog}>{appTree}</PostHogProvider>;
 }
