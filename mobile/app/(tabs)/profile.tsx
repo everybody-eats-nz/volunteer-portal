@@ -35,6 +35,7 @@ import { useOnboarding } from "@/lib/onboarding";
 import { type Achievement, type Friend, type Shift } from "@/lib/dummy-data";
 import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { posthog } from "@/lib/posthog";
 
 const CATEGORY_CONFIG: Record<
   string,
@@ -130,6 +131,7 @@ export default function ProfileScreen() {
         return;
       }
       setCalSyncEnabled(next);
+      posthog?.capture("calendar_sync_toggled", { enabled: next });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } finally {
       setCalSyncBusy(false);
