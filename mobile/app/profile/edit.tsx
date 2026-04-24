@@ -27,6 +27,7 @@ import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
 import { api, apiUpload } from "@/lib/api";
+import { posthog } from "@/lib/posthog";
 import {
   syncPushTokenWithServer,
   unregisterPushTokenFromServer,
@@ -402,6 +403,11 @@ export default function EditProfileScreen() {
         },
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      posthog?.capture("profile_updated", {
+        notification_preference: form.notificationPreference,
+        has_emergency_contact: !!form.emergencyContactName.trim(),
+        newsletter_subscribed: form.emailNewsletterSubscription,
+      });
       await refresh();
       router.back();
     } catch {

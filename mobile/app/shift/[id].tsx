@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -33,6 +33,7 @@ import {
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { GlassButton } from "@/components/glass-button";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
+import { posthog } from "@/lib/posthog";
 
 /* ── Duration Helper ── */
 
@@ -66,10 +67,28 @@ export default function ShiftDetailScreen() {
   const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
 
+  useEffect(() => {
+    if (!shift || isLoading) return;
+    posthog?.capture("shift_viewed", {
+      shift_id: shift.id,
+      shift_type: shift.shiftType.name,
+      location: shift.location,
+      spots_left: shift.capacity - shift.signedUp,
+      is_full: shift.signedUp >= shift.capacity,
+      is_my_shift: shift.status != null,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shift?.id]);
+
   const openSignupSheet = useCallback((waitlist = false) => {
     setSignupSheetWaitlist(waitlist);
     setSignupSheetVisible(true);
-  }, []);
+    posthog?.capture("shift_signup_started", {
+      shift_id: shift?.id ?? null,
+      shift_type: shift?.shiftType.name ?? null,
+      is_waitlist: waitlist,
+    });
+  }, [shift]);
 
   const handleSignupSuccess = useCallback(
     async (result: { id: string; status: string; autoApproved: boolean }) => {
@@ -88,6 +107,19 @@ export default function ShiftDetailScreen() {
           "Signed up! ✨",
           "Your signup is pending approval. You'll be notified once it's confirmed."
         );
+      }
+      if (result.status === "WAITLISTED") {
+        posthog?.capture("shift_waitlist_joined", {
+          shift_id: shift?.id ?? null,
+          shift_type: shift?.shiftType.name ?? null,
+        });
+      } else {
+        posthog?.capture("shift_signup_completed", {
+          shift_id: shift?.id ?? null,
+          shift_type: shift?.shiftType.name ?? null,
+          status: result.status,
+          auto_approved: result.autoApproved,
+        });
       }
       if (
         shift &&
@@ -126,6 +158,10 @@ export default function ShiftDetailScreen() {
                 // Best-effort: the next reconcile will clean up anyway.
               });
               Alert.alert("Canceled", "Your signup has been canceled.");
+              posthog?.capture("shift_signup_cancelled", {
+                shift_id: shift.id,
+                shift_type: shift.shiftType.name,
+              });
               await refresh();
             } catch (err) {
               const message =
@@ -241,6 +277,11 @@ export default function ShiftDetailScreen() {
             ? `${spotsLeft} spots left — sign up and join the whānau!`
             : "This shift is full, but check back for cancellations."
         }\n\nhttps://volunteers.everybodyeats.nz/shifts/${shift.id}`,
+      });
+      posthog?.capture("shift_shared", {
+        shift_id: shift.id,
+        shift_type: shift.shiftType.name,
+        location: shift.location,
       });
     } catch {
       // User cancelled share
