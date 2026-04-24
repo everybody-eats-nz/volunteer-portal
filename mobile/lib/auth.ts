@@ -34,6 +34,7 @@ type AuthState = {
   ) => Promise<void>;
   loginWithPasskey: (response: PasskeyAuthResponse) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   restoreSession: () => Promise<void>;
 };
 
@@ -86,6 +87,16 @@ export const useAuth = create<AuthState>((set) => ({
       await unregisterPushTokenFromServer(pushToken);
       await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
     }
+    await SecureStore.deleteItemAsync('auth_token');
+    set({ user: null, isAuthenticated: false });
+  },
+
+  deleteAccount: async () => {
+    // Server-side cascade delete. If this throws, local session stays intact
+    // so the user can retry (or contact support) rather than being silently
+    // logged out with their data still on the server.
+    await api('/api/auth/mobile/me', { method: 'DELETE' });
+    await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
     await SecureStore.deleteItemAsync('auth_token');
     set({ user: null, isAuthenticated: false });
   },
