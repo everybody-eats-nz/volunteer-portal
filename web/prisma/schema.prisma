@@ -254,14 +254,30 @@ model Shift {
   location      String?
   capacity      Int
   notes            String?
-  placeholderCount Int            @default(0)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   shiftType        ShiftType      @relation(fields: [shiftTypeId], references: [id])
   signups          Signup[]
+  placeholders     ShiftPlaceholder[]
 
   // Analytics queries filter and sort on shift end date
   @@index([end])
+}
+
+// Walk-in / unregistered volunteers: people who show up without a volunteer
+// account. They count toward capacity and appear in the shift volunteer list
+// with a name (and optional notes).
+model ShiftPlaceholder {
+  id        String   @id @default(cuid())
+  shiftId   String
+  name      String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shift     Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([shiftId])
 }
 
 model Signup {

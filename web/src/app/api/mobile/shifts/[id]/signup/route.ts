@@ -78,6 +78,9 @@ export async function POST(
     include: {
       signups: true,
       shiftType: true,
+      _count: {
+        select: { placeholders: true },
+      },
     },
   });
 
@@ -104,8 +107,8 @@ export async function POST(
     // No body or invalid JSON — defaults are fine
   }
 
-  // Count confirmed signups + placeholders
-  let confirmedCount = shift.placeholderCount;
+  // Count confirmed signups + unregistered volunteers
+  let confirmedCount = shift._count.placeholders;
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
   }
