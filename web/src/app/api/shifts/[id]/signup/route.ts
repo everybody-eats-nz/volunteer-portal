@@ -9,6 +9,11 @@ import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/util
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import sanitizeHtml from "sanitize-html";
+import {
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
 
 /**
  * HTML sanitizer for serverless environment.
@@ -236,6 +241,18 @@ export async function POST(
 
     // Achievements will be calculated when user visits dashboard/achievements page
 
+    captureFunnelEvent({
+      event: FunnelEvent.SHIFT_SIGNUP_COMPLETED,
+      userId: user.id,
+      phid: await getPhidFromCookies(),
+      properties: {
+        shift_id: shift.id,
+        shift_location: shift.location ?? null,
+        signup_status: "WAITLISTED",
+        auto_approved: false,
+      },
+    });
+
     return NextResponse.json(signup);
   }
 
@@ -259,6 +276,18 @@ export async function POST(
     );
 
     // Achievements will be calculated when user visits dashboard/achievements page
+
+    captureFunnelEvent({
+      event: FunnelEvent.SHIFT_SIGNUP_COMPLETED,
+      userId: user.id,
+      phid: await getPhidFromCookies(),
+      properties: {
+        shift_id: shift.id,
+        shift_location: shift.location ?? null,
+        signup_status: autoApprovalResult.status,
+        auto_approved: autoApprovalResult.autoApproved,
+      },
+    });
 
     // Return signup with updated status and auto-approval flag
     // Use the signup object we already have and update its status based on auto-approval result
