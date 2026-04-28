@@ -8,6 +8,12 @@ import { getEmailService } from "@/lib/email-service";
 import { validatePassword } from "@/lib/utils/password-validation";
 import { checkForBot } from "@/lib/bot-protection";
 import { calculateAge, getBaseUrl } from "@/lib/utils";
+import {
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
+import { phAlias } from "@/lib/posthog-server";
 
 /**
  * Validation schema for user registration
@@ -322,6 +328,22 @@ export async function POST(req: Request) {
         // Don't fail registration if email sending fails, just log the error
       }
     }
+
+    // Funnel attribution: stitch the anonymous distinct_id (eea_phid cookie)
+    // onto the new user so their experiment exposure → conversion path is
+    // captured under one identity in PostHog.
+    const phid = await getPhidFromCookies();
+    if (phid && user.id) {
+      phAlias({ distinctId: user.id, alias: phid });
+    }
+    captureFunnelEvent({
+      event: FunnelEvent.REGISTER_COMPLETED,
+      userId: user.id ?? null,
+      phid,
+      properties: {
+        is_migration: isMigration,
+      },
+    });
 
     return NextResponse.json(
       {
