@@ -124,7 +124,7 @@ export async function getHomeStats(): Promise<HomeStats> {
         shift: { start: { gte: now } },
       },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 30,
       include: {
         user: { select: { firstName: true, name: true } },
         shift: {

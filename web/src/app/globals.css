@@ -44,8 +44,9 @@
   /* Everybody Eats brand-inspired palette */
   --ee-bg: #fffdf7; /* warm off-white */
   --ee-fg: #101418; /* near-black */
-  --ee-primary: #0e3a23; /* brand green */
+  --ee-primary: #0e3a23; /* brand green — used for filled/gradient surfaces */
   --ee-primary-700: #256628; /* darker hover */
+  --ee-primary-text: #0e3a23; /* brand green — used for text/icons; brightens in dark mode */
   --ee-primary-light: #e8f5e8; /* light green tint */
   --ee-accent: #f8fb69; /* brand accent */
   --ee-accent-subtle: #fcfd94; /* lighter accent */
@@ -94,6 +95,7 @@
   --ee-fg: #e5f0e8 !important;
   --ee-primary: #1d5337;
   --ee-primary-700: #3d8b40;
+  --ee-primary-text: #86d99b; /* lighter green so accents stay readable on dark bg */
   --ee-primary-light: #1a2f1a;
   --ee-accent: #3a3b2a; /* Much darker olive for dark mode */
   --ee-accent-subtle: #2a2b20; /* Very subtle for dark mode backgrounds */

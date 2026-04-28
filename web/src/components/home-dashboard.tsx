@@ -45,7 +45,7 @@ export async function HomeDashboard() {
         <div className="grid gap-10 md:grid-cols-12 md:items-stretch">
           {/* Left: headline + CTAs */}
           <HeroContent className="md:col-span-7">
-            <div className="mono-label mb-5 inline-flex items-center gap-2 text-[var(--ee-primary)]">
+            <div className="mono-label mb-5 inline-flex items-center gap-2 text-[var(--ee-primary-text)]">
               <span>01 / Volunteer Portal</span>
               <span aria-hidden>—</span>
               <span>Everybody Eats Aotearoa</span>
@@ -171,7 +171,7 @@ export async function HomeDashboard() {
                         <span
                           className={`h-2 w-2 rounded-full ${
                             loc.openShifts > 0
-                              ? "bg-[var(--ee-primary)]"
+                              ? "bg-[var(--ee-primary-text)]"
                               : "bg-current/20"
                           }`}
                           aria-hidden
@@ -212,7 +212,7 @@ export async function HomeDashboard() {
       <section className="section-content py-16">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <div className="mono-label text-[var(--ee-primary)]">
+            <div className="mono-label text-[var(--ee-primary-text)]">
               02 / Right now
             </div>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
@@ -221,13 +221,13 @@ export async function HomeDashboard() {
           </div>
           <Link
             href="/shifts"
-            className="mono-label hidden items-center gap-1 text-[var(--ee-primary)] hover:underline md:inline-flex"
+            className="mono-label hidden items-center gap-1 text-[var(--ee-primary-text)] hover:underline md:inline-flex"
           >
             See all shifts →
           </Link>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-12">
+        <div className="grid gap-6 md:grid-cols-12 md:items-start">
           <div className="dash-panel md:col-span-7">
             <div className="flex items-center justify-between border-b border-current/15 px-5 py-3">
               <div className="mono-label flex items-center gap-2">
@@ -254,15 +254,15 @@ export async function HomeDashboard() {
             <div className="border-t border-current/15 px-5 py-3 text-center">
               <Link
                 href="/shifts"
-                className="mono-label text-[var(--ee-primary)] hover:underline"
+                className="mono-label text-[var(--ee-primary-text)] hover:underline"
               >
                 Browse all shifts →
               </Link>
             </div>
           </div>
 
-          <div className="dash-panel md:col-span-5">
-            <div className="flex items-center justify-between border-b border-current/15 px-5 py-3">
+          <div className="dash-panel flex flex-col md:col-span-5">
+            <div className="flex shrink-0 items-center justify-between border-b border-current/15 px-5 py-3">
               <div className="mono-label flex items-center gap-2">
                 <span className="live-dot" aria-hidden />
                 Recent signups
@@ -272,17 +272,19 @@ export async function HomeDashboard() {
               </div>
             </div>
             {stats.recentActivity.length === 0 ? (
-              <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+              <div className="flex flex-1 items-center justify-center px-5 py-12 text-center text-sm text-muted-foreground">
                 Be the first to sign up this week.
               </div>
             ) : (
-              <StaggerGroup>
-                <ul className="divide-y divide-current/10">
-                  {stats.recentActivity.map((item) => (
-                    <ActivityRow key={item.id} item={item} />
-                  ))}
-                </ul>
-              </StaggerGroup>
+              <div className="scrollbar-hide max-h-[640px] overflow-y-auto">
+                <StaggerGroup>
+                  <ul className="divide-y divide-current/10">
+                    {stats.recentActivity.map((item) => (
+                      <ActivityRow key={item.id} item={item} />
+                    ))}
+                  </ul>
+                </StaggerGroup>
+              </div>
             )}
           </div>
         </div>
@@ -304,7 +306,7 @@ export async function HomeDashboard() {
                   className="inline-flex items-center gap-3"
                 >
                   <span>{label}</span>
-                  <span aria-hidden className="text-[var(--ee-primary)]">
+                  <span aria-hidden className="text-[var(--ee-primary-text)]">
                     ✦
                   </span>
                 </span>
@@ -317,7 +319,7 @@ export async function HomeDashboard() {
       {/* ───────── HOW IT WORKS / FEATURE CARDS (preserved testids) ───────── */}
       <section className="section-content py-16" data-testid="features-section">
         <div className="mb-10">
-          <div className="mono-label text-[var(--ee-primary)]">
+          <div className="mono-label text-[var(--ee-primary-text)]">
             03 / How volunteering works
           </div>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
@@ -332,7 +334,7 @@ export async function HomeDashboard() {
             delay={0.05}
             data-testid="feature-community-impact"
           >
-            <div className="mono-label flex items-center justify-between text-[var(--ee-primary)]">
+            <div className="mono-label flex items-center justify-between text-[var(--ee-primary-text)]">
               <span>01 — Tāngata</span>
               <span className="opacity-50">People</span>
             </div>
@@ -358,7 +360,7 @@ export async function HomeDashboard() {
             delay={0.12}
             data-testid="feature-flexible-scheduling"
           >
-            <div className="mono-label flex items-center justify-between text-[var(--ee-primary)]">
+            <div className="mono-label flex items-center justify-between text-[var(--ee-primary-text)]">
               <span>02 — Wā</span>
               <span className="opacity-50">Time</span>
             </div>
@@ -384,7 +386,7 @@ export async function HomeDashboard() {
             delay={0.19}
             data-testid="feature-meaningful-work"
           >
-            <div className="mono-label flex items-center justify-between text-[var(--ee-primary)]">
+            <div className="mono-label flex items-center justify-between text-[var(--ee-primary-text)]">
               <span>03 — Kai</span>
               <span className="opacity-50">Food</span>
             </div>
@@ -443,7 +445,7 @@ export async function HomeDashboard() {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-[var(--ee-accent)] text-[#0e3a23] hover:bg-[var(--ee-accent-subtle)]"
+                  className="bg-[#f8fb69] font-semibold text-[#0e3a23] shadow-sm hover:bg-[#fcfd94]"
                   data-testid="final-get-started-button"
                 >
                   <Link href="/register">Get Started</Link>
@@ -505,7 +507,7 @@ function ShiftRow({ shift }: { shift: UpcomingShift }) {
           className="grid grid-cols-[1fr_auto] items-center gap-3 px-5 py-4 transition-colors hover:bg-current/[0.03] md:grid-cols-[1fr_180px_auto]"
         >
           <div className="min-w-0">
-            <div className="mono-label tnum text-[var(--ee-primary)]">
+            <div className="mono-label tnum text-[var(--ee-primary-text)]">
               {day} · {startTime}–{endTime}
             </div>
             <div className="mt-1 truncate text-base font-semibold">
@@ -528,7 +530,7 @@ function ShiftRow({ shift }: { shift: UpcomingShift }) {
           </div>
           <div className="text-right">
             {shift.spotsLeft > 0 ? (
-              <span className="mono-label inline-flex items-center gap-1 rounded-full border border-[var(--ee-primary)]/20 bg-[var(--ee-primary)]/5 px-2.5 py-1 text-[var(--ee-primary)]">
+              <span className="mono-label inline-flex items-center gap-1 rounded-full border border-[var(--ee-primary-text)]/30 bg-[var(--ee-primary-text)]/10 px-2.5 py-1 text-[var(--ee-primary-text)]">
                 <span className="tnum">{shift.spotsLeft}</span> open
               </span>
             ) : (
@@ -547,7 +549,7 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
   return (
     <StaggerItem>
       <li className="flex items-start gap-3 px-5 py-3.5">
-        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ee-primary)]/10 text-sm font-semibold text-[var(--ee-primary)]">
+        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--ee-primary-text)]/15 text-sm font-semibold text-[var(--ee-primary-text)]">
           {item.firstName.slice(0, 1).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
