@@ -1,12 +1,41 @@
 "use client";
 
 import { motion } from "motion/react";
-import { fadeVariants, slideUpVariants, staggerContainer } from "@/lib/motion";
+import {
+  fadeVariants,
+  slideUpVariants,
+  staggerContainer,
+  staggerItem,
+} from "@/lib/motion";
 
 interface AnimatedProps {
   children: React.ReactNode;
   className?: string;
   [key: string]: unknown; // Allow arbitrary props like data-testid
+}
+
+// Generic stagger item — fades up as part of a parent stagger container
+export function StaggerItem({ children, className, ...props }: AnimatedProps) {
+  return (
+    <motion.div variants={staggerItem} className={className} {...props}>
+      {children}
+    </motion.div>
+  );
+}
+
+// Reusable stagger container (parent for StaggerItem children)
+export function StaggerGroup({ children, className, ...props }: AnimatedProps) {
+  return (
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className={className}
+      {...props}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 // Animated wrapper for the home page

@@ -352,6 +352,156 @@ h6 {
   @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
 }
 
+/* ============================================
+   Civic dashboard homepage utilities
+   ============================================ */
+
+/* Tabular figures for stat numbers — prevents layout jitter on counter updates */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Mono caps label — terminal-ish data labels */
+.mono-label {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono",
+    Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 500;
+}
+
+/* Dotted hairline divider */
+.divider-dotted {
+  background-image: radial-gradient(
+    currentColor 1px,
+    transparent 1px
+  );
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+  background-position: 0 50%;
+  height: 1px;
+  width: 100%;
+  opacity: 0.35;
+}
+
+/* Subtle paper grid background — used behind the dashboard hero */
+.paper-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--ee-fg) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--ee-fg) 4%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+.dark .paper-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--ee-fg) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--ee-fg) 6%, transparent) 1px, transparent 1px);
+}
+
+/* Sticker-style chartreuse highlight applied behind inline text */
+.sticker {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+.sticker::before {
+  content: "";
+  position: absolute;
+  inset: 0.05em -0.18em 0.08em -0.18em;
+  background: var(--ee-accent);
+  z-index: -1;
+  transform: rotate(-1.2deg) skew(-3deg);
+  border-radius: 4px;
+}
+.dark .sticker::before {
+  background: #c8d33a;
+}
+
+/* Live pulse dot */
+.live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 0 rgb(22 163 74 / 0.6);
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: live-pulse 2s ease-out infinite;
+  opacity: 0.6;
+}
+@keyframes live-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.dark .live-dot { background: #4ade80; }
+
+/* Dashboard panel — bordered, paper-backed surface used across hero/stats */
+.dash-panel {
+  background: var(--ee-card-bg);
+  border: 1.5px solid var(--ee-fg);
+  border-radius: 14px;
+  position: relative;
+}
+.dark .dash-panel {
+  border-color: color-mix(in srgb, var(--ee-fg) 35%, transparent);
+}
+
+/* Capacity meter — chunky terminal-style bar */
+.cap-bar {
+  height: 8px;
+  background: color-mix(in srgb, var(--ee-fg) 8%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.cap-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ee-primary), var(--ee-primary-700));
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cap-bar.urgent > span {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+/* Stat tile number — large display figure */
+.stat-figure {
+  font-family: var(--font-fraunces);
+  font-variation-settings: "WONK" 0, "SOFT" 50;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Marquee for activity ticker (CSS-only) */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-track {
+  display: inline-flex;
+  gap: 3rem;
+  padding-right: 3rem;
+  animation: ticker-scroll 40s linear infinite;
+  will-change: transform;
+}
+.ticker-mask:hover .ticker-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
