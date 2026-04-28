@@ -51,15 +51,30 @@ function activeVolunteerWhere(): Prisma.UserWhereInput {
   };
 }
 
+// Volunteers who are manually assigned to shifts (admin-created CONFIRMED
+// signups) or set up as a regular have real activity that the platform doesn't
+// see otherwise — they may never log in or finish their profile. Archive rules
+// must treat both as "active" so we don't sweep them up.
+const noConfirmedSignups: Prisma.UserWhereInput = {
+  signups: { none: { status: "CONFIRMED" } },
+};
+const noActiveRegular: Prisma.UserWhereInput = {
+  regularVolunteers: {
+    none: { isActive: true, isPausedByUser: false },
+  },
+};
+
 /**
  * Users who migrated from the legacy system but never completed setup.
- * No grace period — all such users are eligible immediately.
+ * Protected if they have manual CONFIRMED signups or an active regular slot.
  */
 export function whereNeverMigrated(): Prisma.UserWhereInput {
   return {
     ...activeVolunteerWhere(),
     isMigrated: true,
     profileCompleted: false,
+    ...noConfirmedSignups,
+    ...noActiveRegular,
   };
 }
 
@@ -74,7 +89,8 @@ export function whereNeverActivatedNudge(now: Date): Prisma.UserWhereInput {
     isMigrated: false,
     createdAt: { lte: cutoff },
     firstShiftNudgeSentAt: null,
-    signups: { none: { status: "CONFIRMED" } },
+    ...noConfirmedSignups,
+    ...noActiveRegular,
   };
 }
 
@@ -88,7 +104,8 @@ export function whereNeverActivatedArchive(now: Date): Prisma.UserWhereInput {
     ...activeVolunteerWhere(),
     isMigrated: false,
     createdAt: { lte: cutoff },
-    signups: { none: { status: "CONFIRMED" } },
+    ...noConfirmedSignups,
+    ...noActiveRegular,
   };
 }
 
@@ -112,8 +129,9 @@ async function getUsersWithLastShift(now: Date): Promise<
   }>
 > {
   // Returns all non-archived volunteers with their most recent CONFIRMED
-  // signup's shift.start (null if none). Intentionally not paginated — the
-  // cron + admin views both need the full candidate set.
+  // signup's shift.start (null if none). Excludes users with an active regular
+  // slot — they're considered active even if their last CONFIRMED shift is
+  // stale, since admins manage their roster outside the platform.
   return prisma.$queryRaw`
     SELECT
       u.id,
@@ -133,7 +151,14 @@ async function getUsersWithLastShift(now: Date): Promise<
         WHERE s."userId" = u.id AND s.status = 'CONFIRMED'
       ) AS "lastConfirmedShiftAt"
     FROM "User" u
-    WHERE u.role = 'VOLUNTEER' AND u."archivedAt" IS NULL
+    WHERE u.role = 'VOLUNTEER'
+      AND u."archivedAt" IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM "RegularVolunteer" rv
+        WHERE rv."userId" = u.id
+          AND rv."isActive" = TRUE
+          AND rv."isPausedByUser" = FALSE
+      )
   `;
 }
 

@@ -101,6 +101,7 @@ export async function POST(request: Request) {
         await unarchiveUser({
           userId: user.id,
           triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+          actorId: user.id,
         });
         user = await prisma.user.findUnique({ where: { id: user.id } }) ?? user;
       }
