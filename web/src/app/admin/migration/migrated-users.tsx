@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,9 +61,17 @@ export function MigratedUsers() {
   const [users, setUsers] = useState<MigratedUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<MigratedUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "invited" | "completed">(
-    (searchParams.get("status") as "all" | "pending" | "invited" | "completed") || "all"
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("search") || ""
+  );
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "pending" | "invited" | "completed"
+  >(
+    (searchParams.get("status") as
+      | "all"
+      | "pending"
+      | "invited"
+      | "completed") || "all"
   );
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
@@ -68,47 +82,58 @@ export function MigratedUsers() {
   const { toast } = useToast();
 
   // Update URL params
-  const updateUrlParams = useCallback((params: Record<string, string>) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-    router.replace(`?${newParams.toString()}#users`, { scroll: false });
-  }, [searchParams, router]);
-
-  const fetchUsers = useCallback(async (page: number = pagination.page, pageSize: number = pagination.pageSize) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/admin/migration/users?page=${page}&pageSize=${pageSize}`);
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users);
-        setFilteredUsers(data.users);
-        setPagination({
-          total: data.total,
-          page: data.page,
-          pageSize: data.pageSize,
-          totalPages: data.totalPages,
-        });
-      } else {
-        throw new Error("Failed to fetch users");
-      }
-    } catch (error) {
-      console.error("Failed to fetch migrated users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load migrated users",
-        variant: "destructive",
+  const updateUrlParams = useCallback(
+    (params: Record<string, string>) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) {
+          newParams.set(key, value);
+        } else {
+          newParams.delete(key);
+        }
       });
-    } finally {
-      setIsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.pageSize]);
+      router.replace(`?${newParams.toString()}#users`, { scroll: false });
+    },
+    [searchParams, router]
+  );
+
+  const fetchUsers = useCallback(
+    async (
+      page: number = pagination.page,
+      pageSize: number = pagination.pageSize
+    ) => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/admin/migration/users?page=${page}&pageSize=${pageSize}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users);
+          setFilteredUsers(data.users);
+          setPagination({
+            total: data.total,
+            page: data.page,
+            pageSize: data.pageSize,
+            totalPages: data.totalPages,
+          });
+        } else {
+          throw new Error("Failed to fetch users");
+        }
+      } catch (error) {
+        console.error("Failed to fetch migrated users:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load migrated users",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [pagination.page, pagination.pageSize]
+  );
 
   useEffect(() => {
     fetchUsers();
@@ -119,7 +144,7 @@ export function MigratedUsers() {
 
     // Apply status filter
     if (filterStatus !== "all") {
-      filtered = filtered.filter(user => {
+      filtered = filtered.filter((user) => {
         if (filterStatus === "pending") {
           return !user.invitationSent && !user.registrationCompleted;
         } else if (filterStatus === "invited") {
@@ -133,10 +158,11 @@ export function MigratedUsers() {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(user =>
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (user) =>
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -150,7 +176,9 @@ export function MigratedUsers() {
   };
 
   // Handle filter status change
-  const handleFilterChange = (value: "all" | "pending" | "invited" | "completed") => {
+  const handleFilterChange = (
+    value: "all" | "pending" | "invited" | "completed"
+  ) => {
     setFilterStatus(value);
     updateUrlParams({ status: value });
   };
@@ -190,16 +218,29 @@ export function MigratedUsers() {
 
   const exportUsers = () => {
     const csv = [
-      ["Email", "First Name", "Last Name", "Status", "Invitation Sent", "Registration Completed"],
-      ...filteredUsers.map(user => [
+      [
+        "Email",
+        "First Name",
+        "Last Name",
+        "Status",
+        "Invitation Sent",
+        "Registration Completed",
+      ],
+      ...filteredUsers.map((user) => [
         user.email,
         user.firstName || "",
         user.lastName || "",
-        user.registrationCompleted ? "Completed" : user.invitationSent ? "Invited" : "Pending",
+        user.registrationCompleted
+          ? "Completed"
+          : user.invitationSent
+          ? "Invited"
+          : "Pending",
         user.invitationSentAt || "",
-        user.registrationCompleted ? "Yes" : "No"
-      ])
-    ].map(row => row.join(",")).join("\n");
+        user.registrationCompleted ? "Yes" : "No",
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -211,7 +252,11 @@ export function MigratedUsers() {
 
   const getUserStatus = (user: MigratedUser) => {
     if (user.registrationCompleted) {
-      return { label: "Completed", variant: "default" as const, icon: UserCheck };
+      return {
+        label: "Completed",
+        variant: "default" as const,
+        icon: UserCheck,
+      };
     } else if (user.invitationSent) {
       return { label: "Invited", variant: "secondary" as const, icon: Mail };
     } else {
@@ -243,8 +288,10 @@ export function MigratedUsers() {
             <div>
               <CardTitle>Migrated Users</CardTitle>
               <CardDescription>
-                {pagination.total} users have been migrated from the legacy system
-                {pagination.totalPages > 1 && ` (Page ${pagination.page} of ${pagination.totalPages})`}
+                {pagination.total} users have been migrated from the legacy
+                system
+                {pagination.totalPages > 1 &&
+                  ` (Page ${pagination.page} of ${pagination.totalPages})`}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -263,7 +310,9 @@ export function MigratedUsers() {
                 size="sm"
                 variant="outline"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
             </div>
@@ -285,7 +334,15 @@ export function MigratedUsers() {
               <Filter className="h-4 w-4 text-muted-foreground" />
               <select
                 value={filterStatus}
-                onChange={(e) => handleFilterChange(e.target.value as "all" | "pending" | "invited" | "completed")}
+                onChange={(e) =>
+                  handleFilterChange(
+                    e.target.value as
+                      | "all"
+                      | "pending"
+                      | "invited"
+                      | "completed"
+                  )
+                }
                 className="border rounded-md px-3 py-2 text-sm"
               >
                 <option value="all">All Users</option>
@@ -304,7 +361,11 @@ export function MigratedUsers() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-2xl font-bold">
-                {users.filter(u => !u.invitationSent && !u.registrationCompleted).length}
+                {
+                  users.filter(
+                    (u) => !u.invitationSent && !u.registrationCompleted
+                  ).length
+                }
               </div>
             </div>
             <div className="bg-muted/50 rounded-lg p-4">
@@ -313,7 +374,11 @@ export function MigratedUsers() {
                 <Mail className="h-4 w-4 text-amber-600" />
               </div>
               <div className="text-2xl font-bold">
-                {users.filter(u => u.invitationSent && !u.registrationCompleted).length}
+                {
+                  users.filter(
+                    (u) => u.invitationSent && !u.registrationCompleted
+                  ).length
+                }
               </div>
             </div>
             <div className="bg-muted/50 rounded-lg p-4">
@@ -322,7 +387,7 @@ export function MigratedUsers() {
                 <UserCheck className="h-4 w-4 text-green-600" />
               </div>
               <div className="text-2xl font-bold">
-                {users.filter(u => u.registrationCompleted).length}
+                {users.filter((u) => u.registrationCompleted).length}
               </div>
             </div>
           </div>
@@ -344,15 +409,19 @@ export function MigratedUsers() {
                   {filteredUsers.map((user) => {
                     const status = getUserStatus(user);
                     const StatusIcon = status.icon;
-                    
+
                     return (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="font-medium">
                             {user.firstName || user.lastName ? (
-                              `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                              `${user.firstName || ""} ${
+                                user.lastName || ""
+                              }`.trim()
                             ) : (
-                              <span className="text-muted-foreground">No name</span>
+                              <span className="text-muted-foreground">
+                                No name
+                              </span>
                             )}
                           </div>
                         </TableCell>
@@ -368,7 +437,12 @@ export function MigratedUsers() {
                         <TableCell>
                           {user.invitationSent ? (
                             <div className="text-sm">
-                              <div>Sent: {new Date(user.invitationSentAt!).toLocaleDateString('en-NZ')}</div>
+                              <div>
+                                Sent:{" "}
+                                {new Date(
+                                  user.invitationSentAt!
+                                ).toLocaleDateString("en-NZ")}
+                              </div>
                               {user.invitationCount > 1 && (
                                 <div className="text-muted-foreground">
                                   Resent {user.invitationCount - 1} time(s)
@@ -376,17 +450,15 @@ export function MigratedUsers() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm text-muted-foreground">Not sent</span>
+                            <span className="text-sm text-muted-foreground">
+                              Not sent
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              asChild
-                            >
-                              <Link href={`/admin/users/${user.id}`}>
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link href={`/admin/volunteers/${user.id}`}>
                                 <Eye className="h-4 w-4" />
                               </Link>
                             </Button>
@@ -423,9 +495,12 @@ export function MigratedUsers() {
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-6 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing {((pagination.page - 1) * pagination.pageSize) + 1} to{" "}
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{" "}
-                {pagination.total} users
+                Showing {(pagination.page - 1) * pagination.pageSize + 1} to{" "}
+                {Math.min(
+                  pagination.page * pagination.pageSize,
+                  pagination.total
+                )}{" "}
+                of {pagination.total} users
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -451,7 +526,9 @@ export function MigratedUsers() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages || isLoading}
+                  disabled={
+                    pagination.page === pagination.totalPages || isLoading
+                  }
                 >
                   Next
                 </Button>
@@ -459,7 +536,9 @@ export function MigratedUsers() {
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(pagination.totalPages)}
-                  disabled={pagination.page === pagination.totalPages || isLoading}
+                  disabled={
+                    pagination.page === pagination.totalPages || isLoading
+                  }
                 >
                   Last
                 </Button>

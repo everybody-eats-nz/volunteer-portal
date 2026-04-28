@@ -26,7 +26,9 @@ type ProfileResponse = {
     excludedShortageNotificationTypes: string[];
     emailNewsletterSubscription: boolean;
     newsletterLists: string[];
+    defaultLocation: string | null;
   };
+  availableLocations: string[];
   stats: ProfileStats;
   achievements: Achievement[];
   totalPoints: number;
@@ -35,6 +37,7 @@ type ProfileResponse = {
 
 type UseProfileReturn = {
   profile: UserProfile | null;
+  availableLocations: string[];
   stats: ProfileStats | null;
   achievements: Achievement[];
   totalPoints: number;
@@ -93,6 +96,7 @@ export function useProfile(): UseProfileReturn {
         excludedShortageNotificationTypes: data.profile.excludedShortageNotificationTypes,
         emailNewsletterSubscription: data.profile.emailNewsletterSubscription,
         newsletterLists: data.profile.newsletterLists,
+        defaultLocation: data.profile.defaultLocation,
         totalShifts: data.stats.shiftsCompleted,
         memberSince: data.profile.memberSince,
       }
@@ -100,6 +104,7 @@ export function useProfile(): UseProfileReturn {
 
   return {
     profile,
+    availableLocations: data?.availableLocations ?? [],
     stats: data?.stats ?? null,
     achievements: data?.achievements ?? [],
     totalPoints: data?.totalPoints ?? 0,

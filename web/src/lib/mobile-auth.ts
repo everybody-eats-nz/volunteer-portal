@@ -132,10 +132,13 @@ export async function getMobileUser(request: Request): Promise<MobileUser | null
 
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      select: MOBILE_USER_SELECT,
+      select: { ...MOBILE_USER_SELECT, archivedAt: true },
     });
 
     if (!user) return null;
+    // Reject archived users — covers both admin-archived and self-deleted
+    // accounts so any still-valid JWT stops working immediately.
+    if (user.archivedAt) return null;
     return toMobileUser(user);
   } catch {
     return null;

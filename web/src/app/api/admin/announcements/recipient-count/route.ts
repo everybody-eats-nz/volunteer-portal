@@ -24,10 +24,8 @@ export async function POST(request: Request) {
   const conditions: Prisma.Sql[] = [Prisma.sql`role = 'VOLUNTEER'`];
 
   if (Array.isArray(targetLocations) && targetLocations.length > 0) {
-    // Split availableLocations on commas (trimming spaces) and check for exact overlap.
-    // Prisma's `contains` would do substring matching and false-match partial location names.
     conditions.push(
-      Prisma.sql`string_to_array(regexp_replace(COALESCE("availableLocations", ''), '\\s*,\\s*', ',', 'g'), ',') && ARRAY[${Prisma.join(targetLocations as string[])}]::text[]`
+      Prisma.sql`"defaultLocation" = ANY(ARRAY[${Prisma.join(targetLocations as string[])}]::text[])`
     );
   }
 

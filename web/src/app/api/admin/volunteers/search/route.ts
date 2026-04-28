@@ -31,6 +31,7 @@ export async function GET(req: Request) {
     // Search by name or email
     const volunteers = await prisma.user.findMany({
       where: {
+        archivedAt: null,
         OR: [
           {
             name: {

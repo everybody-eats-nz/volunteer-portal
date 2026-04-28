@@ -7,6 +7,8 @@ import FacebookProvider, {
 } from "next-auth/providers/facebook";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { unarchiveUser } from "@/lib/archive-service";
+import { ArchiveTriggerSource } from "@/generated/client";
 
 type AppRole = "ADMIN" | "VOLUNTEER";
 
@@ -93,6 +95,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        reactivate: { label: "Reactivate", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
@@ -108,6 +111,7 @@ export const authOptions: NextAuthOptions = {
             lastName: true,
             hashedPassword: true,
             emailVerified: true,
+            archivedAt: true,
           },
         });
         if (!user) return null;
@@ -116,6 +120,18 @@ export const authOptions: NextAuthOptions = {
           user.hashedPassword
         );
         if (!valid) return null;
+
+        if (user.archivedAt) {
+          if (credentials.reactivate === "true") {
+            await unarchiveUser({
+              userId: user.id,
+              triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+              actorId: user.id,
+            });
+          } else {
+            throw new Error("AccountArchived");
+          }
+        }
 
         // Allow all authenticated users to sign in, including unverified ones
         // Email verification will be checked at the application level
@@ -233,6 +249,17 @@ export const authOptions: NextAuthOptions = {
                 data: updateData,
               });
               existingUser.emailVerified = updateData.emailVerified ?? existingUser.emailVerified;
+            }
+
+            // Auto-reactivate archived users who re-authenticate via OAuth —
+            // having proved identity through the provider is sufficient.
+            if (existingUser.archivedAt) {
+              await unarchiveUser({
+                userId: existingUser.id,
+                triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+                actorId: existingUser.id,
+              });
+              existingUser.archivedAt = null;
             }
           }
 
@@ -354,5 +381,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
 };

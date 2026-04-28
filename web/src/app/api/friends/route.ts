@@ -274,7 +274,8 @@ export async function POST(req: NextRequest) {
       await createFriendRequestNotification(
         targetUser.id,
         senderName,
-        friendRequest.id
+        friendRequest.id,
+        user.id
       );
     } catch (notificationError) {
       // Don't fail the friend request if notification creation fails

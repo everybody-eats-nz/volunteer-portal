@@ -75,6 +75,14 @@ export default async function AdminShiftsPage({
     },
     include: {
       shiftType: true,
+      placeholders: {
+        select: {
+          id: true,
+          name: true,
+          notes: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
       signups: {
         where: {
           status: {
@@ -161,7 +169,7 @@ export default async function AdminShiftsPage({
 
   // Check if any shifts are understaffed (less than 50% confirmed)
   const hasUnderstaffedShifts = shifts.some((shift) => {
-    const confirmed = shift.signups.filter((s) => s.status === "CONFIRMED").length + shift.placeholderCount;
+    const confirmed = shift.signups.filter((s) => s.status === "CONFIRMED").length + shift.placeholders.length;
     const percentage = (confirmed / shift.capacity) * 100;
     return percentage < 50;
   });
@@ -181,7 +189,6 @@ export default async function AdminShiftsPage({
       start: true,
       location: true,
       capacity: true,
-      placeholderCount: true,
       shiftType: {
         select: {
           name: true,
@@ -193,6 +200,11 @@ export default async function AdminShiftsPage({
         },
         select: {
           id: true,
+        },
+      },
+      _count: {
+        select: {
+          placeholders: true,
         },
       },
     },
@@ -233,7 +245,7 @@ export default async function AdminShiftsPage({
     const summary = shiftSummariesMap.get(dateKey)!;
     summary.count++;
     summary.totalCapacity += shift.capacity;
-    summary.totalConfirmed += shift.signups.length + shift.placeholderCount;
+    summary.totalConfirmed += shift.signups.length + shift._count.placeholders;
 
     if (!summary.locations.includes(location)) {
       summary.locations.push(location);

@@ -20,6 +20,12 @@ import {
   Activity,
   MessageSquare,
   Megaphone,
+  UtensilsCrossed,
+  Shield,
+  UserPlus,
+  Award,
+  Archive,
+  ScrollText,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -49,19 +55,38 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Overview and statistics",
         commandKey: "dashboard",
       },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
       {
         title: "Restaurant Analytics",
         href: "/admin/analytics",
         icon: BarChart3,
-        description: "Restaurant analytics and metrics",
+        description: "Meals served and year-over-year comparisons",
         commandKey: "analytics",
       },
       {
         title: "Volunteer Engagement",
         href: "/admin/analytics/engagement",
         icon: Activity,
-        description: "Volunteer activity and retention metrics",
+        description: "Activity levels, retention, and cohort analysis",
         commandKey: "engagement",
+      },
+      {
+        title: "Volunteer Recruitment",
+        href: "/admin/analytics/recruitment",
+        icon: UserPlus,
+        description: "New registrations, onboarding funnel, and conversion",
+        commandKey: "recruitment",
+      },
+      {
+        title: "Milestone Analytics",
+        href: "/admin/analytics/milestones",
+        icon: Award,
+        description: "Shift milestones, volunteer recognition, and 12-month projections",
+        commandKey: "milestones",
       },
     ],
   },
@@ -103,6 +128,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Manage volunteer achievements",
         commandKey: "achievements",
       },
+      {
+        title: "Archiving",
+        href: "/admin/archiving",
+        icon: Archive,
+        description: "Monitor inactivity and archive rules",
+        commandKey: "archiving",
+      },
     ],
   },
   {
@@ -139,8 +171,15 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
-    label: "Restaraunt Management",
+    label: "Restaurant Management",
     items: [
+      {
+        title: "Daily Menus",
+        href: "/admin/menus",
+        icon: UtensilsCrossed,
+        description: "Set daily menus published to the website",
+        commandKey: "menus",
+      },
       {
         title: "Restaurant Locations",
         href: "/admin/locations",
@@ -196,11 +235,30 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "chat-guides",
       },
       {
+        title: "Chat Logs",
+        href: "/admin/chat-guides/logs",
+        icon: ScrollText,
+        description: "View volunteer conversations with the AI assistant",
+        commandKey: "chat-logs",
+      },
+      {
         title: "Announcements",
         href: "/admin/announcements",
         icon: Megaphone,
         description: "Send targeted announcements to volunteers",
         commandKey: "announcements",
+      },
+    ],
+  },
+  {
+    label: "Safety",
+    items: [
+      {
+        title: "Content Moderation",
+        href: "/admin/moderation",
+        icon: Shield,
+        description: "Review reports and user blocks",
+        commandKey: "moderation",
       },
     ],
   },
@@ -268,6 +326,8 @@ export const getIconColor = (
     Dashboard: "text-blue-600",
     "Restaurant Analytics": "text-purple-600",
     "Volunteer Engagement": "text-emerald-600",
+    "Volunteer Recruitment": "text-violet-600",
+    "Milestone Analytics": "text-amber-600",
 
     // Volunteer Management
     "All Users": "text-purple-600",
@@ -276,7 +336,11 @@ export const getIconColor = (
     "Parental Consent": "text-blue-600",
     "Custom Labels": "text-indigo-600",
     Achievements: "text-amber-600",
+    Archiving: "text-rose-600",
     "Newsletter Lists": "text-cyan-600",
+
+    // Restaurant Management
+    "Daily Menus": "text-orange-600",
 
     // Shift Management
     "Create Shift": "text-green-600",
@@ -289,7 +353,11 @@ export const getIconColor = (
     "Resource Hub": "text-blue-500",
     "Site Settings": "text-slate-600",
     "Chat Guides": "text-emerald-500",
+    "Chat Logs": "text-emerald-600",
     "Announcements": "text-orange-500",
+
+    // Safety
+    "Content Moderation": "text-red-600",
 
     // User Migration
     "Bulk Migration": "text-blue-600",

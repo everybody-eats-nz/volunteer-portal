@@ -10,13 +10,13 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-terser": "^1.0.0",
     "@rollup/plugin-typescript": "^11.1.6",
-    "rollup": "^4.60.1",
+    "rollup": "^4.60.2",
     "tslib": "^2.7.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@types/dompurify": "^3.2.0",
-    "dompurify": "^3.3.3",
-    "marked": "^18.0.0"
+    "dompurify": "^3.4.0",
+    "marked": "^18.0.2"
   }
 }

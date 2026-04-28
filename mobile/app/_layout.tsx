@@ -1,9 +1,11 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo } from 'react';
+import { PostHogProvider } from 'posthog-react-native';
+import React, { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import {
@@ -19,8 +21,12 @@ import {
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
+import { useNotificationsStore } from '@/hooks/use-notifications';
 import { Brand } from '@/constants/theme';
 import { AuthGate } from '@/components/auth-gate';
+import { OnboardingFlow } from '@/components/onboarding-flow';
+import { navigateToNotificationTarget } from '@/lib/notification-routing';
+import { posthog } from '@/lib/posthog';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,6 +46,49 @@ export default function RootLayout() {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  // Tap handling: navigate when the user taps a push notification (both
+  // the runtime listener and any notification that launched the app from
+  // a cold start).
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        posthog?.capture('notification_tapped', {
+          action_url: (response.notification.request.content.data?.actionUrl as string) ?? null,
+          cold_start: true,
+        });
+        navigateToNotificationTarget(
+          response.notification.request.content.data?.actionUrl,
+        );
+      }
+    });
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        posthog?.capture('notification_tapped', {
+          action_url: (response.notification.request.content.data?.actionUrl as string) ?? null,
+          cold_start: false,
+        });
+        navigateToNotificationTarget(
+          response.notification.request.content.data?.actionUrl,
+        );
+      },
+    );
+    return () => subscription.remove();
+  }, []);
+
+  // Keep the OS app-icon badge in sync with the store's unreadCount.
+  // Push notifications increment the badge; only we can clear it once the
+  // user reads things in-app.
+  useEffect(() => {
+    const applyBadge = (count: number) => {
+      Notifications.setBadgeCountAsync(count).catch(() => {});
+    };
+    applyBadge(useNotificationsStore.getState().unreadCount);
+    return useNotificationsStore.subscribe((state, prev) => {
+      if (state.unreadCount !== prev.unreadCount) applyBadge(state.unreadCount);
+    });
+  }, []);
 
   useEffect(() => {
     if (!isLoading && fontsLoaded) {
@@ -71,9 +120,10 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
+  const appTree = (
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
       <AuthGate>
+        <OnboardingFlow />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -96,6 +146,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="user/[id]"
+            options={{
+              headerShown: true,
+              headerTransparent: true,
+              headerBackTitle: 'Back',
+              title: '',
+            }}
+          />
+          <Stack.Screen
             name="profile/edit"
             options={{
               headerShown: true,
@@ -104,9 +163,23 @@ export default function RootLayout() {
               title: '',
             }}
           />
+          <Stack.Screen
+            name="notifications"
+            options={{
+              headerShown: true,
+              headerBackTitle: 'Back',
+              title: '',
+            }}
+          />
         </Stack>
       </AuthGate>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
+
+  if (!posthog) {
+    return appTree;
+  }
+
+  return <PostHogProvider client={posthog}>{appTree}</PostHogProvider>;
 }

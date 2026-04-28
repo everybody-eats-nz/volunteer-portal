@@ -67,10 +67,10 @@ export async function AdminDashboardContent({
     recentAchievements,
     weeklyStats,
   ] = await Promise.all([
-    // User counts
-    prisma.user.count(),
-    prisma.user.count({ where: { role: "VOLUNTEER" } }),
-    prisma.user.count({ where: { role: "ADMIN" } }),
+    // User counts (active only)
+    prisma.user.count({ where: { archivedAt: null } }),
+    prisma.user.count({ where: { role: "VOLUNTEER", archivedAt: null } }),
+    prisma.user.count({ where: { role: "ADMIN", archivedAt: null } }),
 
     // Shift counts
     prisma.shift.count({ where: { start: { gte: now }, ...locationFilter } }),
@@ -138,6 +138,7 @@ export async function AdminDashboardContent({
       include: {
         shiftType: true,
         signups: { where: { status: "CONFIRMED" } },
+        _count: { select: { placeholders: true } },
       },
       orderBy: { start: "asc" },
       take: 10,
@@ -271,7 +272,7 @@ export async function AdminDashboardContent({
         where: {
           createdAt: { gte: startOfWeek, lt: endOfWeek },
           ...(selectedLocation
-            ? { availableLocations: { contains: selectedLocation } }
+            ? { defaultLocation: selectedLocation }
             : {}),
         },
       }),
@@ -292,8 +293,12 @@ export async function AdminDashboardContent({
           start: true,
           end: true,
           location: true,
-          placeholderCount: true,
-          _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
+          _count: {
+            select: {
+              signups: { where: { status: "CONFIRMED" } },
+              placeholders: true,
+            },
+          },
         },
       }),
       // Location defaults for meals served fallback
@@ -320,6 +325,7 @@ export async function AdminDashboardContent({
   // Calculate meals served with fallback to location defaults
   const actualMealsMap = new Map<string, number>();
   for (const record of weekMealsRecords) {
+    if (record.mealsServed === null) continue;
     const key = `${record.date.toISOString()}-${record.location}`;
     actualMealsMap.set(key, record.mealsServed);
   }
@@ -351,14 +357,14 @@ export async function AdminDashboardContent({
     const hours =
       (new Date(shift.end).getTime() - new Date(shift.start).getTime()) /
       (1000 * 60 * 60);
-    const volunteers = shift._count.signups + shift.placeholderCount;
+    const volunteers = shift._count.signups + shift._count.placeholders;
     return total + hours * volunteers;
   }, 0);
 
   // Compute low fill rate shifts (< 50% capacity)
   const lowFillShifts = upcomingShiftsData
     .map((shift) => {
-      const confirmedCount = shift.signups.length + shift.placeholderCount;
+      const confirmedCount = shift.signups.length + shift._count.placeholders;
       const fillRate =
         shift.capacity > 0 ? confirmedCount / shift.capacity : 0;
       return {
@@ -392,7 +398,7 @@ export async function AdminDashboardContent({
       dateParam,
       location: shift.location,
       capacity: shift.capacity,
-      confirmedCount: shift.signups.length + shift.placeholderCount,
+      confirmedCount: shift.signups.length + shift._count.placeholders,
     });
   }
   const upcomingShiftDays = Array.from(shiftsByDay.values()).slice(0, 5);

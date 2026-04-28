@@ -13,6 +13,8 @@ import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
  * - Milestone events (volunteers crossing shift count thresholds)
  * - Friend signups (friends signing up for shifts)
  * - Shift recaps (aggregate stats for completed shifts at user's locations)
+ * - New shifts published for the user's default location
+ * - Daily menus published for the user's default location
  *
  * Every item includes likeCount, likedByMe, recentLikers, commentCount.
  * Items are sorted by timestamp descending and limited to the last 14 days.
@@ -28,13 +30,24 @@ export async function GET(request: Request) {
   since.setDate(since.getDate() - 14);
   const now = new Date();
 
-  // Get the user's profile for targeting checks
-  const [userProfile, friendships] = await Promise.all([
+  // Client-supplied IDs for items the API doesn't construct itself (e.g. dummy
+  // photo posts). We still fetch real interaction counts for them so the UI
+  // can show accurate like/comment state.
+  const url = new URL(request.url);
+  const extraIdsParam = url.searchParams.get("extraIds") ?? "";
+  const extraIds = extraIdsParam
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0 && id.length <= 200)
+    .slice(0, 50);
+
+  // Get the user's profile, friendships, and blocks in parallel
+  const [userProfile, friendships, blocks] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
         volunteerGrade: true,
-        availableLocations: true,
+        defaultLocation: true,
         customLabels: { select: { labelId: true } },
       },
     }),
@@ -45,17 +58,25 @@ export async function GET(request: Request) {
       },
       select: { userId: true, friendId: true },
     }),
+    // Users this person has blocked
+    prisma.userBlock.findMany({
+      where: { blockerId: userId },
+      select: { blockedId: true },
+    }),
   ]);
 
-  const friendIds = friendships.map((f) =>
-    f.userId === userId ? f.friendId : f.userId
+  const blockedUserIds = new Set(blocks.map((b) => b.blockedId));
+
+  const friendIds = friendships
+    .map((f) => (f.userId === userId ? f.friendId : f.userId))
+    // Exclude blocked users from friend feed
+    .filter((id) => !blockedUserIds.has(id));
+  const visibleUserIds = [userId, ...friendIds].filter(
+    (id) => !blockedUserIds.has(id)
   );
-  const visibleUserIds = [userId, ...friendIds];
 
   const userLabelIds = (userProfile?.customLabels ?? []).map((l) => l.labelId);
-  const userLocations = userProfile?.availableLocations
-    ? userProfile.availableLocations.split(",").map((l) => l.trim()).filter(Boolean)
-    : [];
+  const userDefaultLocation = userProfile?.defaultLocation ?? null;
   const userGrade = userProfile?.volunteerGrade ?? "GREEN";
 
   // Run all data queries in parallel
@@ -65,6 +86,8 @@ export async function GET(request: Request) {
     friendSignups,
     userSignupLocations,
     announcements,
+    newShifts,
+    dailyMenus,
   ] = await Promise.all([
     // Recent achievement unlocks (friends + own, last 14 days)
     prisma.userAchievement.findMany({
@@ -148,6 +171,7 @@ export async function GET(request: Request) {
         },
         shift: {
           select: {
+            id: true,
             start: true,
             location: true,
             shiftType: { select: { name: true } },
@@ -171,8 +195,7 @@ export async function GET(request: Request) {
 
     // Announcements: fetch all non-expired ones from the window, then filter by
     // user targeting in app code. Grade and label are pre-filtered at DB level;
-    // location targeting uses in-memory exact matching (availableLocations is a
-    // comma-separated string so we can't safely do it in Prisma without raw SQL).
+    // location targeting is matched against the user's defaultLocation.
     prisma.announcement.findMany({
       where: {
         createdAt: { gte: since },
@@ -199,6 +222,55 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "desc" },
     }),
+
+    // New shifts published at the user's default location. Only upcoming shifts
+    // created in the last 14 days. We aggregate by creation day + location in
+    // app code so a bulk-publish of a month of shifts becomes one feed item.
+    userDefaultLocation
+      ? prisma.shift.findMany({
+          where: {
+            location: userDefaultLocation,
+            createdAt: { gte: since },
+            start: { gt: now },
+          },
+          select: {
+            id: true,
+            start: true,
+            createdAt: true,
+            location: true,
+            shiftType: { select: { name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+        })
+      : Promise.resolve([]),
+
+    // Daily menus published for the user's default location. Includes both
+    // upcoming and recent past service dates so volunteers can still see what
+    // was on the menu after the fact — the 14-day createdAt window keeps the
+    // feed fresh.
+    userDefaultLocation
+      ? prisma.dailyMenu.findMany({
+          where: {
+            location: userDefaultLocation,
+            createdAt: { gte: since },
+          },
+          select: {
+            id: true,
+            date: true,
+            location: true,
+            chefName: true,
+            announcement: true,
+            starter: true,
+            mains: true,
+            drink: true,
+            dessert: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        })
+      : Promise.resolve([]),
   ]);
 
   type FeedItem = {
@@ -217,7 +289,8 @@ export async function GET(request: Request) {
     // Location targeting: empty = all locations
     const locationMatch =
       ann.targetLocations.length === 0 ||
-      ann.targetLocations.some((loc) => userLocations.includes(loc));
+      (userDefaultLocation !== null &&
+        ann.targetLocations.includes(userDefaultLocation));
 
     // Grade targeting: empty = all grades
     const gradeMatch =
@@ -259,6 +332,7 @@ export async function GET(request: Request) {
     items.push({
       type: "achievement",
       id: `achievement-${ua.id}`,
+      userId: isMe ? undefined : ua.user.id,
       userName: displayName,
       profilePhotoUrl: isMe ? undefined : (ua.user.profilePhotoUrl ?? undefined),
       achievementName: ua.achievement.name,
@@ -298,6 +372,7 @@ export async function GET(request: Request) {
     items.push({
       type: "milestone",
       id: `milestone-${signup.userId}-${milestone}`,
+      userId: isMe ? undefined : signup.userId,
       userName: displayName,
       profilePhotoUrl: isMe ? undefined : (signup.user.profilePhotoUrl ?? undefined),
       count: milestone,
@@ -318,13 +393,148 @@ export async function GET(request: Request) {
     items.push({
       type: "friend_signup",
       id: `friend-signup-${signup.id}`,
+      userId: signup.userId,
       userName: displayName,
       profilePhotoUrl: signup.user.profilePhotoUrl ?? undefined,
+      shiftId: signup.shift.id,
       shiftTypeName: signup.shift.shiftType.name,
       shiftDate: signup.shift.start.toISOString(),
       location: signup.shift.location ?? "",
       timestamp: signup.createdAt.toISOString(),
       isFriend: true,
+      likeCount: 0,
+      likedByMe: false,
+      recentLikers: [],
+      commentCount: 0,
+    });
+  }
+
+  // Aggregate new shifts by (creation-day-NZT + location). A bulk-publish of
+  // many shifts on the same day collapses into one feed item.
+  type NewShiftEntry = {
+    id: string;
+    start: Date;
+    shiftTypeName: string;
+  };
+  const newShiftGroups = new Map<
+    string,
+    {
+      location: string;
+      shifts: NewShiftEntry[];
+      shiftTypeNames: Set<string>;
+      earliestStart: Date;
+      latestStart: Date;
+      earliestCreatedAt: Date;
+    }
+  >();
+
+  for (const shift of newShifts) {
+    if (!shift.location) continue;
+    const creationDay = formatInNZT(shift.createdAt, "yyyy-MM-dd");
+    const key = `${shift.location}-${creationDay}`;
+    const entry: NewShiftEntry = {
+      id: shift.id,
+      start: shift.start,
+      shiftTypeName: shift.shiftType.name,
+    };
+    const existing = newShiftGroups.get(key);
+    if (existing) {
+      existing.shifts.push(entry);
+      existing.shiftTypeNames.add(shift.shiftType.name);
+      if (shift.start < existing.earliestStart)
+        existing.earliestStart = shift.start;
+      if (shift.start > existing.latestStart)
+        existing.latestStart = shift.start;
+      if (shift.createdAt < existing.earliestCreatedAt)
+        existing.earliestCreatedAt = shift.createdAt;
+    } else {
+      newShiftGroups.set(key, {
+        location: shift.location,
+        shifts: [entry],
+        shiftTypeNames: new Set([shift.shiftType.name]),
+        earliestStart: shift.start,
+        latestStart: shift.start,
+        earliestCreatedAt: shift.createdAt,
+      });
+    }
+  }
+
+  for (const [key, group] of newShiftGroups) {
+    // Preview: soonest 5 shifts by start date, for the feed sheet.
+    const preview = [...group.shifts]
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
+      .slice(0, 5)
+      .map((s) => ({
+        id: s.id,
+        start: s.start.toISOString(),
+        shiftTypeName: s.shiftTypeName,
+      }));
+
+    items.push({
+      type: "new_shift",
+      id: `new-shift-${key}`,
+      location: group.location,
+      count: group.shifts.length,
+      shiftIds: group.shifts.map((s) => s.id),
+      shiftTypes: [...group.shiftTypeNames],
+      earliestStart: group.earliestStart.toISOString(),
+      latestStart: group.latestStart.toISOString(),
+      preview,
+      timestamp: group.earliestCreatedAt.toISOString(),
+      likeCount: 0,
+      likedByMe: false,
+      recentLikers: [],
+      commentCount: 0,
+    });
+  }
+
+  // Daily menus — one feed item per published menu at the user's location.
+  type MenuItem = { name: string; description?: string };
+  const extractCourse = (field: unknown): MenuItem[] => {
+    if (!Array.isArray(field)) return [];
+    const result: MenuItem[] = [];
+    for (const raw of field) {
+      if (!raw || typeof raw !== "object") continue;
+      const obj = raw as { name?: unknown; description?: unknown };
+      if (typeof obj.name !== "string" || obj.name.length === 0) continue;
+      const entry: MenuItem = { name: obj.name };
+      if (typeof obj.description === "string" && obj.description.length > 0) {
+        entry.description = obj.description;
+      }
+      result.push(entry);
+    }
+    return result;
+  };
+
+  for (const menu of dailyMenus) {
+    const starter = extractCourse(menu.starter);
+    const mains = extractCourse(menu.mains);
+    const drink = extractCourse(menu.drink);
+    const dessert = extractCourse(menu.dessert);
+
+    if (
+      starter.length === 0 &&
+      mains.length === 0 &&
+      drink.length === 0 &&
+      dessert.length === 0 &&
+      !menu.announcement
+    ) {
+      continue;
+    }
+
+    items.push({
+      type: "daily_menu",
+      id: `daily-menu-${menu.id}`,
+      menuId: menu.id,
+      location: menu.location,
+      serviceDate: menu.date.toISOString(),
+      chefName: menu.chefName ?? undefined,
+      announcement: menu.announcement ?? undefined,
+      starter,
+      mains,
+      drink,
+      dessert,
+      timestamp: menu.createdAt.toISOString(),
       likeCount: 0,
       likedByMe: false,
       recentLikers: [],
@@ -341,57 +551,50 @@ export async function GET(request: Request) {
 
   if (mySignupLocations.size > 0) {
     const locationsList = [...mySignupLocations];
-    const [recapShifts, mealsServedRecords, locationDefaults] =
-      await Promise.all([
-        prisma.shift.findMany({
-          where: {
-            end: { lt: now, gte: since },
-            location: { in: locationsList },
+    const [recapShifts, mealsServedRecords] = await Promise.all([
+      prisma.shift.findMany({
+        where: {
+          end: { lt: now, gte: since },
+          location: { in: locationsList },
+        },
+        select: {
+          id: true,
+          start: true,
+          end: true,
+          location: true,
+          signups: {
+            where: { status: "CONFIRMED" },
+            select: { userId: true },
           },
-          select: {
-            id: true,
-            start: true,
-            end: true,
-            location: true,
-            signups: {
-              where: { status: "CONFIRMED" },
-              select: { userId: true },
-            },
-            _count: {
-              select: { signups: { where: { status: "CONFIRMED" } } },
-            },
+          _count: {
+            select: { signups: { where: { status: "CONFIRMED" } } },
           },
-          orderBy: { start: "desc" },
-        }),
-        prisma.mealsServed.findMany({
-          where: {
-            date: { gte: since },
-            location: { in: locationsList },
-          },
-          select: { date: true, location: true, mealsServed: true },
-        }),
-        prisma.location.findMany({
-          where: { name: { in: locationsList } },
-          select: { name: true, defaultMealsServed: true },
-        }),
-      ]);
+        },
+        orderBy: { start: "desc" },
+      }),
+      prisma.mealsServed.findMany({
+        where: {
+          date: { gte: since },
+          location: { in: locationsList },
+        },
+        select: { date: true, location: true, mealsServed: true },
+      }),
+    ]);
 
+    // Only emit recaps for (location, day) pairs with an explicit MealsServed
+    // count — notes-only rows don't give us a number to share.
     const mealsMap = new Map<string, number>();
     for (const record of mealsServedRecords) {
+      if (record.mealsServed === null) continue;
       const key = `${record.location}-${record.date.toISOString()}`;
       mealsMap.set(key, record.mealsServed);
     }
-
-    const defaultsMap = new Map(
-      locationDefaults.map((loc) => [loc.name, loc.defaultMealsServed])
-    );
 
     const recapGroups = new Map<
       string,
       {
         location: string;
         displayDate: string;
-        volunteerHours: number;
         volunteerCount: number;
         mealsServed: number;
         latestStart: Date;
@@ -405,12 +608,11 @@ export async function GET(request: Request) {
 
       const nzStartOfDay = getStartOfDayUTC(shift.start);
       const mealsKey = `${shift.location}-${nzStartOfDay.toISOString()}`;
+      const meals = mealsMap.get(mealsKey);
+      if (meals === undefined) continue;
+
       const displayDate = formatInNZT(shift.start, "yyyy-MM-dd");
       const groupKey = `${shift.location}-${displayDate}`;
-
-      const shiftDurationHours =
-        (shift.end.getTime() - shift.start.getTime()) / (1000 * 60 * 60);
-      const totalHours = shiftDurationHours * shift._count.signups;
 
       if (!recapVolunteers.has(groupKey)) {
         recapVolunteers.set(groupKey, new Set());
@@ -422,19 +624,14 @@ export async function GET(request: Request) {
 
       const existing = recapGroups.get(groupKey);
       if (existing) {
-        existing.volunteerHours += totalHours;
         existing.volunteerCount = volunteerSet.size;
         if (shift.start > existing.latestStart) {
           existing.latestStart = shift.start;
         }
       } else {
-        const meals =
-          mealsMap.get(mealsKey) ?? defaultsMap.get(shift.location) ?? 0;
-
         recapGroups.set(groupKey, {
           location: shift.location,
           displayDate,
-          volunteerHours: totalHours,
           volunteerCount: volunteerSet.size,
           mealsServed: meals,
           latestStart: shift.start,
@@ -449,7 +646,6 @@ export async function GET(request: Request) {
         location: recap.location,
         date: recap.displayDate,
         mealsServed: recap.mealsServed,
-        volunteerHours: Math.round(recap.volunteerHours),
         volunteerCount: recap.volunteerCount,
         timestamp: recap.latestStart.toISOString(),
         likeCount: 0,
@@ -466,12 +662,12 @@ export async function GET(request: Request) {
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  if (items.length === 0) {
-    return NextResponse.json({ items });
+  if (items.length === 0 && extraIds.length === 0) {
+    return NextResponse.json({ items, extraInteractions: {} });
   }
 
-  // Batch-fetch real like/comment data for all items
-  const itemIds = items.map((i) => i.id);
+  // Batch-fetch real like/comment data for all items (including client-supplied extras)
+  const itemIds = [...items.map((i) => i.id), ...extraIds];
 
   const [likeCounts, likedByMeRows, commentCounts, recentLikerRows] =
     await Promise.all([
@@ -542,5 +738,24 @@ export async function GET(request: Request) {
     item.recentLikers = recentLikersMap.get(item.id) ?? [];
   }
 
-  return NextResponse.json({ items });
+  // Build interaction data for client-supplied extra IDs (e.g. dummy photo posts)
+  const extraInteractions: Record<
+    string,
+    {
+      likeCount: number;
+      likedByMe: boolean;
+      commentCount: number;
+      recentLikers: Array<{ id: string; name: string; profilePhotoUrl?: string }>;
+    }
+  > = {};
+  for (const id of extraIds) {
+    extraInteractions[id] = {
+      likeCount: likeCountMap.get(id) ?? 0,
+      likedByMe: likedByMeSet.has(id),
+      commentCount: commentCountMap.get(id) ?? 0,
+      recentLikers: recentLikersMap.get(id) ?? [],
+    };
+  }
+
+  return NextResponse.json({ items, extraInteractions });
 }

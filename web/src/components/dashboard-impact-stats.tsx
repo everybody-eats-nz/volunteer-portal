@@ -27,6 +27,7 @@ export async function DashboardImpactStats({
 
     prisma.user.count({
       where: {
+        archivedAt: null,
         signups: { some: { status: "CONFIRMED" } },
       },
     }),
@@ -75,10 +76,11 @@ export async function DashboardImpactStats({
     },
   });
 
-  // Create a map of actual meals served by date-location key
+  // Create a map of actual meals served by date-location key (skip note-only rows)
   const actualMealsMap = new Map<string, number>();
   mealsServedRecords.forEach(
-    (record: { date: Date; location: string; mealsServed: number }) => {
+    (record: { date: Date; location: string; mealsServed: number | null }) => {
+      if (record.mealsServed === null) return;
       const dateKey = `${record.date.toISOString()}-${record.location}`;
       actualMealsMap.set(dateKey, record.mealsServed);
     }

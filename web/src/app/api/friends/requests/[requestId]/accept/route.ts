@@ -122,7 +122,8 @@ export async function POST(
       await createFriendRequestAcceptedNotification(
         friendRequest.fromUserId,
         accepterName,
-        result.friendship1.id
+        result.friendship1.id,
+        user.id
       );
     } catch (notificationError) {
       // Don't fail the acceptance if notification creation fails

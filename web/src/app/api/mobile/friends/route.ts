@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { DAY_EVENING_CUTOFF_HOUR, shiftStartNZ } from "@/lib/concurrent-shifts";
 
 /**
  * GET /api/mobile/friends
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
   const { userId } = auth;
 
   try {
-    // 1. Get all accepted friendships for the current user
+    // 1. Get all accepted friendships for the current user, newest first
     const friendsRaw = await prisma.$queryRaw<
       Array<{
         friendId: string;
@@ -27,22 +28,30 @@ export async function GET(request: Request) {
         lastName: string | null;
         profilePhotoUrl: string | null;
         volunteerGrade: string;
+        friendedAt: Date;
       }>
     >`
-      SELECT DISTINCT
+      SELECT DISTINCT ON (u.id)
         u.id as "friendId",
         u.name,
         u."firstName",
         u."lastName",
         u."profilePhotoUrl",
-        u."volunteerGrade"
+        u."volunteerGrade",
+        f."createdAt" as "friendedAt"
       FROM "Friendship" f
       JOIN "User" u ON (
         (f."userId" = ${userId} AND u.id = f."friendId") OR
         (f."friendId" = ${userId} AND u.id = f."userId")
       )
       WHERE f.status = 'ACCEPTED' AND u.id != ${userId}
+      ORDER BY u.id, f."createdAt" DESC
     `;
+
+    // Re-sort in JS because DISTINCT ON requires ordering by the distinct key first.
+    friendsRaw.sort(
+      (a, b) => b.friendedAt.getTime() - a.friendedAt.getTime()
+    );
 
     if (friendsRaw.length === 0) {
       return NextResponse.json({ friends: [] });
@@ -71,21 +80,45 @@ export async function GET(request: Request) {
       customGradeMap.set(gl.userId, gl.label.name);
     }
 
-    // 3. Count shifts together (both users CONFIRMED on the same shift)
+    // 3. Count shifts together — matched by day + AM/PM + location, past shifts only.
+    // Matches the definition used by /api/mobile/friends/[id] so counts are consistent.
     const shiftTogetherCounts = await prisma.$queryRaw<
       Array<{ friendId: string; count: bigint }>
     >`
+      WITH user_shifts AS (
+        SELECT
+          (${shiftStartNZ()})::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM ${shiftStartNZ()}) < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          sh.location
+        FROM "Signup" s
+        JOIN "Shift" sh ON s."shiftId" = sh.id
+        WHERE s."userId" = ${userId}
+          AND s.status = 'CONFIRMED'
+          AND sh.location IS NOT NULL
+          AND sh."end" <= NOW()
+      ),
+      friend_shifts AS (
+        SELECT
+          s."userId" as friend_id,
+          (${shiftStartNZ()})::date as shift_date,
+          CASE WHEN EXTRACT(HOUR FROM ${shiftStartNZ()}) < ${DAY_EVENING_CUTOFF_HOUR} THEN 'Day' ELSE 'Evening' END as period,
+          sh.location
+        FROM "Signup" s
+        JOIN "Shift" sh ON s."shiftId" = sh.id
+        WHERE s."userId" = ANY(${friendIds}::text[])
+          AND s.status = 'CONFIRMED'
+          AND sh.location IS NOT NULL
+          AND sh."end" <= NOW()
+      )
       SELECT
-        s2."userId" as "friendId",
-        COUNT(DISTINCT s1."shiftId")::bigint as count
-      FROM "Signup" s1
-      JOIN "Signup" s2 ON s1."shiftId" = s2."shiftId"
-      WHERE s1."userId" = ${userId}
-        AND s2."userId" = ANY(${friendIds}::text[])
-        AND s1.status = 'CONFIRMED'
-        AND s2.status = 'CONFIRMED'
-        AND s1."userId" != s2."userId"
-      GROUP BY s2."userId"
+        fs.friend_id as "friendId",
+        COUNT(DISTINCT (us.shift_date, us.period, us.location))::bigint as count
+      FROM user_shifts us
+      JOIN friend_shifts fs
+        ON us.shift_date = fs.shift_date
+        AND us.period = fs.period
+        AND us.location = fs.location
+      GROUP BY fs.friend_id
     `;
 
     const shiftsTogetherMap = new Map<string, number>();

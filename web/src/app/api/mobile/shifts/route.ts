@@ -5,17 +5,19 @@ import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 
 const DEFAULT_PAGE_SIZE = 15;
 
+/** How far ahead (in months) to include available shifts — covers the calendar window. */
+const AVAILABLE_WINDOW_MONTHS = 3;
+
 /**
  * GET /api/mobile/shifts
  *
  * Returns shifts categorized for the authenticated user:
  * - myShifts: upcoming shifts the user is signed up for (always returns all)
- * - available: upcoming shifts with open spots the user is NOT signed up for (paginated)
+ * - available: upcoming shifts the user is NOT signed up for, within a 3-month window (unpaginated)
  * - past: past shifts the user attended (paginated)
  *
  * Pagination query params:
- * - limit: number of items per page (default 15)
- * - availableCursor: shift ID cursor for available shifts (omit for first page)
+ * - limit: number of items per page for past (default 15)
  * - pastCursor: signup ID cursor for past shifts (omit for first page)
  */
 export async function GET(request: Request) {
@@ -27,31 +29,18 @@ export async function GET(request: Request) {
   const now = new Date();
   const { userId } = auth;
 
-  // Fetch user's preferred locations for the client to default the filter
+  // Fetch user's default location for the client to default the filter
   const userRecord = await prisma.user.findUnique({
     where: { id: userId },
-    select: { availableLocations: true },
+    select: { defaultLocation: true },
   });
-  let userPreferredLocations: string[] = [];
-  if (userRecord?.availableLocations) {
-    try {
-      const parsed = JSON.parse(userRecord.availableLocations);
-      if (Array.isArray(parsed)) {
-        userPreferredLocations = parsed.filter(
-          (item: unknown) => typeof item === "string" && (item as string).trim()
-        );
-      }
-    } catch {
-      // Not valid JSON — ignore
-    }
-  }
+  const userDefaultLocation = userRecord?.defaultLocation ?? null;
 
   const url = new URL(request.url);
   const limit = Math.min(
     Math.max(parseInt(url.searchParams.get("limit") ?? "") || DEFAULT_PAGE_SIZE, 1),
     50
   );
-  const availableCursor = url.searchParams.get("availableCursor");
   const pastCursor = url.searchParams.get("pastCursor");
 
   // Active signup statuses (not canceled/no-show/etc)
@@ -75,12 +64,15 @@ export async function GET(request: Request) {
     orderBy: { shift: { start: "asc" } },
   });
 
-  // Fetch available upcoming shifts (paginated)
+  // Fetch available upcoming shifts within the calendar window (unpaginated — bounded by date range)
   const userSignedUpShiftIds = mySignups.map((s) => s.shift.id);
+
+  const availableWindowEnd = new Date(now);
+  availableWindowEnd.setMonth(availableWindowEnd.getMonth() + AVAILABLE_WINDOW_MONTHS);
 
   const availableShifts = await prisma.shift.findMany({
     where: {
-      start: { gte: now },
+      start: { gte: now, lt: availableWindowEnd },
       id: { notIn: userSignedUpShiftIds.length > 0 ? userSignedUpShiftIds : undefined },
     },
     include: {
@@ -88,14 +80,7 @@ export async function GET(request: Request) {
       signups: { where: { status: "CONFIRMED" } },
     },
     orderBy: { start: "asc" },
-    take: limit + 1, // Fetch one extra to detect if there are more
-    ...(availableCursor
-      ? { cursor: { id: availableCursor }, skip: 1 }
-      : {}),
   });
-
-  const hasMoreAvailable = availableShifts.length > limit;
-  if (hasMoreAvailable) availableShifts.pop(); // Remove the extra item
 
   // Fetch past shifts the user attended (paginated)
   const pastSignups = await prisma.signup.findMany({
@@ -151,10 +136,6 @@ export async function GET(request: Request) {
     notes: shift.notes,
   });
 
-  const filteredAvailable = availableShifts.filter(
-    (s) => s.signups.length < s.capacity
-  );
-
   // Build periodFriends: friends signed up for shifts in each date+period
   // Collect all upcoming shift IDs (myShifts + available)
   const allUpcomingShiftIds = [
@@ -189,7 +170,10 @@ export async function GET(request: Request) {
     friendIds.add(f.userId === userId ? f.friendId : f.userId);
   }
 
-  let periodFriends: Record<string, Array<{ id: string; name: string; profilePhotoUrl: string | null }>> = {};
+  type FriendSummary = { id: string; name: string; profilePhotoUrl: string | null };
+
+  let periodFriends: Record<string, FriendSummary[]> = {};
+  let shiftFriends: Record<string, FriendSummary[]> = {};
 
   if (friendIds.size > 0 && allUpcomingShiftIds.length > 0) {
     const friendSignups = await prisma.signup.findMany({
@@ -212,31 +196,37 @@ export async function GET(request: Request) {
       },
     });
 
-    // Group by period key, dedup by friend ID within each period
-    const periodMap = new Map<string, Map<string, { id: string; name: string; profilePhotoUrl: string | null }>>();
+    const periodMap = new Map<string, Map<string, FriendSummary>>();
+    const shiftMap = new Map<string, Map<string, FriendSummary>>();
 
     for (const signup of friendSignups) {
+      const friend: FriendSummary = {
+        id: signup.user.id,
+        name:
+          signup.user.name ??
+          [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ??
+          "Volunteer",
+        profilePhotoUrl: signup.user.profilePhotoUrl,
+      };
+
+      if (!shiftMap.has(signup.shiftId)) {
+        shiftMap.set(signup.shiftId, new Map());
+      }
+      shiftMap.get(signup.shiftId)!.set(friend.id, friend);
+
       const periodKey = shiftPeriodMap.get(signup.shiftId);
       if (!periodKey) continue;
-
       if (!periodMap.has(periodKey)) {
         periodMap.set(periodKey, new Map());
       }
-      const friendsInPeriod = periodMap.get(periodKey)!;
-      if (!friendsInPeriod.has(signup.user.id)) {
-        friendsInPeriod.set(signup.user.id, {
-          id: signup.user.id,
-          name:
-            signup.user.name ??
-            [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ??
-            "Volunteer",
-          profilePhotoUrl: signup.user.profilePhotoUrl,
-        });
-      }
+      periodMap.get(periodKey)!.set(friend.id, friend);
     }
 
     periodFriends = Object.fromEntries(
       Array.from(periodMap.entries()).map(([key, map]) => [key, Array.from(map.values())])
+    );
+    shiftFriends = Object.fromEntries(
+      Array.from(shiftMap.entries()).map(([key, map]) => [key, Array.from(map.values())])
     );
   }
 
@@ -244,17 +234,15 @@ export async function GET(request: Request) {
     myShifts: mySignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)
     ),
-    available: filteredAvailable.map((s) => toMobileShift(s)),
+    available: availableShifts.map((s) => toMobileShift(s)),
     past: pastSignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)
     ),
-    availableNextCursor: hasMoreAvailable
-      ? availableShifts[availableShifts.length - 1]?.id ?? null
-      : null,
     pastNextCursor: hasMorePast
       ? pastSignups[pastSignups.length - 1]?.id ?? null
       : null,
-    userPreferredLocations,
+    userDefaultLocation,
     periodFriends,
+    shiftFriends,
   });
 }

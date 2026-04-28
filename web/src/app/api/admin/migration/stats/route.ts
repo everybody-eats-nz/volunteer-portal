@@ -24,6 +24,7 @@ export async function GET() {
         where: {
           isMigrated: true,
           role: "VOLUNTEER",
+          archivedAt: null,
         },
       }),
 
@@ -32,6 +33,7 @@ export async function GET() {
         where: {
           isMigrated: true,
           role: "VOLUNTEER",
+          archivedAt: null,
           profileCompleted: false,
           migrationInvitationSent: true,
         },
@@ -42,6 +44,7 @@ export async function GET() {
         where: {
           isMigrated: true,
           role: "VOLUNTEER",
+          archivedAt: null,
           profileCompleted: true,
         },
       }),
@@ -54,6 +57,7 @@ export async function GET() {
         where: {
           isMigrated: true,
           role: "VOLUNTEER",
+          archivedAt: null,
         },
         select: {
           id: true,

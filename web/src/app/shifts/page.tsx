@@ -91,7 +91,7 @@ export default async function ShiftsCalendarPage({
   if (user?.email) {
     currentUser = await prisma.user.findUnique({
       where: { email: user.email },
-      select: { id: true, availableLocations: true },
+      select: { id: true, availableLocations: true, defaultLocation: true },
     });
 
     // Get user's friend IDs if logged in
@@ -121,17 +121,13 @@ export default async function ShiftsCalendarPage({
     }
   }
 
-  // Fetch a
-  // Parse user's preferred locations
+  // Parse user's preferred locations (still used for admin targeting and other features)
   const userPreferredLocations = safeParseAvailability(
     currentUser?.availableLocations
   );
 
-  // Filter out special event venue from auto-default logic
-  // Special events shouldn't be auto-selected as the default location
-  const userPreferredLocationsForDefault = userPreferredLocations.filter(
-    (loc: string) => loc !== "Special Event Venue"
-  );
+  // Explicit default location set by the user in their profile
+  const userDefaultLocation = currentUser?.defaultLocation ?? null;
 
   // Handle location filtering
   const rawLocation = Array.isArray(params.location)
@@ -157,19 +153,17 @@ export default async function ShiftsCalendarPage({
   } else if (showAll) {
     filterLocations = [];
     hasExplicitLocationChoice = true;
-  } else if (userPreferredLocationsForDefault.length > 0 && !chooseLocation) {
-    // Only auto-filter by profile preferences if there's only one preferred location
-    // (excluding special event venues) and user hasn't explicitly requested to choose a location
-    // Otherwise, force explicit selection to avoid confusion
-    if (userPreferredLocationsForDefault.length === 1) {
-      filterLocations = userPreferredLocationsForDefault.filter((loc: string) =>
-        LOCATIONS.includes(loc as LocationOption)
-      );
-      // Set selectedLocation for address display
-      selectedLocation = filterLocations[0] as LocationOption;
-      isUsingProfileFilter = true;
-      hasExplicitLocationChoice = true;
-    }
+  } else if (
+    userDefaultLocation &&
+    LOCATIONS.includes(userDefaultLocation as LocationOption) &&
+    !chooseLocation
+  ) {
+    // Auto-filter to the user's explicit default location unless they've
+    // requested to choose one manually.
+    filterLocations = [userDefaultLocation];
+    selectedLocation = userDefaultLocation as LocationOption;
+    isUsingProfileFilter = true;
+    hasExplicitLocationChoice = true;
   }
 
   // Fetch shifts for calendar view - simplified data structure
@@ -197,6 +191,7 @@ export default async function ShiftsCalendarPage({
               },
             },
           },
+          placeholders: true,
         },
       },
     },
@@ -275,7 +270,7 @@ export default async function ShiftsCalendarPage({
     end: shift.end,
     location: shift.location,
     capacity: shift.capacity,
-    confirmedCount: shift._count.signups + shift.placeholderCount, // Includes CONFIRMED, PENDING, REGULAR_PENDING + placeholders
+    confirmedCount: shift._count.signups + shift._count.placeholders, // Includes CONFIRMED, PENDING, REGULAR_PENDING + unregistered volunteers
     pendingCount: 0, // For calendar view, we simplify by putting all counts in confirmedCount
     shiftType: {
       name: shift.shiftType.name,
@@ -458,8 +453,8 @@ export default async function ShiftsCalendarPage({
               selectedLocation ||
               (showAll
                 ? "All Locations"
-                : isUsingProfileFilter
-                ? userPreferredLocations.join(", ")
+                : isUsingProfileFilter && userDefaultLocation
+                ? userDefaultLocation
                 : "Shifts")
             }
             description={

@@ -2,8 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatNZT } from "@/lib/dates";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -15,6 +16,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -25,27 +27,15 @@ import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
-import { type Achievement, type Friend } from "@/lib/dummy-data";
-import { api, apiUpload } from "@/lib/api";
-
-const GRADE_CONFIG: Record<
-  string,
-  { label: string; color: string; colorDark: string; emoji: string }
-> = {
-  GREEN: {
-    label: "Green",
-    color: "#22c55e",
-    colorDark: "#86efac",
-    emoji: "🌿",
-  },
-  YELLOW: {
-    label: "Yellow",
-    color: "#eab308",
-    colorDark: "#fde047",
-    emoji: "⭐",
-  },
-  PINK: { label: "Pink", color: "#ec4899", colorDark: "#f9a8d4", emoji: "💖" },
-};
+import {
+  isCalendarSyncEnabled,
+  setCalendarSyncEnabled,
+} from "@/lib/calendar-sync";
+import { useOnboarding } from "@/lib/onboarding";
+import { type Achievement, type Friend, type Shift } from "@/lib/dummy-data";
+import { api, ApiError, apiUpload } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { posthog } from "@/lib/posthog";
 
 const CATEGORY_CONFIG: Record<
   string,
@@ -99,12 +89,54 @@ export default function ProfileScreen() {
     error,
     refresh,
   } = useProfile();
-  const { friends } = useFriends();
+  const { friends, refresh: refreshFriends } = useFriends();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshFriends();
+    }, [refreshFriends])
+  );
+  const logout = useAuth((s) => s.logout);
+  const deleteAccount = useAuth((s) => s.deleteAccount);
+  const showOnboarding = useOnboarding((s) => s.show);
   const [selectedAchievement, setSelectedAchievement] =
     useState<Achievement | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [calSyncEnabled, setCalSyncEnabled] = useState(false);
+  const [calSyncBusy, setCalSyncBusy] = useState(false);
 
-  const grade = user ? GRADE_CONFIG[user.volunteerGrade] : GRADE_CONFIG.GREEN;
+  useEffect(() => {
+    isCalendarSyncEnabled().then(setCalSyncEnabled);
+  }, []);
+
+  const handleToggleCalendarSync = useCallback(async (next: boolean) => {
+    setCalSyncBusy(true);
+    try {
+      let shifts: Shift[] | undefined;
+      if (next) {
+        try {
+          const result = await api<{ myShifts: Shift[] }>("/api/mobile/shifts");
+          shifts = result.myShifts;
+        } catch {
+          // Skip initial sync if fetch fails; useShifts will reconcile later.
+        }
+      }
+      const ok = await setCalendarSyncEnabled(next, shifts);
+      if (!ok && next) {
+        setCalSyncEnabled(false);
+        Alert.alert(
+          "Calendar access needed",
+          "To sync your shifts, enable Calendar access for Everybody Eats in Settings."
+        );
+        return;
+      }
+      setCalSyncEnabled(next);
+      posthog?.capture("calendar_sync_toggled", { enabled: next });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } finally {
+      setCalSyncBusy(false);
+    }
+  }, []);
 
   const pickImage = async (source: "camera" | "library") => {
     const common: ImagePicker.ImagePickerOptions = {
@@ -121,7 +153,7 @@ export default function ProfileScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Camera access needed",
-          "Please enable camera access in Settings to take a profile photo.",
+          "Please enable camera access in Settings to take a profile photo."
         );
         return;
       }
@@ -132,7 +164,7 @@ export default function ProfileScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Photos access needed",
-          "Please enable photo library access in Settings to choose a profile photo.",
+          "Please enable photo library access in Settings to choose a profile photo."
         );
         return;
       }
@@ -144,7 +176,8 @@ export default function ProfileScreen() {
     const asset = result.assets[0];
     const uri = asset.uri;
     const mimeType = asset.mimeType ?? "image/jpeg";
-    const fileName = asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
+    const fileName =
+      asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
 
     const formData = new FormData();
     formData.append("photo", {
@@ -159,7 +192,10 @@ export default function ProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await refresh();
     } catch {
-      Alert.alert("Upload failed", "Couldn't update your photo. Please try again.");
+      Alert.alert(
+        "Upload failed",
+        "Couldn't update your photo. Please try again."
+      );
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -199,7 +235,7 @@ export default function ProfileScreen() {
           if (index === 0) pickImage("camera");
           else if (index === 1) pickImage("library");
           else if (index === 2 && user?.image) removePhoto();
-        },
+        }
       );
     } else {
       Alert.alert("Profile Photo", undefined, [
@@ -223,6 +259,8 @@ export default function ProfileScreen() {
   const inProgress = achievements.filter(
     (a) => !a.unlockedAt && a.progress != null
   );
+  const latestUnlock = unlocked[0] ?? null;
+  const otherUnlocks = unlocked.slice(1, 3);
 
   if (isLoading && !user) {
     return (
@@ -252,6 +290,7 @@ export default function ProfileScreen() {
             justifyContent: "center",
             alignItems: "center",
             paddingTop: insets.top,
+            paddingHorizontal: 32,
           },
         ]}
       >
@@ -264,186 +303,222 @@ export default function ProfileScreen() {
 
   return (
     <>
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: insets.top + 60,
-          paddingBottom: Math.max(insets.bottom, 20) + 20,
-        },
-      ]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refresh}
-          tintColor={colors.primary}
-        />
-      }
-    >
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={showPhotoOptions}
-          disabled={isUploadingPhoto}
-          style={({ pressed }) => [
-            styles.avatarContainer,
-            { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
-          ]}
-          accessibilityLabel="Change profile photo"
-          accessibilityHint="Opens options to take a photo or choose from library"
-        >
-          {user.image ? (
-            <Image source={{ uri: user.image }} style={styles.avatarImage} />
-          ) : (
-            <View
-              style={[styles.avatarFallback, { backgroundColor: Brand.green }]}
-            >
-              <Text style={styles.avatarText}>{user.firstName.charAt(0)}</Text>
-            </View>
-          )}
-          {isUploadingPhoto ? (
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + 48,
+            paddingBottom: Math.max(insets.bottom, 20) + 28,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refresh}
+            tintColor={colors.tint}
+            colors={[colors.tint]}
+            progressBackgroundColor={colors.card}
+          />
+        }
+      >
+        {/* ── Editorial Hero ── */}
+        <View style={styles.hero}>
+          <Pressable
+            onPress={showPhotoOptions}
+            disabled={isUploadingPhoto}
+            style={({ pressed }) => [
+              styles.avatarWrap,
+              { opacity: pressed ? 0.92 : 1 },
+            ]}
+            accessibilityLabel="Change profile photo"
+            accessibilityHint="Opens options to take a photo or choose from library"
+            accessibilityRole="button"
+          >
+            {/* Soft green halo */}
             <View
               style={[
-                styles.avatarEditBadge,
-                { backgroundColor: Brand.green },
+                styles.avatarHalo,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(134,239,172,0.10)"
+                    : "rgba(14,58,35,0.07)",
+                },
               ]}
-            >
-              <ActivityIndicator size={14} color="#ffffff" />
-            </View>
-          ) : (
+            />
             <View
               style={[
-                styles.avatarEditBadge,
-                { backgroundColor: Brand.green },
+                styles.avatarRing,
+                { borderColor: isDark ? colors.background : Brand.warmWhite },
               ]}
             >
-              <Ionicons name="camera" size={14} color="#ffffff" />
+              {user.image ? (
+                <Image
+                  source={{ uri: user.image }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    { backgroundColor: Brand.green },
+                  ]}
+                >
+                  <Text style={styles.avatarInitial}>
+                    {user.firstName.charAt(0)}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-        </Pressable>
-        <ThemedText type="title">
-          {user.firstName} {user.lastName}
-        </ThemedText>
-        <View
-          style={[
-            styles.joinedBadge,
-            { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9" },
-          ]}
-        >
-          <Text style={[styles.joinedText, { color: colors.textSecondary }]}>
-            Volunteer since {formatNZT(new Date(user.memberSince), "MMM yyyy")}
+            <View
+              style={[
+                styles.avatarBadge,
+                {
+                  backgroundColor: Brand.green,
+                  borderColor: isDark ? colors.background : Brand.warmWhite,
+                },
+              ]}
+            >
+              {isUploadingPhoto ? (
+                <ActivityIndicator size={12} color="#ffffff" />
+              ) : (
+                <Ionicons name="camera" size={13} color="#ffffff" />
+              )}
+            </View>
+          </Pressable>
+
+          <Text
+            style={[
+              styles.heroGreeting,
+              { color: isDark ? "#86efac" : Brand.greenDark },
+            ]}
+          >
+            Kia ora,
+          </Text>
+          <Text style={[styles.heroName, { color: colors.text }]}>
+            {user.firstName} {user.lastName}
+          </Text>
+
+          <Text style={[styles.heroMeta, { color: colors.textSecondary }]}>
+            Volunteer since {formatNZT(new Date(user.memberSince), "MMMM yyyy")}
           </Text>
         </View>
-      </View>
 
-      {/* ── Stats Grid (matches web dashboard) ── */}
-      <View style={styles.statsGrid}>
-        <StatCard
-          emoji="🍽️"
-          value={stats.shiftsCompleted.toString()}
-          label="Shifts"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#16a34a"
-          accentColorDark="#86efac"
-        />
-        <StatCard
-          emoji="⏱️"
-          value={`${stats.hoursContributed}`}
-          label="Hours"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#d97706"
-          accentColorDark="#fbbf24"
-        />
-        <StatCard
-          emoji="🫶"
-          value={stats.peopleServed.toLocaleString()}
-          label="Served"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#2563eb"
-          accentColorDark="#60a5fa"
-        />
-        <StatCard
-          emoji="🔥"
-          value={`${stats.currentStreak}mo`}
-          label="Streak"
-          colors={colors}
-          isDark={isDark}
-          accentColor="#dc2626"
-          accentColorDark="#f87171"
-        />
-      </View>
-
-      {/* ── Whānau (Friends) ── */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <View
-            style={[
-              styles.sectionIconCircle,
-              { backgroundColor: isDark ? "rgba(37,99,235,0.12)" : "#eff6ff" },
-            ]}
+        {/* ── Your Mahi (Impact Panel) ── */}
+        <View style={styles.mahiContainer}>
+          <LinearGradient
+            colors={
+              isDark ? ["#0d2a1b", "#14422a"] : [Brand.green, Brand.greenDark]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.mahiCard}
           >
-            <Text style={{ fontSize: 16 }}>👥</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Whānau
-            </Text>
-            <Text
-              style={[styles.sectionCaption, { color: colors.textSecondary }]}
-            >
-              {friends.length} friends
-            </Text>
-          </View>
+            {/* Decorative bloom */}
+            <View style={styles.mahiBloomOuter} pointerEvents="none" />
+            <View style={styles.mahiBloomInner} pointerEvents="none" />
+
+            <View style={styles.mahiLabelRow}>
+              <View
+                style={[
+                  styles.mahiLabelLine,
+                  { backgroundColor: Brand.accent },
+                ]}
+              />
+              <Text style={styles.mahiLabel}>Your mahi</Text>
+            </View>
+
+            <View style={styles.mahiHero}>
+              <Text style={styles.mahiHeroNumber}>
+                {stats.shiftsCompleted.toLocaleString()}
+              </Text>
+              <Text style={styles.mahiHeroCaption}>
+                shifts served with aroha
+              </Text>
+            </View>
+
+            <View style={styles.mahiDivider} />
+
+            <View style={styles.mahiStatsRow}>
+              <MahiStat
+                value={stats.peopleServed.toLocaleString()}
+                label="Meals"
+              />
+              <View style={styles.mahiStatDivider} />
+              <MahiStat value={`${stats.hoursContributed}`} label="Hours" />
+              <View style={styles.mahiStatDivider} />
+              <MahiStat value={`${stats.currentStreak}mo`} label="Streak" />
+            </View>
+          </LinearGradient>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.friendsScroll}
-        >
-          {friends.map((friend) => (
-            <FriendCard
-              key={friend.id}
-              friend={friend}
+
+        {/* ── Whānau ── */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="Whānau"
+            subtitle={`${friends.length} ${
+              friends.length === 1 ? "friend" : "friends"
+            }`}
+            colors={colors}
+          />
+          {friends.length === 0 ? (
+            <View
+              style={[
+                styles.emptyFriendsCard,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <Text style={{ fontSize: 22 }}>🤝</Text>
+              <Text style={[styles.emptyFriendsText, { color: colors.text }]}>
+                Your whānau grows with every shift
+              </Text>
+              <Text
+                style={[
+                  styles.emptyFriendsMeta,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Connect with volunteers you’ve served alongside.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.friendsScroll}
+            >
+              {friends.map((friend) => (
+                <FriendCard
+                  key={friend.id}
+                  friend={friend}
+                  colors={colors}
+                  isDark={isDark}
+                  router={router}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        {/* ── Achievements ── */}
+        <View style={styles.section}>
+          <SectionHeader
+            title="Achievements"
+            subtitle={`${unlocked.length} unlocked · ${totalPoints} points`}
+            colors={colors}
+          />
+
+          {latestUnlock && (
+            <FeaturedUnlock
+              achievement={latestUnlock}
               colors={colors}
               isDark={isDark}
-              router={router}
+              onPress={() => setSelectedAchievement(latestUnlock)}
             />
-          ))}
-        </ScrollView>
-      </View>
+          )}
 
-      {/* ── Achievements ── */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.sectionHeaderRow}>
-          <View
-            style={[
-              styles.sectionIconCircle,
-              { backgroundColor: isDark ? "rgba(245,158,11,0.12)" : "#fef3c7" },
-            ]}
-          >
-            <Text style={{ fontSize: 16 }}>🏆</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Achievements
-            </Text>
-            <Text
-              style={[styles.sectionCaption, { color: colors.textSecondary }]}
-            >
-              {unlocked.length} unlocked · {totalPoints} points
-            </Text>
-          </View>
-        </View>
-
-        {/* Recent unlocks */}
-        {unlocked
-          .slice(0, 3)
-          .map((achievement) => (
+          {otherUnlocks.map((achievement) => (
             <AchievementRow
               key={achievement.id}
               achievement={achievement}
@@ -454,131 +529,350 @@ export default function ProfileScreen() {
             />
           ))}
 
-        {/* Next goals */}
-        {inProgress.length > 0 && (
-          <>
-            <Text
-              style={[styles.subsectionLabel, { color: colors.textSecondary }]}
-            >
-              NEXT GOALS
+          {inProgress.length > 0 && (
+            <>
+              <View style={styles.subsectionHeader}>
+                <View
+                  style={[
+                    styles.subsectionLine,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(14,58,35,0.14)",
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.subsectionLabel,
+                    { color: isDark ? "#86efac" : Brand.greenDark },
+                  ]}
+                >
+                  NEXT GOALS
+                </Text>
+                <View
+                  style={[
+                    styles.subsectionLine,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(14,58,35,0.14)",
+                    },
+                  ]}
+                />
+              </View>
+              {inProgress.map((achievement) => (
+                <AchievementRow
+                  key={achievement.id}
+                  achievement={achievement}
+                  colors={colors}
+                  isDark={isDark}
+                  type="progress"
+                  onPress={() => setSelectedAchievement(achievement)}
+                />
+              ))}
+            </>
+          )}
+        </View>
+
+        {/* ── Account actions ── */}
+        <View style={styles.settingsGroup}>
+          <SettingsRow
+            icon="person-outline"
+            label="Edit profile"
+            hint="Details, pronouns, emergency contact"
+            colors={colors}
+            isDark={isDark}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/profile/edit");
+            }}
+          />
+          <View
+            style={[
+              styles.settingsDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(14,58,35,0.06)",
+              },
+            ]}
+          />
+          <SettingsToggleRow
+            icon="calendar-number-outline"
+            label="Sync shifts to calendar"
+            hint="Add upcoming shifts to your device calendar"
+            value={calSyncEnabled}
+            loading={calSyncBusy}
+            colors={colors}
+            isDark={isDark}
+            onToggle={handleToggleCalendarSync}
+          />
+          <View
+            style={[
+              styles.settingsDivider,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(14,58,35,0.06)",
+              },
+            ]}
+          />
+          <SettingsRow
+            icon="sparkles-outline"
+            label="See the intro again"
+            hint="Replay the welcome tour"
+            colors={colors}
+            isDark={isDark}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              showOnboarding();
+            }}
+          />
+        </View>
+
+        {/* ── Sign out ── */}
+        <View>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Alert.alert("Sign out", "Are you sure you want to sign out?", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Sign out",
+                  style: "destructive",
+                  onPress: () => {
+                    logout();
+                  },
+                },
+              ]);
+            }}
+            style={({ pressed }) => [
+              styles.signOutButton,
+              {
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={16}
+              color={colors.destructive}
+            />
+            <Text style={[styles.signOutText, { color: colors.destructive }]}>
+              Sign out
             </Text>
-            {inProgress.map((achievement) => (
-              <AchievementRow
-                key={achievement.id}
-                achievement={achievement}
-                colors={colors}
-                isDark={isDark}
-                type="progress"
-                onPress={() => setSelectedAchievement(achievement)}
-              />
-            ))}
-          </>
-        )}
-      </View>
+          </Pressable>
+        </View>
 
-      {/* ── Quick Actions ── */}
-      <View style={styles.actionsGrid}>
-        <ActionButton
-          icon="create-outline"
-          label="Edit Profile"
+        {/* ── Delete account ── */}
+        <View>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              Alert.alert(
+                "Delete your account?",
+                "This will permanently delete your account, your shift history, achievements, friendships, and all other data. This can't be undone.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Delete account",
+                    style: "destructive",
+                    onPress: () => {
+                      Alert.alert(
+                        "Are you absolutely sure?",
+                        "Your account and all your data will be removed immediately. There's no way to recover it.",
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: "Delete forever",
+                            style: "destructive",
+                            onPress: async () => {
+                              try {
+                                await deleteAccount();
+                              } catch (error) {
+                                const message =
+                                  error instanceof ApiError
+                                    ? error.message
+                                    : "Something went wrong. Please try again or email us for help.";
+                                Alert.alert("Couldn't delete account", message);
+                              }
+                            },
+                          },
+                        ]
+                      );
+                    },
+                  },
+                ]
+              );
+            }}
+            style={({ pressed }) => [
+              styles.deleteAccountButton,
+              {
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+            accessibilityRole="button"
+          >
+            <Text
+              style={[
+                styles.deleteAccountText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              Delete account
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <View
+            style={[
+              styles.footerOrnament,
+              {
+                backgroundColor: isDark
+                  ? "rgba(134,239,172,0.25)"
+                  : "rgba(14,58,35,0.2)",
+              },
+            ]}
+          />
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Ngā mihi nui for being part of the whānau
+          </Text>
+          <Text style={[styles.footerSubtext, { color: colors.textSecondary }]}>
+            Everybody Eats · Aotearoa
+          </Text>
+        </View>
+      </ScrollView>
+
+      {selectedAchievement && (
+        <AchievementSheet
+          achievement={selectedAchievement}
+          totalVolunteers={totalVolunteers}
+          onClose={() => setSelectedAchievement(null)}
           colors={colors}
           isDark={isDark}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/profile/edit");
-          }}
         />
-        <ActionButton
-          icon="calendar-outline"
-          label="My Schedule"
-          colors={colors}
-          isDark={isDark}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/shifts");
-          }}
-        />
-      </View>
-
-      {/* ── Sign out ── */}
-      <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Sign Out", style: "destructive", onPress: () => {} },
-          ]);
-        }}
-        style={({ pressed }) => [
-          styles.signOutButton,
-          {
-            borderColor: isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)",
-            backgroundColor: isDark
-              ? "rgba(239,68,68,0.06)"
-              : "rgba(239,68,68,0.04)",
-            opacity: pressed ? 0.7 : 1,
-          },
-        ]}
-      >
-        <Ionicons name="log-out-outline" size={18} color={colors.destructive} />
-        <Text style={[styles.signOutText, { color: colors.destructive }]}>
-          Sign Out
-        </Text>
-      </Pressable>
-
-      {/* ── Footer ── */}
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-          Ngā mihi nui for being part of the whānau 💚
-        </Text>
-      </View>
-    </ScrollView>
-
-    {selectedAchievement && (
-      <AchievementSheet
-        achievement={selectedAchievement}
-        totalVolunteers={totalVolunteers}
-        onClose={() => setSelectedAchievement(null)}
-        colors={colors}
-        isDark={isDark}
-      />
-    )}
-  </>
+      )}
+    </>
   );
 }
 
-/* ── Stat Card ── */
+/* ── Mahi stat (on the dark green panel) ── */
 
-function StatCard({
-  emoji,
-  value,
-  label,
-  colors,
-  isDark,
-  accentColor,
-  accentColorDark,
-}: {
-  emoji: string;
-  value: string;
-  label: string;
-  colors: (typeof Colors)["light"];
-  isDark: boolean;
-  accentColor: string;
-  accentColorDark: string;
-}) {
-  const accent = isDark ? accentColorDark : accentColor;
+function MahiStat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-      <Text style={styles.statEmoji}>{emoji}</Text>
-      <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-        {label}
+    <View style={styles.mahiStatItem}>
+      <Text style={styles.mahiStatValue}>{value}</Text>
+      <Text style={styles.mahiStatLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/* ── Section header ── */
+
+function SectionHeader({
+  title,
+  subtitle,
+  colors,
+}: {
+  title: string;
+  subtitle: string;
+  colors: (typeof Colors)["light"];
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+        {subtitle}
       </Text>
     </View>
   );
 }
 
-/* ── Achievement Row ── */
+/* ── Featured latest unlock ── */
+
+function FeaturedUnlock({
+  achievement,
+  colors,
+  isDark,
+  onPress,
+}: {
+  achievement: Achievement;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  onPress: () => void;
+}) {
+  const cat =
+    CATEGORY_CONFIG[achievement.category] ?? CATEGORY_CONFIG.MILESTONE;
+  const catColor = isDark ? cat.colorDark : cat.color;
+  const catBg = isDark ? cat.bgDark : cat.bg;
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.featuredCard,
+        {
+          backgroundColor: colors.card,
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.995 : 1 }],
+          borderColor: isDark
+            ? "rgba(255,255,255,0.04)"
+            : "rgba(14,58,35,0.04)",
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${achievement.name} — latest achievement`}
+    >
+      <View style={styles.featuredMeta}>
+        <View style={[styles.featuredChip, { backgroundColor: catBg }]}>
+          <Text style={[styles.featuredChipText, { color: catColor }]}>
+            LATEST UNLOCK
+          </Text>
+        </View>
+        {achievement.unlockedAt && (
+          <Text style={[styles.featuredDate, { color: colors.textSecondary }]}>
+            {formatNZT(new Date(achievement.unlockedAt), "d MMM")}
+          </Text>
+        )}
+      </View>
+      <View style={styles.featuredBody}>
+        <View style={[styles.featuredIcon, { backgroundColor: catBg }]}>
+          <Text style={{ fontSize: 30 }}>{achievement.icon}</Text>
+        </View>
+        <View style={styles.featuredText}>
+          <Text style={[styles.featuredName, { color: colors.text }]}>
+            {achievement.name}
+          </Text>
+          <Text
+            style={[styles.featuredDesc, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {achievement.description}
+          </Text>
+          <View style={styles.featuredFooter}>
+            <Text style={[styles.featuredPoints, { color: catColor }]}>
+              ✨ {achievement.points} points earned
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={colors.textSecondary}
+            />
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+/* ── Achievement row ── */
 
 function AchievementRow({
   achievement,
@@ -607,8 +901,8 @@ function AchievementRow({
       style={({ pressed }) => [
         styles.achievementRow,
         {
-          backgroundColor: isDark ? "rgba(255,255,255,0.02)" : "#fafafa",
-          opacity: pressed ? 0.7 : 1,
+          backgroundColor: colors.card,
+          opacity: pressed ? 0.85 : 1,
         },
       ]}
       accessibilityLabel={`${achievement.name} — ${achievement.description}`}
@@ -625,11 +919,9 @@ function AchievementRow({
           >
             {achievement.name}
           </Text>
-          <View style={[styles.categoryBadge, { backgroundColor: catBg }]}>
-            <Text style={[styles.categoryText, { color: catColor }]}>
-              {achievement.points}pt
-            </Text>
-          </View>
+          <Text style={[styles.achievementPoints, { color: catColor }]}>
+            +{achievement.points}
+          </Text>
         </View>
         <Text
           style={[styles.achievementDesc, { color: colors.textSecondary }]}
@@ -646,7 +938,7 @@ function AchievementRow({
                 {
                   backgroundColor: isDark
                     ? "rgba(255,255,255,0.06)"
-                    : "#e2e8f0",
+                    : "#eef2e8",
                 },
               ]}
             >
@@ -701,10 +993,12 @@ function AchievementSheet({
   const catBg = isDark ? cat.bgDark : cat.bg;
   const isUnlocked = !!achievement.unlockedAt;
   const unlockedByCount = achievement.unlockedByCount ?? 0;
-  const unlockPct =
-    totalVolunteers > 0
-      ? Math.round((unlockedByCount / totalVolunteers) * 100)
-      : 0;
+  const unlockPctDisplay = (() => {
+    if (totalVolunteers === 0 || unlockedByCount === 0) return "0";
+    const raw = (unlockedByCount / totalVolunteers) * 100;
+    if (raw < 1) return "<1";
+    return String(Math.round(raw));
+  })();
 
   const CATEGORY_LABELS: Record<string, string> = {
     MILESTONE: "Milestone",
@@ -721,9 +1015,7 @@ function AchievementSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View
-        style={[achieveSheet.page, { backgroundColor: colors.background }]}
-      >
+      <View style={[achieveSheet.page, { backgroundColor: colors.background }]}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
@@ -738,7 +1030,6 @@ function AchievementSheet({
               { backgroundColor: isDark ? cat.bgDark : cat.bg },
             ]}
           >
-            {/* Handle bar */}
             <View
               style={[
                 achieveSheet.handleBar,
@@ -749,7 +1040,6 @@ function AchievementSheet({
                 },
               ]}
             />
-            {/* Decorative rings */}
             <View
               style={[
                 achieveSheet.ring,
@@ -773,7 +1063,6 @@ function AchievementSheet({
               ]}
             />
 
-            {/* Close pill */}
             <Pressable
               onPress={onClose}
               hitSlop={10}
@@ -796,7 +1085,6 @@ function AchievementSheet({
               />
             </Pressable>
 
-            {/* Icon */}
             <View
               style={[
                 achieveSheet.iconCircle,
@@ -810,7 +1098,6 @@ function AchievementSheet({
               <Text style={achieveSheet.iconEmoji}>{achievement.icon}</Text>
             </View>
 
-            {/* Category label */}
             <View
               style={[
                 achieveSheet.typeLabel,
@@ -827,121 +1114,288 @@ function AchievementSheet({
             </View>
           </View>
 
-          {/* ── Content card ── */}
-          <View
-            style={[
-              achieveSheet.card,
-              {
-                backgroundColor: colors.card,
-                shadowColor: isDark ? "#000" : "#64748b",
-              },
-            ]}
-          >
-            <Text style={[achieveSheet.title, { color: colors.text }]}>
-              {achievement.name}
-            </Text>
-            <Text
-              style={[achieveSheet.description, { color: colors.textSecondary }]}
+          <View style={achieveSheet.body}>
+            {/* ── Title card (overlaps hero) ── */}
+            <View
+              style={[
+                achieveSheet.titleCard,
+                {
+                  backgroundColor: colors.card,
+                  shadowColor: isDark ? "#000" : "#0f172a",
+                  borderColor: isDark ? colors.border : "#eef0ec",
+                },
+              ]}
             >
-              {achievement.description}
-            </Text>
-
-            {/* Points + status pills */}
-            <View style={achieveSheet.pillRow}>
+              <Text style={[achieveSheet.title, { color: colors.text }]}>
+                {achievement.name}
+              </Text>
               <View
-                style={[achieveSheet.pill, { backgroundColor: catBg }]}
+                style={[achieveSheet.titleRule, { backgroundColor: catColor }]}
+              />
+              <Text
+                style={[
+                  achieveSheet.description,
+                  { color: colors.textSecondary },
+                ]}
               >
-                <Text style={{ fontSize: 12 }}>✨</Text>
-                <Text style={[achieveSheet.pillText, { color: catColor }]}>
-                  {achievement.points} points
-                </Text>
-              </View>
+                {achievement.description}
+              </Text>
+
               <View
                 style={[
-                  achieveSheet.pill,
+                  achieveSheet.metaStrip,
                   {
-                    backgroundColor: isUnlocked
-                      ? isDark
-                        ? "rgba(34,197,94,0.12)"
-                        : "#f0fdf4"
-                      : isDark
-                        ? "rgba(255,255,255,0.05)"
-                        : "#f8fafc",
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.03)"
+                      : "#fafaf6",
+                    borderColor: isDark ? colors.border : "#eef0ec",
                   },
                 ]}
               >
-                <Text style={{ fontSize: 12 }}>
-                  {isUnlocked ? "✅" : "🔒"}
-                </Text>
-                <Text
+                <View style={achieveSheet.metaCell}>
+                  <Text style={[achieveSheet.metaNum, { color: catColor }]}>
+                    +{achievement.points}
+                  </Text>
+                  <Text
+                    style={[
+                      achieveSheet.metaLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Points
+                  </Text>
+                </View>
+                <View
                   style={[
-                    achieveSheet.pillText,
+                    achieveSheet.metaDivider,
                     {
-                      color: isUnlocked
-                        ? isDark
-                          ? "#86efac"
-                          : "#16a34a"
-                        : colors.textSecondary,
+                      backgroundColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "#e8eae4",
+                    },
+                  ]}
+                />
+                <View style={achieveSheet.metaCell}>
+                  <View style={achieveSheet.metaStatusRow}>
+                    <Ionicons
+                      name={isUnlocked ? "checkmark-circle" : "time-outline"}
+                      size={16}
+                      color={
+                        isUnlocked
+                          ? isDark
+                            ? "#86efac"
+                            : "#16a34a"
+                          : colors.textSecondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        achieveSheet.metaStatusText,
+                        {
+                          color: isUnlocked
+                            ? isDark
+                              ? "#86efac"
+                              : "#16a34a"
+                            : colors.text,
+                        },
+                      ]}
+                    >
+                      {isUnlocked ? "Unlocked" : "In progress"}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      achieveSheet.metaLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Status
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ── How to unlock / criteria ── */}
+            {achievement.criteria ? (
+              <View style={achieveSheet.section}>
+                <View style={achieveSheet.sectionHeader}>
+                  <View
+                    style={[
+                      achieveSheet.sectionAccent,
+                      { backgroundColor: catColor },
+                    ]}
+                  />
+                  <Text
+                    style={[achieveSheet.sectionLabel, { color: catColor }]}
+                  >
+                    {isUnlocked ? "You completed" : "How to unlock"}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    achieveSheet.dataCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.border : "#eef0ec",
                     },
                   ]}
                 >
-                  {isUnlocked ? "Unlocked" : "In Progress"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* ── Progress / Unlock date section ── */}
-          <View style={achieveSheet.section}>
-            {isUnlocked && achievement.unlockedAt ? (
-              <View
-                style={[
-                  achieveSheet.infoCard,
-                  { backgroundColor: colors.card },
-                ]}
-              >
-                <View style={achieveSheet.infoRow}>
-                  <Text style={{ fontSize: 16 }}>📅</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text
+                  <View style={achieveSheet.criteriaRow}>
+                    <View
                       style={[
-                        achieveSheet.infoLabel,
-                        { color: colors.textSecondary },
+                        achieveSheet.criteriaBadge,
+                        {
+                          backgroundColor: isUnlocked
+                            ? isDark
+                              ? "rgba(134,239,172,0.14)"
+                              : "#dcfce7"
+                            : catBg,
+                        },
                       ]}
                     >
-                      Unlocked on
-                    </Text>
+                      <Ionicons
+                        name={
+                          isUnlocked ? "checkmark-circle" : "flag-outline"
+                        }
+                        size={22}
+                        color={
+                          isUnlocked
+                            ? isDark
+                              ? "#86efac"
+                              : "#16a34a"
+                            : catColor
+                        }
+                      />
+                    </View>
                     <Text
-                      style={[achieveSheet.infoValue, { color: colors.text }]}
+                      style={[
+                        achieveSheet.criteriaText,
+                        { color: colors.text },
+                      ]}
                     >
-                      {formatNZT(new Date(achievement.unlockedAt), "d MMMM yyyy")}
+                      {achievement.criteria}
                     </Text>
                   </View>
                 </View>
               </View>
-            ) : achievement.progress != null ? (
-              <View
-                style={[
-                  achieveSheet.infoCard,
-                  { backgroundColor: colors.card },
-                ]}
-              >
-                <Text
+            ) : null}
+
+            {/* ── Milestone / Progress ── */}
+            {isUnlocked && achievement.unlockedAt ? (
+              <View style={achieveSheet.section}>
+                <View style={achieveSheet.sectionHeader}>
+                  <View
+                    style={[
+                      achieveSheet.sectionAccent,
+                      { backgroundColor: catColor },
+                    ]}
+                  />
+                  <Text
+                    style={[achieveSheet.sectionLabel, { color: catColor }]}
+                  >
+                    Achived
+                  </Text>
+                </View>
+                <View
                   style={[
-                    achieveSheet.infoLabel,
-                    { color: colors.textSecondary, marginBottom: 8 },
+                    achieveSheet.dataCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.border : "#eef0ec",
+                    },
                   ]}
                 >
-                  Your Progress
-                </Text>
-                <View style={achieveSheet.progressContainer}>
+                  <Text
+                    style={[
+                      achieveSheet.dateDay,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {formatNZT(new Date(achievement.unlockedAt), "EEEE")}
+                  </Text>
+                  <Text style={[achieveSheet.dateMain, { color: colors.text }]}>
+                    {formatNZT(new Date(achievement.unlockedAt), "d MMMM yyyy")}
+                  </Text>
+                  <Text
+                    style={[
+                      achieveSheet.dateMeta,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Earned this badge — Ka pai!
+                  </Text>
+                </View>
+              </View>
+            ) : achievement.progress != null ? (
+              <View style={achieveSheet.section}>
+                <View style={achieveSheet.sectionHeader}>
+                  <View
+                    style={[
+                      achieveSheet.sectionAccent,
+                      { backgroundColor: catColor },
+                    ]}
+                  />
+                  <Text
+                    style={[achieveSheet.sectionLabel, { color: catColor }]}
+                  >
+                    Progress
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    achieveSheet.dataCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isDark ? colors.border : "#eef0ec",
+                    },
+                  ]}
+                >
+                  <View style={achieveSheet.progressTopRow}>
+                    <Text
+                      style={[
+                        achieveSheet.progressBigNum,
+                        { color: colors.text },
+                      ]}
+                    >
+                      {Math.round(achievement.progress * 100)}
+                      <Text
+                        style={[
+                          achieveSheet.progressPct,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        %
+                      </Text>
+                    </Text>
+                    {achievement.target && (
+                      <View style={achieveSheet.progressGoal}>
+                        <Text
+                          style={[
+                            achieveSheet.progressGoalLabel,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Toward
+                        </Text>
+                        <Text
+                          style={[
+                            achieveSheet.progressGoalText,
+                            { color: colors.text },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {achievement.target}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <View
                     style={[
                       achieveSheet.progressTrack,
                       {
                         backgroundColor: isDark
                           ? "rgba(255,255,255,0.06)"
-                          : "#e2e8f0",
+                          : "#f1f3ee",
                       },
                     ]}
                   >
@@ -955,182 +1409,210 @@ function AchievementSheet({
                       ]}
                     />
                   </View>
-                  <Text
-                    style={[
-                      achieveSheet.progressText,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {Math.round(achievement.progress * 100)}%
-                  </Text>
                 </View>
-                {achievement.target && (
-                  <Text
-                    style={[
-                      achieveSheet.progressTarget,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Goal: {achievement.target}
-                  </Text>
-                )}
               </View>
             ) : null}
 
-            {/* ── Community stats ── */}
-            <View
-              style={[achieveSheet.infoCard, { backgroundColor: colors.card }]}
-            >
-              <Text
-                style={[
-                  achieveSheet.infoLabel,
-                  { color: colors.textSecondary, marginBottom: 10 },
-                ]}
-              >
-                Community
-              </Text>
-              <View style={achieveSheet.communityRow}>
-                <View style={achieveSheet.communityItem}>
-                  <Text style={{ fontSize: 22 }}>👥</Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityValue,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {unlockedByCount}
-                  </Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {unlockedByCount === 1 ? "Volunteer" : "Volunteers"}
-                  </Text>
-                </View>
+            {/* ── Rarity (with friends inline) ── */}
+            <View style={achieveSheet.section}>
+              <View style={achieveSheet.sectionHeader}>
                 <View
                   style={[
-                    achieveSheet.communityDivider,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(255,255,255,0.06)"
-                        : "#e2e8f0",
-                    },
+                    achieveSheet.sectionAccent,
+                    { backgroundColor: catColor },
                   ]}
                 />
-                <View style={achieveSheet.communityItem}>
-                  <Text style={{ fontSize: 22 }}>📊</Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityValue,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {unlockPct}%
-                  </Text>
-                  <Text
-                    style={[
-                      achieveSheet.communityLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    of whānau
-                  </Text>
-                </View>
+                <Text style={[achieveSheet.sectionLabel, { color: catColor }]}>
+                  Rarity
+                </Text>
               </View>
-            </View>
-
-            {/* ── Friends who earned this ── */}
-            {achievement.friendsWhoEarned &&
-              achievement.friendsWhoEarned.length > 0 && (
-                <View
-                  style={[
-                    achieveSheet.infoCard,
-                    { backgroundColor: colors.card },
-                  ]}
-                >
-                  <Text
+              <View
+                style={[
+                  achieveSheet.dataCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: isDark ? colors.border : "#eef0ec",
+                  },
+                ]}
+              >
+                <View style={achieveSheet.rarityRow}>
+                  <View style={achieveSheet.rarityCell}>
+                    <Text
+                      style={[achieveSheet.rarityNum, { color: colors.text }]}
+                    >
+                      {unlockedByCount}
+                    </Text>
+                    <Text
+                      style={[
+                        achieveSheet.rarityLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {unlockedByCount === 1
+                        ? "volunteer\nhas earned this"
+                        : "volunteers\nhave earned this"}
+                    </Text>
+                  </View>
+                  <View
                     style={[
-                      achieveSheet.infoLabel,
-                      { color: colors.textSecondary, marginBottom: 10 },
+                      achieveSheet.rarityDivider,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.08)"
+                          : "#e8eae4",
+                      },
                     ]}
-                  >
-                    Friends who earned this
-                  </Text>
-                  <View style={achieveSheet.friendsList}>
-                    {achievement.friendsWhoEarned.slice(0, 6).map((f) => (
-                      <Pressable
-                        key={f.id}
-                        onPress={() => {
-                          onClose();
-                          router.push(`/friend/${f.id}` as never);
-                        }}
-                        style={({ pressed }) => [
-                          achieveSheet.friendItem,
-                          { opacity: pressed ? 0.7 : 1 },
+                  />
+                  <View style={achieveSheet.rarityCell}>
+                    <Text
+                      style={[achieveSheet.rarityNum, { color: colors.text }]}
+                    >
+                      {unlockPctDisplay}
+                      <Text
+                        style={[
+                          achieveSheet.rarityPct,
+                          { color: colors.textSecondary },
                         ]}
-                        accessibilityLabel={`View ${f.name}'s profile`}
-                        accessibilityRole="button"
                       >
-                        {f.profilePhotoUrl ? (
-                          <Image
-                            source={{ uri: f.profilePhotoUrl }}
-                            style={achieveSheet.friendAvatar}
-                          />
-                        ) : (
-                          <View
-                            style={[
-                              achieveSheet.friendAvatarFallback,
-                              {
-                                backgroundColor: isDark
-                                  ? Brand.greenDark
-                                  : Brand.green,
-                              },
-                            ]}
-                          >
-                            <Text style={achieveSheet.friendInitial}>
-                              {f.name.charAt(0)}
-                            </Text>
-                          </View>
-                        )}
-                        <Text
-                          style={[
-                            achieveSheet.friendName,
-                            { color: colors.text },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {f.name.split(" ")[0]}
-                        </Text>
-                      </Pressable>
-                    ))}
-                    {achievement.friendsWhoEarned.length > 6 && (
-                      <View style={achieveSheet.friendItem}>
-                        <View
-                          style={[
-                            achieveSheet.friendAvatarFallback,
-                            {
-                              backgroundColor: isDark
-                                ? "rgba(255,255,255,0.06)"
-                                : "#f1f5f9",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              achieveSheet.friendMoreText,
-                              { color: colors.textSecondary },
-                            ]}
-                          >
-                            +{achievement.friendsWhoEarned.length - 6}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
+                        %
+                      </Text>
+                    </Text>
+                    <Text
+                      style={[
+                        achieveSheet.rarityLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      of the{"\n"}whānau
+                    </Text>
                   </View>
                 </View>
-              )}
+
+                {achievement.friendsWhoEarned &&
+                  achievement.friendsWhoEarned.length > 0 && (
+                    <>
+                      <View
+                        style={[
+                          achieveSheet.rarityHRule,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "#e8eae4",
+                          },
+                        ]}
+                      />
+                      <View style={{ alignItems: "center" }}>
+                        <Text
+                          style={[
+                            achieveSheet.friendsCaption,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          Achieved by {achievement.friendsWhoEarned.length} of
+                          your{" "}
+                          {achievement.friendsWhoEarned.length === 1
+                            ? "friend"
+                            : "friends"}
+                        </Text>
+                        <View style={achieveSheet.friendsList}>
+                          {achievement.friendsWhoEarned.slice(0, 6).map((f) => (
+                            <Pressable
+                              key={f.id}
+                              onPress={() => {
+                                onClose();
+                                router.push(`/friend/${f.id}` as never);
+                              }}
+                              style={({ pressed }) => [
+                                achieveSheet.friendItem,
+                                { opacity: pressed ? 0.7 : 1 },
+                              ]}
+                              accessibilityLabel={`View ${f.name}'s profile`}
+                              accessibilityRole="button"
+                            >
+                              <View
+                                style={[
+                                  achieveSheet.friendAvatarRing,
+                                  { borderColor: catBg },
+                                ]}
+                              >
+                                {f.profilePhotoUrl ? (
+                                  <Image
+                                    source={{ uri: f.profilePhotoUrl }}
+                                    style={achieveSheet.friendAvatar}
+                                  />
+                                ) : (
+                                  <View
+                                    style={[
+                                      achieveSheet.friendAvatarFallback,
+                                      {
+                                        backgroundColor: isDark
+                                          ? Brand.greenDark
+                                          : Brand.green,
+                                      },
+                                    ]}
+                                  >
+                                    <Text style={achieveSheet.friendInitial}>
+                                      {f.name.charAt(0)}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text
+                                style={[
+                                  achieveSheet.friendName,
+                                  { color: colors.text },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {f.name.split(" ")[0]}
+                              </Text>
+                            </Pressable>
+                          ))}
+                          {achievement.friendsWhoEarned.length > 6 && (
+                            <View style={achieveSheet.friendItem}>
+                              <View
+                                style={[
+                                  achieveSheet.friendAvatarRing,
+                                  { borderColor: catBg },
+                                ]}
+                              >
+                                <View
+                                  style={[
+                                    achieveSheet.friendAvatarFallback,
+                                    {
+                                      backgroundColor: isDark
+                                        ? "rgba(255,255,255,0.06)"
+                                        : "#f1f3ee",
+                                    },
+                                  ]}
+                                >
+                                  <Text
+                                    style={[
+                                      achieveSheet.friendMoreText,
+                                      { color: colors.textSecondary },
+                                    ]}
+                                  >
+                                    +{achievement.friendsWhoEarned.length - 6}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text
+                                style={[
+                                  achieveSheet.friendName,
+                                  { color: colors.textSecondary },
+                                ]}
+                                numberOfLines={1}
+                              >
+                                more
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </>
+                  )}
+              </View>
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -1139,12 +1621,6 @@ function AchievementSheet({
 }
 
 /* ── Friend Card ── */
-
-const FRIEND_GRADE_DOT: Record<string, string> = {
-  GREEN: "#22c55e",
-  YELLOW: "#eab308",
-  PINK: "#ec4899",
-};
 
 function FriendCard({
   friend,
@@ -1157,7 +1633,6 @@ function FriendCard({
   isDark: boolean;
   router: ReturnType<typeof useRouter>;
 }) {
-  const dotColor = FRIEND_GRADE_DOT[friend.grade] ?? "#94a3b8";
   return (
     <Pressable
       onPress={() => {
@@ -1168,68 +1643,86 @@ function FriendCard({
         styles.friendCard,
         {
           backgroundColor: colors.card,
-          opacity: pressed ? 0.85 : 1,
+          opacity: pressed ? 0.92 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
+          borderColor: isDark
+            ? "rgba(255,255,255,0.05)"
+            : "rgba(14,58,35,0.06)",
+          shadowColor: "#000",
+          shadowOpacity: isDark ? 0.06 : 0,
+          elevation: isDark ? 2 : 0,
         },
       ]}
-      accessibilityLabel={`${friend.name}, ${friend.shiftsTogether} shifts together`}
+      accessibilityLabel={`${friend.name}, ${
+        friend.shiftsTogether
+      } shifts together, last shift ${friend.lastActive.toLowerCase()}`}
       accessibilityRole="button"
     >
-      {/* Avatar with grade dot */}
-      <View style={styles.friendAvatarWrap}>
-        {friend.profilePhotoUrl ? (
-          <Image
-            source={{ uri: friend.profilePhotoUrl }}
-            style={styles.friendAvatar}
-          />
-        ) : (
-          <View
-            style={[
-              styles.friendAvatarFallback,
-              { backgroundColor: Brand.green },
-            ]}
-          >
-            <Text style={styles.friendAvatarInitial}>
-              {friend.name.charAt(0)}
-            </Text>
-          </View>
-        )}
+      {friend.profilePhotoUrl ? (
+        <Image
+          source={{ uri: friend.profilePhotoUrl }}
+          style={styles.friendAvatar}
+        />
+      ) : (
         <View
           style={[
-            styles.friendGradeDot,
-            {
-              backgroundColor: dotColor,
-              borderColor: colors.card,
-            },
+            styles.friendAvatarFallback,
+            { backgroundColor: Brand.green },
           ]}
-        />
-      </View>
+        >
+          <Text style={styles.friendAvatarInitial}>
+            {friend.name.charAt(0)}
+          </Text>
+        </View>
+      )}
 
-      {/* Info */}
       <Text
         style={[styles.friendName, { color: colors.text }]}
         numberOfLines={1}
       >
         {friend.name.split(" ")[0]}
       </Text>
-      <Text style={[styles.friendMeta, { color: colors.textSecondary }]}>
-        {friend.shiftsTogether} shifts together
-      </Text>
+
+      <View style={styles.friendMetaRow}>
+        <Ionicons
+          name="people-outline"
+          size={12}
+          color={colors.textSecondary}
+        />
+        <Text
+          style={[styles.friendMeta, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
+          {friend.shiftsTogether} shifts
+        </Text>
+      </View>
+
+      <View style={styles.friendMetaRow}>
+        <Ionicons name="time-outline" size={11} color={colors.textSecondary} />
+        <Text
+          style={[styles.friendMeta, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
+          {friend.lastActive}
+        </Text>
+      </View>
     </Pressable>
   );
 }
 
-/* ── Action Button ── */
+/* ── Settings row ── */
 
-function ActionButton({
+function SettingsRow({
   icon,
   label,
+  hint,
   colors,
   isDark,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  hint: string;
   colors: (typeof Colors)["light"];
   isDark: boolean;
   onPress: () => void;
@@ -1238,30 +1731,100 @@ function ActionButton({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.actionButton,
-        {
-          backgroundColor: colors.card,
-          opacity: pressed ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-        },
+        styles.settingsRow,
+        { opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <View
         style={[
-          styles.actionIconCircle,
-          { backgroundColor: isDark ? "rgba(14,58,35,0.2)" : Brand.greenLight },
+          styles.settingsIcon,
+          {
+            backgroundColor: isDark
+              ? "rgba(134,239,172,0.10)"
+              : Brand.greenLight,
+          },
         ]}
       >
         <Ionicons
           name={icon}
-          size={20}
+          size={18}
           color={isDark ? "#86efac" : Brand.green}
         />
       </View>
-      <Text style={[styles.actionLabel, { color: colors.text }]}>{label}</Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.settingsLabel, { color: colors.text }]}>
+          {label}
+        </Text>
+        <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+          {hint}
+        </Text>
+      </View>
       <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
     </Pressable>
+  );
+}
+
+/* ── Settings toggle row ── */
+
+function SettingsToggleRow({
+  icon,
+  label,
+  hint,
+  value,
+  loading,
+  colors,
+  isDark,
+  onToggle,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  hint: string;
+  value: boolean;
+  loading: boolean;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  onToggle: (next: boolean) => void;
+}) {
+  return (
+    <View style={styles.settingsRow} accessibilityRole="switch">
+      <View
+        style={[
+          styles.settingsIcon,
+          {
+            backgroundColor: isDark
+              ? "rgba(134,239,172,0.10)"
+              : Brand.greenLight,
+          },
+        ]}
+      >
+        <Ionicons
+          name={icon}
+          size={18}
+          color={isDark ? "#86efac" : Brand.green}
+        />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[styles.settingsLabel, { color: colors.text }]}>
+          {label}
+        </Text>
+        <Text style={[styles.settingsHint, { color: colors.textSecondary }]}>
+          {hint}
+        </Text>
+      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.textSecondary} />
+      ) : (
+        <Switch
+          value={value}
+          onValueChange={onToggle}
+          trackColor={{ false: undefined, true: Brand.green }}
+          thumbColor={Platform.OS === "android" ? Brand.accent : undefined}
+          accessibilityLabel={label}
+        />
+      )}
+    </View>
   );
 }
 
@@ -1275,150 +1838,366 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  // Header
-  header: {
+  /* Hero */
+  hero: {
     alignItems: "center",
-    gap: 8,
-    marginBottom: 24,
+    marginBottom: 28,
   },
-  avatarContainer: {
-    marginBottom: 4,
+  avatarWrap: {
+    width: 120,
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  avatarHalo: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   avatarImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
   },
   avatarFallback: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: {
+  avatarInitial: {
     color: "#ffffff",
-    fontSize: 36,
-    fontFamily: FontFamily.bold,
+    fontSize: 38,
+    fontFamily: FontFamily.headingBold,
   },
-  avatarEditBadge: {
+  avatarBadge: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    bottom: 4,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 3,
-    borderColor: "#ffffff",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
     justifyContent: "center",
+    zIndex: 3,
   },
-  headerMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 2,
+  heroGreeting: {
+    fontSize: 14,
+    fontFamily: FontFamily.heading,
+    fontStyle: "italic",
+    marginBottom: 2,
+    letterSpacing: 0.3,
   },
-  gradeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 5,
+  heroName: {
+    fontSize: 30,
+    fontFamily: FontFamily.headingBold,
+    lineHeight: 36,
+    textAlign: "center",
+    marginBottom: 10,
   },
-  gradeEmoji: {
-    fontSize: 12,
-  },
-  gradeText: {
-    fontSize: 12,
-    fontFamily: FontFamily.semiBold,
-  },
-  joinedBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  joinedText: {
+  heroMeta: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
-  },
-
-  // Stats grid
-  statsGrid: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    alignItems: "center",
-    gap: 4,
-  },
-  statEmoji: {
-    fontSize: 20,
-  },
-  statValue: {
-    fontSize: 18,
-    fontFamily: FontFamily.bold,
-  },
-  statLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-    textTransform: "uppercase",
     letterSpacing: 0.3,
   },
 
-  // Section
-  sectionContainer: {
-    marginBottom: 24,
-    gap: 10,
+  /* Your Mahi impact panel */
+  mahiContainer: {
+    marginBottom: 28,
   },
-  sectionHeaderRow: {
+  mahiCard: {
+    borderRadius: 24,
+    paddingVertical: 26,
+    paddingHorizontal: 24,
+    overflow: "hidden",
+  },
+  mahiBloomOuter: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: "rgba(248,251,105,0.06)",
+    top: -140,
+    right: -100,
+  },
+  mahiBloomInner: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(248,251,105,0.04)",
+    bottom: -60,
+    left: -40,
+  },
+  mahiLabelRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  mahiLabelLine: {
+    width: 20,
+    height: 2,
+    borderRadius: 1,
+  },
+  mahiLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: Brand.accent,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+  },
+  mahiHero: {
+    marginTop: 2,
+    marginBottom: 22,
+  },
+  mahiHeroNumber: {
+    fontSize: 56,
+    lineHeight: 62,
+    fontFamily: FontFamily.headingBold,
+    color: "#ffffff",
+    letterSpacing: -1.5,
+  },
+  mahiHeroCaption: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+    color: "rgba(255,253,247,0.85)",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+  mahiDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,253,247,0.14)",
+    marginBottom: 18,
+  },
+  mahiStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mahiStatItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  mahiStatValue: {
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+    color: "#ffffff",
+    letterSpacing: -0.3,
+  },
+  mahiStatLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    color: "rgba(255,253,247,0.7)",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  mahiStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "rgba(255,253,247,0.14)",
+  },
+
+  /* Section */
+  section: {
+    marginBottom: 28,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.2,
+  },
+
+  /* Whānau */
+  friendsScroll: {
     gap: 12,
+    paddingRight: 4,
+    paddingVertical: 4,
+  },
+  friendCard: {
+    width: 134,
+    alignItems: "center",
+    paddingTop: 14,
+    paddingBottom: 12,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    gap: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+  },
+  friendAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 8,
+  },
+  friendAvatarFallback: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  friendAvatarInitial: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+  },
+  friendName: {
+    fontSize: 15,
+    fontFamily: FontFamily.heading,
+    textAlign: "center",
+    letterSpacing: -0.3,
     marginBottom: 4,
   },
-  sectionIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+  friendMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  friendMeta: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.1,
+  },
+  emptyFriendsCard: {
+    borderRadius: 18,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    gap: 6,
+  },
+  emptyFriendsText: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  emptyFriendsMeta: {
+    fontSize: 12.5,
+    fontFamily: FontFamily.regular,
+    textAlign: "center",
+  },
+
+  /* Featured unlock */
+  featuredCard: {
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 10,
+    gap: 14,
+    borderWidth: 1,
+  },
+  featuredMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  featuredChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  featuredChipText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1,
+  },
+  featuredDate: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.3,
+  },
+  featuredBody: {
+    flexDirection: "row",
+    gap: 14,
+    alignItems: "center",
+  },
+  featuredIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  sectionTitle: {
-    fontSize: 16,
+  featuredText: {
+    flex: 1,
+    gap: 4,
+  },
+  featuredName: {
+    fontSize: 18,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.2,
+  },
+  featuredDesc: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+  },
+  featuredFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  featuredPoints: {
+    fontSize: 12,
     fontFamily: FontFamily.semiBold,
   },
-  sectionCaption: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    marginTop: 1,
-  },
-  subsectionLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 0.8,
-    marginTop: 6,
-    marginBottom: -2,
+
+  /* Subsection divider */
+  subsectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 18,
+    marginBottom: 10,
     paddingHorizontal: 4,
   },
+  subsectionLine: {
+    flex: 1,
+    height: 1,
+  },
+  subsectionLabel: {
+    fontSize: 10.5,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+  },
 
-  // Achievement row
+  /* Achievement row */
   achievementRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
+    marginBottom: 8,
   },
   achievementIcon: {
     width: 44,
@@ -1446,27 +2225,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FontFamily.regular,
   },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  categoryText: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
+  achievementPoints: {
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.2,
   },
   unlockedDate: {
     fontSize: 11,
     fontFamily: FontFamily.regular,
-    marginTop: 1,
+    marginTop: 2,
   },
 
-  // Progress bar
+  /* Progress bar */
   progressContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 4,
+    marginTop: 6,
   },
   progressTrack: {
     flex: 1,
@@ -1484,109 +2259,94 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
 
-  // Friends
-  friendsScroll: {
-    gap: 10,
-    paddingRight: 4,
-  },
-  friendCard: {
-    width: 110,
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 16,
-    gap: 6,
-  },
-  friendAvatarWrap: {
-    position: "relative",
-    marginBottom: 2,
-  },
-  friendAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  friendAvatarFallback: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  friendAvatarInitial: {
-    color: "#ffffff",
-    fontSize: 20,
-    fontFamily: FontFamily.bold,
-  },
-  friendGradeDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2.5,
-  },
-  friendName: {
-    fontSize: 13,
-    fontFamily: FontFamily.semiBold,
-    textAlign: "center",
-  },
-  friendMeta: {
-    fontSize: 11,
-    fontFamily: FontFamily.regular,
-    textAlign: "center",
-    lineHeight: 14,
-  },
-  // Quick actions
-  actionsGrid: {
-    gap: 10,
+  /* Settings group */
+  settingsGroup: {
     marginBottom: 20,
+    borderRadius: 18,
+    backgroundColor: "transparent",
   },
-  actionButton: {
+  settingsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 16,
-    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
   },
-  actionIconCircle: {
+  settingsIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  actionLabel: {
-    flex: 1,
+  settingsLabel: {
     fontSize: 15,
     fontFamily: FontFamily.semiBold,
   },
+  settingsHint: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+  },
+  settingsDivider: {
+    height: 1,
+    marginLeft: 58,
+  },
 
-  // Sign out
+  /* Sign out */
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingVertical: 14,
+    marginTop: 4,
   },
   signOutText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 15,
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
 
-  // Footer
+  /* Delete account — intentionally quieter than Sign out so it's
+     findable but not the dominant action */
+  deleteAccountButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
+  deleteAccountText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    letterSpacing: 0.2,
+    textDecorationLine: "underline",
+  },
+
+  /* Footer */
   footer: {
     alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 32,
+    paddingTop: 28,
+    paddingBottom: 8,
+    gap: 6,
+  },
+  footerOrnament: {
+    width: 24,
+    height: 2,
+    borderRadius: 1,
+    marginBottom: 6,
   },
   footerText: {
     fontSize: 13,
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.heading,
     textAlign: "center",
+    fontStyle: "italic",
+  },
+  footerSubtext: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    textAlign: "center",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    opacity: 0.7,
   },
 });
 
@@ -1656,153 +2416,299 @@ const achieveSheet = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
-  card: {
-    marginHorizontal: 16,
-    marginTop: -16,
-    borderRadius: 20,
+  body: {
+    paddingHorizontal: 16,
+    gap: 22,
+  },
+
+  /* Title card (overlaps hero) */
+  titleCard: {
+    marginTop: -18,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 20,
-    gap: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-    elevation: 2,
+    paddingBottom: 18,
+    alignItems: "center",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 22,
+    elevation: 3,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: FontFamily.headingBold,
-    lineHeight: 28,
+    lineHeight: 30,
     textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  titleRule: {
+    width: 28,
+    height: 2,
+    borderRadius: 1,
+    marginTop: 12,
+    marginBottom: 12,
+    opacity: 0.7,
   },
   description: {
     fontSize: 15,
     fontFamily: FontFamily.regular,
-    lineHeight: 23,
+    lineHeight: 22,
     textAlign: "center",
+    maxWidth: 320,
   },
-  pillRow: {
+
+  /* Meta strip — points + status */
+  metaStrip: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 4,
+    alignItems: "stretch",
+    alignSelf: "stretch",
+    marginTop: 18,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 12,
   },
-  pill: {
+  metaCell: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  metaNum: {
+    fontSize: 22,
+    fontFamily: FontFamily.heading,
+    fontVariant: ["tabular-nums"],
+    lineHeight: 26,
+  },
+  metaStatusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    gap: 6,
+    height: 26,
   },
-  pillText: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
+  metaStatusText: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
   },
+  metaLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginTop: 2,
+  },
+  metaDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: "stretch",
+    marginVertical: 4,
+  },
+
+  /* Section header (label above each card) */
   section: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
+    gap: 10,
   },
-  infoCard: {
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingLeft: 4,
+  },
+  sectionAccent: {
+    width: 18,
+    height: 2,
+    borderRadius: 1,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.4,
+  },
+
+  /* Generic data card */
+  dataCard: {
     borderRadius: 16,
-    padding: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 20,
   },
-  infoRow: {
+
+  /* Criteria block */
+  criteriaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  infoLabel: {
-    fontSize: 11,
+  criteriaBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  criteriaText: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: -0.1,
+  },
+
+  /* Milestone date block */
+  dateDay: {
+    fontSize: 12,
     fontFamily: FontFamily.semiBold,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
   },
-  infoValue: {
-    fontSize: 16,
-    fontFamily: FontFamily.semiBold,
+  dateMain: {
+    fontSize: 26,
+    fontFamily: FontFamily.heading,
+    lineHeight: 32,
+    letterSpacing: -0.4,
+    marginTop: 4,
+    fontVariant: ["tabular-nums"],
   },
-  progressContainer: {
+  dateMeta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginTop: 8,
+  },
+
+  /* Progress block */
+  progressTopRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    gap: 16,
+  },
+  progressBigNum: {
+    fontSize: 38,
+    fontFamily: FontFamily.heading,
+    lineHeight: 42,
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+  },
+  progressPct: {
+    fontSize: 22,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.5,
+  },
+  progressGoal: {
+    flex: 1,
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  progressGoalLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  progressGoalText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    textAlign: "right",
+    lineHeight: 17,
   },
   progressTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  progressText: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-    minWidth: 40,
-    textAlign: "right",
-  },
-  progressTarget: {
-    fontSize: 13,
-    fontFamily: FontFamily.regular,
-    marginTop: 6,
-  },
-  communityRow: {
+
+  /* Rarity block */
+  rarityRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  communityItem: {
+  rarityCell: {
     flex: 1,
     alignItems: "center",
     gap: 4,
   },
-  communityValue: {
+  rarityNum: {
+    fontSize: 32,
+    fontFamily: FontFamily.heading,
+    lineHeight: 36,
+    letterSpacing: -0.6,
+    fontVariant: ["tabular-nums"],
+  },
+  rarityPct: {
     fontSize: 22,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.4,
   },
-  communityLabel: {
+  rarityLabel: {
     fontSize: 12,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.regular,
+    lineHeight: 16,
+    textAlign: "center",
+    marginTop: 2,
   },
-  communityDivider: {
-    width: 1,
-    height: 40,
+  rarityDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 56,
     marginHorizontal: 8,
   },
+  rarityHRule: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: 18,
+    marginBottom: 16,
+    marginHorizontal: -4,
+  },
+  friendsCaption: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    marginBottom: 12,
+  },
+
+  /* Friends */
   friendsList: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 14,
+    rowGap: 16,
   },
   friendItem: {
     alignItems: "center",
-    gap: 4,
-    width: 56,
+    gap: 6,
+    width: 52,
+  },
+  friendAvatarRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   friendAvatarFallback: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   friendInitial: {
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: FontFamily.bold,
   },
   friendName: {
     fontSize: 11,
     fontFamily: FontFamily.medium,
     textAlign: "center",
+    width: "100%",
   },
   friendMoreText: {
     fontSize: 13,

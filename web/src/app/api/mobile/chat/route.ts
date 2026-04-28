@@ -60,11 +60,15 @@ async function getStaticContext(): Promise<StaticContext> {
       }),
       prisma.user.count({ where: { role: "VOLUNTEER" } }),
       prisma.mealsServed.aggregate({
-        where: { date: { gte: thirtyDaysAgo } },
+        where: {
+          date: { gte: thirtyDaysAgo },
+          mealsServed: { not: null },
+        },
         _sum: { mealsServed: true },
         _count: true,
       }),
       prisma.mealsServed.aggregate({
+        where: { mealsServed: { not: null } },
         _sum: { mealsServed: true },
       }),
       // Count recent shifts for fallback estimate
@@ -146,7 +150,7 @@ async function getUserContext(userId: string) {
         name: true,
         volunteerGrade: true,
         availableDays: true,
-        availableLocations: true,
+        defaultLocation: true,
         completedShiftAdjustment: true,
         profileCompleted: true,
         volunteerAgreementAccepted: true,
@@ -229,8 +233,8 @@ async function getUserContext(userId: string) {
     `Name: ${volunteerName}`,
     `Grade: ${volunteer?.volunteerGrade ?? "GREEN"} (GREEN = new, YELLOW = experienced, PINK = shift leader)`,
     `Completed shifts: ${totalShifts}`,
-    volunteer?.availableLocations
-      ? `Preferred locations: ${volunteer.availableLocations}`
+    volunteer?.defaultLocation
+      ? `Default location: ${volunteer.defaultLocation}`
       : null,
     volunteer?.availableDays ? `Available days: ${volunteer.availableDays}` : null,
     nudges.length > 0
@@ -377,6 +381,9 @@ export async function POST(request: Request) {
       systemPromptLength: systemPrompt.length,
     });
 
+    const lastUserMessage =
+      [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+
     const result = streamText({
       model: openrouter(modelId),
       system: systemPrompt,
@@ -386,6 +393,21 @@ export async function POST(request: Request) {
       })),
       onError: ({ error }) => {
         console.error("[mobile-chat] streamText error:", error);
+      },
+      onFinish: async ({ text }) => {
+        try {
+          await prisma.chatLog.create({
+            data: {
+              userId: auth.userId,
+              userMessage: lastUserMessage,
+              assistantResponse: text,
+              conversation: messages,
+              model: modelId,
+            },
+          });
+        } catch (err) {
+          console.error("[mobile-chat] Failed to write ChatLog:", err);
+        }
       },
     });
 

@@ -32,6 +32,7 @@ model User {
   howDidYouHearAboutUs         String?
   availableDays                String?
   availableLocations           String?
+  defaultLocation              String? // Primary restaurant location the volunteer wants to see first in shift browsing
   emailNewsletterSubscription  Boolean                @default(true)
   newsletterLists              String[]               @default([])
   notificationPreference       NotificationPreference @default(EMAIL)
@@ -72,6 +73,16 @@ model User {
   migrationLastSentAt       DateTime?
   migrationInvitationToken  String?   @unique
   migrationTokenExpiresAt   DateTime?
+
+  // Archiving (inactive volunteer management)
+  archivedAt                    DateTime?
+  archiveReason                 ArchiveReason?
+  archivedBy                    String? // admin user id if manually archived; null if automated
+  archiveWarningSentAt          DateTime? // 11mo warning email sent at
+  firstShiftNudgeSentAt         DateTime? // 1mo nudge for never-activated users
+  archiveExtendedUntil          DateTime? // set when user clicks "keep me active" link
+  archiveExtensionToken         String?   @unique
+  archiveExtensionTokenExpiresAt DateTime?
 
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
@@ -117,6 +128,9 @@ model User {
   // Passkey authentication
   passkeys Passkey[]
 
+  // Mobile push notification tokens
+  pushTokens PushToken[]
+
   // Survey system
   surveyAssignments SurveyAssignment[]
   createdSurveys    Survey[]           @relation("SurveyCreator")
@@ -127,6 +141,24 @@ model User {
 
   // Announcements authored by this user (admin)
   announcements Announcement[] @relation("AnnouncementAuthor")
+
+  // Content moderation
+  contentReports ContentReport[] @relation("ContentReporter")
+  blocksGiven    UserBlock[]     @relation("BlocksMade")
+  blocksReceived UserBlock[]     @relation("BlocksReceived")
+
+  // Archive activity (events affecting this user)
+  archiveLogs ArchiveLog[] @relation("ArchivedUser")
+  // Archive activity performed by this user (admin)
+  archiveActions ArchiveLog[] @relation("ArchiveActor")
+
+  // Mobile chat assistant conversations
+  chatLogs ChatLog[]
+
+  // Analytics queries filter heavily on role + createdAt
+  @@index([role, createdAt])
+  // Archive filters and scheduled job queries
+  @@index([archivedAt])
 }
 
 model Passkey {
@@ -152,6 +184,21 @@ model Passkey {
 
   @@index([userId])
   @@index([credentialId])
+}
+
+model PushToken {
+  id         String    @id @default(cuid())
+  userId     String
+  token      String    @unique // Expo push token (ExponentPushToken[...])
+  platform   String // "ios" | "android"
+  deviceName String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastUsedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model WebAuthnChallenge {
@@ -207,11 +254,30 @@ model Shift {
   location      String?
   capacity      Int
   notes            String?
-  placeholderCount Int            @default(0)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   shiftType        ShiftType      @relation(fields: [shiftTypeId], references: [id])
   signups          Signup[]
+  placeholders     ShiftPlaceholder[]
+
+  // Analytics queries filter and sort on shift end date
+  @@index([end])
+}
+
+// Walk-in / unregistered volunteers: people who show up without a volunteer
+// account. They count toward capacity and appear in the shift volunteer list
+// with a name (and optional notes).
+model ShiftPlaceholder {
+  id        String   @id @default(cuid())
+  shiftId   String
+  name      String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shift     Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([shiftId])
 }
 
 model Signup {
@@ -247,6 +313,8 @@ model Signup {
   @@unique([userId, shiftId])
   @@index([status, canceledAt])
   @@index([userId, canceledAt])
+  // shiftId-only index for reverse joins (Shift → Signup lookups in analytics)
+  @@index([shiftId])
 }
 
 model Achievement {
@@ -398,6 +466,7 @@ enum NotificationType {
   FLEXIBLE_PLACEMENT // Deprecated - kept for backwards compatibility
   UNDERAGE_USER_REGISTERED // Underage user registered - notify admins for parental consent
   SURVEY_ASSIGNED // A new survey has been assigned to you
+  SHIFT_SHORTAGE // Admin sent shortage alert for shifts that need more volunteers
 }
 
 model RestaurantManager {
@@ -682,7 +751,7 @@ model MealsServed {
   id          String   @id @default(cuid())
   date        DateTime // Date for this record (stored as start of day in UTC)
   location    String // Location name (Wellington, Glen Innes, Onehunga)
-  mealsServed Int // Actual number of meals served that day
+  mealsServed Int? // Actual number of meals served that day (nullable — admins may save notes without a count)
   notes       String? // Optional notes about the day
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -837,6 +906,63 @@ model FeedComment {
   @@index([userId])
 }
 
+// ─── Daily Menus ─────────────────────────────────────────────────────────────
+
+// Daily menu per location, published to the Webflow public website.
+// Each course holds an array of MenuItem objects: {name: string, description?: string}
+model DailyMenu {
+  id           String   @id @default(cuid())
+  date         DateTime // Date for this menu (stored as midnight UTC, treated as date-only)
+  location     String   // Location name (matches Location.name)
+  chefName     String?  // Optional chef name displayed on website
+  announcement String?  // Optional daily message shown above the menu
+  starter      Json     // Array of MenuItem: [{name, description?}]
+  mains        Json     // Array of MenuItem: [{name, description?}]
+  drink        Json     // Array of MenuItem for beverages (may be empty)
+  dessert      Json     // Array of MenuItem: [{name, description?}]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdBy    String?  // Admin user ID who last saved
+
+  @@unique([date, location])
+  @@index([location, date])
+  @@index([date])
+}
+
+// ─── Content Moderation ────────────────────────────────────────────────────────
+
+/// A report of objectionable content or an abusive user, filed by a volunteer.
+model ContentReport {
+  id         String   @id @default(cuid())
+  reporterId String
+  targetType String   // 'comment' | 'post' | 'user'
+  targetId   String   // ID of the reported entity
+  reason     String   // Reporter-selected reason
+  status     String   @default("PENDING") // 'PENDING' | 'REVIEWED' | 'RESOLVED'
+  createdAt  DateTime @default(now())
+
+  reporter User @relation("ContentReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([targetType, targetId])
+  @@index([status])
+}
+
+/// A block between two users — blocker no longer sees blockedId content in feed/comments.
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
 // ─── Announcements ────────────────────────────────────────────────────────────
 
 /// Admin-authored announcements surfaced in the mobile feed.
@@ -860,4 +986,61 @@ model Announcement {
 
   @@index([createdAt])
   @@index([expiresAt])
+}
+
+enum ArchiveReason {
+  INACTIVE_12_MONTHS
+  NEVER_ACTIVATED
+  NEVER_MIGRATED
+  MANUAL
+}
+
+enum ArchiveEventType {
+  ARCHIVED
+  UNARCHIVED
+  WARNING_SENT
+  FIRST_SHIFT_NUDGE_SENT
+  EXTENDED
+}
+
+enum ArchiveTriggerSource {
+  MANUAL
+  CRON
+  SELF_EXTENSION
+  SELF_REACTIVATION
+}
+
+// Mobile AI chat assistant conversation log.
+// One row per user message + assistant reply pair. Pruned after 30 days by cron.
+model ChatLog {
+  id                String   @id @default(cuid())
+  userId            String
+  userMessage       String   // The latest user message in the turn
+  assistantResponse String   // The full assistant reply text
+  conversation      Json     // Full message history at time of request: [{role, content}, ...]
+  model             String   // OpenRouter model id used
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+model ArchiveLog {
+  id           String               @id @default(cuid())
+  userId       String
+  eventType    ArchiveEventType
+  reason       ArchiveReason?
+  triggerSource ArchiveTriggerSource
+  actorId      String? // admin user id when MANUAL; null otherwise
+  note         String?
+  createdAt    DateTime             @default(now())
+
+  user  User  @relation("ArchivedUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("ArchiveActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([eventType, createdAt])
 }

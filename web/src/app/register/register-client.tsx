@@ -122,6 +122,7 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
     // Availability
     availableDays: [],
     availableLocations: [],
+    defaultLocation: "",
 
     // Communication & agreements
     emailNewsletterSubscription: true,
@@ -461,12 +462,31 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
   };
 
   const handleLocationToggle = (location: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      availableLocations: prev.availableLocations.includes(location)
+    setFormData((prev) => {
+      const nextLocations = prev.availableLocations.includes(location)
         ? prev.availableLocations.filter((l) => l !== location)
-        : [...prev.availableLocations, location],
-    }));
+        : [...prev.availableLocations, location];
+
+      // Keep defaultLocation in sync with availableLocations.
+      // Auto-pick when only one non-special-event location is available,
+      // and clear when the current default is no longer selected.
+      const candidates = nextLocations.filter(
+        (l) => l !== "Special Event Venue"
+      );
+      let nextDefault = prev.defaultLocation;
+      if (nextDefault && !candidates.includes(nextDefault)) {
+        nextDefault = "";
+      }
+      if (!nextDefault && candidates.length === 1) {
+        nextDefault = candidates[0];
+      }
+
+      return {
+        ...prev,
+        availableLocations: nextLocations,
+        defaultLocation: nextDefault,
+      };
+    });
   };
 
   const prevStep = () => {
@@ -588,6 +608,7 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
         return (
           <AvailabilityStep
             formData={formData}
+            onInputChange={handleInputChange}
             onDayToggle={handleDayToggle}
             onLocationToggle={handleLocationToggle}
             loading={loading}

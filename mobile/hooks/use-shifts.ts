@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { syncShifts } from "@/lib/calendar-sync";
 import type { Shift } from "@/lib/dummy-data";
 
 export type PeriodFriend = {
@@ -13,10 +14,10 @@ type ShiftsResponse = {
   myShifts: Shift[];
   available: Shift[];
   past: Shift[];
-  availableNextCursor: string | null;
   pastNextCursor: string | null;
-  userPreferredLocations: string[];
+  userDefaultLocation: string | null;
   periodFriends: Record<string, PeriodFriend[]>;
+  shiftFriends?: Record<string, PeriodFriend[]>;
 };
 
 type UseShiftsReturn = {
@@ -26,14 +27,14 @@ type UseShiftsReturn = {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  loadMoreAvailable: () => Promise<void>;
   loadMorePast: () => Promise<void>;
-  hasMoreAvailable: boolean;
   hasMorePast: boolean;
   isLoadingMore: boolean;
-  userPreferredLocations: string[];
+  userDefaultLocation: string | null;
   /** Friends keyed by "YYYY-MM-DD-DAY" or "YYYY-MM-DD-EVE" */
   periodFriends: Record<string, PeriodFriend[]>;
+  /** Friends keyed by shift ID — friends signed up for that specific role */
+  shiftFriends: Record<string, PeriodFriend[]>;
 };
 
 export function useShifts(): UseShiftsReturn {
@@ -43,10 +44,10 @@ export function useShifts(): UseShiftsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userPreferredLocations, setUserPreferredLocations] = useState<string[]>([]);
+  const [userDefaultLocation, setUserDefaultLocation] = useState<string | null>(null);
   const [periodFriends, setPeriodFriends] = useState<Record<string, PeriodFriend[]>>({});
+  const [shiftFriends, setShiftFriends] = useState<Record<string, PeriodFriend[]>>({});
 
-  const availableCursorRef = useRef<string | null>(null);
   const pastCursorRef = useRef<string | null>(null);
   const isLoadingMoreRef = useRef(false);
 
@@ -57,10 +58,16 @@ export function useShifts(): UseShiftsReturn {
       setMyShifts(result.myShifts);
       setAvailable(result.available);
       setPast(result.past);
-      setUserPreferredLocations(result.userPreferredLocations ?? []);
+      setUserDefaultLocation(result.userDefaultLocation ?? null);
       setPeriodFriends(result.periodFriends ?? {});
-      availableCursorRef.current = result.availableNextCursor;
+      setShiftFriends(result.shiftFriends ?? {});
       pastCursorRef.current = result.pastNextCursor;
+
+      // Reconcile device calendar with fresh shift data (picks up web signups
+      // and cancellations). No-op unless the user opted in.
+      syncShifts(result.myShifts).catch(() => {
+        // Swallow: calendar sync is best-effort, never block the UI on it.
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load shifts");
     } finally {
@@ -76,27 +83,6 @@ export function useShifts(): UseShiftsReturn {
     setIsLoading(true);
     await fetchShifts();
   }, [fetchShifts]);
-
-  const loadMoreAvailable = useCallback(async () => {
-    if (!availableCursorRef.current || isLoadingMoreRef.current) return;
-    isLoadingMoreRef.current = true;
-    setIsLoadingMore(true);
-    try {
-      const params = new URLSearchParams({
-        availableCursor: availableCursorRef.current,
-      });
-      const result = await api<ShiftsResponse>(
-        `/api/mobile/shifts?${params}`
-      );
-      setAvailable((prev) => [...prev, ...result.available]);
-      availableCursorRef.current = result.availableNextCursor;
-    } catch {
-      // Silently fail — user can retry by scrolling again
-    } finally {
-      isLoadingMoreRef.current = false;
-      setIsLoadingMore(false);
-    }
-  }, []);
 
   const loadMorePast = useCallback(async () => {
     if (!pastCursorRef.current || isLoadingMoreRef.current) return;
@@ -126,12 +112,11 @@ export function useShifts(): UseShiftsReturn {
     isLoading,
     error,
     refresh,
-    loadMoreAvailable,
     loadMorePast,
-    hasMoreAvailable: availableCursorRef.current !== null,
     hasMorePast: pastCursorRef.current !== null,
     isLoadingMore,
-    userPreferredLocations,
+    userDefaultLocation,
     periodFriends,
+    shiftFriends,
   };
 }

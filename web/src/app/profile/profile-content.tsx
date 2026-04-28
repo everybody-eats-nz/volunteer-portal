@@ -43,6 +43,7 @@ export async function ProfileContent() {
           howDidYouHearAboutUs: true,
           availableDays: true,
           availableLocations: true,
+          defaultLocation: true,
           emailNewsletterSubscription: true,
           newsletterLists: true,
           notificationPreference: true,
@@ -449,6 +450,18 @@ export async function ProfileContent() {
                         {location.charAt(0).toUpperCase() + location.slice(1)}
                       </Badge>
                     ))}
+                  </div>
+                </div>
+              )}
+              {userProfile?.defaultLocation && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Default Location:
+                  </span>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      {userProfile.defaultLocation}
+                    </Badge>
                   </div>
                 </div>
               )}

@@ -96,9 +96,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Create a map of recorded meals by date/location
+    // Create a map of recorded meals by date/location (skip note-only rows)
     const recordedMeals = new Map<string, number>();
     mealsServedRecords.forEach((record) => {
+      if (record.mealsServed === null) return;
       const dateKey = new Date(record.date).toISOString().substring(0, 10);
       const key = `${dateKey}|${record.location}`;
       recordedMeals.set(key, record.mealsServed);
@@ -218,6 +219,7 @@ export async function GET(request: NextRequest) {
     > = {};
 
     mealsServedRecords.forEach((record) => {
+      if (record.mealsServed === null) return;
       const monthKey = new Date(record.date).toISOString().substring(0, 7); // YYYY-MM
 
       if (!monthlyTrends[record.location]) {
@@ -250,7 +252,8 @@ export async function GET(request: NextRequest) {
       daysInRange,
       chartData,
       monthlyTrends,
-      recordCount: mealsServedRecords.length,
+      recordCount: mealsServedRecords.filter((r) => r.mealsServed !== null)
+        .length,
     });
   } catch (error) {
     console.error("Error fetching meals served analytics:", error);

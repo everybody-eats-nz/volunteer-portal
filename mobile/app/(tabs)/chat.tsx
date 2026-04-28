@@ -8,6 +8,8 @@ import {
   FlatList,
   Keyboard,
   LayoutAnimation,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -19,7 +21,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MarkdownDisplay from "react-native-markdown-display";
 
-import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { api } from "@/lib/api";
@@ -33,25 +34,50 @@ type Message = {
   content: string;
 };
 
+type Question = { emoji: string; label: string };
+
+type PaperTint = {
+  paper: string;
+  ink: string;
+  inkSoft: string;
+  rule: string;
+  accent: string;
+  eyebrow: string;
+};
+
 /* ─── Data ──────────────────────────────────────────────────── */
 
 const WELCOME_MESSAGE: Message = {
   id: "welcome",
   role: "assistant",
   content:
-    "Kia ora! 👋 I'm here to help with anything about volunteering at Everybody Eats. Ask me about what to expect on your first shift, kitchen safety, shift roles, or anything else 🌿",
+    "Kia ora! I'm here to help with anything about volunteering at Everybody Eats. Ask me about what to expect on your first shift, kitchen safety, shift roles, or anything else 🌿",
 };
 
-const DEFAULT_SUGGESTED_QUESTIONS = [
+const DEFAULT_SUGGESTED_QUESTIONS: Question[] = [
   { emoji: "🍽️", label: "What happens on a typical shift?" },
   { emoji: "🔪", label: "Kitchen safety tips" },
   { emoji: "👥", label: "What are the volunteer grades?" },
   { emoji: "📍", label: "Where are the kitchens?" },
 ];
 
-/* ─── Layout Constants ─────────────────────────────────────── */
-
 const FLOATING_BAR_HEIGHT = 60;
+
+/* ─── Editorial palette (derived from theme) ────────────────── */
+
+function usePaperTint(
+  isDark: boolean,
+  colors: (typeof Colors)["light"]
+): PaperTint {
+  return {
+    paper: colors.background,
+    ink: isDark ? colors.text : Brand.green,
+    inkSoft: isDark ? colors.textSecondary : "#4a5a4f",
+    rule: isDark ? "rgba(232,245,232,0.12)" : "rgba(14,58,35,0.14)",
+    accent: Brand.accent,
+    eyebrow: isDark ? Brand.greenLight : Brand.green,
+  };
+}
 
 /* ─── Animated Typing Dots ──────────────────────────────────── */
 
@@ -86,7 +112,8 @@ const TypingDots = React.memo(function TypingDots({
     );
     animations.forEach((a) => a.start());
     return () => animations.forEach((a) => a.stop());
-  }, [dot1, dot2, dot3]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={styles.dotsRow}>
@@ -117,10 +144,10 @@ const TypingDots = React.memo(function TypingDots({
   );
 });
 
-/* ─── Assistant Avatar ──────────────────────────────────────── */
+/* ─── Leaf Seal (small warm avatar for chat stream) ─────────── */
 
-const AssistantAvatar = React.memo(function AssistantAvatar({
-  size = 32,
+const LeafSeal = React.memo(function LeafSeal({
+  size = 24,
   isDark = false,
 }: {
   size?: number;
@@ -128,17 +155,16 @@ const AssistantAvatar = React.memo(function AssistantAvatar({
 }) {
   return (
     <View
-      style={[
-        styles.avatar,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: isDark ? Brand.greenDark : Brand.greenLight,
-        },
-      ]}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: isDark ? Brand.greenDark : Brand.greenLight,
+      }}
     >
-      <Text style={{ fontSize: size * 0.5 }}>🌿</Text>
+      <Text style={{ fontSize: size * 0.48 }}>🌿</Text>
     </View>
   );
 });
@@ -150,13 +176,13 @@ const MessageBubble = React.memo(function MessageBubble({
   colors,
   isDark,
   isFirstInGroup,
-  isLastInGroup,
+  paperTint,
 }: {
   item: Message;
   colors: (typeof Colors)["light"];
   isDark: boolean;
   isFirstInGroup: boolean;
-  isLastInGroup: boolean;
+  paperTint: PaperTint;
 }) {
   const isUser = item.role === "user";
 
@@ -166,23 +192,11 @@ const MessageBubble = React.memo(function MessageBubble({
         style={[
           styles.messageRow,
           styles.userRow,
-          { marginTop: isFirstInGroup ? 12 : 3 },
+          { marginTop: isFirstInGroup ? 18 : 4 },
         ]}
       >
-        <View
-          style={[
-            styles.bubble,
-            styles.userBubble,
-            {
-              backgroundColor: Brand.green,
-              borderTopRightRadius: isFirstInGroup ? 20 : 8,
-              borderBottomRightRadius: isLastInGroup ? 6 : 8,
-            },
-          ]}
-        >
-          <Text style={[styles.messageText, { color: "#ffffff" }]}>
-            {item.content}
-          </Text>
+        <View style={[styles.userBubble, { backgroundColor: Brand.green }]}>
+          <Text style={styles.userText}>{item.content}</Text>
         </View>
       </View>
     );
@@ -190,63 +204,75 @@ const MessageBubble = React.memo(function MessageBubble({
 
   return (
     <View
-      style={[
-        styles.messageRow,
-        styles.assistantRow,
-        { marginTop: isFirstInGroup ? 12 : 3 },
-      ]}
+      style={[styles.assistantBlock, { marginTop: isFirstInGroup ? 24 : 10 }]}
     >
-      {isFirstInGroup ? (
-        <AssistantAvatar size={30} isDark={isDark} />
-      ) : (
-        <View style={styles.avatarSpacer} />
+      {isFirstInGroup && (
+        <View style={styles.assistantMeta}>
+          <LeafSeal size={22} isDark={isDark} />
+          <Text
+            style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}
+          >
+            EE ASSISTANT
+          </Text>
+        </View>
       )}
-      <View
-        style={[
-          styles.bubble,
-          styles.assistantBubble,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-            borderTopLeftRadius: isFirstInGroup ? 20 : 8,
-            borderBottomLeftRadius: isLastInGroup ? 6 : 8,
-          },
-        ]}
-      >
+      <View style={styles.assistantBody}>
         <MarkdownDisplay
           style={{
             body: {
               color: colors.text,
               fontFamily: FontFamily.regular,
-              fontSize: 15,
-              lineHeight: 22,
+              fontSize: 15.5,
+              lineHeight: 24,
             },
             strong: { fontFamily: FontFamily.semiBold },
-            bullet_list: { marginVertical: 4 },
-            ordered_list: { marginVertical: 4 },
-            list_item: { marginVertical: 1 },
-            link: { color: Brand.green },
+            em: { fontFamily: FontFamily.regular, fontStyle: "italic" },
+            bullet_list: { marginVertical: 6 },
+            ordered_list: { marginVertical: 6 },
+            list_item: { marginVertical: 2 },
+            link: {
+              color: isDark ? Brand.greenLight : Brand.green,
+              fontFamily: FontFamily.semiBold,
+            },
             paragraph: { marginTop: 0, marginBottom: 10 },
             heading1: {
               fontFamily: FontFamily.headingBold,
-              fontSize: 18,
-              marginBottom: 6,
-              marginTop: 12,
+              fontSize: 20,
+              marginBottom: 8,
+              marginTop: 14,
               color: colors.text,
+              letterSpacing: -0.3,
             },
             heading2: {
               fontFamily: FontFamily.headingBold,
               fontSize: 17,
-              marginBottom: 4,
-              marginTop: 10,
+              marginBottom: 6,
+              marginTop: 12,
               color: colors.text,
             },
             heading3: {
-              fontFamily: FontFamily.headingBold,
-              fontSize: 16,
+              fontFamily: FontFamily.semiBold,
+              fontSize: 14,
+              textTransform: "uppercase",
+              letterSpacing: 1.2,
               marginBottom: 4,
-              marginTop: 8,
+              marginTop: 10,
+              color: paperTint.eyebrow,
+            },
+            blockquote: {
+              borderLeftWidth: 2,
+              borderLeftColor: paperTint.eyebrow,
+              paddingLeft: 12,
+              marginVertical: 8,
+              backgroundColor: "transparent",
+            },
+            code_inline: {
+              backgroundColor: isDark ? "#252830" : "rgba(14,58,35,0.06)",
               color: colors.text,
+              fontSize: 14,
+              paddingHorizontal: 4,
+              paddingVertical: 1,
+              borderRadius: 4,
             },
           }}
         >
@@ -257,104 +283,119 @@ const MessageBubble = React.memo(function MessageBubble({
   );
 });
 
-/* ─── Welcome Hero ──────────────────────────────────────────── */
+/* ─── Welcome Hero — Editorial ─────────────────────────────── */
 
 function WelcomeHero({
   colors,
   isDark,
   onSuggestionPress,
   questions,
+  paperTint,
+  topInset,
 }: {
   colors: (typeof Colors)["light"];
   isDark: boolean;
   onSuggestionPress: (text: string) => void;
-  questions: { emoji: string; label: string }[];
+  questions: Question[];
+  paperTint: PaperTint;
+  topInset: number;
 }) {
   return (
     <ScrollView
-      contentContainerStyle={styles.welcomeContainer}
+      contentContainerStyle={[
+        styles.welcomeContainer,
+        {
+          paddingTop: topInset + 36,
+          paddingBottom: FLOATING_BAR_HEIGHT + 80,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {/* Decorative avatar with ring */}
-      <View style={styles.welcomeAvatarWrap}>
-        <View
-          style={[
-            styles.welcomeRing,
-            {
-              borderColor: isDark
-                ? "rgba(232, 245, 232, 0.15)"
-                : "rgba(14, 58, 35, 0.08)",
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.welcomeAvatarCircle,
-              {
-                backgroundColor: isDark ? Brand.greenDark : Brand.greenLight,
-              },
-            ]}
-          >
-            <Text style={styles.welcomeEmoji}>🌿</Text>
-          </View>
-        </View>
+      {/* Eyebrow label */}
+      <Text style={[styles.eyebrow, { color: paperTint.eyebrow }]}>
+        EVERYBODY EATS HELP
+      </Text>
+
+      {/* Hero block */}
+      <View style={styles.heroBlock}>
+        <Text style={styles.heroLine}>
+          <Text style={[styles.hero, { color: paperTint.ink }]}>Kia ora</Text>
+          <Text style={[styles.hero, { color: paperTint.accent }]}>.</Text>
+        </Text>
+        <Text style={[styles.heroSubtitle, { color: paperTint.inkSoft }]}>
+          What would you like to know{"\n"}about volunteering with us?
+        </Text>
       </View>
 
-      {/* Greeting */}
-      <ThemedText type="title" style={styles.welcomeTitle}>
-        Kia ora! 👋
-      </ThemedText>
-      <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
-        I'm your volunteering assistant for{"\n"}Everybody Eats. Ask me anything
-        about{"\n"}shifts, safety, or getting started.
+      {/* Hairline divider */}
+      <View style={[styles.hairline, { backgroundColor: paperTint.rule }]} />
+
+      {/* Suggestions header */}
+      <Text
+        style={[
+          styles.eyebrow,
+          { color: paperTint.eyebrow, marginTop: 28, marginBottom: 4 },
+        ]}
+      >
+        TRY ASKING
       </Text>
 
-      {/* Suggestion cards — 2x2 grid */}
-      <Text style={[styles.suggestionsLabel, { color: colors.textSecondary }]}>
-        Try asking...
-      </Text>
-      <View style={styles.suggestionsGrid}>
-        {questions.map((q) => (
+      {/* Numbered editorial list */}
+      <View style={styles.questionList}>
+        {questions.map((q, i) => (
           <Pressable
             key={q.label}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onSuggestionPress(`${q.emoji} ${q.label}`);
+              onSuggestionPress(q.label);
             }}
             style={({ pressed }) => [
-              styles.suggestionCard,
+              styles.questionRow,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                opacity: pressed ? 0.85 : 1,
-                transform: [{ scale: pressed ? 0.97 : 1 }],
+                borderBottomColor: paperTint.rule,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                opacity: pressed ? 0.55 : 1,
               },
-              Platform.OS === "ios" && {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDark ? 0.3 : 0.06,
-                shadowRadius: 6,
+              i === 0 && {
+                borderTopColor: paperTint.rule,
+                borderTopWidth: StyleSheet.hairlineWidth,
               },
             ]}
             accessibilityLabel={q.label}
             accessibilityRole="button"
           >
-            <Text style={styles.suggestionEmoji}>{q.emoji}</Text>
+            <Text style={[styles.questionNumber, { color: paperTint.eyebrow }]}>
+              {String(i + 1).padStart(2, "0")}
+            </Text>
             <Text
-              style={[styles.suggestionLabel, { color: colors.text }]}
+              style={[styles.questionLabel, { color: colors.text }]}
               numberOfLines={2}
             >
               {q.label}
             </Text>
+            <Ionicons
+              name="arrow-forward"
+              size={16}
+              color={paperTint.eyebrow}
+              style={styles.questionArrow}
+            />
           </Pressable>
         ))}
       </View>
 
-      {/* Footer */}
-      <Text style={[styles.welcomeFooter, { color: colors.textSecondary }]}>
-        Powered by your whānau knowledge base 💚
-      </Text>
+      {/* Footer colophon */}
+      <View style={styles.welcomeFooter}>
+        <View
+          style={[
+            styles.hairline,
+            { backgroundColor: paperTint.rule, marginBottom: 14 },
+          ]}
+        />
+        <Text style={[styles.eyebrowCentered, { color: colors.textSecondary }]}>
+          NGĀ MIHI · POWERED BY THE RESOURCE HUB
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -366,21 +407,30 @@ export default function ChatScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  const paperTint = usePaperTint(isDark, colors);
 
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestedQuestions, setSuggestedQuestions] = useState(
+  const [suggestedQuestions, setSuggestedQuestions] = useState<Question[]>(
     DEFAULT_SUGGESTED_QUESTIONS
   );
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
+  const pendingScrollIndexRef = useRef<number | null>(null);
+  const scrollMetricsRef = useRef({
+    offset: 0,
+    contentHeight: 0,
+    layoutHeight: 0,
+  });
 
   const showWelcome = messages.length <= 1;
   const keyboardVisible = keyboardHeight > 0;
 
-  /* ── Track keyboard with LayoutAnimation for smooth transitions ── */
+  /* ── Keyboard tracking with smooth LayoutAnimation ── */
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
@@ -414,9 +464,7 @@ export default function ChatScreen() {
 
   /* ── Fetch suggested questions from API ── */
   useEffect(() => {
-    api<{ suggestedQuestions: typeof DEFAULT_SUGGESTED_QUESTIONS }>(
-      "/api/mobile/chat/config"
-    )
+    api<{ suggestedQuestions: Question[] }>("/api/mobile/chat/config")
       .then((data) => {
         if (data.suggestedQuestions?.length > 0) {
           setSuggestedQuestions(data.suggestedQuestions);
@@ -433,6 +481,8 @@ export default function ChatScreen() {
     setMessages([WELCOME_MESSAGE]);
     setInput("");
     setIsLoading(false);
+    setShowScrollToBottom(false);
+    pendingScrollIndexRef.current = null;
   }, []);
 
   /* ── Send ── */
@@ -456,6 +506,7 @@ export default function ChatScreen() {
       const allMessages = [...messages, userMessage]
         .filter((m) => m.id !== "welcome")
         .map((m) => ({ role: m.role, content: m.content }));
+      pendingScrollIndexRef.current = messages.length;
       setMessages((prev) => [...prev, userMessage]);
 
       try {
@@ -509,50 +560,96 @@ export default function ChatScreen() {
     [input, isLoading, messages]
   );
 
-  /* ── Render message with grouping ── */
+  /* ── Floating bar vertical position ── */
+  const floatingBottom = keyboardVisible
+    ? keyboardHeight + 8
+    : insets.bottom + 8;
+
+  /* ── Scroll tracking: show button when not at bottom and list is scrollable ── */
+  const updateScrollButton = useCallback(() => {
+    const { offset, contentHeight, layoutHeight } = scrollMetricsRef.current;
+    if (layoutHeight === 0) return;
+    const distanceFromBottom = contentHeight - (offset + layoutHeight);
+    const scrollable = contentHeight > layoutHeight + 20;
+    setShowScrollToBottom(scrollable && distanceFromBottom > 40);
+  }, []);
+
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollMetricsRef.current.offset = e.nativeEvent.contentOffset.y;
+      scrollMetricsRef.current.contentHeight = e.nativeEvent.contentSize.height;
+      scrollMetricsRef.current.layoutHeight =
+        e.nativeEvent.layoutMeasurement.height;
+      updateScrollButton();
+    },
+    [updateScrollButton]
+  );
+
+  const handleContentSizeChange = useCallback(
+    (_w: number, h: number) => {
+      scrollMetricsRef.current.contentHeight = h;
+      // If a send was just triggered, pin the user's message to the top.
+      if (pendingScrollIndexRef.current !== null) {
+        const idx = pendingScrollIndexRef.current;
+        pendingScrollIndexRef.current = null;
+        requestAnimationFrame(() => {
+          flatListRef.current?.scrollToIndex({
+            index: idx,
+            viewPosition: 0,
+            animated: true,
+          });
+        });
+        return;
+      }
+      updateScrollButton();
+    },
+    [updateScrollButton]
+  );
+
+  const scrollToBottom = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Force-scroll to the exact bottom using tracked metrics (RN's
+    // scrollToEnd can be off when content is still settling).
+    const { contentHeight, layoutHeight } = scrollMetricsRef.current;
+    const target = Math.max(0, contentHeight - layoutHeight);
+    flatListRef.current?.scrollToOffset({ offset: target, animated: true });
+  }, []);
+
+  /* ── Render message with grouping awareness ── */
   const renderMessage = useCallback(
     ({ item, index }: { item: Message; index: number }) => {
       const prev = messages[index - 1];
-      const next = messages[index + 1];
       return (
         <MessageBubble
           item={item}
           colors={colors}
           isDark={isDark}
           isFirstInGroup={!prev || prev.role !== item.role}
-          isLastInGroup={!next || next.role !== item.role}
+          paperTint={paperTint}
         />
       );
     },
-    [messages, colors, isDark]
+    [messages, colors, isDark, paperTint]
   );
 
-  /* ── Floating bar position ── */
-  const floatingBottom = keyboardVisible
-    ? keyboardHeight + 8
-    : insets.bottom + 8;
-
-  /* ── Glass bar colors ── */
+  /* ── Composer state ── */
   const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
   const hasInput = input.trim().length > 0 && !isLoading;
   const useNativeGlass = isLiquidGlassAvailable();
 
-  /* ── Input contents (shared between glass and fallback paths) ── */
   const inputContents = (
     <>
-      <View
-        style={[styles.glassInputField, { backgroundColor: "transparent" }]}
-      >
+      <View style={styles.glassInputField}>
         <TextInput
           ref={inputRef}
           style={[
             styles.glassInputText,
-            { color: "white", fontFamily: FontFamily.regular },
+            { color: colors.text, fontFamily: FontFamily.regular },
           ]}
           value={input}
           onChangeText={setInput}
-          placeholder="Ask a question..."
-          placeholderTextColor={"#ccc"}
+          placeholder="Ask anything about volunteering…"
+          placeholderTextColor={colors.textSecondary}
           multiline
           maxLength={1000}
           onSubmitEditing={() => sendMessage()}
@@ -584,61 +681,46 @@ export default function ChatScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* ── Header ── */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 8,
-            borderBottomColor: colors.border,
-            backgroundColor: colors.background,
-          },
-        ]}
-      >
-        <View style={styles.headerInner}>
-          <AssistantAvatar size={36} isDark={isDark} />
-          <View style={styles.headerText}>
-            <ThemedText type="subtitle" style={styles.headerName}>
-              EE Assistant
-            </ThemedText>
-            <View style={styles.statusRow}>
-              <View
-                style={[styles.statusDot, { backgroundColor: "#22c55e" }]}
-              />
-              <Text
-                style={[styles.statusLabel, { color: colors.textSecondary }]}
-              >
-                Online
-              </Text>
-            </View>
+    <View style={[styles.container, { backgroundColor: paperTint.paper }]}>
+      {/* ── Header (only visible once a conversation starts) ── */}
+      {!showWelcome && (
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 14,
+              borderBottomColor: paperTint.rule,
+            },
+          ]}
+        >
+          <View style={styles.headerLeft}>
+            <LeafSeal size={22} isDark={isDark} />
+            <Text style={[styles.headerTitle, { color: paperTint.eyebrow }]}>
+              EVERYBODY EATS HELP
+            </Text>
+            <View style={[styles.statusDot, { backgroundColor: "#22c55e" }]} />
           </View>
-
-          {/* New conversation button */}
-          {!showWelcome && (
-            <Pressable
-              onPress={resetChat}
-              style={({ pressed }) => [
-                styles.newChatBtn,
-                {
-                  backgroundColor: isDark ? "#252830" : Brand.greenLight,
-                  opacity: pressed ? 0.7 : 1,
-                  transform: [{ scale: pressed ? 0.95 : 1 }],
-                },
-              ]}
-              accessibilityLabel="Start new conversation"
-              accessibilityRole="button"
-              hitSlop={8}
-            >
-              <Ionicons
-                name="create-outline"
-                size={18}
-                color={isDark ? colors.text : Brand.green}
-              />
-            </Pressable>
-          )}
+          <Pressable
+            onPress={resetChat}
+            style={({ pressed }) => [
+              styles.newChatBtn,
+              { opacity: pressed ? 0.55 : 1 },
+            ]}
+            accessibilityLabel="Start new conversation"
+            accessibilityRole="button"
+            hitSlop={12}
+          >
+            <Ionicons
+              name="create-outline"
+              size={16}
+              color={paperTint.eyebrow}
+            />
+            <Text style={[styles.newChatLabel, { color: paperTint.eyebrow }]}>
+              NEW
+            </Text>
+          </Pressable>
         </View>
-      </View>
+      )}
 
       {/* ── Content area ── */}
       {showWelcome ? (
@@ -647,6 +729,8 @@ export default function ChatScreen() {
           isDark={isDark}
           onSuggestionPress={sendMessage}
           questions={suggestedQuestions}
+          paperTint={paperTint}
+          topInset={insets.top}
         />
       ) : (
         <FlatList
@@ -656,33 +740,40 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.messageList,
-            { paddingBottom: FLOATING_BAR_HEIGHT + 100 },
+            { paddingBottom: composerHeight + floatingBottom },
           ]}
           keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
+          onScroll={handleScroll}
+          scrollEventThrottle={32}
+          onContentSizeChange={handleContentSizeChange}
+          onLayout={(e) => {
+            scrollMetricsRef.current.layoutHeight = e.nativeEvent.layout.height;
+            updateScrollButton();
+          }}
+          onScrollToIndexFailed={(info) => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToIndex({
+                index: Math.min(info.index, info.highestMeasuredFrameIndex),
+                viewPosition: 0,
+                animated: true,
+              });
+            }, 80);
+          }}
           ListFooterComponent={
             isLoading ? (
-              <View
-                style={[
-                  styles.messageRow,
-                  styles.assistantRow,
-                  { marginTop: 12 },
-                ]}
-              >
-                <AssistantAvatar size={30} isDark={isDark} />
-                <View
-                  style={[
-                    styles.bubble,
-                    styles.assistantBubble,
-                    styles.typingBubble,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
+              <View style={[styles.assistantBlock, { marginTop: 24 }]}>
+                <View style={styles.assistantMeta}>
+                  <LeafSeal size={22} isDark={isDark} />
+                  <Text
+                    style={[
+                      styles.assistantMetaLabel,
+                      { color: paperTint.eyebrow },
+                    ]}
+                  >
+                    EE ASSISTANT
+                  </Text>
+                </View>
+                <View style={[styles.assistantBody, styles.typingBody]}>
                   <TypingDots color={colors.textSecondary} />
                 </View>
               </View>
@@ -692,44 +783,88 @@ export default function ChatScreen() {
         />
       )}
 
-      {/* ── Floating glass input bar ── */}
+      {/* ── Floating scroll-to-bottom button ── */}
+      {!showWelcome && showScrollToBottom && (
+        <Pressable
+          onPress={scrollToBottom}
+          style={({ pressed }) => [
+            styles.scrollToBottomBtn,
+            {
+              bottom: floatingBottom + FLOATING_BAR_HEIGHT + 14,
+              backgroundColor: isDark ? "#1a1d21" : "#ffffff",
+              borderColor: isDark
+                ? "rgba(255,255,255,0.14)"
+                : "rgba(14,58,35,0.14)",
+              transform: [{ scale: pressed ? 0.9 : 1 }],
+            },
+          ]}
+          accessibilityLabel="Scroll to latest message"
+          accessibilityRole="button"
+          hitSlop={8}
+        >
+          <Ionicons name="arrow-down" size={18} color={paperTint.eyebrow} />
+        </Pressable>
+      )}
+
+      {/* ── Floating composer ── */}
       <View
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h > 0 && Math.abs(h - composerHeight) > 0.5) {
+            setComposerHeight(h);
+          }
+        }}
         style={[
           styles.floatingWrap,
           { bottom: floatingBottom },
-          !useNativeGlass &&
-            Platform.OS === "ios" && {
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: isDark ? 0.3 : 0.1,
-              shadowRadius: 16,
-            },
-          !useNativeGlass && Platform.OS === "android" && { elevation: 8 },
+          Platform.OS === "ios" && {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDark ? 0.3 : 0.1,
+            shadowRadius: 16,
+          },
+          Platform.OS === "android" && { elevation: 8 },
         ]}
       >
-        {useNativeGlass ? (
-          <GlassView glassEffectStyle={"regular"} style={styles.glassBar}>
+        {showWelcome ? (
+          <View
+            style={[
+              styles.glassBar,
+              styles.glassBarFallback,
+              {
+                backgroundColor: isDark ? "#1a1d21" : "#ffffff",
+                borderColor: isDark
+                  ? "rgba(255,255,255,0.12)"
+                  : "rgba(14, 58, 35, 0.14)",
+                borderWidth: StyleSheet.hairlineWidth,
+              },
+            ]}
+          >
+            {inputContents}
+          </View>
+        ) : useNativeGlass ? (
+          <GlassView glassEffectStyle="regular" style={styles.glassBar}>
             {inputContents}
           </GlassView>
         ) : (
-          <View style={styles.glassBar}>
+          <View style={[styles.glassBar, styles.glassBarFallback]}>
             <BlurView
               intensity={isDark ? 60 : 80}
               tint={isDark ? "dark" : "light"}
-              style={[StyleSheet.absoluteFill, { borderRadius: 26 }]}
+              style={[StyleSheet.absoluteFill, { borderRadius: 22 }]}
             />
             <View
               style={[
                 StyleSheet.absoluteFill,
                 {
                   backgroundColor: isDark
-                    ? "rgba(40,44,52,0.35)"
-                    : "rgba(255,255,255,0.25)",
+                    ? "rgba(40,44,52,0.55)"
+                    : "rgba(255,253,247,0.78)",
                   borderColor: isDark
                     ? "rgba(255,255,255,0.18)"
-                    : "rgba(255,255,255,0.5)",
-                  borderWidth: 1,
-                  borderRadius: 26,
+                    : "rgba(14, 58, 35, 0.14)",
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderRadius: 22,
                 },
               ]}
             />
@@ -744,138 +879,118 @@ export default function ChatScreen() {
 /* ─── Styles ────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 
-  /* Header */
+  /* Header (chat state only) */
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     zIndex: 2,
   },
-  headerInner: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
-  newChatBtn: {
-    marginLeft: "auto",
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: {
-    gap: 2,
-  },
-  headerName: {
-    fontSize: 17,
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+  headerTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: 2.2,
   },
   statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginLeft: 2,
   },
-  statusLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.medium,
-  },
-
-  /* Avatar (shared) */
-  avatar: {
+  newChatBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  newChatLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
   },
 
-  /* Welcome hero */
+  /* Welcome — editorial */
   welcomeContainer: {
     flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 24,
-    paddingBottom: FLOATING_BAR_HEIGHT + 40,
   },
-  welcomeAvatarWrap: {
+  eyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 2,
     marginBottom: 20,
   },
-  welcomeRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  welcomeAvatarCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  welcomeEmoji: {
-    fontSize: 32,
-  },
-  welcomeTitle: {
+  eyebrowCentered: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 1.8,
     textAlign: "center",
-    marginBottom: 8,
   },
-  welcomeSubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: "center",
-    fontFamily: FontFamily.regular,
+  heroBlock: {
     marginBottom: 28,
   },
-  suggestionsLabel: {
-    fontSize: 13,
-    fontFamily: FontFamily.semiBold,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 12,
-    alignSelf: "flex-start",
+  heroLine: {
+    marginBottom: 18,
   },
-  suggestionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+  hero: {
+    fontFamily: FontFamily.headingBold,
+    fontSize: 64,
+    lineHeight: 66,
+    letterSpacing: -1.2,
+  },
+  heroSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 17,
+    lineHeight: 26,
+    maxWidth: 320,
+  },
+  hairline: {
+    height: StyleSheet.hairlineWidth,
     width: "100%",
   },
-  suggestionCard: {
-    flexBasis: "48%",
-    flexGrow: 1,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    gap: 8,
+  questionList: {
+    marginTop: 4,
   },
-  suggestionEmoji: {
-    fontSize: 24,
+  questionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 18,
+    gap: 14,
   },
-  suggestionLabel: {
-    fontSize: 14,
+  questionNumber: {
+    fontFamily: FontFamily.headingBold,
+    fontSize: 15,
+    width: 28,
+    letterSpacing: 0.5,
+  },
+  questionLabel: {
+    flex: 1,
     fontFamily: FontFamily.medium,
-    lineHeight: 19,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  questionArrow: {
+    marginLeft: 4,
   },
   welcomeFooter: {
-    fontSize: 12,
-    fontFamily: FontFamily.regular,
-    textAlign: "center",
-    marginTop: 28,
+    marginTop: 44,
   },
 
   /* Message list */
   messageList: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 22,
+    paddingTop: 8,
   },
   listFooter: {
     paddingBottom: 8,
@@ -886,46 +1001,50 @@ const styles = StyleSheet.create({
   userRow: {
     justifyContent: "flex-end",
   },
-  assistantRow: {
-    alignItems: "flex-end",
-    gap: 8,
-  },
-  avatarSpacer: {
-    width: 30,
-  },
-
-  /* Bubbles */
-  bubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    maxWidth: "78%",
-  },
   userBubble: {
+    maxWidth: "80%",
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     borderRadius: 20,
-    borderTopRightRadius: 20,
     borderBottomRightRadius: 6,
   },
-  assistantBubble: {
-    borderRadius: 20,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
+  userText: {
+    color: "#ffffff",
     fontFamily: FontFamily.regular,
+    fontSize: 15.5,
+    lineHeight: 22,
+  },
+
+  /* Assistant — editorial prose */
+  assistantBlock: {
+    flexDirection: "column",
+  },
+  assistantMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  assistantMetaLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 1.8,
+  },
+  assistantBody: {
+    paddingLeft: 32,
+    paddingRight: 8,
+  },
+  typingBody: {
+    paddingTop: 4,
+    paddingBottom: 4,
   },
 
   /* Typing indicator */
-  typingBubble: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
   dotsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    height: 22,
   },
   dot: {
     width: 7,
@@ -933,37 +1052,39 @@ const styles = StyleSheet.create({
     borderRadius: 3.5,
   },
 
-  /* Floating glass input bar */
+  /* Floating composer */
   floatingWrap: {
     position: "absolute",
-    left: 12,
-    right: 12,
+    left: 14,
+    right: 14,
     zIndex: 10,
   },
   glassBar: {
     flexDirection: "row",
     alignItems: "flex-end",
-    borderRadius: 26,
+    borderRadius: 22,
     padding: 6,
     gap: 6,
+  },
+  glassBarFallback: {
     overflow: "hidden",
   },
   glassInputField: {
     flex: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    borderRadius: 18,
+    paddingHorizontal: 14,
     paddingVertical: Platform.OS === "ios" ? 10 : 6,
     minHeight: 40,
     justifyContent: "center",
+    backgroundColor: "transparent",
   },
   glassInputText: {
-    fontSize: 15,
+    fontSize: 15.5,
     lineHeight: 20,
     maxHeight: 100,
     paddingTop: 0,
     paddingBottom: 0,
     textAlignVertical: "center",
-    color: "white",
   },
   glassSendBtn: {
     width: 40,
@@ -971,5 +1092,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  /* Scroll-to-bottom floating button */
+  scrollToBottomBtn: {
+    position: "absolute",
+    alignSelf: "center",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    zIndex: 11,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 6,
   },
 });

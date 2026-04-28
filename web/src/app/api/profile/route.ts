@@ -37,6 +37,7 @@ const updateProfileSchema = z.object({
   customHowDidYouHearAboutUs: z.string().optional(),
   availableDays: z.array(z.string()).optional(),
   availableLocations: z.array(z.string()).optional(),
+  defaultLocation: z.string().nullable().optional(),
   emailNewsletterSubscription: z.boolean().optional(),
   newsletterLists: z.array(z.string()).optional(),
   notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
@@ -75,6 +76,7 @@ export async function GET() {
       howDidYouHearAboutUs: true,
       availableDays: true,
       availableLocations: true,
+      defaultLocation: true,
       emailNewsletterSubscription: true,
       newsletterLists: true,
       notificationPreference: true,
@@ -286,6 +288,9 @@ export async function PUT(req: Request) {
           ? JSON.stringify(validatedData.availableLocations)
           : null;
     }
+    if (validatedData.defaultLocation !== undefined) {
+      updateData.defaultLocation = validatedData.defaultLocation || null;
+    }
     if (validatedData.newsletterLists !== undefined) {
       updateData.newsletterLists = validatedData.newsletterLists;
     }
@@ -322,6 +327,7 @@ export async function PUT(req: Request) {
         howDidYouHearAboutUs: true,
         availableDays: true,
         availableLocations: true,
+        defaultLocation: true,
         emailNewsletterSubscription: true,
         newsletterLists: true,
         notificationPreference: true,

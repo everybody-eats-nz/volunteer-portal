@@ -8,20 +8,29 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz"
-      }
+        "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_KUagYYvjM8OeSSrJ35SUzYodq7JIzXKZhqsotRcI3V2",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz"
-      }
+        "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_KUagYYvjM8OeSSrJ35SUzYodq7JIzXKZhqsotRcI3V2",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz"
-      }
+        "EXPO_PUBLIC_API_URL": "https://volunteers.everybodyeats.nz",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_KUagYYvjM8OeSSrJ35SUzYodq7JIzXKZhqsotRcI3V2",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com"
+      },
+      "channel": "production"
     }
   },
   "submit": {

@@ -1,16 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import * as Notifications from "expo-notifications";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
+  Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -25,6 +27,13 @@ import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
 import { api, apiUpload } from "@/lib/api";
+import { posthog } from "@/lib/posthog";
+import {
+  syncPushTokenWithServer,
+  unregisterPushTokenFromServer,
+} from "@/lib/push-notifications";
+
+const PUSH_TOKEN_KEY = "push_token";
 
 type FormData = {
   firstName: string;
@@ -40,6 +49,7 @@ type FormData = {
   excludedShortageNotificationTypes: string[];
   emailNewsletterSubscription: boolean;
   newsletterLists: string[];
+  defaultLocation: string;
 };
 
 type ShiftType = { id: string; name: string };
@@ -51,24 +61,50 @@ type NewsletterList = {
 };
 
 // Map multi-select toggles to/from the database enum
-function channelsToPreference(channels: { email: boolean; sms: boolean }): FormData["notificationPreference"] {
+function channelsToPreference(channels: {
+  email: boolean;
+  sms: boolean;
+}): FormData["notificationPreference"] {
   if (channels.email && channels.sms) return "BOTH";
   if (channels.email) return "EMAIL";
   if (channels.sms) return "SMS";
   return "NONE";
 }
 
-function preferenceToChannels(pref: FormData["notificationPreference"]): { email: boolean; sms: boolean } {
+function preferenceToChannels(pref: FormData["notificationPreference"]): {
+  email: boolean;
+  sms: boolean;
+} {
   return {
     email: pref === "EMAIL" || pref === "BOTH",
     sms: pref === "SMS" || pref === "BOTH",
   };
 }
 
-const CHANNEL_OPTIONS: { key: "email" | "sms" | "push"; label: string; hint: string; icon: string }[] = [
-  { key: "email", label: "Email", hint: "Shift confirmations, updates, and reminders", icon: "mail-outline" },
-  { key: "sms", label: "Text Message", hint: "Quick alerts for shift changes and shortages", icon: "chatbubble-outline" },
-  { key: "push", label: "Push Notifications", hint: "Coming soon", icon: "phone-portrait-outline" },
+const CHANNEL_OPTIONS: {
+  key: "email" | "sms" | "push";
+  label: string;
+  hint: string;
+  icon: string;
+}[] = [
+  {
+    key: "email",
+    label: "Email",
+    hint: "Shift confirmations, updates, and reminders",
+    icon: "mail-outline",
+  },
+  {
+    key: "sms",
+    label: "Text Message",
+    hint: "Quick alerts for shift changes and shortages",
+    icon: "chatbubble-outline",
+  },
+  {
+    key: "push",
+    label: "Push Notifications",
+    hint: "Instant alerts on this device",
+    icon: "phone-portrait-outline",
+  },
 ];
 
 export default function EditProfileScreen() {
@@ -77,7 +113,7 @@ export default function EditProfileScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { profile, refresh } = useProfile();
+  const { profile, availableLocations, refresh } = useProfile();
 
   const [form, setForm] = useState<FormData>({
     firstName: "",
@@ -93,22 +129,93 @@ export default function EditProfileScreen() {
     excludedShortageNotificationTypes: [],
     emailNewsletterSubscription: true,
     newsletterLists: [],
+    defaultLocation: "",
   });
-  const [pushNotifications, setPushNotifications] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
   const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
-  const [newsletterListOptions, setNewsletterListOptions] = useState<NewsletterList[]>([]);
+  const [newsletterListOptions, setNewsletterListOptions] = useState<
+    NewsletterList[]
+  >([]);
 
   // Fetch shift types and newsletter lists
   useEffect(() => {
-    api<ShiftType[]>("/api/mobile/shift-types").then(setShiftTypes).catch(() => {});
-    api<NewsletterList[]>("/api/newsletter-lists").then(setNewsletterListOptions).catch(() => {});
+    api<ShiftType[]>("/api/mobile/shift-types")
+      .then(setShiftTypes)
+      .catch(() => {});
+    api<NewsletterList[]>("/api/newsletter-lists")
+      .then(setNewsletterListOptions)
+      .catch(() => {});
   }, []);
+
+  // Push toggle mirrors OS permission + whether this device has a registered
+  // token. Re-check on focus so flipping it in iOS Settings is reflected
+  // immediately when the user comes back.
+  const refreshPushStatus = useCallback(async () => {
+    const [{ status }, storedToken] = await Promise.all([
+      Notifications.getPermissionsAsync(),
+      SecureStore.getItemAsync(PUSH_TOKEN_KEY),
+    ]);
+    setPushEnabled(status === "granted" && !!storedToken);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPushStatus();
+    }, [refreshPushStatus])
+  );
+
+  const togglePushNotifications = async () => {
+    if (pushBusy) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPushBusy(true);
+    try {
+      if (pushEnabled) {
+        const token = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+        if (token) {
+          await unregisterPushTokenFromServer(token);
+          await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+        }
+        setPushEnabled(false);
+        return;
+      }
+
+      const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+      if (status === "denied" && !canAskAgain) {
+        Alert.alert(
+          "Enable in Settings",
+          "Turn on notifications for Everybody Eats in your device Settings to receive push alerts.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+
+      const token = await syncPushTokenWithServer();
+      if (token) {
+        await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token);
+        setPushEnabled(true);
+      } else {
+        setPushEnabled(false);
+      }
+    } catch {
+      Alert.alert(
+        "Something went wrong",
+        "Couldn't update push notifications. Please try again."
+      );
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   // Populate form once when profile first loads
   const [initialized, setInitialized] = useState(false);
+  const [locationSheetVisible, setLocationSheetVisible] = useState(false);
   useEffect(() => {
     if (profile && !initialized) {
       setForm({
@@ -122,16 +229,21 @@ export default function EditProfileScreen() {
         medicalConditions: profile.medicalConditions,
         notificationPreference: profile.notificationPreference,
         receiveShortageNotifications: profile.receiveShortageNotifications,
-        excludedShortageNotificationTypes: profile.excludedShortageNotificationTypes,
+        excludedShortageNotificationTypes:
+          profile.excludedShortageNotificationTypes,
         emailNewsletterSubscription: profile.emailNewsletterSubscription,
         newsletterLists: profile.newsletterLists,
+        defaultLocation: profile.defaultLocation ?? "",
       });
       setLocalImage(profile.image ?? null);
       setInitialized(true);
     }
   }, [profile, initialized]);
 
-  const updateField = <K extends keyof FormData>(key: K, value: FormData[K]) => {
+  const updateField = <K extends keyof FormData>(
+    key: K,
+    value: FormData[K]
+  ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -152,7 +264,7 @@ export default function EditProfileScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Camera access needed",
-          "Please enable camera access in Settings to take a profile photo.",
+          "Please enable camera access in Settings to take a profile photo."
         );
         return;
       }
@@ -163,7 +275,7 @@ export default function EditProfileScreen() {
       if (status !== "granted") {
         Alert.alert(
           "Photos access needed",
-          "Please enable photo library access in Settings to choose a profile photo.",
+          "Please enable photo library access in Settings to choose a profile photo."
         );
         return;
       }
@@ -175,7 +287,8 @@ export default function EditProfileScreen() {
     const asset = result.assets[0];
     const uri = asset.uri;
     const mimeType = asset.mimeType ?? "image/jpeg";
-    const fileName = asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
+    const fileName =
+      asset.fileName ?? `profile-photo.${mimeType.split("/")[1] ?? "jpg"}`;
 
     const formData = new FormData();
     formData.append("photo", {
@@ -186,11 +299,17 @@ export default function EditProfileScreen() {
 
     setIsUploadingPhoto(true);
     try {
-      const res = await apiUpload<{ image: string }>("/api/mobile/profile/photo", formData);
+      const res = await apiUpload<{ image: string }>(
+        "/api/mobile/profile/photo",
+        formData
+      );
       setLocalImage(res.image);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      Alert.alert("Upload failed", "Couldn't update your photo. Please try again.");
+      Alert.alert(
+        "Upload failed",
+        "Couldn't update your photo. Please try again."
+      );
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -230,7 +349,7 @@ export default function EditProfileScreen() {
           if (index === 0) pickImage("camera");
           else if (index === 1) pickImage("library");
           else if (index === 2 && localImage) removePhoto();
-        },
+        }
       );
     } else {
       Alert.alert("Profile Photo", undefined, [
@@ -268,21 +387,34 @@ export default function EditProfileScreen() {
           phone: form.phone.trim(),
           pronouns: form.pronouns.trim(),
           emergencyContactName: form.emergencyContactName.trim(),
-          emergencyContactRelationship: form.emergencyContactRelationship.trim(),
+          emergencyContactRelationship:
+            form.emergencyContactRelationship.trim(),
           emergencyContactPhone: form.emergencyContactPhone.trim(),
           medicalConditions: form.medicalConditions.trim(),
           notificationPreference: form.notificationPreference,
           receiveShortageNotifications: form.receiveShortageNotifications,
-          excludedShortageNotificationTypes: form.excludedShortageNotificationTypes,
+          excludedShortageNotificationTypes:
+            form.excludedShortageNotificationTypes,
           emailNewsletterSubscription: form.emailNewsletterSubscription,
-          newsletterLists: form.emailNewsletterSubscription ? form.newsletterLists : [],
+          newsletterLists: form.emailNewsletterSubscription
+            ? form.newsletterLists
+            : [],
+          defaultLocation: form.defaultLocation || null,
         },
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      posthog?.capture("profile_updated", {
+        notification_preference: form.notificationPreference,
+        has_emergency_contact: !!form.emergencyContactName.trim(),
+        newsletter_subscribed: form.emailNewsletterSubscription,
+      });
       await refresh();
       router.back();
     } catch {
-      Alert.alert("Save failed", "Couldn't save your changes. Please try again.");
+      Alert.alert(
+        "Save failed",
+        "Couldn't save your changes. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -305,15 +437,43 @@ export default function EditProfileScreen() {
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={100}
     >
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable
+              onPress={handleSave}
+              disabled={isSaving}
+              hitSlop={12}
+              style={({ pressed }) => ({
+                opacity: isSaving ? 0.5 : pressed ? 0.6 : 1,
+                padding: 4,
+              })}
+              accessibilityLabel="Save changes"
+            >
+              {isSaving ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#86efac" : Brand.green}
+                />
+              ) : (
+                <Ionicons
+                  name="checkmark"
+                  size={28}
+                  color={isDark ? "#86efac" : Brand.green}
+                />
+              )}
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[
           s.content,
           {
             paddingTop: insets.top + 56,
-            paddingBottom: Math.max(insets.bottom, 20) + 80,
+            paddingBottom: Math.max(insets.bottom, 20) + 24,
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -326,14 +486,19 @@ export default function EditProfileScreen() {
             disabled={isUploadingPhoto}
             style={({ pressed }) => [
               s.avatarContainer,
-              { opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
+              {
+                opacity: pressed ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              },
             ]}
             accessibilityLabel="Change profile photo"
           >
             {localImage ? (
               <Image source={{ uri: localImage }} style={s.avatarImage} />
             ) : (
-              <View style={[s.avatarFallback, { backgroundColor: Brand.green }]}>
+              <View
+                style={[s.avatarFallback, { backgroundColor: Brand.green }]}
+              >
                 <Text style={s.avatarInitial}>
                   {form.firstName.charAt(0) || "?"}
                 </Text>
@@ -405,10 +570,76 @@ export default function EditProfileScreen() {
           />
         </View>
 
+        {/* ── Default Location ── */}
+        {availableLocations.length > 0 && (
+          <View style={s.section}>
+            <Text style={[s.sectionTitle, { color: colors.text }]}>
+              Default Location
+            </Text>
+            <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+              Your usual restaurant — we&apos;ll show shifts here first when you
+              browse.
+            </Text>
+
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                setLocationSheetVisible(true);
+              }}
+              style={({ pressed }) => [
+                s.locationSelector,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.04)"
+                    : "#ffffff",
+                  borderColor: colors.border,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                form.defaultLocation
+                  ? `Default location: ${form.defaultLocation}. Tap to change.`
+                  : "No default location. Tap to choose."
+              }
+            >
+              <Ionicons
+                name={form.defaultLocation ? "location" : "location-outline"}
+                size={18}
+                color={
+                  form.defaultLocation
+                    ? isDark
+                      ? "#86efac"
+                      : Brand.green
+                    : colors.textSecondary
+                }
+              />
+              <Text
+                style={[
+                  s.locationSelectorText,
+                  {
+                    color: form.defaultLocation
+                      ? colors.text
+                      : colors.textSecondary,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {form.defaultLocation || "No default set"}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+          </View>
+        )}
+
         {/* ── Emergency Contact ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.text }]}>
-            🚨 Emergency Contact
+            Emergency Contact
           </Text>
           <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
             Someone we can reach if anything happens during a shift.
@@ -475,51 +706,67 @@ export default function EditProfileScreen() {
           {CHANNEL_OPTIONS.map((ch) => {
             const channels = preferenceToChannels(form.notificationPreference);
             const isPush = ch.key === "push";
-            const enabled = isPush ? pushNotifications : channels[ch.key as "email" | "sms"];
-            const isComingSoon = isPush;
+            const enabled = isPush
+              ? pushEnabled
+              : channels[ch.key as "email" | "sms"];
+            const showSpinner = isPush && pushBusy;
 
             return (
               <Pressable
                 key={ch.key}
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   if (isPush) {
-                    setPushNotifications(!pushNotifications);
-                  } else {
-                    const k = ch.key as "email" | "sms";
-                    const updated = { ...channels, [k]: !channels[k] };
-                    updateField("notificationPreference", channelsToPreference(updated));
+                    togglePushNotifications();
+                    return;
                   }
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const k = ch.key as "email" | "sms";
+                  const updated = { ...channels, [k]: !channels[k] };
+                  updateField(
+                    "notificationPreference",
+                    channelsToPreference(updated)
+                  );
                 }}
+                disabled={showSpinner}
                 style={s.toggleRow}
               >
                 <Ionicons
                   name={ch.icon as keyof typeof Ionicons.glyphMap}
                   size={22}
-                  color={enabled ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                  color={
+                    enabled
+                      ? isDark
+                        ? "#86efac"
+                        : Brand.green
+                      : colors.textSecondary
+                  }
                 />
                 <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={[s.toggleLabel, { color: colors.text }]}>
-                      {ch.label}
-                    </Text>
-                    {isComingSoon && (
-                      <View style={[s.badge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9" }]}>
-                        <Text style={[s.badgeText, { color: colors.textSecondary }]}>
-                          Coming soon
-                        </Text>
-                      </View>
-                    )}
-                  </View>
+                  <Text style={[s.toggleLabel, { color: colors.text }]}>
+                    {ch.label}
+                  </Text>
                   <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
                     {ch.hint}
                   </Text>
                 </View>
-                <Ionicons
-                  name={enabled ? "checkbox" : "square-outline"}
-                  size={26}
-                  color={enabled ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
-                />
+                {showSpinner ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={isDark ? "#86efac" : Brand.green}
+                  />
+                ) : (
+                  <Ionicons
+                    name={enabled ? "checkbox" : "square-outline"}
+                    size={26}
+                    color={
+                      enabled
+                        ? isDark
+                          ? "#86efac"
+                          : Brand.green
+                        : colors.textSecondary
+                    }
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -534,7 +781,10 @@ export default function EditProfileScreen() {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              updateField("receiveShortageNotifications", !form.receiveShortageNotifications);
+              updateField(
+                "receiveShortageNotifications",
+                !form.receiveShortageNotifications
+              );
             }}
             style={s.toggleRow}
           >
@@ -547,19 +797,39 @@ export default function EditProfileScreen() {
               </Text>
             </View>
             <Ionicons
-              name={form.receiveShortageNotifications ? "checkbox" : "square-outline"}
+              name={
+                form.receiveShortageNotifications
+                  ? "checkbox"
+                  : "square-outline"
+              }
               size={26}
-              color={form.receiveShortageNotifications ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+              color={
+                form.receiveShortageNotifications
+                  ? isDark
+                    ? "#86efac"
+                    : Brand.green
+                  : colors.textSecondary
+              }
             />
           </Pressable>
 
           {form.receiveShortageNotifications && shiftTypes.length > 0 && (
-            <View style={[s.nestedSection, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc" }]}>
+            <View
+              style={[
+                s.nestedSection,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.04)"
+                    : "#f8fafc",
+                },
+              ]}
+            >
               <Text style={[s.fieldLabel, { color: colors.text }]}>
                 Notify me about these shift types:
               </Text>
               {shiftTypes.map((st) => {
-                const included = !form.excludedShortageNotificationTypes.includes(st.id);
+                const included =
+                  !form.excludedShortageNotificationTypes.includes(st.id);
                 return (
                   <Pressable
                     key={st.id}
@@ -569,7 +839,9 @@ export default function EditProfileScreen() {
                         "excludedShortageNotificationTypes",
                         included
                           ? [...form.excludedShortageNotificationTypes, st.id]
-                          : form.excludedShortageNotificationTypes.filter((id) => id !== st.id),
+                          : form.excludedShortageNotificationTypes.filter(
+                              (id) => id !== st.id
+                            )
                       );
                     }}
                     style={s.checkRow}
@@ -577,9 +849,17 @@ export default function EditProfileScreen() {
                     <Ionicons
                       name={included ? "checkbox" : "square-outline"}
                       size={22}
-                      color={included ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+                      color={
+                        included
+                          ? isDark
+                            ? "#86efac"
+                            : Brand.green
+                          : colors.textSecondary
+                      }
                     />
-                    <Text style={[s.checkLabel, { color: colors.text }]}>{st.name}</Text>
+                    <Text style={[s.checkLabel, { color: colors.text }]}>
+                      {st.name}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -613,214 +893,255 @@ export default function EditProfileScreen() {
               </Text>
             </View>
             <Ionicons
-              name={form.emailNewsletterSubscription ? "checkbox" : "square-outline"}
+              name={
+                form.emailNewsletterSubscription ? "checkbox" : "square-outline"
+              }
               size={26}
-              color={form.emailNewsletterSubscription ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
+              color={
+                form.emailNewsletterSubscription
+                  ? isDark
+                    ? "#86efac"
+                    : Brand.green
+                  : colors.textSecondary
+              }
             />
           </Pressable>
 
-          {form.emailNewsletterSubscription && newsletterListOptions.length > 0 && (
-            <View style={[s.nestedSection, { backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc" }]}>
-              <Text style={[s.fieldLabel, { color: colors.text }]}>
-                Choose which lists to subscribe to:
-              </Text>
-              {newsletterListOptions.map((list) => {
-                const subscribed = form.newsletterLists.includes(list.campaignMonitorId);
-                return (
-                  <Pressable
-                    key={list.id}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      updateField(
-                        "newsletterLists",
-                        subscribed
-                          ? form.newsletterLists.filter((id) => id !== list.campaignMonitorId)
-                          : [...form.newsletterLists, list.campaignMonitorId],
-                      );
-                    }}
-                    style={s.checkRow}
-                  >
-                    <Ionicons
-                      name={subscribed ? "checkbox" : "square-outline"}
-                      size={22}
-                      color={subscribed ? (isDark ? "#86efac" : Brand.green) : colors.textSecondary}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.checkLabel, { color: colors.text }]}>{list.name}</Text>
-                      {list.description && (
-                        <Text style={[s.checkHint, { color: colors.textSecondary }]}>
-                          {list.description}
+          {form.emailNewsletterSubscription &&
+            newsletterListOptions.length > 0 && (
+              <View
+                style={[
+                  s.nestedSection,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255,255,255,0.04)"
+                      : "#f8fafc",
+                  },
+                ]}
+              >
+                <Text style={[s.fieldLabel, { color: colors.text }]}>
+                  Choose which lists to subscribe to:
+                </Text>
+                {newsletterListOptions.map((list) => {
+                  const subscribed = form.newsletterLists.includes(
+                    list.campaignMonitorId
+                  );
+                  return (
+                    <Pressable
+                      key={list.id}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        updateField(
+                          "newsletterLists",
+                          subscribed
+                            ? form.newsletterLists.filter(
+                                (id) => id !== list.campaignMonitorId
+                              )
+                            : [...form.newsletterLists, list.campaignMonitorId]
+                        );
+                      }}
+                      style={s.checkRow}
+                    >
+                      <Ionicons
+                        name={subscribed ? "checkbox" : "square-outline"}
+                        size={22}
+                        color={
+                          subscribed
+                            ? isDark
+                              ? "#86efac"
+                              : Brand.green
+                            : colors.textSecondary
+                        }
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.checkLabel, { color: colors.text }]}>
+                          {list.name}
                         </Text>
-                      )}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+                        {list.description && (
+                          <Text
+                            style={[
+                              s.checkHint,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            {list.description}
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
         </View>
       </ScrollView>
 
-      {/* ── Footer ── */}
-      <View
-        style={[
-          s.footerWrap,
-          { paddingBottom: Math.max(insets.bottom, 16) },
-        ]}
-      >
-        <FooterButtons
-          isSaving={isSaving}
-          isDark={isDark}
-          colors={colors}
-          onCancel={() => router.back()}
-          onSave={handleSave}
-        />
-      </View>
+      <DefaultLocationSheet
+        visible={locationSheetVisible}
+        locations={availableLocations}
+        selected={form.defaultLocation}
+        onSelect={(value) => {
+          Haptics.selectionAsync();
+          updateField("defaultLocation", value);
+          setLocationSheetVisible(false);
+        }}
+        onClose={() => setLocationSheetVisible(false)}
+        isDark={isDark}
+        colors={colors}
+      />
     </KeyboardAvoidingView>
   );
 }
 
-/* ── Form Field Component ── */
+/* ── Default Location Picker Sheet ── */
 
-/* ── Footer Buttons Component ── */
-
-function GlassButton({
-  onPress,
-  disabled,
-  isDark,
-  tintColor,
-  style,
-  children,
-}: {
-  onPress: () => void;
-  disabled?: boolean;
-  isDark: boolean;
-  tintColor?: string;
-  style?: object;
-  children: React.ReactNode;
-}) {
-  const useNativeGlass = Platform.OS === "ios" && isLiquidGlassAvailable();
-
-  if (useNativeGlass) {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, style]}
-      >
-        <GlassView glassEffectStyle="regular" style={[s.glassButton, tintColor ? { backgroundColor: tintColor } : undefined]}>
-          {children}
-        </GlassView>
-      </Pressable>
-    );
-  }
-
-  if (Platform.OS === "ios") {
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={disabled}
-        style={({ pressed }) => [
-          s.glassButton,
-          { overflow: "hidden", opacity: pressed ? 0.85 : 1 },
-          style,
-        ]}
-      >
-        <BlurView
-          intensity={isDark ? 50 : 70}
-          tint={isDark ? "dark" : "light"}
-          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
-        />
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: 16,
-              backgroundColor: tintColor
-                ? tintColor
-                : isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "rgba(255,255,255,0.25)",
-            },
-          ]}
-        />
-        {children}
-      </Pressable>
-    );
-  }
-
-  // Android — solid button
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        s.glassButton,
-        { opacity: pressed ? 0.85 : 1 },
-        style,
-      ]}
-    >
-      {children}
-    </Pressable>
-  );
-}
-
-function FooterButtons({
-  isSaving,
+function DefaultLocationSheet({
+  visible,
+  locations,
+  selected,
+  onSelect,
+  onClose,
   isDark,
   colors,
-  onCancel,
-  onSave,
 }: {
-  isSaving: boolean;
+  visible: boolean;
+  locations: string[];
+  selected: string;
+  onSelect: (value: string) => void;
+  onClose: () => void;
   isDark: boolean;
   colors: (typeof Colors)["light"];
-  onCancel: () => void;
-  onSave: () => void;
 }) {
-  return (
-    <>
-      <GlassButton
-        onPress={onCancel}
-        disabled={isSaving}
-        isDark={isDark}
-        style={Platform.OS === "android" ? {
-          backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
-          borderRadius: 12,
-        } : undefined}
-      >
-        <Text
-          style={[
-            s.glassButtonText,
-            { color: isDark ? "#e5e5e5" : colors.text },
-          ]}
-        >
-          Cancel
-        </Text>
-      </GlassButton>
+  const insets = useSafeAreaInsets();
+  const items: {
+    key: string;
+    label: string;
+    value: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[] = [
+    { key: "none", label: "No default", value: "", icon: "close-circle-outline" },
+    ...locations.map((loc) => ({
+      key: loc,
+      label: loc,
+      value: loc,
+      icon: "location" as const,
+    })),
+  ];
 
-      <GlassButton
-        onPress={onSave}
-        disabled={isSaving}
-        isDark={isDark}
-        tintColor={isSaving ? "rgba(128,128,128,0.4)" : "rgba(14,58,35,0.55)"}
-        style={{
-          flex: 1,
-          ...(Platform.OS === "android" ? {
-            backgroundColor: isSaving ? colors.textSecondary : Brand.green,
-            borderRadius: 12,
-          } : {}),
-        }}
+  return (
+    <Modal
+      visible={visible}
+      presentationStyle="pageSheet"
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View
+        style={[
+          s.sheetPage,
+          {
+            backgroundColor: colors.background,
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
+        ]}
       >
-        {isSaving ? (
-          <ActivityIndicator size="small" color="#ffffff" />
-        ) : (
-          <Text style={[s.glassButtonText, { color: "#ffffff" }]}>
-            Save Changes
-          </Text>
-        )}
-      </GlassButton>
-    </>
+        <View style={s.sheetHandleWrap}>
+          <View
+            style={[
+              s.sheetHandle,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.2)"
+                  : "rgba(0,0,0,0.15)",
+              },
+            ]}
+          />
+        </View>
+
+        <View style={s.sheetHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.sheetTitle, { color: colors.text }]}>
+              Default location
+            </Text>
+            <Text
+              style={[s.sheetSubtitle, { color: colors.textSecondary }]}
+            >
+              Pick your usual restaurant
+            </Text>
+          </View>
+          <Pressable
+            onPress={onClose}
+            hitSlop={10}
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              s.sheetClose,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "#f1f5f9",
+                opacity: pressed ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="close" size={18} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={s.sheetList}
+          showsVerticalScrollIndicator={false}
+        >
+          {items.map((item) => {
+            const active = item.value === selected;
+            const activeColor = isDark ? "#86efac" : Brand.green;
+            return (
+              <Pressable
+                key={item.key}
+                onPress={() => onSelect(item.value)}
+                style={({ pressed }) => [
+                  s.sheetItem,
+                  {
+                    backgroundColor: active
+                      ? isDark
+                        ? "rgba(134, 239, 172, 0.12)"
+                        : Brand.greenLight
+                      : pressed
+                      ? isDark
+                        ? "rgba(255,255,255,0.04)"
+                        : "#f8fafc"
+                      : "transparent",
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Ionicons
+                  name={item.icon}
+                  size={18}
+                  color={active ? activeColor : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    s.sheetItemText,
+                    {
+                      color: active ? activeColor : colors.text,
+                      fontFamily: active
+                        ? FontFamily.semiBold
+                        : FontFamily.regular,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </Text>
+                {active && (
+                  <Ionicons name="checkmark" size={18} color={activeColor} />
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -978,17 +1299,6 @@ const s = StyleSheet.create({
     paddingTop: 12,
   },
 
-  // Badges
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontFamily: FontFamily.medium,
-  },
-
   // Toggle rows
   toggleRow: {
     flexDirection: "row",
@@ -1005,6 +1315,80 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.regular,
     lineHeight: 18,
     marginTop: 2,
+  },
+
+  // Default location selector
+  locationSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  locationSelectorText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Default location sheet
+  sheetPage: { flex: 1 },
+  sheetHandleWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontFamily: FontFamily.heading,
+    letterSpacing: 0.2,
+    lineHeight: 26,
+  },
+  sheetSubtitle: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  sheetClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetList: {
+    paddingHorizontal: 12,
+    gap: 2,
+  },
+  sheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    borderRadius: 12,
+    minHeight: 48,
+  },
+  sheetItemText: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
   },
 
   // Nested checkbox sections
@@ -1029,30 +1413,4 @@ const s = StyleSheet.create({
     marginTop: 1,
   },
 
-  // Footer
-  footerWrap: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-
-  // Glass buttons
-  glassButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 50,
-    overflow: "hidden",
-  },
-  glassButtonText: {
-    fontSize: 15,
-    fontFamily: FontFamily.bold,
-  },
 });

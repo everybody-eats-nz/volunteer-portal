@@ -20,6 +20,8 @@ import {
   Trash2,
   MoreHorizontal,
   GitMerge,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -49,9 +51,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type VolunteerGrade } from "@/generated/client";
+import { type VolunteerGrade, type ArchiveReason } from "@/generated/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
 import { MergeUserDialog } from "@/components/merge-user-dialog";
+import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
 import { TableSkeleton } from "@/components/loading-skeleton";
 
 export interface User {
@@ -66,6 +69,8 @@ export interface User {
   volunteerGrade: VolunteerGrade;
   completedShiftAdjustment: number;
   createdAt: Date;
+  archivedAt?: Date | null;
+  archiveReason?: ArchiveReason | null;
   _count: {
     signups: number;
   };
@@ -141,10 +146,26 @@ export const columns: ColumnDef<User>[] = [
           </Avatar>
           <div>
             <div
-              className="font-medium text-sm"
+              className="font-medium text-sm flex items-center gap-2"
               data-testid={`user-name-${user.id}`}
             >
-              {displayName}
+              <span
+                className={
+                  user.archivedAt ? "text-muted-foreground line-through" : ""
+                }
+              >
+                {displayName}
+              </span>
+              {user.archivedAt && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-200 font-medium"
+                  data-testid={`user-archived-badge-${user.id}`}
+                >
+                  <Archive className="h-3 w-3 mr-1" />
+                  Archived
+                </Badge>
+              )}
             </div>
             <div
               className="text-xs text-muted-foreground flex items-center gap-1"
@@ -331,6 +352,18 @@ export const columns: ColumnDef<User>[] = [
                   Merge with...
                 </DropdownMenuItem>
               </MergeUserDialog>
+              {user.archivedAt && (
+                <ReactivateUserDialog user={user}>
+                  <DropdownMenuItem
+                    className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 focus:text-emerald-700 dark:focus:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                    onSelect={(e) => e.preventDefault()}
+                    data-testid={`reactivate-user-${user.id}`}
+                  >
+                    <ArchiveRestore className="h-4 w-4" />
+                    Reactivate user
+                  </DropdownMenuItem>
+                </ReactivateUserDialog>
+              )}
               <DeleteUserDialog user={user}>
                 <DropdownMenuItem
                   className="flex items-center gap-2 text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20"

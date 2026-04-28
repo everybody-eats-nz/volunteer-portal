@@ -40,6 +40,15 @@ export default async function AdminUsersPage({
   const locationFilter = Array.isArray(params.location)
     ? params.location[0]
     : params.location;
+  const archivedFilterRaw = Array.isArray(params.archived)
+    ? params.archived[0]
+    : params.archived;
+  const archivedFilter: "active" | "archived" | "all" =
+    archivedFilterRaw === "only"
+      ? "archived"
+      : archivedFilterRaw === "all"
+        ? "all"
+        : "active";
 
   // Get pagination parameters
   const page = params.page ? parseInt(params.page as string, 10) : 1;
@@ -73,8 +82,15 @@ export default async function AdminUsersPage({
   }
 
   if (locationFilter) {
-    whereClause.availableLocations = { contains: locationFilter };
+    whereClause.defaultLocation = locationFilter;
   }
+
+  if (archivedFilter === "active") {
+    whereClause.archivedAt = null;
+  } else if (archivedFilter === "archived") {
+    whereClause.archivedAt = { not: null };
+  }
+  // "all" -> no filter
 
   // Fetch active locations for the filter dropdown
   const locations = await prisma.location.findMany({
@@ -103,6 +119,8 @@ export default async function AdminUsersPage({
       volunteerGrade: true;
       completedShiftAdjustment: true;
       createdAt: true;
+      archivedAt: true;
+      archiveReason: true;
       _count: {
         select: {
           signups: true;
@@ -143,8 +161,13 @@ export default async function AdminUsersPage({
     }
 
     if (locationFilter) {
-      const locationPattern = `%"${locationFilter}"%`;
-      conditions.push(Prisma.sql`u."availableLocations" LIKE ${locationPattern}`);
+      conditions.push(Prisma.sql`u."defaultLocation" = ${locationFilter}`);
+    }
+
+    if (archivedFilter === "active") {
+      conditions.push(Prisma.sql`u."archivedAt" IS NULL`);
+    } else if (archivedFilter === "archived") {
+      conditions.push(Prisma.sql`u."archivedAt" IS NOT NULL`);
     }
 
     if (conditions.length > 0) {
@@ -202,6 +225,8 @@ export default async function AdminUsersPage({
           volunteerGrade: true,
           completedShiftAdjustment: true,
           createdAt: true,
+          archivedAt: true,
+          archiveReason: true,
           _count: {
             select: {
               signups: {
@@ -267,6 +292,8 @@ export default async function AdminUsersPage({
         volunteerGrade: true,
         completedShiftAdjustment: true,
         createdAt: true,
+        archivedAt: true,
+        archiveReason: true,
         _count: {
           select: {
             signups: {
@@ -291,19 +318,26 @@ export default async function AdminUsersPage({
     filteredCount = await prisma.user.count({ where: whereClause });
   }
 
-  const [totalUsers, totalAdmins, totalVolunteers, newUsersThisMonth] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { role: "ADMIN" } }),
-      prisma.user.count({ where: { role: "VOLUNTEER" } }),
-      prisma.user.count({
-        where: {
-          createdAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
+  const [
+    totalUsers,
+    totalAdmins,
+    totalVolunteers,
+    newUsersThisMonth,
+    totalArchived,
+  ] = await Promise.all([
+    prisma.user.count({ where: { archivedAt: null } }),
+    prisma.user.count({ where: { role: "ADMIN", archivedAt: null } }),
+    prisma.user.count({ where: { role: "VOLUNTEER", archivedAt: null } }),
+    prisma.user.count({
+      where: {
+        archivedAt: null,
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         },
-      }),
-    ]);
+      },
+    }),
+    prisma.user.count({ where: { archivedAt: { not: null } } }),
+  ]);
 
   const totalPages = Math.ceil(filteredCount / pageSize);
 
@@ -416,6 +450,8 @@ export default async function AdminUsersPage({
           initialSearch={searchQuery}
           roleFilter={roleFilter}
           locationFilter={locationFilter}
+          archivedFilter={archivedFilter}
+          archivedCount={totalArchived}
           locations={locations.map((l) => l.name)}
         />
 

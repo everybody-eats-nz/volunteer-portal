@@ -33,10 +33,11 @@ export async function POST(request: Request) {
         volunteerAgreementAccepted: true,
         healthSafetyPolicyAccepted: true,
         hashedPassword: true,
+        archivedAt: true,
       },
     });
 
-    if (!user || !user.hashedPassword) {
+    if (!user || !user.hashedPassword || user.archivedAt) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }

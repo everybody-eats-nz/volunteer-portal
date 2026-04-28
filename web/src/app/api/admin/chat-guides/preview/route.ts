@@ -69,7 +69,7 @@ export async function POST(request: Request) {
             name: true,
             volunteerGrade: true,
             availableDays: true,
-            availableLocations: true,
+            defaultLocation: true,
           },
         }),
         prisma.signup.findMany({
@@ -109,7 +109,10 @@ export async function POST(request: Request) {
         }),
         prisma.user.count({ where: { role: "VOLUNTEER" } }),
         prisma.mealsServed.aggregate({
-          where: { date: { gte: thirtyDaysAgo } },
+          where: {
+            date: { gte: thirtyDaysAgo },
+            mealsServed: { not: null },
+          },
           _sum: { mealsServed: true },
           _count: true,
         }),

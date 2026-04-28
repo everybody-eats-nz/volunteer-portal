@@ -2,7 +2,7 @@
   "expo": {
     "name": "Everybody Eats",
     "slug": "everybody-eats",
-    "version": "1.0.0",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "everybody-eats",
@@ -10,12 +10,20 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.malinmw.everybody-eats",
-      "buildNumber": "1",
-      "associatedDomains": [
-        "webcredentials:volunteers.everybodyeats.nz"
-      ],
+      "buildNumber": "2",
+      "usesAppleSignIn": true,
+      "associatedDomains": ["webcredentials:volunteers.everybodyeats.nz"],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "com.googleusercontent.apps",
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.165743067386-g5qe3p9bge7qtcfb1g8aqbom78lnoeqd"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -27,9 +35,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": ["android.permission.READ_MEDIA_VISUAL_USER_SELECTED"]
     },
     "web": {
       "output": "static",
@@ -59,7 +66,30 @@
       ],
       "expo-font",
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "color": "#0e3a23",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Everybody Eats to save shift photos to your library.",
+          "savePhotosPermission": "Allow Everybody Eats to save shift photos to your library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow Everybody Eats to add your upcoming shifts to your calendar so you never miss a mahi."
+        }
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -70,6 +100,12 @@
       "eas": {
         "projectId": "f4f88f76-078f-4f65-9841-227b48f19faf"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f4f88f76-078f-4f65-9841-227b48f19faf"
     }
   }
 }
