@@ -20,6 +20,8 @@ import {
   bufferToBase64URL,
 } from "@/lib/webauthn-utils";
 import { rpID, expectedOrigin } from "@/lib/webauthn-config";
+import { unarchiveUser } from "@/lib/archive-service";
+import { ArchiveTriggerSource } from "@/generated/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -55,6 +57,7 @@ export async function POST(req: NextRequest) {
             role: true,
             phone: true,
             emailVerified: true,
+            archivedAt: true,
           },
         },
       },
@@ -149,6 +152,16 @@ export async function POST(req: NextRequest) {
         lastUsedAt: new Date(),
       },
     });
+
+    // Auto-reactivate archived users — successful passkey assertion is
+    // cryptographic proof of identity, same standard as OAuth re-auth.
+    if (passkey.user.archivedAt) {
+      await unarchiveUser({
+        userId: passkey.user.id,
+        triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+        actorId: passkey.user.id,
+      });
+    }
 
     // Return user info for NextAuth session
     return NextResponse.json(
