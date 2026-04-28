@@ -70,17 +70,21 @@ describe("archive-service", () => {
   describe("where-clause helpers", () => {
     const now = new Date("2026-01-01T00:00:00Z");
 
-    it("whereNeverMigrated filters migrated+incomplete volunteers", () => {
+    it("whereNeverMigrated filters migrated+incomplete volunteers and protects manual/regular activity", () => {
       const w = whereNeverMigrated();
       expect(w).toMatchObject({
         role: "VOLUNTEER",
         archivedAt: null,
         isMigrated: true,
         profileCompleted: false,
+        signups: { none: { status: "CONFIRMED" } },
+        regularVolunteers: {
+          none: { isActive: true, isPausedByUser: false },
+        },
       });
     });
 
-    it("whereNeverActivatedNudge uses the 1-month cutoff and requires no nudge+no confirmed shifts", () => {
+    it("whereNeverActivatedNudge uses the 1-month cutoff and excludes manual/regular activity", () => {
       const w = whereNeverActivatedNudge(now);
       const expectedCutoff = subMonths(
         now,
@@ -92,11 +96,14 @@ describe("archive-service", () => {
         isMigrated: false,
         firstShiftNudgeSentAt: null,
         signups: { none: { status: "CONFIRMED" } },
+        regularVolunteers: {
+          none: { isActive: true, isPausedByUser: false },
+        },
       });
       expect((w.createdAt as { lte: Date }).lte).toEqual(expectedCutoff);
     });
 
-    it("whereNeverActivatedArchive uses the 3-month cutoff", () => {
+    it("whereNeverActivatedArchive uses the 3-month cutoff and excludes manual/regular activity", () => {
       const w = whereNeverActivatedArchive(now);
       const expectedCutoff = subMonths(
         now,
@@ -108,6 +115,9 @@ describe("archive-service", () => {
         archivedAt: null,
         isMigrated: false,
         signups: { none: { status: "CONFIRMED" } },
+        regularVolunteers: {
+          none: { isActive: true, isPausedByUser: false },
+        },
       });
     });
   });
