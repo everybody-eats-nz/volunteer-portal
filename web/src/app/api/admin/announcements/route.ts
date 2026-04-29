@@ -192,10 +192,10 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   const bodyHtml = `<div style="color:#fff;">${renderedBody}</div>`;
   const baseUrl = getBaseUrl();
   const feedLink = `${baseUrl}/dashboard`;
-  // Fall back to a 200×1 white spacer so the template can drop the
-  // conditional around the image. The wide aspect ratio means email clients
-  // that scale the image to column width keep the height ≈ 3px (vs. a 1×1
-  // that becomes a square the full width of the column).
+  // Fall back to a 400×20 white spacer so the template can drop the
+  // conditional around the image. The wide aspect ratio (20:1) keeps the
+  // scaled height small relative to the email column width, instead of
+  // ballooning into a square the full width of the column.
   const imageUrl = ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png`;
   const emailService = getEmailService();
 
