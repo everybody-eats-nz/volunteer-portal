@@ -92,7 +92,8 @@ export const adminNavCategories: AdminNavCategory[] = [
         title: "Milestone Analytics",
         href: "/admin/analytics/milestones",
         icon: Award,
-        description: "Shift milestones, volunteer recognition, and 12-month projections",
+        description:
+          "Shift milestones, volunteer recognition, and 12-month projections",
         commandKey: "milestones",
       },
     ],
@@ -171,7 +172,7 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
-    label: "Restaurant",
+    label: "Restaurants",
     items: [
       {
         title: "Daily Menus",
@@ -313,7 +314,7 @@ export const publicNavItems: AdminNavItem[] = [
     description: "Opens in new tab",
     opensInNewTab: true,
     commandKey: "public-resources",
-  }
+  },
 ];
 
 // Helper function to get icon color for command palette
@@ -351,7 +352,7 @@ export const getIconColor = (
     "Restaurant Managers": "text-orange-600",
 
     // Communications
-    "Announcements": "text-orange-500",
+    Announcements: "text-orange-500",
     "Shortage Notifications": "text-amber-600",
     "Newsletter Lists": "text-cyan-600",
     Surveys: "text-violet-600",
