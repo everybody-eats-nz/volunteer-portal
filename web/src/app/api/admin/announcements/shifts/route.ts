@@ -18,6 +18,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const location = url.searchParams.get("location");
+  const idsParam = url.searchParams.get("ids");
   const days = Math.min(
     Math.max(parseInt(url.searchParams.get("days") ?? "60", 10) || 60, 1),
     180
@@ -26,8 +27,23 @@ export async function GET(request: Request) {
   const now = new Date();
   const horizon = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
+  // When `ids` is given, hydrate exactly those shifts (used by the
+  // announcements form to render selected-shift badges from query-string
+  // prefill — those shifts may be outside the upcoming-window).
+  const idFilter = idsParam
+    ? {
+        id: {
+          in: idsParam
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .slice(0, 200),
+        },
+      }
+    : null;
+
   const shifts = await prisma.shift.findMany({
-    where: {
+    where: idFilter ?? {
       start: { gte: now, lte: horizon },
       ...(location ? { location } : {}),
     },

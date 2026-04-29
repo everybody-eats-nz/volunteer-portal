@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import {
@@ -112,52 +113,61 @@ interface AnnouncementsContentProps {
   initialAnnouncements: Announcement[];
   labels: Label[];
   locations: string[];
-  prefill: {
-    locations: string[];
-    grades: string[];
-    labelIds: string[];
-    sendEmail: boolean;
-    users: UserOption[];
-    shifts: ShiftOption[];
-  } | null;
+}
+
+function parseCsv(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export function AnnouncementsContent({
   initialAnnouncements,
   labels,
   locations,
-  prefill,
 }: AnnouncementsContentProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Stable, hashable signature of the prefill query string. This is what
+  // `useEffect` watches — recomputing on every render gives us a fresh
+  // string each time but the value only *changes* when the query actually
+  // changes, so the syncing effect runs once per URL update.
+  const prefillSignature = [
+    searchParams.get("userIds") ?? "",
+    searchParams.get("shiftIds") ?? "",
+    searchParams.get("locations") ?? "",
+    searchParams.get("grades") ?? "",
+    searchParams.get("labels") ?? "",
+    searchParams.get("sendEmail") ?? "",
+  ].join("|");
+  const hasPrefill = prefillSignature !== "|||||";
+
   const [announcements, setAnnouncements] =
     useState<Announcement[]>(initialAnnouncements);
-  const [showForm, setShowForm] = useState(prefill !== null);
+  const [showForm, setShowForm] = useState(hasPrefill);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // Form state — seed from query-string prefill if present
+  // Form state — synced from the query string by the effect below whenever
+  // it changes, so navigating to `/admin/announcements?shiftIds=...` from
+  // anywhere always lands on a freshly-seeded form.
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState("");
-  const [targetLocations, setTargetLocations] = useState<string[]>(
-    prefill?.locations ?? []
-  );
-  const [targetGrades, setTargetGrades] = useState<string[]>(
-    prefill?.grades ?? []
-  );
-  const [targetLabelIds, setTargetLabelIds] = useState<string[]>(
-    prefill?.labelIds ?? []
-  );
-  const [targetUsers, setTargetUsers] = useState<UserOption[]>(
-    prefill?.users ?? []
-  );
-  const [targetShifts, setTargetShifts] = useState<ShiftOption[]>(
-    prefill?.shifts ?? []
-  );
-  const [sendEmail, setSendEmail] = useState(prefill?.sendEmail ?? false);
+  const [targetLocations, setTargetLocations] = useState<string[]>([]);
+  const [targetGrades, setTargetGrades] = useState<string[]>([]);
+  const [targetLabelIds, setTargetLabelIds] = useState<string[]>([]);
+  const [targetUsers, setTargetUsers] = useState<UserOption[]>([]);
+  const [targetShifts, setTargetShifts] = useState<ShiftOption[]>([]);
+  const [sendEmail, setSendEmail] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [recipientPreview, setRecipientPreview] = useState<number | null>(null);
   const [isCountingRecipients, setIsCountingRecipients] = useState(false);
@@ -174,6 +184,77 @@ export function AnnouncementsContent({
     targetShifts,
   ]);
 
+  // Sync form state from the query string whenever it changes. The effect
+  // re-runs only when `prefillSignature` changes, which means subsequent
+  // "Announce" link clicks (with different params) re-seed the form even
+  // though the page component never unmounts.
+  useEffect(() => {
+    const userIds = parseCsv(searchParams.get("userIds"));
+    const shiftIds = parseCsv(searchParams.get("shiftIds"));
+    const locs = parseCsv(searchParams.get("locations"));
+    const grades = parseCsv(searchParams.get("grades"));
+    const lbls = parseCsv(searchParams.get("labels"));
+    const wantsEmail =
+      searchParams.get("sendEmail") === "1" ||
+      searchParams.get("sendEmail") === "true";
+    const empty =
+      userIds.length === 0 &&
+      shiftIds.length === 0 &&
+      locs.length === 0 &&
+      grades.length === 0 &&
+      lbls.length === 0 &&
+      !wantsEmail;
+    if (empty) return;
+
+    setShowForm(true);
+    setTargetLocations(locs);
+    setTargetGrades(grades);
+    setTargetLabelIds(lbls);
+    setSendEmail(wantsEmail);
+
+    let cancelled = false;
+    const run = async () => {
+      // Hydrate selected users by their IDs so the badges render with names.
+      if (userIds.length > 0) {
+        try {
+          const r = await fetch(
+            `/api/admin/users?ids=${encodeURIComponent(userIds.join(","))}`
+          );
+          if (r.ok) {
+            const data = (await r.json()) as UserOption[];
+            if (!cancelled) setTargetUsers(data);
+          }
+        } catch {
+          // leave selection empty if hydration fails — IDs aren't useful
+          // without names since the UI shows badge labels
+        }
+      } else {
+        setTargetUsers([]);
+      }
+
+      if (shiftIds.length > 0) {
+        try {
+          const r = await fetch(
+            `/api/admin/announcements/shifts?ids=${encodeURIComponent(shiftIds.join(","))}`
+          );
+          if (r.ok) {
+            const data = await r.json();
+            if (!cancelled) setTargetShifts(data.shifts ?? []);
+          }
+        } catch {
+          // see above
+        }
+      } else {
+        setTargetShifts([]);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillSignature]);
+
   const resetForm = () => {
     setTitle("");
     setBody("");
@@ -187,6 +268,11 @@ export function AnnouncementsContent({
     setSendEmail(false);
     setPreviewMode(false);
     setRecipientPreview(null);
+    // Drop any prefill query string so reopening the form doesn't re-seed
+    // it. We use replace so this doesn't add a history entry.
+    if (hasPrefill) {
+      router.replace(pathname);
+    }
   };
 
   // Debounced recipient count preview
