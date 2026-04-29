@@ -32,7 +32,6 @@ import type {
   RecruitmentData,
   RecruitmentFunnelBreakdown,
   RecruitmentSegment,
-  TimeBucketKey,
 } from "@/lib/recruitment-types";
 import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
 import { RecruitmentUsersDialog } from "../recruitment/recruitment-users-dialog";
@@ -141,17 +140,6 @@ interface ActiveSegment {
   title: string;
   subtitle?: string;
 }
-
-const TIME_BUCKET_LABELS: Record<TimeBucketKey, string> = {
-  sameDay: "Same day",
-  within3Days: "1–3 days",
-  within7Days: "4–7 days",
-  within14Days: "8–14 days",
-  within30Days: "15–30 days",
-  within60Days: "31–60 days",
-  within90Days: "61–90 days",
-  over90Days: "More than 90 days",
-};
 
 export function RecruitmentSection({ data, months, location }: Props) {
   const { resolvedTheme } = useTheme();
