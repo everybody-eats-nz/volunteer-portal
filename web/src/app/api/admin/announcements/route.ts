@@ -172,7 +172,11 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   });
 
   const bodyHtml = await marked.parse(ann.body, { async: true });
-  const feedLink = `${getBaseUrl()}/dashboard`;
+  const baseUrl = getBaseUrl();
+  const feedLink = `${baseUrl}/dashboard`;
+  // Fall back to a 1×1 white pixel so the template can drop the conditional
+  // around the image — the pixel is invisible against any background.
+  const imageUrl = ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png`;
   const emailService = getEmailService();
 
   await Promise.allSettled(
@@ -182,7 +186,7 @@ async function dispatchAnnouncementEmails(announcementId: string) {
         firstName: r.firstName ?? r.name ?? "there",
         title: ann.title,
         bodyHtml,
-        imageUrl: ann.imageUrl,
+        imageUrl,
         feedLink,
       })
     )
