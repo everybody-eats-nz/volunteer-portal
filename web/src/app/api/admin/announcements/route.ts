@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { marked } from "marked";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/client";
+import { getEmailService } from "@/lib/email-service";
+import { getBaseUrl } from "@/lib/utils";
+import {
+  countAnnouncementRecipients,
+  findAnnouncementRecipients,
+} from "@/lib/announcement-targeting";
 
 /**
  * GET /api/admin/announcements
  *
- * Returns all announcements with author info and interaction counts.
+ * Returns all announcements with author info and recipient counts.
  */
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -24,18 +30,20 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  // Count total recipients for each announcement
   const results = await Promise.all(
     announcements.map(async (ann) => {
-      const recipientCount = await countRecipients(
-        ann.targetLocations,
-        ann.targetGrades,
-        ann.targetLabelIds
-      );
+      const recipientCount = await countAnnouncementRecipients({
+        targetLocations: ann.targetLocations,
+        targetGrades: ann.targetGrades,
+        targetLabelIds: ann.targetLabelIds,
+        targetUserIds: ann.targetUserIds,
+        targetShiftIds: ann.targetShiftIds,
+      });
       return {
         ...ann,
         createdAt: ann.createdAt.toISOString(),
         expiresAt: ann.expiresAt?.toISOString() ?? null,
+        emailSentAt: ann.emailSentAt?.toISOString() ?? null,
         recipientCount,
       };
     })
@@ -47,8 +55,17 @@ export async function GET() {
 /**
  * POST /api/admin/announcements
  *
- * Creates a new announcement.
- * Body: { title, body, imageUrl?, expiresAt?, targetLocations?, targetGrades?, targetLabelIds? }
+ * Creates a new announcement and (optionally) sends it as an email to all
+ * matched volunteers. Email dispatch runs after the response is returned so
+ * the request stays snappy on large recipient lists.
+ *
+ * Body: {
+ *   title, body,
+ *   imageUrl?, expiresAt?,
+ *   targetLocations?, targetGrades?, targetLabelIds?,
+ *   targetUserIds?, targetShiftIds?,
+ *   sendEmail?
+ * }
  */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -69,7 +86,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { title, body: announcementBody, imageUrl, expiresAt, targetLocations, targetGrades, targetLabelIds } = body;
+  const {
+    title,
+    body: announcementBody,
+    imageUrl,
+    expiresAt,
+    targetLocations,
+    targetGrades,
+    targetLabelIds,
+    targetUserIds,
+    targetShiftIds,
+    sendEmail,
+  } = body;
 
   if (!title?.trim()) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -78,6 +106,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
+  const targeting = {
+    targetLocations: Array.isArray(targetLocations) ? targetLocations : [],
+    targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
+    targetLabelIds: Array.isArray(targetLabelIds) ? targetLabelIds : [],
+    targetUserIds: Array.isArray(targetUserIds) ? targetUserIds : [],
+    targetShiftIds: Array.isArray(targetShiftIds) ? targetShiftIds : [],
+  };
+
   const announcement = await prisma.announcement.create({
     data: {
       title: title.trim(),
@@ -85,9 +121,8 @@ export async function POST(request: Request) {
       imageUrl: imageUrl?.trim() || null,
       expiresAt: expiresAt ? new Date(expiresAt) : null,
       createdBy: adminUser.id,
-      targetLocations: Array.isArray(targetLocations) ? targetLocations : [],
-      targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
-      targetLabelIds: Array.isArray(targetLabelIds) ? targetLabelIds : [],
+      sendEmail: Boolean(sendEmail),
+      ...targeting,
     },
     include: {
       author: {
@@ -96,58 +131,65 @@ export async function POST(request: Request) {
     },
   });
 
-  const recipientCount = await countRecipients(
-    announcement.targetLocations,
-    announcement.targetGrades,
-    announcement.targetLabelIds
-  );
+  const recipientCount = await countAnnouncementRecipients(targeting);
+
+  // Fire-and-forget email dispatch — keeps the admin response snappy.
+  if (sendEmail) {
+    void dispatchAnnouncementEmails(announcement.id).catch((err) => {
+      console.error("[announcements] email dispatch failed", err);
+    });
+  }
 
   return NextResponse.json({
     announcement: {
       ...announcement,
       createdAt: announcement.createdAt.toISOString(),
       expiresAt: announcement.expiresAt?.toISOString() ?? null,
+      emailSentAt: announcement.emailSentAt?.toISOString() ?? null,
       recipientCount,
     },
   });
 }
 
 /**
- * Count how many volunteers will receive an announcement based on targeting filters.
- * Each filter dimension is OR-within, AND-across. Empty = "all" for that dimension.
+ * Render the announcement body as HTML and email each matched volunteer via
+ * the Campaign Monitor "Announcement" smart email template. Stamps
+ * `emailSentAt` once dispatch finishes (regardless of individual failures —
+ * Promise.allSettled lets one bad address not block the rest).
  */
-async function countRecipients(
-  targetLocations: string[],
-  targetGrades: string[],
-  targetLabelIds: string[]
-): Promise<number> {
-  const conditions: Prisma.Sql[] = [Prisma.sql`role = 'VOLUNTEER'`];
+async function dispatchAnnouncementEmails(announcementId: string) {
+  const ann = await prisma.announcement.findUnique({
+    where: { id: announcementId },
+  });
+  if (!ann) return;
 
-  if (targetLocations.length > 0) {
-    conditions.push(
-      Prisma.sql`"defaultLocation" = ANY(ARRAY[${Prisma.join(targetLocations)}]::text[])`
-    );
-  }
+  const recipients = await findAnnouncementRecipients({
+    targetLocations: ann.targetLocations,
+    targetGrades: ann.targetGrades,
+    targetLabelIds: ann.targetLabelIds,
+    targetUserIds: ann.targetUserIds,
+    targetShiftIds: ann.targetShiftIds,
+  });
 
-  if (targetGrades.length > 0) {
-    conditions.push(
-      Prisma.sql`"volunteerGrade"::text = ANY(ARRAY[${Prisma.join(targetGrades)}]::text[])`
-    );
-  }
+  const bodyHtml = await marked.parse(ann.body, { async: true });
+  const feedLink = `${getBaseUrl()}/dashboard`;
+  const emailService = getEmailService();
 
-  if (targetLabelIds.length > 0) {
-    conditions.push(
-      Prisma.sql`EXISTS (
-        SELECT 1 FROM "UserCustomLabel"
-        WHERE "userId" = id
-        AND "labelId" = ANY(ARRAY[${Prisma.join(targetLabelIds)}]::text[])
-      )`
-    );
-  }
-
-  const result = await prisma.$queryRaw<[{ count: bigint }]>(
-    Prisma.sql`SELECT COUNT(*) AS count FROM "User" WHERE ${Prisma.join(conditions, " AND ")}`
+  await Promise.allSettled(
+    recipients.map((r) =>
+      emailService.sendAnnouncement({
+        to: r.email,
+        firstName: r.firstName ?? r.name ?? "there",
+        title: ann.title,
+        bodyHtml,
+        imageUrl: ann.imageUrl,
+        feedLink,
+      })
+    )
   );
 
-  return Number(result[0].count);
+  await prisma.announcement.update({
+    where: { id: announcementId },
+    data: { emailSentAt: new Date() },
+  });
 }

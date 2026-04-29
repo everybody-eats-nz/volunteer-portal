@@ -13,7 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Megaphone } from "lucide-react";
+import Link from "next/link";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { CustomLabelDialog } from "./custom-label-dialog";
 import { type CustomLabel } from "@/generated/client";
@@ -224,6 +225,21 @@ export function CustomLabelsContent({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {label._count.users > 0 && (
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        data-testid={`announce-label-${label.id}`}
+                      >
+                        <Link
+                          href={`/admin/announcements?labels=${label.id}`}
+                          aria-label={`Announce to ${label.name} volunteers`}
+                        >
+                          <Megaphone className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"

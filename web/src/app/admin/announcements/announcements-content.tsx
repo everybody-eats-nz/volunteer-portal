@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import {
@@ -16,6 +16,11 @@ import {
   ImageIcon,
   ChevronDown,
   ChevronUp,
+  Search,
+  Mail,
+  CalendarClock,
+  UserPlus2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,9 +45,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const VOLUNTEER_GRADES = [
   { value: "GREEN", label: "Green", description: "Standard volunteers" },
@@ -61,6 +72,10 @@ type Announcement = {
   targetLocations: string[];
   targetGrades: string[];
   targetLabelIds: string[];
+  targetUserIds: string[];
+  targetShiftIds: string[];
+  sendEmail: boolean;
+  emailSentAt: string | null;
   author: {
     id: string;
     name: string | null;
@@ -76,40 +91,88 @@ type Label = {
   icon: string | null;
 };
 
+type UserOption = {
+  id: string;
+  email: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+};
+
+type ShiftOption = {
+  id: string;
+  start: string;
+  end: string;
+  location: string | null;
+  shiftTypeName: string;
+  signupCount: number;
+};
+
 interface AnnouncementsContentProps {
   initialAnnouncements: Announcement[];
   labels: Label[];
   locations: string[];
+  prefill: {
+    locations: string[];
+    grades: string[];
+    labelIds: string[];
+    sendEmail: boolean;
+    users: UserOption[];
+    shifts: ShiftOption[];
+  } | null;
 }
 
 export function AnnouncementsContent({
   initialAnnouncements,
   labels,
   locations,
+  prefill,
 }: AnnouncementsContentProps) {
   const [announcements, setAnnouncements] =
     useState<Announcement[]>(initialAnnouncements);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(prefill !== null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // Form state
+  // Form state — seed from query-string prefill if present
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState("");
-  const [targetLocations, setTargetLocations] = useState<string[]>([]);
-  const [targetGrades, setTargetGrades] = useState<string[]>([]);
-  const [targetLabelIds, setTargetLabelIds] = useState<string[]>([]);
+  const [targetLocations, setTargetLocations] = useState<string[]>(
+    prefill?.locations ?? []
+  );
+  const [targetGrades, setTargetGrades] = useState<string[]>(
+    prefill?.grades ?? []
+  );
+  const [targetLabelIds, setTargetLabelIds] = useState<string[]>(
+    prefill?.labelIds ?? []
+  );
+  const [targetUsers, setTargetUsers] = useState<UserOption[]>(
+    prefill?.users ?? []
+  );
+  const [targetShifts, setTargetShifts] = useState<ShiftOption[]>(
+    prefill?.shifts ?? []
+  );
+  const [sendEmail, setSendEmail] = useState(prefill?.sendEmail ?? false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [recipientPreview, setRecipientPreview] = useState<number | null>(null);
   const [isCountingRecipients, setIsCountingRecipients] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recipientDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recipientDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  const targetUserIds = useMemo(() => targetUsers.map((u) => u.id), [
+    targetUsers,
+  ]);
+  const targetShiftIds = useMemo(() => targetShifts.map((s) => s.id), [
+    targetShifts,
+  ]);
 
   const resetForm = () => {
     setTitle("");
@@ -119,13 +182,22 @@ export function AnnouncementsContent({
     setTargetLocations([]);
     setTargetGrades([]);
     setTargetLabelIds([]);
+    setTargetUsers([]);
+    setTargetShifts([]);
+    setSendEmail(false);
     setPreviewMode(false);
     setRecipientPreview(null);
   };
 
   // Debounced recipient count preview
   const updateRecipientPreview = useCallback(
-    (locs: string[], grades: string[], labelIds: string[]) => {
+    (
+      locs: string[],
+      grades: string[],
+      labelIds: string[],
+      userIds: string[],
+      shiftIds: string[]
+    ) => {
       if (recipientDebounceRef.current) {
         clearTimeout(recipientDebounceRef.current);
       }
@@ -141,6 +213,8 @@ export function AnnouncementsContent({
                 targetLocations: locs,
                 targetGrades: grades,
                 targetLabelIds: labelIds,
+                targetUserIds: userIds,
+                targetShiftIds: shiftIds,
               }),
             }
           );
@@ -158,28 +232,43 @@ export function AnnouncementsContent({
     []
   );
 
+  // Recompute the preview whenever any targeting dimension changes, including
+  // user/shift selections (which are object lists, not just id arrays).
+  useEffect(() => {
+    updateRecipientPreview(
+      targetLocations,
+      targetGrades,
+      targetLabelIds,
+      targetUserIds,
+      targetShiftIds
+    );
+  }, [
+    targetLocations,
+    targetGrades,
+    targetLabelIds,
+    targetUserIds,
+    targetShiftIds,
+    updateRecipientPreview,
+  ]);
+
   const handleLocationToggle = (loc: string) => {
-    const next = targetLocations.includes(loc)
-      ? targetLocations.filter((l) => l !== loc)
-      : [...targetLocations, loc];
-    setTargetLocations(next);
-    updateRecipientPreview(next, targetGrades, targetLabelIds);
+    setTargetLocations((prev) =>
+      prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc]
+    );
   };
 
   const handleGradeToggle = (grade: string) => {
-    const next = targetGrades.includes(grade)
-      ? targetGrades.filter((g) => g !== grade)
-      : [...targetGrades, grade];
-    setTargetGrades(next);
-    updateRecipientPreview(targetLocations, next, targetLabelIds);
+    setTargetGrades((prev) =>
+      prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]
+    );
   };
 
   const handleLabelToggle = (labelId: string) => {
-    const next = targetLabelIds.includes(labelId)
-      ? targetLabelIds.filter((l) => l !== labelId)
-      : [...targetLabelIds, labelId];
-    setTargetLabelIds(next);
-    updateRecipientPreview(targetLocations, targetGrades, next);
+    setTargetLabelIds((prev) =>
+      prev.includes(labelId)
+        ? prev.filter((l) => l !== labelId)
+        : [...prev, labelId]
+    );
   };
 
   const handleImageUpload = async (file: File) => {
@@ -187,10 +276,10 @@ export function AnnouncementsContent({
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const response = await fetch(
-        "/api/admin/announcements/upload-image",
-        { method: "POST", body: fd }
-      );
+      const response = await fetch("/api/admin/announcements/upload-image", {
+        method: "POST",
+        body: fd,
+      });
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.error ?? "Upload failed");
@@ -230,6 +319,9 @@ export function AnnouncementsContent({
           targetLocations,
           targetGrades,
           targetLabelIds,
+          targetUserIds,
+          targetShiftIds,
+          sendEmail,
         }),
       });
 
@@ -242,7 +334,11 @@ export function AnnouncementsContent({
       setAnnouncements((prev) => [announcement, ...prev]);
       resetForm();
       setShowForm(false);
-      toast.success("Announcement published");
+      toast.success(
+        sendEmail
+          ? "Announcement published — emails are sending in the background"
+          : "Announcement published"
+      );
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to create announcement"
@@ -288,8 +384,7 @@ export function AnnouncementsContent({
       parts.push(
         ann.targetGrades
           .map(
-            (g) =>
-              VOLUNTEER_GRADES.find((vg) => vg.value === g)?.label ?? g
+            (g) => VOLUNTEER_GRADES.find((vg) => vg.value === g)?.label ?? g
           )
           .join(", ") + " grade"
       );
@@ -299,6 +394,16 @@ export function AnnouncementsContent({
         .map((id) => labels.find((l) => l.id === id)?.name ?? id)
         .join(", ");
       parts.push(labelNames);
+    }
+    if (ann.targetUserIds.length > 0) {
+      parts.push(
+        `${ann.targetUserIds.length} specific volunteer${ann.targetUserIds.length === 1 ? "" : "s"}`
+      );
+    }
+    if (ann.targetShiftIds.length > 0) {
+      parts.push(
+        `${ann.targetShiftIds.length} specific shift${ann.targetShiftIds.length === 1 ? "" : "s"}`
+      );
     }
     return parts.length > 0 ? parts.join(" · ") : "All volunteers";
   };
@@ -335,8 +440,8 @@ export function AnnouncementsContent({
               New Announcement
             </CardTitle>
             <CardDescription>
-              Write your announcement in Markdown. Use targeting to reach specific
-              volunteer groups.
+              Write your announcement in Markdown. Use targeting to reach
+              specific volunteer groups, and optionally send via email.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,7 +470,10 @@ export function AnnouncementsContent({
                     <TabsTrigger value="edit" className="gap-1.5 text-xs h-7">
                       <EyeOff className="w-3 h-3" /> Edit
                     </TabsTrigger>
-                    <TabsTrigger value="preview" className="gap-1.5 text-xs h-7">
+                    <TabsTrigger
+                      value="preview"
+                      className="gap-1.5 text-xs h-7"
+                    >
                       <Eye className="w-3 h-3" /> Preview
                     </TabsTrigger>
                   </TabsList>
@@ -386,7 +494,8 @@ export function AnnouncementsContent({
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
-                          Nothing to preview yet — start typing in the Edit tab.
+                          Nothing to preview yet — start typing in the Edit
+                          tab.
                         </p>
                       )}
                     </div>
@@ -457,7 +566,8 @@ export function AnnouncementsContent({
                   className="w-auto"
                 />
                 <p className="text-xs text-muted-foreground">
-                  If set, the announcement will stop appearing in the feed after this date/time.
+                  If set, the announcement will stop appearing in the feed
+                  after this date/time.
                 </p>
               </div>
 
@@ -477,8 +587,9 @@ export function AnnouncementsContent({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground -mt-2">
-                  Leave all empty to send to all volunteers. Multiple selections within a
-                  category use OR logic; across categories use AND logic.
+                  Leave all empty to send to all volunteers. Multiple
+                  selections within a category use OR logic; across categories
+                  use AND logic.
                 </p>
 
                 {/* Locations */}
@@ -562,6 +673,53 @@ export function AnnouncementsContent({
                     </div>
                   </div>
                 )}
+
+                {/* Specific users */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Specific Volunteers
+                  </Label>
+                  <SpecificUsersPicker
+                    selected={targetUsers}
+                    onChange={setTargetUsers}
+                  />
+                </div>
+
+                {/* Specific shifts */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Specific Shifts
+                  </Label>
+                  <SpecificShiftsPicker
+                    selected={targetShifts}
+                    onChange={setTargetShifts}
+                    locations={locations}
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={sendEmail}
+                    onCheckedChange={(checked) =>
+                      setSendEmail(checked === true)
+                    }
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <span className="font-medium text-sm flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Also send as email
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Each matched volunteer will receive a transactional
+                      email with this announcement on top of seeing it in
+                      their feed. Sending happens in the background.
+                    </p>
+                  </div>
+                </label>
               </div>
 
               {/* Submit */}
@@ -595,7 +753,8 @@ export function AnnouncementsContent({
               No announcements yet
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Create one above to broadcast to volunteers in their mobile feed.
+              Create one above to broadcast to volunteers in their mobile
+              feed.
             </p>
           </CardContent>
         </Card>
@@ -608,10 +767,7 @@ export function AnnouncementsContent({
             return (
               <Card
                 key={ann.id}
-                className={cn(
-                  "transition-opacity",
-                  expired && "opacity-60"
-                )}
+                className={cn("transition-opacity", expired && "opacity-60")}
               >
                 <CardContent className="pt-4 pb-3">
                   <div className="flex items-start gap-3">
@@ -630,7 +786,10 @@ export function AnnouncementsContent({
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {format(new Date(ann.createdAt), "d MMM yyyy, h:mm a")}
+                              {format(
+                                new Date(ann.createdAt),
+                                "d MMM yyyy, h:mm a"
+                              )}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               by{" "}
@@ -649,8 +808,20 @@ export function AnnouncementsContent({
                             {ann.expiresAt && !expired && (
                               <span className="text-xs text-muted-foreground">
                                 Expires{" "}
-                                {format(new Date(ann.expiresAt), "d MMM, h:mm a")}
+                                {format(
+                                  new Date(ann.expiresAt),
+                                  "d MMM, h:mm a"
+                                )}
                               </span>
+                            )}
+                            {ann.sendEmail && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs py-0 gap-1 border-blue-300 text-blue-700"
+                              >
+                                <Mail className="w-3 h-3" />
+                                {ann.emailSentAt ? "Email sent" : "Email queued"}
+                              </Badge>
                             )}
                           </div>
                           {/* Targeting badge */}
@@ -730,8 +901,8 @@ export function AnnouncementsContent({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Announcement?</AlertDialogTitle>
             <AlertDialogDescription>
-              &ldquo;{deleteTarget?.title}&rdquo; will be permanently removed from the
-              feed. This cannot be undone.
+              &ldquo;{deleteTarget?.title}&rdquo; will be permanently removed
+              from the feed. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -746,6 +917,342 @@ export function AnnouncementsContent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+// ─── Specific Users picker ──────────────────────────────────────────────────
+
+function userDisplayName(u: UserOption) {
+  if (u.firstName && u.lastName) return `${u.firstName} ${u.lastName}`;
+  return u.name || u.email;
+}
+
+function SpecificUsersPicker({
+  selected,
+  onChange,
+}: {
+  selected: UserOption[];
+  onChange: (next: UserOption[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<UserOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debouncedSearch = useDebounce(search, 250);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const run = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (debouncedSearch) params.set("q", debouncedSearch);
+        params.set("limit", "50");
+        const r = await fetch(`/api/admin/users?${params}`, {
+          signal: controller.signal,
+        });
+        if (!r.ok) throw new Error("fetch failed");
+        const data = await r.json();
+        if (!cancelled) setResults(data);
+      } catch {
+        if (!cancelled) setResults([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [open, debouncedSearch]);
+
+  const selectedIds = new Set(selected.map((u) => u.id));
+
+  const toggle = (u: UserOption) => {
+    onChange(
+      selectedIds.has(u.id)
+        ? selected.filter((s) => s.id !== u.id)
+        : [...selected, u]
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <UserPlus2 className="w-4 h-4" />
+            {selected.length > 0
+              ? `${selected.length} selected · add more`
+              : "Pick volunteers"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[360px] p-0" align="start">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or email…"
+                className="pl-8 h-9"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto py-1">
+            {loading ? (
+              <p className="text-xs text-muted-foreground px-3 py-4">
+                Searching…
+              </p>
+            ) : results.length === 0 ? (
+              <p className="text-xs text-muted-foreground px-3 py-4">
+                No matching volunteers.
+              </p>
+            ) : (
+              results.map((u) => {
+                const isSelected = selectedIds.has(u.id);
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => toggle(u)}
+                    className={cn(
+                      "w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/60",
+                      isSelected && "bg-muted"
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {userDisplayName(u)}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {u.email}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((u) => (
+            <Badge
+              key={u.id}
+              variant="secondary"
+              className="gap-1 pl-2 pr-1 py-0.5"
+            >
+              <span className="text-xs">{userDisplayName(u)}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange(selected.filter((s) => s.id !== u.id))
+                }
+                className="hover:bg-background/60 rounded p-0.5"
+                aria-label={`Remove ${userDisplayName(u)}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Specific Shifts picker ─────────────────────────────────────────────────
+
+function shiftDisplayLabel(s: ShiftOption) {
+  const start = new Date(s.start);
+  const datePart = format(start, "EEE d MMM");
+  const timePart = format(start, "h:mma").toLowerCase();
+  const loc = s.location ?? "—";
+  return `${s.shiftTypeName} · ${datePart} ${timePart} · ${loc}`;
+}
+
+function SpecificShiftsPicker({
+  selected,
+  onChange,
+  locations,
+}: {
+  selected: ShiftOption[];
+  onChange: (next: ShiftOption[]) => void;
+  locations: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [locationFilter, setLocationFilter] = useState<string>("");
+  const [shifts, setShifts] = useState<ShiftOption[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (locationFilter) params.set("location", locationFilter);
+    fetch(`/api/admin/announcements/shifts?${params}`, {
+      signal: controller.signal,
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((data) => {
+        if (!cancelled) setShifts(data.shifts ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setShifts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [open, locationFilter]);
+
+  const selectedIds = new Set(selected.map((s) => s.id));
+
+  const toggle = (s: ShiftOption) => {
+    onChange(
+      selectedIds.has(s.id)
+        ? selected.filter((x) => x.id !== s.id)
+        : [...selected, s]
+    );
+  };
+
+  // Group shifts by date for a scannable list.
+  const grouped = shifts.reduce<Record<string, ShiftOption[]>>((acc, s) => {
+    const key = format(new Date(s.start), "EEE d MMM yyyy");
+    (acc[key] ??= []).push(s);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+          >
+            <CalendarClock className="w-4 h-4" />
+            {selected.length > 0
+              ? `${selected.length} selected · add more`
+              : "Pick shifts"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[420px] p-0" align="start">
+          <div className="p-2 border-b flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Location</Label>
+            <select
+              className="text-sm border rounded px-2 py-1 bg-background flex-1"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            >
+              <option value="">All locations</option>
+              {locations.map((loc) => (
+                <option key={loc} value={loc}>
+                  {loc}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="max-h-80 overflow-y-auto py-1">
+            {loading ? (
+              <p className="text-xs text-muted-foreground px-3 py-4">
+                Loading shifts…
+              </p>
+            ) : shifts.length === 0 ? (
+              <p className="text-xs text-muted-foreground px-3 py-4">
+                No upcoming shifts.
+              </p>
+            ) : (
+              Object.entries(grouped).map(([date, dayShifts]) => (
+                <div key={date} className="px-1 pb-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-2 pt-2 pb-1">
+                    {date}
+                  </p>
+                  {dayShifts.map((s) => {
+                    const isSelected = selectedIds.has(s.id);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => toggle(s)}
+                        className={cn(
+                          "w-full flex items-center justify-between gap-2 px-3 py-2 text-left rounded hover:bg-muted/60",
+                          isSelected && "bg-muted"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {s.shiftTypeName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {format(new Date(s.start), "h:mma").toLowerCase()}
+                            {" – "}
+                            {format(new Date(s.end), "h:mma").toLowerCase()}
+                            {" · "}
+                            {s.location ?? "—"}
+                            {" · "}
+                            {s.signupCount} signed up
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((s) => (
+            <Badge
+              key={s.id}
+              variant="secondary"
+              className="gap-1 pl-2 pr-1 py-0.5"
+            >
+              <span className="text-xs">{shiftDisplayLabel(s)}</span>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange(selected.filter((x) => x.id !== s.id))
+                }
+                className="hover:bg-background/60 rounded p-0.5"
+                aria-label="Remove shift"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

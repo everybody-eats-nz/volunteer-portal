@@ -26,6 +26,7 @@ import {
   FileText,
   Archive,
   ArchiveRestore,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -286,18 +287,32 @@ export default async function AdminVolunteerPage({
       title="Volunteer Profile"
       description="Comprehensive view of volunteer information and activity"
       actions={
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          data-testid="back-to-shifts-button"
-        >
-          <Link href="/admin/shifts">
-            <ChevronLeft className="h-4 w-4" />
-            Back to Shifts
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            data-testid="announce-volunteer-button"
+          >
+            <Link href={`/admin/announcements?userIds=${volunteer.id}`}>
+              <Megaphone className="h-4 w-4" />
+              Announce
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            data-testid="back-to-shifts-button"
+          >
+            <Link href="/admin/shifts">
+              <ChevronLeft className="h-4 w-4" />
+              Back to Shifts
+            </Link>
+          </Button>
+        </div>
       }
     >
       <PageContainer
