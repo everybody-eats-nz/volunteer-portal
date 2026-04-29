@@ -14,12 +14,23 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q");
   const limit = searchParams.get("limit");
+  const idsParam = searchParams.get("ids");
 
   try {
     let whereClause: Record<string, unknown> = { archivedAt: null };
 
-    // If there's a search query, add search conditions
-    if (query && query.trim()) {
+    // If a comma-separated list of IDs is provided, hydrate exactly those
+    // users (used by the announcements form to render selected-volunteer
+    // badges from query-string prefill).
+    if (idsParam) {
+      const ids = idsParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 200);
+      whereClause = { id: { in: ids } };
+    } else if (query && query.trim()) {
+      // If there's a search query, add search conditions
       const searchQuery = query.trim();
 
       whereClause = {

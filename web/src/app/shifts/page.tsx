@@ -18,6 +18,11 @@ import { getAuthInfo } from "@/lib/auth-utils";
 import { LocationAddress } from "@/components/location-address";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
+import {
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
 
 export async function generateMetadata({
   searchParams,
@@ -84,6 +89,12 @@ export default async function ShiftsCalendarPage({
 }) {
   const { user, isLoggedIn } = await getAuthInfo();
   const params = await searchParams;
+  const phid = await getPhidFromCookies();
+  captureFunnelEvent({
+    event: FunnelEvent.SHIFTS_BROWSED,
+    userId: (user as { id?: string } | null)?.id ?? null,
+    phid,
+  });
 
   // Get current user
   let currentUser = null;

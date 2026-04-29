@@ -24,6 +24,9 @@ import {
   PauseCircle,
   CheckCircle,
   FileText,
+  Archive,
+  ArchiveRestore,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -45,6 +48,14 @@ import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { ShiftCountAdjustment } from "@/components/shift-count-adjustment";
 import { VolunteerSurveyHistory } from "@/components/volunteer-survey-history";
+import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
+
+const ARCHIVE_REASON_LABELS: Record<string, string> = {
+  INACTIVE_12_MONTHS: "Inactive for 12+ months",
+  NEVER_ACTIVATED: "Never activated",
+  NEVER_MIGRATED: "Never migrated",
+  MANUAL: "Manually archived",
+};
 
 interface AdminVolunteerPageProps {
   params: Promise<{ id: string }>;
@@ -111,6 +122,8 @@ export default async function AdminVolunteerPage({
       completedShiftAdjustmentBy: true,
       completedShiftAdjustmentAt: true,
       createdAt: true,
+      archivedAt: true,
+      archiveReason: true,
       regularVolunteers: {
         include: {
           shiftType: true,
@@ -274,24 +287,82 @@ export default async function AdminVolunteerPage({
       title="Volunteer Profile"
       description="Comprehensive view of volunteer information and activity"
       actions={
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          data-testid="back-to-shifts-button"
-        >
-          <Link href="/admin/shifts">
-            <ChevronLeft className="h-4 w-4" />
-            Back to Shifts
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            data-testid="announce-volunteer-button"
+          >
+            <Link href={`/admin/announcements?userIds=${volunteer.id}`}>
+              <Megaphone className="h-4 w-4" />
+              Announce
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            data-testid="back-to-shifts-button"
+          >
+            <Link href="/admin/shifts">
+              <ChevronLeft className="h-4 w-4" />
+              Back to Shifts
+            </Link>
+          </Button>
+        </div>
       }
     >
       <PageContainer
         testid="admin-volunteer-profile-page"
         className="bg-background"
       >
+        {volunteer.archivedAt && (
+          <div
+            className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800/60 dark:bg-amber-950/40"
+            data-testid="volunteer-archived-banner"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Archive className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-amber-900 dark:text-amber-100">
+                    This volunteer is archived
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    {volunteer.archiveReason
+                      ? `${ARCHIVE_REASON_LABELS[volunteer.archiveReason] ?? volunteer.archiveReason} · `
+                      : ""}
+                    Archived{" "}
+                    {formatInNZT(volunteer.archivedAt, "d MMM yyyy")}.
+                    They cannot sign in until reactivated.
+                  </p>
+                </div>
+              </div>
+              <ReactivateUserDialog
+                user={{
+                  id: volunteer.id,
+                  email: volunteer.email,
+                  name: volunteer.name,
+                  firstName: volunteer.firstName,
+                  lastName: volunteer.lastName,
+                  archiveReason: volunteer.archiveReason,
+                }}
+              >
+                <Button
+                  size="sm"
+                  className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 sm:flex-shrink-0"
+                  data-testid="volunteer-reactivate-button"
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                  Reactivate
+                </Button>
+              </ReactivateUserDialog>
+            </div>
+          </div>
+        )}
         <div
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
           data-testid="volunteer-profile-layout"

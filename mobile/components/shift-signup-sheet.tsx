@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { Colors, Brand, FontFamily } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -93,6 +94,7 @@ export function ShiftSignupSheet({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   const spotsLeft = Math.max(0, shift.capacity - shift.signedUp);
   const date = new Date(shift.start);
@@ -105,6 +107,7 @@ export function ShiftSignupSheet({
       setShowNoteField(false);
       setBackupShiftIds([]);
       setError(null);
+      setProfileIncomplete(false);
       setAutoApproval({ eligible: false, loading: true });
     }
   }, [visible]);
@@ -147,6 +150,7 @@ export function ShiftSignupSheet({
 
   const handleSubmit = useCallback(async () => {
     setError(null);
+    setProfileIncomplete(false);
     setIsSubmitting(true);
     try {
       const body: Record<string, unknown> = {};
@@ -166,6 +170,8 @@ export function ShiftSignupSheet({
       if (err instanceof ApiError) {
         if (err.status === 400 && err.message === 'Shift is full') {
           setError('This shift just filled up. You can join the waitlist instead.');
+        } else if (err.message === 'Profile incomplete') {
+          setProfileIncomplete(true);
         } else {
           setError(err.message);
         }
@@ -176,6 +182,11 @@ export function ShiftSignupSheet({
       setIsSubmitting(false);
     }
   }, [shift.id, isWaitlist, note, backupShiftIds, onSuccess, onClose]);
+
+  const handleGoToProfile = useCallback(() => {
+    onClose();
+    router.push('/profile/edit');
+  }, [onClose]);
 
   const title = isWaitlist
     ? '📋 Join Waitlist'
@@ -451,6 +462,60 @@ export function ShiftSignupSheet({
                   </Pressable>
                 );
               })}
+            </View>
+          )}
+
+          {/* Profile incomplete — actionable CTA to /profile/edit */}
+          {profileIncomplete && (
+            <View
+              style={[
+                ss.profileIncompleteBox,
+                { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2' },
+              ]}>
+              <View style={ss.profileIncompleteHeader}>
+                <Ionicons
+                  name="alert-circle"
+                  size={18}
+                  color={isDark ? '#fca5a5' : '#dc2626'}
+                />
+                <Text
+                  style={[
+                    ss.profileIncompleteTitle,
+                    { color: isDark ? '#fca5a5' : '#dc2626' },
+                  ]}>
+                  Complete your profile to sign up
+                </Text>
+              </View>
+              <Text
+                style={[
+                  ss.profileIncompleteBody,
+                  { color: isDark ? '#fca5a5' : '#dc2626' },
+                ]}>
+                Your profile is missing some required information. Finish
+                filling it in and we&apos;ll get you signed up.
+              </Text>
+              <Pressable
+                onPress={handleGoToProfile}
+                style={({ pressed }) => [
+                  ss.profileIncompleteButton,
+                  {
+                    borderColor: isDark ? '#fca5a5' : '#dc2626',
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}>
+                <Ionicons
+                  name="person-outline"
+                  size={16}
+                  color={isDark ? '#fca5a5' : '#dc2626'}
+                />
+                <Text
+                  style={[
+                    ss.profileIncompleteButtonText,
+                    { color: isDark ? '#fca5a5' : '#dc2626' },
+                  ]}>
+                  Complete Profile
+                </Text>
+              </Pressable>
             </View>
           )}
 
@@ -753,6 +818,40 @@ const ss = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.medium,
     lineHeight: 20,
+  },
+  profileIncompleteBox: {
+    padding: 14,
+    borderRadius: 12,
+    gap: 10,
+  },
+  profileIncompleteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  profileIncompleteTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    lineHeight: 20,
+  },
+  profileIncompleteBody: {
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    lineHeight: 20,
+  },
+  profileIncompleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  profileIncompleteButtonText: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
   },
 
   // Footer

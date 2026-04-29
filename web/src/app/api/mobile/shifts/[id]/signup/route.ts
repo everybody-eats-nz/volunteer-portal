@@ -39,6 +39,7 @@ export async function POST(
       id: true,
       email: true,
       emailVerified: true,
+      profileCompleted: true,
       requiresParentalConsent: true,
       parentalConsentReceived: true,
       dateOfBirth: true,
@@ -56,6 +57,18 @@ export async function POST(
         error: "Email verification required",
         message:
           "Please verify your email address before signing up for shifts. Check your inbox for a verification email.",
+      },
+      { status: 403 }
+    );
+  }
+
+  // Mirror the web gate: a complete profile is required before signing up.
+  if (!user.profileCompleted) {
+    return NextResponse.json(
+      {
+        error: "Profile incomplete",
+        message:
+          "Please complete your profile before signing up for shifts. Visit your profile to fill in the remaining required fields.",
       },
       { status: 403 }
     );
