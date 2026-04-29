@@ -165,7 +165,13 @@ async function dispatchAnnouncementEmails(announcementId: string) {
     targetingFromAnnouncement(ann)
   );
 
-  const bodyHtml = await marked.parse(ann.body, { async: true });
+  // Wrap the rendered markdown in a container with explicit colour and font
+  // so the email body doesn't inherit the template's muted body styling
+  // (Campaign Monitor's default body region is grey, which makes admin-
+  // authored copy look ghosted). Inline styles are required — most email
+  // clients strip <style> tags.
+  const renderedBody = await marked.parse(ann.body, { async: true });
+  const bodyHtml = `<div style="color:#111827;font-family:'Libre Franklin',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;">${renderedBody}</div>`;
   const baseUrl = getBaseUrl();
   const feedLink = `${baseUrl}/dashboard`;
   // Fall back to a 1×1 white pixel so the template can drop the conditional
