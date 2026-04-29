@@ -79,12 +79,18 @@ export async function POST(request: Request) {
     select: { id: true },
   });
   if (!adminUser) {
-    return NextResponse.json({ error: "Admin user not found" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Admin user not found" },
+      { status: 403 }
+    );
   }
 
   const body = await request.json().catch(() => null);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   const {
@@ -183,11 +189,13 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   // authored copy look ghosted). Inline styles are required — most email
   // clients strip <style> tags.
   const renderedBody = await marked.parse(ann.body, { async: true });
-  const bodyHtml = `<div style="color:#111827;font-family:'Libre Franklin',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;">${renderedBody}</div>`;
+  const bodyHtml = `<div style="color:#fff;">${renderedBody}</div>`;
   const baseUrl = getBaseUrl();
   const feedLink = `${baseUrl}/dashboard`;
-  // Fall back to a 1×1 white pixel so the template can drop the conditional
-  // around the image — the pixel is invisible against any background.
+  // Fall back to a 200×1 white spacer so the template can drop the
+  // conditional around the image. The wide aspect ratio means email clients
+  // that scale the image to column width keep the height ≈ 3px (vs. a 1×1
+  // that becomes a square the full width of the column).
   const imageUrl = ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png`;
   const emailService = getEmailService();
 
