@@ -126,6 +126,7 @@ export const authOptions: NextAuthOptions = {
             await unarchiveUser({
               userId: user.id,
               triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+              actorId: user.id,
             });
           } else {
             throw new Error("AccountArchived");
@@ -256,6 +257,7 @@ export const authOptions: NextAuthOptions = {
               await unarchiveUser({
                 userId: existingUser.id,
                 triggerSource: ArchiveTriggerSource.SELF_REACTIVATION,
+                actorId: existingUser.id,
               });
               existingUser.archivedAt = null;
             }
