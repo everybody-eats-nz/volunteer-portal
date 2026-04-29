@@ -4,6 +4,8 @@ import {
   WebBrowserPresentationStyle,
 } from 'expo-web-browser';
 
+import { usePendingFeedItemStore } from '@/hooks/use-pending-feed-item';
+
 const WEB_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -19,6 +21,18 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
   const [pathname, queryString = ''] = actionUrl.split('?');
   const query = new URLSearchParams(queryString);
   console.log('[notification-routing] pathname:', pathname, 'query:', queryString);
+
+  // /dashboard?feedItemId=... -> home tab + open the feed item sheet for
+  // that item. Used for announcement notifications so taps deep-link into
+  // the relevant feed card instead of just landing on the home tab.
+  if (pathname === '/dashboard') {
+    const feedItemId = query.get('feedItemId');
+    if (feedItemId) {
+      usePendingFeedItemStore.getState().setPendingId(feedItemId);
+    }
+    router.push('/(tabs)');
+    return;
+  }
 
   // /surveys/:token -> open the web survey page in an in-app browser.
   // Surveys aren't implemented natively on mobile, so we hand off to the
