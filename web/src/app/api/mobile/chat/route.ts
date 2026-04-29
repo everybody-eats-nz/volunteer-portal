@@ -15,7 +15,6 @@ Key guidelines:
 - Keep answers concise but thorough — volunteers are often on mobile
 - Use emojis sparingly for warmth 🌿
 - When volunteers ask what it's like to volunteer or want to see more, share the social media links below
-- If a volunteer has incomplete profile or missing agreements (shown in their info), gently encourage them to complete those
 
 Social media & links:
 - Website: https://everybodyeats.nz
@@ -130,183 +129,6 @@ async function getStaticContext(): Promise<StaticContext> {
   return staticCache;
 }
 
-/* ─── Per-user context (fresh every request) ──────────────────── */
-
-async function getUserContext(userId: string) {
-  const now = new Date();
-
-  // Get user's existing signup shift IDs to exclude from available shifts
-  const userSignupShiftIds = await prisma.signup.findMany({
-    where: { userId, status: { in: ["CONFIRMED", "PENDING", "WAITLISTED"] } },
-    select: { shiftId: true },
-  });
-  const signedUpShiftIds = new Set(userSignupShiftIds.map((s) => s.shiftId));
-
-  const [volunteer, upcomingShifts, achievements, completedCount, availableShifts] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        firstName: true,
-        name: true,
-        volunteerGrade: true,
-        availableDays: true,
-        defaultLocation: true,
-        completedShiftAdjustment: true,
-        profileCompleted: true,
-        volunteerAgreementAccepted: true,
-        healthSafetyPolicyAccepted: true,
-      },
-    }),
-    prisma.signup.findMany({
-      where: {
-        userId,
-        status: { in: ["CONFIRMED", "PENDING"] },
-        shift: { start: { gte: now } },
-      },
-      select: {
-        status: true,
-        shift: {
-          select: {
-            start: true,
-            end: true,
-            location: true,
-            shiftType: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { shift: { start: "asc" } },
-      take: 10,
-    }),
-    prisma.userAchievement.findMany({
-      where: { userId },
-      select: {
-        achievement: { select: { name: true, description: true, category: true } },
-        unlockedAt: true,
-      },
-      orderBy: { unlockedAt: "desc" },
-      take: 10,
-    }),
-    prisma.signup.count({
-      where: {
-        userId,
-        status: "CONFIRMED",
-        shift: { end: { lt: now } },
-      },
-    }),
-    // Next 5 available shifts (ones the user hasn't signed up for)
-    prisma.shift.findMany({
-      where: {
-        start: { gte: now },
-        id: { notIn: [...signedUpShiftIds] },
-      },
-      select: {
-        id: true,
-        start: true,
-        end: true,
-        location: true,
-        capacity: true,
-        shiftType: { select: { name: true } },
-        _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
-      },
-      orderBy: { start: "asc" },
-      take: 8,
-    }),
-  ]);
-
-  const totalShifts = completedCount + (volunteer?.completedShiftAdjustment ?? 0);
-  const volunteerName = volunteer?.firstName || volunteer?.name || "Volunteer";
-
-  // Profile completeness nudges
-  const nudges: string[] = [];
-  if (!volunteer?.profileCompleted) {
-    nudges.push("Profile is incomplete — encourage them to fill it out in the Profile tab");
-  }
-  if (!volunteer?.volunteerAgreementAccepted) {
-    nudges.push("Has not yet accepted the volunteer agreement");
-  }
-  if (!volunteer?.healthSafetyPolicyAccepted) {
-    nudges.push("Has not yet accepted the health & safety policy");
-  }
-
-  const volunteerContext = [
-    `## About This Volunteer`,
-    `Name: ${volunteerName}`,
-    `Grade: ${volunteer?.volunteerGrade ?? "GREEN"} (GREEN = new, YELLOW = experienced, PINK = shift leader)`,
-    `Completed shifts: ${totalShifts}`,
-    volunteer?.defaultLocation
-      ? `Default location: ${volunteer.defaultLocation}`
-      : null,
-    volunteer?.availableDays ? `Available days: ${volunteer.availableDays}` : null,
-    nudges.length > 0
-      ? `\nAction items for this volunteer:\n${nudges.map((n) => `- ${n}`).join("\n")}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const shiftsContext =
-    upcomingShifts.length > 0
-      ? "## Your Upcoming Shifts\n" +
-        upcomingShifts
-          .map((s) => {
-            const date = s.shift.start.toLocaleDateString("en-NZ", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            });
-            const startTime = s.shift.start.toLocaleTimeString("en-NZ", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const endTime = s.shift.end.toLocaleTimeString("en-NZ", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            return `- ${date}, ${startTime}–${endTime} at ${s.shift.location ?? "TBC"} (${s.shift.shiftType.name}) — ${s.status}`;
-          })
-          .join("\n")
-      : "## Your Upcoming Shifts\nNo upcoming shifts booked yet.";
-
-  const achievementsContext =
-    achievements.length > 0
-      ? "## Your Achievements\n" +
-        achievements
-          .map((a) => `- ${a.achievement.name}: ${a.achievement.description}`)
-          .join("\n")
-      : "";
-
-  // Available shifts they could sign up for
-  const openShifts = availableShifts.filter(
-    (s) => s._count.signups < s.capacity,
-  );
-  const availableShiftsContext =
-    openShifts.length > 0
-      ? "## Available Shifts to Join\n" +
-        openShifts
-          .map((s) => {
-            const date = s.start.toLocaleDateString("en-NZ", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            });
-            const startTime = s.start.toLocaleTimeString("en-NZ", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const endTime = s.end.toLocaleTimeString("en-NZ", {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const spotsLeft = s.capacity - s._count.signups;
-            return `- ${date}, ${startTime}–${endTime} at ${s.location ?? "TBC"} (${s.shiftType.name}) — ${spotsLeft} spot${spotsLeft !== 1 ? "s" : ""} left`;
-          })
-          .join("\n") +
-        "\nTell volunteers they can sign up via the Shifts tab in the app."
-      : "";
-
-  return { volunteerContext, shiftsContext, achievementsContext, availableShiftsContext };
-}
-
 /* ─── Types ───────────────────────────────────────────────────── */
 
 type ChatMessage = {
@@ -321,7 +143,6 @@ type ChatMessage = {
  *
  * Streaming AI chat endpoint for the mobile app.
  * Static context (resources, locations, shift types, system prompt) is cached for 5 min.
- * Per-user context (profile, shifts, achievements) is fetched fresh each request.
  */
 export async function POST(request: Request) {
   const auth = await requireMobileUser(request);
@@ -345,21 +166,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch static (cached) and per-user context in parallel
-    const [staticCtx, userCtx] = await Promise.all([
-      getStaticContext(),
-      getUserContext(auth.userId),
-    ]);
+    const staticCtx = await getStaticContext();
 
-    // Assemble full system prompt
     const dynamicContext = [
-      userCtx.volunteerContext,
-      userCtx.shiftsContext,
-      userCtx.availableShiftsContext,
       staticCtx.locationsContext,
       staticCtx.shiftTypesContext,
       staticCtx.communityStatsContext,
-      userCtx.achievementsContext,
     ]
       .filter(Boolean)
       .join("\n\n");

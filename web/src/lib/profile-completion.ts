@@ -9,13 +9,53 @@ export interface ProfileCompletionStatus {
   canSignUpForShifts: boolean;
 }
 
+/**
+ * Required fields for a "complete" profile. Source of truth used by
+ * registration (sets the flag at creation), profile updates (flips the flag
+ * when missing fields are filled in), and the shift signup gate.
+ */
+export type ProfileCompletionInput = {
+  firstName?: string | null;
+  phone?: string | null;
+  dateOfBirth?: Date | string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  volunteerAgreementAccepted?: boolean | null;
+  healthSafetyPolicyAccepted?: boolean | null;
+};
+
+export type CompletedProfile = {
+  firstName: string;
+  phone: string;
+  dateOfBirth: NonNullable<ProfileCompletionInput["dateOfBirth"]>;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  volunteerAgreementAccepted: true;
+  healthSafetyPolicyAccepted: true;
+};
+
+export function isProfileComplete<T extends ProfileCompletionInput>(
+  input: T
+): input is T & CompletedProfile {
+  return Boolean(
+    input.firstName &&
+      input.phone &&
+      input.dateOfBirth &&
+      input.emergencyContactName &&
+      input.emergencyContactPhone &&
+      input.volunteerAgreementAccepted &&
+      input.healthSafetyPolicyAccepted
+  );
+}
+
 export async function checkProfileCompletion(userId: string): Promise<ProfileCompletionStatus> {
   const { prisma } = await import("@/lib/prisma");
-  
+
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
+        firstName: true,
         phone: true,
         dateOfBirth: true,
         emergencyContactName: true,
@@ -36,7 +76,8 @@ export async function checkProfileCompletion(userId: string): Promise<ProfileCom
     }
 
     const missingFields = [];
-    
+
+    if (!user.firstName) missingFields.push("First name");
     if (!user.phone) missingFields.push("Mobile number");
     if (!user.dateOfBirth) missingFields.push("Date of birth");
     if (!user.emergencyContactName) missingFields.push("Emergency contact name");
@@ -44,12 +85,12 @@ export async function checkProfileCompletion(userId: string): Promise<ProfileCom
     if (!user.volunteerAgreementAccepted) missingFields.push("Volunteer agreement");
     if (!user.healthSafetyPolicyAccepted) missingFields.push("Health & safety policy");
 
-    const isProfileComplete = missingFields.length === 0;
+    const profileComplete = isProfileComplete(user);
     const needsParentalConsent = user.requiresParentalConsent && !user.parentalConsentReceived;
-    const canSignUpForShifts = isProfileComplete && !needsParentalConsent;
+    const canSignUpForShifts = profileComplete && !needsParentalConsent;
 
     return {
-      isComplete: isProfileComplete,
+      isComplete: profileComplete,
       missingFields,
       needsParentalConsent,
       canSignUpForShifts,

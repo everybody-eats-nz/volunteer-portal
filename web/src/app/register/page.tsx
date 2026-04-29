@@ -4,6 +4,11 @@ import { cacheLife } from "next/cache";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { RegisterForm } from "./register-form";
+import {
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Join as Volunteer",
@@ -70,10 +75,16 @@ async function getShiftTypes() {
  * Collects comprehensive user profile information during signup
  */
 export default async function RegisterPage() {
-  const [locationOptions, shiftTypes] = await Promise.all([
+  const [locationOptions, shiftTypes, phid] = await Promise.all([
     getLocationOptions(),
     getShiftTypes(),
+    getPhidFromCookies(),
   ]);
+
+  captureFunnelEvent({
+    event: FunnelEvent.REGISTER_STARTED,
+    phid,
+  });
 
   return (
     <Suspense fallback={<div>Loading registration form...</div>}>

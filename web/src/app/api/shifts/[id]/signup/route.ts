@@ -9,6 +9,11 @@ import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/util
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import sanitizeHtml from "sanitize-html";
+import {
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
 
 /**
  * HTML sanitizer for serverless environment.
@@ -40,6 +45,7 @@ export async function POST(
       id: true,
       email: true,
       emailVerified: true,
+      profileCompleted: true,
       requiresParentalConsent: true,
       parentalConsentReceived: true,
       firstName: true,
@@ -58,6 +64,20 @@ export async function POST(
         error: "Email verification required",
         message:
           "Please verify your email address before signing up for shifts. Check your inbox for a verification email.",
+      },
+      { status: 403 }
+    );
+  }
+
+  // A complete profile is required before signing up. Without this gate the
+  // onboarding funnel reports more "signed up" than "profile complete" because
+  // OAuth/legacy users could sign up with missing emergency contact / DOB.
+  if (!user.profileCompleted) {
+    return NextResponse.json(
+      {
+        error: "Profile incomplete",
+        message:
+          "Please complete your profile before signing up for shifts. Visit your profile to fill in the remaining required fields.",
       },
       { status: 403 }
     );
@@ -236,6 +256,18 @@ export async function POST(
 
     // Achievements will be calculated when user visits dashboard/achievements page
 
+    captureFunnelEvent({
+      event: FunnelEvent.SHIFT_SIGNUP_COMPLETED,
+      userId: user.id,
+      phid: await getPhidFromCookies(),
+      properties: {
+        shift_id: shift.id,
+        shift_location: shift.location ?? null,
+        signup_status: "WAITLISTED",
+        auto_approved: false,
+      },
+    });
+
     return NextResponse.json(signup);
   }
 
@@ -259,6 +291,18 @@ export async function POST(
     );
 
     // Achievements will be calculated when user visits dashboard/achievements page
+
+    captureFunnelEvent({
+      event: FunnelEvent.SHIFT_SIGNUP_COMPLETED,
+      userId: user.id,
+      phid: await getPhidFromCookies(),
+      properties: {
+        shift_id: shift.id,
+        shift_location: shift.location ?? null,
+        signup_status: autoApprovalResult.status,
+        auto_approved: autoApprovalResult.autoApproved,
+      },
+    });
 
     // Return signup with updated status and auto-approval flag
     // Use the signup object we already have and update its status based on auto-approval result

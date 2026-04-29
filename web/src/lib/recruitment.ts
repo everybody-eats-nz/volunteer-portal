@@ -255,6 +255,7 @@ export async function getRecruitmentData(
         month: "short",
         year: "2-digit",
       }),
+      monthKey: key,
       count: bucket?.count ?? 0,
       byLocation: bucket?.byLocation ?? {},
     });
