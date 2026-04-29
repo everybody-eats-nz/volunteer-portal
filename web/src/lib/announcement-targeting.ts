@@ -1,4 +1,4 @@
-import { Prisma } from "@/generated/client";
+import { Prisma, SignupStatus } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
  * targeting. Mirrors the statuses shown on /admin/shifts. CANCELED is omitted —
  * a cancelled volunteer should not receive announcements pinned to that shift.
  */
-export const ANNOUNCEMENT_SHIFT_TARGET_STATUSES = [
+export const ANNOUNCEMENT_SHIFT_TARGET_STATUSES: readonly SignupStatus[] = [
   "CONFIRMED",
   "PENDING",
   "WAITLISTED",
@@ -20,6 +20,19 @@ export interface AnnouncementTargeting {
   targetLabelIds: string[];
   targetUserIds: string[];
   targetShiftIds: string[];
+}
+
+/** Pluck the targeting fields out of an Announcement row. */
+export function targetingFromAnnouncement(
+  ann: AnnouncementTargeting
+): AnnouncementTargeting {
+  return {
+    targetLocations: ann.targetLocations,
+    targetGrades: ann.targetGrades,
+    targetLabelIds: ann.targetLabelIds,
+    targetUserIds: ann.targetUserIds,
+    targetShiftIds: ann.targetShiftIds,
+  };
 }
 
 /**
@@ -60,13 +73,12 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
   }
 
   if (t.targetShiftIds.length > 0) {
-    const statuses = ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s);
     conditions.push(
       Prisma.sql`EXISTS (
         SELECT 1 FROM "Signup"
         WHERE "userId" = "User".id
         AND "shiftId" = ANY(ARRAY[${Prisma.join(t.targetShiftIds)}]::text[])
-        AND "status"::text = ANY(ARRAY[${Prisma.join(statuses)}]::text[])
+        AND "status"::text = ANY(ARRAY[${Prisma.join(ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s))}]::text[])
       )`
     );
   }
@@ -109,7 +121,7 @@ export async function findAnnouncementRecipients(
       email: string;
       firstName: string | null;
       name: string | null;
-      }>
+    }>
   >(
     Prisma.sql`
       SELECT id, email, "firstName", name
@@ -117,4 +129,75 @@ export async function findAnnouncementRecipients(
       WHERE ${where}
     `
   );
+}
+
+export interface AnnouncementPickerShift {
+  id: string;
+  start: string;
+  end: string;
+  location: string | null;
+  shiftTypeName: string;
+  signupCount: number;
+}
+
+export interface AnnouncementPickerFilter {
+  /** Hydrate exactly these shifts. Used to render selected-shift badges from
+   *  query-string prefill (those shifts may sit outside the upcoming window). */
+  ids?: string[];
+  /** Optional location filter when listing upcoming shifts. */
+  location?: string | null;
+  /** How far ahead to look. Clamped to [1, 180]. Default 60. */
+  daysAhead?: number;
+}
+
+/**
+ * Hydrate a list of shifts for the announcement form's shift picker. The
+ * `signupCount` returned counts only the statuses we treat as "associated
+ * with the shift" for announcement targeting — see
+ * ANNOUNCEMENT_SHIFT_TARGET_STATUSES.
+ */
+export async function findShiftsForAnnouncementPicker(
+  filter: AnnouncementPickerFilter
+): Promise<AnnouncementPickerShift[]> {
+  const days = Math.min(Math.max(filter.daysAhead ?? 60, 1), 180);
+  const now = new Date();
+  const horizon = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+  const where = filter.ids?.length
+    ? { id: { in: filter.ids.slice(0, 200) } }
+    : {
+        start: { gte: now, lte: horizon },
+        ...(filter.location ? { location: filter.location } : {}),
+      };
+
+  const shifts = await prisma.shift.findMany({
+    where,
+    select: {
+      id: true,
+      start: true,
+      end: true,
+      location: true,
+      shiftType: { select: { name: true } },
+      _count: {
+        select: {
+          signups: {
+            where: {
+              status: { in: ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s) },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { start: "asc" },
+    take: 500,
+  });
+
+  return shifts.map((s) => ({
+    id: s.id,
+    start: s.start.toISOString(),
+    end: s.end.toISOString(),
+    location: s.location,
+    shiftTypeName: s.shiftType.name,
+    signupCount: s._count.signups,
+  }));
 }

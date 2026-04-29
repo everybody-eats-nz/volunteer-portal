@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
+import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
 
 /**
  * GET /api/mobile/feed
@@ -69,15 +70,9 @@ export async function GET(request: Request) {
       prisma.signup.findMany({
         where: {
           userId,
-          status: {
-            in: [
-              "CONFIRMED",
-              "PENDING",
-              "WAITLISTED",
-              "REGULAR_PENDING",
-              "NO_SHOW",
-            ],
-          },
+          // Mirror the targeting helper so a user is "associated with" a shift
+          // here for the same statuses the announcements form uses.
+          status: { in: ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s) },
         },
         select: { shiftId: true },
       }),

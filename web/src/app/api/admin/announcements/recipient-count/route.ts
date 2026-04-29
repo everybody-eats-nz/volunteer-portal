@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { countAnnouncementRecipients } from "@/lib/announcement-targeting";
+import {
+  AnnouncementTargeting,
+  countAnnouncementRecipients,
+} from "@/lib/announcement-targeting";
 
 /**
  * POST /api/admin/announcements/recipient-count
@@ -16,21 +19,20 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const {
-    targetLocations = [],
-    targetGrades = [],
-    targetLabelIds = [],
-    targetUserIds = [],
-    targetShiftIds = [],
-  } = body;
+  const targeting: AnnouncementTargeting = {
+    targetLocations: Array.isArray(body.targetLocations)
+      ? body.targetLocations
+      : [],
+    targetGrades: Array.isArray(body.targetGrades) ? body.targetGrades : [],
+    targetLabelIds: Array.isArray(body.targetLabelIds)
+      ? body.targetLabelIds
+      : [],
+    targetUserIds: Array.isArray(body.targetUserIds) ? body.targetUserIds : [],
+    targetShiftIds: Array.isArray(body.targetShiftIds)
+      ? body.targetShiftIds
+      : [],
+  };
 
-  const count = await countAnnouncementRecipients({
-    targetLocations: Array.isArray(targetLocations) ? targetLocations : [],
-    targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
-    targetLabelIds: Array.isArray(targetLabelIds) ? targetLabelIds : [],
-    targetUserIds: Array.isArray(targetUserIds) ? targetUserIds : [],
-    targetShiftIds: Array.isArray(targetShiftIds) ? targetShiftIds : [],
-  });
-
+  const count = await countAnnouncementRecipients(targeting);
   return NextResponse.json({ count });
 }

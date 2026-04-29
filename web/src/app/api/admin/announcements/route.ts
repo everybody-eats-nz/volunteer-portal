@@ -6,8 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { getEmailService } from "@/lib/email-service";
 import { getBaseUrl } from "@/lib/utils";
 import {
+  AnnouncementTargeting,
   countAnnouncementRecipients,
   findAnnouncementRecipients,
+  targetingFromAnnouncement,
 } from "@/lib/announcement-targeting";
 
 /**
@@ -32,13 +34,9 @@ export async function GET() {
 
   const results = await Promise.all(
     announcements.map(async (ann) => {
-      const recipientCount = await countAnnouncementRecipients({
-        targetLocations: ann.targetLocations,
-        targetGrades: ann.targetGrades,
-        targetLabelIds: ann.targetLabelIds,
-        targetUserIds: ann.targetUserIds,
-        targetShiftIds: ann.targetShiftIds,
-      });
+      const recipientCount = await countAnnouncementRecipients(
+        targetingFromAnnouncement(ann)
+      );
       return {
         ...ann,
         createdAt: ann.createdAt.toISOString(),
@@ -106,7 +104,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
-  const targeting = {
+  const targeting: AnnouncementTargeting = {
     targetLocations: Array.isArray(targetLocations) ? targetLocations : [],
     targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
     targetLabelIds: Array.isArray(targetLabelIds) ? targetLabelIds : [],
@@ -163,13 +161,9 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   });
   if (!ann) return;
 
-  const recipients = await findAnnouncementRecipients({
-    targetLocations: ann.targetLocations,
-    targetGrades: ann.targetGrades,
-    targetLabelIds: ann.targetLabelIds,
-    targetUserIds: ann.targetUserIds,
-    targetShiftIds: ann.targetShiftIds,
-  });
+  const recipients = await findAnnouncementRecipients(
+    targetingFromAnnouncement(ann)
+  );
 
   const bodyHtml = await marked.parse(ann.body, { async: true });
   const baseUrl = getBaseUrl();
