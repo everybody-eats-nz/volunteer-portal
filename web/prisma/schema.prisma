@@ -467,6 +467,7 @@ enum NotificationType {
   UNDERAGE_USER_REGISTERED // Underage user registered - notify admins for parental consent
   SURVEY_ASSIGNED // A new survey has been assigned to you
   SHIFT_SHORTAGE // Admin sent shortage alert for shifts that need more volunteers
+  ANNOUNCEMENT // Admin published an announcement targeted at this volunteer
 }
 
 model RestaurantManager {
@@ -987,6 +988,10 @@ model Announcement {
   // Email
   sendEmail   Boolean   @default(false)
   emailSentAt DateTime?
+
+  // In-app notification + push
+  sendNotification   Boolean   @default(false)
+  notificationSentAt DateTime?
 
   author User @relation("AnnouncementAuthor", fields: [createdBy], references: [id])
 
