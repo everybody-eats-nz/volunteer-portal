@@ -981,6 +981,12 @@ model Announcement {
   targetLocations String[] @default([]) // Location names, e.g. ["Auckland", "Wellington"]
   targetGrades    String[] @default([]) // VolunteerGrade values, e.g. ["GREEN", "YELLOW"]
   targetLabelIds  String[] @default([]) // CustomLabel IDs
+  targetUserIds   String[] @default([]) // Specific User IDs
+  targetShiftIds  String[] @default([]) // Users with non-cancelled signups on these shifts
+
+  // Email
+  sendEmail   Boolean   @default(false)
+  emailSentAt DateTime?
 
   author User @relation("AnnouncementAuthor", fields: [createdBy], references: [id])
 
