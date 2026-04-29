@@ -19,7 +19,10 @@ import {
   ChevronUp,
   Search,
   Mail,
+  Bell,
   CalendarClock,
+  CalendarIcon,
+  ClockIcon,
   UserPlus2,
   CheckCircle2,
 } from "lucide-react";
@@ -51,6 +54,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -77,6 +81,8 @@ type Announcement = {
   targetShiftIds: string[];
   sendEmail: boolean;
   emailSentAt: string | null;
+  sendNotification: boolean;
+  notificationSentAt: string | null;
   author: {
     id: string;
     name: string | null;
@@ -168,6 +174,7 @@ export function AnnouncementsContent({
   const [targetUsers, setTargetUsers] = useState<UserOption[]>([]);
   const [targetShifts, setTargetShifts] = useState<ShiftOption[]>([]);
   const [sendEmail, setSendEmail] = useState(false);
+  const [sendNotification, setSendNotification] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [recipientPreview, setRecipientPreview] = useState<number | null>(null);
   const [isCountingRecipients, setIsCountingRecipients] = useState(false);
@@ -266,6 +273,7 @@ export function AnnouncementsContent({
     setTargetUsers([]);
     setTargetShifts([]);
     setSendEmail(false);
+    setSendNotification(false);
     setPreviewMode(false);
     setRecipientPreview(null);
     // Drop any prefill query string so reopening the form doesn't re-seed
@@ -408,6 +416,7 @@ export function AnnouncementsContent({
           targetUserIds,
           targetShiftIds,
           sendEmail,
+          sendNotification,
         }),
       });
 
@@ -420,9 +429,13 @@ export function AnnouncementsContent({
       setAnnouncements((prev) => [announcement, ...prev]);
       resetForm();
       setShowForm(false);
+      const dispatchedVia = [
+        sendEmail ? "emails" : null,
+        sendNotification ? "push notifications" : null,
+      ].filter(Boolean) as string[];
       toast.success(
-        sendEmail
-          ? "Announcement published — emails are sending in the background"
+        dispatchedVia.length > 0
+          ? `Announcement published — ${dispatchedVia.join(" + ")} sending in the background`
           : "Announcement published"
       );
     } catch (err) {
@@ -643,13 +656,10 @@ export function AnnouncementsContent({
 
               {/* Expiry */}
               <div className="space-y-2">
-                <Label htmlFor="ann-expires">Expiry Date (optional)</Label>
-                <Input
-                  id="ann-expires"
-                  type="datetime-local"
+                <Label>Expiry Date (optional)</Label>
+                <ExpiryDateTimePicker
                   value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                  className="w-auto"
+                  onChange={setExpiresAt}
                 />
                 <p className="text-xs text-muted-foreground">
                   If set, the announcement will stop appearing in the feed
@@ -784,8 +794,28 @@ export function AnnouncementsContent({
                 </div>
               </div>
 
-              {/* Email */}
+              {/* Delivery options */}
               <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={sendNotification}
+                    onCheckedChange={(checked) =>
+                      setSendNotification(checked === true)
+                    }
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <span className="font-medium text-sm flex items-center gap-2">
+                      <Bell className="w-4 h-4" />
+                      Also send as push notification
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Each matched volunteer gets an in-app notification and
+                      a push to their mobile device. The push body uses a
+                      plain-text preview of the announcement.
+                    </p>
+                  </div>
+                </label>
                 <label className="flex items-start gap-2 cursor-pointer">
                   <Checkbox
                     checked={sendEmail}
@@ -800,9 +830,9 @@ export function AnnouncementsContent({
                       Also send as email
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Each matched volunteer will receive a transactional
-                      email with this announcement on top of seeing it in
-                      their feed. Sending happens in the background.
+                      Each matched volunteer receives a transactional email
+                      with the full announcement on top of seeing it in
+                      their feed.
                     </p>
                   </div>
                 </label>
@@ -899,6 +929,17 @@ export function AnnouncementsContent({
                                   "d MMM, h:mm a"
                                 )}
                               </span>
+                            )}
+                            {ann.sendNotification && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs py-0 gap-1 border-emerald-300 text-emerald-700"
+                              >
+                                <Bell className="w-3 h-3" />
+                                {ann.notificationSentAt
+                                  ? "Push sent"
+                                  : "Push queued"}
+                              </Badge>
                             )}
                             {ann.sendEmail && (
                               <Badge
@@ -1338,6 +1379,101 @@ function SpecificShiftsPicker({
             </Badge>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Expiry Date+Time picker ────────────────────────────────────────────────
+
+/**
+ * Lightweight date+time picker that stores the value as a `datetime-local`
+ * string ("YYYY-MM-DDTHH:mm") so the form submit body stays simple. The
+ * native datetime-local input has frustrating cross-browser styling and no
+ * obvious clear affordance, hence the popover Calendar + time input + Clear
+ * button combo.
+ */
+function ExpiryDateTimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [datePart, timePart] = value
+    ? [value.slice(0, 10), value.slice(11, 16)]
+    : ["", ""];
+  // Parse without UTC conversion: datetime-local strings are already in
+  // local time, so splitting and re-using the parts avoids timezone drift.
+  const dateValue = datePart ? new Date(`${datePart}T00:00:00`) : undefined;
+
+  const setDate = (d: Date | undefined) => {
+    if (!d) {
+      onChange("");
+      return;
+    }
+    const ymd = format(d, "yyyy-MM-dd");
+    onChange(`${ymd}T${timePart || "23:59"}`);
+  };
+
+  const setTime = (t: string) => {
+    if (!datePart) return; // ignore time changes until a date is picked
+    onChange(`${datePart}T${t || "23:59"}`);
+  };
+
+  const display = value
+    ? format(new Date(value), "EEE d MMM yyyy, h:mm a")
+    : "Pick a date and time";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              "h-9 justify-start gap-2 font-normal",
+              !value && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="w-4 h-4" />
+            {display}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={dateValue}
+            onSelect={setDate}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+
+      <div className="relative">
+        <ClockIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          type="time"
+          value={timePart}
+          onChange={(e) => setTime(e.target.value)}
+          disabled={!datePart}
+          className="pl-8 h-9 w-[130px]"
+          aria-label="Expiry time"
+        />
+      </div>
+
+      {value && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onChange("")}
+          className="gap-1 h-9 text-muted-foreground hover:text-foreground"
+        >
+          <X className="w-3.5 h-3.5" />
+          Clear
+        </Button>
       )}
     </div>
   );

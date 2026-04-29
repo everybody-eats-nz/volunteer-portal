@@ -44,6 +44,7 @@ export default async function AnnouncementsPage() {
           createdAt: a.createdAt.toISOString(),
           expiresAt: a.expiresAt?.toISOString() ?? null,
           emailSentAt: a.emailSentAt?.toISOString() ?? null,
+          notificationSentAt: a.notificationSentAt?.toISOString() ?? null,
         }))}
         labels={labels}
         locations={locations.map((l) => l.name)}
