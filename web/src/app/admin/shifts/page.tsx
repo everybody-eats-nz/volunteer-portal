@@ -11,7 +11,7 @@ import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Mail } from "lucide-react";
+import { Plus, Calendar, Mail, Megaphone } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageContainer } from "@/components/page-container";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -363,6 +363,22 @@ export default async function AdminShiftsPage({
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   Shortage Email
+                </Link>
+              </Button>
+            )}
+            {shifts.length > 0 && (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="h-11"
+                data-testid="announce-shifts-button"
+              >
+                <Link
+                  href={`/admin/announcements?shiftIds=${shifts.map((s) => s.id).join(",")}`}
+                >
+                  <Megaphone className="h-4 w-4 mr-2" />
+                  Announce
                 </Link>
               </Button>
             )}

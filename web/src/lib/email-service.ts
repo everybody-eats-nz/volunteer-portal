@@ -215,6 +215,23 @@ interface SendFirstShiftNudgeParams {
   shiftsLink: string;
 }
 
+interface AnnouncementEmailData {
+  firstName: string;
+  title: string;
+  bodyHtml: string;
+  imageUrl: string;
+  feedLink: string;
+}
+
+interface SendAnnouncementParams {
+  to: string;
+  firstName: string;
+  title: string;
+  bodyHtml: string;
+  imageUrl?: string | null;
+  feedLink: string;
+}
+
 class EmailService {
   private readonly apiKey: string;
   private readonly baseUrl = "https://api.createsend.com/api/v3.3";
@@ -234,6 +251,7 @@ class EmailService {
   private archiveWarningSmartEmailID: string;
   private archivedConfirmationSmartEmailID: string;
   private firstShiftNudgeSmartEmailID: string;
+  private announcementSmartEmailID: string;
 
   constructor() {
     const apiKey = process.env.CAMPAIGN_MONITOR_API_KEY;
@@ -532,6 +550,53 @@ class EmailService {
       console.warn(
         "[EMAIL SERVICE] CAMPAIGN_MONITOR_FIRST_SHIFT_NUDGE_EMAIL_ID is not configured - first shift nudge emails will not be sent"
       );
+    }
+
+    // Smart email ID for admin announcements
+    this.announcementSmartEmailID =
+      process.env.CAMPAIGN_MONITOR_ANNOUNCEMENT_EMAIL_ID ||
+      "dummy-announcement-id";
+    if (
+      this.announcementSmartEmailID === "dummy-announcement-id" &&
+      !isDevelopment
+    ) {
+      console.warn(
+        "[EMAIL SERVICE] CAMPAIGN_MONITOR_ANNOUNCEMENT_EMAIL_ID is not configured - announcement emails will not be sent"
+      );
+    }
+  }
+
+  async sendAnnouncement(params: SendAnnouncementParams): Promise<void> {
+    const isDevelopment = process.env.NODE_ENV === "development";
+    if (this.announcementSmartEmailID === "dummy-announcement-id") {
+      console.log(
+        `[EMAIL SERVICE] Would send announcement email to ${params.to} — title: ${params.title}`
+      );
+      return;
+    }
+    try {
+      const data: AnnouncementEmailData = {
+        firstName: params.firstName,
+        title: params.title,
+        bodyHtml: params.bodyHtml,
+        imageUrl: params.imageUrl ?? "",
+        feedLink: params.feedLink,
+      };
+      await this.sendSmartEmail(
+        this.announcementSmartEmailID,
+        `${params.firstName} <${params.to}>`,
+        data as unknown as Record<string, string>
+      );
+    } catch (err) {
+      if (isDevelopment) {
+        console.warn(
+          "[EMAIL SERVICE] Error sending announcement email (dev):",
+          err instanceof Error ? err.message : "Unknown error"
+        );
+      } else {
+        console.error("Error sending announcement email:", err);
+        throw err;
+      }
     }
   }
 
@@ -1535,4 +1600,6 @@ export type {
   ProfileCompletionEmailData,
   SendSurveyNotificationParams,
   SurveyNotificationEmailData,
+  SendAnnouncementParams,
+  AnnouncementEmailData,
 };
