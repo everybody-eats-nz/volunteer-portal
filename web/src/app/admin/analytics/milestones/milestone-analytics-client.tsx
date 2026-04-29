@@ -44,6 +44,11 @@ import {
 import Link from "next/link";
 import type { MilestoneData } from "@/lib/milestone-analytics";
 import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
+import {
+  MILESTONE_DISTRIBUTION_BANDS,
+  type MilestoneSegment,
+} from "@/lib/milestone-segment-types";
+import { MilestoneUsersDialog } from "./milestone-users-dialog";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -141,6 +146,12 @@ function MilestoneCard({
   );
 }
 
+interface ActiveMilestoneSegment {
+  segment: MilestoneSegment;
+  title: string;
+  subtitle?: string;
+}
+
 export function MilestoneAnalyticsClient({
   data,
   months: initialMonths,
@@ -155,9 +166,17 @@ export function MilestoneAnalyticsClient({
   const [selectedMilestone, setSelectedMilestone] = useState<number>(100);
   const [recentThresholdFilter, setRecentThresholdFilter] =
     useState<string>("all");
+  const [activeSegment, setActiveSegment] =
+    useState<ActiveMilestoneSegment | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
     | "dark"
     | "light";
+
+  const openSegment = (s: ActiveMilestoneSegment) => {
+    setActiveSegment(s);
+    setDialogOpen(true);
+  };
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams({ months, location });
@@ -354,6 +373,25 @@ export function MilestoneAnalyticsClient({
                         stacked: true,
                         toolbar: { show: false },
                         background: "transparent",
+                        events: {
+                          dataPointSelection: (_e, _ctx, config) => {
+                            if (!config) return;
+                            const m = data.milestoneHits[config.dataPointIndex];
+                            if (!m) return;
+                            const segLoc =
+                              restaurantList[config.seriesIndex] ??
+                              UNSPECIFIED_LOCATION;
+                            openSegment({
+                              segment: {
+                                chart: "milestoneHits",
+                                threshold: m.threshold,
+                                location: segLoc,
+                              },
+                              title: `${m.threshold}-shift milestone hits · ${segLoc}`,
+                              subtitle: `Volunteers whose ${m.threshold}th confirmed shift fell within the last ${periodLabel}`,
+                            });
+                          },
+                        },
                       },
                       plotOptions: {
                         bar: {
@@ -361,6 +399,9 @@ export function MilestoneAnalyticsClient({
                           columnWidth: "55%",
                           borderRadiusApplication: "end" as const,
                         },
+                      },
+                      states: {
+                        active: { filter: { type: "none" } },
                       },
                       xaxis: {
                         categories: hitsCategories.map((c) => `${c} shifts`),
@@ -463,6 +504,30 @@ export function MilestoneAnalyticsClient({
                         stacked: true,
                         toolbar: { show: false },
                         background: "transparent",
+                        events: {
+                          dataPointSelection: (_e, _ctx, config) => {
+                            if (!config) return;
+                            const bucket =
+                              data.distribution[config.dataPointIndex];
+                            const band =
+                              MILESTONE_DISTRIBUTION_BANDS[
+                                config.dataPointIndex
+                              ];
+                            if (!bucket || !band) return;
+                            const segLoc =
+                              restaurantList[config.seriesIndex] ??
+                              UNSPECIFIED_LOCATION;
+                            openSegment({
+                              segment: {
+                                chart: "milestoneDistribution",
+                                band,
+                                location: segLoc,
+                              },
+                              title: `${bucket.label} shifts · ${segLoc}`,
+                              subtitle: `Volunteers currently in the ${bucket.label}-shift band`,
+                            });
+                          },
+                        },
                       },
                       plotOptions: {
                         bar: {
@@ -471,6 +536,9 @@ export function MilestoneAnalyticsClient({
                           borderRadiusApplication: "end" as const,
                           barHeight: "60%",
                         },
+                      },
+                      states: {
+                        active: { filter: { type: "none" } },
                       },
                       xaxis: {
                         categories: distCategories,
@@ -612,6 +680,25 @@ export function MilestoneAnalyticsClient({
                       stacked: true,
                       toolbar: { show: false },
                       background: "transparent",
+                      events: {
+                        dataPointSelection: (_e, _ctx, config) => {
+                          if (!config) return;
+                          const p = data.projections[config.dataPointIndex];
+                          if (!p) return;
+                          const segLoc =
+                            restaurantList[config.seriesIndex] ??
+                            UNSPECIFIED_LOCATION;
+                          openSegment({
+                            segment: {
+                              chart: "milestoneProjections",
+                              threshold: p.threshold,
+                              location: segLoc,
+                            },
+                            title: `Projected to hit ${p.threshold} shifts · ${segLoc}`,
+                            subtitle: `Volunteers on track to cross ${p.threshold} shifts in the next 12 months at their current rate`,
+                          });
+                        },
+                      },
                     },
                     plotOptions: {
                       bar: {
@@ -620,6 +707,9 @@ export function MilestoneAnalyticsClient({
                         borderRadiusApplication: "end" as const,
                         columnWidth: "50%",
                       },
+                    },
+                    states: {
+                      active: { filter: { type: "none" } },
                     },
                     xaxis: {
                       categories: projCategories,
@@ -973,6 +1063,16 @@ export function MilestoneAnalyticsClient({
           </Card>
         </motion.div>
       </motion.div>
+
+      <MilestoneUsersDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        segment={activeSegment?.segment ?? null}
+        title={activeSegment?.title ?? ""}
+        subtitle={activeSegment?.subtitle}
+        months={initialMonths}
+        locationFilter={initialLocation}
+      />
     </div>
   );
 }

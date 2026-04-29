@@ -48,10 +48,65 @@ export interface RecruitmentFunnel {
 
 export interface RecruitmentTrendPoint {
   month: string;
+  /** Stable YYYY-MM key in NZ time, used to query users for this bar */
+  monthKey: string;
   /** Total across all locations for this month */
   count: number;
   /** Location name → count for that month */
   byLocation: Record<string, number>;
+}
+
+export type FunnelStageKey =
+  | "totalRegistrations"
+  | "profileComplete"
+  | "signedUp"
+  | "completedShift";
+
+export type TimeBucketKey =
+  | "sameDay"
+  | "within3Days"
+  | "within7Days"
+  | "within14Days"
+  | "within30Days"
+  | "within60Days"
+  | "within90Days"
+  | "over90Days";
+
+export type FurthestStage =
+  | "registered"
+  | "profileComplete"
+  | "signedUp"
+  | "completedShift";
+
+export type RecruitmentSegment =
+  | { chart: "trend"; monthKey: string; location: string }
+  | { chart: "funnel"; stage: FunnelStageKey; location: string }
+  | { chart: "timeToFirstShift"; bucket: TimeBucketKey; location: string };
+
+export interface RecruitmentSegmentUser {
+  id: string;
+  email: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profilePhotoUrl: string | null;
+  defaultLocation: string | null;
+  profileCompleted: boolean;
+  /** ISO string */
+  createdAt: string;
+  /** ISO string, present when the user has completed at least one shift */
+  firstShiftDate: string | null;
+  /** Whole days from registration to first completed shift */
+  daysToFirstShift: number | null;
+  furthestStage: FurthestStage;
+}
+
+export interface RecruitmentSegmentResult {
+  users: RecruitmentSegmentUser[];
+  /** Total before the result cap was applied */
+  total: number;
+  /** Hard cap on returned users */
+  cap: number;
 }
 
 export interface RecruitmentData {

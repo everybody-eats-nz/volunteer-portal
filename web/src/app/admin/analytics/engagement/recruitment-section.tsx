@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
@@ -30,8 +31,10 @@ import {
 import type {
   RecruitmentData,
   RecruitmentFunnelBreakdown,
+  RecruitmentSegment,
 } from "@/lib/recruitment-types";
 import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
+import { RecruitmentUsersDialog } from "../recruitment/recruitment-users-dialog";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -132,6 +135,12 @@ function stageValue(
   }
 }
 
+interface ActiveSegment {
+  segment: RecruitmentSegment;
+  title: string;
+  subtitle?: string;
+}
+
 export function RecruitmentSection({ data, months, location }: Props) {
   const { resolvedTheme } = useTheme();
   const chartMode = (resolvedTheme === "dark" ? "dark" : "light") as
@@ -141,6 +150,14 @@ export function RecruitmentSection({ data, months, location }: Props) {
   const { funnel, registrationTrend, locations } = data;
   const total = funnel.totalRegistrations;
   const periodLabel = MONTHS_LABELS[months] ?? `${months} months`;
+
+  const [activeSegment, setActiveSegment] = useState<ActiveSegment | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const openSegment = (s: ActiveSegment) => {
+    setActiveSegment(s);
+    setDialogOpen(true);
+  };
 
   const locationColors = locations.map((loc, i) => colorForLocation(loc, i));
 
@@ -381,6 +398,30 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       stacked: true,
                       toolbar: { show: false },
                       background: "transparent",
+                      events: {
+                        dataPointSelection: (_e, _ctx, config) => {
+                          if (!config) return;
+                          const point = registrationTrend[config.dataPointIndex];
+                          if (!point) return;
+                          // When there are no per-location series, clicking still
+                          // resolves to the single combined bar — drill into
+                          // "Unspecified" only if the user has no other location.
+                          const segLoc =
+                            locations.length > 0
+                              ? locations[config.seriesIndex] ??
+                                UNSPECIFIED_LOCATION
+                              : UNSPECIFIED_LOCATION;
+                          openSegment({
+                            segment: {
+                              chart: "trend",
+                              monthKey: point.monthKey,
+                              location: segLoc,
+                            },
+                            title: `New registrations · ${point.month}`,
+                            subtitle: `${segLoc} · grouped by furthest stage reached`,
+                          });
+                        },
+                      },
                     },
                     plotOptions: {
                       bar: {
@@ -388,6 +429,9 @@ export function RecruitmentSection({ data, months, location }: Props) {
                         borderRadiusApplication: "end" as const,
                         columnWidth: "65%",
                       },
+                    },
+                    states: {
+                      active: { filter: { type: "none" } },
                     },
                     xaxis: {
                       categories: registrationTrend.map((t) => t.month),
@@ -558,8 +602,10 @@ export function RecruitmentSection({ data, months, location }: Props) {
                           {segments.map((seg, si) => (
                             <Tooltip key={seg.loc}>
                               <TooltipTrigger asChild>
-                                <motion.div
-                                  className="h-full"
+                                <motion.button
+                                  type="button"
+                                  aria-label={`View ${seg.value.toLocaleString()} ${seg.loc} volunteers at ${stage.name} stage`}
+                                  className="h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 hover:opacity-80 transition-opacity"
                                   style={{ background: seg.color }}
                                   initial={{ width: 0 }}
                                   animate={{ width: `${seg.widthPct}%` }}
@@ -568,12 +614,26 @@ export function RecruitmentSection({ data, months, location }: Props) {
                                     delay: 0.1 + i * 0.12 + si * 0.04,
                                     ease: [0.4, 0, 0.2, 1],
                                   }}
+                                  onClick={() =>
+                                    openSegment({
+                                      segment: {
+                                        chart: "funnel",
+                                        stage: stage.key,
+                                        location: seg.loc,
+                                      },
+                                      title: `${stage.name} · ${seg.loc}`,
+                                      subtitle: `${seg.value.toLocaleString()} volunteers from the last ${periodLabel}, grouped by furthest stage reached`,
+                                    })
+                                  }
                                 />
                               </TooltipTrigger>
                               <TooltipContent side="top">
                                 <span className="font-medium">{seg.loc}</span>:{" "}
                                 {seg.value.toLocaleString()} (
-                                {pct(seg.value, stage.value)}% of stage)
+                                {pct(seg.value, stage.value)}% of stage) ·{" "}
+                                <span className="text-muted-foreground">
+                                  click for list
+                                </span>
                               </TooltipContent>
                             </Tooltip>
                           ))}
@@ -633,6 +693,28 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     stacked: true,
                     toolbar: { show: false },
                     background: "transparent",
+                    events: {
+                      dataPointSelection: (_e, _ctx, config) => {
+                        if (!config) return;
+                        const bucket =
+                          timeToFirstShiftBuckets[config.dataPointIndex];
+                        if (!bucket) return;
+                        const segLoc =
+                          locations.length > 0
+                            ? locations[config.seriesIndex] ??
+                              UNSPECIFIED_LOCATION
+                            : UNSPECIFIED_LOCATION;
+                        openSegment({
+                          segment: {
+                            chart: "timeToFirstShift",
+                            bucket: bucket[1],
+                            location: segLoc,
+                          },
+                          title: `First shift in ${bucket[0]} · ${segLoc}`,
+                          subtitle: `Volunteers from the last ${periodLabel} who completed their first shift in this window`,
+                        });
+                      },
+                    },
                   },
                   plotOptions: {
                     bar: {
@@ -641,6 +723,9 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       borderRadiusApplication: "end" as const,
                       barHeight: "55%",
                     },
+                  },
+                  states: {
+                    active: { filter: { type: "none" } },
                   },
                   xaxis: {
                     categories: timeToFirstShiftBuckets.map(([label]) => label),
@@ -719,6 +804,16 @@ export function RecruitmentSection({ data, months, location }: Props) {
           </Card>
         </motion.div>
       )}
+
+      <RecruitmentUsersDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        segment={activeSegment?.segment ?? null}
+        title={activeSegment?.title ?? ""}
+        subtitle={activeSegment?.subtitle}
+        months={months}
+        locationFilter={location}
+      />
     </motion.div>
   );
 }
