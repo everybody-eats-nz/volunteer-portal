@@ -55,6 +55,7 @@ export async function checkProfileCompletion(userId: string): Promise<ProfileCom
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
+        firstName: true,
         phone: true,
         dateOfBirth: true,
         emergencyContactName: true,
@@ -76,6 +77,7 @@ export async function checkProfileCompletion(userId: string): Promise<ProfileCom
 
     const missingFields = [];
 
+    if (!user.firstName) missingFields.push("First name");
     if (!user.phone) missingFields.push("Mobile number");
     if (!user.dateOfBirth) missingFields.push("Date of birth");
     if (!user.emergencyContactName) missingFields.push("Emergency contact name");
@@ -83,12 +85,12 @@ export async function checkProfileCompletion(userId: string): Promise<ProfileCom
     if (!user.volunteerAgreementAccepted) missingFields.push("Volunteer agreement");
     if (!user.healthSafetyPolicyAccepted) missingFields.push("Health & safety policy");
 
-    const isProfileComplete = missingFields.length === 0;
+    const profileComplete = isProfileComplete(user);
     const needsParentalConsent = user.requiresParentalConsent && !user.parentalConsentReceived;
-    const canSignUpForShifts = isProfileComplete && !needsParentalConsent;
+    const canSignUpForShifts = profileComplete && !needsParentalConsent;
 
     return {
-      isComplete: isProfileComplete,
+      isComplete: profileComplete,
       missingFields,
       needsParentalConsent,
       canSignUpForShifts,
