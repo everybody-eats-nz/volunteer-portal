@@ -54,6 +54,20 @@ export interface ThreadDetail {
     createdAt: string;
   };
   upcomingShiftCount: number;
+  nextShift: NextShiftSummary | null;
+}
+
+export interface NextShiftSummary {
+  signupId: string;
+  signupStatus: "CONFIRMED" | "PENDING" | "WAITLISTED" | string;
+  id: string;
+  start: string;
+  end: string;
+  location: string | null;
+  notes: string | null;
+  capacity: number;
+  confirmedCount: number;
+  shiftTypeName: string;
 }
 
 export interface InboxRealtimeEvent {
