@@ -155,6 +155,10 @@ model User {
   // Mobile chat assistant conversations
   chatLogs ChatLog[]
 
+  // Direct messaging between volunteer and the team
+  messageThread MessageThread? @relation("VolunteerThread")
+  sentMessages  Message[]      @relation("MessageSender")
+
   // Analytics queries filter heavily on role + createdAt
   @@index([role, createdAt])
   // Archive filters and scheduled job queries
@@ -468,6 +472,7 @@ enum NotificationType {
   SURVEY_ASSIGNED // A new survey has been assigned to you
   SHIFT_SHORTAGE // Admin sent shortage alert for shifts that need more volunteers
   ANNOUNCEMENT // Admin published an announcement targeted at this volunteer
+  DIRECT_MESSAGE // Direct message in volunteer-team thread
 }
 
 model RestaurantManager {
@@ -1054,4 +1059,56 @@ model ArchiveLog {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@index([eventType, createdAt])
+}
+
+// Direct-message thread between a volunteer and the EE team.
+// One thread per volunteer; any admin/manager can reply on it.
+model MessageThread {
+  id                  String        @id @default(cuid())
+  volunteerId         String        @unique
+  volunteer           User          @relation("VolunteerThread", fields: [volunteerId], references: [id], onDelete: Cascade)
+  status              ThreadStatus  @default(OPEN)
+  lastMessageAt       DateTime      @default(now())
+  volunteerLastReadAt DateTime?
+  teamLastReadAt      DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  messages            Message[]
+
+  @@index([status, lastMessageAt])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id         String        @id @default(cuid())
+  threadId   String
+  thread     MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderRole Role          // snapshot at send time so admin role demotion doesn't mislabel old messages
+  body       String
+  createdAt  DateTime      @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+enum ThreadStatus {
+  OPEN
+  RESOLVED
+}
+
+// Per-day, per-location messaging hours shown to volunteers as a soft
+// expectation-setter. Off-hours messages are still delivered.
+model MessagingHours {
+  id        String   @id @default(cuid())
+  location  String   // matches Location.name
+  dayOfWeek Int      // 0=Sun ... 6=Sat (NZ time)
+  isOpen    Boolean  @default(true)
+  openTime  String   @default("09:00") // "HH:mm"
+  closeTime String   @default("17:00") // "HH:mm"
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@unique([location, dayOfWeek])
+  @@index([location])
 }

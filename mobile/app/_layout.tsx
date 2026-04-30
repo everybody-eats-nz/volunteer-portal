@@ -171,6 +171,8 @@ export default function RootLayout() {
               title: '',
             }}
           />
+          <Stack.Screen name="help/ai" options={{ headerShown: false }} />
+          <Stack.Screen name="help/team" options={{ headerShown: false }} />
         </Stack>
       </AuthGate>
       <StatusBar style="auto" />

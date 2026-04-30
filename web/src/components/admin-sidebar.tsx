@@ -37,6 +37,7 @@ interface AdminSidebarProps {
   displayName: string;
   pendingParentalConsentCount: number;
   pendingReportCount?: number;
+  unreadMessagesCount?: number;
   hiddenNavItems?: string[];
 }
 
@@ -46,6 +47,7 @@ export function AdminSidebar({
   displayName,
   pendingParentalConsentCount,
   pendingReportCount = 0,
+  unreadMessagesCount = 0,
   hiddenNavItems = [],
 }: AdminSidebarProps) {
   const pathname = usePathname();
@@ -150,6 +152,15 @@ export function AdminSidebar({
                             data-testid="moderation-badge"
                           >
                             {pendingReportCount}
+                          </SidebarMenuBadge>
+                        )}
+                      {item.href === "/admin/messages" &&
+                        unreadMessagesCount > 0 && (
+                          <SidebarMenuBadge
+                            className="bg-emerald-600 text-white"
+                            data-testid="messages-badge"
+                          >
+                            {unreadMessagesCount}
                           </SidebarMenuBadge>
                         )}
                     </SidebarMenuItem>
