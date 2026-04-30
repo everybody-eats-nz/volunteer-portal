@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Keyboard,
   LayoutAnimation,
   Platform,
@@ -92,20 +93,41 @@ const Bubble = React.memo(function Bubble({
     );
   }
 
+  const avatarInitial = (
+    item.sender.firstName?.charAt(0) ||
+    item.sender.name?.charAt(0) ||
+    "·"
+  ).toUpperCase();
+
   return (
     <View style={[styles.assistantBlock, { marginTop: isFirstInGroup ? 24 : 8 }]}>
       {isFirstInGroup && (
         <View style={styles.assistantMeta}>
-          <View
-            style={[
-              styles.adminAvatar,
-              {
-                backgroundColor: isDark ? Brand.greenDark : Brand.greenLight,
-              },
-            ]}
-          >
-            <Text style={styles.adminAvatarText}>🌿</Text>
-          </View>
+          {item.sender.profilePhotoUrl ? (
+            <Image
+              source={{ uri: item.sender.profilePhotoUrl }}
+              style={styles.adminAvatar}
+            />
+          ) : (
+            <View
+              style={[
+                styles.adminAvatar,
+                styles.adminAvatarFallback,
+                {
+                  backgroundColor: isDark ? Brand.greenDark : Brand.greenLight,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.adminAvatarInitial,
+                  { color: isDark ? Brand.greenLight : Brand.green },
+                ]}
+              >
+                {avatarInitial}
+              </Text>
+            </View>
+          )}
           <Text style={[styles.assistantMetaLabel, { color: paperTint.eyebrow }]}>
             {senderName ? senderName.toUpperCase() : "EE TEAM"} · TEAM
           </Text>
@@ -570,10 +592,16 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
+  },
+  adminAvatarFallback: {
     alignItems: "center",
     justifyContent: "center",
   },
-  adminAvatarText: { fontSize: 11 },
+  adminAvatarInitial: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.4,
+  },
   assistantMetaLabel: {
     fontFamily: FontFamily.semiBold,
     fontSize: 11,

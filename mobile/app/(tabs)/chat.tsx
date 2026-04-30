@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTeamUnreadStore } from "@/hooks/use-team-unread";
 import { fetchTeamThread } from "@/lib/messages";
 
 /* ─── Editorial palette ─────────────────────────────────────── */
@@ -50,22 +51,32 @@ export default function HelpScreen() {
   const paperTint = usePaperTint(isDark, colors);
   const router = useRouter();
 
-  const [unread, setUnread] = useState(false);
   const [hoursLabel, setHoursLabel] = useState<string | null>(null);
   const [openNow, setOpenNow] = useState<boolean | null>(null);
+  const [latestAdminMessage, setLatestAdminMessage] = useState<string | null>(
+    null
+  );
+  const teamUnreadCount = useTeamUnreadStore((s) => s.count);
 
   const loadStatus = useCallback(async () => {
     try {
       const data = await fetchTeamThread();
-      setUnread(data.thread.unread);
+      const lastAdmin = [...data.messages]
+        .reverse()
+        .find((m) => m.senderRole === "ADMIN");
+      setLatestAdminMessage(
+        data.thread.unread && lastAdmin ? lastAdmin.body : null
+      );
       if (data.hours) {
         setOpenNow(data.hours.isOpenNow);
         if (data.hours.isOpenNow) {
-          setHoursLabel("Team is online · usually replies quickly");
+          setHoursLabel("Online · usually replies quickly");
         } else if (data.hours.nextOpenLabel) {
-          setHoursLabel(data.hours.nextOpenLabel);
+          setHoursLabel(
+            `Currently offline · ${data.hours.nextOpenLabel.toLowerCase()}`
+          );
         } else {
-          setHoursLabel(null);
+          setHoursLabel("Currently offline · we'll reply when we're around");
         }
       } else {
         setOpenNow(null);
@@ -149,14 +160,9 @@ export default function HelpScreen() {
             onPress={goToTeam}
             paperTint={paperTint}
             colors={colors}
-            statusDotColor={
-              openNow == null
-                ? null
-                : openNow
-                ? "#22c55e"
-                : paperTint.inkSoft
-            }
-            unread={unread}
+            statusDotColor={openNow ? "#22c55e" : null}
+            unreadCount={teamUnreadCount}
+            preview={latestAdminMessage}
           />
         </View>
 
@@ -187,7 +193,8 @@ function OptionRow({
   colors,
   firstRow = false,
   statusDotColor,
-  unread = false,
+  unreadCount = 0,
+  preview,
 }: {
   emoji: string;
   title: string;
@@ -197,13 +204,21 @@ function OptionRow({
   colors: (typeof Colors)["light"];
   firstRow?: boolean;
   statusDotColor?: string | null;
-  unread?: boolean;
+  unreadCount?: number;
+  preview?: string | null;
 }) {
+  const hasUnread = unreadCount > 0;
+  const previewText = hasUnread && preview ? preview.replace(/\s+/g, " ").trim() : null;
+  const countLabel = unreadCount > 99 ? "99+" : String(unreadCount);
+  const a11yLabel = hasUnread
+    ? `${title}. ${unreadCount} unread ${unreadCount === 1 ? "message" : "messages"}.${previewText ? ` Latest: ${previewText}` : ""}`
+    : `${title}. ${description}`;
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${description}`}
+      accessibilityLabel={a11yLabel}
       style={({ pressed }) => [
         styles.optionRow,
         {
@@ -225,17 +240,36 @@ function OptionRow({
           <Text style={[styles.optionTitle, { color: colors.text }]}>
             {title}
           </Text>
-          {unread && (
-            <View style={[styles.unreadDot, { backgroundColor: "#22c55e" }]} />
+          {hasUnread && (
+            <View style={styles.unreadPill}>
+              <Text style={styles.unreadPillText}>
+                {countLabel} new
+              </Text>
+            </View>
           )}
         </View>
-        <Text
-          style={[styles.optionDescription, { color: paperTint.inkSoft }]}
-          numberOfLines={2}
-        >
-          {description}
-        </Text>
-        {statusDotColor && (
+        {previewText ? (
+          <Text
+            style={[styles.optionPreview, { color: colors.text }]}
+            numberOfLines={2}
+          >
+            <Text style={[styles.optionPreviewQuote, { color: Brand.green }]}>
+              {"“"}
+            </Text>
+            {previewText}
+            <Text style={[styles.optionPreviewQuote, { color: Brand.green }]}>
+              {"”"}
+            </Text>
+          </Text>
+        ) : (
+          <Text
+            style={[styles.optionDescription, { color: paperTint.inkSoft }]}
+            numberOfLines={2}
+          >
+            {description}
+          </Text>
+        )}
+        {statusDotColor && !hasUnread && (
           <View style={styles.statusRow}>
             <View
               style={[styles.statusInlineDot, { backgroundColor: statusDotColor }]}
@@ -321,10 +355,27 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   optionArrow: { marginLeft: 4 },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  unreadPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: Brand.green,
+  },
+  unreadPillText: {
+    color: "#ffffff",
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 0.4,
+  },
+  optionPreview: {
+    fontFamily: FontFamily.medium,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 2,
+  },
+  optionPreviewQuote: {
+    fontFamily: FontFamily.headingBold,
+    fontSize: 16,
   },
   statusRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   statusInlineDot: {
