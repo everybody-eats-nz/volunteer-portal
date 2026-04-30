@@ -399,7 +399,11 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     </SelectTrigger>
                     <SelectContent>
                       {availableShifts.map(shift => (
-                        <SelectItem key={shift.id} value={shift.id}>
+                        <SelectItem
+                          key={shift.id}
+                          value={shift.id}
+                          data-testid={`move-target-option-${shift.id}`}
+                        >
                           {shift.shiftType.name} • {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {shift.capacity - shift.confirmedCount} spots available
                         </SelectItem>
                       ))}

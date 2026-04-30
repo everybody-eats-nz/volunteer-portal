@@ -14,23 +14,27 @@ import { randomUUID } from "crypto";
 import { nowInNZT } from "@/lib/timezone";
 import { Page } from "@playwright/test";
 
-test.describe.configure({ mode: "serial" });
+test.describe.configure({ timeout: 60_000 });
 test.describe("Backup Shift Signup Feature", () => {
-  const testId = randomUUID().slice(0, 8);
-  const volunteerEmail = `volunteer-backup-${testId}@example.com`;
-  const adminEmail = `admin-backup-${testId}@example.com`;
-  const testEmails = [volunteerEmail, adminEmail];
-  const testShiftIds: string[] = [];
+  let testId: string;
+  let volunteerEmail: string;
+  let adminEmail: string;
+  let testEmails: string[];
+  let testShiftIds: string[];
   let volunteerUserId: string;
   let primaryShiftId: string;
   let backupShift1Id: string;
   let backupShift2Id: string;
 
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
+    // Generate unique data per test for parallel safety
+    testId = randomUUID().slice(0, 8);
+    volunteerEmail = `volunteer-backup-${testId}@example.com`;
+    adminEmail = `admin-backup-${testId}@example.com`;
+    testEmails = [volunteerEmail, adminEmail];
+    testShiftIds = [];
 
-    // Reset test shift IDs array
-    testShiftIds.length = 0;
+    await loginAsAdmin(page);
 
     // Create test users
     await createTestUser(page, volunteerEmail, "VOLUNTEER");
@@ -115,12 +119,11 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.waitForLoadState("load");
 
     // Find and click the signup button for the primary shift (Kitchen Prep)
-    const primaryShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
-      .first();
+    const primaryShiftCard = page.locator(
+      `[data-testid="shift-card-${primaryShiftId}"]`
+    );
 
-    await expect(primaryShiftCard).toBeVisible();
+    await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     const signupButton = primaryShiftCard.getByTestId("shift-signup-button");
     await expect(signupButton).toBeVisible();
@@ -135,12 +138,12 @@ test.describe("Backup Shift Signup Feature", () => {
       page.getByText("If we need to move you, which other shifts")
     ).toBeVisible();
 
-    // Should see checkboxes for concurrent shifts
+    // Should see checkboxes for this test's specific concurrent shifts
     await expect(
-      page.getByTestId("shift-signup-dialog").getByText("FOH Set-Up & Service")
+      page.locator(`[data-testid="backup-shift-${backupShift1Id}"]`)
     ).toBeVisible();
     await expect(
-      page.getByTestId("shift-signup-dialog").getByText("Dishwasher")
+      page.locator(`[data-testid="backup-shift-${backupShift2Id}"]`)
     ).toBeVisible();
 
     // Should see capacity info for backup shifts
@@ -163,10 +166,10 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.waitForLoadState("load");
 
     // Click signup button
-    const primaryShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
-      .first();
+    const primaryShiftCard = page.locator(
+      `[data-testid="shift-card-${primaryShiftId}"]`
+    );
+    await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     const signupButton = primaryShiftCard.getByTestId("shift-signup-button");
     await signupButton.click();
@@ -218,8 +221,6 @@ test.describe("Backup Shift Signup Feature", () => {
     await signupVolunteer(page);
 
     await loginAsAdmin(page);
-    await page.goto("/admin/shifts");
-    await page.waitForLoadState("load");
 
     // Navigate to tomorrow's shifts
     const tomorrow = nowInNZT();
@@ -227,27 +228,24 @@ test.describe("Backup Shift Signup Feature", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("load");
 
     // Find the primary shift card
-    const primaryShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
-      .first();
+    const primaryShiftCard = page.locator(
+      `[data-testid="shift-card-${primaryShiftId}"]`
+    );
 
-    await expect(primaryShiftCard).toBeVisible();
+    await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     // Should see pending volunteer
-    await expect(primaryShiftCard.getByText(/Pending/i)).toBeVisible();
+    await expect(primaryShiftCard.getByText(/Pending/i)).toBeVisible({
+      timeout: 10000,
+    });
 
-    // Should see backup options indicator
+    // Should see backup options indicator (renders as "Backup: FOH Set-Up & Service, Dishwasher")
     await expect(
-      primaryShiftCard.getByText("🤝 Backup options:")
-    ).toBeVisible();
-    await expect(
-      primaryShiftCard.getByText("FOH Set-Up & Service")
-    ).toBeVisible();
-    await expect(primaryShiftCard.getByText("Dishwasher")).toBeVisible();
+      primaryShiftCard.getByText(/Backup:.*FOH Set-Up & Service.*Dishwasher/)
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("admin can see move button for pending volunteers with backup options", async ({
@@ -262,22 +260,18 @@ test.describe("Backup Shift Signup Feature", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("load");
 
     // Find the primary shift card with pending volunteer
-    const primaryShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
-      .first();
+    const primaryShiftCard = page.locator(
+      `[data-testid="shift-card-${primaryShiftId}"]`
+    );
 
-    await expect(primaryShiftCard).toBeVisible();
-
-    // Find the volunteer actions section
-    const volunteerSection = primaryShiftCard;
+    await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     // Should have a move button
-    const moveButton = volunteerSection.getByTestId(/-move-button/);
-    await expect(moveButton).toBeVisible();
+    const moveButton = primaryShiftCard.getByTestId(/-move-button/);
+    await expect(moveButton).toBeVisible({ timeout: 10000 });
     await expect(moveButton).toBeEnabled();
   });
 
@@ -293,13 +287,13 @@ test.describe("Backup Shift Signup Feature", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("load");
 
     // Find and click move button
-    const primaryShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
-      .first();
+    const primaryShiftCard = page.locator(
+      `[data-testid="shift-card-${primaryShiftId}"]`
+    );
+    await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     const moveButton = primaryShiftCard.getByTestId(/-move-button/);
     await expect(moveButton).toBeVisible({ timeout: 10000 });
@@ -347,13 +341,13 @@ test.describe("Backup Shift Signup Feature", () => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
     await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState("load");
 
     // Find the move button on the primary shift card
-    const primaryShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
-      .first();
+    const primaryShiftCard = page.locator(
+      `[data-testid="shift-card-${primaryShiftId}"]`
+    );
+    await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     const moveButton = primaryShiftCard.getByTestId(/-move-button/).first();
     await expect(moveButton).toBeVisible({ timeout: 10000 });
@@ -394,15 +388,16 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.reload();
     await page.waitForTimeout(2000);
 
-    // Find the FOH shift card
-    const fohShiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "FOH Set-Up & Service" })
-      .first();
+    // Find the FOH shift card (backup shift 1)
+    const fohShiftCard = page.locator(
+      `[data-testid="shift-card-${backupShift1Id}"]`
+    );
 
     // Volunteer should now be confirmed in FOH shift
-    await expect(fohShiftCard).toBeVisible();
-    await expect(fohShiftCard.getByText("Confirmed")).toBeVisible();
+    await expect(fohShiftCard).toBeVisible({ timeout: 15000 });
+    await expect(fohShiftCard.getByText("Confirmed")).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("note field is hidden behind a button by default", async ({ page }) => {
@@ -430,11 +425,11 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.goto(`/shifts/details?date=${tomorrowStr}&location=Wellington`);
     await page.waitForLoadState("load");
 
-    // Find and click signup button
+    // Find and click signup button (scoped to this test's specific shift)
     const shiftCard = page
-      .locator('[data-testid^="shift-card-"]')
-      .filter({ hasText: "Kitchen Prep" })
+      .locator(`[data-testid="shift-card-${testShift.id}"]`)
       .first();
+    await expect(shiftCard).toBeVisible({ timeout: 15000 });
 
     const signupButton = shiftCard.getByTestId("shift-signup-button");
     await signupButton.click();
