@@ -46,12 +46,13 @@ test.describe("Admin Attendance Tracking", () => {
 
       // Click on a past date (use yesterday in NZ timezone)
       const yesterday = addDaysInNZT(nowInNZT(), -1);
-      const yesterdayDay = yesterday.getDate();
+      const yesterdayStr = formatInNZT(yesterday, "yyyy-MM-dd");
 
-      // Find and click yesterday's date button (should be enabled now)
+      // Target the gridcell by its ISO date (react-day-picker puts data-day on
+      // each cell). Filtering by visible "29" text would match March 29 first
+      // when April's grid shows leading days from the prior month.
       const yesterdayButton = page
-        .getByRole("button")
-        .filter({ hasText: new RegExp(`^${yesterdayDay}$`) })
+        .locator(`[data-day="${yesterdayStr}"] button`)
         .first();
 
       // Click the date - it should be selectable now
@@ -59,7 +60,6 @@ test.describe("Admin Attendance Tracking", () => {
 
       // Calendar should close and URL should update
       await expect(page.getByRole("dialog")).not.toBeVisible();
-      const yesterdayStr = formatInNZT(yesterday, "yyyy-MM-dd");
       await expect(page).toHaveURL(new RegExp(`date=${yesterdayStr}`));
     });
 
