@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     if (err instanceof MessagingError) {
-      const code = err.code === "VOLUNTEER_REQUIRED" ? 403 : 400;
+      const code = err.code === "NOT_FOUND" ? 404 : 400;
       return NextResponse.json({ error: err.message }, { status: code });
     }
     console.error("[mobile messages thread GET]", err);

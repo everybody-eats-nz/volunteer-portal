@@ -9,12 +9,7 @@ const MAX_MESSAGE_LENGTH = 4000;
 
 export class MessagingError extends Error {
   constructor(
-    public code:
-      | "NOT_FOUND"
-      | "FORBIDDEN"
-      | "EMPTY_BODY"
-      | "BODY_TOO_LONG"
-      | "VOLUNTEER_REQUIRED",
+    public code: "NOT_FOUND" | "FORBIDDEN" | "EMPTY_BODY" | "BODY_TOO_LONG",
     message: string
   ) {
     super(message);
@@ -75,24 +70,20 @@ function validateBody(raw: unknown): string {
 }
 
 /**
- * Get-or-create a thread for a volunteer. Used by both volunteer-initiated
- * sends (mobile) and admin-initiated "Message volunteer" buttons (web).
+ * Get-or-create a thread for a user. Used by both volunteer-initiated sends
+ * (mobile) and admin-initiated "Message volunteer" buttons (web). Admins on
+ * mobile also get a thread keyed by their own user id, which then surfaces in
+ * the admin threads list like any other.
  */
 export async function getOrCreateThreadForVolunteer(
   volunteerId: string
 ): Promise<ThreadWithVolunteer> {
-  const volunteer = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: volunteerId },
-    select: { id: true, role: true },
+    select: { id: true },
   });
-  if (!volunteer) {
-    throw new MessagingError("NOT_FOUND", "Volunteer not found");
-  }
-  if (volunteer.role !== "VOLUNTEER") {
-    throw new MessagingError(
-      "VOLUNTEER_REQUIRED",
-      "Threads are only created for volunteers"
-    );
+  if (!user) {
+    throw new MessagingError("NOT_FOUND", "User not found");
   }
 
   const existing = await prisma.messageThread.findUnique({
