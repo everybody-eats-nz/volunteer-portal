@@ -99,11 +99,11 @@ test.describe("Admin Command Palette", () => {
       ).toBeVisible();
       await expect(
         page.locator("[cmdk-group-heading]", {
-          hasText: "Volunteer Management",
+          hasText: "Volunteers",
         })
       ).toBeVisible();
       await expect(
-        page.locator("[cmdk-group-heading]", { hasText: "Shift Management" })
+        page.locator("[cmdk-group-heading]", { hasText: "Shifts" })
       ).toBeVisible();
       await expect(
         page.locator("[cmdk-group-heading]", { hasText: "User Migration" })
@@ -155,7 +155,7 @@ test.describe("Admin Command Palette", () => {
 
       await expect(
         commandDialog.locator("[cmdk-group-heading]", {
-          hasText: "Volunteer Management",
+          hasText: "Volunteers",
         })
       ).toBeVisible();
       await expect(commandDialog.getByText("All Users")).toBeVisible();
@@ -163,7 +163,7 @@ test.describe("Admin Command Palette", () => {
 
       await expect(
         commandDialog.locator("[cmdk-group-heading]", {
-          hasText: "Shift Management",
+          hasText: "Shifts",
         })
       ).toBeVisible();
       await expect(commandDialog.getByText("Create Shift")).toBeVisible();
@@ -240,7 +240,7 @@ test.describe("Admin Command Palette", () => {
       ).not.toBeVisible();
       await expect(
         page.locator("[cmdk-group-heading]", {
-          hasText: "Volunteer Management",
+          hasText: "Volunteers",
         })
       ).not.toBeVisible();
     });
@@ -255,7 +255,7 @@ test.describe("Admin Command Palette", () => {
       const commandDialog = page.getByRole("dialog");
       await expect(
         commandDialog.locator("[cmdk-group-heading]", {
-          hasText: "Shift Management",
+          hasText: "Shifts",
         })
       ).toBeVisible();
       await expect(commandDialog.getByText("Create Shift")).toBeVisible();
