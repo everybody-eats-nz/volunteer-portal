@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
+import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
 
 /**
  * GET /api/mobile/feed
@@ -41,29 +42,41 @@ export async function GET(request: Request) {
     .filter((id) => id.length > 0 && id.length <= 200)
     .slice(0, 50);
 
-  // Get the user's profile, friendships, and blocks in parallel
-  const [userProfile, friendships, blocks] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        volunteerGrade: true,
-        defaultLocation: true,
-        customLabels: { select: { labelId: true } },
-      },
-    }),
-    prisma.friendship.findMany({
-      where: {
-        status: "ACCEPTED",
-        OR: [{ userId }, { friendId: userId }],
-      },
-      select: { userId: true, friendId: true },
-    }),
-    // Users this person has blocked
-    prisma.userBlock.findMany({
-      where: { blockerId: userId },
-      select: { blockedId: true },
-    }),
-  ]);
+  // Get the user's profile, friendships, blocks, and active signup shift IDs
+  // in parallel. The signup shift IDs are used to match announcements that
+  // target specific shifts.
+  const [userProfile, friendships, blocks, userSignupShiftRows] =
+    await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          volunteerGrade: true,
+          defaultLocation: true,
+          customLabels: { select: { labelId: true } },
+        },
+      }),
+      prisma.friendship.findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ userId }, { friendId: userId }],
+        },
+        select: { userId: true, friendId: true },
+      }),
+      // Users this person has blocked
+      prisma.userBlock.findMany({
+        where: { blockerId: userId },
+        select: { blockedId: true },
+      }),
+      prisma.signup.findMany({
+        where: {
+          userId,
+          // Mirror the targeting helper so a user is "associated with" a shift
+          // here for the same statuses the announcements form uses.
+          status: { in: ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s) },
+        },
+        select: { shiftId: true },
+      }),
+    ]);
 
   const blockedUserIds = new Set(blocks.map((b) => b.blockedId));
 
@@ -78,6 +91,9 @@ export async function GET(request: Request) {
   const userLabelIds = (userProfile?.customLabels ?? []).map((l) => l.labelId);
   const userDefaultLocation = userProfile?.defaultLocation ?? null;
   const userGrade = userProfile?.volunteerGrade ?? "GREEN";
+  const userSignupShiftIds = new Set(
+    userSignupShiftRows.map((s) => s.shiftId)
+  );
 
   // Run all data queries in parallel
   const [
@@ -302,7 +318,18 @@ export async function GET(request: Request) {
       ann.targetLabelIds.length === 0 ||
       ann.targetLabelIds.some((lid) => userLabelIds.includes(lid));
 
-    if (!locationMatch || !gradeMatch || !labelMatch) continue;
+    // Specific user targeting: empty = all users
+    const userMatch =
+      ann.targetUserIds.length === 0 || ann.targetUserIds.includes(userId);
+
+    // Shift targeting: empty = all shifts. Match if the user has an active
+    // signup on any of the targeted shifts.
+    const shiftMatch =
+      ann.targetShiftIds.length === 0 ||
+      ann.targetShiftIds.some((sid) => userSignupShiftIds.has(sid));
+
+    if (!locationMatch || !gradeMatch || !labelMatch || !userMatch || !shiftMatch)
+      continue;
 
     const authorName =
       ann.author.firstName ?? ann.author.name ?? "Admin";

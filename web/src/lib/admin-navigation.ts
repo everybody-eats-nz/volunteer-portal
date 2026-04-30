@@ -55,6 +55,13 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Overview and statistics",
         commandKey: "dashboard",
       },
+      {
+        title: "Site Settings",
+        href: "/admin/site-settings",
+        icon: Settings,
+        description: "Configure site-wide settings and URLs",
+        commandKey: "site-settings",
+      },
     ],
   },
   {
@@ -85,13 +92,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         title: "Milestone Analytics",
         href: "/admin/analytics/milestones",
         icon: Award,
-        description: "Shift milestones, volunteer recognition, and 12-month projections",
+        description:
+          "Shift milestones, volunteer recognition, and 12-month projections",
         commandKey: "milestones",
       },
     ],
   },
   {
-    label: "Volunteer Management",
+    label: "Volunteers",
     items: [
       {
         title: "All Users",
@@ -138,7 +146,7 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
-    label: "Shift Management",
+    label: "Shifts",
     items: [
       {
         title: "Create Shift",
@@ -155,13 +163,6 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "shifts",
       },
       {
-        title: "Shortage Notifications",
-        href: "/admin/notifications",
-        icon: Bell,
-        description: "Send shift shortage alerts",
-        commandKey: "notifications",
-      },
-      {
         title: "Auto-Accept Rules",
         href: "/admin/auto-accept-rules",
         icon: Settings,
@@ -171,7 +172,7 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
-    label: "Restaurant Management",
+    label: "Restaurants",
     items: [
       {
         title: "Daily Menus",
@@ -197,21 +198,21 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
-    label: "Resources",
+    label: "Communications",
     items: [
       {
-        title: "Resource Hub",
-        href: "/admin/resources",
-        icon: FileText,
-        description: "Manage volunteer resources",
-        commandKey: "resources",
+        title: "Announcements",
+        href: "/admin/announcements",
+        icon: Megaphone,
+        description: "Send targeted announcements to volunteers",
+        commandKey: "announcements",
       },
       {
-        title: "Site Settings",
-        href: "/admin/site-settings",
-        icon: Settings,
-        description: "Configure site-wide settings and URLs",
-        commandKey: "site-settings",
+        title: "Shortage Notifications",
+        href: "/admin/notifications",
+        icon: Bell,
+        description: "Send shift shortage alerts",
+        commandKey: "notifications",
       },
       {
         title: "Newsletter Lists",
@@ -227,6 +228,18 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "Create and manage feedback surveys",
         commandKey: "surveys",
       },
+    ],
+  },
+  {
+    label: "Content & AI",
+    items: [
+      {
+        title: "Resource Hub",
+        href: "/admin/resources",
+        icon: FileText,
+        description: "Manage volunteer resources",
+        commandKey: "resources",
+      },
       {
         title: "Chat Guides",
         href: "/admin/chat-guides",
@@ -241,18 +254,6 @@ export const adminNavCategories: AdminNavCategory[] = [
         description: "View volunteer conversations with the AI assistant",
         commandKey: "chat-logs",
       },
-      {
-        title: "Announcements",
-        href: "/admin/announcements",
-        icon: Megaphone,
-        description: "Send targeted announcements to volunteers",
-        commandKey: "announcements",
-      },
-    ],
-  },
-  {
-    label: "Safety",
-    items: [
       {
         title: "Content Moderation",
         href: "/admin/moderation",
@@ -313,7 +314,7 @@ export const publicNavItems: AdminNavItem[] = [
     description: "Opens in new tab",
     opensInNewTab: true,
     commandKey: "public-resources",
-  }
+  },
 ];
 
 // Helper function to get icon color for command palette
@@ -324,39 +325,42 @@ export const getIconColor = (
   const colorMap: Record<string, string> = {
     // Overview
     Dashboard: "text-blue-600",
+    "Site Settings": "text-slate-600",
+
+    // Analytics
     "Restaurant Analytics": "text-purple-600",
     "Volunteer Engagement": "text-emerald-600",
     "Volunteer Recruitment": "text-violet-600",
     "Milestone Analytics": "text-amber-600",
 
-    // Volunteer Management
+    // Volunteers
     "All Users": "text-purple-600",
     "Regular Volunteers": "text-yellow-600",
-    "Restaurant Managers": "text-orange-600",
     "Parental Consent": "text-blue-600",
     "Custom Labels": "text-indigo-600",
     Achievements: "text-amber-600",
     Archiving: "text-rose-600",
-    "Newsletter Lists": "text-cyan-600",
 
-    // Restaurant Management
-    "Daily Menus": "text-orange-600",
-
-    // Shift Management
+    // Shifts
     "Create Shift": "text-green-600",
     "Manage Shifts": "text-green-600",
-    "Restaurant Locations": "text-blue-600",
-    "Shortage Notifications": "text-amber-600",
     "Auto-Accept Rules": "text-gray-600",
 
-    // Resources
+    // Restaurant
+    "Daily Menus": "text-orange-600",
+    "Restaurant Locations": "text-blue-600",
+    "Restaurant Managers": "text-orange-600",
+
+    // Communications
+    Announcements: "text-orange-500",
+    "Shortage Notifications": "text-amber-600",
+    "Newsletter Lists": "text-cyan-600",
+    Surveys: "text-violet-600",
+
+    // Content & AI
     "Resource Hub": "text-blue-500",
-    "Site Settings": "text-slate-600",
     "Chat Guides": "text-emerald-500",
     "Chat Logs": "text-emerald-600",
-    "Announcements": "text-orange-500",
-
-    // Safety
     "Content Moderation": "text-red-600",
 
     // User Migration

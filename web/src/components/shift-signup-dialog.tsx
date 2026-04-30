@@ -23,7 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge } from "@/lib/utils";
-import { MessageSquareDot } from "lucide-react";
+import { MessageSquareDot, User } from "lucide-react";
+import Link from "next/link";
 
 interface ShiftSignupDialogProps {
   shift: {
@@ -86,6 +87,7 @@ export function ShiftSignupDialog({
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [verificationResent, setVerificationResent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [autoApprovalEligible, setAutoApprovalEligible] = useState<{
     eligible: boolean;
     ruleName?: string;
@@ -106,6 +108,7 @@ export function ShiftSignupDialog({
   useEffect(() => {
     if (open) {
       setError(null);
+      setProfileIncomplete(false);
       setSelectedBackupShiftIds([]);
       setShowNoteField(false);
     }
@@ -322,7 +325,12 @@ export function ShiftSignupDialog({
         }
       } else {
         const errorData = await response.json();
-        setError(errorData.error || "Failed to sign up");
+        if (errorData.error === "Profile incomplete") {
+          setProfileIncomplete(true);
+          setError(null);
+        } else {
+          setError(errorData.error || "Failed to sign up");
+        }
       }
     } catch (error) {
       console.error("Signup error:", error);
@@ -592,6 +600,34 @@ export function ShiftSignupDialog({
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Profile Incomplete — actionable CTA to /profile/edit */}
+          {profileIncomplete && (
+            <InfoBox
+              title="Complete your profile to sign up"
+              variant="red"
+              testId="profile-incomplete-warning"
+            >
+              <div className="space-y-3">
+                <p className="text-red-700">
+                  Your profile is missing some required information. Finish
+                  filling it in and we&apos;ll get you signed up.
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  data-testid="complete-profile-button"
+                >
+                  <Link href="/profile/edit">
+                    <User className="h-4 w-4" />
+                    Complete Profile
+                  </Link>
+                </Button>
+              </div>
+            </InfoBox>
           )}
 
           {/* Error Display */}

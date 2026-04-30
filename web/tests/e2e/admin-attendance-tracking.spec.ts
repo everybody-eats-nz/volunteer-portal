@@ -1,7 +1,18 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
+import {
+  createTestUser,
+  deleteTestUsers,
+  createShift,
+  deleteTestShifts,
+  getUserByEmail,
+  createSignup,
+  deleteSignupsByShiftIds,
+  getShiftTypeByName,
+} from "./helpers/test-helpers";
 import { format } from "date-fns";
 import { tz } from "@date-fns/tz";
+import { randomUUID } from "crypto";
 
 // NZ timezone helpers for consistent test behavior
 const NZ_TIMEZONE = "Pacific/Auckland";
@@ -46,12 +57,13 @@ test.describe("Admin Attendance Tracking", () => {
 
       // Click on a past date (use yesterday in NZ timezone)
       const yesterday = addDaysInNZT(nowInNZT(), -1);
-      const yesterdayDay = yesterday.getDate();
+      const yesterdayStr = formatInNZT(yesterday, "yyyy-MM-dd");
 
-      // Find and click yesterday's date button (should be enabled now)
+      // Target the gridcell by its ISO date (react-day-picker puts data-day on
+      // each cell). Filtering by visible "29" text would match March 29 first
+      // when April's grid shows leading days from the prior month.
       const yesterdayButton = page
-        .getByRole("button")
-        .filter({ hasText: new RegExp(`^${yesterdayDay}$`) })
+        .locator(`[data-day="${yesterdayStr}"] button`)
         .first();
 
       // Click the date - it should be selectable now
@@ -59,7 +71,6 @@ test.describe("Admin Attendance Tracking", () => {
 
       // Calendar should close and URL should update
       await expect(page.getByRole("dialog")).not.toBeVisible();
-      const yesterdayStr = formatInNZT(yesterday, "yyyy-MM-dd");
       await expect(page).toHaveURL(new RegExp(`date=${yesterdayStr}`));
     });
 
@@ -174,39 +185,74 @@ test.describe("Admin Attendance Tracking", () => {
   });
 
   test.describe("No Show Badge Display", () => {
-    test("should show no-show badges with proper testids when present", async ({
+    let testUserEmail: string;
+    let testShiftId: string;
+    let testShiftDateStr: string;
+
+    test.beforeEach(async ({ page }) => {
+      const testId = randomUUID().slice(0, 8);
+      testUserEmail = `volunteer-noshow-${testId}@example.com`;
+
+      // Create the volunteer
+      await createTestUser(page, testUserEmail, "VOLUNTEER");
+      const volunteer = await getUserByEmail(page, testUserEmail);
+
+      // Create a shift in the past (yesterday) and seed a NO_SHOW signup, so
+      // the test deterministically renders the No Show status group instead
+      // of scanning seed data and racing against dev-server compile time.
+      const yesterday = addDaysInNZT(nowInNZT(), -1);
+      yesterday.setHours(11, 0, 0, 0);
+      const endTime = new Date(yesterday.getTime() + 3 * 60 * 60 * 1000);
+      testShiftDateStr = formatInNZT(yesterday, "yyyy-MM-dd");
+
+      const kitchenShiftType = await getShiftTypeByName(page, "Kitchen Prep");
+      const shift = await createShift(page, {
+        location: "Wellington",
+        start: yesterday,
+        end: endTime,
+        capacity: 4,
+        shiftTypeId: kitchenShiftType?.id,
+      });
+      testShiftId = shift.id;
+
+      await createSignup(page, {
+        userId: volunteer!.id,
+        shiftId: testShiftId,
+        status: "NO_SHOW",
+      });
+    });
+
+    test.afterEach(async ({ page }) => {
+      await deleteSignupsByShiftIds(page, [testShiftId]);
+      await deleteTestShifts(page, [testShiftId]);
+      await deleteTestUsers(page, [testUserEmail]);
+    });
+
+    test("should render the No Show status group for past no-show signups", async ({
       page,
     }) => {
-      // Check various dates for no-show badges from seeded data
-      const dates = [];
-      for (let i = 1; i <= 7; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        dates.push(date.toISOString().split("T")[0]);
-      }
-
-      for (const dateStr of dates) {
-        await page.goto(`/admin/shifts?date=${dateStr}&location=Wellington`);
-        await page.waitForLoadState("load");
-
-        // Look for no-show badges
-        const noShowBadges = page.locator('[data-testid*="no-show-badge-"]');
-
-        if ((await noShowBadges.count()) > 0) {
-          await expect(noShowBadges.first()).toBeVisible();
-          await expect(noShowBadges.first()).toHaveClass(/bg-red-100/);
-          await expect(noShowBadges.first()).toHaveClass(/text-red-700/);
-          await expect(noShowBadges.first()).toContainText("no show");
-
-          // Found no-show badge, test passed
-          return;
-        }
-      }
-
-      // If no no-show badges found in any date, that's also valid (might not have any in seed data)
-      console.log(
-        "No no-show badges found in seeded data - this is acceptable"
+      await page.goto(
+        `/admin/shifts?date=${testShiftDateStr}&location=Wellington`
       );
+      await page.waitForLoadState("load");
+
+      // Scope to this test's specific shift card to stay parallel-safe
+      const shiftCard = page.locator(
+        `[data-testid="shift-card-${testShiftId}"]`
+      );
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      // The No Show status group renders a header with the label and count,
+      // wrapped in red theme classes. Match the label inside the volunteer
+      // container for this shift.
+      const noShowHeader = page
+        .getByTestId(`volunteers-${testShiftId}`)
+        .getByText(/^No Show$/);
+      await expect(noShowHeader).toBeVisible({ timeout: 10000 });
+
+      // Header sits in a styled container — verify the red theme class.
+      const noShowContainer = noShowHeader.locator("xpath=ancestor::div[1]");
+      await expect(noShowContainer).toHaveClass(/bg-red-50/);
     });
   });
 

@@ -14,6 +14,7 @@ import {
   getPhidFromCookies,
 } from "@/lib/funnel";
 import { phAlias } from "@/lib/posthog-server";
+import { isProfileComplete } from "@/lib/profile-completion";
 
 /**
  * Validation schema for user registration
@@ -231,6 +232,19 @@ export async function POST(req: Request) {
 
       // Profile image (optional, nullable in DB)
       profilePhotoUrl: validatedData.profilePhotoUrl || null,
+
+      // Whether the registration form supplied every required profile field.
+      // The shift signup endpoint gates on this flag, so set it eagerly here
+      // instead of waiting for the user to revisit /api/profile.
+      profileCompleted: isProfileComplete({
+        firstName: validatedData.firstName,
+        phone: validatedData.phone,
+        dateOfBirth: validatedData.dateOfBirth,
+        emergencyContactName: validatedData.emergencyContactName,
+        emergencyContactPhone: validatedData.emergencyContactPhone,
+        volunteerAgreementAccepted: validatedData.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: validatedData.healthSafetyPolicyAccepted,
+      }),
     };
 
     // For migration, update existing user; otherwise create new user
