@@ -1,7 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "https://volunteers.everybodyeats.nz";
+export const API_URL = "https://volunteers.everybodyeats.nz";
 
 type RequestOptions = {
   method?: string;

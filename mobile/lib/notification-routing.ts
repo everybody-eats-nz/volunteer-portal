@@ -5,9 +5,7 @@ import {
 } from "expo-web-browser";
 
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
-
-const WEB_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "https://volunteers.everybodyeats.nz";
+import { API_URL } from "./api";
 
 /**
  * Translate a web-app URL (from a notification's actionUrl) to a mobile
@@ -43,7 +41,7 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
   // Surveys aren't implemented natively on mobile, so we hand off to the
   // web experience rather than no-op.
   if (pathname.startsWith("/surveys/")) {
-    openBrowserAsync(`${WEB_BASE_URL}${actionUrl}`, {
+    openBrowserAsync(`${API_URL}${actionUrl}`, {
       presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
     });
     return;

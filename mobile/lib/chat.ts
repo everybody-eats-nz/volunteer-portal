@@ -1,8 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { fetch as expoFetch } from "expo/fetch";
-
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "https://volunteers.everybodyeats.nz";
+import { API_URL } from "./api";
 
 type ChatMessage = {
   role: "user" | "assistant";
