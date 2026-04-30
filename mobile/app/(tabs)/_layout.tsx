@@ -2,6 +2,10 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import {
+  useTeamUnreadPolling,
+  useTeamUnreadStore,
+} from '@/hooks/use-team-unread';
 import { useAuth } from '@/lib/auth';
 import { Brand } from '@/constants/theme';
 import LoginScreen from '@/app/(auth)/login';
@@ -9,6 +13,8 @@ import LoginScreen from '@/app/(auth)/login';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const teamUnreadCount = useTeamUnreadStore((s) => s.count);
+  useTeamUnreadPolling(isAuthenticated);
 
   const eeLight = {
     ...DefaultTheme,
@@ -64,6 +70,11 @@ export default function TabLayout() {
             sf={{ default: 'sparkles', selected: 'sparkles' }}
             md="chat"
           />
+          {teamUnreadCount > 0 && (
+            <NativeTabs.Trigger.Badge>
+              {teamUnreadCount > 99 ? '99+' : String(teamUnreadCount)}
+            </NativeTabs.Trigger.Badge>
+          )}
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger name="profile">

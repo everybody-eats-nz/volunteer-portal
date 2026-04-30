@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTeamUnreadStore } from "@/hooks/use-team-unread";
 import {
   fetchTeamThread,
   markTeamThreadRead,
@@ -148,7 +149,11 @@ export default function TeamThreadScreen() {
       setMessages(data.messages);
       setHours(data.hours);
       if (markRead && data.thread.unread) {
-        markTeamThreadRead().catch(() => {});
+        markTeamThreadRead()
+          .then(() => useTeamUnreadStore.getState().setCount(0))
+          .catch(() => {});
+      } else if (markRead) {
+        useTeamUnreadStore.getState().setCount(0);
       }
     } catch (err) {
       console.warn("[help/team] refresh failed", err);

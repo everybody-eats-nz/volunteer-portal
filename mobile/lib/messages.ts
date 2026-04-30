@@ -58,3 +58,7 @@ export function markTeamThreadRead(): Promise<{ ok: true }> {
     method: "POST",
   });
 }
+
+export function fetchTeamUnreadCount(): Promise<{ count: number }> {
+  return api<{ count: number }>("/api/mobile/messages/unread-count");
+}

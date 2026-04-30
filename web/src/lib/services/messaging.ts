@@ -376,6 +376,30 @@ export function isUnreadForVolunteer(thread: {
   return thread.lastMessageAt.getTime() > thread.volunteerLastReadAt.getTime();
 }
 
+/**
+ * Count admin-sent messages in the user's thread that arrived after their
+ * last-read marker. Used to badge the mobile help tab.
+ */
+export async function countUnreadForVolunteer(
+  userId: string
+): Promise<number> {
+  const thread = await prisma.messageThread.findUnique({
+    where: { volunteerId: userId },
+    select: { id: true, volunteerLastReadAt: true },
+  });
+  if (!thread) return 0;
+
+  return prisma.message.count({
+    where: {
+      threadId: thread.id,
+      senderRole: { not: "VOLUNTEER" },
+      ...(thread.volunteerLastReadAt
+        ? { createdAt: { gt: thread.volunteerLastReadAt } }
+        : {}),
+    },
+  });
+}
+
 export async function countUnreadForTeam(): Promise<number> {
   // Open threads where the latest message is from a volunteer and after the
   // team's last-read marker (or never read).
