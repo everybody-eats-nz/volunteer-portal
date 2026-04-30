@@ -37,6 +37,12 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
+  // /help/team -> volunteer ↔ team direct-message thread on the help tab
+  if (pathname === "/help/team") {
+    router.push("/help/team");
+    return;
+  }
+
   // /surveys/:token -> open the web survey page in an in-app browser.
   // Surveys aren't implemented natively on mobile, so we hand off to the
   // web experience rather than no-op.

@@ -41,6 +41,7 @@ import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager
 import { type VolunteerGrade } from "@/generated/client";
 import { LOCATIONS, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
+import { MessageVolunteerButton } from "@/components/admin/messages/message-volunteer-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
 import { GenerateAchievementsButton } from "@/components/generate-achievements-button";
 import { hearAboutUsOptions } from "@/lib/form-constants";
@@ -569,6 +570,21 @@ export default async function AdminVolunteerPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {volunteer.role === "VOLUNTEER" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Send a direct message
+                    </label>
+                    <div>
+                      <MessageVolunteerButton volunteerId={volunteer.id} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Opens (or creates) a 1:1 conversation thread between this
+                      volunteer and the team
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
                     Impersonate User

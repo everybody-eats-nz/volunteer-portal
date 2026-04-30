@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
+import { countUnreadForTeam } from "@/lib/services/messaging";
 
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { AdminLayoutHeader } from "@/components/admin-layout-header";
@@ -60,7 +61,7 @@ export default async function AdminLayout({
 
   // Get pending parental consent count (volunteers requiring consent but not yet received)
   // Uses requiresParentalConsent flag for consistency with the table data
-  const [pendingParentalConsentCount, pendingReportCount, chatGuidesEnabled] = await Promise.all([
+  const [pendingParentalConsentCount, pendingReportCount, chatGuidesEnabled, unreadMessagesCount] = await Promise.all([
     prisma.user.count({
       where: {
         role: "VOLUNTEER",
@@ -71,6 +72,7 @@ export default async function AdminLayout({
     }),
     prisma.contentReport.count({ where: { status: "PENDING" } }),
     isFeatureEnabled(FeatureFlag.CHAT_GUIDES, session.user.id),
+    countUnreadForTeam(),
   ]);
 
   // Build list of nav items to hide based on feature flags
@@ -88,6 +90,7 @@ export default async function AdminLayout({
           displayName={displayName}
           pendingParentalConsentCount={pendingParentalConsentCount}
           pendingReportCount={pendingReportCount}
+          unreadMessagesCount={unreadMessagesCount}
           hiddenNavItems={hiddenNavItems}
         />
         <SidebarInset>

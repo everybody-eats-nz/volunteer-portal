@@ -201,6 +201,13 @@ export const adminNavCategories: AdminNavCategory[] = [
     label: "Communications",
     items: [
       {
+        title: "Messages",
+        href: "/admin/messages",
+        icon: MessageSquare,
+        description: "Direct messages with volunteers",
+        commandKey: "messages",
+      },
+      {
         title: "Announcements",
         href: "/admin/announcements",
         icon: Megaphone,
@@ -352,6 +359,7 @@ export const getIconColor = (
     "Restaurant Managers": "text-orange-600",
 
     // Communications
+    Messages: "text-emerald-600",
     Announcements: "text-orange-500",
     "Shortage Notifications": "text-amber-600",
     "Newsletter Lists": "text-cyan-600",
