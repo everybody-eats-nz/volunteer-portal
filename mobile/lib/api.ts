@@ -1,6 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+export const API_URL = "https://volunteers.everybodyeats.nz";
 
 type RequestOptions = {
   method?: string;
@@ -14,28 +14,30 @@ type RequestOptions = {
  */
 export async function api<T = unknown>(
   path: string,
-  options: RequestOptions = {},
+  options: RequestOptions = {}
 ): Promise<T> {
-  const token = await SecureStore.getItemAsync('auth_token');
+  const token = await SecureStore.getItemAsync("auth_token");
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...options.headers,
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? 'GET',
+    method: options.method ?? "GET",
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new ApiError(response.status, error.error ?? 'Request failed');
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
+    throw new ApiError(response.status, error.error ?? "Request failed");
   }
 
   return response.json() as Promise<T>;
@@ -47,36 +49,35 @@ export async function api<T = unknown>(
  */
 export async function apiUpload<T = unknown>(
   path: string,
-  formData: FormData,
+  formData: FormData
 ): Promise<T> {
-  const token = await SecureStore.getItemAsync('auth_token');
+  const token = await SecureStore.getItemAsync("auth_token");
 
   const headers: Record<string, string> = {};
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
   // Do NOT set Content-Type — fetch sets it with the boundary automatically
 
   const response = await fetch(`${API_URL}${path}`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: formData,
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-    throw new ApiError(response.status, error.error ?? 'Upload failed');
+    const error = await response
+      .json()
+      .catch(() => ({ error: "Upload failed" }));
+    throw new ApiError(response.status, error.error ?? "Upload failed");
   }
 
   return response.json() as Promise<T>;
 }
 
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
+  constructor(public status: number, message: string) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }

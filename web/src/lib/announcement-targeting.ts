@@ -42,7 +42,7 @@ export function targetingFromAnnouncement(
  * "User" table.
  */
 function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
-  const conditions: Prisma.Sql[] = [Prisma.sql`role = 'VOLUNTEER'`];
+  const conditions: Prisma.Sql[] = [Prisma.sql`TRUE`];
 
   if (t.targetLocations.length > 0) {
     conditions.push(

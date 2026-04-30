@@ -1,11 +1,11 @@
-import { router } from 'expo-router';
+import { router } from "expo-router";
 import {
   openBrowserAsync,
   WebBrowserPresentationStyle,
-} from 'expo-web-browser';
+} from "expo-web-browser";
 
-const WEB_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
+import { API_URL } from "./api";
 
 /**
  * Translate a web-app URL (from a notification's actionUrl) to a mobile
@@ -13,18 +13,35 @@ const WEB_BASE_URL =
  * screen for — better than crashing the app on an unmapped path.
  */
 export function navigateToNotificationTarget(actionUrl: unknown) {
-  console.log('[notification-routing] actionUrl:', actionUrl);
-  if (typeof actionUrl !== 'string' || !actionUrl.startsWith('/')) return;
+  console.log("[notification-routing] actionUrl:", actionUrl);
+  if (typeof actionUrl !== "string" || !actionUrl.startsWith("/")) return;
 
-  const [pathname, queryString = ''] = actionUrl.split('?');
+  const [pathname, queryString = ""] = actionUrl.split("?");
   const query = new URLSearchParams(queryString);
-  console.log('[notification-routing] pathname:', pathname, 'query:', queryString);
+  console.log(
+    "[notification-routing] pathname:",
+    pathname,
+    "query:",
+    queryString
+  );
+
+  // /dashboard?feedItemId=... -> home tab + open the feed item sheet for
+  // that item. Used for announcement notifications so taps deep-link into
+  // the relevant feed card instead of just landing on the home tab.
+  if (pathname === "/dashboard") {
+    const feedItemId = query.get("feedItemId");
+    if (feedItemId) {
+      usePendingFeedItemStore.getState().setPendingId(feedItemId);
+    }
+    router.push("/(tabs)");
+    return;
+  }
 
   // /surveys/:token -> open the web survey page in an in-app browser.
   // Surveys aren't implemented natively on mobile, so we hand off to the
   // web experience rather than no-op.
-  if (pathname.startsWith('/surveys/')) {
-    openBrowserAsync(`${WEB_BASE_URL}${actionUrl}`, {
+  if (pathname.startsWith("/surveys/")) {
+    openBrowserAsync(`${API_URL}${actionUrl}`, {
       presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
     });
     return;
@@ -33,13 +50,13 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
   // /shifts/:id -> shift detail modal
   const shiftDetail = pathname.match(/^\/shifts\/([^/]+)$/);
   if (shiftDetail) {
-    router.push({ pathname: '/shift/[id]', params: { id: shiftDetail[1] } });
+    router.push({ pathname: "/shift/[id]", params: { id: shiftDetail[1] } });
     return;
   }
 
   // /shifts or /shifts/mine -> shifts tab
-  if (pathname === '/shifts' || pathname.startsWith('/shifts/')) {
-    router.push('/(tabs)/shifts');
+  if (pathname === "/shifts" || pathname.startsWith("/shifts/")) {
+    router.push("/(tabs)/shifts");
     return;
   }
 
@@ -50,26 +67,26 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
   const friendProfile = pathname.match(/^\/friends\/([^/]+)$/);
   if (friendProfile) {
     router.push({
-      pathname: '/user/[id]',
+      pathname: "/user/[id]",
       params: { id: friendProfile[1] },
     });
     return;
   }
-  const fromUserId = query.get('fromUserId');
-  if (pathname === '/friends' && fromUserId) {
-    router.push({ pathname: '/user/[id]', params: { id: fromUserId } });
+  const fromUserId = query.get("fromUserId");
+  if (pathname === "/friends" && fromUserId) {
+    router.push({ pathname: "/user/[id]", params: { id: fromUserId } });
     return;
   }
 
   // /friends* fallback -> profile tab (friends live under profile on mobile)
-  if (pathname === '/friends' || pathname.startsWith('/friends/')) {
-    router.push('/(tabs)/profile');
+  if (pathname === "/friends" || pathname.startsWith("/friends/")) {
+    router.push("/(tabs)/profile");
     return;
   }
 
   // /achievements* -> profile tab
-  if (pathname.startsWith('/achievements')) {
-    router.push('/(tabs)/profile');
+  if (pathname.startsWith("/achievements")) {
+    router.push("/(tabs)/profile");
     return;
   }
 }

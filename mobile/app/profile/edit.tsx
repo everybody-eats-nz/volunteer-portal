@@ -26,7 +26,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
-import { api, apiUpload } from "@/lib/api";
+import { api, ApiError, apiUpload } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { posthog } from "@/lib/posthog";
 import {
   syncPushTokenWithServer,
@@ -114,6 +115,7 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile, availableLocations, refresh } = useProfile();
+  const deleteAccount = useAuth((state) => state.deleteAccount);
 
   const [form, setForm] = useState<FormData>({
     firstName: "",
@@ -974,6 +976,106 @@ export default function EditProfileScreen() {
               </View>
             )}
         </View>
+
+        {/* ── Danger zone ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.destructive }]}>
+            Danger zone
+          </Text>
+          <View
+            style={[
+              s.dangerCard,
+              {
+                borderColor: colors.destructive,
+                backgroundColor: isDark
+                  ? "rgba(239,68,68,0.06)"
+                  : "rgba(220,38,38,0.04)",
+              },
+            ]}
+          >
+            <View style={s.dangerHeader}>
+              <Ionicons
+                name="warning-outline"
+                size={20}
+                color={colors.destructive}
+              />
+              <Text style={[s.dangerTitle, { color: colors.text }]}>
+                Delete account
+              </Text>
+            </View>
+            <Text style={[s.dangerBody, { color: colors.textSecondary }]}>
+              Permanently delete your account, shift history, achievements, and
+              friendships. This can't be undone.
+            </Text>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  "Delete your account?",
+                  "This will permanently delete your account, your shift history, achievements, friendships, and all other data. This can't be undone.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete account",
+                      style: "destructive",
+                      onPress: () => {
+                        Alert.alert(
+                          "Are you absolutely sure?",
+                          "Your account and all your data will be removed immediately. There's no way to recover it.",
+                          [
+                            { text: "Cancel", style: "cancel" },
+                            {
+                              text: "Delete forever",
+                              style: "destructive",
+                              onPress: async () => {
+                                try {
+                                  await deleteAccount();
+                                } catch (error) {
+                                  const message =
+                                    error instanceof ApiError
+                                      ? error.message
+                                      : "Something went wrong. Please try again or email us for help.";
+                                  Alert.alert(
+                                    "Couldn't delete account",
+                                    message
+                                  );
+                                }
+                              },
+                            },
+                          ]
+                        );
+                      },
+                    },
+                  ]
+                );
+              }}
+              style={({ pressed }) => [
+                s.dangerButton,
+                {
+                  borderColor: colors.destructive,
+                  backgroundColor: pressed
+                    ? isDark
+                      ? "rgba(239,68,68,0.16)"
+                      : "rgba(220,38,38,0.1)"
+                    : "transparent",
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Delete account"
+            >
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={colors.destructive}
+              />
+              <Text
+                style={[s.dangerButtonText, { color: colors.destructive }]}
+              >
+                Delete my account
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
 
       <DefaultLocationSheet
@@ -1411,6 +1513,45 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.regular,
     lineHeight: 16,
     marginTop: 1,
+  },
+
+  // Danger zone
+  dangerCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  dangerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dangerTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
+  },
+  dangerBody: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+  },
+  dangerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderRadius: 10,
+    minHeight: 44,
+    marginTop: 4,
+  },
+  dangerButtonText: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
   },
 
 });

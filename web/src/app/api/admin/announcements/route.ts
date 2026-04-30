@@ -79,12 +79,18 @@ export async function POST(request: Request) {
     select: { id: true },
   });
   if (!adminUser) {
-    return NextResponse.json({ error: "Admin user not found" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Admin user not found" },
+      { status: 403 }
+    );
   }
 
   const body = await request.json().catch(() => null);
   if (!body) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 }
+    );
   }
 
   const {
@@ -183,12 +189,16 @@ async function dispatchAnnouncementEmails(announcementId: string) {
   // authored copy look ghosted). Inline styles are required — most email
   // clients strip <style> tags.
   const renderedBody = await marked.parse(ann.body, { async: true });
-  const bodyHtml = `<div style="color:#111827;font-family:'Libre Franklin',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;">${renderedBody}</div>`;
+  const bodyHtml = `<div style="color:#fff;">${renderedBody}</div>`;
   const baseUrl = getBaseUrl();
   const feedLink = `${baseUrl}/dashboard`;
-  // Fall back to a 1×1 white pixel so the template can drop the conditional
-  // around the image — the pixel is invisible against any background.
-  const imageUrl = ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png`;
+  // Fall back to a 400×20 brand-green spacer so the template can drop the
+  // conditional around the image. The wide aspect ratio (20:1) keeps the
+  // scaled height small relative to the email column width, instead of
+  // ballooning into a square the full width of the column. Append the
+  // current timestamp so clients/proxies can't serve a stale copy.
+  const imageUrl =
+    ann.imageUrl ?? `${baseUrl}/email/blank-pixel.png?v=${Date.now()}`;
   const emailService = getEmailService();
 
   await Promise.allSettled(
@@ -261,9 +271,11 @@ async function dispatchAnnouncementNotifications(announcementId: string) {
     type: "ANNOUNCEMENT",
     title: ann.title,
     message: markdownToPreview(ann.body),
-    // Mobile app routes /dashboard to the home tab where announcements
-    // surface in the activity feed; web users land on the same page.
-    actionUrl: "/dashboard",
+    // Mobile routes this to the home tab and opens the announcement's feed
+    // item sheet (the `feedItemId` matches the id the mobile feed assigns
+    // to announcement items). Web ignores the query param and just lands
+    // on /dashboard.
+    actionUrl: `/dashboard?feedItemId=announcement-${ann.id}`,
     relatedId: ann.id,
   });
 

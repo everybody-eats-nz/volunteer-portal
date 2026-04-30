@@ -1,7 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { fetch as expoFetch } from "expo/fetch";
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+import { API_URL } from "./api";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -21,7 +20,7 @@ type StreamCallbacks = {
  */
 export async function chatWithAssistant(
   messages: ChatMessage[],
-  callbacks: StreamCallbacks,
+  callbacks: StreamCallbacks
 ): Promise<void> {
   const token = await SecureStore.getItemAsync("auth_token");
 
@@ -62,7 +61,7 @@ export async function chatWithAssistant(
     }
   } catch (error) {
     callbacks.onError(
-      error instanceof Error ? error.message : "Stream reading failed",
+      error instanceof Error ? error.message : "Stream reading failed"
     );
     return;
   }

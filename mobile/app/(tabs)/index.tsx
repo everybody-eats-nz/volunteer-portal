@@ -39,6 +39,7 @@ import { ImageViewer } from "@/components/image-viewer";
 import { useFeed } from "@/hooks/use-feed";
 import { useFeedInteractions } from "@/hooks/use-feed-interactions";
 import { useNotifications } from "@/hooks/use-notifications";
+import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
@@ -181,6 +182,26 @@ export default function HomeScreen() {
     },
     [loadComments]
   );
+
+  // Notification deep link: when a tap stashes a feed item id (e.g. an
+  // announcement push), open that item's sheet as soon as the feed has
+  // finished loading and contains it. Clear the pending id either way so
+  // we don't re-open it on every feed refresh.
+  const pendingFeedItemId = usePendingFeedItemStore((s) => s.pendingId);
+  const clearPendingFeedItem = usePendingFeedItemStore((s) => s.clear);
+  useEffect(() => {
+    if (!pendingFeedItemId) return;
+    if (feedLoading) return;
+    const target = feedItems.find((i) => i.id === pendingFeedItemId);
+    if (target) handleOpenSheet(target);
+    clearPendingFeedItem();
+  }, [
+    pendingFeedItemId,
+    feedLoading,
+    feedItems,
+    handleOpenSheet,
+    clearPendingFeedItem,
+  ]);
 
   const addComment = useCallback(
     async (itemId: string, text: string) => {
@@ -2138,6 +2159,9 @@ function FeedCard({
   // daily_menu) have no author-written content to moderate — but comments
   // on them are still reportable via the sheet.
   const canReport = item.type === "photo_post" || item.type === "announcement";
+  // Track announcement image failures so a missing/404 image doesn't leave
+  // the 160px image slot reserved (a tall blank gap above the title).
+  const [announcementImageFailed, setAnnouncementImageFailed] = useState(false);
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
   });
@@ -2232,9 +2256,10 @@ function FeedCard({
         </>
       );
 
+      const showImage = !!item.imageUrl && !announcementImageFailed;
       return (
         <>
-          {item.imageUrl && (
+          {showImage && (
             <Pressable
               onPress={() => onOpenImages([item.imageUrl!], 0)}
               style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
@@ -2245,10 +2270,11 @@ function FeedCard({
                 source={{ uri: item.imageUrl }}
                 style={styles.announcementImage}
                 resizeMode="cover"
+                onError={() => setAnnouncementImageFailed(true)}
               />
             </Pressable>
           )}
-          {item.imageUrl ? (
+          {showImage ? (
             <View style={styles.feedCard}>{iconAndBody}</View>
           ) : (
             iconAndBody
@@ -2560,7 +2586,10 @@ function FeedCard({
     return null;
   };
 
-  const hasAnnouncementImage = item.type === "announcement" && !!item.imageUrl;
+  const hasAnnouncementImage =
+    item.type === "announcement" &&
+    !!item.imageUrl &&
+    !announcementImageFailed;
 
   return (
     <Pressable
