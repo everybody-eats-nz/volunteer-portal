@@ -217,6 +217,22 @@ export default function ShiftsScreen() {
     [available, locationFilter]
   );
 
+  const filteredMyShifts = useMemo(
+    () =>
+      locationFilter
+        ? myShifts.filter((s) => s.location === locationFilter)
+        : myShifts,
+    [myShifts, locationFilter]
+  );
+
+  const filteredPast = useMemo(
+    () =>
+      locationFilter
+        ? past.filter((s) => s.location === locationFilter)
+        : past,
+    [past, locationFilter]
+  );
+
   /* Available locations across all shifts — used by the picker */
   const locations = useMemo(() => {
     const all = [...myShifts, ...available, ...past];
@@ -256,40 +272,40 @@ export default function ShiftsScreen() {
       map[key] = (map[key] ?? 0) + 1;
     };
     for (const shift of filteredAvailable) add(shift);
-    for (const shift of myShifts) add(shift);
-    for (const shift of past) add(shift);
+    for (const shift of filteredMyShifts) add(shift);
+    for (const shift of filteredPast) add(shift);
     return map;
-  }, [filteredAvailable, myShifts, past]);
+  }, [filteredAvailable, filteredMyShifts, filteredPast]);
 
-  /* Calendar friend dots — only count shifts visible under the active location
-     filter, otherwise a Wellington friend-signup would dot an Auckland-filtered
-     calendar. myShifts/past stay unfiltered (user always sees their own). */
+  /* Calendar friend dots — only count shifts visible under the active location filter */
   const friendDates = useMemo(() => {
     const set = new Set<string>();
-    const visible = [...myShifts, ...past, ...filteredAvailable];
+    const visible = [...filteredMyShifts, ...filteredPast, ...filteredAvailable];
     for (const shift of visible) {
       const friends = shiftFriends[shift.id];
       if (!friends || friends.length === 0) continue;
       set.add(formatDateKey(new Date(shift.start)));
     }
     return set;
-  }, [myShifts, past, filteredAvailable, shiftFriends]);
+  }, [filteredMyShifts, filteredPast, filteredAvailable, shiftFriends]);
 
   const signedUpDates = useMemo(() => {
     const set = new Set<string>();
-    for (const shift of myShifts) set.add(formatDateKey(new Date(shift.start)));
+    for (const shift of filteredMyShifts)
+      set.add(formatDateKey(new Date(shift.start)));
     return set;
-  }, [myShifts]);
+  }, [filteredMyShifts]);
 
   const pastAttendedDates = useMemo(() => {
     const set = new Set<string>();
-    for (const shift of past) set.add(formatDateKey(new Date(shift.start)));
+    for (const shift of filteredPast)
+      set.add(formatDateKey(new Date(shift.start)));
     return set;
-  }, [past]);
+  }, [filteredPast]);
 
   /* Selected-day shifts: merge signups (past + upcoming) + available, dedupe by id */
   const selectedDayShifts = useMemo(() => {
-    const mine = [...myShifts, ...past].filter(
+    const mine = [...filteredMyShifts, ...filteredPast].filter(
       (s) => formatDateKey(new Date(s.start)) === selectedDateKey
     );
     const mineIds = new Set(mine.map((s) => s.id));
@@ -299,7 +315,7 @@ export default function ShiftsScreen() {
         !mineIds.has(s.id)
     );
     return [...mine, ...avail];
-  }, [myShifts, past, filteredAvailable, selectedDateKey]);
+  }, [filteredMyShifts, filteredPast, filteredAvailable, selectedDateKey]);
 
   const selectedDayPeriods = useMemo(
     () => splitDayPeriods(selectedDayShifts, selectedDateKey),
