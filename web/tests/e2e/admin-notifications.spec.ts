@@ -112,7 +112,9 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   }) => {
     // Calculate the date 7 days from now (when the test shift was created)
     const shiftDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const dateStr = shiftDate.toISOString().split("T")[0]; // yyyy-MM-dd format
+    const dateStr = `${shiftDate.getFullYear()}-${String(
+      shiftDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(shiftDate.getDate()).padStart(2, "0")}`;
 
     // Navigate with URL params to pre-select date and location
     await page.goto(

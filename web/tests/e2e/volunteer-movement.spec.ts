@@ -120,7 +120,9 @@ test.describe("General Volunteer Movement System", () => {
       // Navigate directly to tomorrow's date in admin shifts
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
 
@@ -163,7 +165,9 @@ test.describe("General Volunteer Movement System", () => {
       // Navigate to tomorrow's date
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
 
@@ -242,7 +246,9 @@ test.describe("General Volunteer Movement System", () => {
       // Navigate to tomorrow's date
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
 
@@ -365,7 +371,9 @@ test.describe("General Volunteer Movement System", () => {
       // Navigate to admin shifts for tomorrow
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split("T")[0];
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
 

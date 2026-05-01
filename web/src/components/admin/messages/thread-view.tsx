@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 import type {
   InboxRealtimeEvent,
+  NextShiftSummary,
   SerializedMessage,
   ThreadDetail,
 } from "./types";
@@ -42,8 +43,13 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
       };
       messages: SerializedMessage[];
       upcomingShiftCount: number;
+      nextShift: NextShiftSummary | null;
     };
-    setThread({ ...data.thread, upcomingShiftCount: data.upcomingShiftCount });
+    setThread({
+      ...data.thread,
+      upcomingShiftCount: data.upcomingShiftCount,
+      nextShift: data.nextShift,
+    });
     setMessages(data.messages);
   }, [threadId]);
 
@@ -270,6 +276,12 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
             value={String(thread.upcomingShiftCount)}
           />
         </dl>
+
+        <p className="mt-6 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+          Next shift
+        </p>
+        <NextShiftCard nextShift={thread.nextShift} />
+
         <Link
           href={`/admin/users/${thread.volunteer.id}`}
           className="mt-4 inline-flex items-center text-xs font-medium text-emerald-700 hover:underline"
@@ -310,15 +322,33 @@ function MessageBubble({
     [message.sender.firstName, message.sender.lastName]
       .filter(Boolean)
       .join(" ") || message.sender.name || "";
+  const fallbackInitials = (senderName || (isAdmin ? "Admin" : "Volunteer"))
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className={cn("flex flex-col", isAdmin ? "items-end" : "items-start")}>
       {showSender && (
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1 px-1">
-          {isAdmin
-            ? `${senderName || "Admin"} · ${formatTime(message.createdAt)}`
-            : `${senderName || "Volunteer"} · ${formatTime(message.createdAt)}`}
-        </span>
+        <div
+          className={cn(
+            "flex items-center gap-1.5 mb-1 px-1",
+            isAdmin && "flex-row-reverse"
+          )}
+        >
+          <Avatar className="size-5">
+            <AvatarImage
+              src={message.sender.profilePhotoUrl ?? undefined}
+              alt={senderName || (isAdmin ? "Admin" : "Volunteer")}
+            />
+            <AvatarFallback className="text-[8px]">
+              {fallbackInitials}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            {senderName || (isAdmin ? "Admin" : "Volunteer")} ·{" "}
+            {formatTime(message.createdAt)}
+          </span>
+        </div>
       )}
       <div
         className={cn(
@@ -343,4 +373,70 @@ function formatTime(iso: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function NextShiftCard({ nextShift }: { nextShift: NextShiftSummary | null }) {
+  if (!nextShift) {
+    return (
+      <p className="text-xs text-muted-foreground italic">
+        No upcoming shift booked.
+      </p>
+    );
+  }
+
+  const start = new Date(nextShift.start);
+  const end = new Date(nextShift.end);
+  const dateLabel = start.toLocaleDateString("en-NZ", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "Pacific/Auckland",
+  });
+  const timeRange = `${start.toLocaleTimeString("en-NZ", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Pacific/Auckland",
+  })} – ${end.toLocaleTimeString("en-NZ", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Pacific/Auckland",
+  })}`;
+
+  return (
+    <Link
+      href={`/admin/shifts/${nextShift.id}/edit`}
+      className="block rounded-md border bg-background p-3 text-sm hover:border-emerald-700/40 hover:bg-emerald-50/40 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-medium leading-tight">{nextShift.shiftTypeName}</div>
+        <Badge
+          variant={
+            nextShift.signupStatus === "CONFIRMED"
+              ? "default"
+              : nextShift.signupStatus === "WAITLISTED"
+              ? "secondary"
+              : "outline"
+          }
+          className="text-[10px] shrink-0"
+        >
+          {nextShift.signupStatus.toLowerCase()}
+        </Badge>
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">{dateLabel}</div>
+      <div className="text-xs text-muted-foreground">{timeRange}</div>
+      {nextShift.location && (
+        <div className="mt-1 text-xs">📍 {nextShift.location}</div>
+      )}
+      <div className="mt-2 text-[11px] text-muted-foreground">
+        {nextShift.confirmedCount}/{nextShift.capacity} confirmed
+      </div>
+      {nextShift.notes && (
+        <p className="mt-2 text-xs italic text-muted-foreground line-clamp-3">
+          “{nextShift.notes}”
+        </p>
+      )}
+    </Link>
+  );
 }
