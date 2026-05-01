@@ -59,7 +59,9 @@ function getNextOperatingDay(): string {
   const daysToAdd = [0, 6, 5, 4, 3, 2, 1, 1][today.getDay()]; // Skip to Tuesday+
   const operatingDate = new Date(today);
   operatingDate.setDate(today.getDate() + daysToAdd + 2);
-  return operatingDate.toISOString().split("T")[0];
+  return `${operatingDate.getFullYear()}-${String(
+    operatingDate.getMonth() + 1
+  ).padStart(2, "0")}-${String(operatingDate.getDate()).padStart(2, "0")}`;
 }
 
 /**
