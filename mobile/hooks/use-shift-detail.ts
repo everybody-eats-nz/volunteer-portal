@@ -39,6 +39,7 @@ type ConcurrentResponse = {
     name: string;
     profilePhotoUrl: string | null;
     shiftTypeName: string | null;
+    isFriend: boolean;
   }[];
 };
 
@@ -48,6 +49,8 @@ export type PeriodFriend = {
   profilePhotoUrl: string | null;
   /** The role/shift-type name the friend is signed up for */
   shiftTypeName: string | null;
+  /** True for actual friends; false for users with PUBLIC profile visibility. */
+  isFriend: boolean;
 };
 
 type UseShiftDetailReturn = {
@@ -111,6 +114,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
           name: f.name,
           profilePhotoUrl: f.profilePhotoUrl,
           shiftTypeName: f.shiftTypeName,
+          isFriend: f.isFriend ?? true,
         }),
       );
 

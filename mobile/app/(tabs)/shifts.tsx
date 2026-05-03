@@ -1102,7 +1102,7 @@ function PeriodHeader({
           <Text
             style={[styles.periodMetaText, { color: colors.textSecondary }]}
           >
-            {friends.length === 1 ? "1 friend" : `${friends.length} friends`}
+            {friends.length === 1 ? "1 volunteer" : `${friends.length} volunteers`}
           </Text>
         </View>
       ) : (
@@ -1142,7 +1142,7 @@ function friendsLine(friends: PeriodFriend[], hasStatus: boolean): string {
   }
   return hasStatus
     ? `With ${firstName} + ${friends.length - 1} more`
-    : `${firstName} + ${friends.length - 1} friends going`;
+    : `${firstName} + ${friends.length - 1} others going`;
 }
 
 function ShiftCard({

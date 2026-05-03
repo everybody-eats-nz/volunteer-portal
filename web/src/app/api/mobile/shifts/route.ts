@@ -170,17 +170,38 @@ export async function GET(request: Request) {
     friendIds.add(f.userId === userId ? f.friendId : f.userId);
   }
 
-  type FriendSummary = { id: string; name: string; profilePhotoUrl: string | null };
+  type FriendSummary = {
+    id: string;
+    name: string;
+    profilePhotoUrl: string | null;
+    isFriend: boolean;
+  };
 
   let periodFriends: Record<string, FriendSummary[]> = {};
   let shiftFriends: Record<string, FriendSummary[]> = {};
 
-  if (friendIds.size > 0 && allUpcomingShiftIds.length > 0) {
-    const friendSignups = await prisma.signup.findMany({
+  if (allUpcomingShiftIds.length > 0) {
+    // Include signups by either: actual friends (any non-PRIVATE visibility)
+    // OR users who set their profile to PUBLIC visibility. This matches the
+    // web shifts page logic.
+    const visibleSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: allUpcomingShiftIds },
-        userId: { in: Array.from(friendIds) },
         status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        userId: { not: userId },
+        user: {
+          OR: [
+            { friendVisibility: "PUBLIC" },
+            ...(friendIds.size > 0
+              ? [
+                  {
+                    friendVisibility: "FRIENDS_ONLY" as const,
+                    id: { in: Array.from(friendIds) },
+                  },
+                ]
+              : []),
+          ],
+        },
       },
       select: {
         shiftId: true,
@@ -199,7 +220,7 @@ export async function GET(request: Request) {
     const periodMap = new Map<string, Map<string, FriendSummary>>();
     const shiftMap = new Map<string, Map<string, FriendSummary>>();
 
-    for (const signup of friendSignups) {
+    for (const signup of visibleSignups) {
       const friend: FriendSummary = {
         id: signup.user.id,
         name:
@@ -207,6 +228,7 @@ export async function GET(request: Request) {
           [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ??
           "Volunteer",
         profilePhotoUrl: signup.user.profilePhotoUrl,
+        isFriend: friendIds.has(signup.user.id),
       };
 
       if (!shiftMap.has(signup.shiftId)) {

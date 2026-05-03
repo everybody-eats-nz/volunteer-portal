@@ -8,6 +8,8 @@ export type PeriodFriend = {
   id: string;
   name: string;
   profilePhotoUrl: string | null;
+  /** True for actual friends; false for users with PUBLIC profile visibility. */
+  isFriend: boolean;
 };
 
 type ShiftsResponse = {

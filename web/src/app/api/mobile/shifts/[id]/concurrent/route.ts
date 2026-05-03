@@ -71,16 +71,27 @@ export async function GET(
       friendIds.add(f.userId === userId ? f.friendId : f.userId);
     }
 
-    if (friendIds.size === 0) {
-      return NextResponse.json({ concurrentShifts, friends: [] });
-    }
-
-    // Find signups by friends on any of these period shifts
-    const friendSignups = await prisma.signup.findMany({
+    // Find signups visible to this user on any of these period shifts.
+    // Visibility rules (matching the web shifts page): include actual friends
+    // (FRIENDS_ONLY visibility) OR anyone whose profile is PUBLIC.
+    const visibleSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: periodShiftIds.map((s) => s.id) },
-        userId: { in: Array.from(friendIds) },
         status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        userId: { not: userId },
+        user: {
+          OR: [
+            { friendVisibility: "PUBLIC" },
+            ...(friendIds.size > 0
+              ? [
+                  {
+                    friendVisibility: "FRIENDS_ONLY" as const,
+                    id: { in: Array.from(friendIds) },
+                  },
+                ]
+              : []),
+          ],
+        },
       },
       select: {
         shiftId: true,
@@ -99,9 +110,9 @@ export async function GET(
     // Build a map of shiftId → shiftTypeName for labelling
     const shiftTypeMap = new Map(periodShiftIds.map((s) => [s.id, s.shiftTypeName]));
 
-    // Deduplicate friends (a friend might be on multiple shifts theoretically)
+    // Deduplicate (a user might be on multiple shifts theoretically)
     const seen = new Set<string>();
-    const friends = friendSignups
+    const friends = visibleSignups
       .filter((s) => {
         if (seen.has(s.user.id)) return false;
         seen.add(s.user.id);
@@ -115,6 +126,7 @@ export async function GET(
           "Volunteer",
         profilePhotoUrl: s.user.profilePhotoUrl,
         shiftTypeName: shiftTypeMap.get(s.shiftId) ?? null,
+        isFriend: friendIds.has(s.user.id),
       }));
 
     return NextResponse.json({ concurrentShifts, friends });
