@@ -3335,7 +3335,9 @@ function FeedItemSheet({
                       { color: accentColor },
                     ]}
                   >
-                    You completed
+                    {item.userName === "You"
+                      ? "You completed"
+                      : `${item.userName} completed`}
                   </Text>
                 </View>
                 <View style={sheet.criteriaRow}>

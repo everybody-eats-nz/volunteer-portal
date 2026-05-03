@@ -32,7 +32,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { isLoading, restoreSession } = useAuth();
+  const { isLoading, isAuthenticated, restoreSession } = useAuth();
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -49,18 +49,25 @@ export default function RootLayout() {
 
   // Tap handling: navigate when the user taps a push notification (both
   // the runtime listener and any notification that launched the app from
-  // a cold start).
+  // a cold start). Gated on the app being ready to navigate — otherwise
+  // a cold-start tap fires before <Stack> mounts and the push is lost,
+  // leaving the app stuck on splash.
   useEffect(() => {
+    if (isLoading || !fontsLoaded || !isAuthenticated) return;
+
+    let cancelled = false;
     Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        posthog?.capture('notification_tapped', {
-          action_url: (response.notification.request.content.data?.actionUrl as string) ?? null,
-          cold_start: true,
-        });
-        navigateToNotificationTarget(
-          response.notification.request.content.data?.actionUrl,
-        );
-      }
+      if (cancelled || !response) return;
+      posthog?.capture('notification_tapped', {
+        action_url: (response.notification.request.content.data?.actionUrl as string) ?? null,
+        cold_start: true,
+      });
+      navigateToNotificationTarget(
+        response.notification.request.content.data?.actionUrl,
+      );
+      // Clear so a later auth flip (logout → login) doesn't replay the
+      // original launch notification.
+      Notifications.clearLastNotificationResponseAsync().catch(() => {});
     });
 
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -74,8 +81,11 @@ export default function RootLayout() {
         );
       },
     );
-    return () => subscription.remove();
-  }, []);
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, [isLoading, fontsLoaded, isAuthenticated]);
 
   // Keep the OS app-icon badge in sync with the store's unreadCount.
   // Push notifications increment the badge; only we can clear it once the

@@ -3,6 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
 import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
+import { formatAchievementCriteria } from "@/lib/achievement-utils";
+
+function parseCriteriaShiftTypeId(criteria: string): string | undefined {
+  try {
+    const parsed = JSON.parse(criteria);
+    return typeof parsed?.shiftType === "string" ? parsed.shiftType : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * GET /api/mobile/feed
@@ -350,12 +360,36 @@ export async function GET(request: Request) {
     });
   }
 
+  // Resolve shift-type names referenced by any achievement criteria so we can
+  // build human-readable strings (e.g. "Complete 5 Kitchen Prep shifts").
+  const criteriaShiftTypeIds = new Set<string>();
+  for (const ua of recentAchievements) {
+    const id = parseCriteriaShiftTypeId(ua.achievement.criteria);
+    if (id) criteriaShiftTypeIds.add(id);
+  }
+  const shiftTypeNameById =
+    criteriaShiftTypeIds.size > 0
+      ? new Map(
+          (
+            await prisma.shiftType.findMany({
+              where: { id: { in: Array.from(criteriaShiftTypeIds) } },
+              select: { id: true, name: true },
+            })
+          ).map((st) => [st.id, st.name])
+        )
+      : new Map<string, string>();
+
   // Transform achievements into feed items
   for (const ua of recentAchievements) {
     const isMe = ua.user.id === userId;
     const displayName = isMe
       ? "You"
       : (ua.user.firstName ?? ua.user.name ?? "A volunteer");
+
+    const shiftTypeId = parseCriteriaShiftTypeId(ua.achievement.criteria);
+    const shiftTypeName = shiftTypeId
+      ? shiftTypeNameById.get(shiftTypeId)
+      : undefined;
 
     items.push({
       type: "achievement",
@@ -366,7 +400,10 @@ export async function GET(request: Request) {
       achievementName: ua.achievement.name,
       achievementIcon: ua.achievement.icon,
       description: ua.achievement.description,
-      criteria: ua.achievement.criteria,
+      criteria: formatAchievementCriteria(
+        ua.achievement.criteria,
+        shiftTypeName
+      ),
       timestamp: ua.unlockedAt.toISOString(),
       isFriend: friendIdSet.has(ua.user.id),
       likeCount: 0,
