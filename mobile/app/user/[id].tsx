@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { differenceInDays } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,13 +18,28 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { formatNZT } from "@/lib/dates";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useUserProfile,
+  type UserConnection,
   type UserFriendshipStatus,
+  type UserProfile,
 } from "@/hooks/use-user-profile";
 import { api } from "@/lib/api";
+import { getShiftThemeByName } from "@/lib/dummy-data";
 
+/**
+ * Unified volunteer profile screen.
+ *
+ * Renders one of two views from a single fetch:
+ * - Trimmed (not-friends): identity + minimal stats + connect / safety actions.
+ * - Full (friends): adds connection bento, monthly rhythm, favourite role,
+ *   shared-moments timeline, the friend's upcoming shifts, and remove-friend.
+ *
+ * Both states share the same hero/identity/safety footer so the transition
+ * from "stranger → friend" inside the same session feels continuous.
+ */
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -32,9 +48,10 @@ export default function UserProfileScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const { profile, isLoading, error, setProfile } = useUserProfile(id);
+  const { profile, isLoading, error, setProfile, refresh } = useUserProfile(id);
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [respondingTo, setRespondingTo] = useState<"accept" | "decline" | null>(
     null
   );
@@ -84,11 +101,9 @@ export default function UserProfileScreen() {
         { method: "POST" }
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setProfile((prev) =>
-        prev
-          ? { ...prev, friendshipStatus: "FRIENDS", friendRequestId: null }
-          : prev
-      );
+      // Pull the freshly-friends payload (now includes the connection block)
+      // so the screen flips to the rich layout without a manual reload.
+      await refresh();
     } catch {
       Alert.alert("Couldn't accept request", "Please try again in a moment.");
     } finally {
@@ -130,6 +145,40 @@ export default function UserProfileScreen() {
               );
             } finally {
               setRespondingTo(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveFriend = () => {
+    if (!profile) return;
+    Alert.alert(
+      "Remove friend",
+      `Remove ${firstName} from your friends? You can send a new friend request anytime.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setIsRemoving(true);
+            try {
+              await api(`/api/mobile/friends/${profile.id}`, {
+                method: "DELETE",
+              });
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
+              router.back();
+            } catch {
+              Alert.alert(
+                "Error",
+                "Could not remove this friend. Please try again."
+              );
+            } finally {
+              setIsRemoving(false);
             }
           },
         },
@@ -266,6 +315,7 @@ export default function UserProfileScreen() {
     );
   }
 
+  const isFriends = profile.friendshipStatus === "FRIENDS";
   const heroHeight = insets.top + 128;
   const avatarSize = 104;
   const accentShapeSize = 220;
@@ -329,108 +379,42 @@ export default function UserProfileScreen() {
         </View>
 
         {/* ── Identity block ───────────────────────────── */}
-        <View style={[styles.identityBlock, { marginTop: -avatarSize / 2 }]}>
-          <View style={styles.avatarWrap}>
-            {profile.profilePhotoUrl ? (
-              <Image
-                source={{ uri: profile.profilePhotoUrl }}
-                style={[
-                  styles.avatar,
-                  {
-                    width: avatarSize,
-                    height: avatarSize,
-                    borderRadius: avatarSize / 2,
-                    borderColor: colors.background,
-                  },
-                ]}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.avatarFallback,
-                  {
-                    width: avatarSize,
-                    height: avatarSize,
-                    borderRadius: avatarSize / 2,
-                    borderColor: colors.background,
-                    backgroundColor: isDark ? "#223524" : Brand.greenLight,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.avatarInitial,
-                    { color: isDark ? Brand.greenLight : Brand.green },
-                  ]}
-                >
-                  {profile.name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-          </View>
+        <IdentityBlock
+          profile={profile}
+          isDark={isDark}
+          colors={colors}
+          avatarSize={avatarSize}
+        />
 
-          <Text style={[styles.heroName, { color: colors.text }]}>
-            {profile.name}
-          </Text>
-          <Text style={[styles.heroTagline, { color: colors.textSecondary }]}>
-            Everybody Eats volunteer
-          </Text>
-        </View>
-
-        {/* ── Stats bento ──────────────────────────────── */}
-        <View style={styles.bento}>
-          <View
-            style={[
-              styles.bentoCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-              THEIR SHIFTS
-            </Text>
-            <Text style={[styles.bentoValue, { color: colors.text }]}>
-              {profile.totalShifts}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.bentoCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-              THEIR HOURS
-            </Text>
-            <Text style={[styles.bentoValue, { color: colors.text }]}>
-              {profile.hoursVolunteered}
-            </Text>
-          </View>
-        </View>
-
-        {/* ── Friendship action ────────────────────────── */}
-        <SectionHeading title="Connect" colors={colors} />
-        <View style={styles.section}>
-          <FriendshipAction
-            status={profile.friendshipStatus}
+        {isFriends && profile.connection ? (
+          <FullProfile
+            profile={profile}
+            connection={profile.connection}
             firstName={firstName}
-            allowFriendRequests={profile.allowFriendRequests}
-            isSending={isSendingRequest}
+            colors={colors}
+            isDark={isDark}
+            isRemoving={isRemoving}
+            onRemoveFriend={handleRemoveFriend}
+            onOpenShift={(shiftId) => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/shift/${shiftId}` as Href);
+            }}
+          />
+        ) : (
+          <TrimmedProfile
+            profile={profile}
+            firstName={firstName}
+            colors={colors}
+            isDark={isDark}
+            isSendingRequest={isSendingRequest}
             respondingTo={respondingTo}
             onAddFriend={handleAddFriend}
             onAcceptRequest={handleAcceptRequest}
             onDeclineRequest={handleDeclineRequest}
-            onViewFullProfile={() =>
-              router.replace({
-                pathname: "/friend/[id]",
-                params: { id: profile.id },
-              })
-            }
-            colors={colors}
-            isDark={isDark}
           />
-        </View>
+        )}
 
-        {/* ── Safety actions ───────────────────────────── */}
+        {/* ── Safety actions (always visible) ────────────── */}
         <View style={[styles.section, styles.safetyRow]}>
           <Pressable
             onPress={handleReport}
@@ -497,11 +481,602 @@ export default function UserProfileScreen() {
         </View>
 
         <Text style={[styles.footerNote, { color: colors.textSecondary }]}>
-          Kia tūpato — treat our whānau with manaakitanga. Reports are reviewed
-          within 24 hours.
+          {isFriends
+            ? "Treat our whānau with manaakitanga."
+            : "Kia tūpato — treat our whānau with manaakitanga. Reports are reviewed within 24 hours."}
         </Text>
       </ScrollView>
     </View>
+  );
+}
+
+/* ─── Identity ──────────────────────────────────────────────── */
+
+function IdentityBlock({
+  profile,
+  isDark,
+  colors,
+  avatarSize,
+}: {
+  profile: UserProfile;
+  isDark: boolean;
+  colors: (typeof Colors)["light"];
+  avatarSize: number;
+}) {
+  const isFriends =
+    profile.friendshipStatus === "FRIENDS" && profile.connection;
+  const connection = profile.connection;
+
+  const daysSinceFriends = connection
+    ? differenceInDays(new Date(), new Date(connection.friendsSince))
+    : 0;
+  const isNewFriend = isFriends && daysSinceFriends <= 30;
+  const isCloseBuddy = isFriends && (connection?.shiftsTogether ?? 0) > 10;
+  const connectedSince = connection
+    ? formatNZT(new Date(connection.friendsSince), "MMMM yyyy")
+    : null;
+
+  return (
+    <View style={[styles.identityBlock, { marginTop: -avatarSize / 2 }]}>
+      <View style={styles.avatarWrap}>
+        {profile.profilePhotoUrl ? (
+          <Image
+            source={{ uri: profile.profilePhotoUrl }}
+            style={[
+              styles.avatar,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                borderColor: colors.background,
+              },
+            ]}
+          />
+        ) : (
+          <View
+            style={[
+              styles.avatarFallback,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                borderColor: colors.background,
+                backgroundColor: isDark ? "#223524" : Brand.greenLight,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.avatarInitial,
+                { color: isDark ? Brand.greenLight : Brand.green },
+              ]}
+            >
+              {profile.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <Text style={[styles.heroName, { color: colors.text }]}>
+        {profile.name}
+      </Text>
+
+      {isFriends && connectedSince ? (
+        <Text style={[styles.connectedSince, { color: colors.textSecondary }]}>
+          Connected since {connectedSince}
+          <Text
+            style={{ color: isDark ? Brand.accentSubtle : Brand.greenHover }}
+          >
+            {" "}
+            · {daysSinceFriends} days
+          </Text>
+        </Text>
+      ) : (
+        <Text style={[styles.heroTagline, { color: colors.textSecondary }]}>
+          Everybody Eats volunteer
+        </Text>
+      )}
+
+      {isFriends && (isNewFriend || isCloseBuddy) ? (
+        <View style={styles.badgeRow}>
+          {isNewFriend && (
+            <Badge
+              label="New friend"
+              emoji="✨"
+              tone="accent"
+              isDark={isDark}
+            />
+          )}
+          {isCloseBuddy && (
+            <Badge
+              label="Close buddy"
+              emoji="🤝"
+              tone="green"
+              isDark={isDark}
+            />
+          )}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/* ─── Trimmed (not-friends) view ─────────────────────────────── */
+
+function TrimmedProfile({
+  profile,
+  firstName,
+  colors,
+  isDark,
+  isSendingRequest,
+  respondingTo,
+  onAddFriend,
+  onAcceptRequest,
+  onDeclineRequest,
+}: {
+  profile: UserProfile;
+  firstName: string;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  isSendingRequest: boolean;
+  respondingTo: "accept" | "decline" | null;
+  onAddFriend: () => void;
+  onAcceptRequest: () => void;
+  onDeclineRequest: () => void;
+}) {
+  return (
+    <>
+      {/* ── Stats bento ──────────────────────────────── */}
+      <View style={styles.bento}>
+        <View
+          style={[
+            styles.bentoCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
+            THEIR SHIFTS
+          </Text>
+          <Text style={[styles.bentoValue, { color: colors.text }]}>
+            {profile.totalShifts}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.bentoCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
+            THEIR HOURS
+          </Text>
+          <Text style={[styles.bentoValue, { color: colors.text }]}>
+            {profile.hoursVolunteered}
+          </Text>
+        </View>
+      </View>
+
+      {/* ── Friendship action ────────────────────────── */}
+      <SectionHeading title="Connect" colors={colors} />
+      <View style={styles.section}>
+        <FriendshipAction
+          status={profile.friendshipStatus}
+          firstName={firstName}
+          allowFriendRequests={profile.allowFriendRequests}
+          isSending={isSendingRequest}
+          respondingTo={respondingTo}
+          onAddFriend={onAddFriend}
+          onAcceptRequest={onAcceptRequest}
+          onDeclineRequest={onDeclineRequest}
+          colors={colors}
+          isDark={isDark}
+        />
+      </View>
+    </>
+  );
+}
+
+/* ─── Full (friends) view ───────────────────────────────────── */
+
+function FullProfile({
+  profile,
+  connection,
+  firstName,
+  colors,
+  isDark,
+  isRemoving,
+  onRemoveFriend,
+  onOpenShift,
+}: {
+  profile: UserProfile;
+  connection: UserConnection;
+  firstName: string;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  isRemoving: boolean;
+  onRemoveFriend: () => void;
+  onOpenShift: (shiftId: string) => void;
+}) {
+  return (
+    <>
+      {/* ── Connection bento (asymmetric) ────────────── */}
+      <View style={styles.bentoFull}>
+        <View
+          style={[
+            styles.bentoHero,
+            {
+              backgroundColor: isDark ? "#262a1a" : Brand.accent,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.bentoLabel,
+              { color: isDark ? "#bdc48a" : "#3d4416" },
+            ]}
+          >
+            SHARED SHIFTS
+          </Text>
+          <Text
+            style={[
+              styles.bentoHeroValue,
+              { color: isDark ? "#f0f8a0" : "#0e3a23" },
+            ]}
+          >
+            {connection.shiftsTogether}
+          </Text>
+          <Text
+            style={[
+              styles.bentoHeroCaption,
+              { color: isDark ? "#bdc48a" : "#3d4416" },
+            ]}
+          >
+            mahi done together
+          </Text>
+          <View
+            style={[
+              styles.bentoArc,
+              {
+                borderColor: isDark ? "#3d4416" : "#0e3a23",
+                opacity: 0.14,
+              },
+            ]}
+          />
+        </View>
+
+        <View style={styles.bentoColumn}>
+          <View
+            style={[
+              styles.bentoMini,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
+              THEIR HOURS
+            </Text>
+            <Text style={[styles.bentoMiniValue, { color: colors.text }]}>
+              {profile.hoursVolunteered}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.bentoMini,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
+              TOTAL SHIFTS
+            </Text>
+            <Text style={[styles.bentoMiniValue, { color: colors.text }]}>
+              {profile.totalShifts}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Their Mahi ─────────────────────────────────── */}
+      <SectionHeading title="Their mahi" colors={colors} />
+      <View style={styles.section}>
+        <View
+          style={[
+            styles.rhythmCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <RhythmStat
+            value={connection.shiftsThisMonth.toString()}
+            label="This month"
+            colors={colors}
+          />
+          <View
+            style={[styles.rhythmDivider, { backgroundColor: colors.border }]}
+          />
+          <RhythmStat
+            value={connection.avgPerMonth.toString()}
+            label="Avg / month"
+            colors={colors}
+          />
+          <View
+            style={[styles.rhythmDivider, { backgroundColor: colors.border }]}
+          />
+          <RhythmStat
+            value={profile.totalShifts.toString()}
+            label="All-time"
+            colors={colors}
+          />
+        </View>
+
+        <View
+          style={[
+            styles.featureCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View
+            style={[
+              styles.featureRule,
+              { backgroundColor: isDark ? Brand.accent : Brand.green },
+            ]}
+          />
+          <View style={styles.featureBody}>
+            <Text
+              style={[styles.featureEyebrow, { color: colors.textSecondary }]}
+            >
+              FAVOURITE ROLE
+            </Text>
+            <View style={styles.featureRow}>
+              <Text style={styles.featureEmoji}>
+                {getShiftThemeByName(connection.favoriteRole).emoji}
+              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.featureTitle, { color: colors.text }]}>
+                  {connection.favoriteRole}
+                </Text>
+                <Text
+                  style={[
+                    styles.featureMeta,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Completed {connection.favoriteRoleCount}{" "}
+                  {connection.favoriteRoleCount === 1 ? "time" : "times"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Shared moments ─────────────────────────────── */}
+      <SectionHeading title="Shared moments" colors={colors} />
+      <View style={styles.section}>
+        {connection.sharedShifts.length > 0 ? (
+          <View>
+            {connection.sharedShifts.slice(0, 5).map((shift, idx) => {
+              const isLast =
+                idx === Math.min(connection.sharedShifts.length, 5) - 1;
+              const shiftDate = new Date(shift.date);
+              return (
+                <View key={shift.id} style={styles.timelineRow}>
+                  <View style={styles.timelineDateCol}>
+                    <Text style={[styles.timelineDay, { color: colors.text }]}>
+                      {formatNZT(shiftDate, "d")}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.timelineMonth,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {formatNZT(shiftDate, "MMM").toUpperCase()}
+                    </Text>
+                  </View>
+
+                  <View style={styles.timelineRail}>
+                    <View
+                      style={[
+                        styles.timelineNode,
+                        {
+                          backgroundColor: shift.isUpcoming
+                            ? isDark
+                              ? Brand.accent
+                              : Brand.green
+                            : colors.border,
+                          borderColor: colors.background,
+                        },
+                      ]}
+                    />
+                    {!isLast && (
+                      <View
+                        style={[
+                          styles.timelineLine,
+                          { backgroundColor: colors.border },
+                        ]}
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.timelineContent}>
+                    <Text
+                      style={[styles.timelineTitle, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {shift.type}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.timelineMeta,
+                        { color: colors.textSecondary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {shift.location}
+                    </Text>
+                    {shift.isUpcoming && (
+                      <View
+                        style={[
+                          styles.upcomingTag,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(248,251,105,0.12)"
+                              : "#f6f8d4",
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.upcomingDot,
+                            {
+                              backgroundColor: isDark
+                                ? Brand.accent
+                                : Brand.green,
+                            },
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.upcomingTagText,
+                            {
+                              color: isDark ? Brand.accent : Brand.greenHover,
+                            },
+                          ]}
+                        >
+                          Coming up
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+            {connection.sharedShifts.length > 5 && (
+              <Text style={[styles.moreText, { color: colors.textSecondary }]}>
+                + {connection.sharedShifts.length - 5} more shifts together
+              </Text>
+            )}
+          </View>
+        ) : (
+          <EmptyCanvas
+            title="No shared shifts yet"
+            subtitle={`Sign up for the same shifts to create moments with ${firstName}.`}
+            colors={colors}
+            isDark={isDark}
+          />
+        )}
+      </View>
+
+      {/* ── Join them on a shift ─────────────────────────── */}
+      <SectionHeading title={`Join ${firstName}`} colors={colors} />
+      <View style={styles.section}>
+        {connection.upcomingShifts.length > 0 ? (
+          <>
+            <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
+              Tap a shift to sign up alongside {firstName}.
+            </Text>
+            <View style={{ gap: 10 }}>
+              {connection.upcomingShifts.map((shift) => {
+                const theme = getShiftThemeByName(shift.type);
+                const date = new Date(shift.date);
+                return (
+                  <Pressable
+                    key={shift.id}
+                    onPress={() => onOpenShift(shift.id)}
+                    style={({ pressed }) => [
+                      styles.upcomingRow,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: pressed ? 0.85 : 1,
+                        transform: [{ scale: pressed ? 0.99 : 1 }],
+                      },
+                    ]}
+                    accessibilityLabel={`Sign up for ${shift.type} on ${formatNZT(date, "MMMM d")} with ${firstName}`}
+                    accessibilityRole="button"
+                  >
+                    <View
+                      style={[
+                        styles.upcomingIcon,
+                        {
+                          backgroundColor: isDark
+                            ? theme.bgDark
+                            : theme.bgLight,
+                        },
+                      ]}
+                    >
+                      <Text style={{ fontSize: 22 }}>{theme.emoji}</Text>
+                    </View>
+                    <View style={styles.upcomingBody}>
+                      <Text
+                        style={[styles.upcomingType, { color: colors.text }]}
+                        numberOfLines={1}
+                      >
+                        {shift.type}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.upcomingMeta,
+                          { color: colors.textSecondary },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {shift.location} · {shift.time}
+                      </Text>
+                    </View>
+                    <View style={styles.upcomingTrailing}>
+                      <Text
+                        style={[styles.upcomingDate, { color: colors.text }]}
+                      >
+                        {formatNZT(date, "MMM d")}
+                      </Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={colors.textSecondary}
+                      />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        ) : (
+          <EmptyCanvas
+            title="Quiet for now"
+            subtitle={`Check back later — ${firstName}'s schedule will appear here.`}
+            colors={colors}
+            isDark={isDark}
+          />
+        )}
+      </View>
+
+      {/* ── Remove friend ──────────────────────────────── */}
+      <View style={[styles.section, { marginTop: 28 }]}>
+        <Pressable
+          onPress={onRemoveFriend}
+          disabled={isRemoving}
+          style={({ pressed }) => [
+            styles.removeFriendBtn,
+            {
+              borderColor: colors.border,
+              opacity: pressed || isRemoving ? 0.6 : 1,
+            },
+          ]}
+          accessibilityLabel={`Remove ${firstName} from your friends`}
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="person-remove-outline"
+            size={16}
+            color={colors.textSecondary}
+          />
+          <Text
+            style={[styles.removeFriendText, { color: colors.textSecondary }]}
+          >
+            {isRemoving ? "Removing…" : `Remove ${firstName} from friends`}
+          </Text>
+        </Pressable>
+      </View>
+    </>
   );
 }
 
@@ -524,6 +1099,91 @@ function SectionHeading({
   );
 }
 
+function RhythmStat({
+  value,
+  label,
+  colors,
+}: {
+  value: string;
+  label: string;
+  colors: (typeof Colors)["light"];
+}) {
+  return (
+    <View style={styles.rhythmStat}>
+      <Text style={[styles.rhythmValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.rhythmLabel, { color: colors.textSecondary }]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function Badge({
+  label,
+  emoji,
+  tone,
+  isDark,
+}: {
+  label: string;
+  emoji: string;
+  tone: "accent" | "green";
+  isDark: boolean;
+}) {
+  const bg =
+    tone === "accent"
+      ? isDark
+        ? "rgba(248,251,105,0.14)"
+        : "#fbfdc6"
+      : isDark
+      ? "rgba(134,239,172,0.14)"
+      : Brand.greenLight;
+  const fg =
+    tone === "accent"
+      ? isDark
+        ? Brand.accent
+        : "#3d4416"
+      : isDark
+      ? "#86efac"
+      : Brand.green;
+  return (
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Text style={{ fontSize: 12 }}>{emoji}</Text>
+      <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
+    </View>
+  );
+}
+
+function EmptyCanvas({
+  title,
+  subtitle,
+  colors,
+  isDark,
+}: {
+  title: string;
+  subtitle: string;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.emptyCanvas,
+        {
+          borderColor: colors.border,
+          backgroundColor: isDark
+            ? "rgba(255,255,255,0.015)"
+            : "rgba(14,58,35,0.02)",
+        },
+      ]}
+    >
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+        {subtitle}
+      </Text>
+    </View>
+  );
+}
+
 function FriendshipAction({
   status,
   firstName,
@@ -533,7 +1193,6 @@ function FriendshipAction({
   onAddFriend,
   onAcceptRequest,
   onDeclineRequest,
-  onViewFullProfile,
   colors,
   isDark,
 }: {
@@ -545,51 +1204,9 @@ function FriendshipAction({
   onAddFriend: () => void;
   onAcceptRequest: () => void;
   onDeclineRequest: () => void;
-  onViewFullProfile: () => void;
   colors: (typeof Colors)["light"];
   isDark: boolean;
 }) {
-  if (status === "FRIENDS") {
-    return (
-      <View style={{ gap: 12 }}>
-        <StatusCard
-          eyebrow="YOU'RE CONNECTED"
-          title="You're friends 💚"
-          ruleColor={isDark ? Brand.accent : Brand.green}
-          colors={colors}
-          isDark={isDark}
-        />
-        <Pressable
-          onPress={onViewFullProfile}
-          style={({ pressed }) => [
-            styles.primaryBtn,
-            {
-              backgroundColor: isDark ? Brand.accent : Brand.green,
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.985 : 1 }],
-            },
-          ]}
-          accessibilityLabel={`View full profile for ${firstName}`}
-          accessibilityRole="button"
-        >
-          <Ionicons
-            name="arrow-forward"
-            size={18}
-            color={isDark ? Brand.green : "#fffdf7"}
-          />
-          <Text
-            style={[
-              styles.primaryBtnText,
-              { color: isDark ? Brand.green : "#fffdf7" },
-            ]}
-          >
-            View full profile
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
   if (status === "REQUEST_SENT") {
     return (
       <StatusCard
@@ -740,7 +1357,6 @@ function StatusCard({
   title,
   ruleColor,
   colors,
-  isDark,
 }: {
   eyebrow: string;
   title: string;
@@ -806,6 +1422,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: "#fffdf7",
   },
+
   /* Identity */
   identityBlock: {
     alignItems: "center",
@@ -845,8 +1462,34 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "center",
   },
+  connectedSince: {
+    marginTop: 6,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    textAlign: "center",
+  },
+  badgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 14,
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
+  },
 
-  /* Bento */
+  /* Bento — trimmed view */
   bento: {
     flexDirection: "row",
     gap: 10,
@@ -860,17 +1503,73 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 8,
   },
-  bentoLabel: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.2,
-  },
   bentoValue: {
     fontSize: 34,
     lineHeight: 36,
     fontFamily: FontFamily.headingBold,
     letterSpacing: -1,
     fontVariant: ["tabular-nums"],
+  },
+
+  /* Bento — full (friends) view */
+  bentoFull: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 26,
+    marginHorizontal: HORIZONTAL,
+  },
+  bentoHero: {
+    flex: 1.35,
+    borderRadius: 20,
+    padding: 20,
+    justifyContent: "space-between",
+    overflow: "hidden",
+    minHeight: 160,
+  },
+  bentoArc: {
+    position: "absolute",
+    right: -60,
+    bottom: -60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 2,
+  },
+  bentoColumn: {
+    flex: 1,
+    gap: 10,
+  },
+  bentoMini: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    justifyContent: "space-between",
+  },
+  bentoLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.2,
+  },
+  bentoHeroValue: {
+    fontSize: 56,
+    lineHeight: 60,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -2,
+    fontVariant: ["tabular-nums"],
+    marginTop: 4,
+  },
+  bentoHeroCaption: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    fontStyle: "italic",
+  },
+  bentoMiniValue: {
+    fontSize: 28,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+    marginTop: 8,
   },
 
   /* Section heading */
@@ -892,7 +1591,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  /* Section */
+  /* Sections */
   section: {
     paddingHorizontal: HORIZONTAL,
     gap: 12,
@@ -951,6 +1650,238 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.2,
+  },
+
+  /* Rhythm card */
+  rhythmCard: {
+    flexDirection: "row",
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 18,
+    alignItems: "stretch",
+  },
+  rhythmStat: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+  rhythmValue: {
+    fontSize: 24,
+    fontFamily: FontFamily.headingBold,
+    fontVariant: ["tabular-nums"],
+    letterSpacing: -0.5,
+  },
+  rhythmLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.3,
+  },
+  rhythmDivider: {
+    width: StyleSheet.hairlineWidth,
+    marginVertical: 6,
+  },
+
+  /* Feature card */
+  featureCard: {
+    flexDirection: "row",
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  featureRule: {
+    width: 4,
+  },
+  featureBody: {
+    flex: 1,
+    padding: 16,
+    gap: 10,
+  },
+  featureEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.1,
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  featureEmoji: {
+    fontSize: 32,
+  },
+  featureTitle: {
+    fontSize: 17,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  featureMeta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
+  },
+
+  /* Timeline */
+  timelineRow: {
+    flexDirection: "row",
+    gap: 14,
+    paddingBottom: 18,
+  },
+  timelineDateCol: {
+    width: 44,
+    alignItems: "flex-end",
+    paddingTop: 2,
+  },
+  timelineDay: {
+    fontSize: 26,
+    lineHeight: 28,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+  },
+  timelineMonth: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.2,
+    marginTop: 2,
+  },
+  timelineRail: {
+    width: 14,
+    alignItems: "center",
+    paddingTop: 8,
+  },
+  timelineNode: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+  },
+  timelineLine: {
+    width: StyleSheet.hairlineWidth,
+    flex: 1,
+    marginTop: 4,
+  },
+  timelineContent: {
+    flex: 1,
+    gap: 3,
+    paddingTop: 4,
+  },
+  timelineTitle: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+  },
+  timelineMeta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+  },
+  upcomingTag: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  upcomingDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  upcomingTagText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.4,
+  },
+  moreText: {
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    textAlign: "center",
+    paddingTop: 4,
+    fontStyle: "italic",
+  },
+
+  /* Upcoming list */
+  upcomingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  upcomingIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  upcomingBody: {
+    flex: 1,
+    gap: 3,
+  },
+  upcomingType: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+  },
+  upcomingMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+  },
+  upcomingTrailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  upcomingDate: {
+    fontSize: 13,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.2,
+  },
+  sectionHint: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    marginBottom: 4,
+    marginTop: -4,
+  },
+
+  /* Empty canvas */
+  emptyCanvas: {
+    alignItems: "center",
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderStyle: "dashed",
+    gap: 6,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    textAlign: "center",
+    lineHeight: 19,
+    maxWidth: 280,
+  },
+
+  /* Remove friend */
+  removeFriendBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  removeFriendText: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
   },
 
   /* Safety */

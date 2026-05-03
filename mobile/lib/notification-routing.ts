@@ -66,10 +66,10 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
-  // Friend notifications — navigate to the other user's profile screen.
-  // FRIEND_REQUEST_ACCEPTED uses /friends/:userId (they're now a friend).
-  // FRIEND_REQUEST_RECEIVED uses /friends?fromUserId=:userId (not a friend
-  // yet, so the generic user screen handles the "send request" state).
+  // Friend notifications — both flow to the unified /user/:id screen.
+  // FRIEND_REQUEST_ACCEPTED uses /friends/:userId (renders the full view).
+  // FRIEND_REQUEST_RECEIVED uses /friends?fromUserId=:userId (renders the
+  // trimmed view with the accept/decline action).
   const friendProfile = pathname.match(/^\/friends\/([^/]+)$/);
   if (friendProfile) {
     router.push({
