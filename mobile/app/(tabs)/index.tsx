@@ -2303,6 +2303,38 @@ function FeedCard({
               Ka pai! {item.userName} earned &quot;{item.achievementName}&quot;
             </Text>
             <Markdown style={markdownStyle}>{item.description}</Markdown>
+            {item.criteria ? (
+              <View
+                style={[
+                  styles.feedAchievementCriteria,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.feedAchievementCriteriaBadge,
+                    { backgroundColor: "#fef3c7" },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={14}
+                    color="#d97706"
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.feedAchievementCriteriaText,
+                    { color: colors.text },
+                  ]}
+                >
+                  {item.criteria}
+                </Text>
+              </View>
+            ) : null}
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -3279,6 +3311,59 @@ function FeedItemSheet({
               </View>
             </View>
 
+            {/* ── Achievement criteria card ── */}
+            {item.type === "achievement" && item.criteria ? (
+              <View
+                style={[
+                  sheet.criteriaCard,
+                  {
+                    backgroundColor: colors.card,
+                    shadowColor: isDark ? "#000" : "#64748b",
+                  },
+                ]}
+              >
+                <View style={sheet.criteriaHeader}>
+                  <View
+                    style={[
+                      sheet.criteriaSectionAccent,
+                      { backgroundColor: accentColor },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      sheet.criteriaSectionLabel,
+                      { color: accentColor },
+                    ]}
+                  >
+                    You completed
+                  </Text>
+                </View>
+                <View style={sheet.criteriaRow}>
+                  <View
+                    style={[
+                      sheet.criteriaBadge,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(134,239,172,0.14)"
+                          : "#dcfce7",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={22}
+                      color={isDark ? "#86efac" : "#16a34a"}
+                    />
+                  </View>
+                  <Text
+                    style={[sheet.criteriaText, { color: colors.text }]}
+                  >
+                    {item.criteria}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
             {/* ── New shift preview list ── */}
             {item.type === "new_shift" &&
               item.preview &&
@@ -4177,6 +4262,30 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 4,
   },
+  feedAchievementCriteria: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: 6,
+  },
+  feedAchievementCriteriaBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  feedAchievementCriteriaText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    lineHeight: 18,
+    letterSpacing: -0.1,
+  },
   likeButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -4437,6 +4546,56 @@ const sheet = StyleSheet.create({
   metaPillText: {
     fontSize: 12,
     fontFamily: FontFamily.medium,
+  },
+
+  // Achievement criteria card (shown in achievement sheet)
+  criteriaCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
+    gap: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  criteriaHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  criteriaSectionAccent: {
+    width: 18,
+    height: 2,
+    borderRadius: 1,
+  },
+  criteriaSectionLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 1.4,
+  },
+  criteriaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  criteriaBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  criteriaText: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: -0.1,
   },
 
   // Social card

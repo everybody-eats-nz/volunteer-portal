@@ -224,10 +224,27 @@ export async function syncShifts(shifts: Shift[]): Promise<void> {
 
   for (const [shiftId, eventId] of Object.entries(map)) {
     if (ids.has(shiftId)) continue;
+
+    // The API only returns upcoming shifts, so a missing entry could mean
+    // either "cancelled" or "already happened". Don't delete events whose
+    // end time is in the past — those are history the user wants to keep.
+    let endedInPast = false;
     try {
-      await Calendar.deleteEventAsync(eventId);
+      const ev = await Calendar.getEventAsync(eventId);
+      const end = ev?.endDate;
+      if (end) {
+        endedInPast = new Date(end as string | number).getTime() <= now;
+      }
     } catch {
-      // Already gone
+      // Event no longer exists in the calendar — fall through and untrack it.
+    }
+
+    if (!endedInPast) {
+      try {
+        await Calendar.deleteEventAsync(eventId);
+      } catch {
+        // Already gone
+      }
     }
     delete map[shiftId];
   }
