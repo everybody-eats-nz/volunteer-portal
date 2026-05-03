@@ -46,7 +46,9 @@ test.describe("Admin Bulk Shift Delete", () => {
     if (dayOfWeek !== 0) {
       testDate.setDate(testDate.getDate() + (7 - dayOfWeek));
     }
-    return testDate.toISOString().split("T")[0];
+    return `${testDate.getFullYear()}-${String(
+      testDate.getMonth() + 1
+    ).padStart(2, "0")}-${String(testDate.getDate()).padStart(2, "0")}`;
   }
 
   test.describe.serial("Delete All Functionality", () => {

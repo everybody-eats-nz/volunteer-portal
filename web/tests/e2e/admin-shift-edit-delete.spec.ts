@@ -214,13 +214,17 @@ test.describe("Admin Shift Edit and Delete", () => {
 
       // Restaurant operates Sunday (0) through Thursday (4)
       if (dayOfWeek >= 0 && dayOfWeek <= 4) {
-        return date.toISOString().split("T")[0];
+        return `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
       }
     }
     // Fallback to next Sunday if somehow we don't find an operating day
     const nextSunday = new Date(today);
     nextSunday.setDate(today.getDate() + ((7 - today.getDay()) % 7 || 7));
-    return nextSunday.toISOString().split("T")[0];
+    return `${nextSunday.getFullYear()}-${String(
+      nextSunday.getMonth() + 1
+    ).padStart(2, "0")}-${String(nextSunday.getDate()).padStart(2, "0")}`;
   }
 
   test.describe("Delete Shift Functionality", () => {
