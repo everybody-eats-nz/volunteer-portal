@@ -176,26 +176,29 @@ export default function ShiftDetailScreen() {
     );
   }, [shift, refresh]);
 
-  // Split period friends into "on your shift" vs "same session, different role"
-  const yourShiftFriendIds = useMemo(
-    () => new Set(shiftSignups.filter((su) => su.isFriend).map((su) => su.id)),
+  // Split period friends into "on your shift" vs "same session, different role".
+  // The shift detail signups list contains every active signup (friends, public,
+  // and strangers), so intersecting it with periodFriends correctly identifies
+  // which periodFriends are on this exact shift — including PUBLIC users.
+  const thisShiftSignupIds = useMemo(
+    () => new Set(shiftSignups.map((su) => su.id)),
     [shiftSignups]
   );
   const thisShiftName = shift?.shiftType.name;
   const friendsOnYourShift = useMemo(
     () =>
       periodFriends.filter(
-        (f) => yourShiftFriendIds.has(f.id) || f.shiftTypeName === thisShiftName
+        (f) => thisShiftSignupIds.has(f.id) || f.shiftTypeName === thisShiftName
       ),
-    [periodFriends, yourShiftFriendIds, thisShiftName]
+    [periodFriends, thisShiftSignupIds, thisShiftName]
   );
   const friendsInSession = useMemo(
     () =>
       periodFriends.filter(
         (f) =>
-          !yourShiftFriendIds.has(f.id) && f.shiftTypeName !== thisShiftName
+          !thisShiftSignupIds.has(f.id) && f.shiftTypeName !== thisShiftName
       ),
-    [periodFriends, yourShiftFriendIds, thisShiftName]
+    [periodFriends, thisShiftSignupIds, thisShiftName]
   );
 
   if (isLoading) {
@@ -695,7 +698,7 @@ function FriendsSection({
     <View style={s.section}>
       <SectionHeader
         label=""
-        title={`${total} friend${total !== 1 ? "s" : ""} on this shift`}
+        title={`${total} volunteer${total !== 1 ? "s" : ""} you can see`}
         caption={""}
         colors={colors}
       />

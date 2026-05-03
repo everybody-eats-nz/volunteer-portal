@@ -46,6 +46,8 @@ type FriendOnPeriod = {
   profilePhotoUrl: string | null;
   /** The shift type they're signed up for (may differ from this shift) */
   shiftTypeName: string | null;
+  /** True for actual friends; false for users with PUBLIC profile visibility. */
+  isFriend: boolean;
 };
 
 type ConcurrentResponse = {
@@ -287,13 +289,13 @@ export function ShiftSignupSheet({
             </View>
           </View>
 
-          {/* Friends volunteering this period */}
+          {/* Volunteers signed up for this period (friends + public profiles) */}
           {periodFriends.length > 0 && (
             <View style={[ss.friendsSection, { backgroundColor: isDark ? 'rgba(14,58,35,0.15)' : Brand.greenLight }]}>
               <View style={ss.friendsHeader}>
                 <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
                 <Text style={[ss.friendsTitle, { color: isDark ? '#86efac' : Brand.green }]}>
-                  {periodFriends.length} friend{periodFriends.length !== 1 ? 's' : ''} volunteering this shift
+                  {periodFriends.length} volunteer{periodFriends.length !== 1 ? 's' : ''} going
                 </Text>
               </View>
               <View style={ss.friendsList}>
