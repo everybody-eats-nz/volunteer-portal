@@ -262,18 +262,24 @@ function OptionRow({
             </Text>
           </Text>
         ) : (
-          <Text
-            style={[styles.optionDescription, { color: paperTint.inkSoft }]}
-            numberOfLines={2}
-          >
-            {description}
-          </Text>
-        )}
-        {statusDotColor && !hasUnread && (
-          <View style={styles.statusRow}>
-            <View
-              style={[styles.statusInlineDot, { backgroundColor: statusDotColor }]}
-            />
+          <View style={styles.descriptionRow}>
+            {statusDotColor && !hasUnread && (
+              <View
+                style={[
+                  styles.statusInlineDot,
+                  { backgroundColor: statusDotColor },
+                ]}
+              />
+            )}
+            <Text
+              style={[
+                styles.optionDescription,
+                { color: paperTint.inkSoft, flex: 1 },
+              ]}
+              numberOfLines={2}
+            >
+              {description}
+            </Text>
           </View>
         )}
       </View>
@@ -377,11 +383,15 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.headingBold,
     fontSize: 16,
   },
-  statusRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  descriptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   statusInlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   welcomeFooter: { marginTop: 44 },
 });
