@@ -151,15 +151,6 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
-            name="friend/[id]"
-            options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerBackTitle: 'Back',
-              title: '',
-            }}
-          />
-          <Stack.Screen
             name="user/[id]"
             options={{
               headerShown: true,

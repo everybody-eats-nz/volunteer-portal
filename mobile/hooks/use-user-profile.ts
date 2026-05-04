@@ -9,6 +9,35 @@ export type UserFriendshipStatus =
   | "REQUEST_RECEIVED"
   | "NONE";
 
+/**
+ * Rich connection data only present when the viewer is FRIENDS with the
+ * target. Mirrors the data the (now-removed) /api/mobile/friends/[id]
+ * endpoint used to return.
+ */
+export type UserConnection = {
+  friendsSince: string;
+  shiftsTogether: number;
+  mutualFriends: number;
+  shiftsThisMonth: number;
+  avgPerMonth: number;
+  favoriteRole: string;
+  favoriteRoleCount: number;
+  sharedShifts: Array<{
+    id: string;
+    type: string;
+    date: string;
+    location: string;
+    isUpcoming: boolean;
+  }>;
+  upcomingShifts: Array<{
+    id: string;
+    type: string;
+    date: string;
+    time: string;
+    location: string;
+  }>;
+};
+
 export type UserProfile = {
   id: string;
   name: string;
@@ -23,6 +52,8 @@ export type UserProfile = {
   isBlocked: boolean;
   hasReported: boolean;
   isSelf: boolean;
+  /** Populated only when friendshipStatus === "FRIENDS" */
+  connection: UserConnection | null;
 };
 
 type UserProfileResponse = { profile: UserProfile };

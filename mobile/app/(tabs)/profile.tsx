@@ -1459,7 +1459,7 @@ function AchievementSheet({
                               key={f.id}
                               onPress={() => {
                                 onClose();
-                                router.push(`/friend/${f.id}` as never);
+                                router.push(`/user/${f.id}` as never);
                               }}
                               style={({ pressed }) => [
                                 achieveSheet.friendItem,
@@ -1576,7 +1576,7 @@ function FriendCard({
     <Pressable
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(`/friend/${friend.id}`);
+        router.push(`/user/${friend.id}`);
       }}
       style={({ pressed }) => [
         styles.friendCard,
