@@ -14,7 +14,12 @@ import {
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+  Stack,
+  type Href,
+} from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { differenceInMinutes } from "date-fns";
@@ -828,6 +833,7 @@ function FriendRow({
   colors: (typeof Colors)["light"];
   alongside?: boolean;
 }) {
+  const router = useRouter();
   const initial = friend.name.charAt(0).toUpperCase();
   const roleTheme = friend.shiftTypeName
     ? getShiftThemeByName(friend.shiftTypeName)
@@ -845,8 +851,18 @@ function FriendRow({
     ? "rgba(14,58,35,0.3)"
     : "#e8f5e8";
 
+  const openProfile = () => {
+    Haptics.selectionAsync();
+    router.push(`/user/${friend.id}` as Href);
+  };
+
   return (
-    <View style={s.friendRow}>
+    <Pressable
+      onPress={openProfile}
+      accessibilityLabel={`View ${friend.name}'s profile`}
+      accessibilityRole="button"
+      style={({ pressed }) => [s.friendRow, { opacity: pressed ? 0.7 : 1 }]}
+    >
       {/* Avatar with role tint */}
       <View style={s.friendRowAvatar}>
         {friend.profilePhotoUrl ? (
@@ -906,7 +922,7 @@ function FriendRow({
           </View>
         )
       )}
-    </View>
+    </Pressable>
   );
 }
 

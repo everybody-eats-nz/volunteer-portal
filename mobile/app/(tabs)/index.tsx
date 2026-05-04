@@ -1986,15 +1986,19 @@ function FeedAvatar({
   userName,
   emoji,
   badgeBg,
+  userId,
 }: {
   profilePhotoUrl?: string;
   userName: string;
   emoji: string;
   badgeBg: string;
+  /** When provided, tapping the avatar opens that volunteer's profile. */
+  userId?: string;
 }) {
+  const router = useRouter();
   const initial = userName.charAt(0).toUpperCase();
 
-  return (
+  const avatar = (
     <View style={styles.feedAvatarContainer}>
       {profilePhotoUrl ? (
         <Image
@@ -2015,6 +2019,23 @@ function FeedAvatar({
         <Text style={styles.feedAvatarBadgeEmoji}>{emoji}</Text>
       </View>
     </View>
+  );
+
+  if (!userId) return avatar;
+
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.selectionAsync();
+        router.push(`/user/${userId}` as Href);
+      }}
+      hitSlop={6}
+      accessibilityLabel={`View ${userName}'s profile`}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+    >
+      {avatar}
+    </Pressable>
   );
 }
 
@@ -2292,6 +2313,7 @@ function FeedCard({
               userName={item.userName}
               emoji="🏆"
               badgeBg="#fef3c7"
+              userId={item.userId}
             />
           ) : (
             <View style={[styles.feedIcon, { backgroundColor: "#fef3c7" }]}>
@@ -2357,6 +2379,7 @@ function FeedCard({
               userName={item.userName}
               emoji="🔥"
               badgeBg="#dcfce7"
+              userId={item.userId}
             />
           ) : (
             <View style={[styles.feedIcon, { backgroundColor: "#dcfce7" }]}>
@@ -2394,6 +2417,7 @@ function FeedCard({
               userName={item.userName}
               emoji="📸"
               badgeBg="#fce7f3"
+              userId={item.userId}
             />
           ) : (
             <View style={[styles.feedIcon, { backgroundColor: "#fce7f3" }]}>
@@ -2476,6 +2500,7 @@ function FeedCard({
             userName={item.userName}
             emoji="✋"
             badgeBg="#dbeafe"
+            userId={item.userId}
           />
           <View style={styles.feedBody}>
             <Text style={[styles.feedTitle, { color: colors.text }]}>
@@ -3699,14 +3724,18 @@ function FeedItemSheet({
                     {shownLikers.map((liker, i) => {
                       const initial = liker.name.charAt(0).toUpperCase();
                       return (
-                        <View
+                        <Pressable
                           key={liker.id}
-                          style={[
+                          onPress={() => onOpenUserProfile(liker.id)}
+                          accessibilityLabel={`View ${liker.name}'s profile`}
+                          accessibilityRole="button"
+                          style={({ pressed }) => [
                             sheet.socialAvatarRing,
                             {
                               zIndex: shownLikers.length - i,
                               marginLeft: i === 0 ? 0 : -10,
                               borderColor: colors.card,
+                              opacity: pressed ? 0.75 : 1,
                             },
                           ]}
                         >
@@ -3732,7 +3761,7 @@ function FeedItemSheet({
                               </Text>
                             </View>
                           )}
-                        </View>
+                        </Pressable>
                       );
                     })}
                     {likeCount > 5 && (
