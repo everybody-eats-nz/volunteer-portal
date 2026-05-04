@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Achievement, ProfileStats, UserProfile } from "@/lib/dummy-data";
+import { useAchievementCelebrationStore } from "./use-achievement-celebration";
 
 type ProfileResponse = {
   profile: {
@@ -57,6 +58,11 @@ export function useProfile(): UseProfileReturn {
       setError(null);
       const result = await api<ProfileResponse>("/api/mobile/profile");
       setData(result);
+      // The mobile profile route runs checkAndUnlockAchievements server-side,
+      // so any new unlock shows up in this payload — queue it for celebration.
+      useAchievementCelebrationStore
+        .getState()
+        .queueIfNew(result.achievements ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load profile");
     } finally {

@@ -23,8 +23,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
 import { useNotificationsStore } from '@/hooks/use-notifications';
 import { Brand } from '@/constants/theme';
+import { AchievementCelebration } from '@/components/achievement-celebration';
 import { AuthGate } from '@/components/auth-gate';
 import { OnboardingFlow } from '@/components/onboarding-flow';
+import { useInitAchievementCelebration } from '@/hooks/use-achievement-celebration';
 import { navigateToNotificationTarget } from '@/lib/notification-routing';
 import { posthog } from '@/lib/posthog';
 
@@ -33,6 +35,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoading, isAuthenticated, restoreSession } = useAuth();
+  useInitAchievementCelebration();
 
   const [fontsLoaded] = useFonts({
     LibreFranklin_400Regular,
@@ -134,20 +137,12 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? eeDark : eeLight}>
       <AuthGate>
         <OnboardingFlow />
+        <AchievementCelebration />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen
             name="shift/[id]"
-            options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerBackTitle: 'Back',
-              title: '',
-            }}
-          />
-          <Stack.Screen
-            name="friend/[id]"
             options={{
               headerShown: true,
               headerTransparent: true,
