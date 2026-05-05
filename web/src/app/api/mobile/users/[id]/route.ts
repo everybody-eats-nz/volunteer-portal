@@ -145,10 +145,17 @@ export async function GET(
         select: { id: true },
       });
 
-  // Minimal stats — total shifts + hours (always shown)
+  // Minimal stats — total shifts + hours (always shown). Both restrict to
+  // completed shifts (end <= now) so totals only reflect work that has
+  // actually happened, matching /api/mobile/profile and the web friend
+  // profile route.
   const [totalShifts, hoursResult] = await Promise.all([
     prisma.signup.count({
-      where: { userId: targetId, status: "CONFIRMED" },
+      where: {
+        userId: targetId,
+        status: "CONFIRMED",
+        shift: { end: { lt: new Date() } },
+      },
     }),
     prisma.$queryRaw<[{ hours: number }]>`
       SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (sh."end" - sh.start)) / 3600), 0)::float as hours
