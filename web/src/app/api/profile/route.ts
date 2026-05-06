@@ -8,6 +8,7 @@ import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder16User, isUserUnder16 } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
 import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
+import { syncNewsletterSubscriptions } from "@/lib/newsletter-sync";
 import { getEmailService } from "@/lib/email-service";
 import { isProfileComplete } from "@/lib/profile-completion";
 
@@ -419,40 +420,23 @@ export async function PUT(req: Request) {
     }
 
     // Campaign Monitor newsletter sync
-    if (validatedData.emailNewsletterSubscription !== undefined || validatedData.newsletterLists !== undefined) {
-      try {
-        const campaignMonitor = new CampaignMonitorService();
-        const userEmail = updatedUser.email;
-        const userName = `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim() || userEmail;
-
-        const oldLists = user.newsletterLists || [];
-        const newLists = validatedData.newsletterLists !== undefined
+    if (
+      validatedData.emailNewsletterSubscription !== undefined ||
+      validatedData.newsletterLists !== undefined
+    ) {
+      const oldLists = user.newsletterLists || [];
+      const newLists =
+        validatedData.newsletterLists !== undefined
           ? validatedData.newsletterLists
           : oldLists;
 
-        if (validatedData.emailNewsletterSubscription === false) {
-          // Unsubscribe from all lists
-          for (const listId of oldLists) {
-            await campaignMonitor.unsubscribeFromList(listId, userEmail);
-          }
-        } else if (validatedData.emailNewsletterSubscription === true || validatedData.newsletterLists !== undefined) {
-          // Subscribe to new lists
-          const listsToAdd = newLists.filter((id: string) => !oldLists.includes(id));
-          for (const listId of listsToAdd) {
-            await campaignMonitor.subscribeToList(listId, userEmail, userName, {});
-          }
-
-          // Unsubscribe from removed lists
-          const listsToRemove = oldLists.filter((id: string) => !newLists.includes(id));
-          for (const listId of listsToRemove) {
-            await campaignMonitor.unsubscribeFromList(listId, userEmail);
-          }
-        }
-      } catch (error) {
-        // Log error but don't fail profile update
-        console.error('Campaign Monitor sync error:', error);
-        // Could optionally add a warning to the response
-      }
+      await syncNewsletterSubscriptions({
+        email: updatedUser.email,
+        name: `${updatedUser.firstName || ""} ${updatedUser.lastName || ""}`,
+        oldLists,
+        newLists,
+        emailNewsletterSubscription: validatedData.emailNewsletterSubscription,
+      });
     }
 
     // Parse JSON fields for response safely

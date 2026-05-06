@@ -61,6 +61,19 @@ async function getShiftTypes() {
   return shiftTypes;
 }
 
+async function getNewsletterLists() {
+  return prisma.newsletterList.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      name: true,
+      campaignMonitorId: true,
+      description: true,
+    },
+    orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+  });
+}
+
 async function validateToken(token: string) {
   if (!token) return null;
 
@@ -163,10 +176,11 @@ export default async function MigrationRegistrationPage({ searchParams }: PagePr
     );
   }
 
-  const [user, locationOptions, shiftTypes] = await Promise.all([
+  const [user, locationOptions, shiftTypes, newsletterLists] = await Promise.all([
     validateToken(token),
     getLocationOptions(),
     getShiftTypes(),
+    getNewsletterLists(),
   ]);
 
   if (!user) {
@@ -218,6 +232,7 @@ export default async function MigrationRegistrationPage({ searchParams }: PagePr
             token={token}
             locationOptions={locationOptions}
             shiftTypes={shiftTypes}
+            newsletterLists={newsletterLists}
           />
         </Suspense>
       </div>
