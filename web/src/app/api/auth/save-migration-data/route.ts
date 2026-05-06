@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import { isUserUnder16 } from "@/lib/auto-label-utils";
 
 /**
  * Save migration form data before OAuth sign-in
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
       Array.isArray(data.availableLocations) ? data.availableLocations.join(",") : data.availableLocations
     );
 
+    const dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+
     // Update the migration user with form data
     await prisma.user.update({
       where: { id: migrationUser.id },
@@ -65,7 +68,8 @@ export async function POST(request: NextRequest) {
         lastName: data.lastName,
         name: `${data.firstName} ${data.lastName}`.trim(),
         phone: data.phone,
-        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+        dateOfBirth,
+        requiresParentalConsent: isUserUnder16(dateOfBirth),
         pronouns: data.pronouns,
         emergencyContactName: data.emergencyContactName,
         emergencyContactRelationship: data.emergencyContactRelationship,

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
+import { isUserUnder16 } from "@/lib/auto-label-utils";
 
 const updateProfileSchema = z.object({
   email: z.string().email("Please enter a valid email address").optional(),
@@ -81,7 +82,11 @@ export async function PATCH(
     }
 
     // Build the update object with only provided fields
-    const updateData: { email?: string; dateOfBirth?: Date } = {};
+    const updateData: {
+      email?: string;
+      dateOfBirth?: Date;
+      requiresParentalConsent?: boolean;
+    } = {};
 
     if (validatedData.email) {
       updateData.email = validatedData.email;
@@ -89,6 +94,7 @@ export async function PATCH(
 
     if (validatedData.dateOfBirth) {
       updateData.dateOfBirth = new Date(validatedData.dateOfBirth);
+      updateData.requiresParentalConsent = isUserUnder16(updateData.dateOfBirth);
     }
 
     // Update the user

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { autoLabelUnder16User } from "@/lib/auto-label-utils";
+import { autoLabelUnder16User, isUserUnder16 } from "@/lib/auto-label-utils";
 import { checkForBot } from "@/lib/bot-protection";
 import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
 import { getEmailService } from "@/lib/email-service";
@@ -274,6 +274,13 @@ export async function PUT(req: Request) {
       updateData.dateOfBirth = validatedData.dateOfBirth
         ? new Date(validatedData.dateOfBirth)
         : null;
+
+      // Recompute parental consent requirement whenever DOB changes.
+      // OAuth users register without a DOB, then set it via this endpoint —
+      // without this, under-16 OAuth signups bypass the consent gate entirely.
+      updateData.requiresParentalConsent = isUserUnder16(
+        updateData.dateOfBirth
+      );
     }
 
     // Handle array fields (stored as JSON)
@@ -348,6 +355,43 @@ export async function PUT(req: Request) {
         ? new Date(validatedData.dateOfBirth)
         : null;
       await autoLabelUnder16User(user.id, dateOfBirth);
+
+      // Notify admins when a user newly requires parental consent (e.g. an
+      // OAuth signup setting DOB for the first time). Mirrors the block in
+      // /api/auth/register.
+      const becameUnderage =
+        !user.requiresParentalConsent &&
+        updatedUser.requiresParentalConsent &&
+        !updatedUser.parentalConsentReceived;
+
+      if (becameUnderage) {
+        try {
+          const admins = await prisma.user.findMany({
+            where: { role: "ADMIN" },
+            select: { id: true },
+          });
+
+          await Promise.all(
+            admins.map((admin) =>
+              prisma.notification.create({
+                data: {
+                  userId: admin.id,
+                  type: "UNDERAGE_USER_REGISTERED",
+                  title: "New Underage Volunteer",
+                  message: `${updatedUser.name || updatedUser.email} (under 16) has registered and requires parental consent approval.`,
+                  actionUrl: "/admin/parental-consent",
+                  relatedId: updatedUser.id,
+                },
+              })
+            )
+          );
+        } catch (notificationError) {
+          console.error(
+            "Failed to send admin notifications for underage user:",
+            notificationError
+          );
+        }
+      }
     }
 
     // Check if profile is now complete and send welcome email for OAuth users
