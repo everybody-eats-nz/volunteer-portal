@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { syncNewsletterSubscriptions } from "@/lib/newsletter-sync";
 
 /**
  * Complete migration for OAuth users
@@ -106,6 +107,19 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`Migration completed for user ${migrationUser.email} via OAuth`);
+
+    // Subscribe migrated user to the newsletter lists they picked on the
+    // migration form. save-migration-data persisted those prefs to the
+    // migration user record before OAuth started.
+    await syncNewsletterSubscriptions({
+      email: migrationUser.email,
+      name: `${migrationUser.firstName || ""} ${migrationUser.lastName || ""}`,
+      oldLists: [],
+      newLists: migrationUser.emailNewsletterSubscription
+        ? migrationUser.newsletterLists ?? []
+        : [],
+      emailNewsletterSubscription: migrationUser.emailNewsletterSubscription,
+    });
 
     // Redirect to dashboard
     return NextResponse.redirect(new URL("/dashboard", request.url));

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { autoLabelUnder16User } from "@/lib/auto-label-utils";
 import { createVerificationToken } from "@/lib/email-verification";
 import { getEmailService } from "@/lib/email-service";
+import { syncNewsletterSubscriptions } from "@/lib/newsletter-sync";
 import { validatePassword } from "@/lib/utils/password-validation";
 import { checkForBot } from "@/lib/bot-protection";
 import { calculateAge, getBaseUrl } from "@/lib/utils";
@@ -68,6 +69,7 @@ const registerSchema = z
 
     // Communication & agreements
     emailNewsletterSubscription: z.boolean().optional(),
+    newsletterLists: z.array(z.string()).optional(),
     notificationPreference: z.enum(["EMAIL", "SMS", "BOTH", "NONE"]).optional(),
     volunteerAgreementAccepted: z.boolean(),
     healthSafetyPolicyAccepted: z.boolean(),
@@ -124,18 +126,19 @@ export async function POST(req: Request) {
     const validatedData = registerSchema.parse(dataToValidate);
 
     // For migration, find existing user by ID; otherwise check if email exists
+    let priorNewsletterLists: string[] = [];
     if (isMigration && userId) {
       const migratingUser = await prisma.user.findUnique({
         where: { id: userId },
       });
-      
+
       if (!migratingUser) {
         return NextResponse.json(
           { error: "Invalid migration request" },
           { status: 400 }
         );
       }
-      
+
       // Verify the email matches for security
       if (migratingUser.email !== validatedData.email) {
         return NextResponse.json(
@@ -143,6 +146,8 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
+
+      priorNewsletterLists = migratingUser.newsletterLists ?? [];
     } else {
       // Check if user already exists for new registrations
       const existingUser = await prisma.user.findUnique({
@@ -222,6 +227,10 @@ export async function POST(req: Request) {
       // Communication & agreements
       emailNewsletterSubscription:
         validatedData.emailNewsletterSubscription ?? true,
+      newsletterLists:
+        validatedData.emailNewsletterSubscription === false
+          ? []
+          : validatedData.newsletterLists ?? [],
       notificationPreference: validatedData.notificationPreference || "EMAIL",
       volunteerAgreementAccepted: validatedData.volunteerAgreementAccepted,
       healthSafetyPolicyAccepted: validatedData.healthSafetyPolicyAccepted,
@@ -342,6 +351,22 @@ export async function POST(req: Request) {
         // Don't fail registration if email sending fails, just log the error
       }
     }
+
+    // Campaign Monitor newsletter sync — opt-in only, defaults to no lists
+    // when the user did not select any. Failures are swallowed inside the
+    // helper so registration succeeds even if Campaign Monitor is down.
+    await syncNewsletterSubscriptions({
+      email: user.email,
+      name:
+        user.name ||
+        `${validatedData.firstName} ${validatedData.lastName}`.trim(),
+      oldLists: priorNewsletterLists,
+      newLists:
+        validatedData.emailNewsletterSubscription === false
+          ? []
+          : validatedData.newsletterLists ?? [],
+      emailNewsletterSubscription: validatedData.emailNewsletterSubscription,
+    });
 
     // Funnel attribution: stitch the anonymous distinct_id (eea_phid cookie)
     // onto the new user so their experiment exposure → conversion path is

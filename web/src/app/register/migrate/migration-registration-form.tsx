@@ -68,6 +68,12 @@ interface MigrationRegistrationFormProps {
   token: string;
   locationOptions: Array<{ value: string; label: string }>;
   shiftTypes: Array<{ id: string; name: string }>;
+  newsletterLists: Array<{
+    id: string;
+    name: string;
+    campaignMonitorId: string;
+    description: string | null;
+  }>;
 }
 
 /**
@@ -311,6 +317,7 @@ export function MigrationRegistrationForm({
   user,
   token,
   locationOptions,
+  newsletterLists,
 }: MigrationRegistrationFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -361,7 +368,9 @@ export function MigrationRegistrationForm({
 
     // Communication & agreements
     emailNewsletterSubscription: true,
-    newsletterLists: [],
+    // Pre-select every active list — users opt out by unticking, matching the
+    // "include people in the newsletter on signup" intent.
+    newsletterLists: newsletterLists.map((list) => list.campaignMonitorId),
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
@@ -693,6 +702,7 @@ export function MigrationRegistrationForm({
             setVolunteerAgreementOpen={setVolunteerAgreementOpen}
             healthSafetyPolicyOpen={healthSafetyPolicyOpen}
             setHealthSafetyPolicyOpen={setHealthSafetyPolicyOpen}
+            newsletterLists={newsletterLists}
           />
         );
       case 4: // Account setup (Password)
