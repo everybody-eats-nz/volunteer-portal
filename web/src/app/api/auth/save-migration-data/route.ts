@@ -84,6 +84,12 @@ export async function POST(request: NextRequest) {
             ? data.defaultLocation
             : null,
         emailNewsletterSubscription: data.emailNewsletterSubscription,
+        newsletterLists:
+          data.emailNewsletterSubscription === false
+            ? []
+            : Array.isArray(data.newsletterLists)
+              ? data.newsletterLists
+              : [],
         notificationPreference: data.notificationPreference,
         receiveShortageNotifications: data.receiveShortageNotifications,
         excludedShortageNotificationTypes: Array.isArray(data.excludedShortageNotificationTypes) 

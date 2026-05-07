@@ -70,14 +70,31 @@ async function getShiftTypes() {
   return shiftTypes;
 }
 
+async function getNewsletterLists() {
+  "use cache";
+  cacheLife("hours");
+
+  return prisma.newsletterList.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      name: true,
+      campaignMonitorId: true,
+      description: true,
+    },
+    orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+  });
+}
+
 /**
  * Multi-step volunteer registration page
  * Collects comprehensive user profile information during signup
  */
 export default async function RegisterPage() {
-  const [locationOptions, shiftTypes, phid] = await Promise.all([
+  const [locationOptions, shiftTypes, newsletterLists, phid] = await Promise.all([
     getLocationOptions(),
     getShiftTypes(),
+    getNewsletterLists(),
     getPhidFromCookies(),
   ]);
 
@@ -91,6 +108,7 @@ export default async function RegisterPage() {
       <RegisterForm
         locationOptions={locationOptions}
         shiftTypes={shiftTypes}
+        newsletterLists={newsletterLists}
       />
     </Suspense>
   );

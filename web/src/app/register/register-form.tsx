@@ -10,13 +10,24 @@ const RegisterClient = dynamic(() => import("./register-client"), {
 interface RegisterFormProps {
   locationOptions: Array<{ value: string; label: string }>;
   shiftTypes: Array<{ id: string; name: string }>;
+  newsletterLists: Array<{
+    id: string;
+    name: string;
+    campaignMonitorId: string;
+    description: string | null;
+  }>;
 }
 
-export function RegisterForm({ locationOptions, shiftTypes }: RegisterFormProps) {
+export function RegisterForm({
+  locationOptions,
+  shiftTypes,
+  newsletterLists,
+}: RegisterFormProps) {
   return (
     <RegisterClient
       locationOptions={locationOptions}
       shiftTypes={shiftTypes}
+      newsletterLists={newsletterLists}
     />
   );
 }

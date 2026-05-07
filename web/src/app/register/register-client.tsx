@@ -45,9 +45,19 @@ interface Provider {
 interface RegisterClientProps {
   locationOptions: Array<{ value: string; label: string }>;
   shiftTypes: Array<{ id: string; name: string }>;
+  newsletterLists: Array<{
+    id: string;
+    name: string;
+    campaignMonitorId: string;
+    description: string | null;
+  }>;
 }
 
-export default function RegisterClient({ locationOptions, shiftTypes }: RegisterClientProps) {
+export default function RegisterClient({
+  locationOptions,
+  shiftTypes,
+  newsletterLists,
+}: RegisterClientProps) {
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
@@ -126,7 +136,9 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
 
     // Communication & agreements
     emailNewsletterSubscription: true,
-    newsletterLists: [],
+    // Pre-select every active list — users opt out by unticking, matching the
+    // "include people in the newsletter on signup" intent.
+    newsletterLists: newsletterLists.map((list) => list.campaignMonitorId),
     notificationPreference: "EMAIL",
     receiveShortageNotifications: true,
     excludedShortageNotificationTypes: [],
@@ -628,6 +640,7 @@ export default function RegisterClient({ locationOptions, shiftTypes }: Register
             healthSafetyPolicyOpen={healthSafetyPolicyOpen}
             setHealthSafetyPolicyOpen={setHealthSafetyPolicyOpen}
             shiftTypes={shiftTypes}
+            newsletterLists={newsletterLists}
           />
         );
       default:
