@@ -250,8 +250,8 @@ export default function LoginScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        behavior="padding"
+        keyboardVerticalOffset={0}
       >
         <ScrollView
           style={{ flex: 1 }}

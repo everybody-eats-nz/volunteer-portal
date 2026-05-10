@@ -10,6 +10,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "build:ipa": "eas build --platform ios --profile production --local --output ./build/app.ipa",
+    "build:aab": "eas build --platform android --profile production --local --output ./build/app.aab",
+    "submit:ios": "eas submit --platform ios --path ./build/app.ipa",
+    "submit:android": "eas submit --platform android --path ./build/app.aab",
     "update": "eas update --branch production",
     "update:preview": "eas update --branch preview"
   },

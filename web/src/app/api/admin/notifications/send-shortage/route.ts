@@ -60,6 +60,7 @@ export async function POST(request: Request) {
         },
         receiveShortageNotifications: true, // Only send to those who opted in
         archivedAt: null,
+        profileCompleted: true, // Exclude users who never completed migration/registration
       },
       select: {
         id: true,
