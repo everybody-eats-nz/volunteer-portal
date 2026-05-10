@@ -36,7 +36,19 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.READ_MEDIA_VISUAL_USER_SELECTED"]
+      "permissions": ["android.permission.READ_MEDIA_VISUAL_USER_SELECTED"],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [
+            {
+              "scheme": "nz.co.everybodyeats.volunteers",
+              "path": "/oauthredirect"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",
