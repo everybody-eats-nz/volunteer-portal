@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Everybody Eats — Feature Graphic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Libre+Franklin:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 500px; overflow: hidden; }
+  body {
+    background: linear-gradient(135deg, #0e3a23 0%, #154b2c 60%, #1a5a36 100%);
+    font-family: "Libre Franklin", system-ui, sans-serif;
+    color: #fafafa;
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    align-items: center;
+    position: relative;
+  }
+  .ornament {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .ornament .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.55;
+  }
+  .blob-1 { width: 380px; height: 380px; right: -100px; top: -120px; background: #f5d76e; opacity: 0.18; }
+  .blob-2 { width: 280px; height: 280px; right: 120px; bottom: -100px; background: #f5d76e; opacity: 0.12; }
+  .copy {
+    padding: 56px 64px;
+    z-index: 2;
+  }
+  .kia {
+    font-family: "Fraunces", serif;
+    font-weight: 500;
+    font-size: 28px;
+    color: #f5d76e;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 700;
+    font-size: 84px;
+    line-height: 0.95;
+    color: #ffffff;
+    letter-spacing: -2px;
+    margin-bottom: 18px;
+  }
+  .underline {
+    width: 96px;
+    height: 6px;
+    background: #f5d76e;
+    border-radius: 3px;
+    margin-bottom: 22px;
+  }
+  .tagline {
+    font-size: 22px;
+    line-height: 1.35;
+    color: #e8efe9;
+    max-width: 540px;
+    font-weight: 400;
+  }
+  .badge-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 36px;
+  }
+  .badge {
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(245, 215, 110, 0.3);
+    font-size: 14px;
+    font-weight: 600;
+    color: #f5d76e;
+    letter-spacing: 0.4px;
+  }
+  .visual {
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .phone-card {
+    position: relative;
+    width: 280px;
+    border-radius: 28px;
+    background: #fafafa;
+    color: #0e3a23;
+    padding: 26px 24px 24px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.35), 0 6px 0 rgba(245,215,110,0.45);
+    transform: rotate(-3deg);
+  }
+  .phone-card .pill {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #f0e7c3;
+    color: #6a4f0c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+  }
+  .phone-card .stat {
+    font-family: "Fraunces", serif;
+    font-weight: 700;
+    font-size: 64px;
+    color: #0e3a23;
+    line-height: 1;
+    margin-top: 14px;
+  }
+  .phone-card .stat-label {
+    font-size: 18px;
+    color: #0e3a23;
+    margin-top: 4px;
+    margin-bottom: 18px;
+  }
+  .phone-card .sub {
+    font-size: 13px;
+    color: #4a5a4f;
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+  .phone-card .shift {
+    background: #0e3a23;
+    border-radius: 16px;
+    padding: 14px 16px;
+    color: #fafafa;
+    box-shadow: 0 8px 18px rgba(14, 58, 35, 0.35);
+  }
+  .phone-card .shift-meta {
+    color: #f5d76e;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .phone-card .shift-title {
+    font-family: "Fraunces", serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .phone-card .shift-loc {
+    font-size: 12px;
+    opacity: 0.78;
+  }
+  .phone-card .shift-cta {
+    margin-top: 10px;
+    background: #ffe066;
+    color: #4a3a08;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+  .leaf {
+    position: absolute;
+    font-size: 38px;
+    transform: rotate(15deg);
+  }
+  .leaf-1 { top: -22px; right: 28px; }
+</style>
+</head>
+<body>
+  <div class="ornament">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="copy">
+    <span class="kia">Kia ora 🙌</span>
+    <h1>Volunteer<br/>with us.</h1>
+    <div class="underline"></div>
+    <p class="tagline">Find shifts, sign up in seconds, and be part of the whānau making a difference, one plate at a time.</p>
+    <div class="badge-row">
+      <span class="badge">EVERYBODY EATS</span>
+      <span class="badge">AOTEAROA NZ</span>
+    </div>
+  </div>
+
+  <div class="visual">
+    <div class="phone-card">
+      <span class="leaf leaf-1">🌿</span>
+      <span class="pill">Help needed soon</span>
+      <div class="stat">66</div>
+      <div class="stat-label">spots open</div>
+      <div class="sub">across 15 shifts — can you lend a hand?</div>
+      <div class="shift">
+        <div class="shift-meta">In 4 days · 12:00 pm</div>
+        <div class="shift-title">Kitchen Prep</div>
+        <div class="shift-loc">📍 Wellington</div>
+        <div class="shift-cta">Needs 7 more</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
