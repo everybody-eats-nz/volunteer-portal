@@ -28,6 +28,9 @@ type ProfileResponse = {
     emailNewsletterSubscription: boolean;
     newsletterLists: string[];
     defaultLocation: string | null;
+    friendVisibility: "PUBLIC" | "FRIENDS_ONLY" | "PRIVATE";
+    allowFriendRequests: boolean;
+    allowFriendSuggestions: boolean;
   };
   availableLocations: string[];
   stats: ProfileStats;
@@ -103,6 +106,9 @@ export function useProfile(): UseProfileReturn {
         emailNewsletterSubscription: data.profile.emailNewsletterSubscription,
         newsletterLists: data.profile.newsletterLists,
         defaultLocation: data.profile.defaultLocation,
+        friendVisibility: data.profile.friendVisibility,
+        allowFriendRequests: data.profile.allowFriendRequests,
+        allowFriendSuggestions: data.profile.allowFriendSuggestions,
         totalShifts: data.stats.shiftsCompleted,
         memberSince: data.profile.memberSince,
       }
