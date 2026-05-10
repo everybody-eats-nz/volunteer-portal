@@ -51,7 +51,41 @@ type FormData = {
   emailNewsletterSubscription: boolean;
   newsletterLists: string[];
   defaultLocation: string;
+  friendVisibility: "PUBLIC" | "FRIENDS_ONLY" | "PRIVATE";
+  allowFriendRequests: boolean;
+  allowFriendSuggestions: boolean;
 };
+
+type VisibilityOption = {
+  value: FormData["friendVisibility"];
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  description: string;
+};
+
+const VISIBILITY_OPTIONS: VisibilityOption[] = [
+  {
+    value: "PUBLIC",
+    label: "Public",
+    icon: "people-outline",
+    description:
+      "Any logged-in volunteer can see your profile, shared shift history, and which shifts you've signed up for.",
+  },
+  {
+    value: "FRIENDS_ONLY",
+    label: "Friends only",
+    icon: "person-circle-outline",
+    description:
+      "Only your friends can see your profile, shared shift history, and which shifts you've signed up for.",
+  },
+  {
+    value: "PRIVATE",
+    label: "Private",
+    icon: "lock-closed-outline",
+    description:
+      "Your profile is hidden, you won't appear on the browse shifts page, and your shift history is private.",
+  },
+];
 
 type ShiftType = { id: string; name: string };
 type NewsletterList = {
@@ -132,6 +166,9 @@ export default function EditProfileScreen() {
     emailNewsletterSubscription: true,
     newsletterLists: [],
     defaultLocation: "",
+    friendVisibility: "FRIENDS_ONLY",
+    allowFriendRequests: true,
+    allowFriendSuggestions: true,
   });
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
@@ -236,6 +273,9 @@ export default function EditProfileScreen() {
         emailNewsletterSubscription: profile.emailNewsletterSubscription,
         newsletterLists: profile.newsletterLists,
         defaultLocation: profile.defaultLocation ?? "",
+        friendVisibility: profile.friendVisibility,
+        allowFriendRequests: profile.allowFriendRequests,
+        allowFriendSuggestions: profile.allowFriendSuggestions,
       });
       setLocalImage(profile.image ?? null);
       setInitialized(true);
@@ -402,6 +442,9 @@ export default function EditProfileScreen() {
             ? form.newsletterLists
             : [],
           defaultLocation: form.defaultLocation || null,
+          friendVisibility: form.friendVisibility,
+          allowFriendRequests: form.allowFriendRequests,
+          allowFriendSuggestions: form.allowFriendSuggestions,
         },
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -977,6 +1020,147 @@ export default function EditProfileScreen() {
             )}
         </View>
 
+        {/* ── Privacy ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>Privacy</Text>
+          <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+            Control who can see your profile and shift activity.
+          </Text>
+
+          <Text style={[s.fieldLabel, { color: colors.text }]}>
+            Who can see your volunteer activity?
+          </Text>
+          <View style={{ gap: 8 }}>
+            {VISIBILITY_OPTIONS.map((opt) => {
+              const active = form.friendVisibility === opt.value;
+              const activeColor = isDark ? "#86efac" : Brand.green;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    updateField("friendVisibility", opt.value);
+                  }}
+                  style={({ pressed }) => [
+                    s.visibilityOption,
+                    {
+                      borderColor: active ? activeColor : colors.border,
+                      backgroundColor: active
+                        ? isDark
+                          ? "rgba(134, 239, 172, 0.08)"
+                          : Brand.greenLight
+                        : pressed
+                        ? isDark
+                          ? "rgba(255,255,255,0.04)"
+                          : "#f8fafc"
+                        : isDark
+                        ? "rgba(255,255,255,0.04)"
+                        : "#ffffff",
+                    },
+                  ]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`${opt.label}. ${opt.description}`}
+                >
+                  <View style={s.visibilityHeader}>
+                    <Ionicons
+                      name={opt.icon}
+                      size={20}
+                      color={active ? activeColor : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        s.visibilityLabel,
+                        {
+                          color: active ? activeColor : colors.text,
+                          fontFamily: active
+                            ? FontFamily.semiBold
+                            : FontFamily.medium,
+                        },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                    <Ionicons
+                      name={active ? "radio-button-on" : "radio-button-off"}
+                      size={22}
+                      color={active ? activeColor : colors.textSecondary}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      s.visibilityDescription,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {opt.description}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateField("allowFriendRequests", !form.allowFriendRequests);
+            }}
+            style={s.toggleRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Allow friend requests
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Other volunteers can send you friend requests.
+              </Text>
+            </View>
+            <Ionicons
+              name={form.allowFriendRequests ? "checkbox" : "square-outline"}
+              size={26}
+              color={
+                form.allowFriendRequests
+                  ? isDark
+                    ? "#86efac"
+                    : Brand.green
+                  : colors.textSecondary
+              }
+            />
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              updateField(
+                "allowFriendSuggestions",
+                !form.allowFriendSuggestions
+              );
+            }}
+            style={s.toggleRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[s.toggleLabel, { color: colors.text }]}>
+                Appear in friend suggestions
+              </Text>
+              <Text style={[s.toggleHint, { color: colors.textSecondary }]}>
+                Show up as a suggested friend for volunteers you&apos;ve
+                recently worked with.
+              </Text>
+            </View>
+            <Ionicons
+              name={form.allowFriendSuggestions ? "checkbox" : "square-outline"}
+              size={26}
+              color={
+                form.allowFriendSuggestions
+                  ? isDark
+                    ? "#86efac"
+                    : Brand.green
+                  : colors.textSecondary
+              }
+            />
+          </Pressable>
+        </View>
+
         {/* ── Danger zone ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.destructive }]}>
@@ -1513,6 +1697,30 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.regular,
     lineHeight: 16,
     marginTop: 1,
+  },
+
+  // Privacy
+  visibilityOption: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  visibilityHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  visibilityLabel: {
+    flex: 1,
+    fontSize: 15,
+  },
+  visibilityDescription: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+    paddingLeft: 30,
   },
 
   // Danger zone

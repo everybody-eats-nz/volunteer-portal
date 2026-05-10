@@ -52,6 +52,9 @@ export async function GET(request: Request) {
         emailNewsletterSubscription: true,
         newsletterLists: true,
         defaultLocation: true,
+        friendVisibility: true,
+        allowFriendRequests: true,
+        allowFriendSuggestions: true,
         createdAt: true,
         customLabels: {
           select: {
@@ -298,6 +301,9 @@ export async function GET(request: Request) {
         emailNewsletterSubscription: user.emailNewsletterSubscription,
         newsletterLists: user.newsletterLists,
         defaultLocation: user.defaultLocation,
+        friendVisibility: user.friendVisibility,
+        allowFriendRequests: user.allowFriendRequests,
+        allowFriendSuggestions: user.allowFriendSuggestions,
       },
       availableLocations,
       stats: {
@@ -398,6 +404,9 @@ const updateMobileProfileSchema = z.object({
   emailNewsletterSubscription: z.boolean().optional(),
   newsletterLists: z.array(z.string()).optional(),
   defaultLocation: z.string().nullable().optional(),
+  friendVisibility: z.enum(["PUBLIC", "FRIENDS_ONLY", "PRIVATE"]).optional(),
+  allowFriendRequests: z.boolean().optional(),
+  allowFriendSuggestions: z.boolean().optional(),
 });
 
 export async function PUT(request: Request) {
