@@ -7,8 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
-  Keyboard,
-  LayoutAnimation,
+  KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -412,7 +411,6 @@ export default function ChatScreen() {
   const [suggestedQuestions, setSuggestedQuestions] = useState<Question[]>(
     DEFAULT_SUGGESTED_QUESTIONS
   );
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
   const flatListRef = useRef<FlatList>(null);
@@ -425,39 +423,6 @@ export default function ChatScreen() {
   });
 
   const showWelcome = messages.length <= 1;
-  const keyboardVisible = keyboardHeight > 0;
-
-  /* ── Keyboard tracking with smooth LayoutAnimation ── */
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => {
-        if (Platform.OS === "ios") {
-          LayoutAnimation.configureNext({
-            duration: e.duration,
-            update: { type: LayoutAnimation.Types.keyboard },
-          });
-        }
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      (e) => {
-        if (Platform.OS === "ios" && e?.duration) {
-          LayoutAnimation.configureNext({
-            duration: e.duration,
-            update: { type: LayoutAnimation.Types.keyboard },
-          });
-        }
-        setKeyboardHeight(0);
-      }
-    );
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   /* ── Fetch suggested questions from API ── */
   useEffect(() => {
@@ -557,10 +522,8 @@ export default function ChatScreen() {
     [input, isLoading, messages]
   );
 
-  /* ── Floating bar vertical position ── */
-  const floatingBottom = keyboardVisible
-    ? keyboardHeight + 8
-    : insets.bottom + 8;
+  /* ── Floating bar vertical position (KeyboardAvoidingView handles keyboard offset) ── */
+  const floatingBottom = insets.bottom + 8;
 
   /* ── Scroll tracking: show button when not at bottom and list is scrollable ── */
   const updateScrollButton = useCallback(() => {
@@ -678,7 +641,11 @@ export default function ChatScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: paperTint.paper }]}>
+    <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={0}
+      style={[styles.container, { backgroundColor: paperTint.paper }]}
+    >
       {/* ── Persistent header with back button ── */}
       <View
         style={[
@@ -882,7 +849,7 @@ export default function ChatScreen() {
           </View>
         )}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -8,8 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Keyboard,
-  LayoutAnimation,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -160,7 +159,6 @@ export default function TeamThreadScreen() {
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
   const flatListRef = useRef<FlatList<TeamMessage>>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -202,38 +200,6 @@ export default function TeamThreadScreen() {
       };
     }, [refresh])
   );
-
-  /* Keyboard tracking with smooth LayoutAnimation. */
-  useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      (e) => {
-        if (Platform.OS === "ios") {
-          LayoutAnimation.configureNext({
-            duration: e.duration,
-            update: { type: LayoutAnimation.Types.keyboard },
-          });
-        }
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      (e) => {
-        if (Platform.OS === "ios" && e?.duration) {
-          LayoutAnimation.configureNext({
-            duration: e.duration,
-            update: { type: LayoutAnimation.Types.keyboard },
-          });
-        }
-        setKeyboardHeight(0);
-      }
-    );
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const send = useCallback(async () => {
     const body = input.trim();
@@ -278,9 +244,7 @@ export default function TeamThreadScreen() {
     [messages, colors, isDark, paperTint]
   );
 
-  const floatingBottom = keyboardHeight > 0
-    ? keyboardHeight + 8
-    : insets.bottom + 8;
+  const floatingBottom = insets.bottom + 8;
 
   const useNativeGlass = isLiquidGlassAvailable();
   const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
@@ -332,7 +296,11 @@ export default function TeamThreadScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: paperTint.paper }]}>
+    <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={0}
+      style={[styles.container, { backgroundColor: paperTint.paper }]}
+    >
       {/* Header */}
       <View
         style={[
@@ -463,7 +431,7 @@ export default function TeamThreadScreen() {
           </View>
         )}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

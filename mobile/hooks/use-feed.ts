@@ -70,7 +70,6 @@ export function useFeed(): UseFeedReturn {
 
   const hasAuthor = (item: FeedItem): item is FeedItem & { userId?: string } =>
     item.type === "achievement" ||
-    item.type === "milestone" ||
     item.type === "friend_signup" ||
     item.type === "photo_post";
 
