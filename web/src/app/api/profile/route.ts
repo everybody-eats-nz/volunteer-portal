@@ -11,6 +11,12 @@ import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
 import { syncNewsletterSubscriptions } from "@/lib/newsletter-sync";
 import { getEmailService } from "@/lib/email-service";
 import { isProfileComplete } from "@/lib/profile-completion";
+import {
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
+import { phAlias } from "@/lib/posthog-server";
 
 const updateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -403,6 +409,24 @@ export async function PUT(req: Request) {
       await prisma.user.update({
         where: { id: user.id },
         data: { profileCompleted: true },
+      });
+
+      // Funnel attribution for OAuth (social) signups — credentials users emit
+      // register_completed at form submission, but OAuth users land already
+      // logged-in and only finish the funnel once required profile fields are
+      // filled. Stitch the anonymous PHID onto the user id so homepage exposure
+      // and this conversion land on the same identity in PostHog.
+      const phid = await getPhidFromCookies();
+      if (phid) {
+        phAlias({ distinctId: user.id, alias: phid });
+      }
+      captureFunnelEvent({
+        event: FunnelEvent.REGISTER_COMPLETED,
+        userId: user.id,
+        phid,
+        properties: {
+          is_oauth: true,
+        },
       });
 
       // Send welcome email
