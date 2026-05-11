@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 
 import { api } from "@/lib/api";
 import { syncShifts } from "@/lib/calendar-sync";
 import type { Shift } from "@/lib/dummy-data";
+import { queryKeys } from "@/lib/query-keys";
 
 export type PeriodFriend = {
   id: string;
@@ -40,85 +42,60 @@ type UseShiftsReturn = {
 };
 
 export function useShifts(): UseShiftsReturn {
-  const [myShifts, setMyShifts] = useState<Shift[]>([]);
-  const [available, setAvailable] = useState<Shift[]>([]);
-  const [past, setPast] = useState<Shift[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userDefaultLocation, setUserDefaultLocation] = useState<string | null>(null);
-  const [periodFriends, setPeriodFriends] = useState<Record<string, PeriodFriend[]>>({});
-  const [shiftFriends, setShiftFriends] = useState<Record<string, PeriodFriend[]>>({});
+  const query = useInfiniteQuery({
+    queryKey: queryKeys.shifts.list(),
+    queryFn: ({ pageParam }) => {
+      const path = pageParam
+        ? `/api/mobile/shifts?pastCursor=${encodeURIComponent(pageParam)}`
+        : "/api/mobile/shifts";
+      return api<ShiftsResponse>(path);
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.pastNextCursor,
+  });
 
-  const pastCursorRef = useRef<string | null>(null);
-  const isLoadingMoreRef = useRef(false);
+  const firstPage = query.data?.pages[0];
 
-  const fetchShifts = useCallback(async () => {
-    try {
-      setError(null);
-      const result = await api<ShiftsResponse>("/api/mobile/shifts");
-      setMyShifts(result.myShifts);
-      setAvailable(result.available);
-      setPast(result.past);
-      setUserDefaultLocation(result.userDefaultLocation ?? null);
-      setPeriodFriends(result.periodFriends ?? {});
-      setShiftFriends(result.shiftFriends ?? {});
-      pastCursorRef.current = result.pastNextCursor;
+  // First page carries myShifts/available/userDefaultLocation/periodFriends/shiftFriends;
+  // later pages only extend `past`. Fold all `past` arrays into one list.
+  const past = useMemo(
+    () => (query.data?.pages ?? []).flatMap((page) => page.past),
+    [query.data?.pages]
+  );
 
-      // Reconcile device calendar with fresh shift data (picks up web signups
-      // and cancellations). No-op unless the user opted in.
-      syncShifts(result.myShifts).catch(() => {
-        // Swallow: calendar sync is best-effort, never block the UI on it.
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load shifts");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Reconcile device calendar with fresh shift data on every successful first
+  // page (picks up web signups and cancellations). No-op unless the user
+  // opted in. Keyed on dataUpdatedAt so refetches re-sync.
+  const myShifts = firstPage?.myShifts ?? [];
+  const dataUpdatedAt = query.dataUpdatedAt;
   useEffect(() => {
-    fetchShifts();
-  }, [fetchShifts]);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchShifts();
-  }, [fetchShifts]);
-
-  const loadMorePast = useCallback(async () => {
-    if (!pastCursorRef.current || isLoadingMoreRef.current) return;
-    isLoadingMoreRef.current = true;
-    setIsLoadingMore(true);
-    try {
-      const params = new URLSearchParams({
-        pastCursor: pastCursorRef.current,
-      });
-      const result = await api<ShiftsResponse>(
-        `/api/mobile/shifts?${params}`
-      );
-      setPast((prev) => [...prev, ...result.past]);
-      pastCursorRef.current = result.pastNextCursor;
-    } catch {
-      // Silently fail — user can retry by scrolling again
-    } finally {
-      isLoadingMoreRef.current = false;
-      setIsLoadingMore(false);
-    }
-  }, []);
+    if (!firstPage) return;
+    syncShifts(firstPage.myShifts).catch(() => {
+      // Swallow: calendar sync is best-effort, never block the UI on it.
+    });
+  }, [firstPage, dataUpdatedAt]);
 
   return {
     myShifts,
-    available,
+    available: firstPage?.available ?? [],
     past,
-    isLoading,
-    error,
-    refresh,
-    loadMorePast,
-    hasMorePast: pastCursorRef.current !== null,
-    isLoadingMore,
-    userDefaultLocation,
-    periodFriends,
-    shiftFriends,
+    isLoading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load shifts"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
+    loadMorePast: async () => {
+      if (!query.hasNextPage || query.isFetchingNextPage) return;
+      await query.fetchNextPage();
+    },
+    hasMorePast: query.hasNextPage,
+    isLoadingMore: query.isFetchingNextPage,
+    userDefaultLocation: firstPage?.userDefaultLocation ?? null,
+    periodFriends: firstPage?.periodFriends ?? {},
+    shiftFriends: firstPage?.shiftFriends ?? {},
   };
 }

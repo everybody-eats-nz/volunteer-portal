@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 
 import { api } from "@/lib/api";
 import type { FeedItem } from "@/lib/dummy-data";
+import { queryKeys } from "@/lib/query-keys";
 
 type FeedResponse = {
   items: FeedItem[];
@@ -21,68 +23,76 @@ type UseFeedReturn = {
   removeItemsByUser: (userId: string) => void;
 };
 
+const hasAuthor = (item: FeedItem): item is FeedItem & { userId?: string } =>
+  item.type === "achievement" ||
+  item.type === "friend_signup" ||
+  item.type === "photo_post";
+
 export function useFeed(): UseFeedReturn {
-  const [realItems, setRealItems] = useState<FeedItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.feed.list();
 
-  const fetchFeed = useCallback(async () => {
-    try {
-      setError(null);
-      const result = await api<FeedResponse>("/api/mobile/feed");
-      setRealItems(result.items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load feed");
-      setRealItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchFeed();
-  }, [fetchFeed]);
+  const query = useQuery({
+    queryKey,
+    queryFn: () => api<FeedResponse>("/api/mobile/feed"),
+  });
 
   const updateItem = useCallback(
     (
       id: string,
       patch: Partial<Pick<FeedItem, "likeCount" | "likedByMe" | "commentCount">>
     ) => {
-      setRealItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
-      );
+      queryClient.setQueryData<FeedResponse>(queryKey, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((item) =>
+            item.id === id ? { ...item, ...patch } : item
+          ),
+        };
+      });
     },
-    []
+    [queryClient, queryKey]
   );
 
-  const [locallyBlockedUserIds, setLocallyBlockedUserIds] = useState<
-    Set<string>
-  >(new Set());
+  const removeItemsByUser = useCallback(
+    (userId: string) => {
+      queryClient.setQueryData<FeedResponse>(queryKey, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.filter((item) => {
+            if (!hasAuthor(item)) return true;
+            const uid = (item as { userId?: string }).userId;
+            return !uid || uid !== userId;
+          }),
+        };
+      });
+    },
+    [queryClient, queryKey]
+  );
 
-  const removeItemsByUser = useCallback((userId: string) => {
-    setLocallyBlockedUserIds((prev) => new Set(prev).add(userId));
-  }, []);
+  const items = useMemo(
+    () =>
+      [...(query.data?.items ?? [])].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ),
+    [query.data?.items]
+  );
 
-  const hasAuthor = (item: FeedItem): item is FeedItem & { userId?: string } =>
-    item.type === "achievement" ||
-    item.type === "friend_signup" ||
-    item.type === "photo_post";
-
-  const items = realItems
-    .filter((item) => {
-      if (!hasAuthor(item)) return true;
-      const uid = (item as { userId?: string }).userId;
-      return !uid || !locallyBlockedUserIds.has(uid);
-    })
-    .sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-  return { items, isLoading, error, refresh, updateItem, removeItemsByUser };
+  return {
+    items,
+    isLoading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load feed"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
+    updateItem,
+    removeItemsByUser,
+  };
 }

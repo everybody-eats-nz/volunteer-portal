@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import type { Friend } from "@/lib/dummy-data";
+import { queryKeys } from "@/lib/query-keys";
 
 type FriendsResponse = {
   friends: Friend[];
@@ -15,35 +16,22 @@ type UseFriendsReturn = {
 };
 
 export function useFriends(): UseFriendsReturn {
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchFriends = useCallback(async () => {
-    try {
-      setError(null);
-      const result = await api<FriendsResponse>("/api/mobile/friends");
-      setFriends(result.friends);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load friends");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchFriends();
-  }, [fetchFriends]);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchFriends();
-  }, [fetchFriends]);
+  const query = useQuery({
+    queryKey: queryKeys.friends.list(),
+    queryFn: () => api<FriendsResponse>("/api/mobile/friends"),
+    select: (data) => data.friends,
+  });
 
   return {
-    friends,
-    isLoading,
-    error,
-    refresh,
+    friends: query.data ?? [],
+    isLoading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load friends"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
   };
 }

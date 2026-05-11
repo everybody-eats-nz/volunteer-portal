@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useTeamUnreadStore } from "@/hooks/use-team-unread";
+import { useTeamUnreadCount } from "@/hooks/use-team-unread";
 import { fetchTeamThread } from "@/lib/messages";
 
 /* ─── Editorial palette ─────────────────────────────────────── */
@@ -56,7 +56,7 @@ export default function HelpScreen() {
   const [latestAdminMessage, setLatestAdminMessage] = useState<string | null>(
     null
   );
-  const teamUnreadCount = useTeamUnreadStore((s) => s.count);
+  const teamUnreadCount = useTeamUnreadCount();
 
   const loadStatus = useCallback(async () => {
     try {

@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { api } from "@/lib/api";
 import type { Achievement, ProfileStats, UserProfile } from "@/lib/dummy-data";
+import { queryKeys } from "@/lib/query-keys";
 import { useAchievementCelebrationStore } from "./use-achievement-celebration";
 
 type ProfileResponse = {
@@ -52,37 +54,23 @@ type UseProfileReturn = {
 };
 
 export function useProfile(): UseProfileReturn {
-  const [data, setData] = useState<ProfileResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: queryKeys.profile.me,
+    queryFn: () => api<ProfileResponse>("/api/mobile/profile"),
+  });
 
-  const fetchProfile = useCallback(async () => {
-    try {
-      setError(null);
-      const result = await api<ProfileResponse>("/api/mobile/profile");
-      setData(result);
-      // The mobile profile route runs checkAndUnlockAchievements server-side,
-      // so any new unlock shows up in this payload — queue it for celebration.
-      useAchievementCelebrationStore
-        .getState()
-        .queueIfNew(result.achievements ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load profile");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // The mobile profile route runs checkAndUnlockAchievements server-side, so
+  // any new unlock arrives in this payload — queue it for celebration each
+  // time fresh data lands. Keyed on dataUpdatedAt so a refetch with no new
+  // achievements still passes the dedup inside `queueIfNew`.
+  const achievements = query.data?.achievements;
+  const dataUpdatedAt = query.dataUpdatedAt;
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (!achievements) return;
+    useAchievementCelebrationStore.getState().queueIfNew(achievements);
+  }, [achievements, dataUpdatedAt]);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchProfile();
-  }, [fetchProfile]);
-
-  // Map API response to the shapes the screens expect
+  const data = query.data;
   const profile: UserProfile | null = data
     ? {
         id: data.profile.id,
@@ -121,8 +109,14 @@ export function useProfile(): UseProfileReturn {
     achievements: data?.achievements ?? [],
     totalPoints: data?.totalPoints ?? 0,
     totalVolunteers: data?.totalVolunteers ?? 0,
-    isLoading,
-    error,
-    refresh,
+    isLoading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load profile"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
   };
 }
