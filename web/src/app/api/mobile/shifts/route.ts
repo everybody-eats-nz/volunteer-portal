@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -57,7 +61,7 @@ export async function GET(request: Request) {
       shift: {
         include: {
           shiftType: true,
-          signups: { where: { status: "CONFIRMED" } },
+          _count: shiftCapacityCountSelect(["CONFIRMED"]),
         },
       },
     },
@@ -77,7 +81,7 @@ export async function GET(request: Request) {
     },
     include: {
       shiftType: true,
-      signups: { where: { status: "CONFIRMED" } },
+      _count: shiftCapacityCountSelect(["CONFIRMED"]),
     },
     orderBy: { start: "asc" },
   });
@@ -93,7 +97,7 @@ export async function GET(request: Request) {
       shift: {
         include: {
           shiftType: true,
-          signups: { where: { status: "CONFIRMED" } },
+          _count: shiftCapacityCountSelect(["CONFIRMED"]),
         },
       },
     },
@@ -117,7 +121,7 @@ export async function GET(request: Request) {
       capacity: number;
       notes: string | null;
       shiftType: { id: string; name: string; description: string | null };
-      signups: { id: string }[];
+      _count: { signups: number; placeholders: number };
     },
     status?: string | null
   ) => ({
@@ -131,7 +135,7 @@ export async function GET(request: Request) {
     end: shift.end.toISOString(),
     location: shift.location ?? "TBC",
     capacity: shift.capacity,
-    signedUp: shift.signups.length,
+    signedUp: getShiftEffectiveCount(shift),
     status: status ?? null,
     notes: shift.notes,
   });

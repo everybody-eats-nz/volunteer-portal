@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { startOfDay, endOfDay } from "date-fns";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 // GET /api/admin/shifts/available - Get available shifts with capacity for a specific date/location
 export async function GET(request: Request) {
@@ -47,11 +51,7 @@ export async function GET(request: Request) {
       },
       include: {
         shiftType: true,
-        signups: {
-          where: {
-            status: "CONFIRMED",
-          },
-        },
+        _count: shiftCapacityCountSelect(["CONFIRMED"]),
       },
       orderBy: {
         start: "asc",
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
         end: shift.end.toISOString(),
         location: shift.location,
         capacity: shift.capacity,
-        confirmedCount: shift.signups.length,
+        confirmedCount: getShiftEffectiveCount(shift),
         shiftType: {
           id: shift.shiftType.id,
           name: shift.shiftType.name,

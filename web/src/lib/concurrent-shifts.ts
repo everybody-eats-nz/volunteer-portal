@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
 import { formatInNZT, toNZT } from "@/lib/timezone";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 /** Hour cutoff (NZ time) — shifts starting before this are "Day", at or after are "Evening" */
 export const DAY_EVENING_CUTOFF_HOUR = 16;
@@ -76,17 +80,7 @@ export async function getConcurrentShifts(shiftId: string) {
           description: true,
         },
       },
-      _count: {
-        select: {
-          signups: {
-            where: {
-              status: {
-                in: ["CONFIRMED", "REGULAR_PENDING"],
-              },
-            },
-          },
-        },
-      },
+      _count: shiftCapacityCountSelect(["CONFIRMED", "REGULAR_PENDING"]),
     },
     orderBy: {
       start: "asc",
@@ -104,6 +98,6 @@ export async function getConcurrentShifts(shiftId: string) {
     id: s.id,
     shiftTypeName: s.shiftType.name,
     shiftTypeDescription: s.shiftType.description,
-    spotsRemaining: Math.max(0, s.capacity - s._count.signups),
+    spotsRemaining: Math.max(0, s.capacity - getShiftEffectiveCount(s)),
   }));
 }

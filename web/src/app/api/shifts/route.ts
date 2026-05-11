@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getBaseUrl } from "@/lib/utils";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -17,7 +21,10 @@ export async function GET(request: NextRequest) {
   const shifts = await prisma.shift.findMany({
     where,
     orderBy: { start: "asc" },
-    include: { shiftType: true, signups: true },
+    include: {
+      shiftType: true,
+      _count: shiftCapacityCountSelect(["CONFIRMED"]),
+    },
   });
 
   type ShiftItem = {
@@ -34,26 +41,18 @@ export async function GET(request: NextRequest) {
   };
 
   const baseUrl = getBaseUrl();
-  const result: ShiftItem[] = [];
-  for (const s of shifts) {
-    let confirmedCount = 0;
-    for (const signup of s.signups) {
-      if (signup.status === "CONFIRMED") confirmedCount += 1;
-    }
-
-    result.push({
-      id: s.id,
-      start: s.start,
-      end: s.end,
-      location: s.location,
-      notes: s.notes,
-      capacity: s.capacity,
-      remaining: Math.max(0, s.capacity - confirmedCount),
-      shiftType: { id: s.shiftType.id, name: s.shiftType.name },
-      url: `${baseUrl}/shifts/${s.id}`,
-      image: `${baseUrl}/og-image.png`,
-    });
-  }
+  const result: ShiftItem[] = shifts.map((s) => ({
+    id: s.id,
+    start: s.start,
+    end: s.end,
+    location: s.location,
+    notes: s.notes,
+    capacity: s.capacity,
+    remaining: Math.max(0, s.capacity - getShiftEffectiveCount(s)),
+    shiftType: { id: s.shiftType.id, name: s.shiftType.name },
+    url: `${baseUrl}/shifts/${s.id}`,
+    image: `${baseUrl}/og-image.png`,
+  }));
 
   return NextResponse.json(result);
 }
