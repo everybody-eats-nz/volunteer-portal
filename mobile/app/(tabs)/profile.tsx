@@ -28,6 +28,10 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
 import {
+  useRecommendedFriends,
+  type RecommendedFriend,
+} from "@/hooks/use-recommended-friends";
+import {
   isCalendarSyncEnabled,
   setCalendarSyncEnabled,
 } from "@/lib/calendar-sync";
@@ -90,11 +94,54 @@ export default function ProfileScreen() {
     refresh,
   } = useProfile();
   const { friends, refresh: refreshFriends } = useFriends();
+  const {
+    recommended,
+    refresh: refreshRecommended,
+    sendRequest,
+    isSending,
+    acceptRequest,
+    isAccepting,
+  } = useRecommendedFriends();
 
   useFocusEffect(
     useCallback(() => {
       refreshFriends();
-    }, [refreshFriends])
+      refreshRecommended();
+    }, [refreshFriends, refreshRecommended])
+  );
+
+  const handleSendRequest = useCallback(
+    async (toUserId: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await sendRequest(toUserId);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (err) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Couldn't send request",
+          err instanceof Error ? err.message : "Please try again."
+        );
+      }
+    },
+    [sendRequest]
+  );
+
+  const handleAcceptRequest = useCallback(
+    async (requestId: string, fromUserId: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await acceptRequest(requestId, fromUserId);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (err) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Couldn't accept request",
+          err instanceof Error ? err.message : "Please try again."
+        );
+      }
+    },
+    [acceptRequest]
   );
   const logout = useAuth((s) => s.logout);
   const showOnboarding = useOnboarding((s) => s.show);
@@ -461,6 +508,53 @@ export default function ProfileScreen() {
             }`}
             colors={colors}
           />
+
+          {recommended.length > 0 && (
+            <View style={styles.suggestedBlock}>
+              <View style={styles.suggestedHeaderRow}>
+                <Ionicons
+                  name="sparkles"
+                  size={14}
+                  color={Brand.green}
+                />
+                <Text
+                  style={[
+                    styles.suggestedHeader,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Volunteers you’ve worked alongside
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.friendsScroll}
+              >
+                {recommended.map((suggestion) => (
+                  <SuggestedFriendCard
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    colors={colors}
+                    isDark={isDark}
+                    isSending={isSending(suggestion.id)}
+                    isAccepting={isAccepting(suggestion.id)}
+                    onAdd={() => handleSendRequest(suggestion.id)}
+                    onAccept={
+                      suggestion.requestId
+                        ? () =>
+                            handleAcceptRequest(
+                              suggestion.requestId!,
+                              suggestion.id
+                            )
+                        : undefined
+                    }
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {friends.length === 0 ? (
             <View
               style={[
@@ -1649,6 +1743,143 @@ function FriendCard({
   );
 }
 
+/* ── Suggested friend card (slot-matched volunteers) ── */
+
+function getSuggestedDisplayName(s: RecommendedFriend) {
+  if (s.firstName) return s.firstName;
+  if (s.name) return s.name.split(" ")[0];
+  return "Volunteer";
+}
+
+function getSuggestedInitial(s: RecommendedFriend) {
+  const name = getSuggestedDisplayName(s);
+  return name.charAt(0).toUpperCase();
+}
+
+function SuggestedFriendCard({
+  suggestion,
+  colors,
+  isDark,
+  isSending,
+  isAccepting,
+  onAdd,
+  onAccept,
+}: {
+  suggestion: RecommendedFriend;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+  isSending: boolean;
+  isAccepting: boolean;
+  onAdd: () => void;
+  onAccept?: () => void;
+}) {
+  const displayName = getSuggestedDisplayName(suggestion);
+  const isPending = suggestion.isPendingRequest && !!onAccept;
+  const handlePress = isPending ? onAccept! : onAdd;
+  const isBusy = isPending ? isAccepting : isSending;
+  const buttonLabel = isPending
+    ? isBusy
+      ? "Accepting…"
+      : "Accept"
+    : isBusy
+    ? "Sending…"
+    : "Add";
+  const buttonIcon = isPending ? "checkmark" : "add";
+
+  return (
+    <View
+      style={[
+        styles.friendCard,
+        styles.suggestedCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: isDark
+            ? "rgba(255,255,255,0.06)"
+            : "rgba(14,58,35,0.08)",
+          shadowColor: "#000",
+          shadowOpacity: isDark ? 0.06 : 0,
+          elevation: isDark ? 2 : 0,
+        },
+      ]}
+      accessible
+      accessibilityLabel={`${displayName}, ${suggestion.sharedShiftsCount} shared shifts. ${
+        isPending ? "Pending friend request" : "Suggested friend"
+      }`}
+    >
+      {suggestion.profilePhotoUrl ? (
+        <Image
+          source={{ uri: suggestion.profilePhotoUrl }}
+          style={styles.friendAvatar}
+        />
+      ) : (
+        <View
+          style={[styles.friendAvatarFallback, { backgroundColor: Brand.green }]}
+        >
+          <Text style={styles.friendAvatarInitial}>
+            {getSuggestedInitial(suggestion)}
+          </Text>
+        </View>
+      )}
+
+      <Text
+        style={[styles.friendName, { color: colors.text }]}
+        numberOfLines={1}
+      >
+        {displayName}
+      </Text>
+
+      <View style={styles.friendMetaRow}>
+        <Ionicons
+          name="people-outline"
+          size={12}
+          color={colors.textSecondary}
+        />
+        <Text
+          style={[styles.friendMeta, { color: colors.textSecondary }]}
+          numberOfLines={1}
+        >
+          {suggestion.sharedShiftsCount} shared
+        </Text>
+      </View>
+
+      {isPending && (
+        <View style={styles.suggestedPendingPill}>
+          <Text style={styles.suggestedPendingText}>Wants to connect</Text>
+        </View>
+      )}
+
+      <Pressable
+        onPress={handlePress}
+        disabled={isBusy}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isPending
+            ? `Accept friend request from ${displayName}`
+            : `Send friend request to ${displayName}`
+        }
+        hitSlop={8}
+        style={({ pressed }) => [
+          styles.suggestedAddButton,
+          {
+            backgroundColor: isPending ? Brand.green : colors.text,
+            opacity: isBusy ? 0.6 : pressed ? 0.85 : 1,
+            transform: [{ scale: pressed && !isBusy ? 0.97 : 1 }],
+          },
+        ]}
+      >
+        {isBusy ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <>
+            <Ionicons name={buttonIcon} size={14} color="#ffffff" />
+            <Text style={styles.suggestedAddText}>{buttonLabel}</Text>
+          </>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
 /* ── Settings row ── */
 
 function SettingsRow({
@@ -2024,6 +2255,56 @@ const styles = StyleSheet.create({
   friendMeta: {
     fontSize: 11,
     fontFamily: FontFamily.medium,
+    letterSpacing: 0.1,
+  },
+  suggestedBlock: {
+    marginBottom: 16,
+  },
+  suggestedHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  suggestedHeader: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
+    textTransform: "uppercase",
+  },
+  suggestedCard: {
+    paddingBottom: 14,
+    gap: 4,
+  },
+  suggestedPendingPill: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,196,87,0.18)",
+  },
+  suggestedPendingText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
+    color: "#b87324",
+  },
+  suggestedAddButton: {
+    marginTop: 10,
+    minHeight: 32,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    alignSelf: "stretch",
+  },
+  suggestedAddText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
     letterSpacing: 0.1,
   },
   emptyFriendsCard: {

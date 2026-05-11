@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { cache } from "react";
 import { subMonths } from "date-fns";
 import type { RecommendedFriend } from "@/lib/friends-utils";
+import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
+
+// Slot key: same NZ date + same period (Day/Evening) + same location
+function getShiftSlotKey(shift: { start: Date; location: string | null }): string {
+  const date = getShiftDate(shift.start);
+  const period = isAMShift(shift.start) ? "DAY" : "EVE";
+  return `${date}|${period}|${shift.location ?? ""}`;
+}
 
 export interface Friend {
   friendshipId: string;
@@ -176,56 +184,65 @@ export const getFriendsData = cache(async (): Promise<FriendsData | null> => {
 const SHARED_SHIFTS_THRESHOLD = 3;
 const MONTHS_TO_LOOK_BACK = 3;
 
-// Fetch recommended friends based on shared shifts
-export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]> => {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
-    return [];
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-
-  if (!user) {
-    return [];
-  }
-
+/**
+ * Core recommended-friends algorithm. Auth-agnostic so it can be reused by
+ * both the NextAuth web flow and the JWT-authenticated mobile API.
+ *
+ * A "shared shift" means both users were at the same location during the
+ * same NZ-time day/evening period — they don't need to have been on the
+ * exact same shift.
+ */
+export async function getRecommendedFriendsForUser(
+  userId: string,
+  userEmail: string
+): Promise<RecommendedFriend[]> {
   try {
     const cutoffDate = subMonths(new Date(), MONTHS_TO_LOOK_BACK);
 
     const userShifts = await prisma.signup.findMany({
       where: {
-        userId: user.id,
+        userId,
         status: "CONFIRMED",
         shift: { start: { gte: cutoffDate } },
       },
-      select: { shiftId: true },
+      select: {
+        shift: { select: { start: true, location: true } },
+      },
     });
 
-    const userShiftIds = userShifts.map((signup) => signup.shiftId);
-
-    if (userShiftIds.length === 0) {
+    if (userShifts.length === 0) {
       return [];
+    }
+
+    // Build the set of slots the current user attended (date + day/evening + location).
+    const userSlotKeys = new Set<string>();
+    const userLocations = new Set<string>();
+    let userHasNullLocation = false;
+    for (const signup of userShifts) {
+      userSlotKeys.add(getShiftSlotKey(signup.shift));
+      if (signup.shift.location === null) {
+        userHasNullLocation = true;
+      } else {
+        userLocations.add(signup.shift.location);
+      }
     }
 
     const existingFriends = await prisma.friendship.findMany({
       where: {
-        OR: [{ userId: user.id }, { friendId: user.id }],
+        OR: [{ userId }, { friendId: userId }],
         status: "ACCEPTED",
       },
       select: { userId: true, friendId: true },
     });
 
     const friendIds = existingFriends.map((f) =>
-      f.userId === user.id ? f.friendId : f.userId
+      f.userId === userId ? f.friendId : f.userId
     );
 
     // Get sent friend requests (to exclude from suggestions)
     const sentRequests = await prisma.friendRequest.findMany({
       where: {
-        fromUserId: user.id,
+        fromUserId: userId,
         status: "PENDING",
         expiresAt: { gt: new Date() },
       },
@@ -237,7 +254,7 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
     // Get received friend requests (to include in suggestions)
     const receivedRequests = await prisma.friendRequest.findMany({
       where: {
-        toEmail: user.email,
+        toEmail: userEmail,
         status: "PENDING",
         expiresAt: { gt: new Date() },
       },
@@ -255,11 +272,27 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
       },
     });
 
+    // Narrow the candidate pool to signups whose shift could match one of our
+    // slots: same date range + same location set. We then filter precisely by
+    // slot key in memory.
+    const locationFilter: Array<{ location: string | null } | { location: { in: string[] } }> = [];
+    if (userLocations.size > 0) {
+      locationFilter.push({ location: { in: [...userLocations] } });
+    }
+    if (userHasNullLocation) {
+      locationFilter.push({ location: null });
+    }
+
     const sharedSignups = await prisma.signup.findMany({
       where: {
-        shiftId: { in: userShiftIds },
-        userId: { not: user.id },
+        userId: { not: userId },
         status: "CONFIRMED",
+        shift: {
+          start: { gte: cutoffDate },
+          ...(locationFilter.length === 1
+            ? locationFilter[0]
+            : { OR: locationFilter }),
+        },
         user: {
           allowFriendSuggestions: true,
           archivedAt: null,
@@ -288,48 +321,68 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
       },
     });
 
+    // Aggregate by user, counting distinct shared slots. We keep one
+    // representative shift per slot (the other user's shift) so the UI can
+    // show what they typically work.
     const userShiftCounts = new Map<
       string,
       {
         user: (typeof sharedSignups)[0]["user"];
-        shifts: (typeof sharedSignups)[0]["shift"][];
+        shiftsBySlot: Map<string, (typeof sharedSignups)[0]["shift"]>;
       }
     >();
 
     sharedSignups.forEach((signup) => {
-      const userId = signup.user.id;
+      const slotKey = getShiftSlotKey(signup.shift);
+      if (!userSlotKeys.has(slotKey)) {
+        return;
+      }
 
       // Only exclude users we've sent requests to, not users who sent requests to us
       if (sentRequestEmails.includes(signup.user.email)) {
         return;
       }
 
-      if (!userShiftCounts.has(userId)) {
-        userShiftCounts.set(userId, { user: signup.user, shifts: [] });
+      const candidateUserId = signup.user.id;
+      if (!userShiftCounts.has(candidateUserId)) {
+        userShiftCounts.set(candidateUserId, {
+          user: signup.user,
+          shiftsBySlot: new Map(),
+        });
       }
 
-      userShiftCounts.get(userId)!.shifts.push(signup.shift);
+      const entry = userShiftCounts.get(candidateUserId)!;
+      const existing = entry.shiftsBySlot.get(slotKey);
+      // Prefer the most recent shift in the slot as the representative
+      if (!existing || signup.shift.start.getTime() > existing.start.getTime()) {
+        entry.shiftsBySlot.set(slotKey, signup.shift);
+      }
     });
+
+    const collectRecentSharedShifts = (
+      shiftsBySlot: Map<string, (typeof sharedSignups)[0]["shift"]> | undefined
+    ) =>
+      Array.from(shiftsBySlot?.values() ?? [])
+        .sort((a, b) => b.start.getTime() - a.start.getTime())
+        .slice(0, 3)
+        .map((shift) => ({
+          id: shift.id,
+          start: shift.start.toISOString(),
+          shiftTypeName: shift.shiftType.name,
+          location: shift.location,
+        }));
 
     // Map received friend requests to RecommendedFriend format
     const friendRequestSuggestions: RecommendedFriend[] = receivedRequests.map((req) => {
-      const userShifts = userShiftCounts.get(req.fromUser.id);
+      const data = userShiftCounts.get(req.fromUser.id);
       return {
         id: req.fromUser.id,
         name: req.fromUser.name,
         firstName: req.fromUser.firstName,
         lastName: req.fromUser.lastName,
         profilePhotoUrl: req.fromUser.profilePhotoUrl,
-        sharedShiftsCount: userShifts?.shifts.length || 0,
-        recentSharedShifts: userShifts?.shifts
-          .sort((a, b) => b.start.getTime() - a.start.getTime())
-          .slice(0, 3)
-          .map((shift) => ({
-            id: shift.id,
-            start: shift.start.toISOString(),
-            shiftTypeName: shift.shiftType.name,
-            location: shift.location,
-          })) || [],
+        sharedShiftsCount: data?.shiftsBySlot.size ?? 0,
+        recentSharedShifts: collectRecentSharedShifts(data?.shiftsBySlot),
         isPendingRequest: true,
         requestId: req.id,
       };
@@ -338,9 +391,9 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
     // Get shared-shift based suggestions (exclude users who sent friend requests)
     const receivedRequestUserIds = receivedRequests.map((req) => req.fromUser.id);
     const sharedShiftSuggestions: RecommendedFriend[] = Array.from(userShiftCounts.entries())
-      .filter(([userId, data]) =>
-        data.shifts.length >= SHARED_SHIFTS_THRESHOLD &&
-        !receivedRequestUserIds.includes(userId)
+      .filter(([candidateUserId, data]) =>
+        data.shiftsBySlot.size >= SHARED_SHIFTS_THRESHOLD &&
+        !receivedRequestUserIds.includes(candidateUserId)
       )
       .map(([, data]) => ({
         id: data.user.id,
@@ -348,16 +401,8 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         profilePhotoUrl: data.user.profilePhotoUrl,
-        sharedShiftsCount: data.shifts.length,
-        recentSharedShifts: data.shifts
-          .sort((a, b) => b.start.getTime() - a.start.getTime())
-          .slice(0, 3)
-          .map((shift) => ({
-            id: shift.id,
-            start: shift.start.toISOString(),
-            shiftTypeName: shift.shiftType.name,
-            location: shift.location,
-          })),
+        sharedShiftsCount: data.shiftsBySlot.size,
+        recentSharedShifts: collectRecentSharedShifts(data.shiftsBySlot),
         isPendingRequest: false,
       }))
       .sort((a, b) => b.sharedShiftsCount - a.sharedShiftsCount);
@@ -368,6 +413,26 @@ export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]
     console.error("Error fetching recommended friends:", error);
     return [];
   }
+}
+
+// Fetch recommended friends based on shared shifts (web NextAuth session)
+export const getRecommendedFriends = cache(async (): Promise<RecommendedFriend[]> => {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return [];
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, email: true },
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  return getRecommendedFriendsForUser(user.id, user.email);
 });
 
 // Get current user for server components
