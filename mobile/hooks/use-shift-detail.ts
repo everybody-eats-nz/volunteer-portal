@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import type { Shift, ShiftSignup } from "@/lib/dummy-data";
+import { queryKeys } from "@/lib/query-keys";
 
 /** Raw shape returned by GET /api/mobile/shifts/[id] */
 type ShiftDetailResponse = {
@@ -64,28 +65,28 @@ type UseShiftDetailReturn = {
 };
 
 export function useShiftDetail(shiftId: string | undefined): UseShiftDetailReturn {
-  const [shift, setShift] = useState<Shift | null>(null);
-  const [signups, setSignups] = useState<ShiftSignup[]>([]);
-  const [periodFriends, setPeriodFriends] = useState<PeriodFriend[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const enabled = Boolean(shiftId);
 
-  const fetchDetail = useCallback(async () => {
-    if (!shiftId) {
-      setIsLoading(false);
-      return;
-    }
+  const detail = useQuery({
+    queryKey: shiftId ? queryKeys.shifts.detail(shiftId) : ["shifts", "detail", "noop"],
+    queryFn: () => api<ShiftDetailResponse>(`/api/mobile/shifts/${shiftId}`),
+    enabled,
+  });
 
-    try {
-      setError(null);
-      const [data, concurrent] = await Promise.all([
-        api<ShiftDetailResponse>(`/api/mobile/shifts/${shiftId}`),
-        api<ConcurrentResponse>(`/api/mobile/shifts/${shiftId}/concurrent`).catch(
-          () => null,
-        ),
-      ]);
+  // Concurrent friends/shifts is best-effort — render the detail even if it fails.
+  const concurrent = useQuery({
+    queryKey: shiftId
+      ? queryKeys.shifts.concurrent(shiftId)
+      : ["shifts", "concurrent", "noop"],
+    queryFn: () =>
+      api<ConcurrentResponse>(`/api/mobile/shifts/${shiftId}/concurrent`),
+    enabled,
+    retry: false,
+  });
 
-      const mappedShift: Shift = {
+  const data = detail.data;
+  const shift: Shift | null = data
+    ? {
         id: data.id,
         shiftType: {
           id: data.shiftType.id,
@@ -99,52 +100,38 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
         signedUp: data.signedUp,
         status: data.status === "REGULAR_PENDING" ? "PENDING" : data.status,
         notes: data.notes ?? undefined,
-      };
+      }
+    : null;
 
-      const mappedSignups: ShiftSignup[] = data.signups.map((s) => ({
-        id: s.id,
-        name: s.name,
-        profilePhotoUrl: s.profilePhotoUrl ?? undefined,
-        isFriend: s.isFriend,
-      }));
+  const signups: ShiftSignup[] = (data?.signups ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    profilePhotoUrl: s.profilePhotoUrl ?? undefined,
+    isFriend: s.isFriend,
+  }));
 
-      const mappedPeriodFriends: PeriodFriend[] = (concurrent?.friends ?? []).map(
-        (f) => ({
-          id: f.id,
-          name: f.name,
-          profilePhotoUrl: f.profilePhotoUrl,
-          shiftTypeName: f.shiftTypeName,
-          isFriend: f.isFriend ?? true,
-        }),
-      );
-
-      setShift(mappedShift);
-      setSignups(mappedSignups);
-      setPeriodFriends(mappedPeriodFriends);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load shift details"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [shiftId]);
-
-  useEffect(() => {
-    fetchDetail();
-  }, [fetchDetail]);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchDetail();
-  }, [fetchDetail]);
+  const periodFriends: PeriodFriend[] = (concurrent.data?.friends ?? []).map(
+    (f) => ({
+      id: f.id,
+      name: f.name,
+      profilePhotoUrl: f.profilePhotoUrl,
+      shiftTypeName: f.shiftTypeName,
+      isFriend: f.isFriend ?? true,
+    })
+  );
 
   return {
     shift,
     signups,
     periodFriends,
-    isLoading,
-    error,
-    refresh,
+    isLoading: enabled ? detail.isPending : false,
+    error: detail.error
+      ? detail.error instanceof Error
+        ? detail.error.message
+        : "Failed to load shift details"
+      : null,
+    refresh: async () => {
+      await Promise.all([detail.refetch(), concurrent.refetch()]);
+    },
   };
 }
