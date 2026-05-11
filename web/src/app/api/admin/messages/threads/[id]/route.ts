@@ -4,6 +4,10 @@ import type { Prisma } from "@/generated/client";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { listMessages } from "@/lib/services/messaging";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 export async function GET(
   req: Request,
@@ -73,7 +77,7 @@ export async function GET(
             notes: true,
             capacity: true,
             shiftType: { select: { name: true } },
-            _count: { select: { signups: { where: { status: "CONFIRMED" } } } },
+            _count: shiftCapacityCountSelect(["CONFIRMED"]),
           },
         },
       },
@@ -90,7 +94,7 @@ export async function GET(
         location: nextSignup.shift.location,
         notes: nextSignup.shift.notes,
         capacity: nextSignup.shift.capacity,
-        confirmedCount: nextSignup.shift._count.signups,
+        confirmedCount: getShiftEffectiveCount(nextSignup.shift),
         shiftTypeName: nextSignup.shift.shiftType.name,
       }
     : null;

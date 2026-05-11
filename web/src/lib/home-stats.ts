@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 export type HomeStats = {
   volunteers: number;
@@ -99,10 +103,7 @@ export async function getHomeStats(): Promise<HomeStats> {
         id: true,
         capacity: true,
         location: true,
-        signups: {
-          where: { status: "CONFIRMED" },
-          select: { id: true },
-        },
+        _count: shiftCapacityCountSelect(["CONFIRMED"]),
       },
     }),
     prisma.location.count({ where: { isActive: true } }),
@@ -112,10 +113,7 @@ export async function getHomeStats(): Promise<HomeStats> {
       take: 6,
       include: {
         shiftType: { select: { name: true } },
-        signups: {
-          where: { status: "CONFIRMED" },
-          select: { id: true },
-        },
+        _count: shiftCapacityCountSelect(["CONFIRMED"]),
       },
     }),
     prisma.signup.findMany({
@@ -154,10 +152,10 @@ export async function getHomeStats(): Promise<HomeStats> {
 
   // Open shifts derived
   const openShiftsCount = openShiftsRaw.filter(
-    (s) => s.signups.length < s.capacity
+    (s) => getShiftEffectiveCount(s) < s.capacity
   ).length;
   const openSpots = openShiftsRaw.reduce(
-    (sum, s) => sum + Math.max(0, s.capacity - s.signups.length),
+    (sum, s) => sum + Math.max(0, s.capacity - getShiftEffectiveCount(s)),
     0
   );
 
@@ -168,9 +166,9 @@ export async function getHomeStats(): Promise<HomeStats> {
     activeNames.has(n)
   ).map((name) => {
     const shifts = openShiftsRaw.filter((s) => s.location === name);
-    const open = shifts.filter((s) => s.signups.length < s.capacity).length;
+    const open = shifts.filter((s) => getShiftEffectiveCount(s) < s.capacity).length;
     const spots = shifts.reduce(
-      (sum, s) => sum + Math.max(0, s.capacity - s.signups.length),
+      (sum, s) => sum + Math.max(0, s.capacity - getShiftEffectiveCount(s)),
       0
     );
     return { name, openShifts: open, spotsLeft: spots };
@@ -183,8 +181,8 @@ export async function getHomeStats(): Promise<HomeStats> {
     location: s.location,
     shiftType: s.shiftType.name,
     capacity: s.capacity,
-    confirmed: s.signups.length,
-    spotsLeft: Math.max(0, s.capacity - s.signups.length),
+    confirmed: getShiftEffectiveCount(s),
+    spotsLeft: Math.max(0, s.capacity - getShiftEffectiveCount(s)),
   }));
 
   const activity: RecentActivityItem[] = recentSignups.map((s) => {

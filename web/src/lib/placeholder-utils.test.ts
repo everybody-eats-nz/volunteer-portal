@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   getEffectiveConfirmedCount,
   getShiftConfirmedCount,
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
 } from "./placeholder-utils";
 
 describe("getEffectiveConfirmedCount", () => {
@@ -61,5 +63,59 @@ describe("getShiftConfirmedCount", () => {
     expect(
       getShiftConfirmedCount({ signups: [], _count: { placeholders: 0 } })
     ).toBe(0);
+  });
+});
+
+describe("getShiftEffectiveCount", () => {
+  it("sums _count.signups and _count.placeholders", () => {
+    expect(
+      getShiftEffectiveCount({ _count: { signups: 4, placeholders: 2 } })
+    ).toBe(6);
+  });
+
+  it("returns just signups when placeholders are 0", () => {
+    expect(
+      getShiftEffectiveCount({ _count: { signups: 3, placeholders: 0 } })
+    ).toBe(3);
+  });
+
+  it("returns just placeholders when signups are 0", () => {
+    expect(
+      getShiftEffectiveCount({ _count: { signups: 0, placeholders: 5 } })
+    ).toBe(5);
+  });
+
+  it("returns 0 when both are 0", () => {
+    expect(
+      getShiftEffectiveCount({ _count: { signups: 0, placeholders: 0 } })
+    ).toBe(0);
+  });
+});
+
+describe("shiftCapacityCountSelect", () => {
+  it("filters signups by the provided statuses and always counts placeholders", () => {
+    expect(shiftCapacityCountSelect(["CONFIRMED"])).toEqual({
+      select: {
+        signups: { where: { status: { in: ["CONFIRMED"] } } },
+        placeholders: true,
+      },
+    });
+  });
+
+  it("supports multiple statuses", () => {
+    expect(shiftCapacityCountSelect(["CONFIRMED", "REGULAR_PENDING"])).toEqual({
+      select: {
+        signups: {
+          where: { status: { in: ["CONFIRMED", "REGULAR_PENDING"] } },
+        },
+        placeholders: true,
+      },
+    });
+  });
+
+  it("counts all signups (unfiltered) when no statuses are provided", () => {
+    expect(shiftCapacityCountSelect()).toEqual({
+      select: { signups: true, placeholders: true },
+    });
   });
 });

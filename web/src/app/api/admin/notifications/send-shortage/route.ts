@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { createNotificationsForUsers } from "@/lib/notifications";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -30,17 +34,7 @@ export async function POST(request: Request) {
       where: { id: { in: shiftIds } },
       include: {
         shiftType: true,
-        _count: {
-          select: {
-            signups: {
-              where: {
-                status: {
-                  in: ["CONFIRMED", "REGULAR_PENDING"],
-                },
-              },
-            },
-          },
-        },
+        _count: shiftCapacityCountSelect(["CONFIRMED", "REGULAR_PENDING"]),
       },
       orderBy: { start: "asc" },
     });
@@ -80,7 +74,7 @@ export async function POST(request: Request) {
 
     // Build shift data for emails
     const shiftsForEmail = shifts.map((shift) => {
-      const currentVolunteers = shift._count.signups;
+      const currentVolunteers = getShiftEffectiveCount(shift);
       const neededVolunteers = shift.capacity - currentVolunteers;
       return {
         shiftId: shift.id,

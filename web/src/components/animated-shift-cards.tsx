@@ -672,9 +672,7 @@ export function AnimatedShiftCards({ shifts, shiftIdToTypeName }: AnimatedShiftC
                             data-testid={`shift-capacity-${shift.id}`}
                             className={`${staffingStatus.color} text-white text-base px-3 py-1.5 font-bold shadow-sm`}
                           >
-                            {unregisteredCount > 0
-                              ? `${confirmedSignups}+${unregisteredCount}/${shift.capacity}`
-                              : `${confirmed}/${shift.capacity}`}
+                            {`${confirmed}/${shift.capacity}`}
                           </Badge>
                           {!isCompleted && (
                             <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wide">
