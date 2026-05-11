@@ -32,7 +32,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { isPasskeySupported, signInWithPasskey } from "@/lib/passkey-client";
-import { signInWithApple, useGoogleAuth } from "@/lib/oauth";
+import { signInWithApple, useFacebookAuth, useGoogleAuth } from "@/lib/oauth";
 import { posthog } from "@/lib/posthog";
 
 const HERO_IMAGES = [
@@ -40,7 +40,7 @@ const HERO_IMAGES = [
   require("@/assets/photos/66da3c585f61f1e0ba83fbcc_03.png"),
 ];
 
-type OAuthProvider = "apple" | "google";
+type OAuthProvider = "apple" | "google" | "facebook";
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
@@ -69,6 +69,8 @@ export default function LoginScreen() {
   // the id_token is available. This ref tracks an in-flight sign-in so the
   // effect below can finish the login once the exchanged response lands.
   const googleInFlight = useRef(false);
+  const [facebookRequest, facebookResponse, promptFacebook] = useFacebookAuth();
+  const facebookInFlight = useRef(false);
 
   useEffect(() => {
     isPasskeySupported().then(setPasskeyReady);
@@ -104,6 +106,36 @@ export default function LoginScreen() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [googleResponse]);
+
+  useEffect(() => {
+    if (!facebookResponse || !facebookInFlight.current) return;
+
+    if (facebookResponse.type !== "success") {
+      facebookInFlight.current = false;
+      setBusyProvider(null);
+      return;
+    }
+
+    const accessToken =
+      facebookResponse.authentication?.accessToken ??
+      (facebookResponse.params as Record<string, string>)?.access_token;
+
+    if (!accessToken) return;
+
+    facebookInFlight.current = false;
+
+    (async () => {
+      try {
+        await loginWithOAuth("facebook", { accessToken });
+      } catch (error) {
+        handleError(error, "Couldn't sign in with Facebook. Please try again.");
+        posthog?.capture("login_failed", { method: "oauth_facebook" });
+      } finally {
+        setBusyProvider(null);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facebookResponse]);
 
   const anyBusy = isSubmitting || busyProvider !== null;
 
@@ -165,6 +197,28 @@ export default function LoginScreen() {
       googleInFlight.current = false;
       handleError(error, "Couldn't sign in with Google. Please try again.");
       posthog?.capture("login_failed", { method: "oauth_google" });
+      setBusyProvider(null);
+    }
+  }
+
+  async function handleFacebook() {
+    if (anyBusy) return;
+    if (!facebookRequest) {
+      Alert.alert(
+        "Sign in failed",
+        "Facebook sign-in isn't ready yet — try again in a moment."
+      );
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setBusyProvider("facebook");
+    facebookInFlight.current = true;
+    try {
+      await promptFacebook();
+    } catch (error) {
+      facebookInFlight.current = false;
+      handleError(error, "Couldn't sign in with Facebook. Please try again.");
+      posthog?.capture("login_failed", { method: "oauth_facebook" });
       setBusyProvider(null);
     }
   }
@@ -368,6 +422,13 @@ export default function LoginScreen() {
                 onPress={handleGoogle}
                 isDark={isDark}
               />
+              <OAuthCircle
+                provider="facebook"
+                isBusy={busyProvider === "facebook"}
+                disabled={anyBusy || !facebookRequest}
+                onPress={handleFacebook}
+                isDark={isDark}
+              />
             </Animated.View>
 
             {/* Divider before email */}
@@ -541,11 +602,18 @@ function OAuthCircle({
           icon: isDark ? "#0b0d10" : "#ffffff",
           label: "Apple",
         }
-      : {
+      : provider === "google"
+      ? {
           bg: "#ffffff",
           border: "rgba(0,0,0,0.08)",
           icon: "#0b0d10",
           label: "Google",
+        }
+      : {
+          bg: "#1877F2",
+          border: "transparent",
+          icon: "#ffffff",
+          label: "Facebook",
         };
   return (
     <Pressable
@@ -568,8 +636,10 @@ function OAuthCircle({
         <Ionicons name="ellipsis-horizontal" size={22} color={style.icon} />
       ) : provider === "apple" ? (
         <Ionicons name="logo-apple" size={26} color={style.icon} />
-      ) : (
+      ) : provider === "google" ? (
         <Ionicons name="logo-google" size={26} color="#4285F4" />
+      ) : (
+        <Ionicons name="logo-facebook" size={26} color={style.icon} />
       )}
     </Pressable>
   );
