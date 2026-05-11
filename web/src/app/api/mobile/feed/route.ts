@@ -21,7 +21,6 @@ function parseCriteriaShiftTypeId(criteria: string): string | undefined {
  * Pulls real data from:
  * - Admin announcements (targeted to the requesting user)
  * - Recent achievement unlocks (friends + own)
- * - Milestone events (volunteers crossing shift count thresholds)
  * - Friend signups (friends signing up for shifts)
  * - Shift recaps (aggregate stats for completed shifts at user's locations)
  * - New shifts published for the user's default location
@@ -108,7 +107,6 @@ export async function GET(request: Request) {
   // Run all data queries in parallel
   const [
     recentAchievements,
-    milestoneUsers,
     friendSignups,
     userSignupLocations,
     announcements,
@@ -142,39 +140,6 @@ export async function GET(request: Request) {
       },
       orderBy: { unlockedAt: "desc" },
       take: 10,
-    }),
-
-    // Milestone candidates: volunteers who recently completed a shift
-    prisma.signup.findMany({
-      where: {
-        status: "CONFIRMED",
-        userId: { in: visibleUserIds },
-        shift: { end: { lt: now, gte: since } },
-      },
-      select: {
-        userId: true,
-        shift: { select: { end: true } },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            firstName: true,
-            profilePhotoUrl: true,
-            _count: {
-              select: {
-                signups: {
-                  where: {
-                    status: "CONFIRMED",
-                    shift: { end: { lt: now } },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { shift: { end: "desc" } },
-      take: 50,
     }),
 
     // Friend signups: friends who recently confirmed onto upcoming shifts
@@ -406,44 +371,6 @@ export async function GET(request: Request) {
       ),
       timestamp: ua.unlockedAt.toISOString(),
       isFriend: friendIdSet.has(ua.user.id),
-      likeCount: 0,
-      likedByMe: false,
-      recentLikers: [],
-      commentCount: 0,
-    });
-  }
-
-  // Extract milestones from recent signups
-  const MILESTONE_THRESHOLDS = [10, 25, 50, 75, 100, 150, 200];
-  const seenMilestones = new Set<string>();
-
-  for (const signup of milestoneUsers) {
-    const totalShifts = signup.user._count.signups;
-    const milestone = [...MILESTONE_THRESHOLDS]
-      .reverse()
-      .find((t) => totalShifts >= t);
-    if (!milestone) continue;
-
-    const key = `${signup.userId}-${milestone}`;
-    if (seenMilestones.has(key)) continue;
-    seenMilestones.add(key);
-
-    if (totalShifts - milestone > 2) continue;
-
-    const isMe = signup.userId === userId;
-    const displayName = isMe
-      ? "You"
-      : (signup.user.firstName ?? signup.user.name ?? "A volunteer");
-
-    items.push({
-      type: "milestone",
-      id: `milestone-${signup.userId}-${milestone}`,
-      userId: isMe ? undefined : signup.userId,
-      userName: displayName,
-      profilePhotoUrl: isMe ? undefined : (signup.user.profilePhotoUrl ?? undefined),
-      count: milestone,
-      timestamp: signup.shift.end.toISOString(),
-      isFriend: friendIdSet.has(signup.userId),
       likeCount: 0,
       likedByMe: false,
       recentLikers: [],

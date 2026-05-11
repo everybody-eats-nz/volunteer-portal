@@ -2176,9 +2176,9 @@ function FeedCard({
   isReported?: boolean;
 }) {
   // Only human-authored posts are reportable. System-generated items
-  // (achievement, milestone, friend_signup, shift_recap, new_shift,
-  // daily_menu) have no author-written content to moderate — but comments
-  // on them are still reportable via the sheet.
+  // (achievement, friend_signup, shift_recap, new_shift, daily_menu)
+  // have no author-written content to moderate — but comments on them
+  // are still reportable via the sheet.
   const canReport = item.type === "photo_post" || item.type === "announcement";
   // Track announcement image failures so a missing/404 image doesn't leave
   // the 160px image slot reserved (a tall blank gap above the title).
@@ -2357,44 +2357,6 @@ function FeedCard({
                 </Text>
               </View>
             ) : null}
-            <View style={styles.feedFooter}>
-              <Text
-                style={[styles.feedMetaText, { color: colors.textSecondary }]}
-              >
-                {timeAgo}
-              </Text>
-              {socialButtons}
-            </View>
-          </View>
-        </>
-      );
-    }
-
-    if (item.type === "milestone") {
-      return (
-        <>
-          {item.isFriend ? (
-            <FeedAvatar
-              profilePhotoUrl={item.profilePhotoUrl}
-              userName={item.userName}
-              emoji="🔥"
-              badgeBg="#dcfce7"
-              userId={item.userId}
-            />
-          ) : (
-            <View style={[styles.feedIcon, { backgroundColor: "#dcfce7" }]}>
-              <Text style={styles.feedIconEmoji}>🔥</Text>
-            </View>
-          )}
-          <View style={styles.feedBody}>
-            <Text style={[styles.feedTitle, { color: colors.text }]}>
-              {item.userName} reached {item.count} shifts!
-            </Text>
-            <Text
-              style={[styles.feedDescription, { color: colors.textSecondary }]}
-            >
-              Ngā mihi nui — what a legend 💚
-            </Text>
             <View style={styles.feedFooter}>
               <Text
                 style={[styles.feedMetaText, { color: colors.textSecondary }]}
@@ -2712,16 +2674,6 @@ const SHEET_TYPE_CONFIG = {
     accentSoft: "#fef9c3",
     accentSoftDark: "rgba(251, 191, 36, 0.10)",
   },
-  milestone: {
-    emoji: "🔥",
-    label: "Milestone",
-    bg: "#dcfce7",
-    bgDark: "rgba(220, 252, 231, 0.12)",
-    accent: "#16a34a",
-    accentDark: "#86efac",
-    accentSoft: "#f0fdf4",
-    accentSoftDark: "rgba(34, 197, 94, 0.10)",
-  },
   photo_post: {
     emoji: "📸",
     label: "Photo",
@@ -2964,7 +2916,6 @@ function FeedItemSheet({
   // Determine hero avatar for friend items
   const hasFriendAvatar =
     (item.type === "achievement" ||
-      item.type === "milestone" ||
       item.type === "photo_post" ||
       item.type === "friend_signup") &&
     item.isFriend &&
@@ -2979,9 +2930,6 @@ function FeedItemSheet({
   } else if (item.type === "achievement") {
     title = `Ka pai! ${item.userName} earned "${item.achievementName}"`;
     body = item.description;
-  } else if (item.type === "milestone") {
-    title = `${item.userName} reached ${item.count} shifts!`;
-    body = "Ngā mihi nui — what a legend 💚";
   } else if (item.type === "photo_post") {
     title = `${item.userName} shared photos`;
     body = item.caption;

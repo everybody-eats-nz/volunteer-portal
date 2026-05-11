@@ -22,14 +22,32 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Get notification logs grouped by batch (same sentAt timestamp and sentBy)
-    const logs = await prisma.shortageNotificationLog.findMany({
+    // Each send writes one log row per recipient via a single createMany, so
+    // every row in a batch shares the same (sentAt, sentBy) — Postgres returns
+    // an identical now() within a transaction. Paginate by those batches
+    // rather than by individual log rows, otherwise a single large send
+    // (e.g. 200 recipients) fills the page and hides all older batches.
+    const batchKeys = await prisma.shortageNotificationLog.groupBy({
+      by: ["sentAt", "sentBy"],
       orderBy: { sentAt: "desc" },
       take: limit,
       skip: offset,
     });
 
-    // Group logs by batch (sent at same time by same admin)
+    const logs =
+      batchKeys.length === 0
+        ? []
+        : await prisma.shortageNotificationLog.findMany({
+            where: {
+              OR: batchKeys.map((b) => ({
+                sentAt: b.sentAt,
+                sentBy: b.sentBy,
+              })),
+            },
+            orderBy: { sentAt: "desc" },
+          });
+
+    // Group logs by batch (sentAt + sentBy)
     const batchMap = new Map<string, {
       sentAt: Date;
       sentBy: string;
@@ -47,11 +65,9 @@ export async function GET(request: Request) {
     }>();
 
     logs.forEach((log) => {
-      // Create a batch key based on sentAt (rounded to second) and sentBy
-      const batchKey = `${Math.floor(log.sentAt.getTime() / 1000)}-${log.sentBy}`;
+      const batchKey = `${log.sentAt.getTime()}-${log.sentBy}`;
 
       if (!batchMap.has(batchKey)) {
-        // Get shifts from the first log entry (they're all the same for the batch)
         const shifts = log.shifts as unknown as ShiftData[];
         batchMap.set(batchKey, {
           sentAt: log.sentAt,
@@ -65,7 +81,6 @@ export async function GET(request: Request) {
 
       const batch = batchMap.get(batchKey)!;
 
-      // Add recipient info
       batch.recipients.push({
         id: log.id,
         recipientId: log.recipientId,
@@ -82,20 +97,32 @@ export async function GET(request: Request) {
       }
     });
 
-    // Convert to array format for response
-    const batches = Array.from(batchMap.entries()).map(([key, batch]) => ({
-      batchKey: key,
-      sentAt: batch.sentAt,
-      sentBy: batch.sentBy,
-      shifts: batch.shifts,
-      recipients: batch.recipients,
-      successCount: batch.successCount,
-      failureCount: batch.failureCount,
-      totalCount: batch.recipients.length,
-    }));
+    // Preserve the batchKeys ordering (already desc by sentAt) when emitting
+    // results, so the response matches the requested page order even if the
+    // raw log fetch reordered things.
+    const batches = batchKeys
+      .map((b) => {
+        const key = `${b.sentAt.getTime()}-${b.sentBy}`;
+        const batch = batchMap.get(key);
+        if (!batch) return null;
+        return {
+          batchKey: key,
+          sentAt: batch.sentAt,
+          sentBy: batch.sentBy,
+          shifts: batch.shifts,
+          recipients: batch.recipients,
+          successCount: batch.successCount,
+          failureCount: batch.failureCount,
+          totalCount: batch.recipients.length,
+        };
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null);
 
-    // Get total count for pagination
-    const totalCount = await prisma.shortageNotificationLog.count();
+    // Count of distinct batches for pagination
+    const totalBatchesResult = await prisma.$queryRaw<
+      Array<{ count: bigint }>
+    >`SELECT COUNT(*)::bigint AS count FROM (SELECT DISTINCT "sentAt", "sentBy" FROM "ShortageNotificationLog") sub`;
+    const totalCount = Number(totalBatchesResult[0]?.count ?? 0);
 
     // Get admin names for the batches
     const adminIds = [...new Set(batches.map((b) => b.sentBy))];
@@ -113,7 +140,6 @@ export async function GET(request: Request) {
       ])
     );
 
-    // Add admin names to batches
     const batchesWithAdminNames = batches.map((batch) => ({
       ...batch,
       sentByName: adminMap.get(batch.sentBy) || "Unknown Admin",

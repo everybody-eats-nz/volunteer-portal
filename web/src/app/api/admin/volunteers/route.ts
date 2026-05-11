@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       where: {
         role: includeAdmins ? { in: ["VOLUNTEER", "ADMIN"] } : "VOLUNTEER",
         archivedAt: null,
+        profileCompleted: true,
         signups: {
           some: {
             status: "CONFIRMED",
