@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+} from "@/lib/placeholder-utils";
 
 /**
  * GET /api/mobile/shifts/[id]
@@ -46,6 +50,7 @@ export async function GET(
           },
         },
       },
+      _count: shiftCapacityCountSelect(["CONFIRMED"]),
     },
   });
 
@@ -79,10 +84,8 @@ export async function GET(
   const userSignup = shift.signups.find((s) => s.userId === userId);
   const userStatus = userSignup?.status ?? null;
 
-  // Count confirmed signups
-  const signedUpCount = shift.signups.filter(
-    (s) => s.status === "CONFIRMED"
-  ).length;
+  // Count confirmed signups + unregistered placeholders
+  const signedUpCount = getShiftEffectiveCount(shift);
 
   // Build signups list (all active signups) for the "Who's on this mahi" section
   const signups = shift.signups.map((s) => {
