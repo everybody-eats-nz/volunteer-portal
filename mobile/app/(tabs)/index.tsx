@@ -37,7 +37,10 @@ import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageViewer } from "@/components/image-viewer";
 import { useFeed } from "@/hooks/use-feed";
-import { useFeedInteractions } from "@/hooks/use-feed-interactions";
+import {
+  useFeedComments,
+  useFeedInteractions,
+} from "@/hooks/use-feed-interactions";
 import { useNotifications } from "@/hooks/use-notifications";
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
@@ -75,11 +78,9 @@ export default function HomeScreen() {
 
   const {
     toggleLike: apiToggleLike,
-    loadComments,
     addComment: apiAddComment,
     editComment: apiEditComment,
     deleteComment: apiDeleteComment,
-    getCommentState,
     reportItem,
     hasReported,
     blockUser,
@@ -111,6 +112,10 @@ export default function HomeScreen() {
   const likesSheetItem = likesSheetItemId
     ? feedItems.find((i) => i.id === likesSheetItemId) ?? null
     : null;
+  // Subscribe to the open item's comments. The query is gated on
+  // likesSheetItemId so it only fires when the sheet is open, but the cache
+  // sticks around — re-opening the same sheet shows comments instantly.
+  const sheetComments = useFeedComments(likesSheetItemId);
   const [viewerImages, setViewerImages] = useState<string[] | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
 
@@ -168,20 +173,9 @@ export default function HomeScreen() {
     [ME_AS_LIKER, profile?.id]
   );
 
-  const getCommentsForItem = useCallback(
-    (itemId: string): FeedComment[] => {
-      return getCommentState(itemId).comments;
-    },
-    [getCommentState]
-  );
-
-  const handleOpenSheet = useCallback(
-    (item: FeedItem) => {
-      setLikesSheetItemId(item.id);
-      loadComments(item.id);
-    },
-    [loadComments]
-  );
+  const handleOpenSheet = useCallback((item: FeedItem) => {
+    setLikesSheetItemId(item.id);
+  }, []);
 
   // Notification deep link: when a tap stashes a feed item id (e.g. an
   // announcement push), open that item's sheet as soon as the feed has
@@ -538,8 +532,8 @@ export default function HomeScreen() {
           onClose={() => setLikesSheetItemId(null)}
           colors={colors}
           isDark={colorScheme === "dark"}
-          comments={getCommentsForItem(likesSheetItem.id)}
-          isLoadingComments={getCommentState(likesSheetItem.id).isLoading}
+          comments={sheetComments.comments}
+          isLoadingComments={sheetComments.isLoading}
           onAddComment={(text) => addComment(likesSheetItem.id, text)}
           onEditComment={(commentId, text) =>
             editComment(likesSheetItem.id, commentId, text)

@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 import { api } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 
 export type UserFriendshipStatus =
   | "SELF"
@@ -67,39 +69,41 @@ type UseUserProfileReturn = {
 };
 
 export function useUserProfile(userId: string): UseUserProfileReturn {
-  const [profile, setProfileState] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = queryKeys.profile.user(userId);
 
-  const fetchProfile = useCallback(async () => {
-    try {
-      setError(null);
-      const result = await api<UserProfileResponse>(
+  const query = useQuery({
+    queryKey,
+    queryFn: () =>
+      api<UserProfileResponse>(
         `/api/mobile/users/${encodeURIComponent(userId)}`
-      );
-      setProfileState(result.profile);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load profile");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    await fetchProfile();
-  }, [fetchProfile]);
+      ),
+    select: (data) => data.profile,
+    enabled: Boolean(userId),
+  });
 
   const setProfile = useCallback(
     (updater: (prev: UserProfile | null) => UserProfile | null) => {
-      setProfileState((prev) => updater(prev));
+      queryClient.setQueryData<UserProfileResponse>(queryKey, (prev) => {
+        const next = updater(prev?.profile ?? null);
+        if (!next) return prev;
+        return { profile: next };
+      });
     },
-    []
+    [queryClient, queryKey]
   );
 
-  return { profile, isLoading, error, refresh, setProfile };
+  return {
+    profile: query.data ?? null,
+    isLoading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load profile"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
+    setProfile,
+  };
 }

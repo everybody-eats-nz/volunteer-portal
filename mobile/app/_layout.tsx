@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
@@ -21,7 +22,10 @@ import {
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/lib/auth';
-import { useNotificationsStore } from '@/hooks/use-notifications';
+import {
+  getUnreadCount,
+  subscribeToNotificationsUnread,
+} from '@/hooks/use-notifications';
 import { Brand } from '@/constants/theme';
 import { AchievementCelebration } from '@/components/achievement-celebration';
 import { AuthGate } from '@/components/auth-gate';
@@ -29,6 +33,7 @@ import { OnboardingFlow } from '@/components/onboarding-flow';
 import { useInitAchievementCelebration } from '@/hooks/use-achievement-celebration';
 import { navigateToNotificationTarget } from '@/lib/notification-routing';
 import { posthog } from '@/lib/posthog';
+import { queryClient, setupFocusManager } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,6 +54,8 @@ export default function RootLayout() {
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+
+  useEffect(() => setupFocusManager(), []);
 
   // Tap handling: navigate when the user taps a push notification (both
   // the runtime listener and any notification that launched the app from
@@ -90,17 +97,15 @@ export default function RootLayout() {
     };
   }, [isLoading, fontsLoaded, isAuthenticated]);
 
-  // Keep the OS app-icon badge in sync with the store's unreadCount.
+  // Keep the OS app-icon badge in sync with the notifications query cache.
   // Push notifications increment the badge; only we can clear it once the
   // user reads things in-app.
   useEffect(() => {
     const applyBadge = (count: number) => {
       Notifications.setBadgeCountAsync(count).catch(() => {});
     };
-    applyBadge(useNotificationsStore.getState().unreadCount);
-    return useNotificationsStore.subscribe((state, prev) => {
-      if (state.unreadCount !== prev.unreadCount) applyBadge(state.unreadCount);
-    });
+    applyBadge(getUnreadCount(queryClient));
+    return subscribeToNotificationsUnread(queryClient, applyBadge);
   }, []);
 
   useEffect(() => {
@@ -184,9 +189,13 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 
-  if (!posthog) {
-    return appTree;
-  }
+  const withPosthog = posthog ? (
+    <PostHogProvider client={posthog}>{appTree}</PostHogProvider>
+  ) : (
+    appTree
+  );
 
-  return <PostHogProvider client={posthog}>{appTree}</PostHogProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>{withPosthog}</QueryClientProvider>
+  );
 }

@@ -1,6 +1,9 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+
 import { api } from "@/lib/api";
 import type { FeedComment } from "@/lib/dummy-data";
+import { queryKeys } from "@/lib/query-keys";
 
 type LikeResponse = {
   liked: boolean;
@@ -30,9 +33,6 @@ type UseFeedInteractionsReturn = {
   /** Toggle like on a feed item. Returns the new liked state and count. */
   toggleLike: (itemId: string) => Promise<LikeResponse | null>;
 
-  /** Load all comments for a feed item (call when the sheet opens). */
-  loadComments: (itemId: string) => Promise<void>;
-
   /** Add a comment to a feed item. Returns the new comment. */
   addComment: (itemId: string, text: string, currentUserId: string, currentUserName: string, currentUserPhoto?: string) => Promise<FeedComment | null>;
 
@@ -41,9 +41,6 @@ type UseFeedInteractionsReturn = {
 
   /** Delete a comment you authored. Optimistic removal. */
   deleteComment: (itemId: string, commentId: string) => Promise<boolean>;
-
-  /** Get cached comment state for an item. */
-  getCommentState: (itemId: string) => CommentState;
 
   /** Report a feed item as objectionable content. */
   reportItem: (targetType: string, targetId: string, reason: string) => Promise<boolean>;
@@ -62,22 +59,54 @@ type UseFeedInteractionsReturn = {
 };
 
 /**
- * Manages real-time like/comment interactions on feed items.
+ * Subscribe to a single item's comments. The sheet calls this once with the
+ * open item id; the cache survives the sheet closing, so re-opening the same
+ * item shows comments instantly while a background revalidation runs.
+ */
+export function useFeedComments(itemId: string | null | undefined): CommentState {
+  const query = useQuery({
+    queryKey: itemId ? queryKeys.feedComments.forItem(itemId) : queryKeys.feedComments.all,
+    queryFn: () =>
+      api<CommentsResponse>(
+        `/api/mobile/feed/${encodeURIComponent(itemId ?? "")}/comments`
+      ).then((r) => r.comments),
+    enabled: Boolean(itemId),
+  });
+  return {
+    comments: query.data ?? [],
+    isLoading: query.isPending && Boolean(itemId),
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load comments"
+      : null,
+  };
+}
+
+/**
+ * Manages mutations on feed items: likes, comments (add/edit/delete),
+ * reports, and blocks. Comment lists themselves live in the React Query
+ * cache — read them via {@link useFeedComments}.
  *
- * Likes: optimistic toggle — updates local state immediately, then calls API.
- * Comments: loaded lazily when the sheet opens, then appended optimistically on add.
+ * Likes: optimistic toggle done by the caller against the feed item.
+ * Comments: optimistic patches against the per-item comments cache.
  */
 export function useFeedInteractions(): UseFeedInteractionsReturn {
-  // Map of itemId → comment state
-  const [commentStates, setCommentStates] = useState<
-    Record<string, CommentState>
-  >({});
+  const queryClient = useQueryClient();
 
   // Track items reported this session so the UI can reflect the reported state
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
 
   // Track users blocked this session for instant UI feedback
   const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
+
+  const patchComments = useCallback(
+    (itemId: string, updater: (prev: FeedComment[]) => FeedComment[]) => {
+      const key = queryKeys.feedComments.forItem(itemId);
+      queryClient.setQueryData<FeedComment[]>(key, (prev) => updater(prev ?? []));
+    },
+    [queryClient]
+  );
 
   const toggleLike = useCallback(
     async (itemId: string): Promise<LikeResponse | null> => {
@@ -94,36 +123,6 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
     []
   );
 
-  const loadComments = useCallback(async (itemId: string) => {
-    // Skip if already loaded
-    const existing = commentStates[itemId];
-    if (existing?.comments.length > 0) return;
-
-    setCommentStates((prev) => ({
-      ...prev,
-      [itemId]: { comments: [], isLoading: true, error: null },
-    }));
-
-    try {
-      const result = await api<CommentsResponse>(
-        `/api/mobile/feed/${encodeURIComponent(itemId)}/comments`
-      );
-      setCommentStates((prev) => ({
-        ...prev,
-        [itemId]: { comments: result.comments, isLoading: false, error: null },
-      }));
-    } catch (err) {
-      setCommentStates((prev) => ({
-        ...prev,
-        [itemId]: {
-          comments: [],
-          isLoading: false,
-          error: err instanceof Error ? err.message : "Failed to load comments",
-        },
-      }));
-    }
-  }, [commentStates]);
-
   const addComment = useCallback(
     async (
       itemId: string,
@@ -132,7 +131,6 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
       currentUserName: string,
       currentUserPhoto?: string
     ): Promise<FeedComment | null> => {
-      // Optimistic comment
       const optimistic: FeedComment = {
         id: `optimistic-${Date.now()}`,
         userId: currentUserId,
@@ -142,54 +140,25 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
         timestamp: new Date().toISOString(),
       };
 
-      setCommentStates((prev) => {
-        const existing = prev[itemId] ?? { comments: [], isLoading: false, error: null };
-        return {
-          ...prev,
-          [itemId]: {
-            ...existing,
-            comments: [...existing.comments, optimistic],
-          },
-        };
-      });
+      patchComments(itemId, (prev) => [...prev, optimistic]);
 
       try {
         const result = await api<AddCommentResponse>(
           `/api/mobile/feed/${encodeURIComponent(itemId)}/comments`,
           { method: "POST", body: { text } }
         );
-
-        // Replace optimistic with real comment
-        setCommentStates((prev) => {
-          const existing = prev[itemId] ?? { comments: [], isLoading: false, error: null };
-          return {
-            ...prev,
-            [itemId]: {
-              ...existing,
-              comments: existing.comments.map((c) =>
-                c.id === optimistic.id ? result.comment : c
-              ),
-            },
-          };
-        });
-
+        patchComments(itemId, (prev) =>
+          prev.map((c) => (c.id === optimistic.id ? result.comment : c))
+        );
         return result.comment;
       } catch {
-        // Remove optimistic comment on failure
-        setCommentStates((prev) => {
-          const existing = prev[itemId] ?? { comments: [], isLoading: false, error: null };
-          return {
-            ...prev,
-            [itemId]: {
-              ...existing,
-              comments: existing.comments.filter((c) => c.id !== optimistic.id),
-            },
-          };
-        });
+        patchComments(itemId, (prev) =>
+          prev.filter((c) => c.id !== optimistic.id)
+        );
         return null;
       }
     },
-    []
+    [patchComments]
   );
 
   const editComment = useCallback(
@@ -198,80 +167,44 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
       commentId: string,
       text: string
     ): Promise<FeedComment | null> => {
-      // Snapshot the previous comment so we can revert on failure
-      let previous: FeedComment | undefined;
-      setCommentStates((prev) => {
-        const existing = prev[itemId];
-        if (!existing) return prev;
-        previous = existing.comments.find((c) => c.id === commentId);
-        return {
-          ...prev,
-          [itemId]: {
-            ...existing,
-            comments: existing.comments.map((c) =>
-              c.id === commentId ? { ...c, text } : c
-            ),
-          },
-        };
-      });
+      const key = queryKeys.feedComments.forItem(itemId);
+      const previous = queryClient
+        .getQueryData<FeedComment[]>(key)
+        ?.find((c) => c.id === commentId);
+
+      patchComments(itemId, (prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, text } : c))
+      );
 
       try {
         const result = await api<EditCommentResponse>(
           `/api/mobile/feed/comments/${encodeURIComponent(commentId)}`,
           { method: "PATCH", body: { text } }
         );
-        setCommentStates((prev) => {
-          const existing = prev[itemId];
-          if (!existing) return prev;
-          return {
-            ...prev,
-            [itemId]: {
-              ...existing,
-              comments: existing.comments.map((c) =>
-                c.id === commentId ? result.comment : c
-              ),
-            },
-          };
-        });
+        patchComments(itemId, (prev) =>
+          prev.map((c) => (c.id === commentId ? result.comment : c))
+        );
         return result.comment;
       } catch {
-        // Revert optimistic edit
-        setCommentStates((prev) => {
-          const existing = prev[itemId];
-          if (!existing || !previous) return prev;
-          return {
-            ...prev,
-            [itemId]: {
-              ...existing,
-              comments: existing.comments.map((c) =>
-                c.id === commentId ? (previous as FeedComment) : c
-              ),
-            },
-          };
-        });
+        if (previous) {
+          patchComments(itemId, (prev) =>
+            prev.map((c) => (c.id === commentId ? previous : c))
+          );
+        }
         return null;
       }
     },
-    []
+    [patchComments, queryClient]
   );
 
   const deleteComment = useCallback(
     async (itemId: string, commentId: string): Promise<boolean> => {
-      let removed: FeedComment | undefined;
-      let removedIndex = -1;
-      setCommentStates((prev) => {
-        const existing = prev[itemId];
-        if (!existing) return prev;
-        removedIndex = existing.comments.findIndex((c) => c.id === commentId);
-        removed = existing.comments[removedIndex];
-        return {
-          ...prev,
-          [itemId]: {
-            ...existing,
-            comments: existing.comments.filter((c) => c.id !== commentId),
-          },
-        };
-      });
+      const key = queryKeys.feedComments.forItem(itemId);
+      const snapshot = queryClient.getQueryData<FeedComment[]>(key) ?? [];
+      const removedIndex = snapshot.findIndex((c) => c.id === commentId);
+      const removed = snapshot[removedIndex];
+
+      patchComments(itemId, (prev) => prev.filter((c) => c.id !== commentId));
 
       try {
         await api<DeleteCommentResponse>(
@@ -280,27 +213,17 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
         );
         return true;
       } catch {
-        // Revert by re-inserting at the original position
-        setCommentStates((prev) => {
-          const existing = prev[itemId];
-          if (!existing || !removed || removedIndex < 0) return prev;
-          const next = [...existing.comments];
-          next.splice(removedIndex, 0, removed);
-          return { ...prev, [itemId]: { ...existing, comments: next } };
-        });
+        if (removed && removedIndex >= 0) {
+          patchComments(itemId, (prev) => {
+            const next = [...prev];
+            next.splice(removedIndex, 0, removed);
+            return next;
+          });
+        }
         return false;
       }
     },
-    []
-  );
-
-  const getCommentState = useCallback(
-    (itemId: string): CommentState => {
-      return (
-        commentStates[itemId] ?? { comments: [], isLoading: false, error: null }
-      );
-    },
-    [commentStates]
+    [patchComments, queryClient]
   );
 
   const reportItem = useCallback(
@@ -345,26 +268,29 @@ export function useFeedInteractions(): UseFeedInteractionsReturn {
     [blockedUserIds]
   );
 
-  const removeCommentsByUser = useCallback((userId: string) => {
-    setCommentStates((prev) => {
-      const next: Record<string, CommentState> = {};
-      for (const [itemId, state] of Object.entries(prev)) {
-        next[itemId] = {
-          ...state,
-          comments: state.comments.filter((c) => c.userId !== userId),
-        };
+  // After a block, scrub the blocked user's comments from every cached
+  // per-item list so the feed/comment sheet updates instantly.
+  const removeCommentsByUser = useCallback(
+    (userId: string) => {
+      const cache = queryClient.getQueryCache();
+      const matches = cache.findAll({ queryKey: queryKeys.feedComments.all });
+      for (const entry of matches) {
+        const data = entry.state.data as FeedComment[] | undefined;
+        if (!data) continue;
+        queryClient.setQueryData<FeedComment[]>(
+          entry.queryKey,
+          data.filter((c) => c.userId !== userId)
+        );
       }
-      return next;
-    });
-  }, []);
+    },
+    [queryClient]
+  );
 
   return {
     toggleLike,
-    loadComments,
     addComment,
     editComment,
     deleteComment,
-    getCommentState,
     reportItem,
     hasReported,
     blockUser,
