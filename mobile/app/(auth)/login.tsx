@@ -64,12 +64,14 @@ export default function LoginScreen() {
   const [passkeyReady, setPasskeyReady] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   const [googleRequest, googleResponse, promptGoogle] = useGoogleAuth();
+  const [facebookRequest, facebookResponse, promptFacebook] = useFacebookAuth();
   // On native, the Google provider uses the auth-code flow and exchanges the
   // code for tokens in a post-prompt effect — so `promptAsync` resolves before
   // the id_token is available. This ref tracks an in-flight sign-in so the
   // effect below can finish the login once the exchanged response lands.
   const googleInFlight = useRef(false);
-  const [facebookRequest, facebookResponse, promptFacebook] = useFacebookAuth();
+  // Facebook returns an access token via the implicit/code flow; same
+  // post-prompt landing pattern as Google.
   const facebookInFlight = useRef(false);
 
   useEffect(() => {
@@ -201,6 +203,22 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleApple() {
+    if (anyBusy) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setBusyProvider("apple");
+    try {
+      const token = await signInWithApple();
+      if (!token) return; // cancelled
+      await loginWithOAuth("apple", token);
+    } catch (error) {
+      handleError(error, "Couldn't sign in with Apple. Please try again.");
+      posthog?.capture("login_failed", { method: "oauth_apple" });
+    } finally {
+      setBusyProvider(null);
+    }
+  }
+
   async function handleFacebook() {
     if (anyBusy) return;
     if (!facebookRequest) {
@@ -219,22 +237,6 @@ export default function LoginScreen() {
       facebookInFlight.current = false;
       handleError(error, "Couldn't sign in with Facebook. Please try again.");
       posthog?.capture("login_failed", { method: "oauth_facebook" });
-      setBusyProvider(null);
-    }
-  }
-
-  async function handleApple() {
-    if (anyBusy) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setBusyProvider("apple");
-    try {
-      const token = await signInWithApple();
-      if (!token) return; // cancelled
-      await loginWithOAuth("apple", token);
-    } catch (error) {
-      handleError(error, "Couldn't sign in with Apple. Please try again.");
-      posthog?.capture("login_failed", { method: "oauth_apple" });
-    } finally {
       setBusyProvider(null);
     }
   }
@@ -602,18 +604,18 @@ function OAuthCircle({
           icon: isDark ? "#0b0d10" : "#ffffff",
           label: "Apple",
         }
-      : provider === "google"
+      : provider === "facebook"
       ? {
-          bg: "#ffffff",
-          border: "rgba(0,0,0,0.08)",
-          icon: "#0b0d10",
-          label: "Google",
-        }
-      : {
           bg: "#1877F2",
           border: "transparent",
           icon: "#ffffff",
           label: "Facebook",
+        }
+      : {
+          bg: "#ffffff",
+          border: "rgba(0,0,0,0.08)",
+          icon: "#0b0d10",
+          label: "Google",
         };
   return (
     <Pressable
@@ -636,10 +638,10 @@ function OAuthCircle({
         <Ionicons name="ellipsis-horizontal" size={22} color={style.icon} />
       ) : provider === "apple" ? (
         <Ionicons name="logo-apple" size={26} color={style.icon} />
-      ) : provider === "google" ? (
-        <Ionicons name="logo-google" size={26} color="#4285F4" />
-      ) : (
+      ) : provider === "facebook" ? (
         <Ionicons name="logo-facebook" size={26} color={style.icon} />
+      ) : (
+        <Ionicons name="logo-google" size={26} color="#4285F4" />
       )}
     </Pressable>
   );

@@ -33,7 +33,7 @@ import {
 } from "@/components/volunteers-data-table";
 import { formatInNZT } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
-import { Send, Save, Check, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react";
+import { Send, Save, Check, CheckCircle, XCircle, Clock, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { EmailPreviewDialog } from "@/components/email-preview-dialog";
 
@@ -94,6 +94,8 @@ interface NotificationsContentProps {
   shiftTypes: ShiftType[];
   locations: readonly string[];
 }
+
+const HISTORY_PAGE_SIZE = 20;
 
 export function NotificationsContent({
   shiftTypes,
@@ -188,6 +190,8 @@ export function NotificationsContent({
   const [notificationHistory, setNotificationHistory] = useState<NotificationBatch[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
 
   const fetchShifts = async () => {
     try {
@@ -224,20 +228,28 @@ export function NotificationsContent({
     }
   };
 
-  const fetchNotificationHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const response = await fetch("/api/admin/notifications/history?limit=100");
-      if (!response.ok) throw new Error("Failed to fetch notification history");
-      const data = await response.json();
-      setNotificationHistory(data.batches);
-    } catch (error) {
-      console.error("Error fetching notification history:", error);
-      toast.error("Failed to load notification history");
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
+  const fetchNotificationHistory = useCallback(
+    async (targetPage: number = historyPage) => {
+      setIsLoadingHistory(true);
+      try {
+        const offset = (targetPage - 1) * HISTORY_PAGE_SIZE;
+        const response = await fetch(
+          `/api/admin/notifications/history?limit=${HISTORY_PAGE_SIZE}&offset=${offset}`
+        );
+        if (!response.ok) throw new Error("Failed to fetch notification history");
+        const data = await response.json();
+        setNotificationHistory(data.batches);
+        setHistoryTotal(data.totalCount ?? 0);
+        setExpandedBatch(null);
+      } catch (error) {
+        console.error("Error fetching notification history:", error);
+        toast.error("Failed to load notification history");
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    },
+    [historyPage]
+  );
 
   // Filter shifts based on date and location
   const filteredShifts = useMemo(() => {
@@ -368,8 +380,12 @@ export function NotificationsContent({
     fetchShifts();
     fetchVolunteers();
     fetchNotificationGroups();
-    fetchNotificationHistory();
   }, []);
+
+  // Load notification history when the page changes (initial mount + pagination)
+  useEffect(() => {
+    fetchNotificationHistory(historyPage);
+  }, [historyPage, fetchNotificationHistory]);
 
   // Apply filters when they change
   useEffect(() => {
@@ -548,8 +564,13 @@ export function NotificationsContent({
       setSelectedVolunteers(new Set());
       setSelectedShifts(new Set());
 
-      // Refresh notification history
-      fetchNotificationHistory();
+      // Refresh notification history (jump back to first page so the new
+      // batch is visible; the page-change effect refetches).
+      if (historyPage === 1) {
+        fetchNotificationHistory(1);
+      } else {
+        setHistoryPage(1);
+      }
     } catch (error) {
       console.error("Error sending notifications:", error);
       toast.error("Failed to send notifications");
@@ -1057,7 +1078,7 @@ export function NotificationsContent({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={fetchNotificationHistory}
+                onClick={() => fetchNotificationHistory(historyPage)}
                 disabled={isLoadingHistory}
               >
                 <RefreshCw className={cn("h-4 w-4 mr-2", isLoadingHistory && "animate-spin")} />
@@ -1176,6 +1197,57 @@ export function NotificationsContent({
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {historyTotal > 0 && (
+              <div
+                className="mt-4 flex items-center justify-between text-sm text-muted-foreground"
+                data-testid="notification-history-pagination"
+              >
+                <span>
+                  Showing{" "}
+                  {(historyPage - 1) * HISTORY_PAGE_SIZE + 1}–
+                  {Math.min(historyPage * HISTORY_PAGE_SIZE, historyTotal)} of{" "}
+                  {historyTotal.toLocaleString()}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                    disabled={isLoadingHistory || historyPage <= 1}
+                    data-testid="notification-history-prev"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="tabular-nums">
+                    Page {historyPage} of{" "}
+                    {Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE))}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setHistoryPage((p) =>
+                        Math.min(
+                          Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE)),
+                          p + 1
+                        )
+                      )
+                    }
+                    disabled={
+                      isLoadingHistory ||
+                      historyPage >=
+                        Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE))
+                    }
+                    data-testid="notification-history-next"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
