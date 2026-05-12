@@ -18,6 +18,7 @@ export const queryKeys = {
   friends: {
     all: ['friends'] as const,
     list: () => [...queryKeys.friends.all, 'list'] as const,
+    recommended: () => [...queryKeys.friends.all, 'recommended'] as const,
   },
   feed: {
     all: ['feed'] as const,
