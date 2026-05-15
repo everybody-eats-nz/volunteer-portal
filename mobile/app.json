@@ -27,7 +27,7 @@
       }
     },
     "android": {
-      "package": "nz.co.everybodyeats.volunteers",
+      "package": "com.everybodyeats.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0e3a23",
@@ -43,7 +43,7 @@
           "category": ["DEFAULT", "BROWSABLE"],
           "data": [
             {
-              "scheme": "nz.co.everybodyeats.volunteers",
+              "scheme": "com.everybodyeats.app",
               "path": "/oauthredirect"
             }
           ]

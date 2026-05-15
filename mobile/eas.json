@@ -42,7 +42,9 @@
   "submit": {
     "production": {
       "android": {
-        "releaseStatus": "draft"
+        "serviceAccountKeyPath": "everybody-eats-play.json",
+        "releaseStatus": "draft",
+        "track": "internal"
       }
     }
   }
