@@ -2,7 +2,7 @@
   "expo": {
     "name": "Everybody Eats",
     "slug": "everybody-eats",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "everybody-eats",
@@ -27,7 +27,7 @@
       }
     },
     "android": {
-      "package": "nz.co.everybodyeats.volunteers",
+      "package": "com.everybodyeats.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0e3a23",
@@ -43,7 +43,7 @@
           "category": ["DEFAULT", "BROWSABLE"],
           "data": [
             {
-              "scheme": "nz.co.everybodyeats.volunteers",
+              "scheme": "com.everybodyeats.app",
               "path": "/oauthredirect"
             }
           ]

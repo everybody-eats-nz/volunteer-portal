@@ -41,8 +41,14 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleTeamId": "7FDX32A6XF",
+        "ascAppId": "6760931588"
+      },
       "android": {
-        "releaseStatus": "draft"
+        "serviceAccountKeyPath": "everybody-eats-play.json",
+        "releaseStatus": "draft",
+        "track": "internal"
       }
     }
   }
