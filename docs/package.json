@@ -28,7 +28,7 @@
     "starlight-sidebar-topics": "^0.7.1"
   },
   "devDependencies": {
-    "playwright": "^1.59.1"
+    "playwright": "^1.60.0"
   },
   "engines": {
     "node": ">=22.0.0"
