@@ -5,7 +5,8 @@ import { loginAsVolunteer } from "./helpers/auth";
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState("load");
-  await page.waitForTimeout(1000); // Small buffer for animations
+  // Wait for the page root element rather than an arbitrary animation buffer.
+  await expect(page.getByTestId("my-shifts-page")).toBeVisible();
 }
 
 // Helper function to get responsive element by viewport
@@ -191,7 +192,7 @@ test.describe("My Shifts Calendar Page", () => {
 
       // Click previous month button
       const prevButton = await getNavigationButton(page, "prev");
-      await page.waitForTimeout(500);
+      await expect(prevButton).toBeVisible();
       await prevButton.click();
       await page.waitForURL("/shifts/mine?*");
       await page.waitForLoadState("load");
@@ -209,7 +210,7 @@ test.describe("My Shifts Calendar Page", () => {
 
       // Click next month button
       const nextButton = await getNavigationButton(page, "next");
-      await page.waitForTimeout(500);
+      await expect(nextButton).toBeVisible();
       await nextButton.click();
       await page.waitForURL("/shifts/mine?*");
       await page.waitForLoadState("load");
@@ -224,8 +225,8 @@ test.describe("My Shifts Calendar Page", () => {
       page,
     }) => {
       // Navigate to next month
-      await page.waitForTimeout(500);
       const nextButton = await getNavigationButton(page, "next");
+      await expect(nextButton).toBeVisible();
       await nextButton.click();
       await page.waitForURL("/shifts/mine?*");
 
@@ -234,7 +235,7 @@ test.describe("My Shifts Calendar Page", () => {
       await expect(todayButton).toBeVisible();
 
       // Click today button to return to current month
-      await page.waitForTimeout(500);
+      await expect(todayButton).toBeEnabled();
       await todayButton.click();
       await page.waitForLoadState("load");
 
@@ -574,6 +575,7 @@ test.describe("My Shifts Calendar Page", () => {
 
       // Today button (only visible when not viewing current month)
       // Navigate to see if today button appears
+      await expect(nextButton).toBeVisible();
       await nextButton.click();
       await page.waitForLoadState("load");
 
