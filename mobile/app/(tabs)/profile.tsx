@@ -515,7 +515,7 @@ export default function ProfileScreen() {
                 <Ionicons
                   name="sparkles"
                   size={14}
-                  color={Brand.green}
+                  color={isDark ? "#d4dc63" : Brand.green}
                 />
                 <Text
                   style={[
@@ -1783,70 +1783,119 @@ function SuggestedFriendCard({
       : "Accept"
     : isBusy
     ? "Sending…"
-    : "Add";
-  const buttonIcon = isPending ? "checkmark" : "add";
+    : "Add friend";
+  const recentSharedType = suggestion.recentSharedShifts?.[0]?.shiftTypeName;
+
+  // Theme-aware, token-driven palette — designed for both modes together.
+  const ringColor = isDark ? "#d4dc63" : Brand.accent;
+  const cardBorder = isDark
+    ? "rgba(255,255,255,0.12)"
+    : "rgba(14,58,35,0.10)";
+  const chipBg = isDark
+    ? "rgba(212,220,99,0.14)"
+    : "rgba(14,58,35,0.07)";
+  const chipFg = isDark ? "#d8e08a" : Brand.green;
+  const ribbonBg = isDark
+    ? "rgba(251,191,36,0.18)"
+    : "rgba(251,191,36,0.16)";
+  const ribbonFg = isDark ? "#fcd9a3" : "#9a5b14";
+  // CTA mirrors the app's established primary convention (see user/[id].tsx):
+  // deep green on light, bright lime on dark — high contrast in both.
+  const ctaBg = isDark ? Brand.accent : Brand.green;
+  const ctaFg = isDark ? Brand.green : Brand.warmWhite;
 
   return (
     <View
       style={[
-        styles.friendCard,
-        styles.suggestedCard,
+        styles.sgCard,
         {
           backgroundColor: colors.card,
-          borderColor: isDark
-            ? "rgba(255,255,255,0.06)"
-            : "rgba(14,58,35,0.08)",
-          shadowColor: "#000",
-          shadowOpacity: isDark ? 0.06 : 0,
-          elevation: isDark ? 2 : 0,
+          borderColor: cardBorder,
+          shadowColor: isDark ? "#000000" : "#0e3a23",
+          shadowOpacity: isDark ? 0.35 : 0.06,
+          shadowRadius: isDark ? 10 : 12,
+          shadowOffset: { width: 0, height: isDark ? 4 : 6 },
+          elevation: isDark ? 4 : 2,
         },
       ]}
       accessible
-      accessibilityLabel={`${displayName}, ${suggestion.sharedShiftsCount} shared shifts. ${
-        isPending ? "Pending friend request" : "Suggested friend"
-      }`}
+      accessibilityRole={isPending ? "button" : "summary"}
+      accessibilityLabel={`${displayName}, ${suggestion.sharedShiftsCount} ${
+        suggestion.sharedShiftsCount === 1 ? "shift" : "shifts"
+      } together.${
+        recentSharedType ? ` Most recently ${recentSharedType}.` : ""
+      } ${isPending ? "Wants to connect with you." : "Suggested friend."}`}
     >
-      {suggestion.profilePhotoUrl ? (
-        <Image
-          source={{ uri: suggestion.profilePhotoUrl }}
-          style={styles.friendAvatar}
-        />
-      ) : (
-        <View
-          style={[styles.friendAvatarFallback, { backgroundColor: Brand.green }]}
-        >
-          <Text style={styles.friendAvatarInitial}>
-            {getSuggestedInitial(suggestion)}
+      {isPending && (
+        <View style={[styles.sgRibbon, { backgroundColor: ribbonBg }]}>
+          <Ionicons name="sparkles" size={10} color={ribbonFg} />
+          <Text style={[styles.sgRibbonText, { color: ribbonFg }]}>
+            Wants to connect
           </Text>
         </View>
       )}
 
-      <Text
-        style={[styles.friendName, { color: colors.text }]}
-        numberOfLines={1}
+      <View
+        style={[styles.sgBody, isPending && { paddingTop: 32 }]}
+        pointerEvents="none"
       >
-        {displayName}
-      </Text>
+        <View style={styles.sgAvatarWrap}>
+          <View style={[styles.sgRing, { borderColor: ringColor }]}>
+            {suggestion.profilePhotoUrl ? (
+              <Image
+                source={{ uri: suggestion.profilePhotoUrl }}
+                style={styles.sgAvatar}
+              />
+            ) : (
+              <LinearGradient
+                colors={[Brand.greenHover, Brand.green]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sgAvatar}
+              >
+                <Text style={styles.sgInitial}>
+                  {getSuggestedInitial(suggestion)}
+                </Text>
+              </LinearGradient>
+            )}
+          </View>
+          <View
+            style={[
+              styles.sgSparkle,
+              { backgroundColor: ringColor, borderColor: colors.card },
+            ]}
+          >
+            <Ionicons name="sparkles" size={10} color={Brand.green} />
+          </View>
+        </View>
 
-      <View style={styles.friendMetaRow}>
-        <Ionicons
-          name="people-outline"
-          size={12}
-          color={colors.textSecondary}
-        />
         <Text
-          style={[styles.friendMeta, { color: colors.textSecondary }]}
+          style={[styles.sgName, { color: colors.text }]}
           numberOfLines={1}
         >
-          {suggestion.sharedShiftsCount} shared
+          {displayName}
         </Text>
-      </View>
 
-      {isPending && (
-        <View style={styles.suggestedPendingPill}>
-          <Text style={styles.suggestedPendingText}>Wants to connect</Text>
+        <View style={[styles.sgChip, { backgroundColor: chipBg }]}>
+          <Ionicons name="people" size={11} color={chipFg} />
+          <Text
+            style={[styles.sgChipText, { color: chipFg }]}
+            numberOfLines={1}
+          >
+            {suggestion.sharedShiftsCount}{" "}
+            {suggestion.sharedShiftsCount === 1 ? "shift" : "shifts"} together
+          </Text>
         </View>
-      )}
+
+        {recentSharedType ? (
+          <Text
+            style={[styles.sgContext, { color: colors.textSecondary }]}
+            numberOfLines={1}
+          >
+            Last: {recentSharedType}
+          </Text>
+        ) : null}
+      </View>
 
       <Pressable
         onPress={handlePress}
@@ -1859,20 +1908,26 @@ function SuggestedFriendCard({
         }
         hitSlop={8}
         style={({ pressed }) => [
-          styles.suggestedAddButton,
+          styles.sgCta,
           {
-            backgroundColor: isPending ? Brand.green : colors.text,
-            opacity: isBusy ? 0.6 : pressed ? 0.85 : 1,
+            backgroundColor: ctaBg,
+            opacity: isBusy ? 0.65 : pressed ? 0.9 : 1,
             transform: [{ scale: pressed && !isBusy ? 0.97 : 1 }],
           },
         ]}
       >
         {isBusy ? (
-          <ActivityIndicator size="small" color="#ffffff" />
+          <ActivityIndicator size="small" color={ctaFg} />
         ) : (
           <>
-            <Ionicons name={buttonIcon} size={14} color="#ffffff" />
-            <Text style={styles.suggestedAddText}>{buttonLabel}</Text>
+            <Ionicons
+              name={isPending ? "checkmark" : "person-add"}
+              size={14}
+              color={ctaFg}
+            />
+            <Text style={[styles.sgCtaText, { color: ctaFg }]}>
+              {buttonLabel}
+            </Text>
           </>
         )}
       </Pressable>
@@ -2273,39 +2328,120 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     textTransform: "uppercase",
   },
-  suggestedCard: {
-    paddingBottom: 14,
-    gap: 4,
+  /* Suggested friend card — distinctive rework */
+  sgCard: {
+    width: 158,
+    minHeight: 244,
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: "hidden",
+    position: "relative",
   },
-  suggestedPendingPill: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,196,87,0.18)",
-  },
-  suggestedPendingText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 0.2,
-    color: "#b87324",
-  },
-  suggestedAddButton: {
-    marginTop: 10,
-    minHeight: 32,
-    paddingHorizontal: 14,
-    borderRadius: 999,
+  sgRibbon: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 26,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
-    alignSelf: "stretch",
+    paddingHorizontal: 8,
   },
-  suggestedAddText: {
-    color: "#ffffff",
-    fontSize: 13,
+  sgRibbonText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.3,
+  },
+  sgBody: {
+    flex: 1,
+    alignItems: "center",
+    paddingTop: 16,
+    paddingHorizontal: 12,
+    gap: 7,
+  },
+  sgAvatarWrap: {
+    width: 70,
+    height: 70,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 1,
+  },
+  sgRing: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sgAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  sgInitial: {
+    color: Brand.warmWhite,
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+  },
+  sgSparkle: {
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sgName: {
+    fontSize: 15,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.3,
+    textAlign: "center",
+  },
+  sgChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    maxWidth: "100%",
+  },
+  sgChipText: {
+    fontSize: 11,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.1,
+  },
+  sgContext: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.1,
+    textAlign: "center",
+  },
+  sgCta: {
+    marginHorizontal: 12,
+    marginBottom: 12,
+    marginTop: 10,
+    minHeight: 44,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  sgCtaText: {
+    fontSize: 13,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.2,
   },
   emptyFriendsCard: {
     borderRadius: 18,
