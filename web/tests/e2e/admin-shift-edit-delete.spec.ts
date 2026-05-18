@@ -320,12 +320,8 @@ test.describe("Admin Shift Edit and Delete", () => {
       // Wait for dialog to appear
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
 
-      // Click cancel in dialog - try multiple selectors
-      const cancelButton = page
-        .locator(
-          '[data-testid="delete-shift-cancel-button"], button:has-text("Cancel")'
-        )
-        .first();
+      // Click cancel in dialog
+      const cancelButton = page.getByTestId("delete-shift-cancel-button");
       await cancelButton.click();
 
       // Dialog should close
@@ -349,21 +345,15 @@ test.describe("Admin Shift Edit and Delete", () => {
       // Wait for dialog to appear
       await expect(page.getByTestId("delete-shift-dialog")).toBeVisible();
 
-      // Confirm deletion - try multiple selectors for the confirm button
-      const confirmButton = page
-        .locator(
-          '[data-testid="delete-shift-confirm-button"], button:has-text("Delete Shift")'
-        )
-        .first();
+      // Confirm deletion
+      const confirmButton = page.getByTestId("delete-shift-confirm-button");
       await confirmButton.click();
 
       // Wait for navigation and success message
       await page.waitForURL(/\/admin\/shifts/, { timeout: 10000 });
 
       // Check for success message
-      const successMessage = page.locator(
-        '[data-testid="shift-deleted-message"], .alert:has-text("deleted successfully")'
-      );
+      const successMessage = page.getByTestId("shift-deleted-message");
       await expect(successMessage).toBeVisible({ timeout: 5000 });
 
       // Shift should no longer appear in the list
