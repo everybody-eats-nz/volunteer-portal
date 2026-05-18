@@ -40,7 +40,20 @@ export function formatNZDateOnly(
 ): string {
   const ymd = value.slice(0, 10); // "YYYY-MM-DD" from either input shape
   const [y, m, d] = ymd.split("-").map(Number);
-  if (!y || !m || !d) return "";
+  // Reject anything that isn't a real calendar date. The truthiness check
+  // alone misses out-of-range parts (e.g. "2026-13-45"), which Date would
+  // silently roll over into the wrong day.
+  if (
+    !Number.isInteger(y) ||
+    !Number.isInteger(m) ||
+    !Number.isInteger(d) ||
+    m < 1 ||
+    m > 12 ||
+    d < 1 ||
+    d > 31
+  ) {
+    return "";
+  }
   // Local-time Date built from the calendar fields. format() reads only the
   // local Y/M/D, so it returns the intended day on every timezone.
   return format(new Date(y, m - 1, d), formatStr);
