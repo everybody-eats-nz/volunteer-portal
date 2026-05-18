@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MapPin, Save, Loader2, Plus, Edit, Archive, ArchiveRestore, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -25,6 +27,7 @@ interface Location {
   address: string;
   defaultMealsServed: number;
   isActive: boolean;
+  isPopup: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -147,6 +150,7 @@ export function LocationSettingsForm({
     name: "",
     address: "",
     defaultMealsServed: 60,
+    isPopup: false,
   });
   const [creating, setCreating] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -264,7 +268,12 @@ export function LocationSettingsForm({
           ...prev,
           [createdLocation.id]: createdLocation.defaultMealsServed,
         }));
-        setNewLocation({ name: "", address: "", defaultMealsServed: 60 });
+        setNewLocation({
+          name: "",
+          address: "",
+          defaultMealsServed: 60,
+          isPopup: false,
+        });
         setDialogOpen(false);
         toast.success("Location created successfully!");
       } else {
@@ -297,6 +306,7 @@ export function LocationSettingsForm({
           name: editingLocation.name,
           address: editingLocation.address,
           defaultMealsServed: editingLocation.defaultMealsServed,
+          isPopup: editingLocation.isPopup,
         }),
       });
 
@@ -341,6 +351,11 @@ export function LocationSettingsForm({
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
               {location.name}
+              {location.isPopup && (
+                <Badge variant="secondary" className="font-normal">
+                  Pop-up
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription className="text-xs mt-1">
               {location.address}
@@ -497,6 +512,23 @@ export function LocationSettingsForm({
                   className="mt-1.5"
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 pr-4">
+                  <Label htmlFor="new-is-popup">Pop-up location</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Temporary venue. Volunteers can pick it as an available
+                    location, but it&apos;s never offered as a default location.
+                  </p>
+                </div>
+                <Switch
+                  id="new-is-popup"
+                  checked={newLocation.isPopup}
+                  onCheckedChange={(checked) =>
+                    setNewLocation((prev) => ({ ...prev, isPopup: checked }))
+                  }
+                  disabled={creating}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -645,6 +677,25 @@ export function LocationSettingsForm({
                     )
                   }
                   className="mt-1.5"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 pr-4">
+                  <Label htmlFor="edit-is-popup">Pop-up location</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Temporary venue. Volunteers can pick it as an available
+                    location, but it&apos;s never offered as a default location.
+                  </p>
+                </div>
+                <Switch
+                  id="edit-is-popup"
+                  checked={editingLocation.isPopup}
+                  onCheckedChange={(checked) =>
+                    setEditingLocation((prev) =>
+                      prev ? { ...prev, isPopup: checked } : null
+                    )
+                  }
+                  disabled={editing}
                 />
               </div>
             </div>
