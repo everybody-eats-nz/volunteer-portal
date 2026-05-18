@@ -122,16 +122,16 @@ export async function GET(request: Request) {
         }),
         prisma.location.findMany({
           where: { isActive: true },
-          select: { name: true },
+          select: { name: true, isPopup: true },
           orderBy: { name: "asc" },
         }),
       ]);
 
-    // Exclude "Special Event Venue" — it isn't a regular working location
-    // and we don't want it offered as a default.
+    // Exclude pop-up venues and "Special Event Venue" (string fallback) —
+    // they aren't regular working locations and shouldn't be a default.
     const availableLocations = locationRows
-      .map((l) => l.name)
-      .filter((n) => n !== "Special Event Venue");
+      .filter((l) => !l.isPopup && l.name !== "Special Event Venue")
+      .map((l) => l.name);
 
     // Count how many users have unlocked each achievement
     const allAchievementIds = [

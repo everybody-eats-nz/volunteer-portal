@@ -35,9 +35,13 @@ import {
 } from "@/components/forms/user-profile-form";
 import { MotionPageContainer } from "@/components/motion-page-container";
 import { PasskeyManagement } from "@/components/passkey-management";
+import {
+  type LocationOption,
+  getDefaultLocationCandidates,
+} from "@/lib/location-utils";
 
 interface ProfileEditClientProps {
-  locationOptions: Array<{ value: string; label: string }>;
+  locationOptions: LocationOption[];
   shiftTypes: Array<{ id: string; name: string }>;
 }
 
@@ -395,8 +399,9 @@ export default function ProfileEditClient({
         ? prev.availableLocations.filter((l) => l !== location)
         : [...prev.availableLocations, location];
 
-      const candidates = nextLocations.filter(
-        (l) => l !== "Special Event Venue"
+      const candidates = getDefaultLocationCandidates(
+        nextLocations,
+        locationOptions
       );
       let nextDefault = prev.defaultLocation;
       if (nextDefault && !candidates.includes(nextDefault)) {
@@ -412,7 +417,7 @@ export default function ProfileEditClient({
         defaultLocation: nextDefault,
       };
     });
-  }, []);
+  }, [locationOptions]);
 
   const nextSection = useCallback(() => {
     if (currentSection < sections.length - 1) {

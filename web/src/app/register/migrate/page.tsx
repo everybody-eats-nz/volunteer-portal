@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { getShiftLocationOptions } from "@/lib/locations";
 import { MigrationRegistrationForm } from "./migration-registration-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,36 +16,7 @@ interface PageProps {
 }
 
 async function getLocationOptions() {
-  // Get all unique locations from shifts that are not null
-  const shifts = await prisma.shift.findMany({
-    select: {
-      location: true,
-    },
-    where: {
-      location: {
-        not: null,
-      },
-    },
-  });
-
-  // Extract unique locations, clean all whitespace, and sort them
-  const uniqueLocations = [
-    ...new Set(
-      shifts
-        .map((shift: { location: string | null }) => shift.location)
-        .filter(
-          (location: string | null): location is string => location !== null
-        )
-        .map((location: string) => location.replace(/\s+/g, " ").trim()) // Clean all whitespace
-        .filter((location: string) => location.length > 0) // Remove empty strings
-    ),
-  ].sort();
-
-  // Transform to the format expected by the frontend
-  return uniqueLocations.map((location) => ({
-    value: location,
-    label: location,
-  }));
+  return getShiftLocationOptions();
 }
 
 async function getShiftTypes() {

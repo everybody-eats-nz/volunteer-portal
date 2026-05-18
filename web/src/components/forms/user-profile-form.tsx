@@ -34,6 +34,10 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PasswordRequirements } from "@/components/password-requirements";
+import {
+  type LocationOption,
+  getDefaultLocationCandidates,
+} from "@/lib/location-utils";
 
 // Import and re-export shared constants from central location
 import {
@@ -96,7 +100,7 @@ export interface UserProfileFormProps {
   onLocationToggle: (location: string) => void;
   loading: boolean;
   isRegistration?: boolean;
-  locationOptions: Array<{ value: string; label: string }>;
+  locationOptions: LocationOption[];
   toast?: (options: {
     title: string;
     description?: string;
@@ -755,10 +759,11 @@ export function AvailabilityStep({
   onDayToggle: (day: string) => void;
   onLocationToggle: (location: string) => void;
   loading: boolean;
-  locationOptions: Array<{ value: string; label: string }>;
+  locationOptions: LocationOption[];
 }) {
-  const defaultLocationCandidates = formData.availableLocations.filter(
-    (loc) => loc !== "Special Event Venue"
+  const defaultLocationCandidates = getDefaultLocationCandidates(
+    formData.availableLocations,
+    locationOptions
   );
   return (
     <div className="space-y-8">

@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { LocationOption } from "@/lib/location-utils";
 
 const RegisterClient = dynamic(() => import("./register-client"), {
   ssr: false,
@@ -8,7 +9,7 @@ const RegisterClient = dynamic(() => import("./register-client"), {
 });
 
 interface RegisterFormProps {
-  locationOptions: Array<{ value: string; label: string }>;
+  locationOptions: LocationOption[];
   shiftTypes: Array<{ id: string; name: string }>;
   newsletterLists: Array<{
     id: string;
