@@ -33,6 +33,10 @@ import {
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionPageContainer } from "@/components/motion-page-container";
 import { MotionCard } from "@/components/motion-card";
+import {
+  type LocationOption,
+  getDefaultLocationCandidates,
+} from "@/lib/location-utils";
 
 interface Provider {
   id: string;
@@ -43,7 +47,7 @@ interface Provider {
 }
 
 interface RegisterClientProps {
-  locationOptions: Array<{ value: string; label: string }>;
+  locationOptions: LocationOption[];
   shiftTypes: Array<{ id: string; name: string }>;
   newsletterLists: Array<{
     id: string;
@@ -480,10 +484,11 @@ export default function RegisterClient({
         : [...prev.availableLocations, location];
 
       // Keep defaultLocation in sync with availableLocations.
-      // Auto-pick when only one non-special-event location is available,
+      // Auto-pick when only one default-eligible location is available,
       // and clear when the current default is no longer selected.
-      const candidates = nextLocations.filter(
-        (l) => l !== "Special Event Venue"
+      const candidates = getDefaultLocationCandidates(
+        nextLocations,
+        locationOptions
       );
       let nextDefault = prev.defaultLocation;
       if (nextDefault && !candidates.includes(nextDefault)) {
