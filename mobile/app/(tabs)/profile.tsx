@@ -1785,6 +1785,8 @@ function SuggestedFriendCard({
     ? "Sending…"
     : "Add friend";
   const recentSharedType = suggestion.recentSharedShifts?.[0]?.shiftTypeName;
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const showPhoto = !!suggestion.profilePhotoUrl && !photoFailed;
 
   // Theme-aware, token-driven palette — designed for both modes together.
   const ringColor = isDark ? "#d4dc63" : Brand.accent;
@@ -1841,10 +1843,11 @@ function SuggestedFriendCard({
       >
         <View style={styles.sgAvatarWrap}>
           <View style={[styles.sgRing, { borderColor: ringColor }]}>
-            {suggestion.profilePhotoUrl ? (
+            {showPhoto ? (
               <Image
-                source={{ uri: suggestion.profilePhotoUrl }}
+                source={{ uri: suggestion.profilePhotoUrl! }}
                 style={styles.sgAvatar}
+                onError={() => setPhotoFailed(true)}
               />
             ) : (
               <LinearGradient
