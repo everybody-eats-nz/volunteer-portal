@@ -157,10 +157,8 @@ test.describe("Notification System", () => {
       // Click mark as read button
       await unreadNotification.getByTestId("mark-read-button").click();
 
-      // Wait for the action to complete
-      await page.waitForTimeout(500);
-
-      // Unread badge should be gone
+      // Unread badge should disappear — no arbitrary wait needed since
+      // Playwright's expect retries automatically until the assertion passes.
       await expect(
         unreadNotification.getByTestId("unread-badge")
       ).not.toBeVisible();
@@ -189,9 +187,6 @@ test.describe("Notification System", () => {
 
       // Click delete button
       await firstNotification.getByTestId("delete-notification-button").click();
-
-      // Wait for deletion to complete
-      await page.waitForTimeout(500);
 
       // Count should decrease by 1 or show empty state
       const newCount = await page
@@ -232,10 +227,7 @@ test.describe("Notification System", () => {
       await expect(markAllReadButton).toBeVisible();
       await markAllReadButton.click();
 
-      // Wait for the action to complete
-      await page.waitForTimeout(1000);
-
-      // All unread badges should be gone
+      // All unread badges should disappear — Playwright retries automatically.
       await expect(page.getByTestId("unread-badge")).not.toBeVisible();
 
       // Notification count badge should be gone from bell
@@ -327,21 +319,25 @@ test.describe("Notification System", () => {
       // Close dropdown
       await page.click("body", { position: { x: 50, y: 50 } });
 
-      // Wait for polling to update (up to 30 seconds, but should be immediate)
-      await page.waitForTimeout(2000);
-
-      // Check if badge count decreased
+      // Poll for the badge to reflect the updated read state instead of
+      // using a fixed timeout — SSE/polling delivery time is non-deterministic.
       if (initialCount > 1) {
-        const newBadge = page.getByTestId("notification-count-badge");
-        await expect(newBadge).toBeVisible();
-        const newBadgeText = await newBadge.textContent();
-        const newCount = parseInt(newBadgeText?.replace("+", "") || "0");
-        expect(newCount).toBeLessThan(initialCount);
+        await expect
+          .poll(
+            async () => {
+              const badge = page.getByTestId("notification-count-badge");
+              if (!(await badge.isVisible())) return 0;
+              const text = await badge.textContent();
+              return parseInt(text?.replace("+", "") || "0");
+            },
+            { timeout: 10000 }
+          )
+          .toBeLessThan(initialCount);
       } else if (initialCount === 1) {
-        // Badge should be gone
+        // Badge should disappear once the last unread is read
         await expect(
           page.getByTestId("notification-count-badge")
-        ).not.toBeVisible();
+        ).not.toBeVisible({ timeout: 10000 });
       }
     }
   });
