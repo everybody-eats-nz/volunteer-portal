@@ -6,7 +6,6 @@ import { createTestUser, getUserByEmail } from "./helpers/test-helpers";
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
   await page.waitForLoadState("load");
-  await page.waitForTimeout(500); // Small buffer for animations
 }
 
 // Helper function to navigate to a volunteer profile
@@ -104,15 +103,12 @@ test.describe("Admin Notes Management", () => {
     const saveButton = page.getByTestId("save-note-button");
     await saveButton.click();
 
-    // Wait for the note to appear
-    await page.waitForTimeout(2000);
-
     // Check that the note appears in the list
     const notesList = page.getByTestId("notes-list");
     await expect(notesList).toBeVisible();
 
     // The note content should be visible
-    await expect(page.getByText(noteContent)).toBeVisible();
+    await expect(page.getByText(noteContent)).toBeVisible({ timeout: 10000 });
   });
 
   test("should edit an existing admin note", async ({ page }) => {
@@ -125,13 +121,13 @@ test.describe("Admin Notes Management", () => {
     await noteTextarea.fill("Note to be edited");
     const saveButton = page.getByTestId("save-note-button");
     await saveButton.click();
-    await page.waitForTimeout(2000);
 
     // Find the first note and click edit
     const firstNote = page
       .getByTestId("notes-list")
       .locator('[data-testid^="note-"]')
       .first();
+    await expect(firstNote).toBeVisible({ timeout: 10000 });
     const editButton = firstNote.getByTestId(/edit-note-button-/);
     await editButton.click();
 
@@ -145,13 +141,10 @@ test.describe("Admin Notes Management", () => {
     const saveEditButton = firstNote.getByTestId(/save-edit-button-/);
     await saveEditButton.click();
 
-    // Wait for the update to complete
-    await page.waitForTimeout(2000);
-
     // Check that the updated content is visible
     await expect(
       page.getByText("Updated note content for e2e testing")
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("should delete an admin note with confirmation dialog", async ({
@@ -166,11 +159,10 @@ test.describe("Admin Notes Management", () => {
     await noteTextarea.fill("Note to be deleted in e2e test");
     const saveButton = page.getByTestId("save-note-button");
     await saveButton.click();
-    await page.waitForTimeout(2000);
 
     // Now delete it
     const notesToDelete = page.getByText("Note to be deleted in e2e test");
-    await expect(notesToDelete).toBeVisible();
+    await expect(notesToDelete).toBeVisible({ timeout: 10000 });
 
     // Click the delete button for this note
     const noteContainer = notesToDelete
@@ -185,13 +177,10 @@ test.describe("Admin Notes Management", () => {
     await expect(deleteConfirmButton).toBeVisible();
     await deleteConfirmButton.click();
 
-    // Wait for deletion to complete
-    await page.waitForTimeout(2000);
-
     // Check that the note is no longer visible
     await expect(
       page.getByText("Note to be deleted in e2e test")
-    ).not.toBeVisible();
+    ).not.toBeVisible({ timeout: 10000 });
   });
 
   test("should cancel note deletion when clicking cancel", async ({ page }) => {
@@ -204,13 +193,13 @@ test.describe("Admin Notes Management", () => {
     await noteTextarea.fill("Note for cancel test");
     const saveButton = page.getByTestId("save-note-button");
     await saveButton.click();
-    await page.waitForTimeout(2000);
 
     // Find the note and click delete
     const firstNote = page
       .getByTestId("notes-list")
       .locator('[data-testid^="note-"]')
       .first();
+    await expect(firstNote).toBeVisible({ timeout: 10000 });
     const deleteButton = firstNote.getByTestId(/delete-note-button-/);
     await deleteButton.click();
 
@@ -222,7 +211,7 @@ test.describe("Admin Notes Management", () => {
     // The note should still be visible
     const notesList = page.getByTestId("notes-list");
     await expect(notesList).toBeVisible();
-    await expect(page.getByText("Note for cancel test")).toBeVisible();
+    await expect(page.getByText("Note for cancel test")).toBeVisible({ timeout: 10000 });
   });
 
   test("should cancel adding a new note", async ({ page }) => {
