@@ -32,6 +32,10 @@ import {
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionCard } from "@/components/motion-card";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import {
+  type LocationOption,
+  getDefaultLocationCandidates,
+} from "@/lib/location-utils";
 
 // Extend the form data to include profile image requirement for migration
 interface MigrationFormData extends UserProfileFormData {
@@ -66,7 +70,7 @@ interface Provider {
 interface MigrationRegistrationFormProps {
   user: User;
   token: string;
-  locationOptions: Array<{ value: string; label: string }>;
+  locationOptions: LocationOption[];
   shiftTypes: Array<{ id: string; name: string }>;
   newsletterLists: Array<{
     id: string;
@@ -468,8 +472,9 @@ export function MigrationRegistrationForm({
         ? prev.availableLocations.filter((l) => l !== location)
         : [...prev.availableLocations, location];
 
-      const candidates = nextLocations.filter(
-        (l) => l !== "Special Event Venue"
+      const candidates = getDefaultLocationCandidates(
+        nextLocations,
+        locationOptions
       );
       let nextDefault = prev.defaultLocation;
       if (nextDefault && !candidates.includes(nextDefault)) {

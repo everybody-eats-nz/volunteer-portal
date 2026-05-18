@@ -734,6 +734,7 @@ model Location {
   address            String
   defaultMealsServed Int      @default(60) // Default number of meals to pre-fill when recording attendance
   isActive           Boolean  @default(true)
+  isPopup            Boolean  @default(false) // Pop-up / temporary venue: selectable as an available location, but never as a user's default location
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

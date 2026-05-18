@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, address, defaultMealsServed } = body;
+    const { name, address, defaultMealsServed, isPopup } = body;
 
     if (!name || !address || defaultMealsServed === undefined) {
       return NextResponse.json(
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
         address,
         defaultMealsServed: parseInt(defaultMealsServed),
         isActive: true,
+        isPopup: Boolean(isPopup),
       },
     });
 
@@ -75,7 +76,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, address, defaultMealsServed } = body;
+    const { id, name, address, defaultMealsServed, isPopup } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -84,11 +85,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updateData: Record<string, string | number> = {};
+    const updateData: Record<string, string | number | boolean> = {};
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
     if (defaultMealsServed !== undefined)
       updateData.defaultMealsServed = parseInt(defaultMealsServed);
+    if (isPopup !== undefined) updateData.isPopup = Boolean(isPopup);
 
     const location = await prisma.location.update({
       where: { id },
