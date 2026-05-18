@@ -1,6 +1,8 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
-import * as Facebook from 'expo-auth-session/providers/facebook';
+// Facebook login is disabled — the integration has been broken for a while.
+// Kept commented for a one-line re-enable once the Facebook app is fixed.
+// import * as Facebook from 'expo-auth-session/providers/facebook';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
@@ -64,14 +66,14 @@ export function useGoogleAuth() {
 }
 
 /**
- * Facebook sign-in hook — mirrors the Google pattern. Facebook returns an
- * access token (not an id_token) which the server exchanges for a profile
- * via the Graph API. Must be called at the top of a component; use the
- * returned `promptAsync` from event handlers.
+ * Facebook sign-in hook — disabled (broken integration). Re-enable this
+ * function and the import above once the Facebook OAuth app is working again.
+ * Facebook returns an access token (not an id_token) which the server
+ * exchanges for a profile via the Graph API.
  */
-export function useFacebookAuth() {
-  return Facebook.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
-    scopes: ['public_profile', 'email'],
-  });
-}
+// export function useFacebookAuth() {
+//   return Facebook.useAuthRequest({
+//     clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+//     scopes: ['public_profile', 'email'],
+//   });
+// }

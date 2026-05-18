@@ -23,7 +23,8 @@ export type User = {
 
 type AuthResponse = { token: string; user: User };
 
-type LoginMethod = 'email' | 'oauth_apple' | 'oauth_google' | 'oauth_facebook' | 'passkey';
+// 'oauth_facebook' omitted — Facebook login is disabled (broken integration).
+type LoginMethod = 'email' | 'oauth_apple' | 'oauth_google' | 'passkey';
 
 function identifyInPostHog(user: User) {
   posthog?.identify(user.id, {
@@ -40,7 +41,7 @@ type AuthState = {
 
   loginWithEmail: (email: string, password: string) => Promise<void>;
   loginWithOAuth: (
-    provider: 'apple' | 'google' | 'facebook',
+    provider: 'apple' | 'google',
     token: OAuthToken,
   ) => Promise<void>;
   loginWithPasskey: (response: PasskeyAuthResponse) => Promise<void>;
