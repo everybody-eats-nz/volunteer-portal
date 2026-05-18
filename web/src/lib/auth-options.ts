@@ -2,9 +2,12 @@ import type { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import FacebookProvider, {
-  FacebookProfile,
-} from "next-auth/providers/facebook";
+// Facebook login is temporarily disabled — the integration has been broken
+// for a while. Keep the import commented so it's a one-line re-enable once the
+// Facebook OAuth app is fixed.
+// import FacebookProvider, {
+//   FacebookProfile,
+// } from "next-auth/providers/facebook";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { unarchiveUser } from "@/lib/archive-service";
@@ -73,21 +76,25 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-      // Request highest quality profile picture (800x800)
-      profileUrl:
-        "https://graph.facebook.com/me?fields=id,name,email,picture.width(800).height(800)",
-      profile(profile: FacebookProfile) {
-        return {
-          id: profile.id,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture?.data?.url,
-        };
-      },
-    }),
+    // Facebook login disabled (broken integration). Re-enable this block and
+    // the import above once the Facebook OAuth app is working again. Removing
+    // it here hides "Continue with Facebook" from the login, register, and
+    // migration screens, since they all derive providers from this list.
+    // FacebookProvider({
+    //   clientId: process.env.FACEBOOK_CLIENT_ID!,
+    //   clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+    //   // Request highest quality profile picture (800x800)
+    //   profileUrl:
+    //     "https://graph.facebook.com/me?fields=id,name,email,picture.width(800).height(800)",
+    //   profile(profile: FacebookProfile) {
+    //     return {
+    //       id: profile.id,
+    //       name: profile.name,
+    //       email: profile.email,
+    //       image: profile.picture?.data?.url,
+    //     };
+    //   },
+    // }),
 
     // Credentials Provider
     Credentials({
