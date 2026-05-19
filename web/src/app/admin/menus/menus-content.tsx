@@ -245,6 +245,7 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pastDateConfirmOpen, setPastDateConfirmOpen] = useState(false);
   const [recentMenus, setRecentMenus] = useState<RecentMenu[]>(initialRecentMenus);
 
   const loadMenu = useCallback(async (date: string, location: string) => {
@@ -295,7 +296,18 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
     }
   }, [selectedDate, selectedLocation, loadMenu]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    if (!selectedDate || !selectedLocation) return;
+    // The selected date is before today (NZ) — likely an accidental edit of an
+    // old menu when the admin meant to update today's. Confirm before saving.
+    if (selectedDate < todayNZ()) {
+      setPastDateConfirmOpen(true);
+      return;
+    }
+    void performSave();
+  };
+
+  const performSave = async () => {
     if (!selectedDate || !selectedLocation) return;
     setIsSaving(true);
     try {
@@ -642,6 +654,39 @@ export function MenusContent({ locations, initialRecentMenus }: MenusContentProp
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete menu
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Past-date save confirmation */}
+      <AlertDialog open={pastDateConfirmOpen} onOpenChange={setPastDateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This menu is for a past date</AlertDialogTitle>
+            <AlertDialogDescription>
+              You&apos;re about to save the menu for{" "}
+              <strong>{selectedLocation}</strong> on{" "}
+              <strong>
+                {selectedDate
+                  ? format(parseISO(selectedDate), "EEEE, d MMMM yyyy")
+                  : "this day"}
+              </strong>
+              , which has already passed. If you meant to create or update{" "}
+              <strong>today&apos;s</strong> menu (
+              {format(parseISO(todayNZ()), "EEEE, d MMMM yyyy")}), cancel and
+              pick today&apos;s date instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPastDateConfirmOpen(false);
+                void performSave();
+              }}
+            >
+              Save for this past date
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
