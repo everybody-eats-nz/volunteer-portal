@@ -8,7 +8,7 @@ import {
   formatDistanceToNow,
   startOfDay,
 } from "date-fns";
-import { formatNZT } from "@/lib/dates";
+import { formatNZT, formatNZDateOnly } from "@/lib/dates";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
@@ -2551,8 +2551,7 @@ function FeedCard({
     }
 
     if (item.type === "daily_menu") {
-      const serviceDate = new Date(item.serviceDate);
-      const dateText = formatNZT(serviceDate, "EEEE d MMM");
+      const dateText = formatNZDateOnly(item.serviceDate, "EEEE d MMM");
       const previewNames = [
         ...(item.mains ?? []),
         ...(item.starter ?? []),
@@ -2903,7 +2902,7 @@ function FeedItemSheet({
       : config.emoji;
   const isPastDailyMenu =
     item.type === "daily_menu" &&
-    formatNZT(new Date(item.serviceDate), "yyyy-MM-dd") <
+    formatNZDateOnly(item.serviceDate, "yyyy-MM-dd") <
       formatNZT(new Date(), "yyyy-MM-dd");
   const headerLabel = isPastDailyMenu ? "Past Menu" : config.label;
 
@@ -2953,8 +2952,7 @@ function FeedItemSheet({
       : `${formatNZT(earliest, "d MMM")} – ${formatNZT(latest, "d MMM")}`;
     body = `${dateText} · ${item.shiftTypes.join(", ")}`;
   } else if (item.type === "daily_menu") {
-    const serviceDate = new Date(item.serviceDate);
-    title = `Menu for ${formatNZT(serviceDate, "EEEE d MMM")} at ${
+    title = `Menu for ${formatNZDateOnly(item.serviceDate, "EEEE d MMM")} at ${
       item.location
     }`;
     const sections: string[] = [];
@@ -3474,14 +3472,14 @@ function FeedItemSheet({
 
             {/* ── Daily menu CTA: browse shifts on that service day (only if today or upcoming) ── */}
             {item.type === "daily_menu" &&
-              formatNZT(new Date(item.serviceDate), "yyyy-MM-dd") >=
+              formatNZDateOnly(item.serviceDate, "yyyy-MM-dd") >=
                 formatNZT(new Date(), "yyyy-MM-dd") && (
                 <Pressable
                   onPress={() => {
                     Haptics.selectionAsync();
                     onClose();
-                    const dateKey = formatNZT(
-                      new Date(item.serviceDate),
+                    const dateKey = formatNZDateOnly(
+                      item.serviceDate,
                       "yyyy-MM-dd"
                     );
                     router.push(`/(tabs)/shifts?date=${dateKey}` as Href);
