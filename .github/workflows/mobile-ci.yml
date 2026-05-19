@@ -1,0 +1,89 @@
+name: Mobile CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["mobile/**", ".github/workflows/mobile-ci.yml"]
+  push:
+    branches: [main]
+    paths: ["mobile/**", ".github/workflows/mobile-ci.yml"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: Pacific/Auckland
+
+jobs:
+  mobile-test:
+    name: Mobile unit tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          # Mobile has no own .nvmrc; reuse the repo's pinned Node version.
+          node-version-file: web/.nvmrc
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test:run
+
+  # Re-emits the repo-wide "Tests passed" required check for mobile-only PRs,
+  # mirroring test.yml (web) and docs-check.yml (docs).
+  tests-passed:
+    name: Tests passed
+    runs-on: ubuntu-latest
+    needs: mobile-test
+    if: always()
+
+    steps:
+      - name: Check mobile tests
+        run: |
+          if [[ "${{ needs.mobile-test.result }}" == "success" ]]; then
+            echo "✅ Mobile unit tests passed"
+            exit 0
+          else
+            echo "❌ Mobile unit tests failed"
+            exit 1
+          fi
+
+  # Re-emits the repo-wide "Ready to Merge" required check for mobile-only PRs,
+  # mirroring ci.yml (web) and docs-check.yml (docs).
+  merge-check:
+    name: Ready to Merge
+    runs-on: ubuntu-latest
+    needs: mobile-test
+    if: always()
+
+    steps:
+      - name: Check mobile tests
+        run: |
+          if [[ "${{ needs.mobile-test.result }}" == "success" ]]; then
+            echo "✅ Mobile checks passed"
+            exit 0
+          else
+            echo "❌ Mobile checks failed"
+            exit 1
+          fi
+
+      - name: Merge requirements satisfied
+        run: |
+          echo "🎉 All requirements satisfied for mobile-only PR"
+          echo "✅ Mobile unit tests passed"
