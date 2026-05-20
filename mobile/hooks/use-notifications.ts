@@ -18,7 +18,10 @@ export type NotificationType =
   | 'SHIFT_CANCELLATION_MANAGER'
   | 'FLEXIBLE_PLACEMENT'
   | 'UNDERAGE_USER_REGISTERED'
-  | 'SURVEY_ASSIGNED';
+  | 'SURVEY_ASSIGNED'
+  | 'FEED_ITEM_LIKED'
+  | 'FEED_ITEM_COMMENTED'
+  | 'FEED_ITEM_COMMENT_REPLY';
 
 export type AppNotification = {
   id: string;
