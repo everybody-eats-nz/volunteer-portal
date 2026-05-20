@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UserPlus, Sparkles, Calendar } from "lucide-react";
+import { UserPlus, Sparkles, Calendar, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatInNZT } from "@/lib/timezone";
 import { sendFriendRequestByUserId } from "@/lib/friends-actions";
 import { toast } from "sonner";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MotionSpinner } from "@/components/motion-spinner";
 import {
@@ -100,7 +101,40 @@ export function RecommendedFriends() {
   }
 
   if (recommendedFriends.length === 0) {
-    return null;
+    return (
+      <Card
+        className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background"
+        data-testid="recommended-friends-empty"
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Suggested Friends
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center text-center py-6 px-4">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">
+              No suggestions yet
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-5">
+              Sign up for more shifts to see suggestions here. Once you&apos;ve
+              shared 3+ shifts with another volunteer in the last 3 months,
+              they&apos;ll show up as a suggested friend.
+            </p>
+            <Button asChild size="sm" variant="default">
+              <Link href="/shifts">
+                <Calendar className="h-3 w-3 mr-1" />
+                Browse shifts
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
