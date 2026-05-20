@@ -485,6 +485,16 @@ export async function notifyFeedItemLiked(args: {
   });
 }
 
+// Max characters of the original comment to surface as the push body. Keeps
+// the banner readable on a small screen; the user opens the thread for full
+// context.
+const COMMENT_SNIPPET_MAX_LENGTH = 80;
+
+function snippetOf(commentText: string): string {
+  if (commentText.length <= COMMENT_SNIPPET_MAX_LENGTH) return commentText;
+  return `${commentText.slice(0, COMMENT_SNIPPET_MAX_LENGTH - 3)}…`;
+}
+
 /**
  * Notify the owner of a feed item that someone commented. One notification
  * per comment — comments are conversational and the snippet is informative.
@@ -498,8 +508,7 @@ export async function notifyFeedItemCommented(args: {
 }) {
   const { recipientUserId, feedItemId, itemLabel, actorName, commentText } =
     args;
-  const snippet =
-    commentText.length > 80 ? `${commentText.slice(0, 77)}…` : commentText;
+  const snippet = snippetOf(commentText);
 
   return createNotification({
     userId: recipientUserId,
@@ -526,8 +535,7 @@ export async function notifyFeedItemCommentReply(args: {
   const { recipientUserIds, feedItemId, actorName, commentText } = args;
   if (recipientUserIds.length === 0) return { count: 0 };
 
-  const snippet =
-    commentText.length > 80 ? `${commentText.slice(0, 77)}…` : commentText;
+  const snippet = snippetOf(commentText);
 
   return createNotificationsForUsers({
     userIds: recipientUserIds,
