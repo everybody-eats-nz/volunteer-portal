@@ -125,6 +125,12 @@ export default async function AdminVolunteerPage({
       createdAt: true,
       archivedAt: true,
       archiveReason: true,
+      // Mobile-app presence: 1:1 messages reach the volunteer via push only,
+      // so we gate the "Message" admin action on whether they've signed in on
+      // mobile (which is the only way a PushToken row gets created).
+      _count: {
+        select: { pushTokens: true },
+      },
       regularVolunteers: {
         include: {
           shiftType: true,
@@ -570,20 +576,21 @@ export default async function AdminVolunteerPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {volunteer.role === "VOLUNTEER" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Send a direct message
-                    </label>
-                    <div>
-                      <MessageVolunteerButton volunteerId={volunteer.id} />
+                {volunteer.role === "VOLUNTEER" &&
+                  volunteer._count.pushTokens > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Send a direct message
+                      </label>
+                      <div>
+                        <MessageVolunteerButton volunteerId={volunteer.id} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Opens (or creates) a 1:1 conversation thread between
+                        this volunteer and the team
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Opens (or creates) a 1:1 conversation thread between this
-                      volunteer and the team
-                    </p>
-                  </div>
-                )}
+                  )}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">

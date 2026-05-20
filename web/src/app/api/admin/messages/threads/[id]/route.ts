@@ -38,6 +38,12 @@ export async function GET(
           defaultLocation: true,
           volunteerGrade: true,
           createdAt: true,
+          // Used by the inbox UI to surface a "no mobile app" hint —
+          // outbound replies only push to mobile, so a volunteer with no
+          // PushToken rows won't get the interrupt notification.
+          _count: {
+            select: { pushTokens: true },
+          },
         },
       },
     },
@@ -45,6 +51,16 @@ export async function GET(
   if (!thread) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
+
+  // Flatten the count into a friendlier boolean for the client.
+  const { _count, ...volunteerRest } = thread.volunteer;
+  const threadForClient = {
+    ...thread,
+    volunteer: {
+      ...volunteerRest,
+      hasMobileApp: _count.pushTokens > 0,
+    },
+  };
 
   const messages = await listMessages({
     threadId: id,
@@ -99,5 +115,10 @@ export async function GET(
       }
     : null;
 
-  return NextResponse.json({ thread, messages, upcomingShiftCount, nextShift });
+  return NextResponse.json({
+    thread: threadForClient,
+    messages,
+    upcomingShiftCount,
+    nextShift,
+  });
 }
