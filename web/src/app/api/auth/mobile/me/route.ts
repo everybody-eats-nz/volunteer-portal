@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMobileUser } from "@/lib/mobile-auth";
+import { prisma } from "@/lib/prisma";
 import { archiveAndAnonymizeUser } from "@/lib/user-service";
 
 export async function GET(request: Request) {
@@ -11,6 +12,21 @@ export async function GET(request: Request) {
       { status: 401 }
     );
   }
+
+  // The mobile app calls this on cold start to restore the session — so this
+  // is the most reliable "is this user actively on mobile?" signal we have.
+  // Fire-and-forget so a flaky write never breaks app startup.
+  void prisma.user
+    .update({
+      where: { id: user.id },
+      data: { lastMobileLoginAt: new Date() },
+    })
+    .catch((err) =>
+      console.error(
+        "Failed to stamp lastMobileLoginAt on session restore:",
+        err
+      )
+    );
 
   return NextResponse.json(user);
 }

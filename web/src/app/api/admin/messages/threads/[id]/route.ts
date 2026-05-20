@@ -38,12 +38,10 @@ export async function GET(
           defaultLocation: true,
           volunteerGrade: true,
           createdAt: true,
-          // Used by the inbox UI to surface a "no mobile app" hint —
-          // outbound replies only push to mobile, so a volunteer with no
-          // PushToken rows won't get the interrupt notification.
-          _count: {
-            select: { pushTokens: true },
-          },
+          // Powers the "no mobile app" inbox hint. Stamped on every mobile
+          // auth event (login + cold-start /me), so null means the volunteer
+          // has never opened the app while signed in.
+          lastMobileLoginAt: true,
         },
       },
     },
@@ -52,13 +50,13 @@ export async function GET(
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
-  // Flatten the count into a friendlier boolean for the client.
-  const { _count, ...volunteerRest } = thread.volunteer;
+  // Flatten the timestamp into a friendlier boolean for the client.
+  const { lastMobileLoginAt, ...volunteerRest } = thread.volunteer;
   const threadForClient = {
     ...thread,
     volunteer: {
       ...volunteerRest,
-      hasMobileApp: _count.pushTokens > 0,
+      hasMobileApp: lastMobileLoginAt !== null,
     },
   };
 
