@@ -233,7 +233,7 @@ export function ShiftMonthCalendar({
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#f5c518" }]} />
           <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-            Volunteers going
+            Friends going
           </Text>
         </View>
       </View>
@@ -326,7 +326,7 @@ function DayCell({
       ]}
       accessibilityLabel={`${formatNZT(day, "EEEE, d MMMM")}${
         shiftCount > 0 ? `, ${shiftCount} shifts` : ", no shifts"
-      }${hasFriends ? ", volunteers going" : ""}${
+      }${hasFriends ? ", friends going" : ""}${
         isSignedUp ? ", you're signed up" : ""
       }${isPastAttended ? ", shift attended" : ""}`}
       accessibilityRole="button"
