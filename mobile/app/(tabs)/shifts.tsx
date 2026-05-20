@@ -277,13 +277,16 @@ export default function ShiftsScreen() {
     return map;
   }, [filteredAvailable, filteredMyShifts, filteredPast]);
 
-  /* Calendar friend dots — only count shifts visible under the active location filter */
+  /* Calendar friend dots — only count shifts visible under the active location
+     filter, AND only when at least one actual friend is going. Public-profile
+     volunteers also appear in shiftFriends but shouldn't trigger the dot. */
   const friendDates = useMemo(() => {
     const set = new Set<string>();
     const visible = [...filteredMyShifts, ...filteredPast, ...filteredAvailable];
     for (const shift of visible) {
       const friends = shiftFriends[shift.id];
       if (!friends || friends.length === 0) continue;
+      if (!friends.some((f) => f.isFriend)) continue;
       set.add(formatDateKey(new Date(shift.start)));
     }
     return set;

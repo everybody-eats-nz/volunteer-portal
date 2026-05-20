@@ -190,7 +190,7 @@ export default function ShiftDetailScreen() {
     [shiftSignups]
   );
   const thisShiftName = shift?.shiftType.name;
-  const friendsOnYourShift = useMemo(
+  const visibleOnYourShift = useMemo(
     () =>
       periodFriends.filter(
         (f) => thisShiftSignupIds.has(f.id) || f.shiftTypeName === thisShiftName
@@ -204,6 +204,14 @@ export default function ShiftDetailScreen() {
           !thisShiftSignupIds.has(f.id) && f.shiftTypeName !== thisShiftName
       ),
     [periodFriends, thisShiftSignupIds, thisShiftName]
+  );
+  // Count of volunteers on this shift who aren't visible to the current user
+  // (i.e. PRIVATE / FRIENDS_ONLY non-friends). shiftSignups includes "You" if
+  // the current user is signed up, so subtract that too.
+  const selfInList = isMyShift ? 1 : 0;
+  const otherVolunteersCount = Math.max(
+    0,
+    shiftSignups.length - selfInList - visibleOnYourShift.length
   );
 
   if (isLoading) {
@@ -581,11 +589,14 @@ export default function ShiftDetailScreen() {
           </View>
         </View>
 
-        {/* ═══ Friends this session ═══ */}
-        {(friendsOnYourShift.length > 0 || friendsInSession.length > 0) && (
-          <FriendsSection
-            onYourShift={friendsOnYourShift}
+        {/* ═══ Volunteers on this shift ═══ */}
+        {(visibleOnYourShift.length > 0 ||
+          friendsInSession.length > 0 ||
+          otherVolunteersCount > 0) && (
+          <VolunteersSection
+            onYourShift={visibleOnYourShift}
             sameSession={friendsInSession}
+            otherCount={otherVolunteersCount}
             colors={colors}
             isDark={isDark}
           />
@@ -683,56 +694,80 @@ export default function ShiftDetailScreen() {
 }
 
 /* ═════════════════════════════════════════════════════════
-   FRIENDS SECTION — horizontal "ensemble" cards
+   VOLUNTEERS SECTION — who's joining this shift
    ═════════════════════════════════════════════════════════ */
 
-function FriendsSection({
+function VolunteersSection({
   onYourShift,
   sameSession,
+  otherCount,
   colors,
   isDark,
 }: {
   onYourShift: PeriodFriend[];
   sameSession: PeriodFriend[];
+  otherCount: number;
   colors: (typeof Colors)["light"];
   isDark: boolean;
 }) {
-  const total = onYourShift.length + sameSession.length;
+  const totalOnShift = onYourShift.length + otherCount;
+  const title =
+    totalOnShift > 0
+      ? `${totalOnShift} ${totalOnShift === 1 ? "volunteer" : "volunteers"} going`
+      : "Volunteers";
 
   return (
     <View style={s.section}>
-      <SectionHeader
-        label=""
-        title={`${total} volunteer${total !== 1 ? "s" : ""} you can see`}
-        caption={""}
-        colors={colors}
-      />
+      <SectionHeader label="" title={title} caption="" colors={colors} />
 
       {onYourShift.length > 0 && (
-        <View style={s.friendsGroup}>
-          <View style={s.friendsGroupHead}>
-            <Text
-              style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
-            >
-              SAME ROLE
-            </Text>
-            <Text
-              style={[s.friendsGroupCount, { color: colors.textSecondary }]}
-            >
-              {String(onYourShift.length).padStart(2, "0")}
-            </Text>
+        <View style={s.friendsList}>
+          {onYourShift.map((f) => (
+            <FriendRow
+              key={f.id}
+              friend={f}
+              isDark={isDark}
+              colors={colors}
+              showFriendBadge={f.isFriend}
+              hideRole
+            />
+          ))}
+        </View>
+      )}
+
+      {otherCount > 0 && (
+        <View
+          style={[
+            s.otherVolunteersRow,
+            {
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.04)"
+                : "rgba(14,58,35,0.04)",
+            },
+          ]}
+        >
+          <View
+            style={[
+              s.otherVolunteersBadge,
+              {
+                backgroundColor: isDark
+                  ? "rgba(248,251,105,0.12)"
+                  : "rgba(14,58,35,0.08)",
+              },
+            ]}
+          >
+            <Ionicons
+              name="people-outline"
+              size={18}
+              color={isDark ? Brand.accent : Brand.green}
+            />
           </View>
-          <View style={s.friendsList}>
-            {onYourShift.map((f) => (
-              <FriendRow
-                key={f.id}
-                friend={f}
-                isDark={isDark}
-                colors={colors}
-                alongside
-              />
-            ))}
-          </View>
+          <Text
+            style={[s.otherVolunteersText, { color: colors.textSecondary }]}
+          >
+            {onYourShift.length > 0 ? "and " : ""}
+            {otherCount} other {otherCount === 1 ? "volunteer" : "volunteers"}
+          </Text>
         </View>
       )}
 
@@ -742,7 +777,7 @@ function FriendsSection({
             <Text
               style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
             >
-              DIFFERENT ROLE
+              ALSO IN THIS SESSION
             </Text>
             <Text
               style={[s.friendsGroupCount, { color: colors.textSecondary }]}
@@ -826,12 +861,16 @@ function FriendRow({
   friend,
   isDark,
   colors,
-  alongside = false,
+  showFriendBadge = false,
+  hideRole = false,
 }: {
   friend: PeriodFriend;
   isDark: boolean;
   colors: (typeof Colors)["light"];
-  alongside?: boolean;
+  /** When true, renders the "Friend" indicator on the right of the row. */
+  showFriendBadge?: boolean;
+  /** Hide the role label & chip (redundant when the row is for the current shift). */
+  hideRole?: boolean;
 }) {
   const router = useRouter();
   const initial = friend.name.charAt(0).toUpperCase();
@@ -890,7 +929,7 @@ function FriendRow({
         >
           {friend.name}
         </Text>
-        {friend.shiftTypeName && (
+        {friend.shiftTypeName && !hideRole && (
           <View style={s.friendRowRole}>
             <View
               style={[s.friendRowRoleDot, { backgroundColor: roleAccent }]}
@@ -906,11 +945,21 @@ function FriendRow({
       </View>
 
       {/* Right-edge marker */}
-      {alongside ? (
-        <View style={[s.friendRowMarker, { backgroundColor: Brand.accent }]}>
-          <Ionicons name="checkmark" size={12} color={Brand.green} />
+      {showFriendBadge && friend.isFriend ? (
+        <View
+          style={[
+            s.friendRowFriendChip,
+            { backgroundColor: Brand.accent, borderColor: Brand.green + "22" },
+          ]}
+          accessibilityLabel="Friend"
+        >
+          <Ionicons name="heart" size={11} color={Brand.green} />
+          <Text style={[s.friendRowFriendChipText, { color: Brand.green }]}>
+            Friend
+          </Text>
         </View>
       ) : (
+        !hideRole &&
         roleTheme && (
           <View
             style={[
@@ -1365,6 +1414,42 @@ const s = StyleSheet.create({
   },
   friendRowEmoji: {
     fontSize: 18,
+  },
+  friendRowFriendChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  friendRowFriendChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.4,
+  },
+  otherVolunteersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    marginTop: 6,
+  },
+  otherVolunteersBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otherVolunteersText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 18,
+    fontFamily: FontFamily.medium,
   },
 
   /* ── GLASS CTA ── */
