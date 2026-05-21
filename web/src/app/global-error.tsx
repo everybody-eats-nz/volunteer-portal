@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 export default function GlobalError({
   error,
+  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -34,21 +35,24 @@ export default function GlobalError({
             Something went wrong
           </h1>
           <p style={{ color: "#666", marginBottom: "1.5rem" }}>
-            Kia ora — we hit an unexpected error. Please try reloading the page.
+            Kia ora — we hit an unexpected error. Please try again.
           </p>
-          <a
-            href="/"
+          <button
+            type="button"
+            onClick={() => reset()}
             style={{
               display: "inline-block",
               padding: "0.625rem 1.25rem",
               borderRadius: "0.5rem",
               background: "#111",
               color: "#fff",
-              textDecoration: "none",
+              border: 0,
+              cursor: "pointer",
+              font: "inherit",
             }}
           >
-            Reload
-          </a>
+            Try again
+          </button>
         </div>
       </body>
     </html>
