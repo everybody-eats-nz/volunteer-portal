@@ -303,7 +303,7 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
         <NextShiftCard nextShift={thread.nextShift} />
 
         <Link
-          href={`/admin/users/${thread.volunteer.id}`}
+          href={`/admin/volunteers/${thread.volunteer.id}`}
           className="mt-4 inline-flex items-center text-xs font-medium text-emerald-700 hover:underline"
         >
           Open full profile <ExternalLink className="w-3 h-3 ml-1" />
