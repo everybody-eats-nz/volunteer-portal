@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { filterContent } from "@/lib/content-filter";
+import { resolveFeedItemOwner } from "@/lib/feed/feed-item-owner";
+import {
+  notifyFeedItemCommented,
+  notifyFeedItemCommentReply,
+} from "@/lib/notifications";
 
 /**
  * GET /api/mobile/feed/[itemId]/comments
@@ -102,14 +107,65 @@ export async function POST(
     }),
   ]);
 
+  const actorName = user?.firstName ?? user?.name ?? "Volunteer";
+
+  // Fire-and-forget: notify the owner + fan out to other thread participants.
+  notifyCommentRecipients(itemId, userId, actorName, comment.text).catch(
+    (err) => console.error("Error notifying feed comment recipients:", err)
+  );
+
   return NextResponse.json({
     comment: {
       id: comment.id,
       userId: comment.userId,
-      userName: user?.firstName ?? user?.name ?? "Volunteer",
+      userName: actorName,
       profilePhotoUrl: user?.profilePhotoUrl ?? undefined,
       text: comment.text,
       timestamp: comment.createdAt.toISOString(),
     },
   });
+}
+
+async function notifyCommentRecipients(
+  feedItemId: string,
+  actorUserId: string,
+  actorName: string,
+  commentText: string
+) {
+  const owner = await resolveFeedItemOwner(feedItemId);
+
+  // 1. Owner notification (skip if owner is the actor or item has no owner)
+  if (owner && owner.ownerId !== actorUserId) {
+    await notifyFeedItemCommented({
+      recipientUserId: owner.ownerId,
+      feedItemId,
+      itemLabel: owner.itemLabel,
+      actorName,
+      commentText,
+    });
+  }
+
+  // 2. Thread-participant fan-out: everyone else who has commented on this
+  // item, minus the actor and (if known) the owner who already got #1.
+  const participants = await prisma.feedComment.findMany({
+    where: { feedItemId },
+    select: { userId: true },
+    distinct: ["userId"],
+  });
+
+  const excluded = new Set<string>([actorUserId]);
+  if (owner) excluded.add(owner.ownerId);
+
+  const recipientUserIds = participants
+    .map((p) => p.userId)
+    .filter((id) => !excluded.has(id));
+
+  if (recipientUserIds.length > 0) {
+    await notifyFeedItemCommentReply({
+      recipientUserIds,
+      feedItemId,
+      actorName,
+      commentText,
+    });
+  }
 }

@@ -479,6 +479,9 @@ enum NotificationType {
   SHIFT_SHORTAGE // Admin sent shortage alert for shifts that need more volunteers
   ANNOUNCEMENT // Admin published an announcement targeted at this volunteer
   DIRECT_MESSAGE // Direct message in volunteer-team thread
+  FEED_ITEM_LIKED // Someone liked your feed item (achievement, friend signup, announcement)
+  FEED_ITEM_COMMENTED // Someone commented on your feed item
+  FEED_ITEM_COMMENT_REPLY // Someone commented on a feed item you also commented on (thread participant)
 }
 
 model RestaurantManager {
