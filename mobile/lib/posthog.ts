@@ -15,5 +15,15 @@ export const posthog = apiKey
       // Autocapture app open/close/background transitions so we get
       // basic engagement without per-screen instrumentation.
       captureAppLifecycleEvents: true,
+      // Capture unhandled JS errors and promise rejections so we can
+      // monitor them in PostHog's error tracking. `console` is left off
+      // to avoid duplicates from React's automatic error logging.
+      errorTracking: {
+        autocapture: {
+          uncaughtExceptions: true,
+          unhandledRejections: true,
+          console: [],
+        },
+      },
     })
   : null;
