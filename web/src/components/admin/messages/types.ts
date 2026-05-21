@@ -52,6 +52,12 @@ export interface ThreadDetail {
     defaultLocation: string | null;
     volunteerGrade: string;
     createdAt: string;
+    /**
+     * True if the volunteer has at least one registered Expo push token —
+     * i.e. they've signed in on the mobile app. Used to warn admins when a
+     * reply won't trigger a push.
+     */
+    hasMobileApp: boolean;
   };
   upcomingShiftCount: number;
   nextShift: NextShiftSummary | null;

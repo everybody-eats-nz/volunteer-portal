@@ -125,6 +125,13 @@ export default async function AdminVolunteerPage({
       createdAt: true,
       archivedAt: true,
       archiveReason: true,
+      // Mobile-app presence signal: the "Message" admin action is only useful
+      // for volunteers currently on the mobile app. Use lastMobileLoginAt
+      // (stamped on every mobile login / cold-start session restore) rather
+      // than PushToken rows, because tokens additionally require OS
+      // notification permission — a user who declined the prompt has the app
+      // but no token.
+      lastMobileLoginAt: true,
       regularVolunteers: {
         include: {
           shiftType: true,
@@ -570,20 +577,21 @@ export default async function AdminVolunteerPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {volunteer.role === "VOLUNTEER" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Send a direct message
-                    </label>
-                    <div>
-                      <MessageVolunteerButton volunteerId={volunteer.id} />
+                {volunteer.role === "VOLUNTEER" &&
+                  volunteer.lastMobileLoginAt !== null && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Send a direct message
+                      </label>
+                      <div>
+                        <MessageVolunteerButton volunteerId={volunteer.id} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Opens (or creates) a 1:1 conversation thread between
+                        this volunteer and the team
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Opens (or creates) a 1:1 conversation thread between this
-                      volunteer and the team
-                    </p>
-                  </div>
-                )}
+                  )}
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">

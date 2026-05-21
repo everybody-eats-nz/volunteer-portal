@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Archive, ArchiveRestore, ExternalLink, Loader2, Send } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ExternalLink,
+  Info,
+  Loader2,
+  Send,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -208,6 +215,19 @@ export function ThreadView({ threadId, onMessageSent, onResolve }: ThreadViewPro
             )}
           </Button>
         </div>
+
+        {/* No-mobile-app hint: replies create a bell notification but won't
+            push, so flag it to admins before they compose. */}
+        {!thread.volunteer.hasMobileApp && (
+          <div className="flex items-start gap-2 border-b bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5 text-xs text-amber-900 dark:text-amber-200">
+            <Info className="w-4 h-4 shrink-0 mt-px" />
+            <p>
+              {volunteerName.split(" ")[0]} hasn&apos;t signed in on the mobile
+              app, so replies won&apos;t send a push notification — they&apos;ll
+              only see it when they next open the web portal.
+            </p>
+          </div>
+        )}
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">

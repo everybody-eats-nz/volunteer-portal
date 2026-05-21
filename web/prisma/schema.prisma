@@ -84,6 +84,12 @@ model User {
   archiveExtensionToken         String?   @unique
   archiveExtensionTokenExpiresAt DateTime?
 
+  // Most recent successful mobile auth event (login, OAuth, passkey, or
+  // cold-start session restore). Used as the "has the mobile app" signal —
+  // more reliable than PushToken presence, which is also gated on the user
+  // having granted OS notification permission.
+  lastMobileLoginAt DateTime?
+
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   signups              Signup[]

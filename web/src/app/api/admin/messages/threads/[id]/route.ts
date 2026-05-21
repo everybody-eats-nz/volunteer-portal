@@ -38,6 +38,10 @@ export async function GET(
           defaultLocation: true,
           volunteerGrade: true,
           createdAt: true,
+          // Powers the "no mobile app" inbox hint. Stamped on every mobile
+          // auth event (login + cold-start /me), so null means the volunteer
+          // has never opened the app while signed in.
+          lastMobileLoginAt: true,
         },
       },
     },
@@ -45,6 +49,16 @@ export async function GET(
   if (!thread) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
+
+  // Flatten the timestamp into a friendlier boolean for the client.
+  const { lastMobileLoginAt, ...volunteerRest } = thread.volunteer;
+  const threadForClient = {
+    ...thread,
+    volunteer: {
+      ...volunteerRest,
+      hasMobileApp: lastMobileLoginAt !== null,
+    },
+  };
 
   const messages = await listMessages({
     threadId: id,
@@ -99,5 +113,10 @@ export async function GET(
       }
     : null;
 
-  return NextResponse.json({ thread, messages, upcomingShiftCount, nextShift });
+  return NextResponse.json({
+    thread: threadForClient,
+    messages,
+    upcomingShiftCount,
+    nextShift,
+  });
 }

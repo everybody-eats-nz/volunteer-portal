@@ -52,6 +52,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Stamp the mobile-login marker so admin UI can tell who's actually on
+    // mobile (more reliable than push tokens, which require notification
+    // permission). Fire-and-forget — failure here shouldn't block login.
+    void prisma.user
+      .update({
+        where: { id: user.id },
+        data: { lastMobileLoginAt: new Date() },
+      })
+      .catch((err) =>
+        console.error("Failed to stamp lastMobileLoginAt on login:", err)
+      );
+
     const token = await signMobileToken(user.id, user.email);
 
     return NextResponse.json({
