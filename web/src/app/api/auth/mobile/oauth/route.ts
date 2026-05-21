@@ -131,6 +131,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found after upsert" }, { status: 500 });
     }
 
+    // Mark this user as currently on mobile — used by admin UI to gate the
+    // 1:1 "Message" action. Fire-and-forget; login flow shouldn't block on it.
+    void prisma.user
+      .update({
+        where: { id: freshUser.id },
+        data: { lastMobileLoginAt: new Date() },
+      })
+      .catch((err) =>
+        console.error("Failed to stamp lastMobileLoginAt on OAuth login:", err)
+      );
+
     const token = await signMobileToken(freshUser.id, freshUser.email);
     return NextResponse.json({ token, user: toMobileUser(freshUser) });
   } catch (error) {

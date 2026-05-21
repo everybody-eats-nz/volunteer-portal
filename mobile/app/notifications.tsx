@@ -90,6 +90,21 @@ const ICON_MAP: Record<NotificationType, IconSpec> = {
     color: "#0e7490",
     bg: "rgba(14, 116, 144, 0.12)",
   },
+  FEED_ITEM_LIKED: {
+    name: "heart",
+    color: "#dc2626",
+    bg: "rgba(220, 38, 38, 0.12)",
+  },
+  FEED_ITEM_COMMENTED: {
+    name: "chatbubble",
+    color: "#2563eb",
+    bg: "rgba(37, 99, 235, 0.12)",
+  },
+  FEED_ITEM_COMMENT_REPLY: {
+    name: "chatbubbles",
+    color: "#7c3aed",
+    bg: "rgba(124, 58, 237, 0.12)",
+  },
 };
 
 function iconFor(type: NotificationType): IconSpec {

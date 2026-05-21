@@ -134,6 +134,20 @@ export async function POST(req: NextRequest) {
       data: { counter: BigInt(newCounter), lastUsedAt: new Date() },
     });
 
+    // Stamp the mobile-login marker so admin UI can tell this user is on
+    // mobile. Fire-and-forget — failure shouldn't block a successful auth.
+    void prisma.user
+      .update({
+        where: { id: passkey.user.id },
+        data: { lastMobileLoginAt: new Date() },
+      })
+      .catch((err) =>
+        console.error(
+          "Failed to stamp lastMobileLoginAt on passkey login:",
+          err
+        )
+      );
+
     const token = await signMobileToken(passkey.user.id, passkey.user.email);
     return NextResponse.json({ token, user: toMobileUser(passkey.user) });
   } catch (error) {

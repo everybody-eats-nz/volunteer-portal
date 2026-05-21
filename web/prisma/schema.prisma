@@ -84,6 +84,12 @@ model User {
   archiveExtensionToken         String?   @unique
   archiveExtensionTokenExpiresAt DateTime?
 
+  // Most recent successful mobile auth event (login, OAuth, passkey, or
+  // cold-start session restore). Used as the "has the mobile app" signal —
+  // more reliable than PushToken presence, which is also gated on the user
+  // having granted OS notification permission.
+  lastMobileLoginAt DateTime?
+
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   signups              Signup[]
@@ -473,6 +479,9 @@ enum NotificationType {
   SHIFT_SHORTAGE // Admin sent shortage alert for shifts that need more volunteers
   ANNOUNCEMENT // Admin published an announcement targeted at this volunteer
   DIRECT_MESSAGE // Direct message in volunteer-team thread
+  FEED_ITEM_LIKED // Someone liked your feed item (achievement, friend signup, announcement)
+  FEED_ITEM_COMMENTED // Someone commented on your feed item
+  FEED_ITEM_COMMENT_REPLY // Someone commented on a feed item you also commented on (thread participant)
 }
 
 model RestaurantManager {

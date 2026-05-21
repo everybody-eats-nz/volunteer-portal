@@ -411,6 +411,143 @@ export async function createShiftWaitlistedNotification(
 }
 
 /**
+ * Notify the owner of a feed item that someone liked it.
+ *
+ * Coalesces while the previous notification is still unread: a second liker
+ * updates the existing notification in place ("Sarah and 2 others liked your
+ * achievement") and re-broadcasts SSE, but does not send a fresh push — that
+ * would spam the owner with one push per like. Once the owner marks it read,
+ * the next like creates a new notification (and a new push).
+ */
+export async function notifyFeedItemLiked(args: {
+  recipientUserId: string;
+  feedItemId: string;
+  itemLabel: string;
+  actorName: string;
+}) {
+  const { recipientUserId, feedItemId, itemLabel, actorName } = args;
+  const actionUrl = `/dashboard?feedItemId=${encodeURIComponent(feedItemId)}`;
+
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId: recipientUserId,
+      type: "FEED_ITEM_LIKED",
+      relatedId: feedItemId,
+      isRead: false,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing) {
+    const likeCount = await prisma.feedLike.count({
+      where: { feedItemId },
+    });
+    const othersCount = Math.max(likeCount - 1, 0);
+    const title = "New like on your post";
+    const message =
+      othersCount > 0
+        ? `${actorName} and ${othersCount} ${
+            othersCount === 1 ? "other" : "others"
+          } liked ${itemLabel}`
+        : `${actorName} liked ${itemLabel}`;
+
+    const updated = await prisma.notification.update({
+      where: { id: existing.id },
+      data: { title, message, createdAt: new Date() },
+    });
+
+    // SSE update only — no new push. Owner already has an unread banner.
+    sendNotificationToUser(recipientUserId, {
+      title,
+      message,
+      type: "info",
+      actionUrl,
+      metadata: {
+        notificationId: updated.id,
+        type: "FEED_ITEM_LIKED",
+        relatedId: feedItemId,
+        coalesced: true,
+      },
+    }).catch((err) =>
+      console.error("Error sending SSE notification (coalesced like):", err)
+    );
+
+    return updated;
+  }
+
+  return createNotification({
+    userId: recipientUserId,
+    type: "FEED_ITEM_LIKED",
+    title: "New like on your post",
+    message: `${actorName} liked ${itemLabel}`,
+    actionUrl,
+    relatedId: feedItemId,
+  });
+}
+
+// Max characters of the original comment to surface as the push body. Keeps
+// the banner readable on a small screen; the user opens the thread for full
+// context.
+const COMMENT_SNIPPET_MAX_LENGTH = 80;
+
+function snippetOf(commentText: string): string {
+  if (commentText.length <= COMMENT_SNIPPET_MAX_LENGTH) return commentText;
+  return `${commentText.slice(0, COMMENT_SNIPPET_MAX_LENGTH - 3)}…`;
+}
+
+/**
+ * Notify the owner of a feed item that someone commented. One notification
+ * per comment — comments are conversational and the snippet is informative.
+ */
+export async function notifyFeedItemCommented(args: {
+  recipientUserId: string;
+  feedItemId: string;
+  itemLabel: string;
+  actorName: string;
+  commentText: string;
+}) {
+  const { recipientUserId, feedItemId, itemLabel, actorName, commentText } =
+    args;
+  const snippet = snippetOf(commentText);
+
+  return createNotification({
+    userId: recipientUserId,
+    type: "FEED_ITEM_COMMENTED",
+    title: `${actorName} commented on ${itemLabel}`,
+    message: snippet,
+    actionUrl: `/dashboard?feedItemId=${encodeURIComponent(feedItemId)}`,
+    relatedId: feedItemId,
+  });
+}
+
+/**
+ * Notify everyone else who has previously commented on the same feed item
+ * ("thread participants") that there is a new reply. Caller is responsible
+ * for filtering out the actor and the feed item owner — the owner already
+ * receives a FEED_ITEM_COMMENTED notification.
+ */
+export async function notifyFeedItemCommentReply(args: {
+  recipientUserIds: string[];
+  feedItemId: string;
+  actorName: string;
+  commentText: string;
+}) {
+  const { recipientUserIds, feedItemId, actorName, commentText } = args;
+  if (recipientUserIds.length === 0) return { count: 0 };
+
+  const snippet = snippetOf(commentText);
+
+  return createNotificationsForUsers({
+    userIds: recipientUserIds,
+    type: "FEED_ITEM_COMMENT_REPLY",
+    title: `${actorName} also commented`,
+    message: snippet,
+    actionUrl: `/dashboard?feedItemId=${encodeURIComponent(feedItemId)}`,
+    relatedId: feedItemId,
+  });
+}
+
+/**
  * Create a shift canceled notification
  */
 export async function createShiftCanceledNotification(

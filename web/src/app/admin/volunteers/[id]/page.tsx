@@ -125,12 +125,13 @@ export default async function AdminVolunteerPage({
       createdAt: true,
       archivedAt: true,
       archiveReason: true,
-      // Mobile-app presence: 1:1 messages reach the volunteer via push only,
-      // so we gate the "Message" admin action on whether they've signed in on
-      // mobile (which is the only way a PushToken row gets created).
-      _count: {
-        select: { pushTokens: true },
-      },
+      // Mobile-app presence signal: the "Message" admin action is only useful
+      // for volunteers currently on the mobile app. Use lastMobileLoginAt
+      // (stamped on every mobile login / cold-start session restore) rather
+      // than PushToken rows, because tokens additionally require OS
+      // notification permission — a user who declined the prompt has the app
+      // but no token.
+      lastMobileLoginAt: true,
       regularVolunteers: {
         include: {
           shiftType: true,
@@ -577,7 +578,7 @@ export default async function AdminVolunteerPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 {volunteer.role === "VOLUNTEER" &&
-                  volunteer._count.pushTokens > 0 && (
+                  volunteer.lastMobileLoginAt !== null && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
                         Send a direct message
