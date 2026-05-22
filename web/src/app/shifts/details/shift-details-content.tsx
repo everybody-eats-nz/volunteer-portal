@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { checkProfileCompletion } from "@/lib/profile-completion";
+import { ShareShiftButton } from "@/components/share-shift-button";
+import { getBaseUrl } from "@/lib/utils";
 
 function getDurationInHours(start: Date, end: Date): string {
   const durationMs = end.getTime() - start.getTime();
@@ -327,11 +329,13 @@ function ShiftCard({
 interface ShiftDetailsContentProps {
   dateParam: string;
   selectedLocation?: string;
+  session?: "day" | "evening";
 }
 
 export async function ShiftDetailsContent({
   dateParam,
   selectedLocation,
+  session: sessionFilter,
 }: ShiftDetailsContentProps) {
   const session = await getServerSession(authOptions);
 
@@ -468,7 +472,10 @@ export async function ShiftDetailsContent({
         const hasAMShifts = locationTimeShifts.AM.length > 0;
         const hasPMShifts = locationTimeShifts.PM.length > 0;
 
-        if (!hasAMShifts && !hasPMShifts) return null;
+        const showAM = hasAMShifts && sessionFilter !== "evening";
+        const showPM = hasPMShifts && sessionFilter !== "day";
+
+        if (!showAM && !showPM) return null;
 
         return (
           <section
@@ -490,19 +497,34 @@ export async function ShiftDetailsContent({
               </div>
             )}
 
-            {hasAMShifts && (
+            {showAM && (
               <div className="space-y-4" data-testid={`shifts-am-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-lg">
-                    ☀️
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-lg">
+                      ☀️
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Day Shifts</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {locationTimeShifts.AM.length} shift
+                        {locationTimeShifts.AM.length !== 1 ? "s" : ""} available (before 4pm)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Day Shifts</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {locationTimeShifts.AM.length} shift
-                      {locationTimeShifts.AM.length !== 1 ? "s" : ""} available (before 4pm)
-                    </p>
-                  </div>
+                  {!sessionFilter && (
+                    <ShareShiftButton
+                      url={`${getBaseUrl()}/shifts/details?date=${dateParam}${
+                        locationKey !== "TBD"
+                          ? `&location=${encodeURIComponent(locationKey)}`
+                          : ""
+                      }&session=day`}
+                      title={`Day shifts at Everybody Eats ${locationKey === "TBD" ? "" : locationKey}`}
+                      text={`Day shifts on ${formatInNZT(selectedDate, "EEEE d MMMM")}${
+                        locationKey !== "TBD" ? ` at ${locationKey}` : ""
+                      } — come along!`}
+                    />
+                  )}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {locationTimeShifts.AM.map((shift) => (
@@ -521,19 +543,34 @@ export async function ShiftDetailsContent({
               </div>
             )}
 
-            {hasPMShifts && (
+            {showPM && (
               <div className="space-y-4" data-testid={`shifts-pm-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-lg">
-                    🌙
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-lg">
+                      🌙
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Evening Shifts</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {locationTimeShifts.PM.length} shift
+                        {locationTimeShifts.PM.length !== 1 ? "s" : ""} available (4pm onwards)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Evening Shifts</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {locationTimeShifts.PM.length} shift
-                      {locationTimeShifts.PM.length !== 1 ? "s" : ""} available (4pm onwards)
-                    </p>
-                  </div>
+                  {!sessionFilter && (
+                    <ShareShiftButton
+                      url={`${getBaseUrl()}/shifts/details?date=${dateParam}${
+                        locationKey !== "TBD"
+                          ? `&location=${encodeURIComponent(locationKey)}`
+                          : ""
+                      }&session=evening`}
+                      title={`Evening shifts at Everybody Eats ${locationKey === "TBD" ? "" : locationKey}`}
+                      text={`Evening shifts on ${formatInNZT(selectedDate, "EEEE d MMMM")}${
+                        locationKey !== "TBD" ? ` at ${locationKey}` : ""
+                      } — join us!`}
+                    />
+                  )}
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {locationTimeShifts.PM.map((shift) => (

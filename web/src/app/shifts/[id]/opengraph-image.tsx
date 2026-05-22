@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftTheme } from "@/lib/shift-themes";
 
-export const runtime = "nodejs";
 export const alt = "Volunteer shift at Everybody Eats";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
