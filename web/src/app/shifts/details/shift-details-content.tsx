@@ -508,12 +508,29 @@ export async function ShiftDetailsContent({
             {showAM && (
               <div className="space-y-4" data-testid={`shifts-am-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 group/heading">
                     <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-lg">
                       ☀️
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold">Day Shifts</h3>
+                      <h3 className="text-lg font-semibold">
+                        {sessionFilter ? (
+                          "Day Shifts"
+                        ) : (
+                          <Link
+                            href={`/shifts/details?date=${dateParam}${
+                              locationKey !== "TBD"
+                                ? `&location=${encodeURIComponent(locationKey)}`
+                                : ""
+                            }&session=day`}
+                            className="inline-flex items-baseline gap-1 hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:underline rounded-sm"
+                            data-testid={`shifts-am-section-link-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            <span>Day Shifts</span>
+                            <ArrowUpRight className="h-4 w-4 self-center opacity-60 group-hover/heading:opacity-100 transition-opacity" />
+                          </Link>
+                        )}
+                      </h3>
                       <p className="text-sm text-muted-foreground">
                         {locationTimeShifts.AM.length} shift
                         {locationTimeShifts.AM.length !== 1 ? "s" : ""} available (before 4pm)
@@ -554,12 +571,29 @@ export async function ShiftDetailsContent({
             {showPM && (
               <div className="space-y-4" data-testid={`shifts-pm-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 group/heading">
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-lg">
                       🌙
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold">Evening Shifts</h3>
+                      <h3 className="text-lg font-semibold">
+                        {sessionFilter ? (
+                          "Evening Shifts"
+                        ) : (
+                          <Link
+                            href={`/shifts/details?date=${dateParam}${
+                              locationKey !== "TBD"
+                                ? `&location=${encodeURIComponent(locationKey)}`
+                                : ""
+                            }&session=evening`}
+                            className="inline-flex items-baseline gap-1 hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:underline rounded-sm"
+                            data-testid={`shifts-pm-section-link-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            <span>Evening Shifts</span>
+                            <ArrowUpRight className="h-4 w-4 self-center opacity-60 group-hover/heading:opacity-100 transition-opacity" />
+                          </Link>
+                        )}
+                      </h3>
                       <p className="text-sm text-muted-foreground">
                         {locationTimeShifts.PM.length} shift
                         {locationTimeShifts.PM.length !== 1 ? "s" : ""} available (4pm onwards)
