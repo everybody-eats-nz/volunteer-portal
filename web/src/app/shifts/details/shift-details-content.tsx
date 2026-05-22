@@ -234,7 +234,7 @@ function ShiftCard({
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {remaining > 0 ? (
                       <span className="text-green-600 dark:text-green-400 font-medium">
-                        {remaining} spots left
+                        {remaining} {remaining === 1 ? "spot" : "spots"} left
                       </span>
                     ) : confirmedCount + pendingCount > shift.capacity ? (
                       <span className="text-orange-600 dark:text-orange-400 font-medium">
