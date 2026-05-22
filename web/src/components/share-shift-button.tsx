@@ -15,17 +15,7 @@ export function ShareShiftButton({ url, title, text }: ShareShiftButtonProps) {
   const [justCopied, setJustCopied] = useState(false);
 
   const handleShare = async () => {
-    // Web Share API exists on modern desktop browsers too (macOS Safari/Chrome
-    // route it to the OS share sheet), but on a desktop with a mouse the user
-    // really just wants the link in their clipboard. Restrict the native sheet
-    // to coarse-pointer devices (phones, tablets), copy-to-clipboard elsewhere.
-    const prefersNativeShare =
-      typeof window !== "undefined" &&
-      typeof navigator !== "undefined" &&
-      typeof navigator.share === "function" &&
-      window.matchMedia("(pointer: coarse)").matches;
-
-    if (prefersNativeShare) {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
         await navigator.share({ url, title, text });
         return;
