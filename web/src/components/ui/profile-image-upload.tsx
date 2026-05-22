@@ -7,7 +7,6 @@ import ReactCrop, {
   centerCrop,
   makeAspectCrop,
 } from "react-image-crop";
-import heic2any from "heic2any";
 import { Button } from "@/components/ui/button";
 import {
   MotionDialog,
@@ -225,8 +224,11 @@ export function ProfileImageUpload({
           return;
         }
 
-        // Browser can't render it (likely HEIC) — convert with heic2any
+        // Browser can't render it (likely HEIC) — convert with heic2any.
+        // Dynamically imported because heic2any touches `window` at module
+        // evaluation time, which crashes Next.js SSR.
         URL.revokeObjectURL(objectUrl);
+        const { default: heic2any } = await import("heic2any");
         const convertedBlob = await heic2any({
           blob: file,
           toType: "image/jpeg",
