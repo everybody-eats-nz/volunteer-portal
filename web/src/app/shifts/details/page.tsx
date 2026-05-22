@@ -143,8 +143,14 @@ export default async function ShiftDetailsPage({
         <ShiftsProfileCompletionBanner />
       </Suspense>
 
-      {/* Shift cards stream in when data is ready */}
+      {/* Shift cards stream in when data is ready.
+          Key forces a clean unmount/remount on navigation between dates or
+          locations — without it, rapid prev/next clicks can put React's
+          reconciler into a state where it tries to re-parent a portal-using
+          subtree (Radix Dialog/Drawer inside ShiftSignupButton) into one of
+          its own descendants, throwing HierarchyRequestError during commit. */}
       <Suspense
+        key={`${dateParam}-${selectedLocation ?? "all"}`}
         fallback={
           <div className="space-y-8">
             <div className="space-y-4">
