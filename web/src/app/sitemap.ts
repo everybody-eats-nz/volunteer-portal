@@ -62,5 +62,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7, // Lower priority than main shifts page
     }));
 
-  return [...staticPages, ...locationPages];
+  // Individual upcoming shift detail pages
+  const upcomingShifts = await prisma.shift.findMany({
+    where: { start: { gte: new Date() } },
+    select: { id: true, start: true },
+    orderBy: { start: "asc" },
+    take: 5000,
+  });
+
+  const shiftPages: MetadataRoute.Sitemap = upcomingShifts.map((shift) => ({
+    url: `${baseUrl}/shifts/${shift.id}`,
+    lastModified: shift.start,
+    changeFrequency: "daily" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticPages, ...locationPages, ...shiftPages];
 }
