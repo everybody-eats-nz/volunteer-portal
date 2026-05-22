@@ -16,6 +16,7 @@ import {
   MapPin,
   Users,
   UserCheck,
+  ArrowUpRight,
 } from "lucide-react";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { checkProfileCompletion } from "@/lib/profile-completion";
@@ -172,7 +173,14 @@ function ShiftCard({
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-xl text-gray-900 dark:text-white truncate mb-1">
-                    {shift.shiftType.name}
+                    <Link
+                      href={`/shifts/${shift.id}`}
+                      className="inline-flex items-baseline gap-1 hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:underline rounded-sm"
+                      data-testid={`shift-card-title-link-${shift.id}`}
+                    >
+                      <span className="truncate">{shift.shiftType.name}</span>
+                      <ArrowUpRight className="h-4 w-4 shrink-0 self-center opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </Link>
                   </h3>
                   <div className="flex items-center gap-2">
                     <Badge
