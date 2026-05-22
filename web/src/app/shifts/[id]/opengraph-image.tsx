@@ -29,9 +29,9 @@ async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuff
       `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&display=swap`,
       {
         headers: {
-          // UA pinned so Google returns a satori-compatible font format (TTF/WOFF).
+          // Pre-woff2 UA so Google returns TTF, which is what satori (next/og) supports.
           "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko",
         },
       }
     ).then((r) => r.text());
@@ -334,7 +334,7 @@ export default async function ShiftOgImage({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 72px 56px",
+            padding: "32px 72px 56px",
           }}
         >
           <div
