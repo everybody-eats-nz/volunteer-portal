@@ -21,6 +21,97 @@ import {
   Location,
   getLocationMapsUrl,
 } from "@/lib/locations";
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
+import { getBaseUrl } from "@/lib/utils";
+import { ShareShiftButton } from "@/components/share-shift-button";
+
+type SessionFilter = "day" | "evening" | undefined;
+
+function parseSession(value: string | string[] | undefined): SessionFilter {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (v === "day" || v === "evening") return v;
+  return undefined;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const dateParam = Array.isArray(params.date) ? params.date[0] : params.date;
+  const locationParam = Array.isArray(params.location)
+    ? params.location[0]
+    : params.location;
+  const sessionFilter = parseSession(params.session);
+
+  if (!dateParam) {
+    return buildPageMetadata({
+      title: "Pick a day to volunteer",
+      description:
+        "Choose a date and location to see the volunteer shifts available at Everybody Eats.",
+      path: "/shifts/details",
+      noIndex: true,
+    });
+  }
+
+  let selectedDate: Date;
+  try {
+    selectedDate = parseISOInNZT(dateParam);
+  } catch {
+    return buildPageMetadata({
+      title: "Volunteer shifts",
+      description: "Browse upcoming volunteer shifts at Everybody Eats.",
+      path: "/shifts/details",
+      noIndex: true,
+    });
+  }
+
+  const decodedLocation = locationParam
+    ? decodeURIComponent(locationParam)
+    : undefined;
+  const dayLabel = formatInNZT(selectedDate, "EEEE d MMMM yyyy");
+  const sessionLabel =
+    sessionFilter === "day"
+      ? "Day shifts"
+      : sessionFilter === "evening"
+        ? "Evening shifts"
+        : "Volunteer shifts";
+
+  const title = `${sessionLabel}${
+    decodedLocation ? ` · ${decodedLocation}` : ""
+  } · ${dayLabel}`;
+
+  const isPast = selectedDate < new Date(new Date().setHours(0, 0, 0, 0));
+  const sessionDescription =
+    sessionFilter === "day"
+      ? "Day shifts run before 4pm."
+      : sessionFilter === "evening"
+        ? "Evening shifts run from 4pm onwards."
+        : "See every shift on the day at a glance.";
+
+  const description = `Volunteer with Everybody Eats on ${dayLabel}${
+    decodedLocation ? ` at ${decodedLocation}` : ""
+  }. ${sessionDescription} Sign up to help transform rescued food into community meals.`;
+
+  const ogParams = new URLSearchParams({ date: dateParam });
+  if (decodedLocation) ogParams.set("location", decodedLocation);
+  if (sessionFilter) ogParams.set("session", sessionFilter);
+  const ogImage = `${getBaseUrl()}/shifts/details/og?${ogParams.toString()}`;
+
+  const canonicalParams = new URLSearchParams({ date: dateParam });
+  if (decodedLocation) canonicalParams.set("location", decodedLocation);
+  if (sessionFilter) canonicalParams.set("session", sessionFilter);
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/shifts/details?${canonicalParams.toString()}`,
+    ogImage,
+    noIndex: isPast,
+  });
+}
 
 export default async function ShiftDetailsPage({
   searchParams,
@@ -33,6 +124,7 @@ export default async function ShiftDetailsPage({
   const locationParam = Array.isArray(params.location)
     ? params.location[0]
     : params.location;
+  const sessionFilter = parseSession(params.session);
 
   if (!dateParam) {
     return (
@@ -67,8 +159,22 @@ export default async function ShiftDetailsPage({
     if (selectedLocation) {
       navParams.set("location", selectedLocation);
     }
+    if (sessionFilter) {
+      navParams.set("session", sessionFilter);
+    }
     return `/shifts/details?${navParams.toString()}`;
   };
+
+  const shareParams = new URLSearchParams({ date: dateParam });
+  if (selectedLocation) shareParams.set("location", selectedLocation);
+  if (sessionFilter) shareParams.set("session", sessionFilter);
+  const shareUrl = `${getBaseUrl()}/shifts/details?${shareParams.toString()}`;
+  const shareLabel =
+    sessionFilter === "day"
+      ? `Day shifts on ${formatInNZT(selectedDate, "EEEE d MMMM")}`
+      : sessionFilter === "evening"
+        ? `Evening shifts on ${formatInNZT(selectedDate, "EEEE d MMMM")}`
+        : `Volunteer shifts on ${formatInNZT(selectedDate, "EEEE d MMMM")}`;
 
   return (
     <PageContainer testid="shifts-details-page">
@@ -89,6 +195,14 @@ export default async function ShiftDetailsPage({
         </Button>
 
         <div className="flex items-center gap-1 sm:gap-2">
+          <ShareShiftButton
+            url={shareUrl}
+            title={`${shareLabel}${selectedLocation ? ` at ${selectedLocation}` : ""} — Everybody Eats`}
+            text={`Kia ora! Come volunteer on ${formatInNZT(
+              selectedDate,
+              "EEEE d MMMM"
+            )}${selectedLocation ? ` at ${selectedLocation}` : ""}.`}
+          />
           <Button variant="outline" size="sm" asChild data-testid="prev-day-button">
             <Link href={buildNavUrl(previousDateParam)}>
               <ChevronLeft className="h-4 w-4 sm:mr-1" />
@@ -150,7 +264,7 @@ export default async function ShiftDetailsPage({
           subtree (Radix Dialog/Drawer inside ShiftSignupButton) into one of
           its own descendants, throwing HierarchyRequestError during commit. */}
       <Suspense
-        key={`${dateParam}-${selectedLocation ?? "all"}`}
+        key={`${dateParam}-${selectedLocation ?? "all"}-${sessionFilter ?? "both"}`}
         fallback={
           <div className="space-y-8">
             <div className="space-y-4">
@@ -190,6 +304,7 @@ export default async function ShiftDetailsPage({
         <ShiftDetailsContent
           dateParam={dateParam}
           selectedLocation={selectedLocation}
+          session={sessionFilter}
         />
       </Suspense>
     </PageContainer>

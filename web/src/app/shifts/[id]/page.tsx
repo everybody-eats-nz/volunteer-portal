@@ -25,8 +25,69 @@ import { ProfileCompletionBannerServer } from "@/components/profile-completion-b
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
 import { ShiftSignupButton } from "@/components/shift-signup-button";
+import { ShareShiftButton } from "@/components/share-shift-button";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
+import { getBaseUrl } from "@/lib/utils";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const shift = await prisma.shift.findUnique({
+    where: { id },
+    include: {
+      shiftType: { select: { name: true, description: true } },
+      _count: {
+        select: {
+          signups: {
+            where: { status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] } },
+          },
+          placeholders: true,
+        },
+      },
+    },
+  });
+
+  if (!shift) {
+    return buildPageMetadata({
+      title: "Shift not found",
+      description: "This volunteer shift could not be found.",
+      path: `/shifts/${id}`,
+      noIndex: true,
+    });
+  }
+
+  const dayLabel = formatInNZT(new Date(shift.start), "EEEE d MMMM");
+  const timeLabel = `${formatInNZT(new Date(shift.start), "h:mma")}–${formatInNZT(
+    new Date(shift.end),
+    "h:mma"
+  )}`.toLowerCase();
+  const locationPart = shift.location ? ` · ${shift.location}` : "";
+  const title = `${shift.shiftType.name}${locationPart} · ${dayLabel}`;
+
+  const confirmedCount = shift._count.signups + shift._count.placeholders;
+  const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
+  const isPast = new Date(shift.end) < new Date();
+  const spotsLine = isPast
+    ? "This shift has finished."
+    : spotsRemaining === 0
+      ? "Currently full — join the waitlist."
+      : `${spotsRemaining} ${spotsRemaining === 1 ? "spot" : "spots"} still open.`;
+
+  const description = `Volunteer with Everybody Eats: ${shift.shiftType.name} on ${dayLabel}, ${timeLabel}${locationPart}. ${spotsLine}`;
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/shifts/${id}`,
+    noIndex: isPast,
+  });
+}
 
 export default async function ShiftDetailPage({
   params,
@@ -495,39 +556,72 @@ export default async function ShiftDetailPage({
           )}
 
           {!isPastShift && (
-            <div className="pt-2 border-t">
-              <div className="text-sm font-medium text-muted-foreground mb-2">
-                Add to Calendar
+            <div className="pt-2 border-t space-y-4">
+              <div>
+                <div className="text-sm font-medium text-muted-foreground mb-2">
+                  Add to Calendar
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {(() => {
+                    const urls = generateCalendarUrls(shift);
+                    return (
+                      <>
+                        <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                          <a href={urls.google} target="_blank" rel="noopener noreferrer">
+                            <CalendarPlus className="h-3.5 w-3.5" />
+                            Google
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                          <a href={urls.outlook} target="_blank" rel="noopener noreferrer">
+                            <CalendarPlus className="h-3.5 w-3.5" />
+                            Outlook
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                          <a href={urls.ics} download={`shift-${shift.id}.ics`}>
+                            <CalendarPlus className="h-3.5 w-3.5" />
+                            .ics
+                          </a>
+                        </Button>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {(() => {
-                  const urls = generateCalendarUrls(shift);
-                  return (
-                    <>
-                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                        <a href={urls.google} target="_blank" rel="noopener noreferrer">
-                          <CalendarPlus className="h-3.5 w-3.5" />
-                          Google
-                        </a>
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                        <a href={urls.outlook} target="_blank" rel="noopener noreferrer">
-                          <CalendarPlus className="h-3.5 w-3.5" />
-                          Outlook
-                        </a>
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                        <a href={urls.ics} download={`shift-${shift.id}.ics`}>
-                          <CalendarPlus className="h-3.5 w-3.5" />
-                          .ics
-                        </a>
-                      </Button>
-                    </>
-                  );
-                })()}
+
+              <div>
+                <div className="text-sm font-medium text-muted-foreground mb-2">
+                  Spread the word
+                </div>
+                <ShareShiftButton
+                  url={`${getBaseUrl()}/shifts/${shift.id}`}
+                  title={`Volunteer with Everybody Eats — ${shift.shiftType.name}`}
+                  text={`Kia ora! Come volunteer on ${shiftDate}, ${shiftTime}${
+                    shift.location ? ` at ${shift.location}` : ""
+                  }.`}
+                />
               </div>
             </div>
           )}
+
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(
+                buildShiftEventSchema({
+                  id: shift.id,
+                  name: shift.shiftType.name,
+                  description: shift.shiftType.description,
+                  startDate: new Date(shift.start),
+                  endDate: new Date(shift.end),
+                  location: shift.location,
+                  capacity: shift.capacity,
+                  spotsAvailable: spotsRemaining,
+                })
+              ),
+            }}
+          />
         </CardContent>
       </Card>
     </PageContainer>
