@@ -480,7 +480,7 @@ export function ShiftSignupDialog({
                   {confirmedCount}/{shift.capacity} confirmed
                   {!isWaitlist && remaining > 0 && (
                     <span className="text-green-600 ml-1">
-                      ({remaining} spots left)
+                      ({remaining} {remaining === 1 ? "spot" : "spots"} left)
                     </span>
                   )}
                 </span>
