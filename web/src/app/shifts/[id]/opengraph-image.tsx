@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftTheme } from "@/lib/shift-themes";
+import { loadBrandFonts } from "@/lib/og-fonts";
 
 export const alt = "Volunteer shift at Everybody Eats";
 export const size = { width: 1200, height: 630 };
@@ -20,26 +21,6 @@ const THEME_PRESETS: Record<string, { from: string; to: string; accent: string }
 
 function resolveThemeColors(fullGradient: string) {
   return THEME_PRESETS[fullGradient] ?? THEME_PRESETS["from-gray-500 to-slate-500"];
-}
-
-async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuffer | null> {
-  try {
-    const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&display=swap`,
-      {
-        headers: {
-          // Pre-woff2 UA so Google returns TTF, which is what satori (next/og) supports.
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko",
-        },
-      }
-    ).then((r) => r.text());
-    const url = css.match(/src:\s*url\((.+?)\)\s*format/)?.[1];
-    if (!url) return null;
-    return await fetch(url).then((r) => r.arrayBuffer());
-  } catch {
-    return null;
-  }
 }
 
 export default async function ShiftOgImage({
@@ -63,32 +44,7 @@ export default async function ShiftOgImage({
     },
   });
 
-  const [fraunces, libreFranklin, libreFranklinBold] = await Promise.all([
-    loadGoogleFont("Fraunces", 600),
-    loadGoogleFont("Libre Franklin", 400),
-    loadGoogleFont("Libre Franklin", 600),
-  ]);
-
-  const fonts = [
-    fraunces && { name: "Fraunces", data: fraunces, weight: 600 as const, style: "normal" as const },
-    libreFranklin && {
-      name: "Libre Franklin",
-      data: libreFranklin,
-      weight: 400 as const,
-      style: "normal" as const,
-    },
-    libreFranklinBold && {
-      name: "Libre Franklin",
-      data: libreFranklinBold,
-      weight: 600 as const,
-      style: "normal" as const,
-    },
-  ].filter(Boolean) as {
-    name: string;
-    data: ArrayBuffer;
-    weight: 400 | 600;
-    style: "normal";
-  }[];
+  const fonts = await loadBrandFonts();
 
   if (!shift) {
     return new ImageResponse(

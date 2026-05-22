@@ -2,35 +2,18 @@ import { ImageResponse } from "next/og";
 import { startOfDay, endOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
+import { loadBrandFonts } from "@/lib/og-fonts";
 
 const SIZE = { width: 1200, height: 630 } as const;
-
-async function loadGoogleFont(family: string, weight: number): Promise<ArrayBuffer | null> {
-  try {
-    const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@${weight}&display=swap`,
-      {
-        headers: {
-          // Pre-woff2 UA so Google returns TTF, which satori (next/og) supports.
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko",
-        },
-      }
-    ).then((r) => r.text());
-    const url = css.match(/src:\s*url\((.+?)\)\s*format/)?.[1];
-    if (!url) return null;
-    return await fetch(url).then((r) => r.arrayBuffer());
-  } catch {
-    return null;
-  }
-}
 
 interface SessionStats {
   count: number;
   spots: number;
 }
 
-function fallbackImage(message: string, fonts: { name: string; data: ArrayBuffer; weight: 400 | 600; style: "normal" }[]) {
+type BrandFonts = Awaited<ReturnType<typeof loadBrandFonts>>;
+
+function fallbackImage(message: string, fonts: BrandFonts) {
   return new ImageResponse(
     (
       <div
@@ -63,32 +46,7 @@ export async function GET(request: Request) {
   const session: "day" | "evening" | undefined =
     rawSession === "day" || rawSession === "evening" ? rawSession : undefined;
 
-  const [fraunces, libreFranklin, libreFranklinBold] = await Promise.all([
-    loadGoogleFont("Fraunces", 600),
-    loadGoogleFont("Libre Franklin", 400),
-    loadGoogleFont("Libre Franklin", 600),
-  ]);
-
-  const fonts = [
-    fraunces && { name: "Fraunces", data: fraunces, weight: 600 as const, style: "normal" as const },
-    libreFranklin && {
-      name: "Libre Franklin",
-      data: libreFranklin,
-      weight: 400 as const,
-      style: "normal" as const,
-    },
-    libreFranklinBold && {
-      name: "Libre Franklin",
-      data: libreFranklinBold,
-      weight: 600 as const,
-      style: "normal" as const,
-    },
-  ].filter(Boolean) as {
-    name: string;
-    data: ArrayBuffer;
-    weight: 400 | 600;
-    style: "normal";
-  }[];
+  const fonts = await loadBrandFonts();
 
   if (!dateParam) {
     return fallbackImage("Everybody Eats — Volunteer Portal", fonts);
