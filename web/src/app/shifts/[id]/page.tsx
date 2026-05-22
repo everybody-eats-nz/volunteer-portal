@@ -275,7 +275,7 @@ export default async function ShiftDetailPage({
                 </Badge>
               ) : (
                 <Badge className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50">
-                  {spotsRemaining} spots left
+                  {spotsRemaining} {spotsRemaining === 1 ? "spot" : "spots"} left
                 </Badge>
               )}
             </div>

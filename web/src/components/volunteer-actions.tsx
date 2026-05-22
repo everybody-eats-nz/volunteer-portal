@@ -404,7 +404,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                           value={shift.id}
                           data-testid={`move-target-option-${shift.id}`}
                         >
-                          {shift.shiftType.name} • {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {shift.capacity - shift.confirmedCount} spots available
+                          {shift.shiftType.name} • {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {shift.capacity - shift.confirmedCount} {shift.capacity - shift.confirmedCount === 1 ? "spot" : "spots"} available
                         </SelectItem>
                       ))}
                     </SelectContent>
