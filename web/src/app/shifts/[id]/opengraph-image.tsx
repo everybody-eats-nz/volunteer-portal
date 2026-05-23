@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { loadBrandFonts } from "@/lib/og-fonts";
+import { getLogoDataUrl } from "@/lib/og-logo";
 
 export const alt = "Volunteer shift at Everybody Eats";
 export const size = { width: 1200, height: 630 };
@@ -62,7 +63,7 @@ export default async function ShiftOgImage({
             fontFamily: "Fraunces, serif",
           }}
         >
-          Everybody Eats — Volunteer Portal
+          Everybody Eats
         </div>
       ),
       { ...size, fonts }
@@ -138,49 +139,13 @@ export default async function ShiftOgImage({
             padding: "56px 72px 0",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
-                background: "#0e3a23",
-                color: "#fdf8f1",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "Fraunces, serif",
-                fontSize: 30,
-                fontWeight: 600,
-              }}
-            >
-              EE
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div
-                style={{
-                  fontFamily: "Fraunces, serif",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: "#0e3a23",
-                  lineHeight: 1,
-                }}
-              >
-                Everybody Eats
-              </div>
-              <div
-                style={{
-                  fontSize: 16,
-                  color: "#57534e",
-                  letterSpacing: 0.4,
-                  marginTop: 6,
-                  textTransform: "uppercase",
-                }}
-              >
-                Volunteer Portal
-              </div>
-            </div>
-          </div>
+          <img
+            src={getLogoDataUrl("ink")}
+            alt=""
+            width={220}
+            height={80}
+            style={{ display: "flex" }}
+          />
 
           <div
             style={{
@@ -288,7 +253,6 @@ export default async function ShiftOgImage({
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             padding: "32px 72px 56px",
           }}
         >
@@ -302,16 +266,6 @@ export default async function ShiftOgImage({
             }}
           >
             Kia ora — join the whānau.
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              color: "#57534e",
-              fontWeight: 600,
-              letterSpacing: 0.4,
-            }}
-          >
-            volunteers.everybodyeats.nz
           </div>
         </div>
 
