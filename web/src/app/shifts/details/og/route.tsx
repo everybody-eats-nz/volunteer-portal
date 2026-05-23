@@ -205,22 +205,20 @@ export async function GET(request: Request) {
             flex: 1,
           }}
         >
-          <div
-            style={{
-              fontSize: 22,
-              color: singleSession === "evening" ? "#94a3b8" : "#78716c",
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              fontWeight: 600,
-              display: "flex",
-            }}
-          >
-            {singleSession === "day"
-              ? "Day shifts"
-              : singleSession === "evening"
-                ? "Evening shifts"
-                : "Volunteer line-up · Aotearoa"}
-          </div>
+          {singleSession && (
+            <div
+              style={{
+                fontSize: 22,
+                color: singleSession === "evening" ? "#94a3b8" : "#78716c",
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                fontWeight: 600,
+                display: "flex",
+              }}
+            >
+              {singleSession === "day" ? "Day shifts" : "Evening shifts"}
+            </div>
+          )}
 
           <div
             style={{
@@ -230,7 +228,7 @@ export async function GET(request: Request) {
               lineHeight: 1.02,
               letterSpacing: -1.5,
               color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
-              marginTop: 18,
+              marginTop: singleSession ? 18 : 0,
               display: "flex",
               alignItems: "baseline",
               gap: 28,

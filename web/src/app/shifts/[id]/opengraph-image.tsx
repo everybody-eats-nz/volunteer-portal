@@ -177,26 +177,12 @@ export default async function ShiftOgImage({
         >
           <div
             style={{
-              fontSize: 22,
-              color: "#78716c",
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              fontWeight: 600,
-              display: "flex",
-            }}
-          >
-            Volunteer mahi · Aotearoa
-          </div>
-
-          <div
-            style={{
               fontFamily: "Fraunces, serif",
               fontWeight: 600,
               fontSize: 96,
               lineHeight: 1.02,
               letterSpacing: -1.5,
               color: "#0e3a23",
-              marginTop: 18,
               display: "flex",
               flexWrap: "wrap",
               maxWidth: 980,
