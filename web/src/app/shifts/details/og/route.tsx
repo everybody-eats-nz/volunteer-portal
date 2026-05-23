@@ -3,6 +3,8 @@ import { startOfDay, endOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
 import { loadBrandFonts } from "@/lib/og-fonts";
+import { getLogoDataUrl } from "@/lib/og-logo";
+import { getOgBackgroundDataUrl } from "@/lib/og-background";
 
 const SIZE = { width: 1200, height: 630 } as const;
 
@@ -49,14 +51,14 @@ export async function GET(request: Request) {
   const fonts = await loadBrandFonts();
 
   if (!dateParam) {
-    return fallbackImage("Everybody Eats — Volunteer Portal", fonts);
+    return fallbackImage("Everybody Eats", fonts);
   }
 
   let selectedDate: Date;
   try {
     selectedDate = parseISOInNZT(dateParam);
   } catch {
-    return fallbackImage("Everybody Eats — Volunteer Portal", fonts);
+    return fallbackImage("Everybody Eats", fonts);
   }
 
   const startUTC = toUTC(startOfDay(selectedDate));
@@ -113,6 +115,11 @@ export async function GET(request: Request) {
   const dayGradient = "linear-gradient(135deg, #f59e0b, #f97316)";
   const eveningGradient = "linear-gradient(135deg, #6366f1, #8b5cf6)";
 
+  // Photo background seeded on date+location+session so the same URL
+  // always renders the same card.
+  const bgSeed = `${dateParam}|${location ?? ""}|${session ?? ""}`;
+  const bgImage = getOgBackgroundDataUrl(bgSeed);
+
   return new ImageResponse(
     (
       <div
@@ -121,41 +128,45 @@ export async function GET(request: Request) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: singleSession === "evening" ? "#0b1224" : "#fdf8f1",
-          color: singleSession === "evening" ? "#fdf8f1" : "#1c1917",
+          background: "#0e3a23",
+          color: "#fdf8f1",
           fontFamily: "Libre Franklin, sans-serif",
           position: "relative",
         }}
       >
-        {/* Decorative blobs */}
-        <div
+        {/* Background photo */}
+        <img
+          src={bgImage}
+          alt=""
+          width={1200}
+          height={630}
           style={{
             position: "absolute",
-            top: -160,
-            right: -120,
-            width: 560,
-            height: 560,
-            borderRadius: "50%",
-            background: singleSession === "evening" ? eveningGradient : dayGradient,
-            opacity: singleSession === "evening" ? 0.32 : 0.2,
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
             display: "flex",
           }}
         />
-        {!singleSession && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: -180,
-              left: -120,
-              width: 460,
-              height: 460,
-              borderRadius: "50%",
-              background: eveningGradient,
-              opacity: 0.14,
-              display: "flex",
-            }}
-          />
-        )}
+        {/* Dark wash + side gradient for text legibility */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.40)",
+            display: "flex",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(95deg, rgba(7,30,18,0.85) 0%, rgba(7,30,18,0.65) 60%, rgba(7,30,18,0.25) 100%)",
+            display: "flex",
+          }}
+        />
 
         {/* Header */}
         <div
@@ -166,96 +177,92 @@ export async function GET(request: Request) {
             padding: "56px 72px 0",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
-                background: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
-                color: singleSession === "evening" ? "#0e3a23" : "#fdf8f1",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "Fraunces, serif",
-                fontSize: 30,
-                fontWeight: 600,
-              }}
-            >
-              EE
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div
-                style={{
-                  fontFamily: "Fraunces, serif",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
-                  lineHeight: 1,
-                }}
-              >
-                Everybody Eats
-              </div>
-              <div
-                style={{
-                  fontSize: 16,
-                  color: singleSession === "evening" ? "#cbd5e1" : "#57534e",
-                  letterSpacing: 0.4,
-                  marginTop: 6,
-                  textTransform: "uppercase",
-                }}
-              >
-                Volunteer Portal
-              </div>
-            </div>
-          </div>
+          <img
+            src={getLogoDataUrl("white")}
+            alt=""
+            width={220}
+            height={80}
+            style={{ display: "flex" }}
+          />
 
-          {location && (
+          {/* spacer — location pill is positioned absolutely below */}
+        </div>
+
+        {/* Location pill — frosted glass */}
+        {location && (
+          <div
+            style={{
+              position: "absolute",
+              top: 56,
+              right: 72,
+              display: "flex",
+              alignItems: "center",
+              borderRadius: 999,
+              overflow: "hidden",
+              border: "1px solid rgba(253, 248, 241, 0.22)",
+            }}
+          >
+            <img
+              src={bgImage}
+              alt=""
+              style={{
+                position: "absolute",
+                top: -56,
+                right: -72,
+                width: 1200,
+                height: 630,
+                objectFit: "cover",
+                filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                display: "flex",
+              }}
+            />
             <div
               style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(14, 58, 35, 0.55)",
                 display: "flex",
-                alignItems: "center",
+              }}
+            />
+            <div
+              style={{
+                position: "relative",
                 padding: "12px 22px",
-                borderRadius: 999,
-                background:
-                  singleSession === "evening"
-                    ? "rgba(253, 248, 241, 0.15)"
-                    : "rgba(14, 58, 35, 0.12)",
-                color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
+                color: "#fdf8f1",
                 fontSize: 22,
                 fontWeight: 600,
+                display: "flex",
               }}
             >
               📍 {location}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Body */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            padding: "44px 72px 0",
+            padding: "44px 72px 56px",
             flex: 1,
           }}
         >
-          <div
-            style={{
-              fontSize: 22,
-              color: singleSession === "evening" ? "#94a3b8" : "#78716c",
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              fontWeight: 600,
-              display: "flex",
-            }}
-          >
-            {singleSession === "day"
-              ? "Day shifts · before 4pm"
-              : singleSession === "evening"
-                ? "Evening shifts · 4pm onwards"
-                : "Volunteer line-up · Aotearoa"}
-          </div>
+          {singleSession && (
+            <div
+              style={{
+                fontSize: 22,
+                color: "#e7e5e4",
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                fontWeight: 600,
+                display: "flex",
+                textShadow: "0 2px 10px rgba(0,0,0,0.7)",
+              }}
+            >
+              {singleSession === "day" ? "Day shifts" : "Evening shifts"}
+            </div>
+          )}
 
           <div
             style={{
@@ -264,11 +271,12 @@ export async function GET(request: Request) {
               fontSize: singleSession ? 96 : 88,
               lineHeight: 1.02,
               letterSpacing: -1.5,
-              color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
-              marginTop: 18,
+              color: "#fdf8f1",
+              marginTop: singleSession ? 18 : 0,
               display: "flex",
               alignItems: "baseline",
               gap: 28,
+              textShadow: "0 2px 16px rgba(0,0,0,0.85), 0 0 32px rgba(0,0,0,0.5)",
             }}
           >
             <span>{dayLine}</span>
@@ -278,9 +286,10 @@ export async function GET(request: Request) {
               fontFamily: "Fraunces, serif",
               fontSize: 44,
               fontWeight: 600,
-              color: singleSession === "evening" ? "#cbd5e1" : "#44403c",
+              color: "#e7e5e4",
               marginTop: 6,
               display: "flex",
+              textShadow: "0 2px 12px rgba(0,0,0,0.75)",
             }}
           >
             {dateLine}
@@ -294,7 +303,7 @@ export async function GET(request: Request) {
                 gap: 22,
                 alignItems: "center",
                 fontSize: 32,
-                color: singleSession === "evening" ? "#fdf8f1" : "#1c1917",
+                color: "#fdf8f1",
               }}
             >
               <div
@@ -304,25 +313,53 @@ export async function GET(request: Request) {
                   gap: 12,
                   padding: "16px 26px",
                   borderRadius: 999,
-                  background: singleSession === "evening" ? eveningGradient : dayGradient,
                   color: "#fff",
                   fontWeight: 600,
                   fontSize: 28,
+                  position: "relative",
+                  overflow: "hidden",
+                  border: "1px solid rgba(253, 248, 241, 0.22)",
                 }}
               >
-                {singleSession === "day" ? "☀️" : "🌙"} {singleStats.count} shift
-                {singleStats.count === 1 ? "" : "s"}
+                <img
+                  src={bgImage}
+                  alt=""
+                  style={{
+                    position: "absolute",
+                    top: -365,
+                    left: -72,
+                    width: 1200,
+                    height: 630,
+                    objectFit: "cover",
+                    filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                    display: "flex",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      singleSession === "evening"
+                        ? "linear-gradient(135deg, rgba(99,102,241,0.65), rgba(139,92,246,0.65))"
+                        : "linear-gradient(135deg, rgba(245,158,11,0.65), rgba(249,115,22,0.65))",
+                    display: "flex",
+                  }}
+                />
+                <span style={{ position: "relative", whiteSpace: "nowrap" }}>
+                  {`${singleSession === "day" ? "☀️" : "🌙"} ${singleStats.count} role${singleStats.count === 1 ? "" : "s"}`}
+                </span>
               </div>
-              <div
+              <span
                 style={{
                   fontWeight: 600,
-                  display: "flex",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {singleStats.spots > 0
                   ? `${singleStats.spots} spot${singleStats.spots === 1 ? "" : "s"} open`
                   : "Waitlist only"}
-              </div>
+              </span>
             </div>
           ) : (
             <div
@@ -338,16 +375,40 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "rgba(245, 158, 11, 0.15)",
                     borderRadius: 18,
                     borderLeft: "6px solid #f59e0b",
                     minWidth: 280,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
+                  <img
+                    src={bgImage}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      top: -365,
+                      left: -72,
+                      width: 1200,
+                      height: 630,
+                      objectFit: "cover",
+                      filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                      display: "flex",
+                    }}
+                  />
                   <div
                     style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(14, 58, 35, 0.55)",
+                      display: "flex",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "relative",
                       fontSize: 22,
-                      color: "#7c2d12",
+                      color: "#fed7aa",
                       fontWeight: 600,
                       letterSpacing: 0.4,
                       textTransform: "uppercase",
@@ -356,24 +417,26 @@ export async function GET(request: Request) {
                       gap: 8,
                     }}
                   >
-                    ☀️ Day · before 4pm
+                    ☀️ Day
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontFamily: "Fraunces, serif",
                       fontSize: 44,
                       fontWeight: 600,
-                      color: "#7c2d12",
+                      color: "#fdf8f1",
                       marginTop: 8,
                       display: "flex",
                     }}
                   >
-                    {stats.day.count} shift{stats.day.count === 1 ? "" : "s"}
+                    {stats.day.count} role{stats.day.count === 1 ? "" : "s"}
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontSize: 22,
-                      color: "#9a3412",
+                      color: "#fed7aa",
                       marginTop: 4,
                       display: "flex",
                     }}
@@ -390,16 +453,40 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "rgba(99, 102, 241, 0.15)",
                     borderRadius: 18,
-                    borderLeft: "6px solid #6366f1",
+                    borderLeft: "6px solid #818cf8",
                     minWidth: 280,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
+                  <img
+                    src={bgImage}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      top: -365,
+                      left: stats.day.count > 0 ? -372 : -72,
+                      width: 1200,
+                      height: 630,
+                      objectFit: "cover",
+                      filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                      display: "flex",
+                    }}
+                  />
                   <div
                     style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(14, 58, 35, 0.55)",
+                      display: "flex",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "relative",
                       fontSize: 22,
-                      color: "#3730a3",
+                      color: "#c7d2fe",
                       fontWeight: 600,
                       letterSpacing: 0.4,
                       textTransform: "uppercase",
@@ -408,24 +495,26 @@ export async function GET(request: Request) {
                       gap: 8,
                     }}
                   >
-                    🌙 Evening · from 4pm
+                    🌙 Evening
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontFamily: "Fraunces, serif",
                       fontSize: 44,
                       fontWeight: 600,
-                      color: "#3730a3",
+                      color: "#fdf8f1",
                       marginTop: 8,
                       display: "flex",
                     }}
                   >
-                    {stats.evening.count} shift{stats.evening.count === 1 ? "" : "s"}
+                    {stats.evening.count} role{stats.evening.count === 1 ? "" : "s"}
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontSize: 22,
-                      color: "#4338ca",
+                      color: "#c7d2fe",
                       marginTop: 4,
                       display: "flex",
                     }}
@@ -438,38 +527,6 @@ export async function GET(request: Request) {
               )}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "32px 72px 56px",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "Fraunces, serif",
-              fontWeight: 600,
-              fontStyle: "italic",
-              fontSize: 28,
-              color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
-            }}
-          >
-            Kia ora — bring the whānau.
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              color: singleSession === "evening" ? "#cbd5e1" : "#57534e",
-              fontWeight: 600,
-              letterSpacing: 0.4,
-            }}
-          >
-            volunteers.everybodyeats.nz
-          </div>
         </div>
 
         <div

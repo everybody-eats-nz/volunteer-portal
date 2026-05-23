@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { loadBrandFonts } from "@/lib/og-fonts";
+import { getLogoDataUrl } from "@/lib/og-logo";
+import { getOgBackgroundDataUrl } from "@/lib/og-background";
 
 export const alt = "Volunteer shift at Everybody Eats";
 export const size = { width: 1200, height: 630 };
@@ -62,7 +64,7 @@ export default async function ShiftOgImage({
             fontFamily: "Fraunces, serif",
           }}
         >
-          Everybody Eats — Volunteer Portal
+          Everybody Eats
         </div>
       ),
       { ...size, fonts }
@@ -84,10 +86,12 @@ export default async function ShiftOgImage({
   )}`.toLowerCase();
 
   const statusLabel = isPast
-    ? "Shift complete"
+    ? "Wrapped up"
     : isFull
       ? "Waitlist open"
       : `${spotsRemaining} ${spotsRemaining === 1 ? "spot" : "spots"} left`;
+
+  const bgImage = getOgBackgroundDataUrl(shift.id);
 
   return new ImageResponse(
     (
@@ -97,105 +101,94 @@ export default async function ShiftOgImage({
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "#fdf8f1",
           fontFamily: "Libre Franklin, sans-serif",
-          color: "#1c1917",
+          color: "#fdf8f1",
           position: "relative",
+          background: "#0e3a23",
         }}
       >
+        {/* Background photo */}
+        <img
+          src={bgImage}
+          alt=""
+          width={1200}
+          height={630}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "flex",
+          }}
+        />
+        {/* Dark wash + side gradient for text legibility */}
         <div
           style={{
             position: "absolute",
-            top: -120,
-            right: -120,
-            width: 520,
-            height: 520,
-            borderRadius: "50%",
-            background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
-            opacity: 0.18,
+            inset: 0,
+            background: "rgba(0,0,0,0.40)",
             display: "flex",
           }}
         />
         <div
           style={{
             position: "absolute",
-            bottom: -180,
-            left: -120,
-            width: 460,
-            height: 460,
-            borderRadius: "50%",
-            background: `linear-gradient(135deg, ${colors.accent}, ${colors.from})`,
-            opacity: 0.12,
+            inset: 0,
+            background:
+              "linear-gradient(95deg, rgba(7,30,18,0.85) 0%, rgba(7,30,18,0.65) 60%, rgba(7,30,18,0.25) 100%)",
             display: "flex",
           }}
         />
 
+        {/* Status pill — frosted-glass: a blurred snapshot of the bg clipped
+            to a rounded shape, tinted by status colour, with the label on top. */}
         <div
           style={{
+            position: "absolute",
+            top: 56,
+            right: 72,
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            padding: "56px 72px 0",
+            borderRadius: 999,
+            overflow: "hidden",
+            border: "1px solid rgba(253, 248, 241, 0.22)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
-                background: "#0e3a23",
-                color: "#fdf8f1",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontFamily: "Fraunces, serif",
-                fontSize: 30,
-                fontWeight: 600,
-              }}
-            >
-              EE
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div
-                style={{
-                  fontFamily: "Fraunces, serif",
-                  fontSize: 24,
-                  fontWeight: 600,
-                  color: "#0e3a23",
-                  lineHeight: 1,
-                }}
-              >
-                Everybody Eats
-              </div>
-              <div
-                style={{
-                  fontSize: 16,
-                  color: "#57534e",
-                  letterSpacing: 0.4,
-                  marginTop: 6,
-                  textTransform: "uppercase",
-                }}
-              >
-                Volunteer Portal
-              </div>
-            </div>
-          </div>
-
+          <img
+            src={bgImage}
+            alt=""
+            style={{
+              position: "absolute",
+              top: -56,
+              right: -72,
+              width: 1200,
+              height: 630,
+              objectFit: "cover",
+              filter: "blur(22px) brightness(0.55) saturate(1.1)",
+              display: "flex",
+            }}
+          />
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "12px 22px",
-              borderRadius: 999,
+              position: "absolute",
+              inset: 0,
               background: isPast
-                ? "rgba(120, 113, 108, 0.15)"
+                ? "rgba(68, 64, 60, 0.55)"
                 : isFull
-                  ? "rgba(217, 119, 6, 0.18)"
-                  : "rgba(22, 101, 52, 0.15)",
-              color: isPast ? "#57534e" : isFull ? "#92400e" : "#166534",
+                  ? "rgba(180, 83, 9, 0.55)"
+                  : "rgba(21, 128, 61, 0.55)",
+              display: "flex",
+            }}
+          />
+          <div
+            style={{
+              position: "relative",
+              padding: "12px 22px",
+              color: "#fdf8f1",
               fontSize: 22,
               fontWeight: 600,
+              display: "flex",
             }}
           >
             {statusLabel}
@@ -205,24 +198,27 @@ export default async function ShiftOgImage({
         <div
           style={{
             display: "flex",
+            alignItems: "center",
+            padding: "56px 72px 0",
+          }}
+        >
+          <img
+            src={getLogoDataUrl("white")}
+            alt=""
+            width={220}
+            height={80}
+            style={{ display: "flex" }}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
             flexDirection: "column",
-            padding: "48px 72px 0",
+            padding: "48px 72px 56px",
             flex: 1,
           }}
         >
-          <div
-            style={{
-              fontSize: 22,
-              color: "#78716c",
-              letterSpacing: 2,
-              textTransform: "uppercase",
-              fontWeight: 600,
-              display: "flex",
-            }}
-          >
-            Volunteer mahi · Aotearoa
-          </div>
-
           <div
             style={{
               fontFamily: "Fraunces, serif",
@@ -230,11 +226,11 @@ export default async function ShiftOgImage({
               fontSize: 96,
               lineHeight: 1.02,
               letterSpacing: -1.5,
-              color: "#0e3a23",
-              marginTop: 18,
+              color: "#fdf8f1",
               display: "flex",
               flexWrap: "wrap",
               maxWidth: 980,
+              textShadow: "0 2px 16px rgba(0,0,0,0.85), 0 0 32px rgba(0,0,0,0.5)",
             }}
           >
             {shift.shiftType.name}
@@ -249,13 +245,14 @@ export default async function ShiftOgImage({
               fontSize: 34,
               fontFamily: "Fraunces, serif",
               fontWeight: 600,
-              color: "#1c1917",
+              color: "#fdf8f1",
+              textShadow: "0 2px 12px rgba(0,0,0,0.7)",
             }}
           >
             <span>{dayLabel}</span>
-            <span style={{ color: colors.from }}>·</span>
+            <span style={{ color: colors.accent }}>·</span>
             <span>{dateLabel}</span>
-            <span style={{ color: colors.from }}>·</span>
+            <span style={{ color: colors.accent }}>·</span>
             <span>{timeLabel}</span>
           </div>
 
@@ -264,10 +261,11 @@ export default async function ShiftOgImage({
               style={{
                 marginTop: 22,
                 fontSize: 30,
-                color: "#44403c",
+                color: "#e7e5e4",
                 display: "flex",
                 alignItems: "center",
                 gap: 14,
+                textShadow: "0 2px 10px rgba(0,0,0,0.7)",
               }}
             >
               <div
@@ -282,37 +280,6 @@ export default async function ShiftOgImage({
               {shift.location}
             </div>
           )}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "32px 72px 56px",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "Fraunces, serif",
-              fontWeight: 600,
-              fontStyle: "italic",
-              fontSize: 28,
-              color: "#0e3a23",
-            }}
-          >
-            Kia ora — join the whānau.
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              color: "#57534e",
-              fontWeight: 600,
-              letterSpacing: 0.4,
-            }}
-          >
-            volunteers.everybodyeats.nz
-          </div>
         </div>
 
         <div
