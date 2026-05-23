@@ -149,13 +149,21 @@ export async function GET(request: Request) {
             display: "flex",
           }}
         />
-        {/* Dark scrim — heavier on the left where text sits */}
+        {/* Dark wash + side gradient for text legibility */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.40)",
+            display: "flex",
+          }}
+        />
         <div
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(100deg, rgba(14,58,35,0.92) 0%, rgba(14,58,35,0.78) 45%, rgba(14,58,35,0.35) 100%)",
+              "linear-gradient(95deg, rgba(7,30,18,0.85) 0%, rgba(7,30,18,0.65) 60%, rgba(7,30,18,0.25) 100%)",
             display: "flex",
           }}
         />
@@ -184,10 +192,11 @@ export async function GET(request: Request) {
                 alignItems: "center",
                 padding: "12px 22px",
                 borderRadius: 999,
-                background: "rgba(253, 248, 241, 0.18)",
+                background: "#0e3a23",
                 color: "#fdf8f1",
                 fontSize: 22,
                 fontWeight: 600,
+                border: "1px solid rgba(253, 248, 241, 0.25)",
               }}
             >
               📍 {location}
@@ -213,6 +222,7 @@ export async function GET(request: Request) {
                 textTransform: "uppercase",
                 fontWeight: 600,
                 display: "flex",
+                textShadow: "0 2px 10px rgba(0,0,0,0.7)",
               }}
             >
               {singleSession === "day" ? "Day shifts" : "Evening shifts"}
@@ -231,7 +241,7 @@ export async function GET(request: Request) {
               display: "flex",
               alignItems: "baseline",
               gap: 28,
-              textShadow: "0 2px 24px rgba(0,0,0,0.45)",
+              textShadow: "0 2px 16px rgba(0,0,0,0.85), 0 0 32px rgba(0,0,0,0.5)",
             }}
           >
             <span>{dayLine}</span>
@@ -244,6 +254,7 @@ export async function GET(request: Request) {
               color: "#e7e5e4",
               marginTop: 6,
               display: "flex",
+              textShadow: "0 2px 12px rgba(0,0,0,0.75)",
             }}
           >
             {dateLine}
@@ -301,7 +312,7 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "rgba(253, 248, 241, 0.12)",
+                    background: "#0e3a23",
                     borderRadius: 18,
                     borderLeft: "6px solid #f59e0b",
                     minWidth: 280,
@@ -353,7 +364,7 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "rgba(253, 248, 241, 0.12)",
+                    background: "#0e3a23",
                     borderRadius: 18,
                     borderLeft: "6px solid #818cf8",
                     minWidth: 280,

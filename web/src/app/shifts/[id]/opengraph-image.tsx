@@ -122,13 +122,21 @@ export default async function ShiftOgImage({
             display: "flex",
           }}
         />
-        {/* Dark scrim — heavier on the left where text sits */}
+        {/* Dark wash + side gradient for text legibility */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(0,0,0,0.40)",
+            display: "flex",
+          }}
+        />
         <div
           style={{
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(100deg, rgba(14,58,35,0.92) 0%, rgba(14,58,35,0.78) 45%, rgba(14,58,35,0.35) 100%)",
+              "linear-gradient(95deg, rgba(7,30,18,0.85) 0%, rgba(7,30,18,0.65) 60%, rgba(7,30,18,0.25) 100%)",
             display: "flex",
           }}
         />
@@ -156,11 +164,11 @@ export default async function ShiftOgImage({
               padding: "12px 22px",
               borderRadius: 999,
               background: isPast
-                ? "rgba(253, 248, 241, 0.18)"
+                ? "#44403c"
                 : isFull
-                  ? "rgba(251, 191, 36, 0.28)"
-                  : "rgba(134, 239, 172, 0.28)",
-              color: isPast ? "#e7e5e4" : isFull ? "#fde68a" : "#bbf7d0",
+                  ? "#b45309"
+                  : "#15803d",
+              color: "#fdf8f1",
               fontSize: 22,
               fontWeight: 600,
             }}
@@ -188,7 +196,7 @@ export default async function ShiftOgImage({
               display: "flex",
               flexWrap: "wrap",
               maxWidth: 980,
-              textShadow: "0 2px 24px rgba(0,0,0,0.45)",
+              textShadow: "0 2px 16px rgba(0,0,0,0.85), 0 0 32px rgba(0,0,0,0.5)",
             }}
           >
             {shift.shiftType.name}
@@ -204,6 +212,7 @@ export default async function ShiftOgImage({
               fontFamily: "Fraunces, serif",
               fontWeight: 600,
               color: "#fdf8f1",
+              textShadow: "0 2px 12px rgba(0,0,0,0.7)",
             }}
           >
             <span>{dayLabel}</span>
@@ -222,6 +231,7 @@ export default async function ShiftOgImage({
                 display: "flex",
                 alignItems: "center",
                 gap: 14,
+                textShadow: "0 2px 10px rgba(0,0,0,0.7)",
               }}
             >
               <div
