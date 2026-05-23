@@ -95,7 +95,6 @@ export function PageHeader({
         <div className="flex-1 min-w-0">
           <motion.h1
             className="text-3xl sm:text-5xl font-bold text-foreground tracking-tight"
-            style={{ fontVariationSettings: '"WONK" 1, "SOFT" 50' }}
             data-testid={dataTestId}
             variants={headerVariants}
           >
