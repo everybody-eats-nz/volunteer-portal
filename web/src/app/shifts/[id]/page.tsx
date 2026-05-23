@@ -86,6 +86,7 @@ export async function generateMetadata({
     description,
     path: `/shifts/${id}`,
     noIndex: isPast,
+    useFileBasedOgImage: true,
   });
 }
 
