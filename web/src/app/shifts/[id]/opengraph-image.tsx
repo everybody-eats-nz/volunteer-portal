@@ -171,7 +171,7 @@ export default async function ShiftOgImage({
           style={{
             display: "flex",
             flexDirection: "column",
-            padding: "48px 72px 0",
+            padding: "48px 72px 56px",
             flex: 1,
           }}
         >
@@ -247,26 +247,6 @@ export default async function ShiftOgImage({
               {shift.location}
             </div>
           )}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "32px 72px 56px",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "Fraunces, serif",
-              fontWeight: 600,
-              fontStyle: "italic",
-              fontSize: 28,
-              color: "#0e3a23",
-            }}
-          >
-            Kia ora — join the whānau.
-          </div>
         </div>
 
         <div

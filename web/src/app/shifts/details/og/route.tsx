@@ -201,7 +201,7 @@ export async function GET(request: Request) {
           style={{
             display: "flex",
             flexDirection: "column",
-            padding: "44px 72px 0",
+            padding: "44px 72px 56px",
             flex: 1,
           }}
         >
@@ -216,9 +216,9 @@ export async function GET(request: Request) {
             }}
           >
             {singleSession === "day"
-              ? "Day shifts · before 4pm"
+              ? "Day shifts"
               : singleSession === "evening"
-                ? "Evening shifts · 4pm onwards"
+                ? "Evening shifts"
                 : "Volunteer line-up · Aotearoa"}
           </div>
 
@@ -321,7 +321,7 @@ export async function GET(request: Request) {
                       gap: 8,
                     }}
                   >
-                    ☀️ Day · before 4pm
+                    ☀️ Day
                   </div>
                   <div
                     style={{
@@ -373,7 +373,7 @@ export async function GET(request: Request) {
                       gap: 8,
                     }}
                   >
-                    🌙 Evening · from 4pm
+                    🌙 Evening
                   </div>
                   <div
                     style={{
@@ -403,28 +403,6 @@ export async function GET(request: Request) {
               )}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "32px 72px 56px",
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "Fraunces, serif",
-              fontWeight: 600,
-              fontStyle: "italic",
-              fontSize: 28,
-              color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
-            }}
-          >
-            Kia ora — bring the whānau.
-          </div>
         </div>
 
         <div
