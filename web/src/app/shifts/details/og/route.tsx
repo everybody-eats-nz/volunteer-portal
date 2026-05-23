@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
 import { loadBrandFonts } from "@/lib/og-fonts";
 import { getLogoDataUrl } from "@/lib/og-logo";
+import { getOgBackgroundDataUrl } from "@/lib/og-background";
 
 const SIZE = { width: 1200, height: 630 } as const;
 
@@ -114,6 +115,11 @@ export async function GET(request: Request) {
   const dayGradient = "linear-gradient(135deg, #f59e0b, #f97316)";
   const eveningGradient = "linear-gradient(135deg, #6366f1, #8b5cf6)";
 
+  // Photo background seeded on date+location+session so the same URL
+  // always renders the same card.
+  const bgSeed = `${dateParam}|${location ?? ""}|${session ?? ""}`;
+  const bgImage = getOgBackgroundDataUrl(bgSeed);
+
   return new ImageResponse(
     (
       <div
@@ -122,41 +128,37 @@ export async function GET(request: Request) {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: singleSession === "evening" ? "#0b1224" : "#fdf8f1",
-          color: singleSession === "evening" ? "#fdf8f1" : "#1c1917",
+          background: "#0e3a23",
+          color: "#fdf8f1",
           fontFamily: "Libre Franklin, sans-serif",
           position: "relative",
         }}
       >
-        {/* Decorative blobs */}
-        <div
+        {/* Background photo */}
+        <img
+          src={bgImage}
+          alt=""
+          width={1200}
+          height={630}
           style={{
             position: "absolute",
-            top: -160,
-            right: -120,
-            width: 560,
-            height: 560,
-            borderRadius: "50%",
-            background: singleSession === "evening" ? eveningGradient : dayGradient,
-            opacity: singleSession === "evening" ? 0.32 : 0.2,
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
             display: "flex",
           }}
         />
-        {!singleSession && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: -180,
-              left: -120,
-              width: 460,
-              height: 460,
-              borderRadius: "50%",
-              background: eveningGradient,
-              opacity: 0.14,
-              display: "flex",
-            }}
-          />
-        )}
+        {/* Dark scrim — heavier on the left where text sits */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(100deg, rgba(14,58,35,0.92) 0%, rgba(14,58,35,0.78) 45%, rgba(14,58,35,0.35) 100%)",
+            display: "flex",
+          }}
+        />
 
         {/* Header */}
         <div
@@ -168,7 +170,7 @@ export async function GET(request: Request) {
           }}
         >
           <img
-            src={getLogoDataUrl(singleSession === "evening" ? "white" : "ink")}
+            src={getLogoDataUrl("white")}
             alt=""
             width={220}
             height={80}
@@ -182,11 +184,8 @@ export async function GET(request: Request) {
                 alignItems: "center",
                 padding: "12px 22px",
                 borderRadius: 999,
-                background:
-                  singleSession === "evening"
-                    ? "rgba(253, 248, 241, 0.15)"
-                    : "rgba(14, 58, 35, 0.12)",
-                color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
+                background: "rgba(253, 248, 241, 0.18)",
+                color: "#fdf8f1",
                 fontSize: 22,
                 fontWeight: 600,
               }}
@@ -209,7 +208,7 @@ export async function GET(request: Request) {
             <div
               style={{
                 fontSize: 22,
-                color: singleSession === "evening" ? "#94a3b8" : "#78716c",
+                color: "#e7e5e4",
                 letterSpacing: 2,
                 textTransform: "uppercase",
                 fontWeight: 600,
@@ -227,11 +226,12 @@ export async function GET(request: Request) {
               fontSize: singleSession ? 96 : 88,
               lineHeight: 1.02,
               letterSpacing: -1.5,
-              color: singleSession === "evening" ? "#fdf8f1" : "#0e3a23",
+              color: "#fdf8f1",
               marginTop: singleSession ? 18 : 0,
               display: "flex",
               alignItems: "baseline",
               gap: 28,
+              textShadow: "0 2px 24px rgba(0,0,0,0.45)",
             }}
           >
             <span>{dayLine}</span>
@@ -241,7 +241,7 @@ export async function GET(request: Request) {
               fontFamily: "Fraunces, serif",
               fontSize: 44,
               fontWeight: 600,
-              color: singleSession === "evening" ? "#cbd5e1" : "#44403c",
+              color: "#e7e5e4",
               marginTop: 6,
               display: "flex",
             }}
@@ -257,7 +257,7 @@ export async function GET(request: Request) {
                 gap: 22,
                 alignItems: "center",
                 fontSize: 32,
-                color: singleSession === "evening" ? "#fdf8f1" : "#1c1917",
+                color: "#fdf8f1",
               }}
             >
               <div
@@ -301,7 +301,7 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "rgba(245, 158, 11, 0.15)",
+                    background: "rgba(253, 248, 241, 0.12)",
                     borderRadius: 18,
                     borderLeft: "6px solid #f59e0b",
                     minWidth: 280,
@@ -310,7 +310,7 @@ export async function GET(request: Request) {
                   <div
                     style={{
                       fontSize: 22,
-                      color: "#7c2d12",
+                      color: "#fed7aa",
                       fontWeight: 600,
                       letterSpacing: 0.4,
                       textTransform: "uppercase",
@@ -326,7 +326,7 @@ export async function GET(request: Request) {
                       fontFamily: "Fraunces, serif",
                       fontSize: 44,
                       fontWeight: 600,
-                      color: "#7c2d12",
+                      color: "#fdf8f1",
                       marginTop: 8,
                       display: "flex",
                     }}
@@ -336,7 +336,7 @@ export async function GET(request: Request) {
                   <div
                     style={{
                       fontSize: 22,
-                      color: "#9a3412",
+                      color: "#fed7aa",
                       marginTop: 4,
                       display: "flex",
                     }}
@@ -353,16 +353,16 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "rgba(99, 102, 241, 0.15)",
+                    background: "rgba(253, 248, 241, 0.12)",
                     borderRadius: 18,
-                    borderLeft: "6px solid #6366f1",
+                    borderLeft: "6px solid #818cf8",
                     minWidth: 280,
                   }}
                 >
                   <div
                     style={{
                       fontSize: 22,
-                      color: "#3730a3",
+                      color: "#c7d2fe",
                       fontWeight: 600,
                       letterSpacing: 0.4,
                       textTransform: "uppercase",
@@ -378,7 +378,7 @@ export async function GET(request: Request) {
                       fontFamily: "Fraunces, serif",
                       fontSize: 44,
                       fontWeight: 600,
-                      color: "#3730a3",
+                      color: "#fdf8f1",
                       marginTop: 8,
                       display: "flex",
                     }}
@@ -388,7 +388,7 @@ export async function GET(request: Request) {
                   <div
                     style={{
                       fontSize: 22,
-                      color: "#4338ca",
+                      color: "#c7d2fe",
                       marginTop: 4,
                       display: "flex",
                     }}

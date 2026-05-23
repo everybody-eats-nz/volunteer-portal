@@ -4,6 +4,7 @@ import { formatInNZT } from "@/lib/timezone";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { loadBrandFonts } from "@/lib/og-fonts";
 import { getLogoDataUrl } from "@/lib/og-logo";
+import { getOgBackgroundDataUrl } from "@/lib/og-background";
 
 export const alt = "Volunteer shift at Everybody Eats";
 export const size = { width: 1200, height: 630 };
@@ -90,6 +91,8 @@ export default async function ShiftOgImage({
       ? "Waitlist open"
       : `${spotsRemaining} ${spotsRemaining === 1 ? "spot" : "spots"} left`;
 
+  const bgImage = getOgBackgroundDataUrl(shift.id);
+
   return new ImageResponse(
     (
       <div
@@ -98,35 +101,34 @@ export default async function ShiftOgImage({
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "#fdf8f1",
           fontFamily: "Libre Franklin, sans-serif",
-          color: "#1c1917",
+          color: "#fdf8f1",
           position: "relative",
+          background: "#0e3a23",
         }}
       >
-        <div
+        {/* Background photo */}
+        <img
+          src={bgImage}
+          alt=""
+          width={1200}
+          height={630}
           style={{
             position: "absolute",
-            top: -120,
-            right: -120,
-            width: 520,
-            height: 520,
-            borderRadius: "50%",
-            background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
-            opacity: 0.18,
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
             display: "flex",
           }}
         />
+        {/* Dark scrim — heavier on the left where text sits */}
         <div
           style={{
             position: "absolute",
-            bottom: -180,
-            left: -120,
-            width: 460,
-            height: 460,
-            borderRadius: "50%",
-            background: `linear-gradient(135deg, ${colors.accent}, ${colors.from})`,
-            opacity: 0.12,
+            inset: 0,
+            background:
+              "linear-gradient(100deg, rgba(14,58,35,0.92) 0%, rgba(14,58,35,0.78) 45%, rgba(14,58,35,0.35) 100%)",
             display: "flex",
           }}
         />
@@ -140,7 +142,7 @@ export default async function ShiftOgImage({
           }}
         >
           <img
-            src={getLogoDataUrl("ink")}
+            src={getLogoDataUrl("white")}
             alt=""
             width={220}
             height={80}
@@ -154,11 +156,11 @@ export default async function ShiftOgImage({
               padding: "12px 22px",
               borderRadius: 999,
               background: isPast
-                ? "rgba(120, 113, 108, 0.15)"
+                ? "rgba(253, 248, 241, 0.18)"
                 : isFull
-                  ? "rgba(217, 119, 6, 0.18)"
-                  : "rgba(22, 101, 52, 0.15)",
-              color: isPast ? "#57534e" : isFull ? "#92400e" : "#166534",
+                  ? "rgba(251, 191, 36, 0.28)"
+                  : "rgba(134, 239, 172, 0.28)",
+              color: isPast ? "#e7e5e4" : isFull ? "#fde68a" : "#bbf7d0",
               fontSize: 22,
               fontWeight: 600,
             }}
@@ -182,10 +184,11 @@ export default async function ShiftOgImage({
               fontSize: 96,
               lineHeight: 1.02,
               letterSpacing: -1.5,
-              color: "#0e3a23",
+              color: "#fdf8f1",
               display: "flex",
               flexWrap: "wrap",
               maxWidth: 980,
+              textShadow: "0 2px 24px rgba(0,0,0,0.45)",
             }}
           >
             {shift.shiftType.name}
@@ -200,13 +203,13 @@ export default async function ShiftOgImage({
               fontSize: 34,
               fontFamily: "Fraunces, serif",
               fontWeight: 600,
-              color: "#1c1917",
+              color: "#fdf8f1",
             }}
           >
             <span>{dayLabel}</span>
-            <span style={{ color: colors.from }}>·</span>
+            <span style={{ color: colors.accent }}>·</span>
             <span>{dateLabel}</span>
-            <span style={{ color: colors.from }}>·</span>
+            <span style={{ color: colors.accent }}>·</span>
             <span>{timeLabel}</span>
           </div>
 
@@ -215,7 +218,7 @@ export default async function ShiftOgImage({
               style={{
                 marginTop: 22,
                 fontSize: 30,
-                color: "#44403c",
+                color: "#e7e5e4",
                 display: "flex",
                 alignItems: "center",
                 gap: 14,
