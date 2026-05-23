@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Libre_Franklin, Fraunces } from "next/font/google";
+import { Libre_Franklin } from "next/font/google";
+import localFont from "next/font/local";
 import { Suspense } from "react";
 import "./globals.css";
 import { SiteHeaderClientWrapper } from "@/components/site-header-client-wrapper";
@@ -18,10 +19,23 @@ const libreFranklin = Libre_Franklin({
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
+// Self-hosted Fraunces variable font (matches the marketing site / live Webflow)
+// with all four axes: SOFT, WONK, opsz, wght.
+const fraunces = localFont({
   variable: "--font-fraunces",
-  subsets: ["latin"],
-  axes: ["SOFT", "WONK"],
+  display: "swap",
+  src: [
+    {
+      path: "../../public/fonts/Fraunces-VariableFont.ttf",
+      style: "normal",
+      weight: "100 900",
+    },
+    {
+      path: "../../public/fonts/Fraunces-Italic-VariableFont.ttf",
+      style: "italic",
+      weight: "100 900",
+    },
+  ],
 });
 
 export const metadata: Metadata = {

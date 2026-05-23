@@ -32,7 +32,7 @@ export default function SupportPage() {
           >
             ← Back to portal
           </Link>
-          <h1 className="text-3xl font-bold font-[Fraunces] mt-2">
+          <h1 className="text-3xl font-bold mt-2">
             Support & Help
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
