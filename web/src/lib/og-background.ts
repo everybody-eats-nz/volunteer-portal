@@ -3,17 +3,13 @@ import path from "node:path";
 
 // 4 curated landscape photos from the marketing assets — community-vibe shots
 // used as full-bleed backgrounds on OG cards. They live in web/public/og-bg/.
+// Next.js already caches ImageResponse output per-URL, so we don't add a
+// second in-process cache here — the file read only fires on a cache miss.
 const BG_FILES = ["bg-1.jpg", "bg-2.jpg", "bg-3.jpg", "bg-4.jpg"] as const;
 
-const cache = new Map<string, string>();
-
 function loadDataUrl(filename: string): string {
-  const cached = cache.get(filename);
-  if (cached) return cached;
   const buf = readFileSync(path.join(process.cwd(), "public/og-bg", filename));
-  const dataUrl = `data:image/jpeg;base64,${buf.toString("base64")}`;
-  cache.set(filename, dataUrl);
-  return dataUrl;
+  return `data:image/jpeg;base64,${buf.toString("base64")}`;
 }
 
 // Deterministic 32-bit hash so the same seed always maps to the same image.
