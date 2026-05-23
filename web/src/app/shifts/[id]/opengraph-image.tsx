@@ -86,7 +86,7 @@ export default async function ShiftOgImage({
   )}`.toLowerCase();
 
   const statusLabel = isPast
-    ? "Shift complete"
+    ? "Wrapped up"
     : isFull
       ? "Waitlist open"
       : `${spotsRemaining} ${spotsRemaining === 1 ? "spot" : "spots"} left`;

@@ -284,7 +284,7 @@ export async function GET(request: Request) {
                   fontSize: 28,
                 }}
               >
-                {singleSession === "day" ? "☀️" : "🌙"} {singleStats.count} shift
+                {singleSession === "day" ? "☀️" : "🌙"} {singleStats.count} role
                 {singleStats.count === 1 ? "" : "s"}
               </div>
               <div
@@ -342,7 +342,7 @@ export async function GET(request: Request) {
                       display: "flex",
                     }}
                   >
-                    {stats.day.count} shift{stats.day.count === 1 ? "" : "s"}
+                    {stats.day.count} role{stats.day.count === 1 ? "" : "s"}
                   </div>
                   <div
                     style={{
@@ -394,7 +394,7 @@ export async function GET(request: Request) {
                       display: "flex",
                     }}
                   >
-                    {stats.evening.count} shift{stats.evening.count === 1 ? "" : "s"}
+                    {stats.evening.count} role{stats.evening.count === 1 ? "" : "s"}
                   </div>
                   <div
                     style={{
