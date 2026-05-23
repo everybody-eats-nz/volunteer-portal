@@ -185,24 +185,59 @@ export async function GET(request: Request) {
             style={{ display: "flex" }}
           />
 
-          {location && (
+          {/* spacer — location pill is positioned absolutely below */}
+        </div>
+
+        {/* Location pill — frosted glass */}
+        {location && (
+          <div
+            style={{
+              position: "absolute",
+              top: 56,
+              right: 72,
+              display: "flex",
+              alignItems: "center",
+              borderRadius: 999,
+              overflow: "hidden",
+              border: "1px solid rgba(253, 248, 241, 0.22)",
+            }}
+          >
+            <img
+              src={bgImage}
+              alt=""
+              style={{
+                position: "absolute",
+                top: -56,
+                right: -72,
+                width: 1200,
+                height: 630,
+                objectFit: "cover",
+                filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                display: "flex",
+              }}
+            />
             <div
               style={{
+                position: "absolute",
+                inset: 0,
+                background: "rgba(14, 58, 35, 0.55)",
                 display: "flex",
-                alignItems: "center",
+              }}
+            />
+            <div
+              style={{
+                position: "relative",
                 padding: "12px 22px",
-                borderRadius: 999,
-                background: "#0e3a23",
                 color: "#fdf8f1",
                 fontSize: 22,
                 fontWeight: 600,
-                border: "1px solid rgba(253, 248, 241, 0.25)",
+                display: "flex",
               }}
             >
               📍 {location}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Body */}
         <div
@@ -278,25 +313,53 @@ export async function GET(request: Request) {
                   gap: 12,
                   padding: "16px 26px",
                   borderRadius: 999,
-                  background: singleSession === "evening" ? eveningGradient : dayGradient,
                   color: "#fff",
                   fontWeight: 600,
                   fontSize: 28,
+                  position: "relative",
+                  overflow: "hidden",
+                  border: "1px solid rgba(253, 248, 241, 0.22)",
                 }}
               >
-                {singleSession === "day" ? "☀️" : "🌙"} {singleStats.count} role
-                {singleStats.count === 1 ? "" : "s"}
+                <img
+                  src={bgImage}
+                  alt=""
+                  style={{
+                    position: "absolute",
+                    top: -365,
+                    left: -72,
+                    width: 1200,
+                    height: 630,
+                    objectFit: "cover",
+                    filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                    display: "flex",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      singleSession === "evening"
+                        ? "linear-gradient(135deg, rgba(99,102,241,0.65), rgba(139,92,246,0.65))"
+                        : "linear-gradient(135deg, rgba(245,158,11,0.65), rgba(249,115,22,0.65))",
+                    display: "flex",
+                  }}
+                />
+                <span style={{ position: "relative", whiteSpace: "nowrap" }}>
+                  {`${singleSession === "day" ? "☀️" : "🌙"} ${singleStats.count} role${singleStats.count === 1 ? "" : "s"}`}
+                </span>
               </div>
-              <div
+              <span
                 style={{
                   fontWeight: 600,
-                  display: "flex",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {singleStats.spots > 0
                   ? `${singleStats.spots} spot${singleStats.spots === 1 ? "" : "s"} open`
                   : "Waitlist only"}
-              </div>
+              </span>
             </div>
           ) : (
             <div
@@ -312,14 +375,38 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "#0e3a23",
                     borderRadius: 18,
                     borderLeft: "6px solid #f59e0b",
                     minWidth: 280,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
+                  <img
+                    src={bgImage}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      top: -365,
+                      left: -72,
+                      width: 1200,
+                      height: 630,
+                      objectFit: "cover",
+                      filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                      display: "flex",
+                    }}
+                  />
                   <div
                     style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(14, 58, 35, 0.55)",
+                      display: "flex",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "relative",
                       fontSize: 22,
                       color: "#fed7aa",
                       fontWeight: 600,
@@ -334,6 +421,7 @@ export async function GET(request: Request) {
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontFamily: "Fraunces, serif",
                       fontSize: 44,
                       fontWeight: 600,
@@ -346,6 +434,7 @@ export async function GET(request: Request) {
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontSize: 22,
                       color: "#fed7aa",
                       marginTop: 4,
@@ -364,14 +453,38 @@ export async function GET(request: Request) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "20px 28px",
-                    background: "#0e3a23",
                     borderRadius: 18,
                     borderLeft: "6px solid #818cf8",
                     minWidth: 280,
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
+                  <img
+                    src={bgImage}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      top: -365,
+                      left: stats.day.count > 0 ? -372 : -72,
+                      width: 1200,
+                      height: 630,
+                      objectFit: "cover",
+                      filter: "blur(22px) brightness(0.55) saturate(1.1)",
+                      display: "flex",
+                    }}
+                  />
                   <div
                     style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(14, 58, 35, 0.55)",
+                      display: "flex",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "relative",
                       fontSize: 22,
                       color: "#c7d2fe",
                       fontWeight: 600,
@@ -386,6 +499,7 @@ export async function GET(request: Request) {
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontFamily: "Fraunces, serif",
                       fontSize: 44,
                       fontWeight: 600,
@@ -398,6 +512,7 @@ export async function GET(request: Request) {
                   </div>
                   <div
                     style={{
+                      position: "relative",
                       fontSize: 22,
                       color: "#c7d2fe",
                       marginTop: 4,

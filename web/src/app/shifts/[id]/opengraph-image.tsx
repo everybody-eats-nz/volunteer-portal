@@ -141,11 +141,64 @@ export default async function ShiftOgImage({
           }}
         />
 
+        {/* Status pill — frosted-glass: a blurred snapshot of the bg clipped
+            to a rounded shape, tinted by status colour, with the label on top. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 56,
+            right: 72,
+            display: "flex",
+            alignItems: "center",
+            borderRadius: 999,
+            overflow: "hidden",
+            border: "1px solid rgba(253, 248, 241, 0.22)",
+          }}
+        >
+          <img
+            src={bgImage}
+            alt=""
+            style={{
+              position: "absolute",
+              top: -56,
+              right: -72,
+              width: 1200,
+              height: 630,
+              objectFit: "cover",
+              filter: "blur(22px) brightness(0.55) saturate(1.1)",
+              display: "flex",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: isPast
+                ? "rgba(68, 64, 60, 0.55)"
+                : isFull
+                  ? "rgba(180, 83, 9, 0.55)"
+                  : "rgba(21, 128, 61, 0.55)",
+              display: "flex",
+            }}
+          />
+          <div
+            style={{
+              position: "relative",
+              padding: "12px 22px",
+              color: "#fdf8f1",
+              fontSize: 22,
+              fontWeight: 600,
+              display: "flex",
+            }}
+          >
+            {statusLabel}
+          </div>
+        </div>
+
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             padding: "56px 72px 0",
           }}
         >
@@ -156,25 +209,6 @@ export default async function ShiftOgImage({
             height={80}
             style={{ display: "flex" }}
           />
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "12px 22px",
-              borderRadius: 999,
-              background: isPast
-                ? "#44403c"
-                : isFull
-                  ? "#b45309"
-                  : "#15803d",
-              color: "#fdf8f1",
-              fontSize: 22,
-              fontWeight: 600,
-            }}
-          >
-            {statusLabel}
-          </div>
         </div>
 
         <div
