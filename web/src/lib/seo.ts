@@ -19,11 +19,23 @@ interface MetadataOptions {
   path: string;
   ogImage?: string;
   noIndex?: boolean;
+  /**
+   * When true, omit `openGraph.images` so Next.js's file-based
+   * `opengraph-image.tsx` convention takes over for this route.
+   */
+  useFileBasedOgImage?: boolean;
 }
 
 // Build complete page metadata
 export function buildPageMetadata(options: MetadataOptions): Metadata {
-  const { title, description, path, ogImage, noIndex = false } = options;
+  const {
+    title,
+    description,
+    path,
+    ogImage,
+    noIndex = false,
+    useFileBasedOgImage = false,
+  } = options;
   const baseUrl = getBaseUrl();
   const url = `${baseUrl}${path}`;
   const image = ogImage || SEO_CONFIG.ogImage;
@@ -41,14 +53,18 @@ export function buildPageMetadata(options: MetadataOptions): Metadata {
       siteName: SEO_CONFIG.siteName,
       locale: SEO_CONFIG.locale,
       type: "website",
-      images: [
-        {
-          url: image,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
+      ...(useFileBasedOgImage
+        ? {}
+        : {
+            images: [
+              {
+                url: image,
+                width: 1200,
+                height: 630,
+                alt: title,
+              },
+            ],
+          }),
     },
     robots: noIndex
       ? {
