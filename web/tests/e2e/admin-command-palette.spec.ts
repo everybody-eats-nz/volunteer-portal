@@ -74,10 +74,8 @@ test.describe("Admin Command Palette", () => {
       // Type a search query that should return users
       await page.getByTestId("admin-command-input").fill("volunteer");
 
-      // Wait for search results to load
-      await page.waitForTimeout(500);
-
       // Should show "Users" group when searching (use attribute selector for command groups)
+      // expect().toBeVisible() retries automatically — no fixed wait needed
       await expect(
         page.locator("[cmdk-group-heading]", { hasText: "Users" })
       ).toBeVisible();
@@ -118,9 +116,6 @@ test.describe("Admin Command Palette", () => {
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await page.getByTestId("admin-command-input").fill("admin");
-
-      // Wait for potential results
-      await page.waitForTimeout(500);
 
       // If results exist, they should have the proper structure
       const userResults = page.locator('[data-testid^="user-search-result-"]');
@@ -288,16 +283,19 @@ test.describe("Admin Command Palette", () => {
       // so we focus on ensuring the functionality works rather than
       // catching the exact loading moment
 
-      // Wait for search to complete
-      await page.waitForTimeout(300);
-
-      // Should show either results or "No results found"
-      const hasResults = await page
-        .locator("[cmdk-group-heading]", { hasText: "Users" })
-        .isVisible();
-      const hasNoResults = await page.getByText("No results found").isVisible();
-
-      expect(hasResults || hasNoResults).toBe(true);
+      // Should show either results or "No results found" — poll until one appears
+      await expect.poll(
+        async () => {
+          const hasResults = await page
+            .locator("[cmdk-group-heading]", { hasText: "Users" })
+            .isVisible();
+          const hasNoResults = await page
+            .getByText("No results found")
+            .isVisible();
+          return hasResults || hasNoResults;
+        },
+        { timeout: 5000 }
+      ).toBe(true);
     });
 
     test("clicking outside closes command palette", async ({ page }) => {
@@ -325,9 +323,6 @@ test.describe("Admin Command Palette", () => {
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await page.getByTestId("admin-command-input").fill("error");
-
-      // Wait for API call to complete
-      await page.waitForTimeout(500);
 
       // Should not crash and should show no results
       await expect(page.getByTestId("admin-command-input")).toBeVisible();
