@@ -192,7 +192,7 @@ export function HomeControl() {
               className="text-2xl font-semibold mb-4"
               data-testid="final-cta-title"
             >
-              Ready to Make a Difference?
+              Ready to Make a <em>Difference</em>?
             </h2>
             <p className="text-muted-foreground mb-6">
               Every volunteer hour contributes to stronger, more connected

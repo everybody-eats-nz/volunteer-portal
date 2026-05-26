@@ -430,9 +430,7 @@ export async function HomeDashboard() {
                 data-testid="final-cta-title"
               >
                 Ready to Make a{" "}
-                <span className="sticker italic text-[#0e3a23]">
-                  Difference?
-                </span>
+                <em className="sticker text-[#0e3a23]">Difference?</em>
               </h2>
               <p className="mt-4 max-w-xl text-base text-white/85 md:text-lg">
                 Every volunteer hour contributes to stronger, more connected
