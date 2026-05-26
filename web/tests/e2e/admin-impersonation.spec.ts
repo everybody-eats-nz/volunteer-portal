@@ -108,13 +108,12 @@ test.describe("Admin User Impersonation", () => {
       const cancelButton = page.getByRole("button", { name: /cancel/i });
       await cancelButton.click();
 
-      // Dialog should close and we should still be on the same page
-      await page.waitForTimeout(500);
-      expect(page.url()).toBe(currentUrl);
-
-      // Impersonation banner should not appear
+      // Impersonation banner should not appear (also confirms dialog closed)
       const banner = page.getByTestId("impersonation-banner");
       await expect(banner).not.toBeVisible();
+
+      // Should still be on the same page
+      expect(page.url()).toBe(currentUrl);
     });
 
     test("should successfully start impersonation and redirect to dashboard", async ({
