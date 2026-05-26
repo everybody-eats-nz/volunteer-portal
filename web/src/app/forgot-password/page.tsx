@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center">
           <PageHeader
-            title="Reset your password"
+            title={<><em>Reset</em> your password</>}
             description="Enter your email address and we'll send you instructions to reset your password"
             className="mb-6"
           />

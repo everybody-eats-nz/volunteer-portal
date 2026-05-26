@@ -216,7 +216,7 @@ export async function HomeDashboard() {
               02 / Right now
             </div>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-              What&rsquo;s happening across the whānau
+              What&rsquo;s happening across the <em>whānau</em>
             </h2>
           </div>
           <Link
@@ -324,7 +324,7 @@ export async function HomeDashboard() {
           </div>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
             Three ways your time turns into{" "}
-            <span className="sticker italic">manaakitanga</span>
+            <em className="sticker">manaakitanga</em>
           </h2>
         </div>
 

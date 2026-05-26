@@ -23,7 +23,7 @@ export function HomeControl() {
               className="text-5xl md:text-6xl font-bold leading-tight mb-6 text-foreground"
               data-testid="hero-title"
             >
-              Making a difference one plate at a time
+              Making a <em>difference</em> one plate at a time
             </h1>
             <p
               className="text-lg text-muted-foreground mb-8 leading-relaxed"

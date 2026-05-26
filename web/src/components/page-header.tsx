@@ -5,7 +5,7 @@ import { motion, Variants } from "motion/react";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
-  title: string;
+  title: ReactNode;
   description?: string | ReactNode;
   children?: ReactNode;
   /** Actions that appear inline with the title on larger screens */

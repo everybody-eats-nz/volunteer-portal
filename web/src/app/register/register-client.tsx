@@ -678,7 +678,7 @@ export default function RegisterClient({
     <MotionPageContainer className="min-h-screen" data-testid="register-page">
       <div className="max-w-4xl mx-auto space-y-8">
         <PageHeader
-          title="Join Everybody Eats"
+          title={<>Join <em>Everybody Eats</em></>}
           description="Create your volunteer account and start making a difference in your community. The registration process takes about 5-10 minutes to complete."
         >
           <div className="flex justify-start mt-6">

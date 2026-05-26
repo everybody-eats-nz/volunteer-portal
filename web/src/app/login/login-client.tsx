@@ -453,7 +453,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
       <div className="w-full max-w-md">
         <div className="text-center">
           <PageHeader
-            title="Welcome back"
+            title={<><em>Welcome</em> back</>}
             description="Sign in to your volunteer account"
             className="mb-6"
           />
