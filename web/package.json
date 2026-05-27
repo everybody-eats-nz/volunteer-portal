@@ -54,7 +54,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.2.3",
-    "@supabase/supabase-js": "^2.100.1",
+    "@supabase/supabase-js": "^2.106.1",
     "@tanstack/react-table": "^8.21.3",
     "@types/jsdom": "^28.0.3",
     "@types/node-fetch": "^2.6.13",
