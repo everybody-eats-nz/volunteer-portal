@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { DayOfWeekFilter } from "@/components/day-of-week-filter";
 import { EngagementVolunteerTable } from "./engagement-volunteer-table";
+import { ReactivatedVolunteersDialog } from "./reactivated-volunteers-dialog";
 import type {
   EngagementSummaryData,
   EngagementVolunteersResult,
@@ -144,6 +145,7 @@ export function EngagementAnalyticsClient({
   const [days, setDays] = useState(initialDays);
   const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
   const [breakdownView, setBreakdownView] = useState<"overall" | "shiftType">("overall");
+  const [reactivatedOpen, setReactivatedOpen] = useState(false);
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as "dark" | "light";
 
   const handleApplyFilters = () => {
@@ -359,17 +361,24 @@ export function EngagementAnalyticsClient({
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                    <button
+                      type="button"
+                      onClick={() => setReactivatedOpen(true)}
+                      className="flex flex-col items-center justify-center p-5 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset cursor-pointer w-full h-full"
+                      data-testid="engagement-reactivated-kpi"
+                      aria-label="View reactivated volunteers"
+                    >
                       <UserCheck className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight tabular-nums">
+                      <p className="text-2xl font-bold tracking-tight tabular-nums underline decoration-dotted decoration-muted-foreground/40 underline-offset-4">
                         {data.summary.reactivatedCount}
                       </p>
                       <p className="text-xs text-muted-foreground">Reactivated</p>
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="w-auto max-w-56">
                     Returning volunteers — completed a shift in the period after
-                    6+ months of inactivity (excludes first-timers)
+                    6+ months of inactivity (excludes first-timers). Click to see
+                    who.
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1179,6 +1188,14 @@ export function EngagementAnalyticsClient({
           </Card>
         </motion.div>
       </motion.div>
+
+      <ReactivatedVolunteersDialog
+        open={reactivatedOpen}
+        onOpenChange={setReactivatedOpen}
+        months={initialMonths}
+        location={initialLocation}
+        days={initialDays}
+      />
     </div>
   );
 }
