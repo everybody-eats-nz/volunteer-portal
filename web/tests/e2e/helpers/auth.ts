@@ -21,7 +21,11 @@ export async function loginAsAdmin(page: Page) {
 
     await page.waitForURL("/admin");
     await page.waitForLoadState("load");
-    await page.waitForTimeout(1000);
+    // Wait for admin dashboard content — confirms the session is fully active
+    // (replaces an arbitrary 1s sleep that wasn't reliable under CI load)
+    await page
+      .getByTestId("admin-dashboard-page")
+      .waitFor({ state: "attached", timeout: 15000 });
   } catch (error) {
     console.log("Error during admin login:", error);
     throw error;
