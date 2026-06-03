@@ -45,6 +45,8 @@ import {
 } from "@/components/ui/dialog";
 import { DayOfWeekFilter } from "@/components/day-of-week-filter";
 import { EngagementVolunteerTable } from "./engagement-volunteer-table";
+import { EngagementSegmentDialog } from "./engagement-segment-dialog";
+import type { EngagementSegment } from "@/lib/engagement";
 import type {
   EngagementSummaryData,
   EngagementVolunteersResult,
@@ -75,6 +77,12 @@ const MONTHS_LABELS: Record<string, string> = {
   "6": "6 months",
   "12": "12 months",
 };
+
+// Shared styling for the clickable hero metric tiles (Total/Retention/New/Reactivated).
+const metricButtonClass =
+  "flex flex-col items-center justify-center p-5 w-full h-full transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset cursor-pointer";
+const metricNumberClass =
+  "text-2xl font-bold tracking-tight tabular-nums underline decoration-dotted decoration-muted-foreground/40 underline-offset-4";
 
 function EngagementRing({
   value,
@@ -144,6 +152,9 @@ export function EngagementAnalyticsClient({
   const [days, setDays] = useState(initialDays);
   const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
   const [breakdownView, setBreakdownView] = useState<"overall" | "shiftType">("overall");
+  const [activeSegment, setActiveSegment] = useState<EngagementSegment | null>(
+    null
+  );
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as "dark" | "light";
 
   const handleApplyFilters = () => {
@@ -312,49 +323,90 @@ export function EngagementAnalyticsClient({
               </div>
 
               {/* Right: secondary metrics */}
-              <div className="flex-1 grid grid-cols-3 divide-x">
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 divide-x">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSegment("total")}
+                      className={metricButtonClass}
+                      data-testid="engagement-kpi-total"
+                      aria-label="View all volunteers"
+                    >
                       <Users className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight">
+                      <p className={metricNumberClass}>
                         {data.summary.totalVolunteers}
                       </p>
                       <p className="text-xs text-muted-foreground">Total</p>
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="w-auto max-w-56">
-                    All registered volunteers (excludes admins)
+                    All registered volunteers (excludes admins). Click to see who.
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSegment("retention")}
+                      className={metricButtonClass}
+                      data-testid="engagement-kpi-retention"
+                      aria-label="View retained volunteers"
+                    >
                       <RefreshCw className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight">
+                      <p className={metricNumberClass}>
                         {data.summary.retentionRate}%
                       </p>
                       <p className="text-xs text-muted-foreground">Retention</p>
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="w-auto max-w-56">
                     Of volunteers active in the prior period, the percentage who
-                    also volunteered in the current period
+                    also volunteered in the current period. Click to see who was
+                    retained.
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSegment("new")}
+                      className={metricButtonClass}
+                      data-testid="engagement-kpi-new"
+                      aria-label="View new volunteers"
+                    >
                       <UserPlus className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight">
+                      <p className={metricNumberClass}>
                         {data.summary.newInPeriodCount}
                       </p>
                       <p className="text-xs text-muted-foreground">New</p>
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="w-auto max-w-56">
                     Volunteers who completed their first ever shift during the
-                    selected period
+                    selected period. Click to see who.
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSegment("reactivated")}
+                      className={metricButtonClass}
+                      data-testid="engagement-kpi-reactivated"
+                      aria-label="View reactivated volunteers"
+                    >
+                      <UserCheck className="h-4 w-4 text-muted-foreground mb-1" />
+                      <p className={metricNumberClass}>
+                        {data.summary.reactivatedCount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Reactivated</p>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-56">
+                    Returning volunteers — completed a shift in the period after
+                    6+ months of inactivity (excludes first-timers). Click to see
+                    who.
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -372,37 +424,41 @@ export function EngagementAnalyticsClient({
           {[
             {
               label: "Highly Active",
+              segment: "highly_active" as const,
               value: data.summary.highlyActiveCount,
               desc: "2+ shifts/month avg",
               tooltip:
-                "Volunteers averaging 2 or more completed shifts per month during the selected period",
+                "Volunteers averaging 2 or more completed shifts per month during the selected period. Click to see who.",
               bg: "bg-emerald-50 dark:bg-emerald-950/20",
               ring: "#10b981",
             },
             {
               label: "Active",
+              segment: "active" as const,
               value: data.summary.activeCount,
               desc: "1+ shift in period",
               tooltip:
-                "Volunteers with at least 1 completed shift in the selected period (but fewer than 2/month avg)",
+                "Volunteers with at least 1 completed shift in the selected period (but fewer than 2/month avg). Click to see who.",
               bg: "bg-blue-50 dark:bg-blue-950/20",
               ring: "#3b82f6",
             },
             {
               label: "Inactive",
+              segment: "inactive" as const,
               value: data.summary.inactiveCount,
               desc: "No shifts in period",
               tooltip:
-                "Volunteers who have completed shifts before but none during the selected period",
+                "Volunteers who have completed shifts before but none during the selected period. Click to see who.",
               bg: "bg-amber-50 dark:bg-amber-950/20",
               ring: "#f59e0b",
             },
             {
               label: "Never Volunteered",
+              segment: "never" as const,
               value: data.summary.neverVolunteeredCount,
               desc: "0 completed shifts",
               tooltip:
-                "Registered volunteers who have never completed a shift",
+                "Registered volunteers who have never completed a shift. Click to see who.",
               bg: "bg-red-50 dark:bg-red-950/20",
               ring: "#ef4444",
             },
@@ -410,26 +466,36 @@ export function EngagementAnalyticsClient({
             <motion.div key={stat.label} variants={staggerItem}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Card className={`${stat.bg} border-0 cursor-help`}>
-                    <CardContent className="flex items-center gap-4 py-5">
-                      <EngagementRing
-                        value={stat.value}
-                        max={data.summary.totalVolunteers}
-                        color={stat.ring}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {stat.label}
-                        </p>
-                        <p className="text-2xl font-bold tracking-tight">
-                          {stat.value}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {stat.desc}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSegment(stat.segment)}
+                    className="w-full text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    data-testid={`engagement-card-${stat.segment}`}
+                    aria-label={`View ${stat.label} volunteers`}
+                  >
+                    <Card
+                      className={`${stat.bg} border-0 cursor-pointer transition-transform hover:scale-[1.01]`}
+                    >
+                      <CardContent className="flex items-center gap-4 py-5">
+                        <EngagementRing
+                          value={stat.value}
+                          max={data.summary.totalVolunteers}
+                          color={stat.ring}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            {stat.label}
+                          </p>
+                          <p className="text-2xl font-bold tracking-tight">
+                            {stat.value}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {stat.desc}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="w-auto max-w-56">
                   {stat.tooltip}
@@ -1164,6 +1230,17 @@ export function EngagementAnalyticsClient({
           </Card>
         </motion.div>
       </motion.div>
+
+      <EngagementSegmentDialog
+        segment={activeSegment}
+        open={activeSegment !== null}
+        onOpenChange={(open) => {
+          if (!open) setActiveSegment(null);
+        }}
+        months={initialMonths}
+        location={initialLocation}
+        days={initialDays}
+      />
     </div>
   );
 }
