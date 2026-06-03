@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
 import { shiftStartNZ } from "@/lib/concurrent-shifts";
+import { differenceInMonths } from "date-fns";
 
 export type EngagementStatus = "highly_active" | "active" | "inactive" | "never";
 
@@ -445,13 +446,7 @@ export async function getReactivatedVolunteers(
     const lastBefore = r.lastBefore;
     const monthsAway =
       lastBefore != null
-        ? Math.max(
-            0,
-            Math.round(
-              (firstBack.getTime() - lastBefore.getTime()) /
-                (1000 * 60 * 60 * 24 * 30.44)
-            )
-          )
+        ? Math.max(0, differenceInMonths(firstBack, lastBefore))
         : null;
     return {
       id: r.id,
