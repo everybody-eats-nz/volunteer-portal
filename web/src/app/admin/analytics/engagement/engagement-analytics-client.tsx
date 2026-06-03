@@ -312,7 +312,7 @@ export function EngagementAnalyticsClient({
               </div>
 
               {/* Right: secondary metrics */}
-              <div className="flex-1 grid grid-cols-3 divide-x">
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 divide-x">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="flex flex-col items-center justify-center p-5 cursor-help">
@@ -355,6 +355,21 @@ export function EngagementAnalyticsClient({
                   <TooltipContent side="bottom" className="w-auto max-w-56">
                     Volunteers who completed their first ever shift during the
                     selected period
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
+                      <UserCheck className="h-4 w-4 text-muted-foreground mb-1" />
+                      <p className="text-2xl font-bold tracking-tight tabular-nums">
+                        {data.summary.reactivatedCount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Reactivated</p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-auto max-w-56">
+                    Returning volunteers — completed a shift in the period after
+                    6+ months of inactivity (excludes first-timers)
                   </TooltipContent>
                 </Tooltip>
               </div>

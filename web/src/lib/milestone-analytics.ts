@@ -2,11 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
 import { nowInNZT } from "@/lib/timezone";
 import { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
+import { MILESTONE_THRESHOLDS } from "@/lib/milestone-thresholds";
 
 export { UNSPECIFIED_LOCATION } from "@/lib/recruitment-types";
-
-export const MILESTONE_THRESHOLDS = [10, 25, 50, 100, 200, 500] as const;
-export type MilestoneThreshold = (typeof MILESTONE_THRESHOLDS)[number];
+export { MILESTONE_THRESHOLDS } from "@/lib/milestone-thresholds";
+export type { MilestoneThreshold } from "@/lib/milestone-thresholds";
 
 export interface MilestoneHit {
   threshold: number;
