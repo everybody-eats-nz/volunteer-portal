@@ -5,6 +5,12 @@ import { shiftStartNZ } from "@/lib/concurrent-shifts";
 export type EngagementStatus = "highly_active" | "active" | "inactive" | "never";
 
 /**
+ * Months of inactivity before a returning volunteer counts as "reactivated".
+ * @see getEngagementSummary
+ */
+export const REACTIVATION_GAP_MONTHS = 6;
+
+/**
  * Classify a volunteer's engagement level based on their shift history.
  *
  * - "never": 0 completed shifts ever
@@ -32,6 +38,7 @@ export interface EngagementSummaryData {
     neverVolunteeredCount: number;
     retentionRate: number;
     newInPeriodCount: number;
+    reactivatedCount: number;
   };
   monthlyTrend: Array<{
     month: string;
@@ -79,7 +86,31 @@ export async function getEngagementSummary(
 
   const safeMonths = Math.max(months, 1);
 
-  const [summaryResult, trendResult] = await Promise.all([
+  // A volunteer counts as "reactivated" if they completed a shift in the
+  // period after a quiet gap of at least this many months immediately before
+  // their first shift back — and they had volunteered before that gap (so
+  // brand-new volunteers are excluded).
+  const reactivationGap = Prisma.sql`INTERVAL '${Prisma.raw(
+    String(REACTIVATION_GAP_MONTHS)
+  )} months'`;
+  // Per-shift-alias location/day filters for the reactivation subqueries.
+  const aliasConds = (alias: string) => {
+    const loc = isLocationFiltered
+      ? Prisma.sql`AND ${Prisma.raw(alias)}.location = ${location}`
+      : Prisma.empty;
+    const dys =
+      daysFilter && daysFilter.length > 0
+        ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ(
+            `${alias}.start`
+          )})::int IN (${Prisma.join(daysFilter)})`
+        : Prisma.empty;
+    return { loc, dys };
+  };
+  const fp = aliasConds("shf");
+  const gp = aliasConds("shg");
+  const pp = aliasConds("shp");
+
+  const [summaryResult, trendResult, reactivationResult] = await Promise.all([
     prisma.$queryRaw<
       Array<{
         totalVolunteers: bigint;
@@ -146,6 +177,46 @@ export async function getEngagementSummary(
       GROUP BY date_trunc('week', sh."end")
       ORDER BY month
     `,
+    prisma.$queryRaw<Array<{ reactivatedCount: bigint }>>`
+      WITH first_in_period AS (
+        SELECT
+          sg."userId" AS user_id,
+          MIN(shf."end") AS first_end
+        FROM "Signup" sg
+        JOIN "Shift" shf ON shf.id = sg."shiftId"
+        JOIN "User" u ON u.id = sg."userId"
+        WHERE sg.status = 'CONFIRMED'
+          AND u.role = 'VOLUNTEER'::"Role"
+          AND shf."end" >= ${periodStart}
+          AND shf."end" < ${now}
+          ${fp.loc}
+          ${fp.dys}
+        GROUP BY sg."userId"
+      )
+      SELECT COUNT(*)::bigint AS "reactivatedCount"
+      FROM first_in_period f
+      WHERE NOT EXISTS (
+              SELECT 1
+              FROM "Signup" sg2
+              JOIN "Shift" shg ON shg.id = sg2."shiftId"
+              WHERE sg2."userId" = f.user_id
+                AND sg2.status = 'CONFIRMED'
+                AND shg."end" >= (f.first_end - ${reactivationGap})
+                AND shg."end" < f.first_end
+                ${gp.loc}
+                ${gp.dys}
+            )
+        AND EXISTS (
+              SELECT 1
+              FROM "Signup" sg3
+              JOIN "Shift" shp ON shp.id = sg3."shiftId"
+              WHERE sg3."userId" = f.user_id
+                AND sg3.status = 'CONFIRMED'
+                AND shp."end" < (f.first_end - ${reactivationGap})
+                ${pp.loc}
+                ${pp.dys}
+            )
+    `,
   ]);
 
   const summary = summaryResult[0];
@@ -156,6 +227,7 @@ export async function getEngagementSummary(
   const priorActiveCount = Number(summary?.priorActiveCount || 0);
   const retainedCount = Number(summary?.retainedCount || 0);
   const newInPeriodCount = Number(summary?.newInPeriodCount || 0);
+  const reactivatedCount = Number(reactivationResult[0]?.reactivatedCount || 0);
   const totalVolunteers = Number(summary?.totalVolunteers || 0);
   const prevHighlyActiveCount = Number(summary?.prevHighlyActiveCount || 0);
   const prevActiveCount = Number(summary?.prevActiveCount || 0);
@@ -197,6 +269,7 @@ export async function getEngagementSummary(
       neverVolunteeredCount,
       retentionRate,
       newInPeriodCount,
+      reactivatedCount,
     },
     monthlyTrend,
     breakdown: [
