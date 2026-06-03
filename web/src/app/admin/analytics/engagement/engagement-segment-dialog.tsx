@@ -13,14 +13,66 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, AlertTriangle, UserCheck } from "lucide-react";
+import { Loader2, AlertTriangle, Users } from "lucide-react";
 import { formatInNZT } from "@/lib/timezone";
 import type {
-  ReactivatedVolunteer,
-  ReactivatedVolunteersResult,
+  EngagementSegment,
+  EngagementSegmentResult,
+  EngagementSegmentVolunteer,
 } from "@/lib/engagement";
 
+export interface SegmentMeta {
+  title: string;
+  subtitle: string;
+  /** Tailwind gradient classes for the avatar fallback. */
+  gradient: string;
+}
+
+export const SEGMENT_META: Record<EngagementSegment, SegmentMeta> = {
+  total: {
+    title: "All volunteers",
+    subtitle: "Every registered volunteer in scope for this period",
+    gradient: "from-slate-500 to-slate-700",
+  },
+  highly_active: {
+    title: "Highly active volunteers",
+    subtitle: "Averaging 2+ completed shifts per month in the period",
+    gradient: "from-emerald-500 to-green-600",
+  },
+  active: {
+    title: "Active volunteers",
+    subtitle: "At least one completed shift in the period",
+    gradient: "from-blue-500 to-indigo-600",
+  },
+  inactive: {
+    title: "Inactive volunteers",
+    subtitle: "Have volunteered before, but not during this period",
+    gradient: "from-amber-500 to-orange-600",
+  },
+  never: {
+    title: "Never volunteered",
+    subtitle: "Registered but have never completed a shift",
+    gradient: "from-red-500 to-rose-600",
+  },
+  new: {
+    title: "New volunteers",
+    subtitle: "Completed their first ever shift during the period",
+    gradient: "from-violet-500 to-purple-600",
+  },
+  retention: {
+    title: "Retained volunteers",
+    subtitle: "Active in the prior period and again in this period",
+    gradient: "from-cyan-500 to-sky-600",
+  },
+  reactivated: {
+    title: "Reactivated volunteers",
+    subtitle: "Returned after 6+ months away (excludes first-timers)",
+    gradient: "from-emerald-500 to-teal-600",
+  },
+};
+
 interface Props {
+  segment: EngagementSegment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   months: string;
@@ -28,14 +80,14 @@ interface Props {
   days: string;
 }
 
-function getDisplayName(u: ReactivatedVolunteer): string {
+function getDisplayName(u: EngagementSegmentVolunteer): string {
   if (u.name) return u.name;
   if (u.firstName || u.lastName)
     return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
   return u.email;
 }
 
-function getInitials(u: ReactivatedVolunteer): string {
+function getInitials(u: EngagementSegmentVolunteer): string {
   if (u.name) {
     return u.name
       .split(" ")
@@ -50,26 +102,29 @@ function getInitials(u: ReactivatedVolunteer): string {
   return u.email.charAt(0).toUpperCase();
 }
 
-export function ReactivatedVolunteersDialog({
+export function EngagementSegmentDialog({
+  segment,
   open,
   onOpenChange,
   months,
   location,
   days,
 }: Props) {
+  const meta = segment ? SEGMENT_META[segment] : null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl p-0 gap-0 max-h-[85vh] flex flex-col">
-        {open ? (
+        {segment && open ? (
           <DialogBody
-            key={JSON.stringify({ months, location, days })}
+            key={JSON.stringify({ segment, months, location, days })}
+            segment={segment}
             months={months}
             location={location}
             days={days}
           />
         ) : (
           <DialogHeader className="px-6 py-4">
-            <DialogTitle>Reactivated volunteers</DialogTitle>
+            <DialogTitle>{meta?.title ?? "Volunteers"}</DialogTitle>
           </DialogHeader>
         )}
       </DialogContent>
@@ -78,24 +133,27 @@ export function ReactivatedVolunteersDialog({
 }
 
 function DialogBody({
+  segment,
   months,
   location,
   days,
 }: {
+  segment: EngagementSegment;
   months: string;
   location: string;
   days: string;
 }) {
-  const [data, setData] = useState<ReactivatedVolunteersResult | null>(null);
+  const meta = SEGMENT_META[segment];
+  const [data, setData] = useState<EngagementSegmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const ac = new AbortController();
-    const params = new URLSearchParams({ months, location });
+    const params = new URLSearchParams({ segment, months, location });
     if (days) params.set("days", days);
 
-    fetch(`/api/admin/analytics/engagement/reactivated?${params}`, {
+    fetch(`/api/admin/analytics/engagement/segment?${params}`, {
       signal: ac.signal,
     })
       .then(async (res) => {
@@ -103,7 +161,7 @@ function DialogBody({
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error ?? "Failed to load volunteers");
         }
-        return res.json() as Promise<ReactivatedVolunteersResult>;
+        return res.json() as Promise<EngagementSegmentResult>;
       })
       .then((result) => {
         if (ac.signal.aborted) return;
@@ -119,17 +177,17 @@ function DialogBody({
       });
 
     return () => ac.abort();
-  }, [months, location, days]);
+  }, [segment, months, location, days]);
 
   return (
     <>
       <DialogHeader className="px-6 py-4 border-b">
         <DialogTitle className="flex items-center gap-2 text-lg">
-          <UserCheck className="h-4 w-4 text-emerald-500" />
-          Reactivated volunteers
+          <Users className="h-4 w-4 text-muted-foreground" />
+          {meta.title}
         </DialogTitle>
         <DialogDescription className="text-sm">
-          Returned to volunteer after 6+ months away (excludes first-timers)
+          {meta.subtitle}
         </DialogDescription>
         {data && (
           <p className="text-xs text-muted-foreground pt-1 tabular-nums">
@@ -146,13 +204,13 @@ function DialogBody({
         {loading && <DialogLoading />}
         {!loading && error && <DialogError message={error} />}
         {!loading && !error && data && data.users.length === 0 && (
-          <DialogEmpty />
+          <DialogEmpty subtitle={meta.subtitle} />
         )}
         {!loading && !error && data && data.users.length > 0 && (
           <ScrollArea className="h-[60vh]">
             <ul className="px-4 py-3">
               {data.users.map((u) => (
-                <UserRow key={u.id} user={u} />
+                <UserRow key={u.id} user={u} segment={segment} meta={meta} />
               ))}
             </ul>
           </ScrollArea>
@@ -162,8 +220,18 @@ function DialogBody({
   );
 }
 
-function UserRow({ user }: { user: ReactivatedVolunteer }) {
+function UserRow({
+  user,
+  segment,
+  meta,
+}: {
+  user: EngagementSegmentVolunteer;
+  segment: EngagementSegment;
+  meta: SegmentMeta;
+}) {
   const displayName = getDisplayName(user);
+  const isReactivated = segment === "reactivated";
+
   return (
     <li>
       <Link
@@ -172,7 +240,9 @@ function UserRow({ user }: { user: ReactivatedVolunteer }) {
       >
         <Avatar className="h-8 w-8 shadow-sm">
           <AvatarImage src={user.profilePhotoUrl ?? ""} alt={displayName} />
-          <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-semibold">
+          <AvatarFallback
+            className={`bg-gradient-to-br ${meta.gradient} text-white text-xs font-semibold`}
+          >
             {getInitials(user)}
           </AvatarFallback>
         </Avatar>
@@ -181,18 +251,24 @@ function UserRow({ user }: { user: ReactivatedVolunteer }) {
             {displayName}
           </p>
           <p className="text-xs text-muted-foreground truncate">
-            Back {formatInNZT(user.firstBack, "d MMM yyyy")}
-            {user.lastBefore && (
+            {isReactivated ? (
               <>
-                {" · last seen "}
-                {formatInNZT(user.lastBefore, "d MMM yyyy")}
+                Back{" "}
+                {user.firstBack ? formatInNZT(user.firstBack, "d MMM yyyy") : "—"}
+                {user.lastBefore && (
+                  <> · last seen {formatInNZT(user.lastBefore, "d MMM yyyy")}</>
+                )}
               </>
+            ) : user.lastShiftDate ? (
+              <>Last shift {formatInNZT(user.lastShiftDate, "d MMM yyyy")}</>
+            ) : (
+              <>No completed shifts</>
             )}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {user.monthsAway != null && (
+          {isReactivated && user.monthsAway != null && (
             <Badge
               variant="outline"
               className="text-xs tabular-nums bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
@@ -200,11 +276,19 @@ function UserRow({ user }: { user: ReactivatedVolunteer }) {
               {user.monthsAway} mo away
             </Badge>
           )}
+          {!isReactivated && user.shiftsInPeriod > 0 && (
+            <Badge
+              variant="outline"
+              className="text-xs tabular-nums bg-slate-50 dark:bg-zinc-900/40"
+            >
+              {user.shiftsInPeriod.toLocaleString()} in period
+            </Badge>
+          )}
           <Badge
             variant="outline"
             className="text-xs tabular-nums bg-slate-50 dark:bg-zinc-900/40"
           >
-            {user.totalShifts.toLocaleString()} shifts
+            {user.totalShifts.toLocaleString()} total
           </Badge>
         </div>
       </Link>
@@ -244,15 +328,12 @@ function DialogError({ message }: { message: string }) {
   );
 }
 
-function DialogEmpty() {
+function DialogEmpty({ subtitle }: { subtitle: string }) {
   return (
     <div className="px-6 py-10 flex flex-col items-center text-center gap-2 text-sm">
-      <UserCheck className="h-5 w-5 text-muted-foreground" />
-      <p className="font-medium">No reactivated volunteers</p>
-      <p className="text-xs text-muted-foreground">
-        Nobody returned after a 6-month break in this period. Try a different
-        period or location.
-      </p>
+      <Users className="h-5 w-5 text-muted-foreground" />
+      <p className="font-medium">No volunteers in this segment</p>
+      <p className="text-xs text-muted-foreground max-w-xs">{subtitle}</p>
     </div>
   );
 }
