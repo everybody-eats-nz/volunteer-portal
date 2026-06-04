@@ -26,6 +26,7 @@ import {
   Award,
   Archive,
   ScrollText,
+  ClipboardCheck,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -95,6 +96,14 @@ export const adminNavCategories: AdminNavCategory[] = [
         description:
           "Shift milestones, volunteer recognition, and 12-month projections",
         commandKey: "milestones",
+      },
+      {
+        title: "Shift Coverage",
+        href: "/admin/analytics/coverage",
+        icon: ClipboardCheck,
+        description:
+          "Shifts run, positions filled, and understaffing by restaurant",
+        commandKey: "coverage",
       },
     ],
   },
@@ -339,6 +348,7 @@ export const getIconColor = (
     "Volunteer Engagement": "text-emerald-600",
     "Volunteer Recruitment": "text-violet-600",
     "Milestone Analytics": "text-amber-600",
+    "Shift Coverage": "text-teal-600",
 
     // Volunteers
     "All Users": "text-purple-600",
