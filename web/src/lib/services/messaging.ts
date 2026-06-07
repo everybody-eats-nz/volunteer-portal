@@ -282,7 +282,13 @@ export async function listThreadsForAdmin(
     cursor,
   } = opts;
 
-  const where: Prisma.MessageThreadWhereInput = {};
+  const where: Prisma.MessageThreadWhereInput = {
+    // Threads are created lazily when a volunteer first opens the mobile chat
+    // screen, before they've actually sent anything. Only surface threads that
+    // contain at least one message so the inbox isn't filled with people who
+    // merely opened the screen.
+    messages: { some: {} },
+  };
   if (status !== "ALL") where.status = status;
   const volunteerFilters: Prisma.UserWhereInput[] = [];
   if (location) volunteerFilters.push({ defaultLocation: location });
