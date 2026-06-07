@@ -21,7 +21,15 @@ export async function loginAsAdmin(page: Page) {
 
     await page.waitForURL("/admin");
     await page.waitForLoadState("load");
-    await page.waitForTimeout(1000);
+    // Wait for admin dashboard content — confirms the session is fully active.
+    // Use .first() because admin-dashboard-page appears in both page.tsx and
+    // loading.tsx; during Next.js streaming both can be in the DOM simultaneously,
+    // which triggers strict mode. Any match is sufficient: if the session were
+    // invalid we'd be at /login instead of /admin, so this element wouldn't appear.
+    await page
+      .getByTestId("admin-dashboard-page")
+      .first()
+      .waitFor({ state: "attached", timeout: 15000 });
   } catch (error) {
     console.log("Error during admin login:", error);
     throw error;

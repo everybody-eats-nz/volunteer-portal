@@ -40,6 +40,8 @@ test.describe("Admin Shift Edit and Delete", () => {
     // Cleanup test users and shifts
     await deleteTestUsers(page, testEmails);
     await deleteTestShifts(page, testShiftIds);
+    // Clear accumulator so stale IDs don't pile up across tests
+    testShiftIds.length = 0;
   });
 
   test.describe("Edit Shift Functionality", () => {
