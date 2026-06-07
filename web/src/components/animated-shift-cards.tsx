@@ -74,7 +74,10 @@ import {
   ArrowRightLeft,
   UserRound,
   Pencil,
+  PartyPopper,
+  Sparkles,
 } from "lucide-react";
+import { getMilestoneStatus } from "@/lib/milestone-thresholds";
 import { VolunteerActions } from "@/components/volunteer-actions";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { isShiftCompleted } from "@/lib/shift-utils";
@@ -344,6 +347,20 @@ function VolunteerStatusGroups({
                   completedShifts
                 );
                 const GradeIcon = gradeInfo.icon;
+                // Milestone heads-up for RMs: only relevant for volunteers who
+                // will actually work this shift. completedShifts counts past
+                // shifts, so completing this one makes it their (completed+1)th.
+                const isAttending =
+                  signup.status === "CONFIRMED" ||
+                  signup.status === "REGULAR_PENDING";
+                const milestone = isAttending
+                  ? getMilestoneStatus(completedShifts)
+                  : null;
+                const showMilestoneHit = milestone?.hitsOnNext ?? false;
+                const showMilestoneApproaching =
+                  !!milestone &&
+                  !milestone.hitsOnNext &&
+                  milestone.shiftsAway <= 2;
                 return (
                   <div
                     key={signup.id}
@@ -476,6 +493,27 @@ function VolunteerStatusGroups({
                             </Badge>
                           ) : null;
                         })()}
+                        {showMilestoneHit && milestone?.nextThreshold && (
+                          <Badge
+                            className="text-xs bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 px-1.5 py-0.5 gap-1"
+                            data-testid={`milestone-badge-${signup.user.id}`}
+                            title={`This shift is their ${milestone.nextThreshold}th — acknowledge it during the shift!`}
+                          >
+                            <PartyPopper className="h-3 w-3" />
+                            {milestone.nextThreshold}th shift today!
+                          </Badge>
+                        )}
+                        {showMilestoneApproaching && milestone?.nextThreshold && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800 px-1.5 py-0.5 gap-1"
+                            data-testid={`milestone-approaching-badge-${signup.user.id}`}
+                            title={`${milestone.shiftsAway} shifts away from their ${milestone.nextThreshold}-shift milestone`}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            {milestone.shiftsAway} from {milestone.nextThreshold}
+                          </Badge>
+                        )}
                       </div>
                       {signup.note && (
                         <div className="text-xs text-slate-700 dark:text-slate-300 mt-1 p-3 bg-blue-50/50 dark:bg-blue-900/20 border-l-2 border-blue-400 dark:border-blue-600 rounded">

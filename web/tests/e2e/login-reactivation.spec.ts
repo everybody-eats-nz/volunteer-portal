@@ -35,15 +35,24 @@ test.describe("Login reactivation flow", () => {
     const passwordInput = page.getByTestId("password-input");
     await passwordInput.fill(PASSWORD);
 
-    // Submit — expect to land back on /login with the reactivation banner
+    // Submit — expect to land back on /login with the reactivation banner.
+    // Use Promise.all to capture the navigation triggered by the click.
     const submitButton = page.getByTestId("login-submit-button");
-    await submitButton.click();
+    await Promise.all([
+      page.waitForURL(/error=AccountArchived/, { timeout: 15000 }),
+      submitButton.click(),
+    ]);
+
+    // Wait for React to hydrate the reloaded page before interacting with
+    // controlled inputs. The SSR HTML already contains the banner (since
+    // useSearchParams works server-side), so banner visibility alone is not a
+    // reliable hydration signal — React event handlers may not yet be attached.
+    await page.waitForLoadState("networkidle");
 
     const banner = page.getByTestId("reactivation-banner");
-    await expect(banner).toBeVisible({ timeout: 10000 });
+    await expect(banner).toBeVisible({ timeout: 5000 });
 
-    // The failed NextAuth round-trip reloads /login and dev auto-fills demo
-    // credentials. Re-enter the archived user's credentials before reactivating.
+    // Re-enter the archived user's credentials (page reloaded with demo defaults).
     await emailInput.fill(ARCHIVED_EMAIL);
     await passwordInput.fill(PASSWORD);
 
@@ -54,7 +63,7 @@ test.describe("Login reactivation flow", () => {
 
     await page.waitForURL(
       (url) => !url.pathname.startsWith("/login"),
-      { timeout: 15000 }
+      { timeout: 20000 }
     );
     expect(page.url()).not.toContain("/login");
   });

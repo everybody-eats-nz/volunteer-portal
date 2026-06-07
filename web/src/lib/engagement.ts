@@ -1,8 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
 import { shiftStartNZ } from "@/lib/concurrent-shifts";
+import { differenceInMonths } from "date-fns";
 
 export type EngagementStatus = "highly_active" | "active" | "inactive" | "never";
+
+/**
+ * Months of inactivity before a returning volunteer counts as "reactivated".
+ * @see getEngagementSummary
+ */
+export const REACTIVATION_GAP_MONTHS = 6;
 
 /**
  * Classify a volunteer's engagement level based on their shift history.
@@ -32,6 +39,7 @@ export interface EngagementSummaryData {
     neverVolunteeredCount: number;
     retentionRate: number;
     newInPeriodCount: number;
+    reactivatedCount: number;
   };
   monthlyTrend: Array<{
     month: string;
@@ -79,7 +87,31 @@ export async function getEngagementSummary(
 
   const safeMonths = Math.max(months, 1);
 
-  const [summaryResult, trendResult] = await Promise.all([
+  // A volunteer counts as "reactivated" if they completed a shift in the
+  // period after a quiet gap of at least this many months immediately before
+  // their first shift back — and they had volunteered before that gap (so
+  // brand-new volunteers are excluded).
+  const reactivationGap = Prisma.sql`INTERVAL '${Prisma.raw(
+    String(REACTIVATION_GAP_MONTHS)
+  )} months'`;
+  // Per-shift-alias location/day filters for the reactivation subqueries.
+  const aliasConds = (alias: string) => {
+    const loc = isLocationFiltered
+      ? Prisma.sql`AND ${Prisma.raw(alias)}.location = ${location}`
+      : Prisma.empty;
+    const dys =
+      daysFilter && daysFilter.length > 0
+        ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ(
+            `${alias}.start`
+          )})::int IN (${Prisma.join(daysFilter)})`
+        : Prisma.empty;
+    return { loc, dys };
+  };
+  const fp = aliasConds("shf");
+  const gp = aliasConds("shg");
+  const pp = aliasConds("shp");
+
+  const [summaryResult, trendResult, reactivationResult] = await Promise.all([
     prisma.$queryRaw<
       Array<{
         totalVolunteers: bigint;
@@ -146,6 +178,46 @@ export async function getEngagementSummary(
       GROUP BY date_trunc('week', sh."end")
       ORDER BY month
     `,
+    prisma.$queryRaw<Array<{ reactivatedCount: bigint }>>`
+      WITH first_in_period AS (
+        SELECT
+          sg."userId" AS user_id,
+          MIN(shf."end") AS first_end
+        FROM "Signup" sg
+        JOIN "Shift" shf ON shf.id = sg."shiftId"
+        JOIN "User" u ON u.id = sg."userId"
+        WHERE sg.status = 'CONFIRMED'
+          AND u.role = 'VOLUNTEER'::"Role"
+          AND shf."end" >= ${periodStart}
+          AND shf."end" < ${now}
+          ${fp.loc}
+          ${fp.dys}
+        GROUP BY sg."userId"
+      )
+      SELECT COUNT(*)::bigint AS "reactivatedCount"
+      FROM first_in_period f
+      WHERE NOT EXISTS (
+              SELECT 1
+              FROM "Signup" sg2
+              JOIN "Shift" shg ON shg.id = sg2."shiftId"
+              WHERE sg2."userId" = f.user_id
+                AND sg2.status = 'CONFIRMED'
+                AND shg."end" >= (f.first_end - ${reactivationGap})
+                AND shg."end" < f.first_end
+                ${gp.loc}
+                ${gp.dys}
+            )
+        AND EXISTS (
+              SELECT 1
+              FROM "Signup" sg3
+              JOIN "Shift" shp ON shp.id = sg3."shiftId"
+              WHERE sg3."userId" = f.user_id
+                AND sg3.status = 'CONFIRMED'
+                AND shp."end" < (f.first_end - ${reactivationGap})
+                ${pp.loc}
+                ${pp.dys}
+            )
+    `,
   ]);
 
   const summary = summaryResult[0];
@@ -156,6 +228,7 @@ export async function getEngagementSummary(
   const priorActiveCount = Number(summary?.priorActiveCount || 0);
   const retainedCount = Number(summary?.retainedCount || 0);
   const newInPeriodCount = Number(summary?.newInPeriodCount || 0);
+  const reactivatedCount = Number(reactivationResult[0]?.reactivatedCount || 0);
   const totalVolunteers = Number(summary?.totalVolunteers || 0);
   const prevHighlyActiveCount = Number(summary?.prevHighlyActiveCount || 0);
   const prevActiveCount = Number(summary?.prevActiveCount || 0);
@@ -197,6 +270,7 @@ export async function getEngagementSummary(
       neverVolunteeredCount,
       retentionRate,
       newInPeriodCount,
+      reactivatedCount,
     },
     monthlyTrend,
     breakdown: [
@@ -210,6 +284,386 @@ export async function getEngagementSummary(
         color: "#ef4444",
       },
     ],
+  };
+}
+
+// --- Reactivated volunteers drill-down ---
+
+/** Max rows returned by the reactivated-volunteers list (safety cap). */
+export const REACTIVATED_RESULT_CAP = 500;
+
+/** A single reactivated volunteer for the drill-down list. */
+export interface ReactivatedVolunteer {
+  id: string;
+  email: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profilePhotoUrl: string | null;
+  defaultLocation: string | null;
+  /** Total completed (CONFIRMED, past) shifts, all-time. */
+  totalShifts: number;
+  /** ISO date of their first shift back in the period. */
+  firstBack: string;
+  /** ISO date of their most recent shift before the inactivity gap. */
+  lastBefore: string | null;
+  /** Whole months between lastBefore and firstBack (the gap length). */
+  monthsAway: number | null;
+}
+
+export interface ReactivatedVolunteersResult {
+  users: ReactivatedVolunteer[];
+  total: number;
+  cap: number;
+}
+
+interface ReactivatedRow {
+  id: string;
+  email: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profilePhotoUrl: string | null;
+  defaultLocation: string | null;
+  totalShifts: bigint;
+  firstBack: Date;
+  lastBefore: Date | null;
+  total: bigint;
+}
+
+/**
+ * The list behind the "Reactivated" KPI on the engagement report — the actual
+ * volunteers who returned in the period after a {@link REACTIVATION_GAP_MONTHS}
+ * month gap (and who had volunteered before that gap). Mirrors the count logic
+ * in {@link getEngagementSummary} so the list and the KPI always agree.
+ */
+export async function getReactivatedVolunteers(
+  months: number,
+  location: string | null,
+  daysFilter: number[] | null = null
+): Promise<ReactivatedVolunteersResult> {
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setMonth(periodStart.getMonth() - months);
+
+  const isLocationFiltered = !!location && location !== "all";
+  const reactivationGap = Prisma.sql`INTERVAL '${Prisma.raw(
+    String(REACTIVATION_GAP_MONTHS)
+  )} months'`;
+  const aliasConds = (alias: string) => {
+    const loc = isLocationFiltered
+      ? Prisma.sql`AND ${Prisma.raw(alias)}.location = ${location}`
+      : Prisma.empty;
+    const dys =
+      daysFilter && daysFilter.length > 0
+        ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ(
+            `${alias}.start`
+          )})::int IN (${Prisma.join(daysFilter)})`
+        : Prisma.empty;
+    return { loc, dys };
+  };
+  const fp = aliasConds("shf");
+  const gp = aliasConds("shg");
+  const pp = aliasConds("shp");
+  const bp = aliasConds("shb");
+  const tp = aliasConds("sht");
+
+  const rows = await prisma.$queryRaw<ReactivatedRow[]>`
+    WITH first_in_period AS (
+      SELECT sg."userId" AS user_id, MIN(shf."end") AS first_end
+      FROM "Signup" sg
+      JOIN "Shift" shf ON shf.id = sg."shiftId"
+      JOIN "User" u ON u.id = sg."userId"
+      WHERE sg.status = 'CONFIRMED'
+        AND u.role = 'VOLUNTEER'::"Role"
+        AND shf."end" >= ${periodStart}
+        AND shf."end" < ${now}
+        ${fp.loc}
+        ${fp.dys}
+      GROUP BY sg."userId"
+    ),
+    reactivated AS (
+      SELECT f.user_id, f.first_end
+      FROM first_in_period f
+      WHERE NOT EXISTS (
+              SELECT 1 FROM "Signup" sg2
+              JOIN "Shift" shg ON shg.id = sg2."shiftId"
+              WHERE sg2."userId" = f.user_id
+                AND sg2.status = 'CONFIRMED'
+                AND shg."end" >= (f.first_end - ${reactivationGap})
+                AND shg."end" < f.first_end
+                ${gp.loc}
+                ${gp.dys}
+            )
+        AND EXISTS (
+              SELECT 1 FROM "Signup" sg3
+              JOIN "Shift" shp ON shp.id = sg3."shiftId"
+              WHERE sg3."userId" = f.user_id
+                AND sg3.status = 'CONFIRMED'
+                AND shp."end" < (f.first_end - ${reactivationGap})
+                ${pp.loc}
+                ${pp.dys}
+            )
+    )
+    SELECT
+      u.id,
+      u.email,
+      u.name,
+      u."firstName",
+      u."lastName",
+      u."profilePhotoUrl",
+      u."defaultLocation",
+      r.first_end AS "firstBack",
+      (
+        SELECT MAX(shb."end")
+        FROM "Signup" sgb
+        JOIN "Shift" shb ON shb.id = sgb."shiftId"
+        WHERE sgb."userId" = r.user_id
+          AND sgb.status = 'CONFIRMED'
+          AND shb."end" < (r.first_end - ${reactivationGap})
+          ${bp.loc}
+          ${bp.dys}
+      ) AS "lastBefore",
+      (
+        SELECT COUNT(*)
+        FROM "Signup" sgt
+        JOIN "Shift" sht ON sht.id = sgt."shiftId"
+        WHERE sgt."userId" = r.user_id
+          AND sgt.status = 'CONFIRMED'
+          AND sht."end" < ${now}
+          ${tp.loc}
+          ${tp.dys}
+      )::bigint AS "totalShifts",
+      COUNT(*) OVER ()::bigint AS total
+    FROM reactivated r
+    JOIN "User" u ON u.id = r.user_id
+    ORDER BY r.first_end DESC
+    LIMIT ${REACTIVATED_RESULT_CAP}
+  `;
+
+  const users: ReactivatedVolunteer[] = rows.map((r) => {
+    const firstBack = r.firstBack;
+    const lastBefore = r.lastBefore;
+    const monthsAway =
+      lastBefore != null
+        ? Math.max(0, differenceInMonths(firstBack, lastBefore))
+        : null;
+    return {
+      id: r.id,
+      email: r.email,
+      name: r.name,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      profilePhotoUrl: r.profilePhotoUrl,
+      defaultLocation: r.defaultLocation,
+      totalShifts: Number(r.totalShifts),
+      firstBack: firstBack.toISOString(),
+      lastBefore: lastBefore ? lastBefore.toISOString() : null,
+      monthsAway,
+    };
+  });
+
+  return {
+    users,
+    total: rows.length > 0 ? Number(rows[0].total) : 0,
+    cap: REACTIVATED_RESULT_CAP,
+  };
+}
+
+// --- Generic stat-card drill-down ---
+
+/** The clickable engagement stat cards, each backed by a drill-down list. */
+export type EngagementSegment =
+  | "total"
+  | "highly_active"
+  | "active"
+  | "inactive"
+  | "never"
+  | "new"
+  | "retention"
+  | "reactivated";
+
+export const ENGAGEMENT_SEGMENTS: readonly EngagementSegment[] = [
+  "total",
+  "highly_active",
+  "active",
+  "inactive",
+  "never",
+  "new",
+  "retention",
+  "reactivated",
+] as const;
+
+/** A volunteer row in any segment drill-down. */
+export interface EngagementSegmentVolunteer {
+  id: string;
+  email: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profilePhotoUrl: string | null;
+  defaultLocation: string | null;
+  totalShifts: number;
+  shiftsInPeriod: number;
+  lastShiftDate: string | null;
+  // Reactivated-only extras (null for other segments).
+  firstBack: string | null;
+  lastBefore: string | null;
+  monthsAway: number | null;
+}
+
+export interface EngagementSegmentResult {
+  segment: EngagementSegment;
+  users: EngagementSegmentVolunteer[];
+  total: number;
+  cap: number;
+}
+
+const SEGMENT_RESULT_CAP = 500;
+
+interface SegmentRow {
+  id: string;
+  email: string;
+  name: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  profilePhotoUrl: string | null;
+  defaultLocation: string | null;
+  totalShifts: bigint;
+  shiftsInPeriod: bigint;
+  lastShiftDate: Date | null;
+  total: bigint;
+}
+
+/**
+ * The volunteers behind a single engagement stat card. Mirrors the
+ * classification used by {@link getEngagementVolunteers} (the on-page table)
+ * so the lists stay consistent, and reuses {@link getReactivatedVolunteers}
+ * for the reactivated segment. Capped at {@link SEGMENT_RESULT_CAP} rows.
+ */
+export async function getEngagementSegmentVolunteers(
+  segment: EngagementSegment,
+  months: number,
+  location: string | null,
+  daysFilter: number[] | null = null
+): Promise<EngagementSegmentResult> {
+  if (segment === "reactivated") {
+    const r = await getReactivatedVolunteers(months, location, daysFilter);
+    return {
+      segment,
+      users: r.users.map((u) => ({
+        ...u,
+        shiftsInPeriod: 0,
+        lastShiftDate: u.firstBack,
+      })),
+      total: r.total,
+      cap: r.cap,
+    };
+  }
+
+  const now = new Date();
+  const periodStart = new Date(now);
+  periodStart.setMonth(periodStart.getMonth() - months);
+  const priorStart = new Date(periodStart);
+  priorStart.setMonth(priorStart.getMonth() - months);
+  const safeMonths = Math.max(months, 1);
+
+  const isLocationFiltered = !!location && location !== "all";
+  const locationCond = isLocationFiltered
+    ? Prisma.sql`sh.location = ${location}`
+    : Prisma.sql`TRUE`;
+  const daysCond =
+    daysFilter && daysFilter.length > 0
+      ? Prisma.sql`AND EXTRACT(DOW FROM ${shiftStartNZ()})::int IN (${Prisma.join(
+          daysFilter
+        )})`
+      : Prisma.empty;
+  const skipCond = isLocationFiltered
+    ? Prisma.sql`total_shifts = 0 AND NOT has_default_location`
+    : Prisma.sql`FALSE`;
+
+  // Per-segment row filter applied on top of the shared classification.
+  const segmentCond = (() => {
+    switch (segment) {
+      case "total":
+        return Prisma.sql`TRUE`;
+      case "highly_active":
+      case "active":
+      case "inactive":
+      case "never":
+        return Prisma.sql`engagement_status = ${segment}`;
+      case "new":
+        return Prisma.sql`shifts_in_period > 0 AND first_shift_date >= ${periodStart}`;
+      case "retention":
+        return Prisma.sql`in_prior IS TRUE AND in_current IS TRUE`;
+    }
+  })();
+
+  const rows = await prisma.$queryRaw<SegmentRow[]>`
+    WITH raw_stats AS (
+      SELECT
+        u.id, u.email, u.name, u."firstName", u."lastName",
+        u."profilePhotoUrl", u."defaultLocation",
+        COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) AS total_shifts,
+        COALESCE(COUNT(sg.id) FILTER (WHERE sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}), 0) AS shifts_in_period,
+        MIN(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}) AS first_shift_date,
+        MAX(sh."end") FILTER (WHERE sh."end" < ${now} AND ${locationCond} ${daysCond}) AS last_shift_date,
+        BOOL_OR(sh."end" >= ${priorStart} AND sh."end" < ${periodStart} AND ${locationCond} ${daysCond}) AS in_prior,
+        BOOL_OR(sh."end" >= ${periodStart} AND sh."end" < ${now} AND ${locationCond} ${daysCond}) AS in_current,
+        CASE WHEN u."defaultLocation" = ${location || ""} THEN TRUE ELSE FALSE END AS has_default_location
+      FROM "User" u
+      LEFT JOIN "Signup" sg ON sg."userId" = u.id AND sg.status = 'CONFIRMED'
+      LEFT JOIN "Shift" sh ON sh.id = sg."shiftId"
+      WHERE u.role = 'VOLUNTEER'::"Role"
+      GROUP BY u.id, u.email, u.name, u."firstName", u."lastName",
+        u."profilePhotoUrl", u."defaultLocation"
+    ),
+    stats AS (
+      SELECT *,
+        CASE
+          WHEN ${skipCond} THEN 'skip'
+          WHEN total_shifts = 0 THEN 'never'
+          WHEN shifts_in_period = 0 THEN 'inactive'
+          WHEN shifts_in_period::float / ${safeMonths} >= 2 THEN 'highly_active'
+          ELSE 'active'
+        END AS engagement_status
+      FROM raw_stats
+    )
+    SELECT
+      id, email, name, "firstName", "lastName", "profilePhotoUrl", "defaultLocation",
+      total_shifts AS "totalShifts",
+      shifts_in_period AS "shiftsInPeriod",
+      last_shift_date AS "lastShiftDate",
+      COUNT(*) OVER ()::bigint AS total
+    FROM stats
+    WHERE engagement_status != 'skip'
+      AND ${segmentCond}
+    ORDER BY last_shift_date DESC NULLS LAST,
+      COALESCE(name, CONCAT("firstName", ' ', "lastName"), email) ASC
+    LIMIT ${SEGMENT_RESULT_CAP}
+  `;
+
+  const users: EngagementSegmentVolunteer[] = rows.map((r) => ({
+    id: r.id,
+    email: r.email,
+    name: r.name,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    profilePhotoUrl: r.profilePhotoUrl,
+    defaultLocation: r.defaultLocation,
+    totalShifts: Number(r.totalShifts),
+    shiftsInPeriod: Number(r.shiftsInPeriod),
+    lastShiftDate: r.lastShiftDate ? r.lastShiftDate.toISOString() : null,
+    firstBack: null,
+    lastBefore: null,
+    monthsAway: null,
+  }));
+
+  return {
+    segment,
+    users,
+    total: rows.length > 0 ? Number(rows[0].total) : 0,
+    cap: SEGMENT_RESULT_CAP,
   };
 }
 

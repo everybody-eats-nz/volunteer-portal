@@ -35,6 +35,8 @@ test.describe("Admin Bulk Shift Delete", () => {
   test.afterEach(async ({ page }) => {
     await deleteTestUsers(page, testEmails);
     await deleteTestShifts(page, testShiftIds);
+    // Clear accumulator so stale IDs don't pile up across tests
+    testShiftIds.length = 0;
   });
 
   // Helper function to get a unique test date (60 days in the future to avoid seeded data)
