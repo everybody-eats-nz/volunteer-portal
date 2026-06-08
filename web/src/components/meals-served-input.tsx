@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -21,16 +20,22 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Utensils,
   Save,
   Loader2,
-  ChevronDown,
-  CloudSun,
   HandCoins,
-  ClipboardList,
   RefreshCw,
+  Users,
+  UserPlus,
+  UtensilsCrossed,
+  CalendarDays,
+  MapPin,
+  CheckCircle2,
+  Sparkles,
+  ChevronDown,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { computeNightDerived } from "@/lib/restaurant-stats";
 
 interface MealsServedInputProps {
@@ -70,6 +75,8 @@ const EMPTY_FORM: FormState = {
   protein: "",
 };
 
+const FILLABLE_KEYS = Object.keys(EMPTY_FORM) as StatKey[];
+
 const NZD = new Intl.NumberFormat("en-NZ", {
   style: "currency",
   currency: "NZD",
@@ -100,7 +107,9 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [hasExistingRecord, setHasExistingRecord] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Collapsed by default so the report doesn't dominate the shifts page;
+  // the summary header + hero totals stay visible, the form expands on demand.
+  const [open, setOpen] = useState(false);
   // New volunteers are derived from attendance (read-only), not entered.
   const [newVolunteers, setNewVolunteers] = useState<number | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -154,7 +163,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
 
         const next: FormState = { ...EMPTY_FORM };
         let hasRecord = false;
-        (Object.keys(EMPTY_FORM) as StatKey[]).forEach((key) => {
+        FILLABLE_KEYS.forEach((key) => {
           if (data[key] !== undefined && data[key] !== null) {
             next[key] = toFormString(data[key]);
             if (next[key] !== "") hasRecord = true;
@@ -165,14 +174,6 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         setHasExistingRecord(hasRecord);
         setNewVolunteers(
           typeof data.newVolunteers === "number" ? data.newVolunteers : null
-        );
-        // Reveal the detailed section if any advanced field is already filled.
-        setDetailsOpen(
-          hasRecord &&
-            (Object.keys(next) as StatKey[]).some(
-              (k) =>
-                k !== "mealsServed" && k !== "notes" && next[k] !== ""
-            )
         );
         if (typeof data.defaultMealsServed === "number") {
           setDefaultValue(data.defaultMealsServed);
@@ -205,18 +206,26 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         eftpos: num(form.eftpos),
         stripe: num(form.stripe),
       }),
-    [
-      form.mealsServed,
-      form.nonPayingCount,
-      form.cash,
-      form.eftpos,
-      form.stripe,
-    ]
+    [form.mealsServed, form.nonPayingCount, form.cash, form.eftpos, form.stripe]
   );
 
-  const canSave = (Object.keys(form) as StatKey[]).some(
+  const filledCount = FILLABLE_KEYS.filter(
     (k) => form[k].trim() !== ""
-  );
+  ).length;
+  const totalCount = FILLABLE_KEYS.length;
+  const completionPct = Math.round((filledCount / totalCount) * 100);
+  const canSave = filledCount > 0;
+
+  const dateLabel = useMemo(() => {
+    const d = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return date;
+    return new Intl.DateTimeFormat("en-NZ", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(d);
+  }, [date]);
 
   // Placeholder for the future Stripe API integration — the UI is in place but
   // the figure is still entered manually until the backend sync is built.
@@ -236,7 +245,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
     try {
       // Send raw strings — the API's Zod schema coerces/validates them.
       const payload: Record<string, unknown> = { date, location };
-      (Object.keys(form) as StatKey[]).forEach((key) => {
+      FILLABLE_KEYS.forEach((key) => {
         payload[key] = form[key].trim() === "" ? null : form[key].trim();
       });
 
@@ -248,14 +257,14 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
 
       if (response.ok) {
         setHasExistingRecord(true);
-        toast.success("Service-night stats saved");
+        toast.success("Service-night report saved");
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to save stats");
+        toast.error(error.error || "Failed to save report");
       }
     } catch (error) {
       console.error("Error saving service-night stats:", error);
-      toast.error("Failed to save stats");
+      toast.error("Failed to save report");
     } finally {
       setLoading(false);
     }
@@ -263,384 +272,513 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
 
   if (fetching) {
     return (
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
+      <Card className="mb-6 gap-0 overflow-hidden py-0">
+        <div className="border-b bg-muted/40 px-6 py-5">
+          <div className="h-3 w-32 animate-pulse rounded bg-muted-foreground/20" />
+          <div className="mt-2 h-6 w-56 animate-pulse rounded bg-muted-foreground/20" />
+        </div>
+        <div className="flex items-center justify-center px-6 py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Utensils className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          Service Night Stats
-          {hasExistingRecord && (
-            <span className="text-sm font-normal text-muted-foreground ml-2">
-              (Recorded)
-            </span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-5">
-          {/* Headline count */}
-          <div>
-            <Label htmlFor="mealsServed">
-              Customers served{" "}
-              {!hasExistingRecord && (
-                <span className="text-xs text-muted-foreground">
-                  (Default: {defaultValue})
-                </span>
-              )}
-            </Label>
-            <Input
-              id="mealsServed"
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={form.mealsServed}
-              onChange={(e) => set("mealsServed", e.target.value)}
-              placeholder={`e.g., ${defaultValue}`}
-              className="max-w-xs mt-1.5 tabular-nums"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              People served tonight — the headline count.
-            </p>
+    <Card className="mb-6 gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        {/* ── Report header (always visible) ─────────────────────── */}
+        <header className="border-b border-emerald-900/10 bg-gradient-to-br from-[var(--ee-muted)]/55 via-card to-card px-6 py-5 dark:border-emerald-400/10 dark:from-emerald-950/30 dark:via-card dark:to-card">
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">
+                Service Night Report
+              </p>
+              <h2 className="mt-1 flex items-center gap-1.5 font-accent text-2xl font-semibold leading-none tracking-tight text-foreground">
+                <MapPin className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <em>{location}</em>
+              </h2>
+              <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {dateLabel}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start gap-2.5 sm:items-end">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
+                    hasExistingRecord
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                  )}
+                >
+                  {hasExistingRecord ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Recorded
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" /> Not recorded yet
+                    </>
+                  )}
+                </Badge>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant={open ? "ghost" : "outline"} size="sm" className="gap-1">
+                    {open ? (
+                      "Hide"
+                    ) : hasExistingRecord ? (
+                      <>
+                        <Pencil className="h-3.5 w-3.5" /> Edit
+                      </>
+                    ) : (
+                      "Record stats"
+                    )}
+                    <ChevronDown
+                      className={cn("h-4 w-4 transition-transform", open && "rotate-180")}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <div className="w-48">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Logged</span>
+                  <span className="tabular-nums">
+                    {filledCount}/{totalCount}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-900/10 dark:bg-emerald-400/15">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-[width] duration-500 ease-out dark:bg-emerald-400"
+                    style={{ width: `${completionPct}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Derived metrics readout */}
-          <DerivedMetrics
-            total={derived.totalDonations}
-            perHead={derived.perHead}
-            perPaying={derived.perPaying}
-            nonPayingRatio={derived.nonPayingRatio}
+        {/* Hero totals — the night's headline result, building live */}
+        <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <HeroStat
+            featured
+            label="Total koha"
+            value={
+              derived.totalDonations === null
+                ? "—"
+                : NZD.format(derived.totalDonations)
+            }
           />
+          <HeroStat
+            label="$ per head"
+            value={derived.perHead === null ? "—" : NZD.format(derived.perHead)}
+          />
+          <HeroStat
+            label="Per paying"
+            value={
+              derived.perPaying === null ? "—" : NZD.format(derived.perPaying)
+            }
+          />
+          <HeroStat
+            label="Non-paying"
+            value={
+              derived.nonPayingRatio === null
+                ? "—"
+                : `${Math.round(derived.nonPayingRatio * 100)}%`
+            }
+          />
+        </div>
+        </header>
 
-          <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
-            <CollapsibleTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full justify-between px-2 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100/60 dark:hover:bg-blue-900/30"
-              >
-                <span>Full service-night stats</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    detailsOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-6 pt-4">
-              {/* Attendance */}
-              <Section icon={CloudSun} title="Attendance & conditions">
-                <NumberField
-                  id="bookingsPax"
-                  label="Bookings (pax)"
-                  value={form.bookingsPax}
-                  onChange={(v) => set("bookingsPax", v)}
-                />
-                {/* New volunteers — derived from confirmed attendance, read-only */}
-                <div>
-                  <Label className="text-xs">New volunteers</Label>
-                  <div className="mt-1 flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm tabular-nums text-foreground">
-                    {newVolunteers === null ? "—" : newVolunteers}
-                  </div>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Counted automatically from confirmed attendance.
-                  </p>
-                </div>
-                {/* Weather — auto-pulled from Open-Meteo, still editable */}
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="weather" className="text-xs">
-                      Weather
-                    </Label>
-                    <button
-                      type="button"
-                      onClick={() => applyWeather(false)}
-                      disabled={weatherLoading}
-                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100/70 dark:text-blue-300 dark:hover:bg-blue-900/40 cursor-pointer disabled:opacity-60 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                    >
-                      {weatherLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3 w-3" />
-                      )}
-                      {weatherLoading ? "Fetching…" : "Get weather"}
-                    </button>
-                  </div>
-                  <Input
-                    id="weather"
-                    type="text"
-                    value={form.weather}
-                    onChange={(e) => set("weather", e.target.value)}
-                    placeholder="e.g., Overcast"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="protein" className="text-xs">
-                    Protein
-                  </Label>
-                  <Select
-                    value={form.protein || undefined}
-                    onValueChange={(v) => set("protein", v)}
-                  >
-                    <SelectTrigger id="protein" className="mt-1 w-full">
-                      <SelectValue placeholder="Select protein" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROTEIN_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </Section>
-
-              <Separator className="bg-blue-200/60 dark:bg-blue-800/60" />
-
-              {/* Donations */}
-              <Section icon={HandCoins} title="Koha / donations">
-                <NumberField
-                  id="cash"
-                  label="Cash ($)"
-                  step="0.01"
-                  value={form.cash}
-                  onChange={(v) => set("cash", v)}
-                />
-                <NumberField
-                  id="eftpos"
-                  label="Eftpos ($)"
-                  step="0.01"
-                  value={form.eftpos}
-                  onChange={(v) => set("eftpos", v)}
-                />
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="stripe" className="text-xs">
-                      Stripe ($)
-                    </Label>
-                    <div className="flex items-center gap-1.5">
-                      <Badge
-                        variant="secondary"
-                        className="h-4 px-1.5 text-[10px] font-medium uppercase tracking-wide"
-                      >
-                        Soon
-                      </Badge>
-                      <button
-                        type="button"
-                        onClick={handleStripeSync}
-                        className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-100/70 dark:text-blue-300 dark:hover:bg-blue-900/40 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                        Sync from Stripe
-                      </button>
-                    </div>
-                  </div>
-                  <Input
-                    id="stripe"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    min="0"
-                    value={form.stripe}
-                    onChange={(e) => set("stripe", e.target.value)}
-                    className="mt-1 tabular-nums"
-                  />
-                </div>
-                <NumberField
-                  id="eftposTransactions"
-                  label="Eftpos transactions"
-                  value={form.eftposTransactions}
-                  onChange={(v) => set("eftposTransactions", v)}
-                />
-                <div>
-                  <NumberField
-                    id="nonPayingCount"
-                    label="Non-paying customers"
-                    value={form.nonPayingCount}
-                    onChange={(v) => set("nonPayingCount", v)}
-                  />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {derived.nonPayingRatio === null
-                      ? "Ratio is calculated from customers served."
-                      : `${Math.round(
-                          derived.nonPayingRatio * 100
-                        )}% of customers served`}
-                  </p>
-                </div>
-              </Section>
-
-              <Separator className="bg-blue-200/60 dark:bg-blue-800/60" />
-
-              {/* Service details */}
-              <Section icon={ClipboardList} title="Service details">
-                <NumberField
-                  id="takeaways"
-                  label="Takeaways"
-                  value={form.takeaways}
-                  onChange={(v) => set("takeaways", v)}
-                />
-                <NumberField
-                  id="vege"
-                  label="Vege"
-                  value={form.vege}
-                  onChange={(v) => set("vege", v)}
-                />
-              </Section>
-            </CollapsibleContent>
-          </Collapsible>
-
-          <Separator className="bg-blue-200/60 dark:bg-blue-800/60" />
-
-          <div>
-            <Label htmlFor="notes">Notes (optional)</Label>
+        {/* Notes — always visible; jotted during service, not just after */}
+        <div className="border-b bg-card px-6 py-4">
+          <Field htmlFor="notes" label="Notes">
             <Textarea
               id="notes"
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Any notes about tonight's service..."
-              className="mt-1.5"
+              placeholder="Jot anything during or after service…"
               rows={2}
             />
+          </Field>
+        </div>
+
+        <CollapsibleContent>
+          {/* ── Report body ────────────────────────────────────────── */}
+          <div className="space-y-5 px-6 py-6">
+        {/* Attendance & service */}
+        <SectionCard icon={Users} title="Attendance & service" tone="emerald">
+          {/* Headline count — featured, spans the row */}
+          <div className="sm:col-span-2">
+            <Field htmlFor="mealsServed" label="Customers served">
+              <Input
+                id="mealsServed"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={form.mealsServed}
+                onChange={(e) => set("mealsServed", e.target.value)}
+                placeholder={`e.g. ${defaultValue}`}
+                className="h-11 max-w-xs text-lg font-semibold tabular-nums"
+              />
+            </Field>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              People served tonight — the headline count.
+            </p>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <p className="text-xs text-muted-foreground">
-              Save anytime — fill in the rest of the figures when you have them.
-            </p>
-            <Button
-              onClick={handleSave}
-              disabled={loading || !canSave}
-              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+          <CountField
+            id="bookingsPax"
+            label="Bookings (pax)"
+            value={form.bookingsPax}
+            onChange={(v) => set("bookingsPax", v)}
+          />
+
+          {/* New volunteers — derived from confirmed attendance, read-only */}
+          <Field
+            htmlFor="newVolunteers"
+            label="New volunteers"
+            hint="Counted automatically from confirmed attendance."
+          >
+            <div className="flex h-9 items-center gap-2 rounded-md border border-dashed border-input bg-muted/40 px-3 text-sm tabular-nums text-foreground">
+              <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+              {newVolunteers === null ? "—" : newVolunteers}
+            </div>
+          </Field>
+
+          {/* Weather — auto-pulled from Open-Meteo, still editable */}
+          <Field
+            htmlFor="weather"
+            label="Weather"
+            action={
+              <button
+                type="button"
+                onClick={() => applyWeather(false)}
+                disabled={weatherLoading}
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 disabled:cursor-default disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+              >
+                {weatherLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                {weatherLoading ? "Fetching…" : "Get weather"}
+              </button>
+            }
+          >
+            <Input
+              id="weather"
+              type="text"
+              value={form.weather}
+              onChange={(e) => set("weather", e.target.value)}
+              placeholder="e.g. Overcast, 15°C"
+            />
+          </Field>
+
+          <Field htmlFor="protein" label="Protein">
+            <Select
+              value={form.protein || undefined}
+              onValueChange={(v) => set("protein", v)}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {hasExistingRecord ? "Update" : "Save"}
-                </>
-              )}
-            </Button>
+              <SelectTrigger id="protein" className="h-9 w-full">
+                <SelectValue placeholder="Select protein" />
+              </SelectTrigger>
+              <SelectContent>
+                {PROTEIN_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </SectionCard>
+
+        {/* Koha */}
+        <SectionCard
+          icon={HandCoins}
+          title="Koha collected"
+          tone="amber"
+          action={
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+              {derived.totalDonations === null
+                ? "$0"
+                : NZD.format(derived.totalDonations)}
+            </span>
+          }
+        >
+          <MoneyField
+            id="cash"
+            label="Cash"
+            value={form.cash}
+            onChange={(v) => set("cash", v)}
+          />
+          <MoneyField
+            id="eftpos"
+            label="Eftpos"
+            value={form.eftpos}
+            onChange={(v) => set("eftpos", v)}
+          />
+          <MoneyField
+            id="stripe"
+            label="Stripe"
+            value={form.stripe}
+            onChange={(v) => set("stripe", v)}
+            action={
+              <div className="flex items-center gap-1.5">
+                <Badge
+                  variant="secondary"
+                  className="h-4 px-1.5 text-[10px] font-medium uppercase tracking-wide"
+                >
+                  Soon
+                </Badge>
+                <button
+                  type="button"
+                  onClick={handleStripeSync}
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Sync
+                </button>
+              </div>
+            }
+          />
+          <CountField
+            id="eftposTransactions"
+            label="Eftpos transactions"
+            value={form.eftposTransactions}
+            onChange={(v) => set("eftposTransactions", v)}
+          />
+          <CountField
+            id="nonPayingCount"
+            label="Non-paying customers"
+            value={form.nonPayingCount}
+            onChange={(v) => set("nonPayingCount", v)}
+            hint={
+              derived.nonPayingRatio === null
+                ? "Ratio is calculated from customers served."
+                : `${Math.round(derived.nonPayingRatio * 100)}% of customers served`
+            }
+          />
+        </SectionCard>
+
+            {/* Meals */}
+            <SectionCard icon={UtensilsCrossed} title="Meals" tone="violet">
+              <CountField
+                id="takeaways"
+                label="Takeaways"
+                value={form.takeaways}
+                onChange={(v) => set("takeaways", v)}
+              />
+              <CountField
+                id="vege"
+                label="Vege meals"
+                value={form.vege}
+                onChange={(v) => set("vege", v)}
+              />
+            </SectionCard>
           </div>
-        </div>
-      </CardContent>
+        </CollapsibleContent>
+
+        {/* ── Footer (always visible — saves notes + stats) ────────── */}
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
+          <p className="text-xs text-muted-foreground">
+            {hasExistingRecord
+              ? "Update tonight's figures any time."
+              : "Jot notes during service — expand to record the full stats."}
+          </p>
+          <Button
+            onClick={handleSave}
+            disabled={loading || !canSave}
+            className="bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                {hasExistingRecord ? "Update report" : "Save report"}
+              </>
+            )}
+          </Button>
+        </footer>
+      </Collapsible>
     </Card>
   );
 }
 
-// --- Shared presentational helpers (module scope so identity is stable) ---
+// ── Presentational helpers (module scope so identity is stable) ──────
 
-function DerivedMetrics({
-  total,
-  perHead,
-  perPaying,
-  nonPayingRatio,
+function HeroStat({
+  label,
+  value,
+  featured = false,
 }: {
-  total: number | null;
-  perHead: number | null;
-  perPaying: number | null;
-  nonPayingRatio: number | null;
+  label: string;
+  value: string;
+  featured?: boolean;
 }) {
-  const items: { label: string; value: string }[] = [
-    { label: "Total koha", value: total === null ? "—" : NZD.format(total) },
-    { label: "$ per head", value: perHead === null ? "—" : NZD.format(perHead) },
-    {
-      label: "Per paying",
-      value: perPaying === null ? "—" : NZD.format(perPaying),
-    },
-    {
-      label: "Non-paying",
-      value:
-        nonPayingRatio === null ? "—" : `${Math.round(nonPayingRatio * 100)}%`,
-    },
-  ];
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="rounded-md border border-blue-200/70 dark:border-blue-800/70 bg-background/60 px-3 py-2"
-        >
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            {item.label}
-          </div>
-          <div className="text-base font-semibold tabular-nums text-blue-900 dark:text-blue-100">
-            {item.value}
-          </div>
-        </div>
-      ))}
+    <div
+      className={cn(
+        "rounded-xl border px-3.5 py-2.5",
+        featured
+          ? "border-amber-300/70 bg-amber-50/80 dark:border-amber-800/60 dark:bg-amber-950/30"
+          : "border-border/70 bg-card/70"
+      )}
+    >
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div
+        className={cn(
+          "font-accent font-semibold tabular-nums leading-tight",
+          featured
+            ? "text-2xl text-amber-700 dark:text-amber-300"
+            : "text-xl text-foreground"
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
 
-function Section({
+const TONES = {
+  emerald:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  amber:
+    "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
+  violet:
+    "bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300",
+} as const;
+
+function SectionCard({
   icon: Icon,
   title,
+  tone,
+  action,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
+  tone: keyof typeof TONES;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-200">
-        <Icon className="h-4 w-4" />
-        {title}
+    <section className="rounded-xl border border-border/70 bg-card/40 p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <span
+            className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-lg",
+              TONES[tone]
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+          {title}
+        </h3>
+        {action}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>
+      <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Field({
+  htmlFor,
+  label,
+  hint,
+  action,
+  children,
+}: {
+  htmlFor?: string;
+  label: string;
+  hint?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex min-h-5 items-center justify-between gap-2">
+        <Label htmlFor={htmlFor} className="text-xs font-medium text-foreground/80">
+          {label}
+        </Label>
+        {action}
+      </div>
+      <div className="mt-1.5">{children}</div>
+      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
 
-function NumberField({
+function CountField({
   id,
   label,
   value,
   onChange,
-  step,
-  min = "0",
-  max,
+  hint,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
-  step?: string;
-  min?: string;
-  max?: string;
+  hint?: string;
 }) {
   return (
-    <div>
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
+    <Field htmlFor={id} label={label} hint={hint}>
       <Input
         id={id}
         type="number"
-        inputMode="decimal"
-        step={step}
-        min={min}
-        max={max}
+        inputMode="numeric"
+        min="0"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 tabular-nums"
+        className="tabular-nums"
       />
-    </div>
+    </Field>
   );
 }
 
+function MoneyField({
+  id,
+  label,
+  value,
+  onChange,
+  action,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Field htmlFor={id} label={label} action={action}>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+          $
+        </span>
+        <Input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min="0"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0.00"
+          className="pl-7 tabular-nums"
+        />
+      </div>
+    </Field>
+  );
+}

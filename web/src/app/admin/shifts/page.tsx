@@ -314,10 +314,10 @@ export default async function AdminShiftsPage({
           </Alert>
         )}
 
-        {/* Modern Toolbar */}
-        <div className="mb-8 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-          {/* Filters - Clean, minimal design */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        {/* Toolbar — filters + quick actions on a single tray */}
+        <div className="mb-8 flex flex-col gap-3 rounded-xl border bg-muted/40 p-2.5 shadow-sm 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          {/* Filters */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <ShiftCalendarWrapper
               selectedDate={selectedDateNZT}
               selectedLocation={selectedLocation}
@@ -330,17 +330,13 @@ export default async function AdminShiftsPage({
             />
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          {/* Quick actions */}
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               asChild
               variant={isToday ? "default" : "outline"}
               size="sm"
-              className={`h-11 ${
-                !isToday
-                  ? "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  : ""
-              }`}
+              className="h-11"
               data-testid="today-button"
             >
               <Link
@@ -355,7 +351,7 @@ export default async function AdminShiftsPage({
                 asChild
                 variant="outline"
                 size="sm"
-                className="h-11 bg-orange-50 dark:bg-orange-900/60 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-800/60"
+                className="h-11 border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40"
                 data-testid="send-shortage-email-button"
               >
                 <Link
@@ -371,7 +367,7 @@ export default async function AdminShiftsPage({
                 asChild
                 variant="outline"
                 size="sm"
-                className="h-11"
+                className="h-11 bg-background"
                 data-testid="announce-shifts-button"
               >
                 <Link
@@ -383,23 +379,29 @@ export default async function AdminShiftsPage({
               </Button>
             )}
             {shifts.length > 0 && (
-              <DeleteAllShiftsButton
-                shiftCount={shifts.length}
-                volunteerCount={shifts.reduce(
-                  (sum, s) =>
-                    sum +
-                    s.signups.filter(
-                      (signup) =>
-                        signup.status !== "CANCELED" &&
-                        signup.status !== "NO_SHOW"
-                    ).length,
-                  0
-                )}
-                shiftTypes={shifts.map((s) => s.shiftType.name)}
-                date={formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")}
-                dateString={dateString}
-                location={selectedLocation}
-              />
+              <>
+                <span
+                  aria-hidden
+                  className="mx-0.5 hidden h-7 w-px self-center bg-border sm:block"
+                />
+                <DeleteAllShiftsButton
+                  shiftCount={shifts.length}
+                  volunteerCount={shifts.reduce(
+                    (sum, s) =>
+                      sum +
+                      s.signups.filter(
+                        (signup) =>
+                          signup.status !== "CANCELED" &&
+                          signup.status !== "NO_SHOW"
+                      ).length,
+                    0
+                  )}
+                  shiftTypes={shifts.map((s) => s.shiftType.name)}
+                  date={formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")}
+                  dateString={dateString}
+                  location={selectedLocation}
+                />
+              </>
             )}
           </div>
         </div>

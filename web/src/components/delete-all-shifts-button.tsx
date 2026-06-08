@@ -57,10 +57,10 @@ export function DeleteAllShiftsButton({
       <Button
         variant="outline"
         size="sm"
-        className="h-11 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800/40 border-red-300 dark:border-red-700"
+        className="h-11 border-red-200 bg-background text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
         data-testid="delete-all-shifts-button"
       >
-        <Trash2 className="h-4 w-4 mr-2" />
+        <Trash2 className="mr-2 h-4 w-4" />
         Delete All
       </Button>
     </DeleteAllShiftsDialog>
