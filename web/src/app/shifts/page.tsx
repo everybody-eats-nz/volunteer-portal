@@ -177,10 +177,14 @@ export default async function ShiftsCalendarPage({
     hasExplicitLocationChoice = true;
   }
 
+  // Single server-side timestamp, reused for the shift query and seeded into
+  // the calendar so SSR and client hydration agree on "now" (see ShiftsCalendar).
+  const now = new Date();
+
   // Fetch shifts for calendar view - simplified data structure
   const shifts = await prisma.shift.findMany({
     where: {
-      start: { gte: new Date() },
+      start: { gte: now },
       ...(filterLocations.length > 0
         ? { location: { in: filterLocations } }
         : {}),
@@ -514,7 +518,7 @@ export default async function ShiftsCalendarPage({
       <ShiftsCalendar
         shifts={shiftSummaries}
         selectedLocation={selectedLocation}
-        serverNow={Date.now()}
+        serverNow={now.getTime()}
       />
     </PageContainer>
     </>
