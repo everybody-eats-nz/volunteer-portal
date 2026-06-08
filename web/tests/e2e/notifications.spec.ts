@@ -188,19 +188,16 @@ test.describe("Notification System", () => {
       // Click delete button
       await firstNotification.getByTestId("delete-notification-button").click();
 
-      // Count should decrease by 1 or show empty state
-      const newCount = await page
-        .locator('[data-testid*="notification-item-"]')
-        .count();
-
       if (initialCount === 1) {
         // Should show empty state
         await expect(
           page.getByTestId("notifications-empty-state")
         ).toBeVisible();
       } else {
-        // Should have one less notification
-        expect(newCount).toBe(initialCount - 1);
+        // toHaveCount retries automatically until the DOM reflects the deletion
+        await expect(
+          page.locator('[data-testid*="notification-item-"]')
+        ).toHaveCount(initialCount - 1);
       }
     }
   });
