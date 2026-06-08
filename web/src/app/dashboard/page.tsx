@@ -44,7 +44,17 @@ export default async function DashboardPage() {
     <PageContainer testid="dashboard-page">
       {/* Header renders immediately */}
       <PageHeader
-        title={`${greeting}${firstName ? `, ${firstName}` : ""} 👋`}
+        title={
+          <>
+            {greeting}
+            {firstName ? (
+              <>
+                , <em>{firstName}</em>
+              </>
+            ) : null}{" "}
+            👋
+          </>
+        }
         description="Here's what's happening with your volunteer journey"
       />
 

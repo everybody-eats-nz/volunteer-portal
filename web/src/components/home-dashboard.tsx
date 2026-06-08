@@ -216,7 +216,7 @@ export async function HomeDashboard() {
               02 / Right now
             </div>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-              What&rsquo;s happening across the whānau
+              What&rsquo;s happening across the <em>whānau</em>
             </h2>
           </div>
           <Link
@@ -324,7 +324,7 @@ export async function HomeDashboard() {
           </div>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
             Three ways your time turns into{" "}
-            <span className="sticker italic">manaakitanga</span>
+            <em className="sticker">manaakitanga</em>
           </h2>
         </div>
 
@@ -430,9 +430,7 @@ export async function HomeDashboard() {
                 data-testid="final-cta-title"
               >
                 Ready to Make a{" "}
-                <span className="sticker italic text-[#0e3a23]">
-                  Difference?
-                </span>
+                <em className="sticker text-[#0e3a23]">Difference?</em>
               </h2>
               <p className="mt-4 max-w-xl text-base text-white/85 md:text-lg">
                 Every volunteer hour contributes to stronger, more connected

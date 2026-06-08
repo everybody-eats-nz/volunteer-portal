@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center">
           <PageHeader
-            title="Create new password"
+            title={<>Create <em>new</em> password</>}
             description="Enter your new password below"
             className="mb-6"
           />
