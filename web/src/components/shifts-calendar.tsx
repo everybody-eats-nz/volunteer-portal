@@ -51,6 +51,13 @@ interface ShiftSummary {
 interface ShiftsCalendarProps {
   shifts: ShiftSummary[];
   selectedLocation?: string;
+  /**
+   * Server-rendered "now" as an epoch-ms timestamp. Seeding all time-dependent
+   * state from a single server-provided value keeps the SSR output and the
+   * client hydration render identical, avoiding React #418 hydration mismatches
+   * when the server's clock and the client's clock straddle a day/month boundary.
+   */
+  serverNow: number;
 }
 
 interface DayShifts {
@@ -76,8 +83,16 @@ interface DayShifts {
 export function ShiftsCalendar({
   shifts,
   selectedLocation,
+  serverNow,
 }: ShiftsCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // All "now"-derived values come from the server timestamp so the initial
+  // client render matches the SSR output exactly (prevents hydration errors).
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(serverNow));
+
+  // Stable references to "now" for the initial render.
+  const nowDate = new Date(serverNow);
+  const todayMidnight = new Date(serverNow);
+  todayMidnight.setHours(0, 0, 0, 0);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -227,7 +242,7 @@ export function ShiftsCalendar({
             size="sm"
             onClick={previousMonth}
             disabled={
-              format(currentMonth, "yyyy-MM") <= format(new Date(), "yyyy-MM")
+              format(currentMonth, "yyyy-MM") <= format(nowDate, "yyyy-MM")
             }
             data-testid="calendar-prev-month"
           >
@@ -321,8 +336,7 @@ export function ShiftsCalendar({
                       dayShifts.date,
                       currentMonth
                     );
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+                    const today = todayMidnight;
                     const dayStart = new Date(dayShifts.date);
                     dayStart.setHours(0, 0, 0, 0);
                     const isPastDate = dayStart < today;
@@ -497,10 +511,10 @@ export function ShiftsCalendar({
                   )}.`}
             </p>
             <p className="text-sm text-muted-foreground">
-              {format(currentMonth, "yyyy-MM") > format(new Date(), "yyyy-MM")
+              {format(currentMonth, "yyyy-MM") > format(nowDate, "yyyy-MM")
                 ? "Shifts are usually published closer to the date."
                 : format(currentMonth, "yyyy-MM") <
-                  format(new Date(), "yyyy-MM")
+                  format(nowDate, "yyyy-MM")
                 ? "This month has passed. Try viewing current or future months."
                 : "Check back soon for upcoming shifts, or try a different location."}
             </p>
