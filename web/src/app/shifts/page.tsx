@@ -514,6 +514,7 @@ export default async function ShiftsCalendarPage({
       <ShiftsCalendar
         shifts={shiftSummaries}
         selectedLocation={selectedLocation}
+        serverNow={Date.now()}
       />
     </PageContainer>
     </>
