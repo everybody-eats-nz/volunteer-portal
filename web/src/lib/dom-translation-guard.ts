@@ -14,11 +14,48 @@
  * The exception is unhandled and takes the whole page down. We surfaced this on
  * `/shifts/details` and `/shifts/mine` in error tracking.
  *
- * These overrides make the two methods degrade gracefully in exactly the cases
- * that would otherwise throw, and otherwise defer to the native behaviour, so
- * normal rendering is untouched. This is the widely-used workaround for
- * https://github.com/facebook/react/issues/11538.
+ * The overrides below make the two methods degrade gracefully in exactly the
+ * cases that would otherwise throw, and otherwise defer to the native
+ * behaviour, so normal rendering is untouched. This is the widely-used
+ * workaround for https://github.com/facebook/react/issues/11538.
  */
+
+/**
+ * Minimal structural shape of a DOM node used by the guard predicates. Kept
+ * dependency-free so the decision logic is unit-testable without a DOM.
+ */
+export interface GuardableNode {
+  parentNode: GuardableNode | null;
+  contains?(other: unknown): boolean;
+}
+
+/**
+ * A native `removeChild(child)` throws `NotFoundError` when `child` is not
+ * actually a child of `parent`. Returns true when we should skip the call.
+ */
+export function shouldSkipRemoveChild(
+  parent: GuardableNode,
+  child: GuardableNode
+): boolean {
+  return child.parentNode !== parent;
+}
+
+/**
+ * A native `insertBefore(newNode, referenceNode)` throws when:
+ *   - `referenceNode` is not a child of `parent` (NotFoundError), or
+ *   - `newNode` is an ancestor of `parent` (HierarchyRequestError —
+ *     "the new child element contains the parent").
+ * Returns true when we should skip the call.
+ */
+export function shouldSkipInsertBefore(
+  parent: GuardableNode,
+  newNode: GuardableNode,
+  referenceNode: GuardableNode | null
+): boolean {
+  if (referenceNode && referenceNode.parentNode !== parent) return true;
+  if (newNode !== parent && newNode.contains?.(parent) === true) return true;
+  return false;
+}
 
 let installed = false;
 
@@ -39,7 +76,7 @@ export function installDomTranslationGuard(): void {
     this: Node,
     child: T
   ): T {
-    if (child.parentNode !== this) {
+    if (shouldSkipRemoveChild(this, child)) {
       warn("skipped removeChild for a node that is not a child", child);
       return child;
     }
@@ -52,14 +89,8 @@ export function installDomTranslationGuard(): void {
     newNode: T,
     referenceNode: Node | null
   ): T {
-    // NotFoundError: the reference node has been re-parented by translation.
-    if (referenceNode && referenceNode.parentNode !== this) {
-      warn("skipped insertBefore for a detached reference node", referenceNode);
-      return newNode;
-    }
-    // HierarchyRequestError: inserting an ancestor under itself.
-    if (newNode !== this && newNode.contains?.(this)) {
-      warn("skipped insertBefore that would create a cycle", newNode);
+    if (shouldSkipInsertBefore(this, newNode, referenceNode)) {
+      warn("skipped insertBefore that would throw", newNode, referenceNode);
       return newNode;
     }
     return originalInsertBefore.call(this, newNode, referenceNode) as T;
