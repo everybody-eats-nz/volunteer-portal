@@ -13,6 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import {
@@ -24,6 +32,14 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  HandCoins,
+  Wallet,
+  UserPlus,
+  Percent,
+  ShoppingBag,
+  Salad,
+  Beef,
+  CloudSun,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -44,11 +60,15 @@ import type { RestaurantAnalyticsData } from "@/lib/restaurant-analytics";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
+const FONT = "var(--font-libre-franklin), sans-serif";
+
 interface Props {
   data: RestaurantAnalyticsData;
   months: string;
   location: string;
   days: string;
+  from: string;
+  to: string;
   locations: Array<{ value: string; label: string }>;
 }
 
@@ -59,51 +79,15 @@ const MONTHS_LABELS: Record<string, string> = {
   "12": "12 months",
 };
 
-function ProgressRing({
-  value,
-  max,
-  color,
-  size = 52,
-  strokeWidth = 5,
-}: {
-  value: number;
-  max: number;
-  color: string;
-  size?: number;
-  strokeWidth?: number;
-}) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const pct = max > 0 ? Math.min(value / max, 1) : 0;
-  const offset = circumference * (1 - pct);
+const nzd = (n: number, decimals = 0) =>
+  new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(n);
 
-  return (
-    <svg width={size} height={size} className="shrink-0 -rotate-90">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        className="text-muted/20"
-      />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeDasharray={circumference}
-        strokeDashoffset={circumference}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }}
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+const num = (n: number) => n.toLocaleString("en-NZ");
 
 function YoYBadge({
   percent,
@@ -147,11 +131,101 @@ function YoYBadge({
   );
 }
 
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+  footer,
+  tooltip,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  accent: string;
+  footer?: React.ReactNode;
+  tooltip?: string;
+}) {
+  const body = (
+    <Card className="h-full gap-0 py-3">
+      <CardContent className="px-4">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Icon className={`h-4 w-4 ${accent}`} />
+          <span className="text-[11px] font-medium uppercase tracking-wide">
+            {label}
+          </span>
+        </div>
+        <p className="mt-1.5 text-2xl font-bold tracking-tight tabular-nums">
+          {value}
+        </p>
+        {footer && <div className="mt-1 min-h-4">{footer}</div>}
+      </CardContent>
+    </Card>
+  );
+
+  if (!tooltip) return body;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="cursor-help h-full">{body}</div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-60">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function InfoDialog({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Dialog>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <button
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={`About ${title}`}
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent side="top">More info</TooltipContent>
+      </Tooltip>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">{children}</div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ChartEmpty({ message }: { message: string }) {
+  return (
+    <div className="flex items-center justify-center h-[300px] text-muted-foreground text-sm">
+      {message}
+    </div>
+  );
+}
+
 export function RestaurantAnalyticsClient({
   data,
   months: initialMonths,
   location: initialLocation,
   days: initialDays,
+  from: initialFrom,
+  to: initialTo,
   locations,
 }: Props) {
   const router = useRouter();
@@ -160,29 +234,177 @@ export function RestaurantAnalyticsClient({
   const [months, setMonths] = useState(initialMonths);
   const [location, setLocation] = useState(initialLocation);
   const [days, setDays] = useState(initialDays);
+  const [from, setFrom] = useState(initialFrom);
+  const [to, setTo] = useState(initialTo);
   const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
-  const chartThemeMode = (
-    resolvedTheme === "dark" ? "dark" : "light"
-  ) as "dark" | "light";
+  const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
+    | "dark"
+    | "light";
+
+  const hasCustomRange = from !== "" && to !== "" && from <= to;
+  // One end filled but not a valid pair → block apply with a hint.
+  const rangeError = (from !== "" || to !== "") && !hasCustomRange;
+  const fromDate = from ? new Date(`${from}T00:00:00`) : undefined;
+  const toDate = to ? new Date(`${to}T00:00:00`) : undefined;
+
+  const s = data.serviceStats;
+  const filterKey = `${initialMonths}-${initialLocation}-${initialDays}-${initialFrom}-${initialTo}`;
+  const rangeLabel =
+    initialFrom && initialTo
+      ? "selected range"
+      : `last ${MONTHS_LABELS[initialMonths]}`;
 
   const handleApplyFilters = () => {
+    if (rangeError) return;
     const params = new URLSearchParams({ months, location });
     if (days) params.set("days", days);
+    if (hasCustomRange) {
+      params.set("from", from);
+      params.set("to", to);
+    }
     startTransition(() => {
-      router.push(`/admin/analytics?${params}`);
+      // Preserve scroll position — only the query string changes
+      router.push(`/admin/analytics?${params}`, { scroll: false });
     });
   };
 
+  const labelColor = chartThemeMode === "dark" ? "#94a3b8" : "#475569";
+  const axisStyle = { fontFamily: FONT, fontSize: "11px", colors: labelColor };
+  const catStyle = { fontFamily: FONT, fontSize: "12px", colors: labelColor };
+  const gridColor = chartThemeMode === "dark" ? "#334155" : "#e5e7eb";
+
+  // ---- KPI cards ----
+  const kpis: Array<{
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+    accent: string;
+    footer?: React.ReactNode;
+    tooltip?: string;
+  }> = [
+    {
+      icon: UtensilsCrossed,
+      label: "Guests served",
+      value: num(data.summary.totalMeals),
+      accent: "text-emerald-500",
+      footer: (
+        <YoYBadge
+          percent={data.summary.yoyChangePercent}
+          prevValue={data.summary.prevYearTotalMeals}
+        />
+      ),
+      tooltip: `Total guests served in the ${rangeLabel} (recorded counts plus defaults for days without a record).`,
+    },
+    {
+      icon: HandCoins,
+      label: "Total koha",
+      value: nzd(s.totalKoha),
+      accent: "text-amber-500",
+      footer: (
+        <div className="flex flex-col gap-0.5">
+          <YoYBadge percent={s.kohaYoyPercent} prevValue={s.prevTotalKoha} />
+          {s.kohaTargetPercent !== null && (
+            <span
+              className={`text-xs font-medium ${
+                s.kohaTargetPercent >= 100
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {s.kohaTargetPercent}% of target
+            </span>
+          )}
+        </div>
+      ),
+      tooltip:
+        "Total koha collected (cash + eftpos + Stripe) across recorded service nights. 'of target' compares to each location's per-night koha target.",
+    },
+    {
+      icon: Wallet,
+      label: "Koha / head",
+      value: s.perHead === null ? "—" : nzd(s.perHead, 2),
+      accent: "text-amber-500",
+      footer: (
+        <span className="text-xs text-muted-foreground">
+          {s.perPaying === null
+            ? "per guest served"
+            : `${nzd(s.perPaying, 2)} per paying`}
+        </span>
+      ),
+      tooltip:
+        "Average koha per guest on nights where koha was recorded. The footer shows koha per paying guest (excluding non-paying).",
+    },
+    {
+      icon: UserPlus,
+      label: "New volunteers",
+      value: num(s.newVolunteers),
+      accent: "text-blue-500",
+      tooltip:
+        "First-time volunteers across the period (their first confirmed shift fell in this window).",
+    },
+    {
+      icon: Percent,
+      label: "Non-paying",
+      value: s.nonPayingPercent === null ? "—" : `${s.nonPayingPercent}%`,
+      accent: "text-rose-500",
+      footer: (
+        <span className="text-xs text-muted-foreground">
+          {num(s.nonPayingCount)} guests
+        </span>
+      ),
+      tooltip:
+        "Share of recorded guests who didn't contribute koha (non-paying count ÷ guests served).",
+    },
+    {
+      icon: ShoppingBag,
+      label: "Takeaways",
+      value: num(s.takeaways),
+      accent: "text-violet-500",
+      tooltip: "Total takeaway meals across recorded service nights.",
+    },
+    {
+      icon: Salad,
+      label: "Vege meals",
+      value: num(s.vege),
+      accent: "text-green-500",
+      tooltip: "Total vegetarian meals across recorded service nights.",
+    },
+    {
+      icon: Calendar,
+      label: "Avg / day",
+      value: num(data.summary.avgPerDay),
+      accent: "text-sky-500",
+      footer: (
+        <span className="text-xs text-muted-foreground">
+          {num(data.summary.daysWithShifts)} days active
+        </span>
+      ),
+      tooltip:
+        "Average guests served per operational day. 'Days active' counts days with scheduled shifts.",
+    },
+  ];
+
+  const kohaMixTotal = s.cash + s.eftpos + s.stripe;
+
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <Card>
+      {/* Filters — floating sticky toolbar */}
+      <Card className="sticky top-2 z-20 shadow-md border-border/80 supports-[backdrop-filter]:bg-card/95 supports-[backdrop-filter]:backdrop-blur">
         <CardContent className="py-4">
-          <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-4">
+            {/* Row 1: period + custom range + location */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="months">Time Period</Label>
-                <Select value={months} onValueChange={setMonths}>
+                <Select
+                  value={hasCustomRange ? "custom" : months}
+                  onValueChange={(v) => {
+                    if (v === "custom") return;
+                    setMonths(v);
+                    setFrom("");
+                    setTo("");
+                  }}
+                >
                   <SelectTrigger id="months">
                     <SelectValue />
                   </SelectTrigger>
@@ -191,8 +413,52 @@ export function RestaurantAnalyticsClient({
                     <SelectItem value="3">Last 3 months</SelectItem>
                     <SelectItem value="6">Last 6 months</SelectItem>
                     <SelectItem value="12">Last 12 months</SelectItem>
+                    {hasCustomRange && (
+                      <SelectItem value="custom">Custom range</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date-range">Date range</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date-range"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !hasCustomRange && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                      {fromDate && toDate ? (
+                        <span className="truncate">
+                          {format(fromDate, "MMM d")} – {format(toDate, "MMM d, yyyy")}
+                        </span>
+                      ) : fromDate ? (
+                        <span className="truncate">
+                          {format(fromDate, "MMM d, yyyy")} – …
+                        </span>
+                      ) : (
+                        <span>Pick a range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="range"
+                      defaultMonth={fromDate}
+                      selected={{ from: fromDate, to: toDate }}
+                      onSelect={(range) => {
+                        setFrom(range?.from ? format(range.from, "yyyy-MM-dd") : "");
+                        setTo(range?.to ? format(range.to, "yyyy-MM-dd") : "");
+                      }}
+                      numberOfMonths={2}
+                      autoFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
@@ -210,18 +476,47 @@ export function RestaurantAnalyticsClient({
                   </SelectContent>
                 </Select>
               </div>
-              <DayOfWeekFilter value={days} onChange={setDays} />
             </div>
-            <Button
-              onClick={handleApplyFilters}
-              className="sm:w-auto w-full"
-              disabled={isPending}
-            >
-              {isPending && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
-              Apply Filters
-            </Button>
+            {/* Row 2: day-of-week + apply */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex-1">
+                <DayOfWeekFilter value={days} onChange={setDays} />
+              </div>
+              <div className="flex items-center gap-2">
+                {hasCustomRange && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setFrom("");
+                      setTo("");
+                    }}
+                    className="text-muted-foreground"
+                  >
+                    Clear range
+                  </Button>
+                )}
+                <Button
+                  onClick={handleApplyFilters}
+                  className="sm:w-auto w-full"
+                  disabled={isPending || rangeError}
+                >
+                  {isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+            {rangeError && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                Set both From and To dates (From must be on or before To).
+              </p>
+            )}
+            {hasCustomRange && (
+              <p className="text-xs text-muted-foreground">
+                Showing a custom date range — overrides the time-period preset.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -231,169 +526,51 @@ export function RestaurantAnalyticsClient({
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className={`space-y-6 transition-opacity ${isPending ? "opacity-50 pointer-events-none" : ""}`}
+        className={`space-y-6 transition-opacity ${
+          isPending ? "opacity-50 pointer-events-none" : ""
+        }`}
       >
-        {/* Hero — Guests Served Overview */}
+        {/* KPI grid */}
         <motion.div variants={staggerItem}>
-          <Card className="overflow-hidden">
-            <div className="flex flex-col md:flex-row">
-              {/* Left: progress ring + total */}
-              <div className="flex items-center gap-5 p-6">
-                <div className="relative">
-                  <ProgressRing
-                    value={data.summary.totalMeals}
-                    max={Math.max(data.summary.totalMeals, data.summary.prevYearTotalMeals) || 1}
-                    color={data.summary.totalMeals >= data.summary.prevYearTotalMeals ? "#10b981" : "#f59e0b"}
-                    size={72}
-                    strokeWidth={6}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <UtensilsCrossed className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="cursor-help">
-                      <p className="text-sm text-muted-foreground">
-                        Total Guests Served
-                      </p>
-                      <p className="text-3xl font-bold tracking-tight">
-                        {data.summary.totalMeals.toLocaleString()}
-                      </p>
-                      <YoYBadge
-                        percent={data.summary.yoyChangePercent}
-                        prevValue={data.summary.prevYearTotalMeals}
-                        className="mt-0.5"
-                      />
-                      {data.summary.prevYearTotalMeals === 0 && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Last {MONTHS_LABELS[initialMonths]}
-                        </p>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="w-auto max-w-64">
-                    Total meals served across all locations in the last{" "}
-                    {MONTHS_LABELS[initialMonths]}.
-                    {data.summary.prevYearTotalMeals > 0 && (
-                      <>
-                        {" "}
-                        Previous year same period:{" "}
-                        {data.summary.prevYearTotalMeals.toLocaleString()}
-                      </>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-
-              {/* Right: secondary metrics */}
-              <div className="flex-1 grid grid-cols-3 divide-x">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
-                      <Calendar className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight">
-                        {data.summary.prevYearTotalMeals > 0
-                          ? data.summary.prevYearTotalMeals.toLocaleString()
-                          : "\u2014"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Last Year
-                      </p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="w-auto max-w-56">
-                    {data.summary.prevYearTotalMeals > 0
-                      ? `Same ${MONTHS_LABELS[initialMonths]} period last year`
-                      : "No data available for the same period last year"}
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
-                      <UtensilsCrossed className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight">
-                        {data.summary.avgPerDay}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Avg/Day</p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="w-auto max-w-56">
-                    Average meals served per operational day.
-                    {data.summary.prevYearAvgPerDay > 0 && (
-                      <> Previous year: {data.summary.prevYearAvgPerDay}/day</>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-5 cursor-help">
-                      <Calendar className="h-4 w-4 text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold tracking-tight">
-                        {data.summary.daysWithShifts}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Days Active
-                      </p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="w-auto max-w-56">
-                    Days with scheduled shifts.{" "}
-                    {data.summary.daysWithRecords} of{" "}
-                    {data.summary.daysWithShifts} days have recorded meal counts
-                    (rest use defaults).
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </Card>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpis.map((kpi) => (
+              <StatCard key={kpi.label} {...kpi} />
+            ))}
+          </div>
+          {!data.hasServiceStats && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Koha, volunteer and service-mix figures come from recorded service
+              nights — none found for this period yet.
+            </p>
+          )}
         </motion.div>
 
-        {/* Charts Row */}
+        {/* Trends: guests + koha */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Monthly Trend */}
+          {/* Guests trend */}
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
-                  Meals Trend
-                  <Dialog>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DialogTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground transition-colors">
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </DialogTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">More info</TooltipContent>
-                    </Tooltip>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Monthly Meals Trend</DialogTitle>
-                        <DialogDescription>
-                          How this chart tracks meals served over time
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-3 text-sm">
-                        <p>
-                          Shows total meals served per month across all
-                          locations. Includes both recorded counts and default
-                          estimates for days without records.
-                        </p>
-                        <p>
-                          The{" "}
-                          <span className="font-medium">dashed line</span>{" "}
-                          overlays the same months from the previous year,
-                          making it easy to spot year-over-year growth or
-                          seasonal patterns.
-                        </p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardTitle>
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    Guests Trend
+                    <InfoDialog
+                      title="Guests Trend"
+                      description="How this chart tracks guests served over time"
+                    >
+                      <p>
+                        Total guests served per {trendView === "weekly" ? "week" : "month"}{" "}
+                        across all locations. Includes recorded counts and default
+                        estimates for days without records.
+                      </p>
+                      <p>
+                        The <span className="font-medium">dashed line</span>{" "}
+                        overlays the same period last year to spot year-over-year
+                        trends.
+                      </p>
+                    </InfoDialog>
+                  </CardTitle>
                   <div className="flex items-center rounded-md border text-sm">
                     <button
                       onClick={() => setTrendView("monthly")}
@@ -422,29 +599,139 @@ export function RestaurantAnalyticsClient({
                 {(() => {
                   const isWeekly = trendView === "weekly";
                   const labels = isWeekly ? data.weeklyLabels : data.trendLabels;
-                  const currentData = isWeekly ? data.currentYearWeekly : data.currentYearTrend;
-                  const prevData = isWeekly ? data.previousYearWeekly : data.previousYearTrend;
+                  const currentData = isWeekly
+                    ? data.currentYearWeekly
+                    : data.currentYearTrend;
+                  const prevData = isWeekly
+                    ? data.previousYearWeekly
+                    : data.previousYearTrend;
                   const hasPrev = prevData.some((v) => v > 0);
 
                   return currentData.some((v) => v > 0) ? (
+                    <Chart
+                      key={`trend-${trendView}-${filterKey}`}
+                      options={{
+                        chart: {
+                          type: "area" as const,
+                          toolbar: { show: false },
+                          background: "transparent",
+                        },
+                        xaxis: {
+                          categories: labels,
+                          tickAmount: isWeekly ? 12 : undefined,
+                          labels: { style: axisStyle },
+                          axisBorder: { show: false },
+                          axisTicks: { show: false },
+                        },
+                        yaxis: {
+                          labels: {
+                            formatter: (val: number) =>
+                              val >= 1000
+                                ? `${(val / 1000).toFixed(1)}k`
+                                : String(Math.round(val)),
+                            style: axisStyle,
+                          },
+                          min: 0,
+                        },
+                        colors: ["#3b82f6", "#64748b"],
+                        stroke: {
+                          curve: "smooth" as const,
+                          width: [2.5, 2],
+                          dashArray: [0, 5],
+                        },
+                        fill: {
+                          type: "gradient",
+                          gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.35,
+                            opacityTo: 0.02,
+                            stops: [0, 90, 100],
+                          },
+                        },
+                        dataLabels: { enabled: false },
+                        grid: {
+                          borderColor: gridColor,
+                          strokeDashArray: 4,
+                          xaxis: { lines: { show: false } },
+                        },
+                        tooltip: {
+                          shared: true,
+                          y: {
+                            formatter: (val: number) =>
+                              val == null ? "" : `${num(val)} guests`,
+                          },
+                        },
+                        markers: {
+                          size: isWeekly ? 0 : [4, 3],
+                          strokeWidth: 2,
+                          strokeColors: "#fff",
+                          hover: { sizeOffset: 4 },
+                        },
+                        legend: {
+                          show: hasPrev,
+                          position: "top" as const,
+                          fontSize: "12px",
+                          fontFamily: FONT,
+                          markers: { size: 6, offsetX: -2 },
+                        },
+                        theme: { mode: chartThemeMode },
+                      }}
+                      series={[
+                        { name: "This Year", data: currentData },
+                        ...(hasPrev
+                          ? [{ name: "Previous Year", data: prevData }]
+                          : []),
+                      ]}
+                      type="area"
+                      height={300}
+                    />
+                  ) : (
+                    <ChartEmpty message="No guest data available" />
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Koha trend */}
+          <motion.div variants={staggerItem}>
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <HandCoins className="h-4 w-4 text-amber-500" />
+                  Koha Trend
+                  <InfoDialog
+                    title="Koha Trend"
+                    description="Monthly koha collected, split by method"
+                  >
+                    <p>
+                      Total koha each month, stacked by method (cash, eftpos and
+                      Stripe), across recorded service nights.
+                    </p>
+                    {data.hasKohaTarget && (
+                      <p>
+                        The <span className="font-medium">dashed line</span> is
+                        the koha target for the month (each location&rsquo;s
+                        per-night target × its service nights).
+                      </p>
+                    )}
+                  </InfoDialog>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.kohaTrend.some((v) => v > 0) ? (
                   <Chart
-                    key={`trend-${trendView}-${initialMonths}-${initialLocation}-${initialDays}`}
+                    key={`koha-trend-${filterKey}`}
                     options={{
                       chart: {
-                        type: "area" as const,
+                        type: "line" as const,
+                        stacked: true,
                         toolbar: { show: false },
                         background: "transparent",
                       },
                       xaxis: {
-                        categories: labels,
-                        tickAmount: isWeekly ? 12 : undefined,
-                        labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
-                            fontSize: "11px",
-                          },
-                        },
+                        categories: data.trendLabels,
+                        labels: { style: axisStyle },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                       },
@@ -452,134 +739,177 @@ export function RestaurantAnalyticsClient({
                         labels: {
                           formatter: (val: number) =>
                             val >= 1000
-                              ? `${(val / 1000).toFixed(1)}k`
-                              : String(Math.round(val)),
-                          style: {
-                            fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
-                            fontSize: "11px",
-                          },
+                              ? `$${(val / 1000).toFixed(1)}k`
+                              : `$${Math.round(val)}`,
+                          style: axisStyle,
                         },
                         min: 0,
                       },
-                      colors: ["#3b82f6", "#64748b"],
-                      stroke: {
-                        curve: "smooth" as const,
-                        width: [2.5, 2],
-                        dashArray: [0, 5],
-                      },
-                      fill: {
-                        type: "gradient",
-                        gradient: {
-                          shadeIntensity: 1,
-                          opacityFrom: 0.35,
-                          opacityTo: 0.02,
-                          stops: [0, 90, 100],
+                      colors: ["#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444"],
+                      plotOptions: {
+                        bar: {
+                          columnWidth: "55%",
+                          borderRadius: 3,
+                          borderRadiusApplication: "end" as const,
                         },
                       },
+                      stroke: {
+                        width: data.hasKohaTarget ? [0, 0, 0, 2.5] : [0, 0, 0],
+                        curve: "smooth" as const,
+                        dashArray: data.hasKohaTarget ? [0, 0, 0, 5] : [0, 0, 0],
+                      },
+                      fill: { opacity: 1 },
                       dataLabels: { enabled: false },
                       grid: {
-                        borderColor: "#e5e7eb",
+                        borderColor: gridColor,
                         strokeDashArray: 4,
                         xaxis: { lines: { show: false } },
                       },
                       tooltip: {
                         shared: true,
-                        y: {
-                          formatter: (val: number) => {
-                            if (val == null) return "";
-                            return val.toLocaleString() + " meals";
-                          },
-                        },
+                        y: { formatter: (val: number) => nzd(val ?? 0, 2) },
                       },
-                      markers: {
-                        size: isWeekly ? 0 : [4, 3],
-                        strokeWidth: 2,
-                        strokeColors: "#fff",
-                        hover: { sizeOffset: 4 },
-                      },
+                      markers: { size: 0, hover: { sizeOffset: 3 } },
                       legend: {
-                        show: hasPrev,
                         position: "top" as const,
                         fontSize: "12px",
-                        fontFamily:
-                          "var(--font-libre-franklin), sans-serif",
+                        fontFamily: FONT,
                         markers: { size: 6, offsetX: -2 },
                       },
                       theme: { mode: chartThemeMode },
                     }}
                     series={[
+                      { name: "Cash", type: "column", data: data.kohaStreamTrend.cash },
+                      { name: "Eftpos", type: "column", data: data.kohaStreamTrend.eftpos },
                       {
-                        name: "This Year",
-                        data: currentData,
+                        name: "Stripe",
+                        type: "column",
+                        data: data.kohaStreamTrend.stripe,
                       },
-                      ...(hasPrev
+                      ...(data.hasKohaTarget
                         ? [
                             {
-                              name: "Previous Year",
-                              data: prevData,
+                              name: "Target",
+                              type: "line" as const,
+                              data: data.kohaTargetTrend,
                             },
                           ]
                         : []),
                     ]}
-                    type="area"
-                    height={320}
+                    type="line"
+                    height={300}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                    No trend data available
-                  </div>
-                );
-                })()}
+                  <ChartEmpty message="No koha recorded yet" />
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Breakdown: koha mix + location comparison */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Koha mix donut */}
+          <motion.div variants={staggerItem}>
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-amber-500" />
+                  Koha by Method
+                  <InfoDialog
+                    title="Koha by Method"
+                    description="How koha was collected"
+                  >
+                    <p>
+                      Breakdown of total koha across the three payment streams:
+                      cash, eftpos and Stripe.
+                    </p>
+                  </InfoDialog>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {kohaMixTotal > 0 ? (
+                  <Chart
+                    key={`koha-mix-${filterKey}`}
+                    options={{
+                      chart: { type: "donut" as const, background: "transparent" },
+                      labels: ["Cash", "Eftpos", "Stripe"],
+                      colors: ["#f59e0b", "#3b82f6", "#8b5cf6"],
+                      stroke: { width: 0 },
+                      dataLabels: {
+                        enabled: true,
+                        formatter: (val: number) => `${Math.round(val)}%`,
+                        style: { fontFamily: FONT, fontSize: "11px" },
+                      },
+                      legend: {
+                        position: "bottom" as const,
+                        fontFamily: FONT,
+                        fontSize: "12px",
+                      },
+                      tooltip: {
+                        y: { formatter: (val: number) => nzd(val ?? 0, 2) },
+                      },
+                      plotOptions: {
+                        pie: {
+                          donut: {
+                            size: "62%",
+                            labels: {
+                              show: true,
+                              total: {
+                                show: true,
+                                label: "Total",
+                                fontFamily: FONT,
+                                fontSize: "12px",
+                                formatter: () => nzd(kohaMixTotal),
+                              },
+                              value: {
+                                fontFamily: FONT,
+                                formatter: (val: string) =>
+                                  nzd(Number(val), 0),
+                              },
+                            },
+                          },
+                        },
+                      },
+                      theme: { mode: chartThemeMode },
+                    }}
+                    series={[s.cash, s.eftpos, s.stripe]}
+                    type="donut"
+                    height={300}
+                  />
+                ) : (
+                  <ChartEmpty message="No koha recorded yet" />
+                )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Location Comparison */}
+          {/* Location comparison (guests) */}
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <UtensilsCrossed className="h-4 w-4 text-emerald-500" />
-                  Location Comparison
-                  <Dialog>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DialogTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground transition-colors">
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </DialogTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">More info</TooltipContent>
-                    </Tooltip>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Location Comparison</DialogTitle>
-                        <DialogDescription>
-                          Year-over-year comparison by location
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-3 text-sm">
-                        <p>
-                          Compares total meals served at each location between
-                          the current period and the same period last year.
-                        </p>
-                        <p>
-                          The{" "}
-                          <span className="font-medium">dot marker</span>{" "}
-                          shows the previous year&rsquo;s total for each
-                          location, making it easy to see growth or decline.
-                        </p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  Guests by Location
+                  <InfoDialog
+                    title="Guests by Location"
+                    description="Year-over-year comparison by location"
+                  >
+                    <p>
+                      Compares total guests served at each location with the same
+                      period last year.
+                    </p>
+                    <p>
+                      The <span className="font-medium">dot marker</span> shows
+                      last year&rsquo;s total for each location.
+                    </p>
+                  </InfoDialog>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {data.locationBreakdown.length > 0 ? (
                   <Chart
-                    key={`loc-${initialMonths}-${initialLocation}-${initialDays}`}
+                    key={`loc-${filterKey}`}
                     options={{
                       chart: {
                         type: "bar" as const,
@@ -601,77 +931,46 @@ export function RestaurantAnalyticsClient({
                         labels: {
                           formatter: (val: string) => {
                             const n = Number(val);
-                            return n >= 1000
-                              ? `${(n / 1000).toFixed(1)}k`
-                              : val;
+                            return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : val;
                           },
-                          style: {
-                            fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
-                            fontSize: "11px",
-                          },
+                          style: axisStyle,
                         },
                         title: {
-                          text: "Meals Served",
-                          style: {
-                            fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
-                            fontSize: "11px",
-                            fontWeight: 400,
-                          },
+                          text: "Guests served",
+                          style: { fontFamily: FONT, fontSize: "11px", fontWeight: 400 },
                         },
                       },
-                      yaxis: {
-                        labels: {
-                          style: {
-                            fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
-                            fontSize: "12px",
-                          },
-                        },
-                      },
+                      yaxis: { labels: { style: catStyle } },
                       colors: ["#10b981"],
                       dataLabels: {
                         enabled: true,
-                        formatter: (val: number) =>
-                          val > 0 ? val.toLocaleString() : "",
-                        style: {
-                          fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                        },
+                        formatter: (val: number) => (val > 0 ? num(val) : ""),
+                        style: { fontFamily: FONT, fontSize: "11px", fontWeight: 600 },
                       },
                       grid: {
-                        borderColor: "#e5e7eb",
+                        borderColor: gridColor,
                         strokeDashArray: 4,
                         yaxis: { lines: { show: false } },
                       },
                       tooltip: {
                         shared: true,
                         intersect: false,
-                        custom: ({
-                          dataPointIndex,
-                        }: {
-                          dataPointIndex: number;
-                        }) => {
-                          const loc =
-                            data.locationBreakdown[dataPointIndex];
+                        custom: ({ dataPointIndex }: { dataPointIndex: number }) => {
+                          const loc = data.locationBreakdown[dataPointIndex];
                           if (!loc) return "";
-                          const diff =
-                            loc.totalMeals - loc.prevYearMeals;
+                          const diff = loc.totalMeals - loc.prevYearMeals;
                           const diffLabel =
                             loc.prevYearMeals > 0
                               ? diff > 0
-                                ? `<span style="color:#10b981">+${diff.toLocaleString()} vs last year</span>`
+                                ? `<span style="color:#10b981">+${num(diff)} vs last year</span>`
                                 : diff < 0
-                                  ? `<span style="color:#ef4444">${diff.toLocaleString()} vs last year</span>`
+                                  ? `<span style="color:#ef4444">${num(diff)} vs last year</span>`
                                   : `<span style="color:#64748b">No change</span>`
                               : "";
                           return `<div style="padding:8px 12px;font-size:12px;line-height:1.6">
                             <b>${loc.location}</b><br/>
-                            This year: <b>${loc.totalMeals.toLocaleString()}</b><br/>
-                            ${loc.prevYearMeals > 0 ? `Last year: ${loc.prevYearMeals.toLocaleString()}<br/>${diffLabel}<br/>` : ""}
+                            This year: <b>${num(loc.totalMeals)}</b><br/>
+                            ${loc.prevYearMeals > 0 ? `Last year: ${num(loc.prevYearMeals)}<br/>${diffLabel}<br/>` : ""}
                             Avg: ${loc.avgPerDay}/day
                           </div>`;
                         },
@@ -692,22 +991,14 @@ export function RestaurantAnalyticsClient({
                                   shape: "circle" as const,
                                 },
                                 label: {
-                                  text:
-                                    "Last yr: " +
-                                    l.prevYearMeals.toLocaleString(),
+                                  text: "Last yr: " + num(l.prevYearMeals),
                                   borderWidth: 0,
                                   style: {
                                     fontSize: "9px",
-                                    fontFamily:
-                                      "var(--font-libre-franklin), sans-serif",
+                                    fontFamily: FONT,
                                     color: "#64748b",
                                     background: "transparent",
-                                    padding: {
-                                      left: 4,
-                                      right: 4,
-                                      top: 1,
-                                      bottom: 1,
-                                    },
+                                    padding: { left: 4, right: 4, top: 1, bottom: 1 },
                                   },
                                 },
                               })),
@@ -718,28 +1009,169 @@ export function RestaurantAnalyticsClient({
                     series={[
                       {
                         name: "This Year",
-                        data: data.locationBreakdown.map(
-                          (l) => l.totalMeals
-                        ),
+                        data: data.locationBreakdown.map((l) => l.totalMeals),
                       },
                     ]}
                     type="bar"
-                    height={Math.max(
-                      280,
-                      data.locationBreakdown.length * 80
-                    )}
+                    height={Math.max(280, data.locationBreakdown.length * 80)}
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-[320px] text-muted-foreground text-sm">
-                    No location data available
-                  </div>
+                  <ChartEmpty message="No location data available" />
                 )}
               </CardContent>
             </Card>
           </motion.div>
         </div>
 
-        {/* Year-over-Year Summary */}
+        {/* Service mix: protein + weather */}
+        {data.hasServiceStats &&
+          (data.proteinMix.length > 0 || data.weatherMix.length > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Protein mix */}
+              <motion.div variants={staggerItem}>
+                <Card className="h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Beef className="h-4 w-4 text-rose-500" />
+                      Protein Mix
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {data.proteinMix.length > 0 ? (
+                      <Chart
+                        key={`protein-${filterKey}`}
+                        options={{
+                          chart: {
+                            type: "bar" as const,
+                            toolbar: { show: false },
+                            background: "transparent",
+                          },
+                          plotOptions: {
+                            bar: {
+                              horizontal: true,
+                              borderRadius: 4,
+                              borderRadiusApplication: "end" as const,
+                              barHeight: "62%",
+                              distributed: true,
+                            },
+                          },
+                          colors: [
+                            "#f43f5e",
+                            "#f59e0b",
+                            "#10b981",
+                            "#3b82f6",
+                            "#8b5cf6",
+                            "#14b8a6",
+                            "#ec4899",
+                            "#64748b",
+                          ],
+                          xaxis: {
+                            categories: data.proteinMix.map((p) => p.label),
+                            labels: { style: axisStyle },
+                            title: {
+                              text: "Nights served",
+                              style: { fontFamily: FONT, fontSize: "11px", fontWeight: 400 },
+                            },
+                          },
+                          yaxis: { labels: { style: catStyle } },
+                          dataLabels: {
+                            enabled: true,
+                            formatter: (val: number) => String(val),
+                            style: { fontFamily: FONT, fontSize: "11px", fontWeight: 600 },
+                          },
+                          grid: {
+                            borderColor: gridColor,
+                            strokeDashArray: 4,
+                            yaxis: { lines: { show: false } },
+                          },
+                          legend: { show: false },
+                          tooltip: {
+                            y: { formatter: (val: number) => `${val} night${val === 1 ? "" : "s"}` },
+                          },
+                          theme: { mode: chartThemeMode },
+                        }}
+                        series={[
+                          { name: "Nights", data: data.proteinMix.map((p) => p.nights) },
+                        ]}
+                        type="bar"
+                        height={Math.max(220, data.proteinMix.length * 44)}
+                      />
+                    ) : (
+                      <ChartEmpty message="No protein data yet" />
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Weather mix */}
+              <motion.div variants={staggerItem}>
+                <Card className="h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <CloudSun className="h-4 w-4 text-sky-500" />
+                      Weather Mix
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {data.weatherMix.length > 0 ? (
+                      <Chart
+                        key={`weather-${filterKey}`}
+                        options={{
+                          chart: {
+                            type: "bar" as const,
+                            toolbar: { show: false },
+                            background: "transparent",
+                          },
+                          plotOptions: {
+                            bar: {
+                              horizontal: true,
+                              borderRadius: 4,
+                              borderRadiusApplication: "end" as const,
+                              barHeight: "62%",
+                            },
+                          },
+                          colors: ["#0ea5e9"],
+                          xaxis: {
+                            categories: data.weatherMix.map((w) => w.label),
+                            labels: { style: axisStyle },
+                            title: {
+                              text: "Nights",
+                              style: { fontFamily: FONT, fontSize: "11px", fontWeight: 400 },
+                            },
+                          },
+                          yaxis: { labels: { style: catStyle } },
+                          dataLabels: {
+                            enabled: true,
+                            formatter: (val: number) => String(val),
+                            style: { fontFamily: FONT, fontSize: "11px", fontWeight: 600 },
+                          },
+                          grid: {
+                            borderColor: gridColor,
+                            strokeDashArray: 4,
+                            yaxis: { lines: { show: false } },
+                          },
+                          legend: { show: false },
+                          tooltip: {
+                            y: { formatter: (val: number) => `${val} night${val === 1 ? "" : "s"}` },
+                          },
+                          theme: { mode: chartThemeMode },
+                        }}
+                        series={[
+                          { name: "Nights", data: data.weatherMix.map((w) => w.nights) },
+                        ]}
+                        type="bar"
+                        height={Math.max(220, data.weatherMix.length * 44)}
+                      />
+                    ) : (
+                      <ChartEmpty message="No weather data yet" />
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          )}
+
+        {/* Year-over-Year summary */}
         {data.hasPreviousYearData && (
           <motion.div variants={staggerItem}>
             <Card>
@@ -750,19 +1182,25 @@ export function RestaurantAnalyticsClient({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[
                     {
-                      label: "Total Meals",
+                      label: "Guests Served",
                       current: data.summary.totalMeals,
                       previous: data.summary.prevYearTotalMeals,
-                      format: (v: number) => v.toLocaleString(),
+                      format: (v: number) => num(v),
                     },
                     {
                       label: "Avg per Day",
                       current: data.summary.avgPerDay,
                       previous: data.summary.prevYearAvgPerDay,
                       format: (v: number) => String(v),
+                    },
+                    {
+                      label: "Total Koha",
+                      current: s.totalKoha,
+                      previous: s.prevTotalKoha,
+                      format: (v: number) => nzd(v),
                     },
                   ].map((metric) => {
                     const diff = metric.current - metric.previous;
@@ -771,14 +1209,11 @@ export function RestaurantAnalyticsClient({
                         ? Math.round((diff / metric.previous) * 100)
                         : 0;
                     return (
-                      <div
-                        key={metric.label}
-                        className="text-center space-y-1 py-3"
-                      >
+                      <div key={metric.label} className="text-center space-y-1 py-3">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                           {metric.label}
                         </p>
-                        <p className="text-xl font-bold">
+                        <p className="text-xl font-bold tabular-nums">
                           {metric.format(metric.current)}
                         </p>
                         {metric.previous > 0 ? (
@@ -801,9 +1236,7 @@ export function RestaurantAnalyticsClient({
                             </p>
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground">
-                            &nbsp;
-                          </p>
+                          <p className="text-xs text-muted-foreground">&nbsp;</p>
                         )}
                       </div>
                     );
@@ -816,18 +1249,16 @@ export function RestaurantAnalyticsClient({
 
         {/* Empty state */}
         {data.locationBreakdown.length === 0 &&
-          !data.currentYearTrend.some((v) => v > 0) && (
+          !data.currentYearTrend.some((v) => v > 0) &&
+          !data.hasServiceStats && (
             <motion.div variants={staggerItem}>
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
                   <UtensilsCrossed className="h-8 w-8 mx-auto mb-3 opacity-50" />
                   <p className="font-medium">No data available</p>
                   <p className="text-sm mt-1">
-                    No meals served data found for the last{" "}
-                    {MONTHS_LABELS[initialMonths]}
-                    {initialLocation !== "all" &&
-                      ` at ${initialLocation}`}
-                    .
+                    No restaurant data found for the {rangeLabel}
+                    {initialLocation !== "all" && ` at ${initialLocation}`}.
                   </p>
                 </CardContent>
               </Card>

@@ -26,6 +26,7 @@ interface Location {
   name: string;
   address: string;
   defaultMealsServed: number;
+  targetPerNight: number | null;
   isActive: boolean;
   isPopup: boolean;
   createdAt: Date;
@@ -150,6 +151,7 @@ export function LocationSettingsForm({
     name: "",
     address: "",
     defaultMealsServed: 60,
+    targetPerNight: "",
     isPopup: false,
   });
   const [creating, setCreating] = useState(false);
@@ -272,6 +274,7 @@ export function LocationSettingsForm({
           name: "",
           address: "",
           defaultMealsServed: 60,
+          targetPerNight: "",
           isPopup: false,
         });
         setDialogOpen(false);
@@ -306,6 +309,7 @@ export function LocationSettingsForm({
           name: editingLocation.name,
           address: editingLocation.address,
           defaultMealsServed: editingLocation.defaultMealsServed,
+          targetPerNight: editingLocation.targetPerNight,
           isPopup: editingLocation.isPopup,
         }),
       });
@@ -512,6 +516,29 @@ export function LocationSettingsForm({
                   className="mt-1.5"
                 />
               </div>
+              <div>
+                <Label htmlFor="new-target-per-night">
+                  Koha target / night ($)
+                </Label>
+                <Input
+                  id="new-target-per-night"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newLocation.targetPerNight}
+                  onChange={(e) =>
+                    setNewLocation((prev) => ({
+                      ...prev,
+                      targetPerNight: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g. 781"
+                  className="mt-1.5"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional koha banking target per service night.
+                </p>
+              </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 pr-4">
                   <Label htmlFor="new-is-popup">Pop-up location</Label>
@@ -678,6 +705,36 @@ export function LocationSettingsForm({
                   }
                   className="mt-1.5"
                 />
+              </div>
+              <div>
+                <Label htmlFor="edit-target-per-night">
+                  Koha target / night ($)
+                </Label>
+                <Input
+                  id="edit-target-per-night"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editingLocation.targetPerNight ?? ""}
+                  onChange={(e) =>
+                    setEditingLocation((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            targetPerNight:
+                              e.target.value === ""
+                                ? null
+                                : Number(e.target.value),
+                          }
+                        : null
+                    )
+                  }
+                  placeholder="e.g. 781"
+                  className="mt-1.5"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional koha banking target per service night.
+                </p>
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5 pr-4">
