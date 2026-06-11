@@ -2,8 +2,12 @@
 # (see Dockerfile). Exclude everything heavy or sensitive from the context.
 node_modules
 .next/cache
-.env*
-!.env.example
+# Never bake env files into the image — runtime env is injected by Coolify.
+# `next build` copies .env into .next/standalone/, so exclude it recursively
+# (a root-anchored `.env*` would miss the nested copy).
+**/.env
+**/.env.*
+!**/.env.example
 tests
 playwright-report
 test-results
