@@ -1,0 +1,13 @@
+# Only the build output and public assets are copied into the image
+# (see Dockerfile). Exclude everything heavy or sensitive from the context.
+node_modules
+.next/cache
+.env*
+!.env.example
+tests
+playwright-report
+test-results
+docs
+*.md
+.turbo
+.git

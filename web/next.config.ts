@@ -1,9 +1,16 @@
-import { withBotId } from "botid/next/config";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Optimize for Vercel serverless functions
+  // Self-contained build output for Docker deployment
+  output: "standalone",
+
+  // Pin the tracing root to web/ so standalone output always has server.js
+  // at its top level regardless of where the repo is checked out
+  // (next build always runs from web/)
+  outputFileTracingRoot: process.cwd(),
+
+  // Keep native/heavy packages out of the server bundle
   serverExternalPackages: ["@prisma/client", "bcrypt"],
 
   // Configure external image domains
@@ -76,4 +83,4 @@ const finalConfig = posthogEnabled
     })
   : nextConfig;
 
-export default withBotId(finalConfig);
+export default finalConfig;

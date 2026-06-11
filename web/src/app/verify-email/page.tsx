@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CheckCircle2, XCircle, Mail, Loader2 } from "lucide-react";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 
 type VerificationState = "loading" | "success" | "error" | "expired" | "already_verified";
 
@@ -25,6 +26,7 @@ export default function VerifyEmailPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", description: "" });
   
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -99,9 +101,13 @@ export default function VerifyEmailPage() {
 
     setIsResending(true);
     try {
+      const turnstileToken = await turnstileRef.current?.getToken();
       const response = await fetch("/api/auth/resend-verification", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
+        },
         body: JSON.stringify({ email: resendEmail }),
       });
 
@@ -222,7 +228,8 @@ export default function VerifyEmailPage() {
                   data-testid="resend-email-input"
                 />
               </div>
-              <Button 
+              <Turnstile ref={turnstileRef} />
+              <Button
                 onClick={handleResendVerification}
                 disabled={isResending}
                 className="w-full"
