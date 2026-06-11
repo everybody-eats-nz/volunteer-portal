@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   // Self-contained build output for Docker deployment
   output: "standalone",
 
+  // Serve uncompressed from the origin and let Cloudflare compress at the edge
+  // (brotli). Cloudflare passes through origin gzip rather than upgrading it,
+  // so disabling Next's gzip is required to get brotli to the browser.
+  // The app domain is always behind the Cloudflare proxy in production.
+  compress: false,
+
   // Pin the tracing root to web/ so standalone output always has server.js
   // at its top level regardless of where the repo is checked out
   // (next build always runs from web/)
