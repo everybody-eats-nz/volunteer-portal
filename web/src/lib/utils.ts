@@ -23,19 +23,22 @@ export function calculateAge(dateOfBirth: Date): number {
   return age;
 }
 
-// Get the base URL for the application
-// For demo environment, use the stable demo URL instead of commit-specific URLs
+// Get the base URL for the application.
+// Used server-side to build absolute links (verification/reset emails, OAuth
+// callbacks, SEO canonical URLs), so it must reflect the public domain.
 export function getBaseUrl(): string {
-  // Check if we're in the demo environment
+  // Canonical app URL — set in every self-hosted environment (Coolify, local).
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL.replace(/\/$/, "");
+  }
+
+  // Back-compat with Vercel deployments
   if (process.env.VERCEL_ENV === "preview") {
     return "https://demo.everybody-eats.vercel.app";
   }
-
   if (process.env.VERCEL_ENV === "production") {
     return "https://volunteers.everybodyeats.nz";
   }
-
-  // For other Vercel deployments or local development
   const vercelUrl = process.env.VERCEL_URL;
   return vercelUrl ? `https://${vercelUrl}` : "http://localhost:3000";
 }

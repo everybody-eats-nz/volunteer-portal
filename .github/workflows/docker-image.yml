@@ -34,6 +34,9 @@ env:
   NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy-project.supabase.co' }}
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key' }}
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '' }}
+  # Drives the header environment badge (inlined at build time):
+  # main -> production (no badge); other branches -> staging (STAGING badge).
+  NEXT_PUBLIC_APP_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
   SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-build
   TZ: Pacific/Auckland
   IMAGE_NAME: ghcr.io/${{ github.repository }}/web
