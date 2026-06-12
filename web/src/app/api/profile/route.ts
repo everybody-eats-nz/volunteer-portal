@@ -6,7 +6,6 @@ import { z } from "zod";
 import { Prisma } from "@/generated/client";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { autoLabelUnder16User, isUserUnder16 } from "@/lib/auto-label-utils";
-import { checkForBot } from "@/lib/bot-protection";
 import { CampaignMonitorService } from "@/lib/services/campaign-monitor";
 import { syncNewsletterSubscriptions } from "@/lib/newsletter-sync";
 import { getEmailService } from "@/lib/email-service";
@@ -165,14 +164,6 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  // Check for bot traffic first
-  const botResponse = await checkForBot(
-    "Profile update blocked due to automated activity detection."
-  );
-  if (botResponse) {
-    return botResponse;
-  }
-
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {

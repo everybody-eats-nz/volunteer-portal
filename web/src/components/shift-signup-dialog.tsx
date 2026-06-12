@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge } from "@/lib/utils";
 import { MessageSquareDot, User } from "lucide-react";
 import Link from "next/link";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 
 interface ShiftSignupDialogProps {
   shift: {
@@ -72,6 +73,7 @@ export function ShiftSignupDialog({
   concurrentShifts = [],
   children,
 }: ShiftSignupDialogProps) {
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const router = useRouter();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -203,9 +205,13 @@ export function ShiftSignupDialog({
     setIsResendingVerification(true);
     setError(null);
     try {
+      const turnstileToken = await turnstileRef.current?.getToken();
       const response = await fetch("/api/auth/resend-verification", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
+        },
         body: JSON.stringify({}),
       });
 
@@ -386,6 +392,7 @@ export function ShiftSignupDialog({
                   You must verify your email address before signing up for
                   shifts. Please check your inbox for a verification email.
                 </p>
+                <Turnstile ref={turnstileRef} />
                 {verificationResent ? (
                   <div className="bg-green-50 border border-green-200 rounded-md p-3">
                     <p className="text-green-700 text-sm">

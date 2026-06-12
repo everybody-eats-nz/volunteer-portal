@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, getProviders } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import {
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionCard } from "@/components/motion-card";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import {
   type LocationOption,
   getDefaultLocationCandidates,
@@ -323,6 +324,7 @@ export function MigrationRegistrationForm({
   locationOptions,
   newsletterLists,
 }: MigrationRegistrationFormProps) {
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -591,11 +593,14 @@ export function MigrationRegistrationForm({
         migrationToken: token, // Include migration token
       };
 
+      const turnstileToken = await turnstileRef.current?.getToken();
+
       // Use the unified registration endpoint with migration flag
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
         },
         body: JSON.stringify({
           ...processedData,
@@ -823,6 +828,8 @@ export function MigrationRegistrationForm({
         <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-8">
             <div className="min-h-[300px] sm:min-h-[400px]">{renderCurrentStep()}</div>
+
+            <Turnstile ref={turnstileRef} />
 
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-border">

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyEmailToken } from "@/lib/email-verification";
-import { checkForBot } from "@/lib/bot-protection";
 import { getEmailService } from "@/lib/email-service";
 import { prisma } from "@/lib/prisma";
 
@@ -56,12 +55,6 @@ async function sendProfileCompletionEmail(userId: string): Promise<void> {
  */
 export async function POST(req: Request) {
   try {
-    // Check for bot traffic first
-    const botResponse = await checkForBot("Email verification blocked due to automated activity detection.");
-    if (botResponse) {
-      return botResponse;
-    }
-
     const body = await req.json();
     const validatedData = verifyEmailSchema.parse(body);
 

@@ -8,8 +8,6 @@ import { SiteFooterWrapper } from "@/components/site-footer-wrapper";
 import { Providers } from "@/components/providers";
 import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { BotProtectionClient } from "@/components/bot-protection-client";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { getBaseUrl } from "@/lib/utils";
 import { SEO_CONFIG } from "@/lib/seo";
@@ -122,8 +120,6 @@ export default function RootLayout({
           </Suspense>
           <Toaster position="top-right" closeButton />
         </Providers>
-        <BotProtectionClient />
-        <SpeedInsights />
       </body>
     </html>
   );
