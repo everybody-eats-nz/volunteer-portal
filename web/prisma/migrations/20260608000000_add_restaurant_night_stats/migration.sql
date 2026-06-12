@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE "MealsServed" ADD COLUMN     "bookingsPax" INTEGER,
+ADD COLUMN     "briefing" TEXT,
+ADD COLUMN     "cash" DECIMAL(10,2),
+ADD COLUMN     "eftpos" DECIMAL(10,2),
+ADD COLUMN     "eftposTransactions" INTEGER,
+ADD COLUMN     "meatVegeSplit" INTEGER,
+ADD COLUMN     "menuScore" DOUBLE PRECISION,
+ADD COLUMN     "newVolunteers" INTEGER,
+ADD COLUMN     "nonPayingRatio" DOUBLE PRECISION,
+ADD COLUMN     "protein" TEXT,
+ADD COLUMN     "questStripe" DECIMAL(10,2),
+ADD COLUMN     "receiptsUploaded" BOOLEAN,
+ADD COLUMN     "takeaways" INTEGER,
+ADD COLUMN     "weather" TEXT;

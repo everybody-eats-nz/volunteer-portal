@@ -27,9 +27,17 @@ export default async function AnalyticsPage({
   const months = (params.months as string) || "3";
   const location = (params.location as string) || "all";
   const days = (params.days as string) || "";
+  const from = (params.from as string) || "";
+  const to = (params.to as string) || "";
   const daysFilter = parseDaysParam(days);
 
-  const data = await getRestaurantAnalytics(parseInt(months, 10), location, daysFilter);
+  const data = await getRestaurantAnalytics(
+    parseInt(months, 10),
+    location,
+    daysFilter,
+    from || null,
+    to || null
+  );
 
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
@@ -39,7 +47,7 @@ export default async function AnalyticsPage({
   return (
     <AdminPageWrapper
       title="Restaurant Analytics"
-      description="Meals served metrics and year-over-year comparisons across all locations"
+      description="Guests served, koha, volunteers and service-night insights across all locations"
     >
       <PageContainer testid="restaurant-analytics-page">
         <RestaurantAnalyticsClient
@@ -47,6 +55,8 @@ export default async function AnalyticsPage({
           months={months}
           location={location}
           days={days}
+          from={from}
+          to={to}
           locations={locationOptions}
         />
       </PageContainer>
