@@ -17,8 +17,6 @@ permissions:
 
 on:
   push:
-    # TODO(remove before merge): temporary trigger so we can build a staging
-    # image from this branch without merging to main.
     branches: [main]
     paths: ["web/**", ".github/workflows/docker-image.yml"]
   workflow_dispatch:
@@ -128,6 +126,10 @@ jobs:
           context: web
           file: web/Dockerfile
           push: true
+          # Provenance/SBOM attestation manifests trigger intermittent
+          # "unknown blob" push failures on GHCR — disable them.
+          provenance: false
+          sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
