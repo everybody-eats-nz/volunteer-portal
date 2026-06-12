@@ -19,7 +19,7 @@ on:
   push:
     # TODO(remove before merge): temporary trigger so we can build a staging
     # image from this branch without merging to main.
-    branches: [main, claude/elated-kalam-211f52]
+    branches: [main]
     paths: ["web/**", ".github/workflows/docker-image.yml"]
   workflow_dispatch:
 
