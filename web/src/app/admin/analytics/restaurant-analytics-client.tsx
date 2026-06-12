@@ -441,7 +441,7 @@ export function RestaurantAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -456,7 +456,7 @@ export function RestaurantAnalyticsClient({
                               : String(Math.round(val)),
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -503,7 +503,7 @@ export function RestaurantAnalyticsClient({
                         position: "top" as const,
                         fontSize: "12px",
                         fontFamily:
-                          "var(--font-libre-franklin), sans-serif",
+                          "var(--font-jakarta), sans-serif",
                         markers: { size: 6, offsetX: -2 },
                       },
                       theme: { mode: chartThemeMode },
@@ -607,7 +607,7 @@ export function RestaurantAnalyticsClient({
                           },
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -615,7 +615,7 @@ export function RestaurantAnalyticsClient({
                           text: "Meals Served",
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                             fontWeight: 400,
                           },
@@ -625,7 +625,7 @@ export function RestaurantAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "12px",
                           },
                         },
@@ -637,7 +637,7 @@ export function RestaurantAnalyticsClient({
                           val > 0 ? val.toLocaleString() : "",
                         style: {
                           fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                            "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                           fontWeight: 600,
                         },
@@ -699,7 +699,7 @@ export function RestaurantAnalyticsClient({
                                   style: {
                                     fontSize: "9px",
                                     fontFamily:
-                                      "var(--font-libre-franklin), sans-serif",
+                                      "var(--font-jakarta), sans-serif",
                                     color: "#64748b",
                                     background: "transparent",
                                     padding: {

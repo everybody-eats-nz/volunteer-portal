@@ -408,7 +408,7 @@ export function MilestoneAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -419,7 +419,7 @@ export function MilestoneAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -445,7 +445,7 @@ export function MilestoneAnalyticsClient({
                         show: hasMultipleRestaurants,
                         position: "bottom" as const,
                         fontSize: "12px",
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-jakarta), sans-serif",
                         markers: { size: 6, offsetX: -2 },
                         itemMargin: { horizontal: 8, vertical: 4 },
                       },
@@ -546,7 +546,7 @@ export function MilestoneAnalyticsClient({
                           text: "Volunteers",
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                             fontWeight: 400,
                           },
@@ -554,7 +554,7 @@ export function MilestoneAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -565,7 +565,7 @@ export function MilestoneAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "12px",
                           },
                         },
@@ -591,7 +591,7 @@ export function MilestoneAnalyticsClient({
                         show: hasMultipleRestaurants,
                         position: "bottom" as const,
                         fontSize: "12px",
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-jakarta), sans-serif",
                         markers: { size: 6, offsetX: -2 },
                         itemMargin: { horizontal: 8, vertical: 4 },
                       },
@@ -715,7 +715,7 @@ export function MilestoneAnalyticsClient({
                       categories: projCategories,
                       labels: {
                         style: {
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                         },
                       },
@@ -726,14 +726,14 @@ export function MilestoneAnalyticsClient({
                       title: {
                         text: "Volunteers projected",
                         style: {
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                           fontWeight: 400,
                         },
                       },
                       labels: {
                         style: {
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                         },
                       },
@@ -759,7 +759,7 @@ export function MilestoneAnalyticsClient({
                       show: hasMultipleRestaurants,
                       position: "bottom" as const,
                       fontSize: "12px",
-                      fontFamily: "var(--font-libre-franklin), sans-serif",
+                      fontFamily: "var(--font-jakarta), sans-serif",
                       markers: { size: 6, offsetX: -2 },
                       itemMargin: { horizontal: 8, vertical: 4 },
                     },

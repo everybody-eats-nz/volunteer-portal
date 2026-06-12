@@ -40,10 +40,10 @@ export function UserMenu({
           data-testid="user-menu-button"
           variant="ghost"
           size="sm"
-          className="relative text-white/90 hover:text-white hover:bg-white/10 transition-colors duration-200 rounded-lg px-2 py-1"
+          className="relative text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-200 rounded-full px-2 py-1"
         >
           <div data-testid="user-menu" className="flex items-center gap-2">
-            <Avatar className="w-7 h-7 border border-white/20">
+            <Avatar className="w-7 h-7 border border-forest-500/20 dark:border-cream-50/20">
               {profilePhotoUrl ? (
                 <AvatarImage
                   src={profilePhotoUrl}
@@ -59,7 +59,7 @@ export function UserMenu({
                   }}
                 />
               ) : null}
-              <AvatarFallback className="text-sm font-semibold bg-white/20 text-white backdrop-blur-sm">
+              <AvatarFallback className="text-sm font-semibold bg-forest-500/10 text-forest-700 dark:bg-cream-50/15 dark:text-cream-50">
                 {initials}
               </AvatarFallback>
             </Avatar>
