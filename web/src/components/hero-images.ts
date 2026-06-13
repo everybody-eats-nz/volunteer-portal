@@ -36,7 +36,6 @@ import p30 from "@/assets/photos/ee-march-2026-5968.webp";
 import p31 from "@/assets/photos/ee-march-2026-6250.webp";
 import p32 from "@/assets/photos/ee-march-2026-6269.webp";
 import p33 from "@/assets/photos/ee-march-2026-6467-2.webp";
-import p34 from "@/assets/photos/ee-queer-cuisine-158.webp";
 import p35 from "@/assets/photos/ee-queer-cuisine-200.webp";
 import p36 from "@/assets/photos/food-1.webp";
 import p37 from "@/assets/photos/gi3.webp";
@@ -90,7 +89,6 @@ export const HERO_IMAGES: CycleImage[] = [
   { image: p31, alt: "Everybody Eats volunteers sharing kai with the whānau" },
   { image: p32, alt: "A freshly plated Everybody Eats meal" },
   { image: p33, alt: "Everybody Eats volunteers sharing kai with the whānau" },
-  { image: p34, alt: "Guests and volunteers at an Everybody Eats event night" },
   { image: p35, alt: "Guests and volunteers at an Everybody Eats event night" },
   { image: p36, alt: "A freshly plated Everybody Eats meal" },
   { image: p37, alt: "Inside an Everybody Eats restaurant dining room" },
