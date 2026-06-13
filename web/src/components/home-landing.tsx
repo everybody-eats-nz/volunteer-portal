@@ -12,6 +12,20 @@ import {
 } from "@/components/hero-image-cycler";
 import { getHomeStats } from "@/lib/home-stats";
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
+// Static imports → Next fingerprints each file with a content hash in its URL,
+// so updating an image busts every cache (browser, optimizer, CDN) on its own.
+import appHomeScreen from "@/assets/app-home-screen.png";
+import restaurantTables from "@/assets/photos/restaurant-tables.webp";
+import wellingtonLadle from "@/assets/photos/wellington-ladle.webp";
+import volunteerCrew from "@/assets/photos/volunteer-crew.webp";
+import wellingtonPlating from "@/assets/photos/wellington-plating.webp";
+import wellingtonLaughing from "@/assets/photos/wellington-laughing.webp";
+import chefPrep from "@/assets/photos/chef-prep.webp";
+import wellingtonServing from "@/assets/photos/wellington-serving.webp";
+import wellingtonDiningRoom from "@/assets/photos/wellington-dining-room.webp";
+import communityDining from "@/assets/photos/community-dining.webp";
+import platingUp from "@/assets/photos/plating-up.webp";
+import kohaTin from "@/assets/photos/koha-tin.webp";
 
 /* Pill buttons — shared brand system with the marketing site
    (marketing-cms STYLEGUIDE.md: btn-primary / btn-accent / btn-ghost). */
@@ -102,10 +116,8 @@ function PhoneMock() {
       <div className="absolute -top-8 -left-10 h-28 w-28 rounded-full bg-sun-200 rotate-12 shadow-xl" />
       <div className="relative rotate-2 overflow-hidden rounded-[2.75rem] border border-cream-50/15 bg-forest-800 p-2 shadow-2xl">
         <Image
-          src="/app-home-screen.png"
+          src={appHomeScreen}
           alt=""
-          width={603}
-          height={1311}
           sizes="270px"
           className="h-auto w-full rounded-[2.25rem]"
         />
@@ -118,27 +130,35 @@ function PhoneMock() {
    library and the Wellington photo set, pre-cropped into web/public/photos. */
 const HERO_IMAGES: CycleImage[] = [
   {
-    src: "/photos/restaurant-tables.webp",
+    image: restaurantTables,
     alt: "People enjoying meals together at Everybody Eats restaurant",
   },
   {
-    src: "/photos/wellington-ladle.webp",
+    image: wellingtonLadle,
     alt: "A smiling volunteer holding a ladle in the Wellington kitchen",
   },
   {
-    src: "/photos/volunteer-crew.webp",
+    image: wellingtonServing,
+    alt: "A volunteer serving a plated dessert over the kitchen pass",
+  },
+  {
+    image: volunteerCrew,
     alt: "A crew of Everybody Eats volunteers smiling together after service",
   },
   {
-    src: "/photos/wellington-plating.webp",
+    image: wellingtonPlating,
     alt: "Two volunteers plating meals at the kitchen pass",
   },
   {
-    src: "/photos/wellington-laughing.webp",
+    image: wellingtonDiningRoom,
+    alt: "Everybody Eats' warm dining room set with communal tables",
+  },
+  {
+    image: wellingtonLaughing,
     alt: "Two volunteers laughing together over a tray of kai",
   },
   {
-    src: "/photos/chef-prep.webp",
+    image: chefPrep,
     alt: "A chef preparing trays of kai in the Everybody Eats kitchen",
   },
 ];
@@ -149,7 +169,7 @@ const FEATURES = [
     title: "Community Impact",
     copy: "Join hundreds of volunteers making a real difference in our communities across New Zealand.",
     testId: "feature-community-impact",
-    image: "/photos/community-dining.webp",
+    image: communityDining,
     imageAlt: "Diners sharing kai outside the Everybody Eats restaurant",
   },
   {
@@ -157,7 +177,7 @@ const FEATURES = [
     title: "Flexible Scheduling",
     copy: "Choose shifts that fit your schedule. From prep work to service, find opportunities that work for you.",
     testId: "feature-flexible-scheduling",
-    image: "/photos/plating-up.webp",
+    image: platingUp,
     imageAlt: "A volunteer plating up dishes during dinner service",
   },
   {
@@ -165,7 +185,7 @@ const FEATURES = [
     title: "Meaningful Work",
     copy: "Help fight food waste and food insecurity while building connections in your local community.",
     testId: "feature-meaningful-work",
-    image: "/photos/koha-tin.webp",
+    image: kohaTin,
     imageAlt: "A koha tin thanking diners for their pay-what-you-can support",
   },
 ] as const;
@@ -253,7 +273,7 @@ export async function HomeLanding() {
           </HeroContent>
 
           <HeroContent className="relative hidden md:block lg:col-span-5">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[3rem] shadow-2xl">
+            <div className="group relative aspect-[4/5] overflow-hidden rounded-[3rem] shadow-2xl">
               <HeroImageCycler images={HERO_IMAGES} />
             </div>
           </HeroContent>
