@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { buildPageMetadata, buildOrganizationSchema } from "@/lib/seo";
 import {
-  FeatureFlag,
-  getFlagVariant,
-  type HomepageVariant,
-} from "@/lib/posthog-server";
-import { captureFunnelEvent, FunnelEvent, getPhidFromCookies } from "@/lib/funnel";
-import { HomeControl } from "@/components/home-control";
-import { HomeDashboard } from "@/components/home-dashboard";
+  captureFunnelEvent,
+  FunnelEvent,
+  getPhidFromCookies,
+} from "@/lib/funnel";
+import { HomeLanding } from "@/components/home-landing";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Make a Difference One Plate at a Time",
@@ -16,46 +14,14 @@ export const metadata: Metadata = buildPageMetadata({
   path: "/",
 });
 
-const VALID_VARIANTS: HomepageVariant[] = ["control", "dashboard"];
-
-function isValidVariant(value: unknown): value is HomepageVariant {
-  return typeof value === "string" && VALID_VARIANTS.includes(value as HomepageVariant);
-}
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function Home() {
   const organizationSchema = buildOrganizationSchema();
-  const params = await searchParams;
   const phid = await getPhidFromCookies();
 
-  // QA override — `?variant=control` or `?variant=dashboard` forces a variant
-  // for screenshot testing without needing a flag toggle.
-  const overrideRaw = Array.isArray(params.variant)
-    ? params.variant[0]
-    : params.variant;
-  const override = isValidVariant(overrideRaw) ? overrideRaw : undefined;
-
-  const variant: HomepageVariant =
-    override ??
-    (phid
-      ? await getFlagVariant<HomepageVariant>(
-          FeatureFlag.HOMEPAGE_REDESIGN,
-          phid,
-          "control"
-        )
-      : "control");
-
-  // Funnel exposure event — counted as the entry point of the experiment.
+  // Funnel entry point — first touch for the register/signup funnels.
   captureFunnelEvent({
     event: FunnelEvent.HOMEPAGE_VIEWED,
     phid,
-    properties: {
-      variant,
-      override: !!override,
-    },
   });
 
   return (
@@ -64,7 +30,7 @@ export default async function Home({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
-      {variant === "dashboard" ? <HomeDashboard /> : <HomeControl />}
+      <HomeLanding />
     </>
   );
 }

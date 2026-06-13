@@ -380,7 +380,7 @@ export function CoverageAnalyticsClient({
                       stacked: true,
                       toolbar: { show: false },
                       background: "transparent",
-                      fontFamily: "var(--font-libre-franklin), sans-serif",
+                      fontFamily: "var(--font-jakarta), sans-serif",
                     },
                     plotOptions: {
                       bar: {

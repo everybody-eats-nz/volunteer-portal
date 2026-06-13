@@ -76,25 +76,25 @@ function HeaderSkeleton({ pathname }: { pathname: string }) {
 
   const getLinkClassName = (path: string) => {
     return cn(
-      "text-white/90 hover:bg-white/10 rounded-lg px-3 py-2 font-medium border border-transparent",
+      "px-4 py-2 text-sm font-medium rounded-full text-forest-700/75 hover:bg-forest-700/5 dark:text-cream-50/75 dark:hover:bg-cream-50/5",
       pathname === path &&
-        "text-white bg-white/15 shadow-lg font-medium"
+        "text-forest-700 bg-forest-700/10 dark:text-cream-50 dark:bg-cream-50/10"
     );
   };
 
   return (
-    <header className="border-b border-white/10 dark:border-gray-800 shadow-lg dark:shadow-xl">
-      <div className="bg-[var(--ee-primary)] text-white relative">
+    <header className="sticky top-0 z-40 border-b border-forest-500/10 backdrop-blur-md dark:border-cream-50/10">
+      <div className="relative bg-cream-50/85 text-forest-700 dark:bg-[#0f1114]/85 dark:text-cream-50">
         <nav
           aria-label="Main"
-          className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4"
+          className="relative max-w-[88rem] mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center gap-4"
         >
           {/* Mobile hamburger */}
           <div className="flex lg:hidden">
             <Button
               variant="ghost"
               size="sm"
-              className="text-white/90 hover:text-white hover:bg-white/10 p-2 rounded-lg"
+              className="text-forest-700 hover:bg-forest-700/5 dark:text-cream-50 dark:hover:bg-cream-50/5 p-2 rounded-full"
               aria-label="Toggle mobile menu"
               disabled
             >
@@ -109,12 +109,12 @@ function HeaderSkeleton({ pathname }: { pathname: string }) {
           >
             <div className="relative">
               <Image
-                src="/logo.svg"
+                src="/everybody-eats-logo.svg"
                 alt="Everybody Eats"
-                width={240}
-                height={88}
+                width={179}
+                height={65}
                 priority
-                className="h-14 w-auto drop-shadow-sm"
+                className="h-9 sm:h-10 w-auto dark:[filter:brightness(0)_invert(0.93)_sepia(0.08)]"
               />
               {showDemoIndicator && (
                 <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
@@ -141,8 +141,8 @@ function HeaderSkeleton({ pathname }: { pathname: string }) {
               <ThemeToggle />
             </div>
             {/* Skeleton pills matching the sign-in buttons size */}
-            <div className="h-8 w-16 rounded-lg bg-white/10 animate-pulse" />
-            <div className="h-8 w-20 rounded-lg bg-white/20 animate-pulse" />
+            <div className="h-8 w-16 rounded-full bg-forest-700/5 dark:bg-cream-50/10 animate-pulse" />
+            <div className="h-8 w-20 rounded-full bg-forest-700/10 dark:bg-cream-50/20 animate-pulse" />
           </div>
         </nav>
       </div>

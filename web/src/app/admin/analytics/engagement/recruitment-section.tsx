@@ -438,7 +438,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       labels: {
                         style: {
                           fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                            "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                         },
                         rotate: -45,
@@ -453,7 +453,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                       labels: {
                         style: {
                           fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                            "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                         },
                         formatter: (v: number) => String(Math.round(v)),
@@ -464,7 +464,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     legend: {
                       show: locations.length > 1,
                       position: "bottom",
-                      fontFamily: "var(--font-libre-franklin), sans-serif",
+                      fontFamily: "var(--font-jakarta), sans-serif",
                       fontSize: "12px",
                       markers: { size: 6 },
                       itemMargin: { horizontal: 8, vertical: 4 },
@@ -731,7 +731,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     categories: timeToFirstShiftBuckets.map(([label]) => label),
                     labels: {
                       style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-jakarta), sans-serif",
                         fontSize: "12px",
                       },
                     },
@@ -740,7 +740,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     title: {
                       text: "Volunteers",
                       style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-jakarta), sans-serif",
                         fontSize: "11px",
                         fontWeight: 400,
                       },
@@ -749,7 +749,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                   yaxis: {
                     labels: {
                       style: {
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-jakarta), sans-serif",
                         fontSize: "12px",
                       },
                     },
@@ -759,7 +759,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                     enabled: true,
                     formatter: (val: number) => (val > 0 ? String(val) : ""),
                     style: {
-                      fontFamily: "var(--font-libre-franklin), sans-serif",
+                      fontFamily: "var(--font-jakarta), sans-serif",
                       fontSize: "12px",
                       fontWeight: 600,
                     },
@@ -767,7 +767,7 @@ export function RecruitmentSection({ data, months, location }: Props) {
                   legend: {
                     show: locations.length > 1,
                     position: "bottom",
-                    fontFamily: "var(--font-libre-franklin), sans-serif",
+                    fontFamily: "var(--font-jakarta), sans-serif",
                     fontSize: "12px",
                     markers: { size: 6 },
                     itemMargin: { horizontal: 8, vertical: 4 },

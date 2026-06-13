@@ -22,12 +22,16 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
+  // Round bordered icon button — matches the marketing site's theme toggle.
+  const triggerClassName =
+    "h-9 w-9 rounded-full border border-forest-500/20 text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:border-cream-50/20 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-200 p-2";
+
   if (!mounted) {
     return (
       <Button
         variant="ghost"
         size="sm"
-        className="text-white/90 hover:text-white hover:bg-white/10 transition-colors duration-200 rounded-lg p-2"
+        className={triggerClassName}
         aria-label="Theme selection menu"
       >
         <div className="h-5 w-5" />
@@ -41,7 +45,7 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-white/90 hover:text-white hover:bg-white/10 transition-colors duration-200 rounded-lg p-2 relative"
+          className={`${triggerClassName} relative`}
           aria-label="Theme selection menu"
         >
           <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

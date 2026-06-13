@@ -185,7 +185,7 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 ### Shared Design Language
 
 Both apps use the same brand fonts and colors:
-- **Fonts**: Libre Franklin (body) + Fraunces (headings)
+- **Fonts**: Fraunces (headings); body is Plus Jakarta Sans on web (matching the marketing site) and Libre Franklin on mobile
 - **Colors**: Same brand palette defined in `mobile/constants/theme.ts` (mobile) and Tailwind config (web)
 - **Te Reo Māori**: Weave in throughout — "Kia ora", "mahi", "whānau", "Ka pai", "Ngā mihi"
 

@@ -41,27 +41,27 @@ export function SiteHeader({
 
   const getLinkClassName = (path: string) => {
     return cn(
-      "text-white/90 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 backdrop-blur-sm transition-all duration-300 ease-out hover:scale-105 active:scale-95 rounded-lg px-3 py-2 font-medium relative overflow-hidden group border border-transparent hover:border-white/20 dark:hover:border-white-700",
+      "px-4 py-2 text-sm font-medium rounded-full transition-colors text-forest-700/75 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/75 dark:hover:text-cream-50 dark:hover:bg-cream-50/5",
       isActive(path) &&
-        "text-white bg-white/15 dark:bg-white/10 backdrop-blur-sm shadow-lg font-medium"
+        "text-forest-700 bg-forest-700/10 dark:text-cream-50 dark:bg-cream-50/10"
     );
   };
 
   const isAdmin = session?.user?.role === "ADMIN";
 
   return (
-    <header className="border-b border-white/10 dark:border-gray-800 shadow-lg dark:shadow-xl">
-      <div className="bg-[var(--ee-primary)] text-white relative">
+    <header className="sticky top-0 z-40 border-b border-forest-500/10 backdrop-blur-md dark:border-cream-50/10">
+      <div className="relative bg-cream-50/85 text-forest-700 dark:bg-[#0f1114]/85 dark:text-cream-50">
         <nav
           aria-label="Main"
-          className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4"
+          className="relative max-w-[88rem] mx-auto px-5 sm:px-8 lg:px-12 py-3 flex items-center gap-4"
         >
           {/* Mobile hamburger menu button */}
           <div className="flex lg:hidden">
             <Button
               variant="ghost"
               size="sm"
-              className="text-white/90 hover:text-white hover:bg-white/10 p-2 transition-colors duration-200 rounded-lg"
+              className="text-forest-700 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 p-2 transition-colors duration-200 rounded-full"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle mobile menu"
             >
@@ -79,19 +79,18 @@ export function SiteHeader({
           >
             <div className="relative">
               <Image
-                src="/logo.svg"
+                src="/everybody-eats-logo.svg"
                 alt="Everybody Eats"
-                width={240}
-                height={88}
+                width={179}
+                height={65}
                 priority
-                className="h-14 w-auto transition-all duration-300 ease-out group-hover:scale-105 group-active:scale-95 drop-shadow-sm"
+                className="h-9 sm:h-10 w-auto transition-all duration-300 ease-out group-hover:scale-105 group-active:scale-95 dark:[filter:brightness(0)_invert(0.93)_sepia(0.08)]"
               />
               {showDemoIndicator && (
                 <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                   {demoLabel}
                 </div>
               )}
-              <div className="absolute inset-0 bg-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10 blur-xl" />
             </div>
             <span className="sr-only">Everybody Eats logo</span>
           </Link>
@@ -181,7 +180,7 @@ export function SiteHeader({
                 )}
 
                 {/* Divider between notifications and user menu */}
-                <div className="hidden sm:block w-px h-6 bg-white/20" />
+                <div className="hidden sm:block w-px h-6 bg-forest-500/15 dark:bg-cream-50/15" />
 
                 {/* User Menu */}
                 <UserMenu
@@ -197,15 +196,11 @@ export function SiteHeader({
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="text-white/90 hover:text-white hover:bg-white/10 backdrop-blur-sm transition-colors duration-300 rounded-lg px-3 py-2 font-medium"
+                  className="text-forest-700/75 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/75 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-300 rounded-full px-4 py-2 font-medium"
                 >
                   <Link href="/register">Join Us</Link>
                 </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  className="bg-white text-[var(--ee-primary)] hover:bg-gray-100 font-semibold shadow-sm hover:shadow-md transition-all duration-300 px-4 py-2"
-                >
+                <Button asChild size="sm" className="px-5">
                   <Link href="/login">Sign In</Link>
                 </Button>
               </>
@@ -215,7 +210,7 @@ export function SiteHeader({
 
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden absolute top-full left-0 right-0 bg-[var(--ee-primary)] border-t border-white/10 shadow-xl z-50">
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-cream-50 dark:bg-[#101418] border-t border-forest-500/10 dark:border-cream-50/10 shadow-xl z-50">
             <nav className="px-4 py-6 space-y-4">
               {session?.user ? (
                 <div className="space-y-3">
@@ -223,9 +218,9 @@ export function SiteHeader({
                     <Link
                       href="/admin"
                       className={cn(
-                        "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                        "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                         isActive("/admin") &&
-                          "bg-white/15 text-white font-medium"
+                          "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                       )}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
@@ -236,9 +231,9 @@ export function SiteHeader({
                   <Link
                     href="/dashboard"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/dashboard") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -248,9 +243,9 @@ export function SiteHeader({
                   <Link
                     href="/shifts"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/shifts") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -260,9 +255,9 @@ export function SiteHeader({
                   <Link
                     href="/resources"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/resources") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -272,9 +267,9 @@ export function SiteHeader({
                   <Link
                     href="/shifts/mine"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/shifts/mine") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -283,19 +278,19 @@ export function SiteHeader({
                   <Link
                     href="/friends"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/friends") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Friends
                   </Link>
 
-                  <div className="border-t border-white/20 pt-4 mt-4">
+                  <div className="border-t border-forest-500/15 dark:border-cream-50/15 pt-4 mt-4">
                     <Link
                       href="/profile"
-                      className="block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200"
+                      className="block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       My Profile
@@ -303,7 +298,7 @@ export function SiteHeader({
                   </div>
 
                   <div className="flex items-center justify-between px-4 py-2">
-                    <span className="text-white/70 text-sm">Theme</span>
+                    <span className="text-forest-700/60 dark:text-cream-50/60 text-sm">Theme</span>
                     <ThemeToggle />
                   </div>
                 </div>
@@ -312,9 +307,9 @@ export function SiteHeader({
                   <Link
                     href="/shifts"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/shifts") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -324,34 +319,34 @@ export function SiteHeader({
                   <Link
                     href="/resources"
                     className={cn(
-                      "block px-4 py-3 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-all duration-200",
+                      "block px-4 py-3 rounded-xl text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-all duration-200",
                       isActive("/resources") &&
-                        "bg-white/15 text-white font-medium"
+                        "bg-forest-700/10 text-forest-700 dark:bg-cream-50/10 dark:text-cream-50 font-medium"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Resources
                   </Link>
 
-                  <div className="border-t border-white/20 pt-4 mt-4 space-y-3">
+                  <div className="border-t border-forest-500/15 dark:border-cream-50/15 pt-4 mt-4 space-y-3">
                     <Link
                       href="/register"
-                      className="block px-4 py-3 rounded-lg bg-white/10 text-white border border-white/30 hover:bg-white/20 transition-all duration-200 text-center font-medium"
+                      className="block px-4 py-3 rounded-full bg-forest-500 text-cream-50 hover:bg-forest-600 transition-all duration-200 text-center font-medium"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Join Us
                     </Link>
                     <Link
                       href="/login"
-                      className="block px-4 py-3 rounded-lg text-white/90 border border-white/40 hover:bg-white/10 transition-all duration-200 text-center"
+                      className="block px-4 py-3 rounded-full border border-forest-500/30 text-forest-700 hover:bg-forest-700 hover:text-cream-50 dark:border-cream-50/30 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700 transition-all duration-200 text-center"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Login
                     </Link>
                   </div>
 
-                  <div className="flex items-center justify-between px-4 py-2 border-t border-white/20 pt-4">
-                    <span className="text-white/70 text-sm">Theme</span>
+                  <div className="flex items-center justify-between px-4 py-2 border-t border-forest-500/15 dark:border-cream-50/15 pt-4">
+                    <span className="text-forest-700/60 dark:text-cream-50/60 text-sm">Theme</span>
                     <ThemeToggle />
                   </div>
                 </div>
