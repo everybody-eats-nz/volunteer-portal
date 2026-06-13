@@ -373,6 +373,21 @@ Automatic semantic versioning via PR labels:
 
 Current version: `0.112.8` (in `web/package.json`).
 
+## Error Triage Routine
+
+A daily Claude routine queries PostHog for errors first seen in the last 24 hours and files or updates GitHub issues in this repo (`everybody-eats-nz/volunteer-portal`).
+
+**URL filtering — IMPORTANT:** The PostHog project ("Volunteer Portal", id 431006) captures events from multiple apps hosted on `volunteer.fairfood.org.nz`. Only file issues here for errors whose `$current_url` path belongs to a `volunteer-portal` route. Errors from routes belonging to other apps (e.g. `fairfood/fairfood-volunteer`) must be **skipped** and recorded in the triage summary as "URL belongs to a different app (`fairfood-volunteer`) — file in `fairfood/fairfood-volunteer`".
+
+| Route prefix | App | Action |
+|---|---|---|
+| `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | `volunteer-portal` | ✅ file here |
+| `/dashboard/*`, `/shifts/*`, `/profile/*`, `/admin/*` | `volunteer-portal` | ✅ file here |
+| `/friends/*`, `/achievements/*`, `/resources/*`, `/surveys/*` | `volunteer-portal` | ✅ file here |
+| `/programs/*` | `fairfood-volunteer` | ❌ skip, note in summary |
+
+If a `$current_url` path is not listed above and is ambiguous, skip it and flag it in the summary for manual review.
+
 ## Environment Variables
 
 Copy `web/.env.example` to `web/.env` for local development (or use `npm run local-setup`).
