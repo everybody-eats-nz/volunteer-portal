@@ -6,27 +6,13 @@ import {
   FeatureCard,
   FeatureGrid,
 } from "@/components/home-animated";
-import {
-  HeroImageCycler,
-  type CycleImage,
-} from "@/components/hero-image-cycler";
+import { HeroImageCycler } from "@/components/hero-image-cycler";
+import { HERO_IMAGES } from "@/components/hero-images";
 import { getHomeStats } from "@/lib/home-stats";
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
 // Static imports → Next fingerprints each file with a content hash in its URL,
 // so updating an image busts every cache (browser, optimizer, CDN) on its own.
 import appHomeScreen from "@/assets/app-home-screen.png";
-import restaurantTables from "@/assets/photos/restaurant-tables.webp";
-import wellingtonLadle from "@/assets/photos/wellington-ladle.webp";
-import volunteerCrew from "@/assets/photos/volunteer-crew.webp";
-import wellingtonPlating from "@/assets/photos/wellington-plating.webp";
-import wellingtonLaughing from "@/assets/photos/wellington-laughing.webp";
-import chefPrep from "@/assets/photos/chef-prep.webp";
-import wellingtonServing from "@/assets/photos/wellington-serving.webp";
-import wellingtonDiningRoom from "@/assets/photos/wellington-dining-room.webp";
-import communityHongi from "@/assets/photos/community-hongi.webp";
-import platedDish from "@/assets/photos/plated-dish.webp";
-import soupStir from "@/assets/photos/soup-stir.webp";
-import volunteerHost from "@/assets/photos/volunteer-host.webp";
 import communityDining from "@/assets/photos/community-dining.webp";
 import platingUp from "@/assets/photos/plating-up.webp";
 import kohaTin from "@/assets/photos/koha-tin.webp";
@@ -130,59 +116,6 @@ function PhoneMock() {
   );
 }
 
-/* Hero rotation + section photos — sourced from the marketing site's media
-   library and the Wellington photo set, pre-cropped into web/public/photos. */
-const HERO_IMAGES: CycleImage[] = [
-  {
-    image: restaurantTables,
-    alt: "People enjoying meals together at Everybody Eats restaurant",
-  },
-  {
-    image: wellingtonLadle,
-    alt: "A smiling volunteer holding a ladle in the Wellington kitchen",
-  },
-  {
-    image: wellingtonServing,
-    alt: "A volunteer serving a plated dessert over the kitchen pass",
-  },
-  {
-    image: volunteerCrew,
-    alt: "A crew of Everybody Eats volunteers smiling together after service",
-  },
-  {
-    image: wellingtonPlating,
-    alt: "Two volunteers plating meals at the kitchen pass",
-  },
-  {
-    image: wellingtonDiningRoom,
-    alt: "Everybody Eats' warm dining room set with communal tables",
-  },
-  {
-    image: wellingtonLaughing,
-    alt: "Two volunteers laughing together over a tray of kai",
-  },
-  {
-    image: communityHongi,
-    alt: "A volunteer greeting the room with hands together at a community dinner",
-  },
-  {
-    image: soupStir,
-    alt: "A volunteer laughing while stirring a big pot of soup",
-  },
-  {
-    image: chefPrep,
-    alt: "A chef preparing trays of kai in the Everybody Eats kitchen",
-  },
-  {
-    image: volunteerHost,
-    alt: "A smiling Everybody Eats host with arms crossed by the bar",
-  },
-  {
-    image: platedDish,
-    alt: "A restaurant-quality plated meal of pasta with fresh basil",
-  },
-];
-
 const FEATURES = [
   {
     number: "01",
@@ -245,8 +178,10 @@ export async function HomeLanding() {
               className="display text-5xl leading-[0.98] tracking-tight text-forest-700 sm:text-6xl lg:text-7xl dark:text-cream-50"
               data-testid="hero-title"
             >
-              Make a <em>difference</em>, one <Highlight>shift</Highlight> at a
-              time
+              Make a <em>difference</em>, one{" "}
+              <span className="block">
+                <Highlight>shift</Highlight> at a time
+              </span>
             </h1>
             <p
               className="mt-8 max-w-2xl text-lg leading-relaxed text-forest-700/85 sm:text-xl dark:text-cream-50/85"
