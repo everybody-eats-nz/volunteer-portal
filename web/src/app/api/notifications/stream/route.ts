@@ -7,13 +7,11 @@ import {
   validateConnectionToken
 } from "@/lib/sse-security";
 
-// SSE is a long-lived, per-user stream — it must never be cached, prerendered,
-// or run on the edge. Pin it explicitly so Next 16's Cache Components
-// (`cacheComponents: true`) can't treat the response as static.
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
-
+// SSE is a long-lived, per-user stream that must never be cached or
+// prerendered. Route segment config (`dynamic`/`fetchCache`/`runtime`) is
+// rejected under Next 16's Cache Components (`cacheComponents: true`), but the
+// handler is already dynamic: it reads the session (cookies/headers) and holds
+// the request open via `request.signal`, so Next never treats it as static.
 export async function GET(request: NextRequest) {
   try {
     // Validate session and get secure headers
