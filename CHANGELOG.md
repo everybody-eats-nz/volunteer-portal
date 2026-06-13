@@ -1,3 +1,9 @@
+## [0.112.10] - 2026-06-13
+
+### Changes
+- fix(sse): restore admin message notifications & desktop alerts ([#964](https://github.com/everybody-eats-nz/volunteer-portal/pull/964)) by @malinmalliyawadu
+
+
 ## [0.112.9] - 2026-06-13
 
 ### Changes
