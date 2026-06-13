@@ -66,7 +66,7 @@ export function HeroImageCycler({ images }: { images: CycleImage[] }) {
             fill
             priority={i === 0}
             sizes="(max-width: 1024px) 100vw, 40vw"
-            className={`object-cover transition-opacity duration-1000 ease-in-out ${layer}`}
+            className={`object-cover object-center transition-opacity duration-1000 ease-in-out ${layer}`}
             aria-hidden={i !== frame.index}
             data-testid={i === 0 ? "hero-image" : undefined}
           />

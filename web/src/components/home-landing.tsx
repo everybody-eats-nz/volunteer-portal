@@ -102,7 +102,7 @@ function PhoneMock() {
       <div className="absolute -top-8 -left-10 h-28 w-28 rounded-full bg-sun-200 rotate-12 shadow-xl" />
       <div className="relative rotate-2 overflow-hidden rounded-[2.75rem] border border-cream-50/15 bg-forest-800 p-2 shadow-2xl">
         <Image
-          src="/app-screenshot.png"
+          src="/app-home-screen.png"
           alt=""
           width={603}
           height={1311}
