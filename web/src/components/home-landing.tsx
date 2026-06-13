@@ -23,6 +23,10 @@ import wellingtonLaughing from "@/assets/photos/wellington-laughing.webp";
 import chefPrep from "@/assets/photos/chef-prep.webp";
 import wellingtonServing from "@/assets/photos/wellington-serving.webp";
 import wellingtonDiningRoom from "@/assets/photos/wellington-dining-room.webp";
+import communityHongi from "@/assets/photos/community-hongi.webp";
+import platedDish from "@/assets/photos/plated-dish.webp";
+import soupStir from "@/assets/photos/soup-stir.webp";
+import volunteerHost from "@/assets/photos/volunteer-host.webp";
 import communityDining from "@/assets/photos/community-dining.webp";
 import platingUp from "@/assets/photos/plating-up.webp";
 import kohaTin from "@/assets/photos/koha-tin.webp";
@@ -158,8 +162,24 @@ const HERO_IMAGES: CycleImage[] = [
     alt: "Two volunteers laughing together over a tray of kai",
   },
   {
+    image: communityHongi,
+    alt: "A volunteer greeting the room with hands together at a community dinner",
+  },
+  {
+    image: soupStir,
+    alt: "A volunteer laughing while stirring a big pot of soup",
+  },
+  {
     image: chefPrep,
     alt: "A chef preparing trays of kai in the Everybody Eats kitchen",
+  },
+  {
+    image: volunteerHost,
+    alt: "A smiling Everybody Eats host with arms crossed by the bar",
+  },
+  {
+    image: platedDish,
+    alt: "A restaurant-quality plated meal of pasta with fresh basil",
   },
 ];
 
