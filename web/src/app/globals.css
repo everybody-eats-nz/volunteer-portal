@@ -446,6 +446,19 @@ h6 em,
   opacity: 0.04;
 }
 
+/* Hero carousel active-dot progress fill — animates over the slide interval.
+   Keyed on the active frame in the component so it restarts each advance. */
+@keyframes dot-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.dot-progress {
+  animation: dot-progress linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot-progress { animation: none; width: 100%; }
+}
+
 /* Marquee track (CSS-only, pauses on hover) */
 .marquee-track {
   display: flex;

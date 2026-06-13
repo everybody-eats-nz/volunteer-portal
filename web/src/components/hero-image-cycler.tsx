@@ -72,6 +72,19 @@ export function HeroImageCycler({ images }: { images: CycleImage[] }) {
   const currentImage = order[frame.pos];
   const prevImage = order[frame.prev];
 
+  // Pagination dots use a sliding window — at most WINDOW dots show, centred on
+  // the active one, and the dots at the window edges shrink + fade so it reads
+  // as an "infinite" strip rather than a long row of dots.
+  const WINDOW = 5;
+  const DOT_STEP = 20; // px, dot button width (centre-to-centre spacing)
+  const windowed = len > WINDOW;
+  const dotStart = windowed
+    ? Math.max(0, Math.min(frame.pos - 2, len - WINDOW))
+    : 0;
+  const dotMaskWidth = (windowed ? WINDOW : len) * DOT_STEP;
+  const moreLeft = dotStart > 0;
+  const moreRight = dotStart + WINDOW < len;
+
   const arrowClass =
     "absolute top-1/2 z-30 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-forest-900/25 text-cream-50 opacity-0 backdrop-blur-sm transition-opacity duration-300 hover:bg-forest-900/40 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cream-50/70 group-hover:opacity-100 motion-reduce:transition-none";
 
@@ -119,25 +132,49 @@ export function HeroImageCycler({ images }: { images: CycleImage[] }) {
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          <div className="absolute inset-x-0 bottom-4 z-30 flex justify-center gap-2">
-            {order.map((_, pos) => (
-              <button
-                key={pos}
-                type="button"
-                onClick={() => goToPos(pos)}
-                aria-label={`Show photo ${pos + 1}`}
-                aria-current={pos === frame.pos}
-                className="group/dot cursor-pointer px-0.5 py-2 focus-visible:outline-none"
+          <div className="absolute inset-x-0 bottom-4 z-30 flex justify-center drop-shadow-sm">
+            <div className="overflow-hidden" style={{ width: dotMaskWidth }}>
+              <div
+                className="flex items-center transition-transform duration-300 ease-out motion-reduce:transition-none"
+                style={{ transform: `translateX(${-dotStart * DOT_STEP}px)` }}
               >
-                <span
-                  className={`block h-1.5 rounded-full shadow-sm transition-all duration-300 motion-reduce:transition-none ${
-                    pos === frame.pos
-                      ? "w-5 bg-cream-50"
-                      : "w-1.5 bg-cream-50/50 group-hover/dot:bg-cream-50/80 group-focus-visible/dot:bg-cream-50/80"
-                  }`}
-                />
-              </button>
-            ))}
+                {order.map((_, pos) => {
+                  const rel = pos - dotStart;
+                  const inWindow = !windowed || (rel >= 0 && rel < WINDOW);
+                  const isEdge =
+                    windowed &&
+                    ((rel === 0 && moreLeft) || (rel === WINDOW - 1 && moreRight));
+                  const isActive = pos === frame.pos;
+                  return (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => goToPos(pos)}
+                      aria-label={`Show photo ${pos + 1}`}
+                      aria-current={isActive}
+                      className="grid shrink-0 place-items-center py-2 transition-[transform,opacity] duration-300 ease-out focus-visible:outline-none motion-reduce:transition-none"
+                      style={{
+                        width: DOT_STEP,
+                        opacity: inWindow ? 1 : 0,
+                        transform: isEdge ? "scale(0.45)" : "scale(1)",
+                      }}
+                    >
+                      {isActive ? (
+                        <span className="relative block h-1.5 w-4 overflow-hidden rounded-full bg-cream-50/35">
+                          <span
+                            key={frame.pos}
+                            className="dot-progress absolute inset-y-0 left-0 block rounded-full bg-cream-50"
+                            style={{ animationDuration: `${INTERVAL_MS}ms` }}
+                          />
+                        </span>
+                      ) : (
+                        <span className="block h-1.5 w-1.5 rounded-full bg-cream-50/55" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </>
       )}
