@@ -245,7 +245,7 @@ export async function HomeLanding() {
               className="display text-5xl leading-[0.98] tracking-tight text-forest-700 sm:text-6xl lg:text-7xl dark:text-cream-50"
               data-testid="hero-title"
             >
-              Making a <em>difference</em> one <Highlight>plate</Highlight> at a
+              Make a <em>difference</em>, one <Highlight>shift</Highlight> at a
               time
             </h1>
             <p

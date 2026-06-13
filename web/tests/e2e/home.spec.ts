@@ -25,7 +25,7 @@ test.describe("Home Page", () => {
       const heroTitle = page.getByTestId("hero-title");
       await expect(heroTitle).toBeVisible();
       await expect(heroTitle).toContainText(
-        "Making a difference one plate at a time"
+        "Make a difference, one shift at a time"
       );
 
       // Check hero description
