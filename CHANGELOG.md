@@ -1,3 +1,9 @@
+## [0.112.9] - 2026-06-13
+
+### Changes
+- fix(notifications): mark notification as read when clicking its link ([#963](https://github.com/everybody-eats-nz/volunteer-portal/pull/963)) by @malinmalliyawadu
+
+
 ## [0.112.8] - 2026-03-07
 
 ### Changes
