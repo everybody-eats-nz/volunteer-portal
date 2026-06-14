@@ -121,7 +121,7 @@ jobs:
             type=sha,format=short
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: web
           file: web/Dockerfile
