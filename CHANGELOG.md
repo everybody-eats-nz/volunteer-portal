@@ -1,3 +1,9 @@
+## [0.112.11] - 2026-06-14
+
+### Changes
+- chore(deps-dev): bump esbuild from 0.28.0 to 0.28.1 in /web ([#960](https://github.com/everybody-eats-nz/volunteer-portal/pull/960)) by @dependabot[bot]
+
+
 ## [0.112.10] - 2026-06-13
 
 ### Changes
