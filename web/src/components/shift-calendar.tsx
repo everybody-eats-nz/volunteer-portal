@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Users } from "lucide-react";
+import { CalendarIcon, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatInNZT, isSameDayInNZT, nowInNZT } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +26,7 @@ type ShiftCalendarProps = {
   selectedLocation: string;
   shiftSummaries: ShiftSummary[];
   onDateSelect: (date: Date) => void;
+  onStep?: (delta: number) => void;
   className?: string;
 };
 
@@ -34,6 +35,7 @@ export function ShiftCalendar({
   selectedLocation,
   shiftSummaries,
   onDateSelect,
+  onStep,
   className,
 }: ShiftCalendarProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,27 +85,40 @@ export function ShiftCalendar({
   const selectedShiftData = getShiftDataForDate(selectedDate);
 
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("flex items-center gap-1.5", className)}>
+      {onStep && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-11 w-11 shrink-0 bg-background"
+          onClick={() => onStep(-1)}
+          aria-label="Previous day"
+          data-testid="shift-calendar-prev"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      )}
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "w-[280px] justify-start text-left font-normal h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700",
+              "h-11 min-w-0 flex-1 justify-start bg-background text-left font-normal sm:w-[240px] sm:flex-none",
               !selectedDate && "text-muted-foreground"
             )}
             data-testid="shift-calendar-trigger"
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
             <div className="flex items-center gap-2 flex-1">
               <div>
-                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                <div className="text-sm font-semibold text-foreground">
                   {formatInNZT(selectedDate, "MMM d, yyyy")}
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-muted-foreground">
                   {formatInNZT(selectedDate, "EEEE")}
                   {isSameDayInNZT(selectedDate, nowInNZT()) && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+                    <span className="ml-2 rounded px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
                       Today
                     </span>
                   )}
@@ -206,6 +221,19 @@ export function ShiftCalendar({
           </div>
         </PopoverContent>
       </Popover>
+      {onStep && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-11 w-11 shrink-0 bg-background"
+          onClick={() => onStep(1)}
+          aria-label="Next day"
+          data-testid="shift-calendar-next"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }
