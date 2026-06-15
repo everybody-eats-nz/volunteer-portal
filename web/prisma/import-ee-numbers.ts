@@ -27,6 +27,12 @@
  *   npx tsx prisma/import-ee-numbers.ts [root] --reset-imports-only
  *       # PROD-SAFE: delete only prior-import rows (createdBy tag) and skip any
  *       # (date, location) an admin entered by hand — manual entries survive.
+ *   npx tsx prisma/import-ee-numbers.ts [root] --fill-blanks
+ *       # ENRICH (never deletes): create missing nights, refresh prior-import
+ *       # rows, and for admin-entered rows fill ONLY the blank fields from the
+ *       # spreadsheet (koha split, protein, weather …) without overwriting any
+ *       # value an admin actually set. Use this after --reset-imports-only to
+ *       # back-fill nights where an admin had entered just a headcount.
  *
  *   root defaults to "/Users/malin/Downloads/EE numbers/_extracted"
  *   To load prod, run locally with DATABASE_URL set to the prod (direct :5432)
@@ -52,6 +58,10 @@ const NO_RESET = flags.has("--no-reset");
 // Prod-safe mode: delete only prior-import rows (createdBy tag) and skip any
 // (date, location) an admin entered manually, so hand-entered nights survive.
 const RESET_IMPORTS_ONLY = flags.has("--reset-imports-only");
+// Enrich mode: never delete. Full-update prior-import rows, create missing ones,
+// and for admin-entered rows fill ONLY the blank fields from the spreadsheet
+// (koha split, protein, weather, …) without overwriting any admin-set value.
+const FILL_BLANKS = flags.has("--fill-blanks");
 const VERBOSE = flags.has("--verbose");
 
 // createdBy tags written by import scripts (used to scope --reset-imports-only).
@@ -461,6 +471,78 @@ async function main() {
       });
       console.log(`  + created location: ${loc}`);
     }
+  }
+
+  // ---- fill-blanks (enrich, never delete) ---------------------------------
+  if (FILL_BLANKS) {
+    const existing = await prisma.mealsServed.findMany();
+    const byKeyExisting = new Map(
+      existing.map((e) => [`${e.date.toISOString()}|${e.location}`, e])
+    );
+    // Only fill a field when the admin left it blank; undefined => Prisma skips it.
+    const blank = <S>(adminVal: unknown, sheetVal: S | null): S | undefined =>
+      adminVal !== null && adminVal !== undefined ? undefined : sheetVal ?? undefined;
+
+    let created = 0, replaced = 0, filled = 0, already = 0;
+    for (const r of rows) {
+      const dateUTC = toUTC(startOfDay(parseISOInNZT(r.date)));
+      const data = {
+        mealsServed: r.customers,
+        weather: r.weather,
+        bookingsPax: r.bookingsPax,
+        newVolunteers: r.newVolunteers,
+        nonPayingCount: r.nonPayingCount,
+        vege: r.vege,
+        takeaways: r.takeaways,
+        eftposTransactions: r.eftposTransactions,
+        cash: r.cash,
+        eftpos: r.eftpos,
+        stripe: r.stripe,
+        protein: r.protein,
+        notes: r.notes,
+      };
+      const e = byKeyExisting.get(`${dateUTC.toISOString()}|${r.location}`);
+      if (!e) {
+        await prisma.mealsServed.create({
+          data: { date: dateUTC, location: r.location, ...data, createdBy: "import-ee-numbers" },
+        });
+        created++;
+      } else if (IMPORT_TAGS.includes(e.createdBy ?? "")) {
+        // Prior-import row: refresh fully (keeps the import canonical).
+        await prisma.mealsServed.update({ where: { id: e.id }, data });
+        replaced++;
+      } else {
+        // Admin-entered row: fill only the blanks; never touch admin values or createdBy.
+        const fill = {
+          mealsServed: blank(e.mealsServed, r.customers),
+          weather: blank(e.weather, r.weather),
+          bookingsPax: blank(e.bookingsPax, r.bookingsPax),
+          newVolunteers: blank(e.newVolunteers, r.newVolunteers),
+          nonPayingCount: blank(e.nonPayingCount, r.nonPayingCount),
+          vege: blank(e.vege, r.vege),
+          takeaways: blank(e.takeaways, r.takeaways),
+          eftposTransactions: blank(e.eftposTransactions, r.eftposTransactions),
+          cash: blank(e.cash, r.cash),
+          eftpos: blank(e.eftpos, r.eftpos),
+          stripe: blank(e.stripe, r.stripe),
+          protein: blank(e.protein, r.protein),
+          notes: blank(e.notes, r.notes),
+        };
+        if (Object.values(fill).some((v) => v !== undefined)) {
+          await prisma.mealsServed.update({ where: { id: e.id }, data: fill });
+          filled++;
+        } else {
+          already++;
+        }
+      }
+      const done = created + replaced + filled + already;
+      if (done % 250 === 0) console.log(`  …${done} processed`);
+    }
+    console.log(
+      `\nDone (fill-blanks). created ${created}, refreshed ${replaced} prior-import, filled ${filled} admin row(s), ${already} admin row(s) already complete.`
+    );
+    await prisma.$disconnect();
+    return;
   }
 
   // ---- reset --------------------------------------------------------------
