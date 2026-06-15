@@ -40,7 +40,9 @@ import {
   Salad,
   Beef,
   CloudSun,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import {
   Tooltip,
@@ -245,6 +247,7 @@ export function RestaurantAnalyticsClient({
   const [to, setTo] = useState(initialTo);
   const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
   const [kohaStack, setKohaStack] = useState<StackMode>("stacked");
+  const [exporting, setExporting] = useState(false);
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
     | "dark"
     | "light";
@@ -276,6 +279,47 @@ export function RestaurantAnalyticsClient({
       // Preserve scroll position — only the query string changes
       router.push(`/admin/analytics?${params}`, { scroll: false });
     });
+  };
+
+  // Export every service night for the *applied* filters (what's on screen) as CSV.
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({
+        months: initialMonths,
+        location: initialLocation,
+        format: "csv",
+      });
+      if (initialDays) params.set("days", initialDays);
+      if (initialFrom && initialTo) {
+        params.set("from", initialFrom);
+        params.set("to", initialTo);
+      }
+      const res = await fetch(`/api/admin/analytics/service-nights?${params}`);
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const text = await res.text();
+      const rows = Math.max(0, text.trim().split("\n").length - 1); // minus header
+      const filename =
+        res.headers
+          .get("Content-Disposition")
+          ?.match(/filename="?([^"]+)"?/)?.[1] ?? "service-nights.csv";
+      const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(
+        `Exported ${rows.toLocaleString()} service night${rows === 1 ? "" : "s"}`
+      );
+    } catch (error) {
+      console.error("Error exporting service nights:", error);
+      toast.error("Couldn't export CSV");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const labelColor = chartThemeMode === "dark" ? "#94a3b8" : "#475569";
@@ -493,7 +537,7 @@ export function RestaurantAnalyticsClient({
               <div className="flex-1">
                 <DayOfWeekFilter value={days} onChange={setDays} />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {hasCustomRange && (
                   <Button
                     variant="ghost"
@@ -506,6 +550,20 @@ export function RestaurantAnalyticsClient({
                     Clear range
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={exporting}
+                  className="sm:w-auto w-full"
+                  title="Download the applied service-night data as a CSV"
+                >
+                  {exporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+                </Button>
                 <Button
                   onClick={handleApplyFilters}
                   className="sm:w-auto w-full"
