@@ -29,6 +29,7 @@ import {
   Scaling,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StackModeToggle, type StackMode } from "@/components/stack-mode-toggle";
 import type { RestaurantReports } from "@/lib/restaurant-reports";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -70,6 +71,7 @@ export function RestaurantReports({ data }: { data: RestaurantReports }) {
 
   const [metric, setMetric] = useState<(typeof METRICS)[number]["key"]>("koha");
   const [gran, setGran] = useState<"monthly" | "yearly">("monthly");
+  const [payStack, setPayStack] = useState<StackMode>("stacked");
 
   if (!data.hasData) return null;
 
@@ -208,16 +210,33 @@ export function RestaurantReports({ data }: { data: RestaurantReports }) {
 
       {/* ── Paying vs non-paying + Customers vs bookings ───────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard icon={Users} accent="text-rose-500" title="Paying vs non-paying">
+        <ChartCard
+          icon={Users}
+          accent="text-rose-500"
+          title="Paying vs non-paying"
+          action={<StackModeToggle value={payStack} onChange={setPayStack} />}
+        >
           <Chart
-            key={`pay-${data.monthLabels.length}`}
+            key={`pay-${data.monthLabels.length}-${payStack}`}
             type="bar"
             height={300}
             options={{
-              chart: { type: "bar", stacked: true, toolbar: { show: false }, background: "transparent" },
+              chart: {
+                type: "bar",
+                stacked: true,
+                stackType: payStack === "100%" ? "100%" : "normal",
+                toolbar: { show: false },
+                background: "transparent",
+              },
               colors: ["#10b981", "#f43f5e"],
               xaxis: { categories: data.monthLabels.map(fmtMonth), tickAmount: 12, labels: { style: axisStyle }, axisBorder: { show: false }, axisTicks: { show: false } },
-              yaxis: { labels: { formatter: countAxis, style: axisStyle } },
+              yaxis: {
+                labels: {
+                  formatter: payStack === "100%" ? (v: number) => `${Math.round(v)}%` : countAxis,
+                  style: axisStyle,
+                },
+                max: payStack === "100%" ? 100 : undefined,
+              },
               plotOptions: { bar: { columnWidth: "70%" } },
               dataLabels: { enabled: false },
               legend: { position: "top", fontSize: "12px", fontFamily: FONT, markers: { size: 6 } },
@@ -356,20 +375,25 @@ function ChartCard({
   icon: Icon,
   accent,
   title,
+  action,
   children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   accent: string;
   title: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <Icon className={cn("h-4 w-4", accent)} />
-          {title}
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <Icon className={cn("h-4 w-4", accent)} />
+            {title}
+          </CardTitle>
+          {action}
+        </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
