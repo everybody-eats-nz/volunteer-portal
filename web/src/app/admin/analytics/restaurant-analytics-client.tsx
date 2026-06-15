@@ -56,6 +56,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { DayOfWeekFilter } from "@/components/day-of-week-filter";
+import { StackModeToggle, type StackMode } from "@/components/stack-mode-toggle";
 import { ServiceNightsTable } from "@/components/service-nights-table";
 import { RestaurantReports } from "@/components/restaurant-reports";
 import type { RestaurantAnalyticsData } from "@/lib/restaurant-analytics";
@@ -243,6 +244,7 @@ export function RestaurantAnalyticsClient({
   const [from, setFrom] = useState(initialFrom);
   const [to, setTo] = useState(initialTo);
   const [trendView, setTrendView] = useState<"monthly" | "weekly">("monthly");
+  const [kohaStack, setKohaStack] = useState<StackMode>("stacked");
   const chartThemeMode = (resolvedTheme === "dark" ? "dark" : "light") as
     | "dark"
     | "light";
@@ -706,111 +708,131 @@ export function RestaurantAnalyticsClient({
           <motion.div variants={staggerItem}>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <HandCoins className="h-4 w-4 text-amber-500" />
-                  Koha Trend
-                  <InfoDialog
-                    title="Koha Trend"
-                    description="Monthly koha collected, split by method"
-                  >
-                    <p>
-                      Total koha each month, stacked by method (cash, eftpos and
-                      Stripe), across recorded service nights.
-                    </p>
-                    {data.hasKohaTarget && (
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <HandCoins className="h-4 w-4 text-amber-500" />
+                    Koha Trend
+                    <InfoDialog
+                      title="Koha Trend"
+                      description="Monthly koha collected, split by method"
+                    >
                       <p>
-                        The <span className="font-medium">dashed line</span> is
-                        the koha target for the month (each location&rsquo;s
-                        per-night target × its service nights).
+                        Total koha each month, split by method (cash, eftpos and
+                        Stripe), across recorded service nights.
                       </p>
-                    )}
-                  </InfoDialog>
-                </CardTitle>
+                      <p>
+                        Switch to <span className="font-medium">100%</span> to see
+                        each method&rsquo;s share of the monthly total instead of
+                        absolute dollars.
+                      </p>
+                      {data.hasKohaTarget && (
+                        <p>
+                          The <span className="font-medium">dashed line</span> is
+                          the koha target for the month (each location&rsquo;s
+                          per-night target × its service nights). It only shows in
+                          the Stacked view.
+                        </p>
+                      )}
+                    </InfoDialog>
+                  </CardTitle>
+                  <StackModeToggle value={kohaStack} onChange={setKohaStack} />
+                </div>
               </CardHeader>
               <CardContent>
-                {data.kohaTrend.some((v) => v > 0) ? (
-                  <Chart
-                    key={`koha-trend-${filterKey}`}
-                    options={{
-                      chart: {
-                        type: "line" as const,
-                        stacked: true,
-                        toolbar: { show: false },
-                        background: "transparent",
-                      },
-                      xaxis: {
-                        categories: data.trendLabels,
-                        labels: { style: axisStyle },
-                        axisBorder: { show: false },
-                        axisTicks: { show: false },
-                      },
-                      yaxis: {
-                        labels: {
-                          formatter: (val: number) =>
-                            val >= 1000
-                              ? `$${(val / 1000).toFixed(1)}k`
-                              : `$${Math.round(val)}`,
-                          style: axisStyle,
+                {(() => {
+                  const is100 = kohaStack === "100%";
+                  // The target line is an absolute dollar figure — it has no
+                  // meaning once bars are normalised to 100%, so hide it there.
+                  const showTarget = data.hasKohaTarget && !is100;
+
+                  return data.kohaTrend.some((v) => v > 0) ? (
+                    <Chart
+                      key={`koha-trend-${filterKey}-${kohaStack}`}
+                      options={{
+                        chart: {
+                          type: "line" as const,
+                          stacked: true,
+                          stackType: is100 ? ("100%" as const) : ("normal" as const),
+                          toolbar: { show: false },
+                          background: "transparent",
                         },
-                        min: 0,
-                      },
-                      colors: ["#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444"],
-                      plotOptions: {
-                        bar: {
-                          columnWidth: "55%",
-                          borderRadius: 3,
-                          borderRadiusApplication: "end" as const,
+                        xaxis: {
+                          categories: data.trendLabels,
+                          labels: { style: axisStyle },
+                          axisBorder: { show: false },
+                          axisTicks: { show: false },
                         },
-                      },
-                      stroke: {
-                        width: data.hasKohaTarget ? [0, 0, 0, 2.5] : [0, 0, 0],
-                        curve: "smooth" as const,
-                        dashArray: data.hasKohaTarget ? [0, 0, 0, 5] : [0, 0, 0],
-                      },
-                      fill: { opacity: 1 },
-                      dataLabels: { enabled: false },
-                      grid: {
-                        borderColor: gridColor,
-                        strokeDashArray: 4,
-                        xaxis: { lines: { show: false } },
-                      },
-                      tooltip: {
-                        shared: true,
-                        y: { formatter: (val: number) => nzd(val ?? 0, 2) },
-                      },
-                      markers: { size: 0, hover: { sizeOffset: 3 } },
-                      legend: {
-                        position: "top" as const,
-                        fontSize: "12px",
-                        fontFamily: FONT,
-                        markers: { size: 6, offsetX: -2 },
-                      },
-                      theme: { mode: chartThemeMode },
-                    }}
-                    series={[
-                      { name: "Cash", type: "column", data: data.kohaStreamTrend.cash },
-                      { name: "Eftpos", type: "column", data: data.kohaStreamTrend.eftpos },
-                      {
-                        name: "Stripe",
-                        type: "column",
-                        data: data.kohaStreamTrend.stripe,
-                      },
-                      ...(data.hasKohaTarget
-                        ? [
-                            {
-                              name: "Target",
-                              type: "line" as const,
-                              data: data.kohaTargetTrend,
-                            },
-                          ]
-                        : []),
-                    ]}
-                    type="line"
-                    height={300}
-                  />
-                ) : (
-                  <ChartEmpty message="No koha recorded yet" />
-                )}
+                        yaxis: {
+                          labels: {
+                            formatter: (val: number) =>
+                              is100
+                                ? `${Math.round(val)}%`
+                                : val >= 1000
+                                  ? `$${(val / 1000).toFixed(1)}k`
+                                  : `$${Math.round(val)}`,
+                            style: axisStyle,
+                          },
+                          min: 0,
+                          max: is100 ? 100 : undefined,
+                        },
+                        colors: ["#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444"],
+                        plotOptions: {
+                          bar: {
+                            columnWidth: "55%",
+                            borderRadius: 3,
+                            borderRadiusApplication: "end" as const,
+                          },
+                        },
+                        stroke: {
+                          width: showTarget ? [0, 0, 0, 2.5] : [0, 0, 0],
+                          curve: "smooth" as const,
+                          dashArray: showTarget ? [0, 0, 0, 5] : [0, 0, 0],
+                        },
+                        fill: { opacity: 1 },
+                        dataLabels: { enabled: false },
+                        grid: {
+                          borderColor: gridColor,
+                          strokeDashArray: 4,
+                          xaxis: { lines: { show: false } },
+                        },
+                        tooltip: {
+                          shared: true,
+                          y: { formatter: (val: number) => nzd(val ?? 0, 2) },
+                        },
+                        markers: { size: 0, hover: { sizeOffset: 3 } },
+                        legend: {
+                          position: "top" as const,
+                          fontSize: "12px",
+                          fontFamily: FONT,
+                          markers: { size: 6, offsetX: -2 },
+                        },
+                        theme: { mode: chartThemeMode },
+                      }}
+                      series={[
+                        { name: "Cash", type: "column", data: data.kohaStreamTrend.cash },
+                        { name: "Eftpos", type: "column", data: data.kohaStreamTrend.eftpos },
+                        {
+                          name: "Stripe",
+                          type: "column",
+                          data: data.kohaStreamTrend.stripe,
+                        },
+                        ...(showTarget
+                          ? [
+                              {
+                                name: "Target",
+                                type: "line" as const,
+                                data: data.kohaTargetTrend,
+                              },
+                            ]
+                          : []),
+                      ]}
+                      type="line"
+                      height={300}
+                    />
+                  ) : (
+                    <ChartEmpty message="No koha recorded yet" />
+                  );
+                })()}
               </CardContent>
             </Card>
           </motion.div>
