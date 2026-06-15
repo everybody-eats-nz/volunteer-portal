@@ -56,7 +56,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { DayOfWeekFilter } from "@/components/day-of-week-filter";
+import { ServiceNightsTable } from "@/components/service-nights-table";
+import { RestaurantReports } from "@/components/restaurant-reports";
 import type { RestaurantAnalyticsData } from "@/lib/restaurant-analytics";
+import type { RestaurantReports as RestaurantReportsData } from "@/lib/restaurant-reports";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -64,6 +67,7 @@ const FONT = "var(--font-libre-franklin), sans-serif";
 
 interface Props {
   data: RestaurantAnalyticsData;
+  reports: RestaurantReportsData;
   months: string;
   location: string;
   days: string;
@@ -77,6 +81,7 @@ const MONTHS_LABELS: Record<string, string> = {
   "3": "3 months",
   "6": "6 months",
   "12": "12 months",
+  all: "all time",
 };
 
 const nzd = (n: number, decimals = 0) =>
@@ -221,6 +226,7 @@ function ChartEmpty({ message }: { message: string }) {
 
 export function RestaurantAnalyticsClient({
   data,
+  reports,
   months: initialMonths,
   location: initialLocation,
   days: initialDays,
@@ -250,9 +256,11 @@ export function RestaurantAnalyticsClient({
   const s = data.serviceStats;
   const filterKey = `${initialMonths}-${initialLocation}-${initialDays}-${initialFrom}-${initialTo}`;
   const rangeLabel =
-    initialFrom && initialTo
-      ? "selected range"
-      : `last ${MONTHS_LABELS[initialMonths]}`;
+    initialMonths === "all"
+      ? "all time"
+      : initialFrom && initialTo
+        ? "selected range"
+        : `last ${MONTHS_LABELS[initialMonths]}`;
 
   const handleApplyFilters = () => {
     if (rangeError) return;
@@ -413,6 +421,7 @@ export function RestaurantAnalyticsClient({
                     <SelectItem value="3">Last 3 months</SelectItem>
                     <SelectItem value="6">Last 6 months</SelectItem>
                     <SelectItem value="12">Last 12 months</SelectItem>
+                    <SelectItem value="all">All time</SelectItem>
                     {hasCustomRange && (
                       <SelectItem value="custom">Custom range</SelectItem>
                     )}
@@ -1246,6 +1255,22 @@ export function RestaurantAnalyticsClient({
             </Card>
           </motion.div>
         )}
+
+        {/* Per-night detail table */}
+        <motion.div variants={staggerItem}>
+          <ServiceNightsTable
+            months={initialMonths}
+            location={initialLocation}
+            days={initialDays}
+            from={initialFrom}
+            to={initialTo}
+          />
+        </motion.div>
+
+        {/* Detailed reports (legacy dashboard) */}
+        <motion.div variants={staggerItem}>
+          <RestaurantReports data={reports} />
+        </motion.div>
 
         {/* Empty state */}
         {data.locationBreakdown.length === 0 &&

@@ -68,75 +68,51 @@ export interface RestaurantAnalyticsData {
 interface PeriodResult {
   byLocation: Record<
     string,
-    { total: number; daysWithShifts: number; daysWithRecords: number }
+    { total: number; nights: number }
   >;
   monthlyTotals: Record<string, number>;
   weeklyTotals: Record<string, number>;
 }
 
+// Record-based: each MealsServed row with a customer count is one service
+// night (matches the legacy "Nights" / "Total Diners" definition and works for
+// imported history that has no Shift rows).
 function processPeriod(
-  shifts: Array<{ start: Date; location: string | null }>,
   mealsRecords: Array<{
     date: Date;
     location: string;
     mealsServed: number | null;
   }>,
-  locationDefaults: Record<string, number>,
   daysFilter: number[] | null
 ): PeriodResult {
-  const locationDays: Record<string, Set<string>> = {};
-  shifts.forEach((shift) => {
-    // Use NZT day of week for filtering
-    if (daysFilter) {
-      const nzDay = toNZT(shift.start).getDay();
-      if (!daysFilter.includes(nzDay)) return;
-    }
-    const dateKey = shift.start.toISOString().substring(0, 10);
-    const loc = shift.location || "Unknown";
-    if (!locationDays[loc]) locationDays[loc] = new Set();
-    locationDays[loc].add(dateKey);
-  });
-
-  const recordedMeals = new Map<string, number>();
-  mealsRecords.forEach((r) => {
-    if (r.mealsServed === null) return;
-    const key = `${r.date.toISOString().substring(0, 10)}|${r.location}`;
-    recordedMeals.set(key, r.mealsServed);
-  });
-
   const byLocation: PeriodResult["byLocation"] = {};
   const monthlyTotals: Record<string, number> = {};
   const weeklyTotals: Record<string, number> = {};
 
-  Object.entries(locationDays).forEach(([loc, days]) => {
-    const defaultMeals = locationDefaults[loc] || 60;
-    let total = 0;
-    let records = 0;
+  mealsRecords.forEach((r) => {
+    if (r.mealsServed === null) return; // a night needs a customer count
+    if (daysFilter) {
+      const nzDay = toNZT(r.date).getDay();
+      if (!daysFilter.includes(nzDay)) return;
+    }
+    const meals = r.mealsServed;
+    const loc = r.location;
+    const dateKey = r.date.toISOString().substring(0, 10);
 
-    days.forEach((dateKey) => {
-      const key = `${dateKey}|${loc}`;
-      const actual = recordedMeals.get(key);
-      const meals = actual !== undefined ? actual : defaultMeals;
-      if (actual !== undefined) records++;
-      total += meals;
+    if (!byLocation[loc]) byLocation[loc] = { total: 0, nights: 0 };
+    byLocation[loc].total += meals;
+    byLocation[loc].nights += 1;
 
-      const monthKey = dateKey.substring(0, 7);
-      monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + meals;
+    const monthKey = dateKey.substring(0, 7);
+    monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + meals;
 
-      // ISO week key: Monday of the week containing this date
-      const d = new Date(dateKey + "T00:00:00");
-      const day = d.getDay();
-      const monday = new Date(d);
-      monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-      const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
-      weeklyTotals[weekKey] = (weeklyTotals[weekKey] || 0) + meals;
-    });
-
-    byLocation[loc] = {
-      total,
-      daysWithShifts: days.size,
-      daysWithRecords: records,
-    };
+    // ISO week key: Monday of the week containing this date
+    const d = new Date(dateKey + "T00:00:00");
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    const weekKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+    weeklyTotals[weekKey] = (weeklyTotals[weekKey] || 0) + meals;
   });
 
   return { byLocation, monthlyTotals, weeklyTotals };
@@ -282,22 +258,31 @@ export async function getRestaurantAnalytics(
   // Current period — use NZ timezone so "today" is correct on UTC servers.
   // Dates are constructed in server-local time (TZ=Pacific/Auckland) so they
   // represent NZ day boundaries.
+  const nzNow = nowInNZT();
+  const todayEnd = new Date(
+    nzNow.getFullYear(),
+    nzNow.getMonth(),
+    nzNow.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
   let startDate: Date;
   let endDate: Date;
   if (customRange) {
     startDate = new Date(`${customRange.from}T00:00:00`);
     endDate = new Date(`${customRange.to}T23:59:59.999`);
+  } else if (months <= 0) {
+    // All time — span from the earliest recorded night to today
+    const bounds = await prisma.mealsServed.aggregate({
+      where: isLocationFiltered ? { location: location! } : {},
+      _min: { date: true },
+    });
+    startDate = bounds._min.date ?? new Date(2017, 0, 1);
+    endDate = todayEnd;
   } else {
-    const nzNow = nowInNZT();
-    endDate = new Date(
-      nzNow.getFullYear(),
-      nzNow.getMonth(),
-      nzNow.getDate(),
-      23,
-      59,
-      59,
-      999
-    );
+    endDate = todayEnd;
     startDate = new Date(
       nzNow.getFullYear(),
       nzNow.getMonth() - months,
@@ -313,32 +298,20 @@ export async function getRestaurantAnalytics(
 
   const locationFilter = isLocationFiltered ? { location: location! } : {};
 
-  const [currentShifts, currentMeals, prevShifts, prevMeals] =
-    await Promise.all([
-      prisma.shift.findMany({
-        where: { start: { gte: startDate, lte: endDate }, ...locationFilter },
-        select: { start: true, location: true },
-      }),
-      prisma.mealsServed.findMany({
-        where: { date: { gte: startDate, lte: endDate }, ...locationFilter },
-      }),
-      prisma.shift.findMany({
-        where: {
-          start: { gte: prevStartDate, lte: prevEndDate },
-          ...locationFilter,
-        },
-        select: { start: true, location: true },
-      }),
-      prisma.mealsServed.findMany({
-        where: {
-          date: { gte: prevStartDate, lte: prevEndDate },
-          ...locationFilter,
-        },
-      }),
-    ]);
+  const [currentMeals, prevMeals] = await Promise.all([
+    prisma.mealsServed.findMany({
+      where: { date: { gte: startDate, lte: endDate }, ...locationFilter },
+    }),
+    prisma.mealsServed.findMany({
+      where: {
+        date: { gte: prevStartDate, lte: prevEndDate },
+        ...locationFilter,
+      },
+    }),
+  ]);
 
-  const current = processPeriod(currentShifts, currentMeals, locationDefaults, daysFilter);
-  const previous = processPeriod(prevShifts, prevMeals, locationDefaults, daysFilter);
+  const current = processPeriod(currentMeals, daysFilter);
+  const previous = processPeriod(prevMeals, daysFilter);
 
   // Service-night stats (donations, volunteers, protein/weather mix, …)
   const stats = aggregateNightStats(currentMeals, daysFilter, locationTargets);
@@ -404,22 +377,18 @@ export async function getRestaurantAnalytics(
     (s, d) => s + d.total,
     0
   );
-  const totalDaysWithShifts = Object.values(current.byLocation).reduce(
-    (s, d) => s + d.daysWithShifts,
+  const totalNights = Object.values(current.byLocation).reduce(
+    (s, d) => s + d.nights,
     0
   );
-  const totalDaysWithRecords = Object.values(current.byLocation).reduce(
-    (s, d) => s + d.daysWithRecords,
-    0
-  );
-  const prevTotalDaysWithShifts = Object.values(previous.byLocation).reduce(
-    (s, d) => s + d.daysWithShifts,
+  const prevTotalNights = Object.values(previous.byLocation).reduce(
+    (s, d) => s + d.nights,
     0
   );
 
   const totalExpected = Object.entries(current.byLocation).reduce(
     (sum, [loc, data]) => {
-      return sum + (locationDefaults[loc] || 60) * data.daysWithShifts;
+      return sum + (locationDefaults[loc] || 60) * data.nights;
     },
     0
   );
@@ -434,20 +403,16 @@ export async function getRestaurantAnalytics(
     prevYearTotalMeals: prevGrandTotal,
     yoyChangePercent,
     avgPerDay:
-      totalDaysWithShifts > 0
-        ? Math.round(grandTotal / totalDaysWithShifts)
-        : 0,
+      totalNights > 0 ? Math.round(grandTotal / totalNights) : 0,
     prevYearAvgPerDay:
-      prevTotalDaysWithShifts > 0
-        ? Math.round(prevGrandTotal / prevTotalDaysWithShifts)
-        : 0,
+      prevTotalNights > 0 ? Math.round(prevGrandTotal / prevTotalNights) : 0,
     totalExpected,
     percentOfTarget:
       totalExpected > 0
         ? Math.round((grandTotal / totalExpected) * 100)
         : 0,
-    daysWithShifts: totalDaysWithShifts,
-    daysWithRecords: totalDaysWithRecords,
+    daysWithShifts: totalNights,
+    daysWithRecords: totalNights,
   };
 
   // Location breakdown
@@ -456,7 +421,7 @@ export async function getRestaurantAnalytics(
     .map(([loc, data]) => {
       const prevData = previous.byLocation[loc];
       const prevTotal = prevData?.total || 0;
-      const expected = (locationDefaults[loc] || 60) * data.daysWithShifts;
+      const expected = (locationDefaults[loc] || 60) * data.nights;
       return {
         location: loc,
         totalMeals: data.total,
@@ -466,10 +431,8 @@ export async function getRestaurantAnalytics(
             ? Math.round(((data.total - prevTotal) / prevTotal) * 100)
             : 0,
         avgPerDay:
-          data.daysWithShifts > 0
-            ? Math.round(data.total / data.daysWithShifts)
-            : 0,
-        daysWithShifts: data.daysWithShifts,
+          data.nights > 0 ? Math.round(data.total / data.nights) : 0,
+        daysWithShifts: data.nights,
         percentOfTarget:
           expected > 0 ? Math.round((data.total / expected) * 100) : 0,
         defaultMealsPerDay: locationDefaults[loc] || 60,
