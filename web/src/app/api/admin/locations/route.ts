@@ -3,6 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
+// Koha target per night — "" / null / undefined clear it; otherwise parse to 2dp.
+function parseTarget(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+}
+
 // GET - Fetch all locations
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -17,7 +24,14 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
 
-    return NextResponse.json(locations);
+    // Serialize Decimal targetPerNight to a plain number for JSON
+    return NextResponse.json(
+      locations.map((loc) => ({
+        ...loc,
+        targetPerNight:
+          loc.targetPerNight === null ? null : Number(loc.targetPerNight),
+      }))
+    );
   } catch (error) {
     console.error("Error fetching locations:", error);
     return NextResponse.json(
@@ -37,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, address, defaultMealsServed, isPopup } = body;
+    const { name, address, defaultMealsServed, isPopup, targetPerNight } = body;
 
     if (!name || !address || defaultMealsServed === undefined) {
       return NextResponse.json(
@@ -51,6 +65,7 @@ export async function POST(request: NextRequest) {
         name,
         address,
         defaultMealsServed: parseInt(defaultMealsServed),
+        targetPerNight: parseTarget(targetPerNight),
         isActive: true,
         isPopup: Boolean(isPopup),
       },
@@ -76,7 +91,8 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, name, address, defaultMealsServed, isPopup } = body;
+    const { id, name, address, defaultMealsServed, isPopup, targetPerNight } =
+      body;
 
     if (!id) {
       return NextResponse.json(
@@ -85,12 +101,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updateData: Record<string, string | number | boolean> = {};
+    const updateData: Record<string, string | number | boolean | null> = {};
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
     if (defaultMealsServed !== undefined)
       updateData.defaultMealsServed = parseInt(defaultMealsServed);
     if (isPopup !== undefined) updateData.isPopup = Boolean(isPopup);
+    if (targetPerNight !== undefined)
+      updateData.targetPerNight = parseTarget(targetPerNight);
 
     const location = await prisma.location.update({
       where: { id },

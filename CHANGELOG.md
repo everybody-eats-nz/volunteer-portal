@@ -1,3 +1,9 @@
+## [0.113.0] - 2026-06-15
+
+### Changes
+- feat(admin): restaurant service-night stats entry + analytics ([#952](https://github.com/everybody-eats-nz/volunteer-portal/pull/952)) by @malinmalliyawadu
+
+
 ## [0.112.12] - 2026-06-14
 
 ### Changes

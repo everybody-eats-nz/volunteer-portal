@@ -2,8 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { startOfDay } from "date-fns";
+import { startOfDay, endOfDay } from "date-fns";
 import { parseISOInNZT, toUTC } from "@/lib/timezone";
+import { restaurantNightStatsSchema } from "@/lib/validation-schemas";
+import { countNewVolunteers } from "@/lib/service-night-attendance";
+import type { Prisma } from "@/generated/client";
+
+// Decimal columns come back as Prisma.Decimal — serialize to plain numbers for JSON.
+type MealsServedRecord = Prisma.MealsServedGetPayload<object>;
+
+function serializeStats(record: MealsServedRecord) {
+  const toNumber = (v: Prisma.Decimal | null) => (v === null ? null : Number(v));
+  return {
+    mealsServed: record.mealsServed,
+    notes: record.notes,
+    weather: record.weather,
+    bookingsPax: record.bookingsPax,
+    newVolunteers: record.newVolunteers,
+    nonPayingCount: record.nonPayingCount,
+    vege: record.vege,
+    takeaways: record.takeaways,
+    eftposTransactions: record.eftposTransactions,
+    cash: toNumber(record.cash),
+    eftpos: toNumber(record.eftpos),
+    stripe: toNumber(record.stripe),
+    protein: record.protein,
+  };
+}
 
 // GET - Fetch meals served for a specific date and location
 export async function GET(request: NextRequest) {
@@ -25,10 +50,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Parse date in NZ timezone and get start of day in UTC
+    // Parse date in NZ timezone and get the UTC bounds of the NZ service day
     const dateNZT = parseISOInNZT(date);
-    const startOfDayNZT = startOfDay(dateNZT);
-    const startOfDayUTC = toUTC(startOfDayNZT);
+    const startOfDayUTC = toUTC(startOfDay(dateNZT));
+    const endOfDayUTC = toUTC(endOfDay(dateNZT));
+
+    // New volunteers are derived live from actual attendance, not entered.
+    const newVolunteers = await countNewVolunteers({
+      location,
+      start: startOfDayUTC,
+      end: endOfDayUTC,
+    });
 
     const mealsRecord = await prisma.mealsServed.findUnique({
       where: {
@@ -49,13 +81,14 @@ export async function GET(request: NextRequest) {
         mealsServed: null,
         defaultMealsServed: locationConfig?.defaultMealsServed || 60,
         notes: null,
+        newVolunteers,
       });
     }
 
     return NextResponse.json({
-      mealsServed: mealsRecord.mealsServed,
+      ...serializeStats(mealsRecord),
+      newVolunteers, // live value overrides the stored snapshot
       defaultMealsServed: null,
-      notes: mealsRecord.notes,
     });
   } catch (error) {
     console.error("Error fetching meals served:", error);
@@ -75,41 +108,39 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { date, location, mealsServed, notes } = body;
+    const parsed = restaurantNightStatsSchema.safeParse(await request.json());
 
-    if (!date || !location) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Date and location are required" },
+        { error: parsed.error.issues[0]?.message || "Invalid request" },
         { status: 400 }
       );
     }
 
-    const hasMealsCount =
-      mealsServed !== undefined && mealsServed !== null && mealsServed !== "";
-    const trimmedNotes = typeof notes === "string" ? notes.trim() : "";
+    const { date, location, ...stats } = parsed.data;
 
-    if (!hasMealsCount && !trimmedNotes) {
+    // Require at least one stat/note — don't create empty rows.
+    const hasAnyValue = Object.values(stats).some((v) => v !== null);
+    if (!hasAnyValue) {
       return NextResponse.json(
-        { error: "Enter a meals count, a note, or both" },
+        { error: "Enter at least one stat before saving" },
         { status: 400 }
       );
     }
 
-    const parsedMeals = hasMealsCount ? parseInt(mealsServed, 10) : null;
-    if (hasMealsCount && (parsedMeals === null || Number.isNaN(parsedMeals))) {
-      return NextResponse.json(
-        { error: "Meals count must be a number" },
-        { status: 400 }
-      );
-    }
-
-    // Parse date in NZ timezone and get start of day in UTC
+    // Parse date in NZ timezone and get the UTC bounds of the NZ service day
     const dateNZT = parseISOInNZT(date);
-    const startOfDayNZT = startOfDay(dateNZT);
-    const startOfDayUTC = toUTC(startOfDayNZT);
+    const startOfDayUTC = toUTC(startOfDay(dateNZT));
+    const endOfDayUTC = toUTC(endOfDay(dateNZT));
 
-    // Upsert the meals served record
+    // New volunteers are derived from attendance, not from the request body.
+    const newVolunteers = await countNewVolunteers({
+      location,
+      start: startOfDayUTC,
+      end: endOfDayUTC,
+    });
+
+    // Upsert the service-night record
     const mealsRecord = await prisma.mealsServed.upsert({
       where: {
         date_location: {
@@ -117,21 +148,20 @@ export async function POST(request: NextRequest) {
           location,
         },
       },
-      update: {
-        mealsServed: parsedMeals,
-        notes: trimmedNotes || null,
-        createdBy: session.user.id,
-      },
+      update: { ...stats, newVolunteers, createdBy: session.user.id },
       create: {
         date: startOfDayUTC,
         location,
-        mealsServed: parsedMeals,
-        notes: trimmedNotes || null,
+        ...stats,
+        newVolunteers,
         createdBy: session.user.id,
       },
     });
 
-    return NextResponse.json(mealsRecord);
+    return NextResponse.json({
+      ...serializeStats(mealsRecord),
+      newVolunteers,
+    });
   } catch (error) {
     console.error("Error updating meals served:", error);
     return NextResponse.json(

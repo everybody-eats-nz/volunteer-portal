@@ -18,8 +18,15 @@ export default async function LocationsPage() {
     orderBy: { name: "asc" },
   });
 
-  const activeLocations = allLocations.filter((loc) => loc.isActive);
-  const inactiveLocations = allLocations.filter((loc) => !loc.isActive);
+  // Serialize Decimal targetPerNight to a plain number for the client component
+  const serialized = allLocations.map((loc) => ({
+    ...loc,
+    targetPerNight:
+      loc.targetPerNight === null ? null : Number(loc.targetPerNight),
+  }));
+
+  const activeLocations = serialized.filter((loc) => loc.isActive);
+  const inactiveLocations = serialized.filter((loc) => !loc.isActive);
 
   return (
     <AdminPageWrapper

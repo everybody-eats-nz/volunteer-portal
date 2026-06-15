@@ -1,0 +1,153 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { nowInNZT, toNZT } from "@/lib/timezone";
+import { parseDaysParam } from "@/lib/parse-days-param";
+
+const toNum = (v: unknown): number => {
+  if (v === null || v === undefined) return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+export interface ServiceNightRow {
+  date: string; // YYYY-MM-DD (NZ)
+  location: string;
+  customers: number | null;
+  nonPaying: number | null;
+  totalKoha: number;
+  perHead: number | null;
+  protein: string | null;
+  weather: string | null;
+  newVolunteers: number | null;
+  bookings: number | null;
+}
+
+const SORTABLE = new Set([
+  "date",
+  "location",
+  "customers",
+  "nonPaying",
+  "totalKoha",
+  "perHead",
+  "newVolunteers",
+  "bookings",
+]);
+
+// GET - Paginated, sortable per-night detail table (reproduces the legacy
+// "all records" report). Filters mirror the analytics page.
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const sp = request.nextUrl.searchParams;
+  const location = sp.get("location");
+  const isLocationFiltered = !!location && location !== "all";
+  const monthsRaw = sp.get("months") || "3";
+  const allTime = monthsRaw === "all";
+  const months = allTime ? 0 : parseInt(monthsRaw, 10) || 3;
+  const from = sp.get("from");
+  const to = sp.get("to");
+  const daysFilter = parseDaysParam(sp.get("days") || "");
+
+  const page = Math.max(1, parseInt(sp.get("page") || "1", 10));
+  const pageSize = Math.min(
+    100,
+    Math.max(10, parseInt(sp.get("pageSize") || "25", 10))
+  );
+  const sortByRaw = sp.get("sortBy") || "date";
+  const sortBy = SORTABLE.has(sortByRaw) ? sortByRaw : "date";
+  const sortDir = sp.get("sortDir") === "asc" ? "asc" : "desc";
+
+  // Date window — custom range overrides the month preset (mirrors the lib)
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  const customRange =
+    from && to && dateRe.test(from) && dateRe.test(to) && from <= to;
+  const nz = nowInNZT();
+  const todayEnd = new Date(nz.getFullYear(), nz.getMonth(), nz.getDate(), 23, 59, 59, 999);
+  let startDate: Date;
+  let endDate: Date;
+  if (customRange) {
+    startDate = new Date(`${from}T00:00:00`);
+    endDate = new Date(`${to}T23:59:59.999`);
+  } else if (allTime) {
+    startDate = new Date(2015, 0, 1); // floor before any EE data
+    endDate = todayEnd;
+  } else {
+    endDate = todayEnd;
+    startDate = new Date(nz.getFullYear(), nz.getMonth() - months, nz.getDate());
+  }
+
+  try {
+    const records = await prisma.mealsServed.findMany({
+      where: {
+        date: { gte: startDate, lte: endDate },
+        ...(isLocationFiltered ? { location: location! } : {}),
+      },
+      select: {
+        date: true,
+        location: true,
+        mealsServed: true,
+        nonPayingCount: true,
+        cash: true,
+        eftpos: true,
+        stripe: true,
+        protein: true,
+        weather: true,
+        newVolunteers: true,
+        bookingsPax: true,
+      },
+    });
+
+    let rows: ServiceNightRow[] = records
+      .filter((r) => !daysFilter || daysFilter.includes(toNZT(r.date).getDay()))
+      .map((r) => {
+        const totalKoha =
+          Math.round((toNum(r.cash) + toNum(r.eftpos) + toNum(r.stripe)) * 100) /
+          100;
+        const customers = r.mealsServed;
+        return {
+          date: r.date.toISOString().substring(0, 10),
+          location: r.location,
+          customers,
+          nonPaying: r.nonPayingCount,
+          totalKoha,
+          perHead:
+            customers && customers > 0
+              ? Math.round((totalKoha / customers) * 100) / 100
+              : null,
+          protein: r.protein,
+          weather: r.weather,
+          newVolunteers: r.newVolunteers,
+          bookings: r.bookingsPax,
+        };
+      });
+
+    rows.sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      const av = a[sortBy as keyof ServiceNightRow];
+      const bv = b[sortBy as keyof ServiceNightRow];
+      if (av === null || av === undefined) return 1; // nulls last
+      if (bv === null || bv === undefined) return -1;
+      if (typeof av === "number" && typeof bv === "number") {
+        return (av - bv) * dir;
+      }
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+
+    const total = rows.length;
+    const start = (page - 1) * pageSize;
+    rows = rows.slice(start, start + pageSize);
+
+    return NextResponse.json({ rows, total, page, pageSize });
+  } catch (error) {
+    console.error("Error fetching service-night records:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch records" },
+      { status: 500 }
+    );
+  }
+}
