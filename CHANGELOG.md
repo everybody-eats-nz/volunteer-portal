@@ -1,3 +1,9 @@
+## [0.114.0] - 2026-06-15
+
+### Changes
+- feat(admin): add stacked vs 100% toggle to analytics charts ([#981](https://github.com/everybody-eats-nz/volunteer-portal/pull/981)) by @malinmalliyawadu
+
+
 ## [0.113.2] - 2026-06-15
 
 ### Changes
