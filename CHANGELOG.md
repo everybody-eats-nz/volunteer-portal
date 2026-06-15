@@ -1,3 +1,9 @@
+## [0.113.1] - 2026-06-15
+
+### Changes
+- feat(admin): add --fill-blanks mode to service-night importer ([#979](https://github.com/everybody-eats-nz/volunteer-portal/pull/979)) by @malinmalliyawadu
+
+
 ## [0.113.0] - 2026-06-15
 
 ### Changes
