@@ -1,9 +1,22 @@
-import { withBotId } from "botid/next/config";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Optimize for Vercel serverless functions
+  // Self-contained build output for Docker deployment
+  output: "standalone",
+
+  // Serve uncompressed from the origin and let Cloudflare compress at the edge
+  // (brotli). Cloudflare passes through origin gzip rather than upgrading it,
+  // so disabling Next's gzip is required to get brotli to the browser.
+  // The app domain is always behind the Cloudflare proxy in production.
+  compress: false,
+
+  // Pin the tracing root to web/ so standalone output always has server.js
+  // at its top level regardless of where the repo is checked out
+  // (next build always runs from web/)
+  outputFileTracingRoot: process.cwd(),
+
+  // Keep native/heavy packages out of the server bundle
   serverExternalPackages: ["@prisma/client", "bcrypt"],
 
   // Configure external image domains
@@ -76,4 +89,4 @@ const finalConfig = posthogEnabled
     })
   : nextConfig;
 
-export default withBotId(finalConfig);
+export default finalConfig;

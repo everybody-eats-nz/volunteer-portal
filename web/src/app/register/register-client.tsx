@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn, getProviders } from "next-auth/react";
@@ -37,6 +37,7 @@ import {
   type LocationOption,
   getDefaultLocationCandidates,
 } from "@/lib/location-utils";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 
 interface Provider {
   id: string;
@@ -70,6 +71,7 @@ export default function RegisterClient({
   const [healthSafetyPolicyOpen, setHealthSafetyPolicyOpen] = useState(false);
   const [volunteerAgreementContent, setVolunteerAgreementContent] = useState("");
   const [healthSafetyPolicyContent, setHealthSafetyPolicyContent] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -243,10 +245,13 @@ export default function RegisterClient({
         name: `${formData.firstName} ${formData.lastName}`.trim(),
       };
 
+      const turnstileToken = await turnstileRef.current?.getToken();
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
         },
         body: JSON.stringify(processedData),
       });
@@ -762,6 +767,8 @@ export default function RegisterClient({
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8" data-testid="registration-form">
               <div className="min-h-[400px]" data-testid="form-step-content">{renderCurrentStep()}</div>
+
+              <Turnstile ref={turnstileRef} />
 
               {/* Navigation Buttons */}
               <div className="flex items-center justify-between pt-6 border-t border-border" data-testid="form-navigation">

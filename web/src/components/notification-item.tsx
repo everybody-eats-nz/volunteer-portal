@@ -32,6 +32,16 @@ export function NotificationItem({
 
     setMarking(true);
     try {
+      await markRead();
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  const markRead = async () => {
+    if (notification.isRead) return;
+
+    try {
       const response = await fetch(`/api/notifications/${notification.id}`, {
         method: "PUT",
         headers: {
@@ -45,9 +55,14 @@ export function NotificationItem({
       }
     } catch (error) {
       console.error("Error marking notification as read:", error);
-    } finally {
-      setMarking(false);
     }
+  };
+
+  // When clicking the notification link, mark it as read (fire-and-forget so
+  // navigation isn't blocked) before closing the dropdown.
+  const handleLinkClick = () => {
+    void markRead();
+    onClick?.();
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -196,7 +211,7 @@ export function NotificationItem({
       <Link
         href={notification.actionUrl}
         className="block hover:no-underline"
-        onClick={onClick}
+        onClick={handleLinkClick}
         data-testid="notification-link"
       >
         {content}

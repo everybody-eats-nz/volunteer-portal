@@ -1,0 +1,160 @@
+name: Docker Image
+
+# Builds the web app and packages it into a runtime image on GHCR.
+# The Next.js build needs a reachable, migrated Postgres (partial
+# prerendering queries it), so the app is built on the runner against a
+# service container and the Dockerfile only packages the output.
+#
+# NEXT_PUBLIC_* values are inlined at build time. Set production values as
+# repository variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+# NEXT_PUBLIC_TURNSTILE_SITE_KEY (PostHog values come from .env.example).
+# Optionally set the COOLIFY_WEBHOOK_URL + COOLIFY_WEBHOOK_TOKEN secrets to
+# trigger a deploy after each push.
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/docker-image.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://postgres:password@localhost:5432/volunteer-portal
+  NEXTAUTH_URL: http://localhost:3000
+  NEXTAUTH_SECRET: build-time-secret-not-used-at-runtime
+  NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy-project.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key' }}
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '' }}
+  # Drives the header environment badge (inlined at build time):
+  # main -> production (no badge); other branches -> staging (STAGING badge).
+  NEXT_PUBLIC_APP_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+  SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-build
+  TZ: Pacific/Auckland
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/web
+  # Secrets can't be read in `if:` directly; surface as job env for the guard.
+  PROD_DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: volunteer-portal
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: web/.nvmrc
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: web/.next/cache
+          key: ${{ runner.os }}-docker-nextjs-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-nextjs-${{ hashFiles('web/package-lock.json') }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database for build-time prerendering
+        run: |
+          cp .env.example .env
+          npx prisma migrate deploy
+          npx prisma db seed
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build application
+        run: npm run build
+
+      # next build copies the build-time .env into .next/standalone/. Runtime
+      # env is injected by Coolify, so strip it before packaging the image.
+      # (.dockerignore also excludes it; this is an explicit, logged guarantee.)
+      - name: Strip build-time .env from standalone output
+        run: rm -f .next/standalone/.env .next/standalone/.env.*
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: web
+          file: web/Dockerfile
+          push: true
+          # Provenance/SBOM attestation manifests trigger intermittent
+          # "unknown blob" push failures on GHCR — disable them.
+          provenance: false
+          sbom: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Apply pending migrations to the production database before the new
+      # image goes live. The runtime image is lean and does not bundle the
+      # Prisma CLI/migrations, so this runs from the repo checkout here.
+      # Requires the PROD_DIRECT_URL secret (Supabase DIRECT_URL, port 5432).
+      - name: Run production migrations
+        if: ${{ github.ref == 'refs/heads/main' && env.PROD_DIRECT_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Trigger Coolify deploy
+        if: ${{ github.ref == 'refs/heads/main' }}
+        working-directory: .
+        env:
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_WEBHOOK_TOKEN: ${{ secrets.COOLIFY_WEBHOOK_TOKEN }}
+        run: |
+          if [ -n "$COOLIFY_WEBHOOK_URL" ]; then
+            curl -fsS -X GET "$COOLIFY_WEBHOOK_URL" \
+              -H "Authorization: Bearer $COOLIFY_WEBHOOK_TOKEN"
+            echo "Coolify deploy triggered"
+          else
+            echo "COOLIFY_WEBHOOK_URL not set - skipping deploy trigger"
+          fi

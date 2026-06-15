@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths: ["web/**"]
 
+# Serialize runs: concurrent merges previously raced, stranding tags on
+# commits that never landed on main (v0.112.9, v0.113.0)
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
 jobs:
   version-bump:
     if: github.event.pull_request.merged == true
@@ -92,6 +98,15 @@ jobs:
           esac
 
           NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+
+          # Skip past any tag that already exists (e.g. stranded by a past
+          # failed run) so one bad tag can't wedge every future release
+          while git rev-parse -q --verify "refs/tags/v${NEW_VERSION}" > /dev/null; do
+            echo "Tag v${NEW_VERSION} already exists, trying next patch version"
+            NEW_PATCH=$((NEW_PATCH + 1))
+            NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+          done
+
           echo "New version: $NEW_VERSION"
 
           # Update package.json
@@ -171,7 +186,10 @@ jobs:
         if: steps.version-type.outputs.bump_type != 'skip'
         run: |
           git remote set-url origin git@github.com:everybody-eats-nz/volunteer-portal.git
-          git push origin main "v${{ steps.bump-version.outputs.new_version }}"
+          # --atomic: if the main push is rejected (e.g. a race with another
+          # merge), don't push the tag either — a stranded tag blocks all
+          # future runs at the same version
+          git push --atomic origin main "v${{ steps.bump-version.outputs.new_version }}"
 
       - name: Create GitHub Release
         if: steps.version-type.outputs.bump_type != 'skip'

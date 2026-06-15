@@ -1,3 +1,27 @@
+## [0.112.12] - 2026-06-14
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 2 updates ([#975](https://github.com/everybody-eats-nz/volunteer-portal/pull/975)) by @dependabot[bot]
+
+
+## [0.112.11] - 2026-06-14
+
+### Changes
+- chore(deps-dev): bump esbuild from 0.28.0 to 0.28.1 in /web ([#960](https://github.com/everybody-eats-nz/volunteer-portal/pull/960)) by @dependabot[bot]
+
+
+## [0.112.10] - 2026-06-13
+
+### Changes
+- fix(sse): restore admin message notifications & desktop alerts ([#964](https://github.com/everybody-eats-nz/volunteer-portal/pull/964)) by @malinmalliyawadu
+
+
+## [0.112.9] - 2026-06-13
+
+### Changes
+- fix(notifications): mark notification as read when clicking its link ([#963](https://github.com/everybody-eats-nz/volunteer-portal/pull/963)) by @malinmalliyawadu
+
+
 ## [0.112.8] - 2026-03-07
 
 ### Changes

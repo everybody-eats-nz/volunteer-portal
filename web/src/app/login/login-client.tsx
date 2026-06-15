@@ -24,6 +24,7 @@ import {
 } from "@/lib/passkey-client";
 import { Fingerprint, Archive } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { isProductionEnv } from "@/lib/environment";
 
 interface LoginClientProps {
   providers: Provider[];
@@ -67,12 +68,10 @@ const formFieldVariants: Variants = {
 
 export default function LoginClient({ providers }: LoginClientProps) {
   const [email, setEmail] = useState(
-    process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
-      ? "volunteer@example.com"
-      : ""
+    !isProductionEnv() ? "volunteer@example.com" : ""
   );
   const [password, setPassword] = useState(
-    process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" ? "volunteer123" : ""
+    !isProductionEnv() ? "volunteer123" : ""
   );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -745,7 +744,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
               </div>
 
               {/* Only show demo credentials when not in production */}
-              {process.env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
+              {!isProductionEnv() && (
                 <div
                   className="bg-accent/10 rounded-lg p-4 text-center"
                   data-testid="demo-credentials"

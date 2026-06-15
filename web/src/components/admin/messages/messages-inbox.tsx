@@ -20,6 +20,8 @@ import { ThreadView } from "./thread-view";
 import { ComposeButton } from "./compose-button";
 import type { InboxRealtimeEvent, SerializedThread } from "./types";
 
+const BROWSER_NOTIFICATIONS_KEY = "admin-messages-browser-notifications";
+
 interface MessagesInboxProps {
   initialThreads: SerializedThread[];
   initialSelectedId: string | null;
@@ -43,6 +45,18 @@ export function MessagesInbox({
   const [locationFilter, setLocationFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [browserNotificationsOn, setBrowserNotificationsOn] = useState(false);
+
+  // Restore the notification preference after mount. Starts false so SSR and the
+  // first client render match, then turns on when the browser already has
+  // permission and the admin hasn't explicitly turned it off before. Without
+  // this, the toggle reset to off on every page load and desktop notifications
+  // never fired unless the admin re-clicked "Notify me" each visit.
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+    const stored = localStorage.getItem(BROWSER_NOTIFICATIONS_KEY);
+    setBrowserNotificationsOn(stored !== "off");
+  }, []);
 
   // Reload threads when filters change.
   const fetchThreads = useCallback(async () => {
@@ -210,6 +224,7 @@ export function MessagesInbox({
   const toggleBrowserNotifications = useCallback(async () => {
     if (browserNotificationsOn) {
       setBrowserNotificationsOn(false);
+      localStorage.setItem(BROWSER_NOTIFICATIONS_KEY, "off");
       return;
     }
     if (typeof Notification === "undefined") {
@@ -224,7 +239,9 @@ export function MessagesInbox({
       Notification.permission === "granted"
         ? "granted"
         : await Notification.requestPermission();
-    setBrowserNotificationsOn(result === "granted");
+    const on = result === "granted";
+    setBrowserNotificationsOn(on);
+    localStorage.setItem(BROWSER_NOTIFICATIONS_KEY, on ? "on" : "off");
   }, [browserNotificationsOn]);
 
   return (
