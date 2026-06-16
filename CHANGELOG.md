@@ -1,3 +1,9 @@
+## [0.116.1] - 2026-06-16
+
+### Changes
+- Add public impact-story API endpoint ([#991](https://github.com/everybody-eats-nz/volunteer-portal/pull/991)) by @malinmalliyawadu
+
+
 ## [0.116.0] - 2026-06-16
 
 ### Changes
