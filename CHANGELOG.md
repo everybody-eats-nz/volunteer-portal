@@ -1,3 +1,9 @@
+## [0.116.6] - 2026-06-16
+
+### Changes
+- fix(deploy): unbreak Vercel build by gating standalone output behind a flag ([#995](https://github.com/everybody-eats-nz/volunteer-portal/pull/995)) by @malinmalliyawadu
+
+
 ## [0.116.5] - 2026-06-16
 
 ### Changes
