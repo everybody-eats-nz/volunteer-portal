@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { nowInNZT, toNZT } from "@/lib/timezone";
 import { parseDaysParam } from "@/lib/parse-days-param";
+import { toCsv } from "@/lib/csv";
 
 const toNum = (v: unknown): number => {
   if (v === null || v === undefined) return 0;
@@ -55,20 +56,11 @@ const CSV_COLUMNS: { header: string; value: (r: FullServiceNightRow) => unknown 
   { header: "Notes", value: (r) => r.notes },
 ];
 
-// RFC-4180 cell: quote when the value contains a comma, quote or newline.
-const csvCell = (v: unknown): string => {
-  if (v === null || v === undefined) return "";
-  const s = String(v);
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
 function buildCsv(rows: FullServiceNightRow[]): string {
-  const lines = [CSV_COLUMNS.map((c) => c.header).join(",")];
-  for (const r of rows) {
-    lines.push(CSV_COLUMNS.map((c) => csvCell(c.value(r))).join(","));
-  }
-  // Lead with a BOM so Excel reads UTF-8 correctly.
-  return "﻿" + lines.join("\r\n");
+  return toCsv(
+    CSV_COLUMNS.map((c) => c.header),
+    rows.map((r) => CSV_COLUMNS.map((c) => c.value(r)))
+  );
 }
 
 const SORTABLE = new Set([
