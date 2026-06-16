@@ -1,3 +1,9 @@
+## [0.115.1] - 2026-06-16
+
+### Changes
+- fix(flaky): admin-notes beforeAll race condition + strict-mode login button ([#980](https://github.com/everybody-eats-nz/volunteer-portal/pull/980)) by @malinmalliyawadu
+
+
 ## [0.115.0] - 2026-06-15
 
 ### Changes
