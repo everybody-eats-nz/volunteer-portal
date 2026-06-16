@@ -1,7 +1,11 @@
 import { test, expect } from "./base";
 import type { Page } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/auth";
-import { createTestUser, getUserByEmail } from "./helpers/test-helpers";
+import {
+  createTestUser,
+  deleteTestUsers,
+  getUserByEmail,
+} from "./helpers/test-helpers";
 
 // Helper function to wait for page to load completely
 async function waitForPageLoad(page: Page) {
@@ -19,17 +23,30 @@ test.describe("Admin Notes Management", () => {
   const testEmail = "admin-notes-test@example.com";
 
   test.beforeAll(async ({ browser }) => {
-    // Create a test volunteer for all tests in this suite
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    // Create test user
-    await createTestUser(page, testEmail, "VOLUNTEER");
+    // Guard against parallel workers both executing beforeAll and racing to
+    // create the same email — check existence first, create only if absent.
+    let user = await getUserByEmail(page, testEmail);
+    if (!user) {
+      try {
+        await createTestUser(page, testEmail, "VOLUNTEER");
+        user = await getUserByEmail(page, testEmail);
+      } catch {
+        // Another worker won the race; fetch the user they created.
+        user = await getUserByEmail(page, testEmail);
+      }
+    }
+    testVolunteerId = user?.id ?? null;
 
-    // Get the user ID
-    const user = await getUserByEmail(page, testEmail);
-    testVolunteerId = user?.id || null;
+    await context.close();
+  });
 
+  test.afterAll(async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await deleteTestUsers(page, [testEmail]);
     await context.close();
   });
 
