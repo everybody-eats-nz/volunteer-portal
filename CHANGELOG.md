@@ -1,3 +1,39 @@
+## [0.116.3] - 2026-06-16
+
+### Changes
+- chore(deps): bump next from 16.1.6 to 16.2.9 in /web ([#955](https://github.com/everybody-eats-nz/volunteer-portal/pull/955)) by @dependabot[bot]
+
+
+## [0.116.2] - 2026-06-16
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 8 updates ([#989](https://github.com/everybody-eats-nz/volunteer-portal/pull/989)) by @dependabot[bot]
+
+
+## [0.116.1] - 2026-06-16
+
+### Changes
+- Add public impact-story API endpoint ([#991](https://github.com/everybody-eats-nz/volunteer-portal/pull/991)) by @malinmalliyawadu
+
+
+## [0.116.0] - 2026-06-16
+
+### Changes
+- Add public impact-stats API endpoint ([#990](https://github.com/everybody-eats-nz/volunteer-portal/pull/990)) by @malinmalliyawadu
+
+
+## [0.115.1] - 2026-06-16
+
+### Changes
+- fix(flaky): admin-notes beforeAll race condition + strict-mode login button ([#980](https://github.com/everybody-eats-nz/volunteer-portal/pull/980)) by @malinmalliyawadu
+
+
+## [0.115.0] - 2026-06-15
+
+### Changes
+- feat(admin): export service-night analytics as CSV ([#985](https://github.com/everybody-eats-nz/volunteer-portal/pull/985)) by @malinmalliyawadu
+
+
 ## [0.114.0] - 2026-06-15
 
 ### Changes
