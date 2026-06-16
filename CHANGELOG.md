@@ -1,3 +1,9 @@
+## [0.116.7] - 2026-06-16
+
+### Changes
+- chore(deps): bump protobufjs from 7.5.8 to 7.6.4 in /web ([#984](https://github.com/everybody-eats-nz/volunteer-portal/pull/984)) by @dependabot[bot]
+
+
 ## [0.116.6] - 2026-06-16
 
 ### Changes
