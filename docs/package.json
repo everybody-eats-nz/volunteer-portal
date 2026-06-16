@@ -15,7 +15,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.84",
     "@ai-sdk/openai": "^3.0.71",
-    "@astrojs/starlight": "^0.39.3",
+    "@astrojs/starlight": "^0.40.0",
     "@astrojs/vercel": "^10.0.8",
     "@rollup/plugin-typescript": "^12.3.0",
     "ai": "^6.0.206",
@@ -25,7 +25,7 @@
     "gray-matter": "^4.0.3",
     "mermaid": "^11.15.0",
     "sharp": "^0.35.1",
-    "starlight-sidebar-topics": "^0.7.1"
+    "starlight-sidebar-topics": "^0.8.0"
   },
   "devDependencies": {
     "playwright": "^1.60.0"
