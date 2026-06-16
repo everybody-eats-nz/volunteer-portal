@@ -1,3 +1,9 @@
+## [0.116.0] - 2026-06-16
+
+### Changes
+- Add public impact-stats API endpoint ([#990](https://github.com/everybody-eats-nz/volunteer-portal/pull/990)) by @malinmalliyawadu
+
+
 ## [0.115.1] - 2026-06-16
 
 ### Changes
