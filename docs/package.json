@@ -19,7 +19,7 @@
     "@astrojs/vercel": "^10.0.8",
     "@rollup/plugin-typescript": "^12.3.0",
     "ai": "^6.0.197",
-    "astro": "^6.4.4",
+    "astro": "^6.4.7",
     "astro-mermaid": "^2.0.2",
     "fs-extra": "^11.3.5",
     "gray-matter": "^4.0.3",
