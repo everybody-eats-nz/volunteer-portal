@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { toNZT } from "@/lib/timezone";
+import { formatInNZT, toNZT } from "@/lib/timezone";
 import {
   FOOD_SAVED_KG_PER_MEAL,
   getPublicImpactStats,
@@ -217,8 +217,12 @@ export async function getPublicImpactStory(): Promise<PublicImpactStory> {
     const nonPaying = r.nonPayingCount ?? 0;
     newVolunteers += r.newVolunteers ?? 0;
 
-    const year = Number(r.date.toISOString().slice(0, 4));
-    const nzDay = toNZT(r.date).getDay();
+    // MealsServed.date is NZ-midnight stored as UTC, so derive the calendar
+    // year (and weekday below) in NZ time — a UTC slice would shift a late-night
+    // service onto the previous day/year near boundaries.
+    const nzDate = toNZT(r.date);
+    const year = nzDate.getFullYear();
+    const nzDay = nzDate.getDay();
     const isWeekend = nzDay === 0 || nzDay === 6;
 
     add(bump(byYear, year), customers, cash, eftpos, stripe, nonPaying);
@@ -235,7 +239,8 @@ export async function getPublicImpactStory(): Promise<PublicImpactStory> {
     add(bump(isWeekend ? locWeekend : locWeeknight, r.location), customers, cash, eftpos, stripe, nonPaying);
   }
 
-  const firstYear = Math.min(...byYear.keys());
+  const firstYear =
+    byYear.size > 0 ? Math.min(...byYear.keys()) : currentYear;
   const yearly: ImpactStoryYear[] = [...byYear.entries()]
     .sort(([a], [b]) => a - b)
     .map(([year, b]) => ({
@@ -310,8 +315,12 @@ export async function getPublicImpactStory(): Promise<PublicImpactStory> {
       perHead: perHead(allTime),
       perPaying: perPaying(allTime),
       nonPayingPercent: nonPayingPercent(allTime),
-      firstNight: rows[0]?.date.toISOString().slice(0, 10) ?? null,
-      lastNight: rows[rows.length - 1]?.date.toISOString().slice(0, 10) ?? null,
+      // NZ calendar dates (rows are ordered by date asc), consistent with the
+      // NZ-based year/weekday aggregation above.
+      firstNight: rows[0] ? formatInNZT(rows[0].date, "yyyy-MM-dd") : null,
+      lastNight: rows[rows.length - 1]
+        ? formatInNZT(rows[rows.length - 1].date, "yyyy-MM-dd")
+        : null,
     },
     yearly,
     locations,
