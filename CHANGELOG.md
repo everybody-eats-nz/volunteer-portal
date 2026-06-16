@@ -1,3 +1,15 @@
+## [0.116.5] - 2026-06-16
+
+### Changes
+- chore(deps-dev): bump js-yaml from 4.1.1 to 4.2.0 in /web ([#986](https://github.com/everybody-eats-nz/volunteer-portal/pull/986)) by @dependabot[bot]
+
+
+## [0.116.4] - 2026-06-16
+
+### Changes
+- chore(deps): bump dompurify from 3.4.0 to 3.4.10 in /web ([#987](https://github.com/everybody-eats-nz/volunteer-portal/pull/987)) by @dependabot[bot]
+
+
 ## [0.116.3] - 2026-06-16
 
 ### Changes
