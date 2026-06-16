@@ -102,7 +102,15 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0e3a23" />
       </head>
+      {/*
+        suppressHydrationWarning: the e2e test harness adds an `e2e-testing`
+        class to <body> before React hydrates (to disable animations), and
+        browser extensions commonly mutate <body> attributes too. Suppressing
+        the resulting benign hydration warning keeps it from triggering
+        Next.js's dev error overlay.
+      */}
       <body
+        suppressHydrationWarning
         className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
       >
         <Providers>

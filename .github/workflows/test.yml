@@ -22,6 +22,12 @@ env:
   NEXTAUTH_SECRET: test-secret-for-ci
   NEXTAUTH_URL: http://localhost:3000
   TZ: Pacific/Auckland
+  # Dummy Supabase values so the dev server doesn't throw "Missing Supabase
+  # environment variables" at module load (src/lib/supabase.ts), which in dev
+  # mode renders the Next.js error overlay and breaks e2e tests.
+  NEXT_PUBLIC_SUPABASE_URL: https://dummy-project.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci-build
+  SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key-for-ci-build
 
 jobs:
   test:
