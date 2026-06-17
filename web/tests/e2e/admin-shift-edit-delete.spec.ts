@@ -37,9 +37,13 @@ test.describe("Admin Shift Edit and Delete", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    // Cleanup test users and shifts
-    await deleteTestUsers(page, testEmails);
+    // Delete shifts BEFORE users. The admin shift-delete route removes each
+    // shift's signups first, so the volunteer no longer holds a Signup row when
+    // we delete them. Deleting in the other order throws a FK violation
+    // (Signup→User is onDelete: Restrict) whenever a test created a signup,
+    // which leaves orphaned state that flakes the rest of the shard.
     await deleteTestShifts(page, testShiftIds);
+    await deleteTestUsers(page, testEmails);
     // Clear accumulator so stale IDs don't pile up across tests
     testShiftIds.length = 0;
   });

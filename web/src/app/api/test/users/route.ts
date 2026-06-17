@@ -103,6 +103,19 @@ export async function DELETE(request: NextRequest) {
     const email = searchParams.get("email");
 
     if (email) {
+      // Remove dependent rows that block deletion via a Restrict FK before
+      // deleting the user. Signup→User is onDelete: Restrict, so a user who
+      // still has a signup can't be deleted directly — without this the delete
+      // throws a FK violation and leaves orphaned test state behind.
+      const users = await prisma.user.findMany({
+        where: { email },
+        select: { id: true },
+      });
+      const userIds = users.map((u) => u.id);
+      if (userIds.length > 0) {
+        await prisma.signup.deleteMany({ where: { userId: { in: userIds } } });
+      }
+
       await prisma.user.deleteMany({
         where: { email },
       });
