@@ -2,12 +2,6 @@ import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
 import { getBaseUrl } from "./utils";
 import { getShiftTheme } from "./shift-themes";
 
-interface SendEmailParams {
-  to: string;
-  firstName: string;
-  migrationLink: string;
-}
-
 interface ShiftCancellationEmailData {
   managerName: string;
   volunteerName: string;
@@ -235,7 +229,6 @@ interface SendAnnouncementParams {
 class EmailService {
   private readonly apiKey: string;
   private readonly baseUrl = "https://api.createsend.com/api/v3.3";
-  private migrationSmartEmailID: string;
   private shiftCancellationAdminSmartEmailID: string;
   private shiftCancellationAdminSameDaySmartEmailID: string;
   private shiftShortageSmartEmailID: string;
@@ -268,23 +261,6 @@ class EmailService {
     }
 
     this.apiKey = apiKey || "dummy-key-for-dev";
-
-    // Smart email ID for migration invites
-    const migrationEmailId = process.env.CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID;
-    if (!migrationEmailId) {
-      if (isDevelopment) {
-        console.warn(
-          "[EMAIL SERVICE] CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID is not configured - migration emails will not be sent"
-        );
-        this.migrationSmartEmailID = "dummy-migration-id";
-      } else {
-        throw new Error(
-          "CAMPAIGN_MONITOR_MIGRATION_EMAIL_ID is not configured"
-        );
-      }
-    } else {
-      this.migrationSmartEmailID = migrationEmailId;
-    }
 
     // Smart email ID for shift cancellation notifications
     const adminNotificationCancellationEmailId =
@@ -742,45 +718,6 @@ class EmailService {
     }
 
     return response.json();
-  }
-
-  async sendMigrationInvite({
-    to,
-    firstName,
-    migrationLink,
-  }: SendEmailParams): Promise<void> {
-    const isDevelopment = process.env.NODE_ENV === "development";
-
-    // In development, skip email sending if configuration is missing
-    if (isDevelopment && this.migrationSmartEmailID === "dummy-migration-id") {
-      console.log(
-        `[EMAIL SERVICE] Would send migration email to ${to} (skipped in dev - no config)`
-      );
-      return Promise.resolve();
-    }
-
-    try {
-      await this.sendSmartEmail(
-        this.migrationSmartEmailID,
-        `${firstName} <${to}>`,
-        {
-          firstName,
-          link: migrationLink,
-        }
-      );
-      console.log("Migration invite email sent successfully to:", to);
-    } catch (err) {
-      if (isDevelopment) {
-        console.warn(
-          "[EMAIL SERVICE] Error sending migration invite email (development):",
-          err instanceof Error ? err.message : "Unknown error"
-        );
-        // Don't fail in development
-      } else {
-        console.error("Error sending migration invite email:", err);
-        throw err;
-      }
-    }
   }
 
   async sendShiftCancellationNotification(
@@ -1401,7 +1338,6 @@ class EmailService {
       | "userInvitation"
       | "profileCompletion"
       | "surveyNotification"
-      | "migration"
   ): { id: string; name: string } {
     const emailTemplates = {
       shortage: {
@@ -1452,7 +1388,6 @@ class EmailService {
         id: this.surveyNotificationSmartEmailID,
         name: "Survey Notification",
       },
-      migration: { id: this.migrationSmartEmailID, name: "Migration Invite" },
     };
 
     return emailTemplates[emailType];
@@ -1475,7 +1410,6 @@ class EmailService {
       | "userInvitation"
       | "profileCompletion"
       | "surveyNotification"
-      | "migration"
   ): Promise<{
     success: boolean;
     data?: {
@@ -1578,7 +1512,6 @@ export async function sendSurveyNotification(
 }
 
 export type {
-  SendEmailParams,
   SendShiftCancellationParams,
   ShiftCancellationEmailData,
   SendShiftShortageParams,
