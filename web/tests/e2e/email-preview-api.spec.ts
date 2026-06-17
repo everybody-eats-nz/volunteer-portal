@@ -140,7 +140,6 @@ test.describe("Email Preview API", () => {
       "parentalConsentApproval",
       "userInvitation",
       "profileCompletion",
-      "migration",
     ];
 
     for (const emailType of validEmailTypes) {

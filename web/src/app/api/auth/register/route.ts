@@ -74,7 +74,7 @@ const registerSchema = z
     volunteerAgreementAccepted: z.boolean(),
     healthSafetyPolicyAccepted: z.boolean(),
 
-    // Profile image (required for new registrations, optional for migrations)
+    // Profile image (optional, nullable in DB)
     profilePhotoUrl: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -112,54 +112,19 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    
-    // Check if this is a migration registration
-    const isMigration = body.isMigration === true;
-    const userId = body.userId;
-    
-    // Remove migration-specific fields before validation
-    const dataToValidate = { ...body };
-    delete dataToValidate.isMigration;
-    delete dataToValidate.userId;
-    delete dataToValidate.migrationToken;
-    
-    const validatedData = registerSchema.parse(dataToValidate);
 
-    // For migration, find existing user by ID; otherwise check if email exists
-    let priorNewsletterLists: string[] = [];
-    if (isMigration && userId) {
-      const migratingUser = await prisma.user.findUnique({
-        where: { id: userId },
-      });
+    const validatedData = registerSchema.parse(body);
 
-      if (!migratingUser) {
-        return NextResponse.json(
-          { error: "Invalid migration request" },
-          { status: 400 }
-        );
-      }
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email },
+    });
 
-      // Verify the email matches for security
-      if (migratingUser.email !== validatedData.email) {
-        return NextResponse.json(
-          { error: "Email mismatch in migration request" },
-          { status: 400 }
-        );
-      }
-
-      priorNewsletterLists = migratingUser.newsletterLists ?? [];
-    } else {
-      // Check if user already exists for new registrations
-      const existingUser = await prisma.user.findUnique({
-        where: { email: validatedData.email },
-      });
-
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "A user with this email already exists" },
-          { status: 400 }
-        );
-      }
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "A user with this email already exists" },
+        { status: 400 }
+      );
     }
 
     // Validate required agreements
@@ -256,45 +221,19 @@ export async function POST(req: Request) {
       }),
     };
 
-    // For migration, update existing user; otherwise create new user
-    let user;
-    if (isMigration && userId) {
-      // Update existing user with completed profile
-      user = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          ...userData,
-          profileCompleted: true, // Mark profile as completed for migrated users
-          isMigrated: true, // Ensure migrated flag is set
-          emailVerified: true, // Mark as verified since they received migration invitation email
-          migrationInvitationToken: null, // Clear the token after successful registration
-          migrationTokenExpiresAt: null, // Clear the expiry
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          createdAt: true,
-        },
-      });
-    } else {
-      // Create new user
-      user = await prisma.user.create({
-        data: userData,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-          createdAt: true,
-        },
-      });
-    }
+    // Create new user
+    const user = await prisma.user.create({
+      data: userData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+      },
+    });
 
     // Auto-assign labels after user creation
     if (user.id) {
@@ -304,7 +243,7 @@ export async function POST(req: Request) {
       }
 
       // Notify admins of new underage users requiring parental consent
-      if (!isMigration && requiresParentalConsent) {
+      if (requiresParentalConsent) {
         try {
           // Get all admin users
           const admins = await prisma.user.findMany({
@@ -334,8 +273,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // Send email verification for new registrations (not migrations)
-    if (!isMigration && user.id) {
+    // Send email verification for new registrations
+    if (user.id) {
       try {
         const verificationToken = await createVerificationToken(user.id);
         const emailService = getEmailService();
@@ -360,7 +299,7 @@ export async function POST(req: Request) {
       name:
         user.name ||
         `${validatedData.firstName} ${validatedData.lastName}`.trim(),
-      oldLists: priorNewsletterLists,
+      oldLists: [],
       newLists:
         validatedData.emailNewsletterSubscription === false
           ? []
@@ -379,16 +318,13 @@ export async function POST(req: Request) {
       event: FunnelEvent.REGISTER_COMPLETED,
       userId: user.id ?? null,
       phid,
-      properties: {
-        is_migration: isMigration,
-      },
     });
 
     return NextResponse.json(
       {
-        message: isMigration ? "Migration successful" : "Registration successful",
+        message: "Registration successful",
         user,
-        requiresEmailVerification: !isMigration, // Let frontend know email verification is required
+        requiresEmailVerification: true, // Let frontend know email verification is required
       },
       { status: 201 }
     );
