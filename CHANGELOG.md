@@ -1,3 +1,9 @@
+## [0.117.0] - 2026-06-17
+
+### Changes
+- chore: remove Laravel user-migration feature ([#996](https://github.com/everybody-eats-nz/volunteer-portal/pull/996)) by @malinmalliyawadu
+
+
 ## [0.116.7] - 2026-06-16
 
 ### Changes
