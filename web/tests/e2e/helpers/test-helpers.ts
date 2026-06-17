@@ -39,27 +39,6 @@ export async function createTestUser(
 }
 
 /**
- * Create a migration user (user without password that needs to complete registration)
- */
-export async function createMigrationUser(
-  page: Page,
-  email: string,
-  additionalData?: Record<string, string | boolean | number | Date>
-): Promise<{ id: string; email: string }> {
-  const response = await page.request.post("/api/test/users", {
-    data: {
-      email,
-      firstName: "Migration",
-      lastName: "User",
-      isMigrationUser: true,
-      ...additionalData,
-    },
-  });
-
-  return await response.json();
-}
-
-/**
  * Delete test users via API
  */
 export async function deleteTestUsers(
