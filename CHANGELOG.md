@@ -1,3 +1,45 @@
+## [0.116.7] - 2026-06-16
+
+### Changes
+- chore(deps): bump protobufjs from 7.5.8 to 7.6.4 in /web ([#984](https://github.com/everybody-eats-nz/volunteer-portal/pull/984)) by @dependabot[bot]
+
+
+## [0.116.6] - 2026-06-16
+
+### Changes
+- fix(deploy): unbreak Vercel build by gating standalone output behind a flag ([#995](https://github.com/everybody-eats-nz/volunteer-portal/pull/995)) by @malinmalliyawadu
+
+
+## [0.116.5] - 2026-06-16
+
+### Changes
+- chore(deps-dev): bump js-yaml from 4.1.1 to 4.2.0 in /web ([#986](https://github.com/everybody-eats-nz/volunteer-portal/pull/986)) by @dependabot[bot]
+
+
+## [0.116.4] - 2026-06-16
+
+### Changes
+- chore(deps): bump dompurify from 3.4.0 to 3.4.10 in /web ([#987](https://github.com/everybody-eats-nz/volunteer-portal/pull/987)) by @dependabot[bot]
+
+
+## [0.116.3] - 2026-06-16
+
+### Changes
+- chore(deps): bump next from 16.1.6 to 16.2.9 in /web ([#955](https://github.com/everybody-eats-nz/volunteer-portal/pull/955)) by @dependabot[bot]
+
+
+## [0.116.2] - 2026-06-16
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 8 updates ([#989](https://github.com/everybody-eats-nz/volunteer-portal/pull/989)) by @dependabot[bot]
+
+
+## [0.116.1] - 2026-06-16
+
+### Changes
+- Add public impact-story API endpoint ([#991](https://github.com/everybody-eats-nz/volunteer-portal/pull/991)) by @malinmalliyawadu
+
+
 ## [0.116.0] - 2026-06-16
 
 ### Changes

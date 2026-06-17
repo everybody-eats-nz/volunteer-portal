@@ -97,6 +97,10 @@ jobs:
 
       - name: Build application
         run: npm run build
+        env:
+          # Emit the standalone bundle the Docker runtime image needs.
+          # (Vercel builds without this flag so it manages its own output.)
+          BUILD_STANDALONE: "1"
 
       # next build copies the build-time .env into .next/standalone/. Runtime
       # env is injected by Coolify, so strip it before packaging the image.
