@@ -70,8 +70,12 @@ test.describe("Admin Shift Edit and Delete", () => {
       );
       await page.waitForLoadState("load");
 
-      // Check that edit button is visible on shift card
-      const editButton = page.getByTestId(`edit-shift-button-${testShiftId}`);
+      // Check that edit button is visible on shift card. Scope to the visible
+      // copy: during the page transition two copies of the card (one hidden)
+      // can briefly share this testid.
+      const editButton = page.locator(
+        `[data-testid="edit-shift-button-${testShiftId}"]:visible`
+      );
       await expect(editButton).toBeVisible();
       await expect(editButton).toContainText("Edit");
     });
@@ -84,8 +88,10 @@ test.describe("Admin Shift Edit and Delete", () => {
       );
       await page.waitForLoadState("load");
 
-      // Click edit button
-      const editButton = page.getByTestId(`edit-shift-button-${testShiftId}`);
+      // Click edit button (scope to the visible copy — see note above)
+      const editButton = page.locator(
+        `[data-testid="edit-shift-button-${testShiftId}"]:visible`
+      );
       await editButton.click();
 
       // Should navigate to edit page
@@ -354,13 +360,19 @@ test.describe("Admin Shift Edit and Delete", () => {
       // Wait for navigation and success message
       await page.waitForURL(/\/admin\/shifts/, { timeout: 10000 });
 
-      // Check for success message
-      const successMessage = page.getByTestId("shift-deleted-message");
+      // Check for success message. Right after the post-delete redirect the
+      // outgoing route can stay mounted for a beat, so two copies of the page
+      // (one hidden) briefly share this testid. Scope to the visible copy to
+      // avoid a strict-mode violation during that transition window.
+      const successMessage = page.locator(
+        '[data-testid="shift-deleted-message"]:visible'
+      );
       await expect(successMessage).toBeVisible({ timeout: 5000 });
 
-      // Shift should no longer appear in the list
+      // Shift should no longer appear in the list (scope to visible to ignore
+      // any hidden outgoing-route copy during the transition).
       await expect(
-        page.getByTestId(`shift-card-${testShiftId}`)
+        page.locator(`[data-testid="shift-card-${testShiftId}"]:visible`)
       ).not.toBeVisible();
     });
 
@@ -497,7 +509,9 @@ test.describe("Admin Shift Edit and Delete", () => {
       expect(redirectUrl).toContain(`date=${operatingDateStr}`);
       expect(redirectUrl).toContain("location=Wellington");
 
-      await expect(page.getByTestId("shift-deleted-message")).toBeVisible();
+      await expect(
+        page.locator('[data-testid="shift-deleted-message"]:visible')
+      ).toBeVisible();
     });
 
     test("should show back to shifts button on edit page", async ({ page }) => {
@@ -543,10 +557,13 @@ test.describe("Admin Shift Edit and Delete", () => {
       );
       await page.waitForLoadState("load");
 
-      // Check buttons are visible on mobile
-      const editButton = page.getByTestId(`edit-shift-button-${testShiftId}`);
-      const deleteButton = page.getByTestId(
-        `delete-shift-button-${testShiftId}`
+      // Check buttons are visible on mobile (scope to the visible copy — a
+      // brief page-transition overlap can duplicate these testids).
+      const editButton = page.locator(
+        `[data-testid="edit-shift-button-${testShiftId}"]:visible`
+      );
+      const deleteButton = page.locator(
+        `[data-testid="delete-shift-button-${testShiftId}"]:visible`
       );
 
       await expect(editButton).toBeVisible();
