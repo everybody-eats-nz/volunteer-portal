@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Users, UserPlus, Settings, MessageCircle } from "lucide-react";
+import { Settings, UserPlus } from "lucide-react";
 import { FriendsData } from "@/lib/friends-data";
 import { FriendsList } from "./friends-list";
 import { FriendRequestsList } from "./friend-requests-list";
@@ -19,6 +17,11 @@ interface FriendsManagerServerProps {
   initialTab?: "friends" | "requests";
 }
 
+/* Pill tab triggers — the marketing site's chip system rather than the
+   default shadcn segmented control. Active = filled forest pill. */
+const pillTab =
+  "h-11 flex-none rounded-full border border-forest-500/20 bg-transparent px-5 text-sm font-medium text-forest-700/80 shadow-none transition-all duration-200 hover:border-forest-500/40 hover:text-forest-700 data-[state=active]:border-forest-500 data-[state=active]:bg-forest-500 data-[state=active]:text-cream-50 data-[state=active]:shadow-sm dark:border-cream-50/20 dark:text-cream-50/75 dark:hover:border-cream-50/40 dark:hover:text-cream-50 dark:data-[state=active]:border-forest-500 dark:data-[state=active]:bg-forest-500 dark:data-[state=active]:text-cream-50";
+
 export function FriendsManagerServer({
   initialData,
   initialTab = "friends",
@@ -32,116 +35,92 @@ export function FriendsManagerServer({
   const hasNewRequests = pendingRequests.length > 0;
 
   return (
-    <div className="space-y-8">
-      {/* Enhanced Header Section */}
-      <div className="bg-linear-to-r from-primary/5 via-primary/3 to-purple-500/5 dark:from-primary/10 dark:via-primary/8 dark:to-purple-500/10 rounded-xl p-8 lg:p-10 border border-primary/10 dark:border-primary/20 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-8 lg:gap-12">
-          <div className="flex-1 max-w-xl space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground flex items-center gap-2 mb-2">
-                <Users className="h-5 w-5 text-primary" />
-                Connect & Discover
-              </h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Search for friends and manage your volunteer network
-              </p>
-            </div>
-            <FriendsSearch onSearchChange={setSearchTerm} />
-          </div>
+    <div className="space-y-10">
+      {/* Toolbar — search the roster, grow the whānau */}
+      <section className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-5 sm:p-6 dark:border-cream-50/10">
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <FriendsSearch onSearchChange={setSearchTerm} />
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
-            <Button
-              variant="outline"
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
               onClick={() => setShowPrivacySettings(true)}
               data-testid="privacy-settings-button"
               aria-label="Open privacy settings"
-              className="hover:bg-muted/50 hover:border-primary/30 transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-forest-500/30 px-6 py-3 text-sm font-medium text-forest-700 transition-all duration-200 hover:border-forest-700 hover:bg-forest-700 hover:text-cream-50 dark:border-cream-50/30 dark:text-cream-50 dark:hover:border-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
             >
-              <Settings className="h-4 w-4 mr-2" />
+              <Settings className="h-4 w-4" aria-hidden />
               Privacy Settings
-            </Button>
-            <Button
-              variant="default"
+            </button>
+            <button
+              type="button"
               onClick={() => setShowSendRequest(true)}
               data-testid="add-friend-button"
               aria-label="Send a friend request"
-              className="shadow-sm hover:shadow-md transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-forest-500 px-6 py-3 text-sm font-medium text-cream-50 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-lg active:translate-y-0"
             >
-              <UserPlus className="h-4 w-4 mr-2" />
+              <UserPlus className="h-4 w-4" aria-hidden />
               Add Friend
-            </Button>
+            </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="space-y-8">
-        <Tabs defaultValue={initialTab} className="space-y-8">
-          <TabsList
-            data-testid="friends-tabs"
-            aria-label="Friends and requests navigation"
-            className="h-10 grid w-full sm:w-[400px] grid-cols-2 bg-muted/50 dark:bg-muted/30 p-1 rounded-lg shadow-sm"
-          >
-            <TabsTrigger
-              value="friends"
-              data-testid="friends-tab"
-              className="relative transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center justify-center"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Friends
-              {friends.length > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-2 text-xs"
-                  aria-label={`${friends.length} friends`}
-                >
-                  {friends.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="requests"
-              data-testid="requests-tab"
-              className="relative transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center justify-center"
-            >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Requests
-              {hasNewRequests && (
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
-                >
-                  <Badge
-                    variant="destructive"
-                    className="ml-2 text-xs"
-                    aria-label={`${pendingRequests.length} pending requests`}
-                  >
-                    {pendingRequests.length}
-                  </Badge>
-                </motion.div>
-              )}
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue={initialTab} className="gap-8">
+        <TabsList
+          data-testid="friends-tabs"
+          aria-label="Friends and requests navigation"
+          className="h-auto w-full justify-start gap-2 rounded-none border-0 bg-transparent p-0 dark:border-0 dark:bg-transparent"
+        >
+          <TabsTrigger value="friends" data-testid="friends-tab" className={pillTab}>
+            Friends
+            {friends.length > 0 && (
+              <span
+                aria-label={`${friends.length} friends`}
+                className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-forest-500/10 px-1.5 text-xs font-semibold tabular-nums in-data-[state=active]:bg-cream-50/20 in-data-[state=active]:text-cream-50 dark:bg-cream-50/15"
+              >
+                {friends.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="requests" data-testid="requests-tab" className={pillTab}>
+            Requests
+            {hasNewRequests && (
+              <motion.span
+                animate={{ scale: [1, 1.12, 1] }}
+                transition={{ duration: 1, repeat: Infinity, repeatDelay: 2 }}
+                aria-label={`${pendingRequests.length} pending requests`}
+                className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-sun-200 px-1.5 text-xs font-semibold text-forest-700 tabular-nums"
+              >
+                {pendingRequests.length}
+              </motion.span>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent
-            value="friends"
-            className="space-y-6"
-            data-testid="friends-tab-content"
-          >
-            <FriendsList friends={friends} searchTerm={searchTerm} />
-          </TabsContent>
+        <TabsContent
+          value="friends"
+          className="space-y-6"
+          data-testid="friends-tab-content"
+        >
+          <FriendsList
+            friends={friends}
+            searchTerm={searchTerm}
+            onAddFriend={() => setShowSendRequest(true)}
+          />
+        </TabsContent>
 
-          <TabsContent
-            value="requests"
-            className="space-y-6"
-            data-testid="requests-tab-content"
-          >
-            <FriendRequestsList pendingRequests={pendingRequests} />
-          </TabsContent>
-        </Tabs>
+        <TabsContent
+          value="requests"
+          className="space-y-6"
+          data-testid="requests-tab-content"
+        >
+          <FriendRequestsList pendingRequests={pendingRequests} />
+        </TabsContent>
+      </Tabs>
 
-        {/* Recommended Friends Section - Show after tabs */}
-        <RecommendedFriends />
-      </div>
+      {/* People you may know — shared-shift suggestions */}
+      <RecommendedFriends />
 
       <SendFriendRequestForm
         open={showSendRequest}

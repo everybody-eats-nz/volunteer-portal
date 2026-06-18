@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/page-header";
 import { PageContainer } from "@/components/page-container";
+import { AchievementsPageHeader } from "@/components/achievements-page-header";
 import { AchievementsStats } from "@/components/achievements-stats";
 import { AchievementsList } from "@/components/achievements-list";
 import { AchievementsStatsSkeleton } from "@/components/achievements-stats-skeleton";
@@ -27,11 +27,11 @@ export default async function AchievementsPage() {
   }
 
   return (
-    <PageContainer testid="achievements-page">
-      <PageHeader
-        title="Your Achievements"
-        description="Track your volunteer journey and see how you compare with others"
-      />
+    <PageContainer
+      testid="achievements-page"
+      className="space-y-12 sm:space-y-16"
+    >
+      <AchievementsPageHeader />
 
       {/* Stats Overview with Ranking — achievement check runs inside, deduplicated by React cache */}
       <Suspense fallback={<AchievementsStatsSkeleton />}>

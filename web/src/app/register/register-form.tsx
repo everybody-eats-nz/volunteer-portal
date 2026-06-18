@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import type { LocationOption } from "@/lib/location-utils";
+import { RegisterSkeleton } from "./register-skeleton";
 
 const RegisterClient = dynamic(() => import("./register-client"), {
   ssr: false,
-  loading: () => <div>Loading registration form...</div>,
+  loading: () => <RegisterSkeleton />,
 });
 
 interface RegisterFormProps {

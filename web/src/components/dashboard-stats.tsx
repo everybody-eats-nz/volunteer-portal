@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { differenceInHours } from "date-fns";
-import { AnimatedStatsGrid } from "@/components/animated-stats-grid";
+import { StatBand } from "@/components/ui/stat-band";
 
 interface DashboardStatsProps {
   userId: string;
@@ -71,35 +71,32 @@ export async function DashboardStats({ userId }: DashboardStatsProps) {
   const adjustedCompletedShifts = completedShifts.length + shiftAdjustment;
 
   return (
-    <AnimatedStatsGrid
+    <StatBand
+      testId="dashboard-stats"
       stats={[
         {
-          title: "Shifts Completed",
+          label: "Shifts Completed",
           value: adjustedCompletedShifts,
-          iconType: "checkCircle",
-          variant: "green",
+          testId: "dashboard-completed-card",
         },
         {
-          title: "Hours Contributed",
+          label: "Hours Contributed",
           value: totalHours,
-          iconType: "clock",
-          variant: "amber",
+          testId: "dashboard-hours-card",
         },
         {
-          title: "Confirmed Shifts",
+          label: "Confirmed Shifts",
           value: upcomingShifts,
           subtitle:
             pendingShifts > 0
               ? `+${pendingShifts} pending approval`
               : undefined,
-          iconType: "calendar",
-          variant: "blue",
+          testId: "dashboard-confirmed-card",
         },
         {
-          title: "Shifts This Month",
+          label: "Shifts This Month",
           value: monthlyShifts,
-          iconType: "trendingUp",
-          variant: "purple",
+          testId: "dashboard-month-card",
         },
       ]}
     />

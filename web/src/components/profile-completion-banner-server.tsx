@@ -36,16 +36,18 @@ export async function ProfileCompletionBannerServer() {
   if (profileStatus.needsParentalConsent) {
     return (
       <div
-        className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 rounded-lg p-4 mb-6"
+        className="grain relative mb-6 overflow-hidden rounded-2xl border border-forest-500/15 bg-sun-100/70 p-4 dark:border-cream-50/12 dark:bg-sun-200/10"
         data-testid="parental-consent-banner"
       >
         <div className="flex items-start gap-3">
-          <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sun-200 text-forest-700 ring-1 ring-forest-500/10 dark:bg-sun-200/20 dark:text-sun-200 dark:ring-cream-50/10">
+            <FileText className="h-4 w-4" />
+          </span>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-orange-800 dark:text-orange-200">
+            <h3 className="text-sm font-semibold text-forest-700 dark:text-cream-50">
               Parental consent required
             </h3>
-            <div className="mt-1 text-sm text-orange-700 dark:text-orange-300">
+            <div className="mt-1 text-sm text-forest-700/80 dark:text-cream-50/75">
               <p className="mb-2">
                 Since you&apos;re under 16, we need parental consent before you
                 can participate in shifts.
@@ -71,7 +73,7 @@ export async function ProfileCompletionBannerServer() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                  className="border-forest-500/30 text-forest-700 hover:bg-forest-500 hover:text-cream-50 dark:border-cream-50/25 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                   asChild
                 >
                   <a href={consentFormUrl} target="_blank" rel="noopener noreferrer" data-testid="download-consent-form">
@@ -90,16 +92,18 @@ export async function ProfileCompletionBannerServer() {
   // Profile completion banner
   return (
     <div
-      className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4 mb-6"
+      className="grain relative mb-6 overflow-hidden rounded-2xl border border-forest-500/15 bg-sun-100/70 p-4 dark:border-cream-50/12 dark:bg-sun-200/10"
       data-testid="profile-completion-banner"
     >
       <div className="flex items-start gap-3">
-        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sun-200 text-forest-700 ring-1 ring-forest-500/10 dark:bg-sun-200/20 dark:text-sun-200 dark:ring-cream-50/10">
+          <AlertTriangle className="h-4 w-4" />
+        </span>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200">
+          <h3 className="text-sm font-semibold text-forest-700 dark:text-cream-50">
             Complete your volunteer profile
           </h3>
-          <div className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+          <div className="mt-1 text-sm text-forest-700/80 dark:text-cream-50/75">
             <p className="mb-2">
               Your profile is missing some essential information needed to
               participate in shifts.

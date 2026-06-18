@@ -23,6 +23,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
+
 interface ShiftSummary {
   id: string;
   start: Date;
@@ -223,15 +232,15 @@ export function ShiftsCalendar({
       {/* Calendar Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-forest-500 dark:bg-forest-600 rounded-xl flex items-center justify-center text-cream-50 shadow-lg flex-shrink-0">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg sm:text-2xl font-bold">
+            <h2 className="display text-xl sm:text-3xl tracking-tight text-forest-700 dark:text-cream-50">
               {format(currentMonth, "MMMM yyyy")}
             </h2>
-            <p className="text-sm text-muted-foreground hidden sm:block">
-              Click on any date to view and sign up for shifts
+            <p className="text-sm text-forest-700/60 dark:text-cream-50/55 hidden sm:block">
+              Click any date to view and sign up for shifts
             </p>
           </div>
         </div>
@@ -259,31 +268,6 @@ export function ShiftsCalendar({
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm">
-        <span className="text-muted-foreground hidden sm:inline">Status:</span>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span className="sm:inline hidden">Available spots</span>
-          <span className="sm:hidden">Available</span>
-        </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <span className="sm:inline hidden">Limited spots</span>
-          <span className="sm:hidden">Limited</span>
-        </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-          <span className="sm:inline hidden">Waitlist only</span>
-          <span className="sm:hidden">Waitlist</span>
-        </div>
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-          <span className="sm:inline hidden">No shifts</span>
-          <span className="sm:hidden">None</span>
-        </div>
-      </div>
-
       {/* Calendars by Restaurant */}
       <div className="space-y-8">
         {displayLocations.map((location) => {
@@ -304,10 +288,12 @@ export function ShiftsCalendar({
             >
               {/* Only show location header when displaying multiple locations */}
               {!selectedLocation && (
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 px-6 py-4 border-b">
+                <div className="bg-forest-500/5 dark:bg-forest-700/30 px-6 py-4 border-b border-forest-500/10 dark:border-cream-50/10">
                   <div className="flex items-center gap-3">
                     <MapPin className="h-5 w-5 text-primary" />
-                    <h3 className="text-xl font-semibold">{location}</h3>
+                    <h3 className="display text-lg sm:text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                      {location}
+                    </h3>
                   </div>
                 </div>
               )}
@@ -348,15 +334,15 @@ export function ShiftsCalendar({
                           "relative aspect-square rounded-xl transition-all duration-300 group overflow-hidden",
                           isCurrentMonth
                             ? isPastDate
-                              ? "border-2 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 opacity-60"
+                              ? "border-2 border-forest-500/10 dark:border-cream-50/10 bg-forest-500/5 dark:bg-forest-800/50 opacity-60"
                               : isToday
-                              ? "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50 border-2 border-blue-400 dark:border-blue-600 shadow-lg ring-4 ring-blue-100/50 dark:ring-blue-900/30"
+                              ? "bg-sun-100/70 dark:bg-forest-700/40 border-2 border-forest-500 dark:border-forest-400 shadow-lg ring-4 ring-sun-200/40 dark:ring-forest-500/30"
                               : status === "none"
-                              ? "border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/70"
+                              ? "border-2 border-forest-500/10 dark:border-cream-50/10 bg-card dark:bg-forest-800/40 hover:bg-forest-500/5 dark:hover:bg-cream-50/5"
                               : `border-2 ${getStatusColor(
                                   status
                                 )} hover:shadow-lg hover:scale-[1.02] cursor-pointer transform-gpu`
-                            : "border border-gray-150 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 opacity-50",
+                            : "border border-forest-500/5 dark:border-cream-50/5 bg-forest-500/[0.03] dark:bg-forest-900/30 opacity-50",
                           dayShifts.shifts.length > 0 &&
                             isCurrentMonth &&
                             !isPastDate &&
@@ -374,23 +360,23 @@ export function ShiftsCalendar({
                               className={cn(
                                 "text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center transition-colors sm:relative",
                                 !isCurrentMonth &&
-                                  "text-gray-400 dark:text-gray-600",
+                                  "text-forest-700/35 dark:text-cream-50/30",
                                 isPastDate &&
                                   isCurrentMonth &&
-                                  "text-gray-500 dark:text-gray-400",
+                                  "text-forest-700/45 dark:text-cream-50/40",
                                 isToday &&
                                   isCurrentMonth &&
-                                  "text-white bg-gradient-to-br from-blue-500 to-indigo-500 shadow-lg shadow-blue-500/25",
+                                  "text-cream-50 bg-forest-500 shadow-lg shadow-forest-500/25",
                                 !isToday &&
                                   isCurrentMonth &&
                                   !isPastDate &&
-                                  "text-gray-700 dark:text-gray-200"
+                                  "text-forest-700 dark:text-cream-50/85"
                               )}
                             >
                               {format(dayShifts.date, "d")}
                             </span>
                             {isToday && (
-                              <div className="hidden sm:block text-[10px] font-semibold text-blue-600 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/60 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
+                              <div className="hidden sm:block text-[10px] font-semibold text-forest-700 dark:text-forest-100 bg-sun-200/80 dark:bg-forest-600/70 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
                                 Today
                               </div>
                             )}
@@ -485,19 +471,22 @@ export function ShiftsCalendar({
       </div>
 
       {!hasAnyShiftsInMonth && (
-        <Card>
-          <CardContent className="py-12 text-center" data-testid="empty-state">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-muted-foreground" />
+        <Card className="grain border-forest-500/10 dark:border-cream-50/10 rounded-3xl">
+          <CardContent className="py-14 text-center" data-testid="empty-state">
+            <div className="relative w-16 h-16 mx-auto mb-5">
+              <div className="w-16 h-16 bg-forest-500/10 dark:bg-cream-50/10 rounded-2xl flex items-center justify-center">
+                <Calendar className="w-8 h-8 text-forest-500 dark:text-cream-50/70" />
+              </div>
+              <Sparkle className="absolute -right-2 -top-2 h-5 w-5 text-sun-300" />
             </div>
             <h3
-              className="text-lg font-semibold mb-2"
+              className="display text-2xl tracking-tight text-forest-700 dark:text-cream-50 mb-2"
               data-testid="empty-state-title"
             >
               No shifts scheduled
             </h3>
             <p
-              className="text-muted-foreground mb-4"
+              className="text-forest-700/70 dark:text-cream-50/70 mb-4 max-w-md mx-auto"
               data-testid="empty-state-description"
             >
               {selectedLocation
@@ -510,7 +499,7 @@ export function ShiftsCalendar({
                     "MMMM yyyy"
                   )}.`}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-forest-700/55 dark:text-cream-50/55">
               {format(currentMonth, "yyyy-MM") > format(nowDate, "yyyy-MM")
                 ? "Shifts are usually published closer to the date."
                 : format(currentMonth, "yyyy-MM") <

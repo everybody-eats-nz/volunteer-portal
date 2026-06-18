@@ -7,14 +7,11 @@ import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-layout-effect"
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import { motion, Variants } from "motion/react";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { MotionFormError, MotionFormSuccess } from "@/components/motion-form";
-import { MotionPageContainer } from "@/components/motion-page-container";
-import { MotionCard } from "@/components/motion-card";
+import { AuthShell } from "@/components/auth-shell";
 import type { Provider } from "@/lib/auth-providers";
 import {
   isPasskeySupported,
@@ -29,6 +26,12 @@ import { isProductionEnv } from "@/lib/environment";
 interface LoginClientProps {
   providers: Provider[];
 }
+
+const brandPoints = [
+  "Browse and book volunteer shifts",
+  "Track your hours and achievements",
+  "Stay connected with your whānau",
+];
 
 // Animation variants for staggered button animations
 const containerVariants: Variants = {
@@ -426,7 +429,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
   const getProviderButtonStyle = (providerId: string) => {
     switch (providerId) {
       case "google":
-        return "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600";
+        return "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 border border-forest-500/20 dark:border-cream-50/15";
       case "facebook":
         return "bg-[#1877F2] hover:bg-[#166FE5] text-white";
       case "apple":
@@ -442,23 +445,27 @@ export default function LoginClient({ providers }: LoginClientProps) {
   }
 
   return (
-    <MotionPageContainer
-      className="min-h-[80vh] flex items-center justify-center"
+    <AuthShell
       testid="login-page"
+      cardTestid="login-form-card"
+      brandEyebrow="Kia ora"
+      brandHeading={
+        <>
+          Good to have you <em>back</em>
+        </>
+      }
+      brandCopy="Sign in to pick up your shifts, track your hours and stay connected with the volunteering whānau across Aotearoa."
+      brandPoints={brandPoints}
+      brandFooter="Ngā mihi nui — thank you for showing up."
+      heading={
+        <>
+          Welcome <em>back</em>
+        </>
+      }
+      description="Sign in to your volunteer account"
     >
-      <div className="w-full max-w-md">
-        <div className="text-center">
-          <PageHeader
-            title={<><em>Welcome</em> back</>}
-            description="Sign in to your volunteer account"
-            className="mb-6"
-          />
-        </div>
-
-        <MotionCard className="" testid="login-form-card">
-          <CardContent className="md:p-8">
-            {/* OAuth Providers */}
-            {oauthProviders.length > 0 && (
+      {/* OAuth Providers */}
+      {oauthProviders.length > 0 && (
               <motion.div
                 className="mb-4"
                 data-testid="oauth-providers"
@@ -466,8 +473,8 @@ export default function LoginClient({ providers }: LoginClientProps) {
                 initial="hidden"
                 animate="visible"
               >
-                <motion.div className="text-center" variants={itemVariants}>
-                  <p className="text-sm text-muted-foreground mb-4">
+                <motion.div variants={itemVariants}>
+                  <p className="mb-4 text-sm text-forest-700/60 dark:text-cream-50/60">
                     Sign in with your preferred method
                   </p>
                 </motion.div>
@@ -515,7 +522,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                       disabled={
                         isLoading || oauthLoading !== null || passkeyLoading
                       }
-                      className="w-full h-11 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
+                      className="w-full h-11 bg-forest-700 text-cream-50 hover:bg-forest-800 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 border-0 dark:bg-forest-500 dark:hover:bg-forest-400"
                       data-testid="passkey-login-button"
                     >
                       {passkeyLoading ? (
@@ -535,10 +542,10 @@ export default function LoginClient({ providers }: LoginClientProps) {
                     variants={itemVariants}
                   >
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
+                      <span className="w-full border-t border-forest-500/15 dark:border-cream-50/15" />
                     </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
+                    <div className="relative flex justify-center text-xs uppercase tracking-[0.18em]">
+                      <span className="bg-card px-3 text-forest-700/55 dark:text-cream-50/55">
                         Or use email and password
                       </span>
                     </div>
@@ -560,7 +567,10 @@ export default function LoginClient({ providers }: LoginClientProps) {
                 data-testid="email-field"
                 variants={formFieldVariants}
               >
-                <Label htmlFor="email" className="text-sm font-medium">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-forest-700/80 dark:text-cream-50/80"
+                >
                   Email address
                 </Label>
                 <Input
@@ -571,7 +581,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="username"
-                  className="focus-ring"
+                  className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="email-input"
                 />
@@ -583,12 +593,15 @@ export default function LoginClient({ providers }: LoginClientProps) {
                 variants={formFieldVariants}
               >
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-medium text-forest-700/80 dark:text-cream-50/80"
+                  >
                     Password
                   </Label>
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm font-medium text-forest-500 underline-offset-4 hover:underline dark:text-cream-50/80"
                     data-testid="forgot-password-link"
                   >
                     Forgot password?
@@ -601,7 +614,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="focus-ring"
+                  className="h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="password-input"
                 />
@@ -675,7 +688,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
               </MotionFormSuccess>
 
               <MotionFormError show={!!error} data-testid="error-message">
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 border border-red-200 text-red-700 dark:bg-red-950/40 dark:border-red-900/60 dark:text-red-300 px-4 py-3 rounded-xl text-sm">
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-4 h-4"
@@ -698,7 +711,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
               <motion.div variants={formFieldVariants}>
                 <Button
                   type="submit"
-                  className="w-full btn-primary"
+                  className="w-full h-12 text-base"
                   size="lg"
                   disabled={isLoading || oauthLoading !== null}
                   data-testid="login-submit-button"
@@ -716,7 +729,7 @@ export default function LoginClient({ providers }: LoginClientProps) {
             </motion.form>
 
             <motion.div
-              className="mt-6 pt-6 border-t border-border"
+              className="mt-8 pt-8 border-t border-forest-500/10 dark:border-cream-50/10"
               data-testid="login-footer"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -727,13 +740,13 @@ export default function LoginClient({ providers }: LoginClientProps) {
               }}
             >
               <div className="text-center mb-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-forest-700/65 dark:text-cream-50/65">
                   Don&apos;t have an account yet?
                 </p>
                 <Button
                   asChild
                   variant="outline"
-                  className="mt-2"
+                  className="mt-3"
                   data-testid="register-link"
                 >
                   <Link href="/register">Create Volunteer Account</Link>
@@ -743,10 +756,10 @@ export default function LoginClient({ providers }: LoginClientProps) {
               {/* Only show demo credentials when not in production */}
               {!isProductionEnv() && (
                 <div
-                  className="bg-accent/10 rounded-lg p-4 text-center"
+                  className="grain rounded-2xl border border-forest-500/10 bg-forest-500/5 p-4 text-center dark:border-cream-50/10 dark:bg-cream-50/5"
                   data-testid="demo-credentials"
                 >
-                  <p className="text-sm font-medium text-primary mb-3">
+                  <p className="eyebrow mb-3 text-forest-500/80 dark:text-cream-50/70">
                     Demo Credentials
                   </p>
                   <div className="flex flex-col gap-2">
@@ -768,8 +781,8 @@ export default function LoginClient({ providers }: LoginClientProps) {
                     >
                       Login as Admin
                     </Button>
-                    <div className="pt-2 border-t border-border/50">
-                      <p className="text-xs font-medium text-primary mb-2">
+                    <div className="pt-2 border-t border-forest-500/10 dark:border-cream-50/10">
+                      <p className="mb-2 text-xs font-medium text-forest-700/70 dark:text-cream-50/65">
                         Underage Users (for testing):
                       </p>
                       <div className="flex flex-col gap-1.5">
@@ -794,16 +807,13 @@ export default function LoginClient({ providers }: LoginClientProps) {
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3">
+                  <p className="mt-3 text-xs text-forest-700/55 dark:text-cream-50/55">
                     Volunteer: volunteer@example.com | Admin:
                     admin@everybodyeats.nz
                   </p>
                 </div>
               )}
             </motion.div>
-          </CardContent>
-        </MotionCard>
-      </div>
-    </MotionPageContainer>
+    </AuthShell>
   );
 }
