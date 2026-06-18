@@ -742,6 +742,7 @@ model Location {
   name               String   @unique // "Wellington", "Glen Innes", "Onehunga"
   address            String
   defaultMealsServed Int      @default(60) // Default number of meals to pre-fill when recording attendance
+  targetPerNight     Decimal? @db.Decimal(10, 2) // Koha banking target per service night ($)
   isActive           Boolean  @default(true)
   isPopup            Boolean  @default(false) // Pop-up / temporary venue: selectable as an available location, but never as a user's default location
   createdAt          DateTime @default(now())
@@ -767,11 +768,25 @@ model MealsServed {
   id          String   @id @default(cuid())
   date        DateTime // Date for this record (stored as start of day in UTC)
   location    String // Location name (Wellington, Glen Innes, Onehunga)
-  mealsServed Int? // Actual number of meals served that day (nullable — admins may save notes without a count)
+  mealsServed Int? // Customers / people served that day — headline count (nullable — admins may save notes without a count)
   notes       String? // Optional notes about the day
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdBy   String? // Admin who recorded this
+
+  // Service-night stats (migrated from the WGTN "Numbers" spreadsheet). All nullable.
+  weather            String? // Weather on the night (free text, e.g. "Overcast")
+  bookingsPax        Int? // Number of booked covers (bookings pax)
+  newVolunteers      Int? // New volunteers on the night (new volys)
+  nonPayingCount     Int? // Customers who didn't pay koha (ratio is derived = count / customers)
+  vege               Int? // Number of vegetarian meals
+  takeaways          Int? // Takeaway meals
+  eftposTransactions Int? // Number of eftpos transactions
+  cash               Decimal? @db.Decimal(10, 2) // Cash koha ($)
+  eftpos             Decimal? @db.Decimal(10, 2) // Eftpos koha ($)
+  stripe             Decimal? @db.Decimal(10, 2) // Stripe koha ($)
+  protein            String? // Protein served (e.g. "Beef")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String? // Admin who recorded this
 
   @@unique([date, location]) // One record per day per location
   @@index([location, date])

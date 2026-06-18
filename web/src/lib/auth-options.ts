@@ -78,8 +78,8 @@ export const authOptions: NextAuthOptions = {
     }),
     // Facebook login disabled (broken integration). Re-enable this block and
     // the import above once the Facebook OAuth app is working again. Removing
-    // it here hides "Continue with Facebook" from the login, register, and
-    // migration screens, since they all derive providers from this list.
+    // it here hides "Continue with Facebook" from the login and register
+    // screens, since they all derive providers from this list.
     // FacebookProvider({
     //   clientId: process.env.FACEBOOK_CLIENT_ID!,
     //   clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,

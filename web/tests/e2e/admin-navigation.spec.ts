@@ -44,29 +44,9 @@ test.describe("Admin Navigation", () => {
         "Manage Shifts"
       );
 
-      // Migration tab links
-      await expect(
-        page.getByTestId("sidebar-migration#migration")
-      ).toBeVisible();
-      await expect(
-        page.getByTestId("sidebar-migration#migration")
-      ).toContainText("Bulk Migration");
-
-      await expect(page.getByTestId("sidebar-migration#status")).toBeVisible();
-      await expect(page.getByTestId("sidebar-migration#status")).toContainText(
-        "Migration Status"
-      );
-
-      await expect(
-        page.getByTestId("sidebar-migration#invitations")
-      ).toBeVisible();
-      await expect(
-        page.getByTestId("sidebar-migration#invitations")
-      ).toContainText("User Invitations");
-
-      await expect(page.getByTestId("sidebar-migration#users")).toBeVisible();
-      await expect(page.getByTestId("sidebar-migration#users")).toContainText(
-        "Migrated Users"
+      await expect(page.getByTestId("sidebar-archiving")).toBeVisible();
+      await expect(page.getByTestId("sidebar-archiving")).toContainText(
+        "Archiving"
       );
 
       // Public shifts link that opens in new tab
@@ -131,11 +111,9 @@ test.describe("Admin Navigation", () => {
 
       // Test navigation from admin dashboard
       await page.goto("/admin");
-      await page.getByTestId("sidebar-migration#status").click();
-      await page.waitForURL("/admin/migration#status");
-      await expect(page.getByTestId("admin-page-header")).toContainText(
-        "User Migration"
-      );
+      await page.getByTestId("sidebar-archiving").click();
+      await page.waitForURL("/admin/archiving");
+      await expect(page.getByTestId("admin-sidebar")).toBeVisible();
 
       // Test navigation from admin users page
       await page.goto("/admin/users");
@@ -157,8 +135,8 @@ test.describe("Admin Navigation", () => {
       // Login as admin
       await loginAsAdmin(page);
 
-      // Navigate to migration page
-      await page.goto("/admin/migration");
+      // Navigate to archiving page
+      await page.goto("/admin/archiving");
 
       // Verify sidebar is visible
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();

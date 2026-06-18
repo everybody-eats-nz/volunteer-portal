@@ -7,6 +7,11 @@ import {
   validateConnectionToken
 } from "@/lib/sse-security";
 
+// SSE is a long-lived, per-user stream that must never be cached or
+// prerendered. Route segment config (`dynamic`/`fetchCache`/`runtime`) is
+// rejected under Next 16's Cache Components (`cacheComponents: true`), but the
+// handler is already dynamic: it reads the session (cookies/headers) and holds
+// the request open via `request.signal`, so Next never treats it as static.
 export async function GET(request: NextRequest) {
   try {
     // Validate session and get secure headers
@@ -28,9 +33,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Rate limiting per user
+    // Rate limiting per user. A single admin page legitimately opens several
+    // streams at once (notification bell + messages inbox + open thread view),
+    // and React strict-mode double-mounts plus reconnect backoff multiply that.
+    // Keep a ceiling to stop abuse, but high enough not to throttle normal use.
     const rateLimitKey = `sse-notifications:${userId}`;
-    if (!checkRateLimit(rateLimitKey, 5, 60000)) { // 5 connections per minute
+    if (!checkRateLimit(rateLimitKey, 30, 60000)) { // 30 connections per minute
       return new Response("Rate limit exceeded", {
         status: 429,
         headers: validation.headers,

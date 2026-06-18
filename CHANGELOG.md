@@ -1,3 +1,117 @@
+## [0.117.0] - 2026-06-17
+
+### Changes
+- chore: remove Laravel user-migration feature ([#996](https://github.com/everybody-eats-nz/volunteer-portal/pull/996)) by @malinmalliyawadu
+
+
+## [0.116.7] - 2026-06-16
+
+### Changes
+- chore(deps): bump protobufjs from 7.5.8 to 7.6.4 in /web ([#984](https://github.com/everybody-eats-nz/volunteer-portal/pull/984)) by @dependabot[bot]
+
+
+## [0.116.6] - 2026-06-16
+
+### Changes
+- fix(deploy): unbreak Vercel build by gating standalone output behind a flag ([#995](https://github.com/everybody-eats-nz/volunteer-portal/pull/995)) by @malinmalliyawadu
+
+
+## [0.116.5] - 2026-06-16
+
+### Changes
+- chore(deps-dev): bump js-yaml from 4.1.1 to 4.2.0 in /web ([#986](https://github.com/everybody-eats-nz/volunteer-portal/pull/986)) by @dependabot[bot]
+
+
+## [0.116.4] - 2026-06-16
+
+### Changes
+- chore(deps): bump dompurify from 3.4.0 to 3.4.10 in /web ([#987](https://github.com/everybody-eats-nz/volunteer-portal/pull/987)) by @dependabot[bot]
+
+
+## [0.116.3] - 2026-06-16
+
+### Changes
+- chore(deps): bump next from 16.1.6 to 16.2.9 in /web ([#955](https://github.com/everybody-eats-nz/volunteer-portal/pull/955)) by @dependabot[bot]
+
+
+## [0.116.2] - 2026-06-16
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 8 updates ([#989](https://github.com/everybody-eats-nz/volunteer-portal/pull/989)) by @dependabot[bot]
+
+
+## [0.116.1] - 2026-06-16
+
+### Changes
+- Add public impact-story API endpoint ([#991](https://github.com/everybody-eats-nz/volunteer-portal/pull/991)) by @malinmalliyawadu
+
+
+## [0.116.0] - 2026-06-16
+
+### Changes
+- Add public impact-stats API endpoint ([#990](https://github.com/everybody-eats-nz/volunteer-portal/pull/990)) by @malinmalliyawadu
+
+
+## [0.115.1] - 2026-06-16
+
+### Changes
+- fix(flaky): admin-notes beforeAll race condition + strict-mode login button ([#980](https://github.com/everybody-eats-nz/volunteer-portal/pull/980)) by @malinmalliyawadu
+
+
+## [0.115.0] - 2026-06-15
+
+### Changes
+- feat(admin): export service-night analytics as CSV ([#985](https://github.com/everybody-eats-nz/volunteer-portal/pull/985)) by @malinmalliyawadu
+
+
+## [0.114.0] - 2026-06-15
+
+### Changes
+- feat(admin): add stacked vs 100% toggle to analytics charts ([#981](https://github.com/everybody-eats-nz/volunteer-portal/pull/981)) by @malinmalliyawadu
+
+
+## [0.113.2] - 2026-06-15
+
+### Changes
+- chore(deps): bump @supabase/supabase-js from 2.106.2 to 2.108.2 in /web ([#976](https://github.com/everybody-eats-nz/volunteer-portal/pull/976)) by @dependabot[bot]
+
+
+## [0.113.1] - 2026-06-15
+
+### Changes
+- feat(admin): add --fill-blanks mode to service-night importer ([#979](https://github.com/everybody-eats-nz/volunteer-portal/pull/979)) by @malinmalliyawadu
+
+
+## [0.113.0] - 2026-06-15
+
+### Changes
+- feat(admin): restaurant service-night stats entry + analytics ([#952](https://github.com/everybody-eats-nz/volunteer-portal/pull/952)) by @malinmalliyawadu
+
+
+## [0.112.12] - 2026-06-14
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 2 updates ([#975](https://github.com/everybody-eats-nz/volunteer-portal/pull/975)) by @dependabot[bot]
+
+
+## [0.112.11] - 2026-06-14
+
+### Changes
+- chore(deps-dev): bump esbuild from 0.28.0 to 0.28.1 in /web ([#960](https://github.com/everybody-eats-nz/volunteer-portal/pull/960)) by @dependabot[bot]
+
+
+## [0.112.10] - 2026-06-13
+
+### Changes
+- fix(sse): restore admin message notifications & desktop alerts ([#964](https://github.com/everybody-eats-nz/volunteer-portal/pull/964)) by @malinmalliyawadu
+
+
+## [0.112.9] - 2026-06-13
+
+### Changes
+- fix(notifications): mark notification as read when clicking its link ([#963](https://github.com/everybody-eats-nz/volunteer-portal/pull/963)) by @malinmalliyawadu
+
+
 ## [0.112.8] - 2026-03-07
 
 ### Changes

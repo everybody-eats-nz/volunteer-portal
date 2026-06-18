@@ -104,9 +104,6 @@ test.describe("Admin Command Palette", () => {
         page.locator("[cmdk-group-heading]", { hasText: "Shifts" })
       ).toBeVisible();
       await expect(
-        page.locator("[cmdk-group-heading]", { hasText: "User Migration" })
-      ).toBeVisible();
-      await expect(
         page.locator("[cmdk-group-heading]", { hasText: "Public" })
       ).toBeVisible();
     });

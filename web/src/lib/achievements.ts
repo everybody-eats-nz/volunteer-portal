@@ -578,14 +578,21 @@ export async function checkAndUnlockAchievements(userId: string) {
           progressValue = typeof progressField === "number" ? progressField : 0;
         }
 
-        await prisma.userAchievement.create({
+        // Use createMany + skipDuplicates so concurrent unlock checks (e.g.
+        // multiple parallel requests for the same user) don't throw a unique
+        // constraint violation on (userId, achievementId). Only count it as
+        // newly unlocked when a row was actually inserted.
+        const { count } = await prisma.userAchievement.createMany({
           data: {
             userId,
             achievementId: achievement.id,
             progress: progressValue,
           },
+          skipDuplicates: true,
         });
-        unlockedAchievements.push(achievement.name);
+        if (count > 0) {
+          unlockedAchievements.push(achievement.name);
+        }
       }
     } catch (error) {
       console.error(`Error processing achievement ${achievement.name}:`, error);

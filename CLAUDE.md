@@ -159,7 +159,6 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 - `/api/auth/mobile/login` — Mobile JWT authentication
 - `/api/auth/register` — User registration
 - `/api/auth/verify-email` — Email verification
-- `/api/auth/complete-migration` — Migration flow completion
 - `/api/shifts/*` — Shift listing and management
 - `/api/profile` — User profile
 - `/api/achievements` — Gamification and achievement tracking
@@ -170,7 +169,6 @@ The mobile app (`mobile/`) consumes the web app's REST API (`web/src/app/api/`).
 - `/api/resources` — Resource hub content
 - `/api/surveys/*` — Survey system
 - `/api/site-settings` — Dynamic site configuration
-- `/api/migration/*` — Data migration from legacy system
 - `/api/newsletter-lists` — Newsletter subscription management
 - `/api/admin/*` — Admin operations (protected, 25+ sub-routes)
 
@@ -389,7 +387,7 @@ Copy `web/.env.example` to `web/.env` for local development (or use `npm run loc
 - **OAuth**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`, `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET`
 - **PostHog Analytics**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
 - **Supabase Storage**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- **Campaign Monitor**: `CAMPAIGN_MONITOR_API_KEY`, plus template IDs for migration, cancellation, confirmation, verification, and invitation emails
+- **Campaign Monitor**: `CAMPAIGN_MONITOR_API_KEY`, plus template IDs for cancellation, confirmation, verification, and invitation emails
 
 ### Mobile (`mobile/`):
 - API base URL configured in `mobile/lib/api.ts`

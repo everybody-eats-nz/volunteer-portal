@@ -15,7 +15,11 @@ export async function loginAsAdmin(page: Page) {
     await page.goto("/login");
     await page.waitForLoadState("load");
 
-    const adminLoginButton = page.getByTestId("quick-login-admin-button");
+    // Use .first() because Next.js streaming can briefly render both
+    // loading.tsx and page.tsx simultaneously, producing two buttons.
+    const adminLoginButton = page
+      .getByTestId("quick-login-admin-button")
+      .first();
     await adminLoginButton.waitFor({ state: "visible", timeout: 10000 });
     await adminLoginButton.click();
 

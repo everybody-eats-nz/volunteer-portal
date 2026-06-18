@@ -95,32 +95,6 @@ export async function sendShiftNotificationToVolunteers(
 }
 
 /**
- * Send migration completion notification to admins
- */
-export async function notifyAdminsMigrationComplete(
-  migrationDetails: {
-    type: "bulk" | "single";
-    usersProcessed: number;
-    usersCreated: number;
-    errors: number;
-    duration: number;
-  }
-): Promise<number> {
-  const { type, usersCreated, errors, duration } = migrationDetails;
-
-  const message = `${type === "bulk" ? "Bulk" : "Single"} migration completed: ${usersCreated} users migrated${
-    errors > 0 ? ` (${errors} errors)` : ""
-  } in ${(duration / 1000).toFixed(1)}s`;
-
-  return sendSystemUpdateToAdmins({
-    message,
-    type: "feature",
-    severity: errors > 0 ? "medium" : "low",
-    actionRequired: errors > 0,
-  });
-}
-
-/**
  * Send notification when a new volunteer registers
  */
 export async function notifyAdminsNewVolunteer(

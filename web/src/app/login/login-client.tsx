@@ -150,9 +150,6 @@ export default function LoginClient({ providers }: LoginClientProps) {
     } else if (message === "password-reset-success") {
       successMsg =
         "Password reset successful! You can now sign in with your new password.";
-    } else if (message === "migration-complete") {
-      successMsg =
-        "Migration completed successfully! You can now sign in with your OAuth account to access your migrated profile.";
     }
 
     return { errorMsg, successMsg, emailValue, clearPassword };

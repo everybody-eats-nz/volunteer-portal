@@ -158,7 +158,16 @@ function ActivityRow({ item }: { item: ActivityItem }) {
               unlocked
             </Badge>
           )}
-          <span className="text-xs text-muted-foreground hidden sm:inline min-w-[70px] text-right">
+          {/*
+            suppressHydrationWarning: relative time is computed from the
+            current clock, so the server-rendered value ("5 seconds ago") can
+            differ from the client's at hydration time. Without this, Next.js
+            16.2's overlay surfaces the benign text mismatch as an error.
+          */}
+          <span
+            suppressHydrationWarning
+            className="text-xs text-muted-foreground hidden sm:inline min-w-[70px] text-right"
+          >
             {formatDistanceToNow(new Date(item.timestamp), {
               addSuffix: true,
             })}
