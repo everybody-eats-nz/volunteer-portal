@@ -25,6 +25,14 @@ type ShiftDetailResponse = {
     profilePhotoUrl: string | null;
     isFriend: boolean;
   }[];
+  eligibility?: ShiftEligibility;
+};
+
+/** Account-level signup gates, mirrored from the web signup checks. */
+export type ShiftEligibility = {
+  emailVerified: boolean;
+  profileComplete: boolean;
+  needsParentalConsent: boolean;
 };
 
 /** Raw shape returned by GET /api/mobile/shifts/[id]/concurrent */
@@ -59,6 +67,8 @@ type UseShiftDetailReturn = {
   signups: ShiftSignup[];
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
   periodFriends: PeriodFriend[];
+  /** Account-level signup gates (email/profile/parental consent); null until loaded */
+  eligibility: ShiftEligibility | null;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -124,6 +134,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     shift,
     signups,
     periodFriends,
+    eligibility: data?.eligibility ?? null,
     isLoading: enabled ? detail.isPending : false,
     error: detail.error
       ? detail.error instanceof Error
