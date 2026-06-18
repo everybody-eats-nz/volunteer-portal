@@ -29,6 +29,11 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, Brand, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
+import { useShifts } from "@/hooks/use-shifts";
+import {
+  findConflictingShift,
+  getShiftPeriodLabel,
+} from "@/lib/shift-eligibility";
 import { api, ApiError } from "@/lib/api";
 import {
   addShiftToCalendar,
@@ -68,7 +73,14 @@ export default function ShiftDetailScreen() {
     error,
     refresh,
   } = useShiftDetail(id);
+  // Cached from the shifts list (react-query) — used to mirror the web's
+  // pre-emptive "one Day + one Evening shift per day" conflict gate.
+  const { myShifts } = useShifts();
   const isMyShift = shift?.status != null;
+  const conflictingShift = useMemo(
+    () => (shift && !isMyShift ? findConflictingShift(shift, myShifts) : null),
+    [shift, isMyShift, myShifts]
+  );
   const [signupSheetVisible, setSignupSheetVisible] = useState(false);
   const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -654,6 +666,26 @@ export default function ShiftDetailScreen() {
               />
               <Text style={[s.pastPillText, { color: colors.textSecondary }]}>
                 This shift was in the past
+              </Text>
+            </View>
+          ) : conflictingShift ? (
+            <View
+              style={[
+                s.pastPill,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={colors.textSecondary}
+              />
+              <Text style={[s.pastPillText, { color: colors.textSecondary }]}>
+                You already have a {getShiftPeriodLabel(shift.start)} shift that
+                day
               </Text>
             </View>
           ) : spotsLeft > 0 ? (

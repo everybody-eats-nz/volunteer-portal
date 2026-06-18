@@ -39,6 +39,11 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
+import {
+  getShiftDayKey,
+  getShiftPeriod,
+  getShiftPeriodLabel,
+} from "@/lib/shift-eligibility";
 import { getShiftThemeByName, type Shift } from "@/lib/dummy-data";
 
 /* ── Types ── */
@@ -233,6 +238,19 @@ export default function ShiftsScreen() {
         : past,
     [past, locationFilter]
   );
+
+  /* Day+period keys the user already holds (CONFIRMED/PENDING) — mirrors the
+     web's "one Day + one Evening shift per day" rule so available cards that
+     would clash are flagged before the user taps in. */
+  const bookedPeriodKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const s of myShifts) {
+      if (s.status === "CONFIRMED" || s.status === "PENDING") {
+        keys.add(`${getShiftDayKey(s.start)}|${getShiftPeriod(s.start)}`);
+      }
+    }
+    return keys;
+  }, [myShifts]);
 
   /* Available locations across all shifts — used by the picker */
   const locations = useMemo(() => {
@@ -567,6 +585,14 @@ export default function ShiftsScreen() {
                           colors={colors}
                           isDark={isDark}
                           showStatus={!!shift.status}
+                          conflicting={
+                            !shift.status &&
+                            bookedPeriodKeys.has(
+                              `${getShiftDayKey(shift.start)}|${getShiftPeriod(
+                                shift.start
+                              )}`
+                            )
+                          }
                         />
                       ))}
                     </View>
@@ -1159,12 +1185,15 @@ function ShiftCard({
   colors,
   isDark,
   showStatus,
+  conflicting,
 }: {
   shift: Shift;
   friends: PeriodFriend[];
   colors: (typeof Colors)["light"];
   isDark: boolean;
   showStatus?: boolean;
+  /** User already holds another shift in this day's same Day/Evening period. */
+  conflicting?: boolean;
 }) {
   const router = useRouter();
   const date = new Date(shift.start);
@@ -1254,6 +1283,8 @@ function ShiftCard({
             <StatusBadge status={displayStatus!} isDark={isDark} />
           ) : isPast ? (
             <StatusBadge status="COMPLETED" isDark={isDark} />
+          ) : conflicting ? (
+            <ConflictBadge isDark={isDark} />
           ) : (
             <SpotsBadge
               spotsLeft={spotsLeft}
@@ -1306,6 +1337,10 @@ function ShiftCard({
                   ? isDark
                     ? "rgba(253,248,239,0.25)"
                     : Palette.forest200
+                  : conflicting
+                  ? isDark
+                    ? "#fbbf24"
+                    : "#d97706"
                   : isFull
                   ? isDark
                     ? "#fca5a5"
@@ -1322,7 +1357,19 @@ function ShiftCard({
           />
           <Text style={[styles.capacityText, { color: colors.textSecondary }]}>
             {shift.signedUp}/{shift.capacity} volunteers
-            {!isPast && (
+            {!isPast && conflicting ? (
+              <>
+                {" · "}
+                <Text
+                  style={{
+                    color: isDark ? "#fbbf24" : "#d97706",
+                    fontFamily: FontFamily.semiBold,
+                  }}
+                >
+                  clashes with your {getShiftPeriodLabel(shift.start)}
+                </Text>
+              </>
+            ) : !isPast ? (
               <>
                 {" · "}
                 <Text
@@ -1342,7 +1389,7 @@ function ShiftCard({
                   {isFull ? "shift full" : `${spotsLeft} open`}
                 </Text>
               </>
-            )}
+            ) : null}
           </Text>
         </View>
 
@@ -1447,6 +1494,19 @@ function SpotsBadge({
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Ionicons name={icon} size={12} color={textColor} />
       <Text style={[styles.badgeText, { color: textColor }]}>{label}</Text>
+    </View>
+  );
+}
+
+/* Shown on an available shift the user can't take because they already hold
+   another shift in the same Day/Evening period that day. */
+function ConflictBadge({ isDark }: { isDark: boolean }) {
+  const bg = isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb";
+  const textColor = isDark ? "#fbbf24" : "#d97706";
+  return (
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Ionicons name="calendar" size={12} color={textColor} />
+      <Text style={[styles.badgeText, { color: textColor }]}>Booked</Text>
     </View>
   );
 }
