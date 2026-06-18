@@ -1,7 +1,28 @@
 import { prisma } from "@/lib/prisma";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+const EXPO_RECEIPT_URL = "https://exp.host/--/api/v2/push/getReceipts";
 const MAX_CHUNK = 100; // Expo's per-request message limit
+
+/**
+ * Required when the Expo project has "Enhanced Security for Push Notifications"
+ * enabled — without it Expo rejects every send with a top-level error. Optional
+ * otherwise. Set EXPO_ACCESS_TOKEN in the server environment if pushes silently
+ * stop working after enabling enhanced security.
+ */
+const EXPO_ACCESS_TOKEN = process.env.EXPO_ACCESS_TOKEN;
+
+function expoHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "Accept-Encoding": "gzip, deflate",
+  };
+  if (EXPO_ACCESS_TOKEN) {
+    headers.Authorization = `Bearer ${EXPO_ACCESS_TOKEN}`;
+  }
+  return headers;
+}
 
 export interface ExpoPushPayload {
   title: string;
@@ -121,6 +142,12 @@ async function dispatchMessages(messages: ExpoPushMessage[]): Promise<void> {
   if (messages.length === 0) return;
 
   const invalidTokens: string[] = [];
+  // Receipt id -> token, so a later receipt check can report which device a
+  // delivery failure belongs to. Accepted tickets ("ok") only mean Expo queued
+  // the push; APNs/FCM credential and delivery errors surface in the receipt.
+  const receiptToToken = new Map<string, string>();
+  let okCount = 0;
+  let errorCount = 0;
 
   for (let i = 0; i < messages.length; i += MAX_CHUNK) {
     const chunk = messages.slice(i, i + MAX_CHUNK);
@@ -128,11 +155,7 @@ async function dispatchMessages(messages: ExpoPushMessage[]): Promise<void> {
     try {
       const response = await fetch(EXPO_PUSH_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "Accept-Encoding": "gzip, deflate",
-        },
+        headers: expoHeaders(),
         body: JSON.stringify(chunk),
       });
 
@@ -144,21 +167,47 @@ async function dispatchMessages(messages: ExpoPushMessage[]): Promise<void> {
       }
 
       const json = (await response.json()) as ExpoPushResponse;
+
+      // Top-level errors mean the whole request was rejected (e.g. missing
+      // access token when enhanced security is on, malformed payload). These
+      // were previously dropped — making every device look "fine" while
+      // nothing was ever delivered.
+      if (json.errors?.length) {
+        errorCount += chunk.length;
+        console.error(
+          `[EXPO_PUSH] Request rejected for chunk of ${chunk.length}:`,
+          JSON.stringify(json.errors)
+        );
+        continue;
+      }
+
       const tickets = json.data ?? [];
 
       tickets.forEach((ticket, index) => {
+        const token = chunk[index].to;
         if (ticket.status === "error") {
+          errorCount++;
           const code = ticket.details?.error;
-          const token = chunk[index].to;
           console.warn(
             `[EXPO_PUSH] Ticket error (${code ?? "unknown"}) for token ${token}: ${ticket.message}`
           );
-          if (
-            code === "DeviceNotRegistered" ||
-            code === "InvalidCredentials"
-          ) {
+          // Only DeviceNotRegistered means the token is permanently dead.
+          // InvalidCredentials/MismatchSenderId are *server-side* push-credential
+          // problems (APNs key / FCM sender) — deleting the token here would
+          // wipe a perfectly valid device and mask the real misconfiguration.
+          if (code === "DeviceNotRegistered") {
             invalidTokens.push(token);
+          } else if (
+            code === "InvalidCredentials" ||
+            code === "MismatchSenderId"
+          ) {
+            console.error(
+              `[EXPO_PUSH] Push credentials misconfigured (${code}) — check the project's APNs key / FCM credentials. Token kept.`
+            );
           }
+        } else {
+          okCount++;
+          if (ticket.id) receiptToToken.set(ticket.id, token);
         }
       });
     } catch (err) {
@@ -166,12 +215,94 @@ async function dispatchMessages(messages: ExpoPushMessage[]): Promise<void> {
     }
   }
 
+  console.log(
+    `[EXPO_PUSH] Dispatched ${messages.length} message(s): ${okCount} accepted, ${errorCount} error(s)`
+  );
+
   if (invalidTokens.length > 0) {
     await prisma.pushToken
       .deleteMany({ where: { token: { in: invalidTokens } } })
       .catch((err) =>
         console.error("[EXPO_PUSH] Failed to cleanup invalid tokens:", err)
       );
+  }
+
+  // Fire-and-forget receipt check. Delivery-level failures (bad APNs/FCM
+  // credentials, unregistered devices) only appear here, not in the send
+  // response, so this is usually the only place "accepted but never arrived"
+  // becomes visible. Runs on a long-lived server; harmless if it never
+  // resolves.
+  if (receiptToToken.size > 0) {
+    void checkReceiptsLater(receiptToToken);
+  }
+}
+
+/**
+ * Poll Expo for delivery receipts after a short delay and log any errors.
+ * Expo recommends waiting before fetching receipts; 15s is enough for most
+ * pushes while keeping the diagnostic close to the triggering event.
+ */
+async function checkReceiptsLater(
+  receiptToToken: Map<string, string>
+): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 15_000));
+
+  const ids = [...receiptToToken.keys()];
+  const deadTokens: string[] = [];
+
+  try {
+    const response = await fetch(EXPO_RECEIPT_URL, {
+      method: "POST",
+      headers: expoHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+    if (!response.ok) {
+      console.error(`[EXPO_PUSH] Receipt fetch HTTP ${response.status}`);
+      return;
+    }
+
+    const json = (await response.json()) as {
+      data?: Record<
+        string,
+        { status: "ok" | "error"; message?: string; details?: { error?: string } }
+      >;
+      errors?: { message: string }[];
+    };
+
+    if (json.errors?.length) {
+      console.error(
+        "[EXPO_PUSH] Receipt request error:",
+        JSON.stringify(json.errors)
+      );
+      return;
+    }
+
+    for (const [id, receipt] of Object.entries(json.data ?? {})) {
+      if (receipt.status === "error") {
+        const code = receipt.details?.error;
+        const token = receiptToToken.get(id);
+        console.warn(
+          `[EXPO_PUSH] Delivery failed (${code ?? "unknown"}) for token ${token}: ${receipt.message}`
+        );
+        if (code === "DeviceNotRegistered" && token) {
+          deadTokens.push(token);
+        } else if (code === "InvalidCredentials" || code === "MismatchSenderId") {
+          console.error(
+            `[EXPO_PUSH] Delivery rejected (${code}) — APNs/FCM push credentials are misconfigured for this project.`
+          );
+        }
+      }
+    }
+
+    if (deadTokens.length > 0) {
+      await prisma.pushToken
+        .deleteMany({ where: { token: { in: deadTokens } } })
+        .catch((err) =>
+          console.error("[EXPO_PUSH] Failed to cleanup dead tokens:", err)
+        );
+    }
+  } catch (err) {
+    console.error("[EXPO_PUSH] Receipt check failed:", err);
   }
 }
 
