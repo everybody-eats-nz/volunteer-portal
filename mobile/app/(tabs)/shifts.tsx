@@ -40,8 +40,7 @@ import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
-  getShiftDayKey,
-  getShiftPeriod,
+  getShiftPeriodKey,
   getShiftPeriodLabel,
 } from "@/lib/shift-eligibility";
 import { getShiftThemeByName, type Shift } from "@/lib/dummy-data";
@@ -246,7 +245,7 @@ export default function ShiftsScreen() {
     const keys = new Set<string>();
     for (const s of myShifts) {
       if (s.status === "CONFIRMED" || s.status === "PENDING") {
-        keys.add(`${getShiftDayKey(s.start)}|${getShiftPeriod(s.start)}`);
+        keys.add(getShiftPeriodKey(s.start));
       }
     }
     return keys;
@@ -587,11 +586,8 @@ export default function ShiftsScreen() {
                           showStatus={!!shift.status}
                           conflicting={
                             !shift.status &&
-                            bookedPeriodKeys.has(
-                              `${getShiftDayKey(shift.start)}|${getShiftPeriod(
-                                shift.start
-                              )}`
-                            )
+                            new Date(shift.end).getTime() >= Date.now() &&
+                            bookedPeriodKeys.has(getShiftPeriodKey(shift.start))
                           }
                         />
                       ))}

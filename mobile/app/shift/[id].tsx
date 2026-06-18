@@ -650,6 +650,11 @@ export default function ShiftDetailScreen() {
           ]}
           pointerEvents="box-none"
         >
+          {/* `eligibility.profileComplete` is intentionally not gated here:
+              an incomplete profile is surfaced inside the signup sheet, where
+              the message links straight to /profile/edit so the user can fix
+              it in one tap. Email verification and parental consent aren't
+              self-resolvable in-app, so they block up front instead. */}
           {isPast ? (
             <BlockedPill
               icon="time-outline"

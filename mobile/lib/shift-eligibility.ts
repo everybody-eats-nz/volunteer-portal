@@ -33,26 +33,37 @@ export function getShiftPeriodLabel(start: string | Date): string {
 }
 
 /**
+ * Stable key identifying a shift's day + period, e.g. "2026-06-18|DAY".
+ * Two shifts share a key iff a volunteer can't hold both (one Day + one
+ * Evening per day). Used to build/lookup the booked-period set on the list.
+ */
+export function getShiftPeriodKey(start: string | Date): string {
+  return `${getShiftDayKey(start)}|${getShiftPeriod(start)}`;
+}
+
+/**
  * A volunteer may hold at most one Day and one Evening shift per NZ calendar
  * day. Returns the already-booked shift that clashes with `target`, or null.
  *
- * Only CONFIRMED/PENDING signups count as conflicts, matching the server's
- * conflict query — WAITLISTED and REGULAR_PENDING do not block signup.
+ * This is a period-level rule, not a time-overlap check: two non-overlapping
+ * Day shifts (e.g. 10am–12pm and 2pm–4pm) still clash because they share the
+ * Day period. This matches the server's conflict query intentionally.
+ *
+ * Only CONFIRMED/PENDING signups count as conflicts, matching the server —
+ * WAITLISTED and REGULAR_PENDING do not block signup.
  */
 export function findConflictingShift(
   target: Pick<Shift, "id" | "start">,
   myShifts: Shift[]
 ): Shift | null {
-  const targetDay = getShiftDayKey(target.start);
-  const targetPeriod = getShiftPeriod(target.start);
+  const targetKey = getShiftPeriodKey(target.start);
 
   return (
     myShifts.find(
       (s) =>
         s.id !== target.id &&
         (s.status === "CONFIRMED" || s.status === "PENDING") &&
-        getShiftDayKey(s.start) === targetDay &&
-        getShiftPeriod(s.start) === targetPeriod
+        getShiftPeriodKey(s.start) === targetKey
     ) ?? null
   );
 }
