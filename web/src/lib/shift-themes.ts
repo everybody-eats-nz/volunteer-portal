@@ -106,6 +106,11 @@ type ShiftTheme = typeof DEFAULT_THEME;
  *
  * NOTE: Tailwind only generates classes it sees as full literal strings — keep
  * these spelled out, never build class names by interpolation.
+ *
+ * MAINTENANCE: keywords are matched against live shift-type names from the DB.
+ * If those names change (or new types appear), update the keywords here AND in
+ * mobile/lib/dummy-data.ts so both stay in sync; otherwise they fall back to
+ * the generic default. See shift-themes.test.ts for the expected resolutions.
  */
 const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
   {
@@ -123,22 +128,22 @@ const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
     keywords: ["food rescue", "rescue"],
     theme: {
       emoji: "🥕",
-      borderColor: "border-green-300",
-      textColor: "text-green-800",
-      gradient: "from-green-100 to-emerald-100",
-      bgColor: "bg-green-50 dark:bg-green-950/20",
-      fullGradient: "from-green-500 to-emerald-500",
+      borderColor: "border-lime-300",
+      textColor: "text-lime-800",
+      gradient: "from-lime-100 to-green-100",
+      bgColor: "bg-lime-50 dark:bg-lime-950/20",
+      fullGradient: "from-lime-500 to-green-500",
     },
   },
   {
     keywords: ["save a bite"],
     theme: {
       emoji: "🥪",
-      borderColor: "border-emerald-300",
-      textColor: "text-emerald-800",
-      gradient: "from-emerald-100 to-green-100",
-      bgColor: "bg-emerald-50 dark:bg-emerald-950/20",
-      fullGradient: "from-emerald-500 to-green-500",
+      borderColor: "border-teal-300",
+      textColor: "text-teal-800",
+      gradient: "from-teal-100 to-emerald-100",
+      bgColor: "bg-teal-50 dark:bg-teal-950/20",
+      fullGradient: "from-teal-500 to-emerald-500",
     },
   },
   {
@@ -156,11 +161,11 @@ const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
     keywords: ["moving", "packing", "sorting"],
     theme: {
       emoji: "📦",
-      borderColor: "border-indigo-300",
-      textColor: "text-indigo-800",
-      gradient: "from-indigo-100 to-purple-100",
-      bgColor: "bg-indigo-50 dark:bg-indigo-950/20",
-      fullGradient: "from-indigo-500 to-purple-500",
+      borderColor: "border-violet-300",
+      textColor: "text-violet-800",
+      gradient: "from-violet-100 to-purple-100",
+      bgColor: "bg-violet-50 dark:bg-violet-950/20",
+      fullGradient: "from-violet-500 to-purple-500",
     },
   },
   {
@@ -266,6 +271,11 @@ const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
   },
 ];
 
+/**
+ * Resolve the theme for a shift type. Resolution order: exact name match →
+ * keyword match (names normalised so hyphen/slash variants still match) →
+ * generic default. Always returns a complete theme; never null.
+ */
 export function getShiftTheme(shiftTypeName: string): ShiftTheme {
   // 1. Exact, hand-curated match wins.
   const exact = SHIFT_THEMES[shiftTypeName as keyof typeof SHIFT_THEMES];

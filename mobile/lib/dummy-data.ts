@@ -204,7 +204,12 @@ const DEFAULT_SHIFT_TYPE_THEME: ShiftTypeTheme = {
  * Stand") and hyphenation ("Front-of-House") that an exact lookup misses, which
  * left ~20 of the live shift types on the generic dining-room cover. First rule
  * whose keyword appears in the (normalised) name wins, so order matters: the
- * most specific role keywords come first. */
+ * most specific role keywords come first.
+ *
+ * MAINTENANCE: keywords are matched against live shift-type names from the DB.
+ * Keep them in sync with web/src/lib/shift-themes.ts (same keywords, order and
+ * emoji) so both apps resolve identically; if shift-type names change, update
+ * both. */
 const KEYWORD_THEME_RULES: { keywords: string[]; theme: ShiftTypeTheme }[] = [
   {
     keywords: ['dishwash'],
