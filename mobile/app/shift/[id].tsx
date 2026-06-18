@@ -44,6 +44,7 @@ import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { GlassButton } from "@/components/glass-button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
+import { getShiftDescription } from "@/lib/shift-description";
 import { posthog } from "@/lib/posthog";
 
 /* ── Duration Helper ── */
@@ -405,9 +406,9 @@ export default function ShiftDetailScreen() {
             </Text>
 
             {/* Description pulled tight under title */}
-            {shift.shiftType.description ? (
+            {getShiftDescription(shift.notes, shift.shiftType.description) ? (
               <Text style={s.heroDescription} numberOfLines={2}>
-                {shift.shiftType.description}
+                {getShiftDescription(shift.notes, shift.shiftType.description)}
               </Text>
             ) : null}
 

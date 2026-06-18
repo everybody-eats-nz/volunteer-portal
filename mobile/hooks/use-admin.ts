@@ -1,13 +1,22 @@
-import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { Alert } from "react-native";
+import {
+  useMutation,
+  useQuery,
+  type QueryClient,
+} from "@tanstack/react-query";
 
 import {
+  fetchAdminLocations,
+  fetchAdminMessageNotifyPref,
   fetchAdminPending,
   fetchAdminThread,
   fetchAdminThreads,
   fetchAdminToday,
   fetchAdminUnreadCount,
+  setAdminMessageNotifyPref,
   type ThreadStatus,
 } from "@/lib/admin";
+import { queryClient } from "@/lib/query-client";
 import { queryKeys } from "@/lib/query-keys";
 
 const UNREAD_POLL_MS = 30_000;
@@ -57,18 +66,79 @@ export function useAdminThread(id: string) {
   });
 }
 
-/** Shifts for a given service day (default today, resolved server-side). */
-export function useAdminToday(date: string) {
+/**
+ * Shifts for a given service day (default today, resolved server-side),
+ * optionally scoped to a single restaurant.
+ */
+export function useAdminToday(date: string, location: string | null = null) {
   return useQuery({
-    queryKey: queryKeys.admin.today(date),
-    queryFn: () => fetchAdminToday(date || undefined).then((r) => r.shifts),
+    queryKey: queryKeys.admin.today(date, location),
+    queryFn: () =>
+      fetchAdminToday(date || undefined, location ?? undefined).then(
+        (r) => r.shifts
+      ),
   });
 }
 
-/** Pending signups awaiting approval. */
-export function useAdminPending() {
+/** Pending signups awaiting approval, optionally scoped to one restaurant. */
+export function useAdminPending(location: string | null = null) {
   return useQuery({
-    queryKey: queryKeys.admin.pending(),
-    queryFn: () => fetchAdminPending().then((r) => r.signups),
+    queryKey: queryKeys.admin.pending(location),
+    queryFn: () =>
+      fetchAdminPending(location ?? undefined).then((r) => r.signups),
   });
+}
+
+/** Active restaurants for the admin location filter. */
+export function useAdminLocations() {
+  return useQuery({
+    queryKey: queryKeys.admin.locations(),
+    queryFn: () => fetchAdminLocations().then((r) => r.locations),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * Per-admin "push me when a volunteer messages the team" preference, plus a
+ * mutation to flip it. Optimistically updates the cache so the toggle feels
+ * instant, rolling back on error.
+ */
+export function useAdminMessageNotifyPref() {
+  const query = useQuery({
+    queryKey: queryKeys.admin.messageNotifyPref(),
+    queryFn: () => fetchAdminMessageNotifyPref().then((r) => r.enabled),
+    staleTime: 60_000,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      setAdminMessageNotifyPref(enabled).then((r) => r.enabled),
+    onMutate: (enabled) => {
+      const key = queryKeys.admin.messageNotifyPref();
+      const previous = queryClient.getQueryData<boolean>(key);
+      queryClient.setQueryData<boolean>(key, enabled);
+      return { previous };
+    },
+    onError: (_err, _enabled, context) => {
+      // Roll the optimistic toggle back and let the admin know it didn't stick.
+      queryClient.setQueryData(
+        queryKeys.admin.messageNotifyPref(),
+        context?.previous ?? false
+      );
+      Alert.alert(
+        "Couldn't update notifications",
+        "Please check your connection and try again."
+      );
+    },
+    onSuccess: (enabled) => {
+      queryClient.setQueryData(queryKeys.admin.messageNotifyPref(), enabled);
+    },
+  });
+
+  return {
+    enabled: query.data ?? false,
+    isLoading: query.isPending,
+    setEnabled: mutation.mutate,
+    isSaving: mutation.isPending,
+  };
 }

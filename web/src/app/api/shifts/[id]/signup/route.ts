@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getNotificationService } from "@/lib/notification-service";
+import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
@@ -280,6 +281,19 @@ export async function POST(
       user.id,
       shift.id
     );
+
+    // Still needs a human? Ping the restaurant's managers (fire-and-forget).
+    if (
+      autoApprovalResult.status === "PENDING" ||
+      autoApprovalResult.status === "REGULAR_PENDING"
+    ) {
+      notifyManagersOfPendingSignup(signup.id).catch((err) =>
+        console.error(
+          "[signup] Failed to notify managers of pending signup:",
+          err
+        )
+      );
+    }
 
     // Achievements will be calculated when user visits dashboard/achievements page
 

@@ -3,6 +3,7 @@ import * as Calendar from "expo-calendar";
 import { Platform } from "react-native";
 
 import { LOCATION_ADDRESSES, type Shift } from "./dummy-data";
+import { getShiftDescription } from "./shift-description";
 
 const SHIFT_EVENT_MAP_KEY = "@ee/calendar-shift-events";
 const CALENDAR_SYNC_ENABLED_KEY = "@ee/calendar-sync-enabled";
@@ -62,7 +63,7 @@ function buildShiftUrl(shiftId: string): string {
 
 function buildNotes(shift: Shift): string {
   const url = buildShiftUrl(shift.id);
-  const desc = shift.shiftType.description ?? "";
+  const desc = getShiftDescription(shift.notes, shift.shiftType.description) ?? "";
   return [desc, `View shift details: ${url}`]
     .filter((p) => p.length > 0)
     .join("\n\n");

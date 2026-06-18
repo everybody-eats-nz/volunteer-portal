@@ -1,6 +1,8 @@
 import type { Message, Role, User } from "@/generated/client";
+import { prisma } from "@/lib/prisma";
 import { createNotification } from "./notifications";
 import { notificationSSEManager } from "./notification-sse-manager";
+import { sendPushToUsers } from "./services/expo-push";
 
 /**
  * Realtime + push notification helpers for the volunteer ↔ team direct
@@ -15,6 +17,11 @@ import { notificationSSEManager } from "./notification-sse-manager";
  * message created one — they get a live SSE event only with the full
  * message body, and their inbox UI keeps unread state from the thread's
  * `teamLastReadAt` column.
+ *
+ * On top of the SSE event, admins who have opted in (`adminMessageNotifications`,
+ * toggled on the mobile admin messages screen, off by default) get a mobile
+ * push so they can reply on the go. Push-only — still no DB notification row,
+ * to keep the "don't drown admins" property.
  */
 
 const MESSAGE_PREVIEW_LIMIT = 140;
@@ -94,4 +101,35 @@ export async function broadcastNewMessageToAdmins(
     .catch((err) =>
       console.error("[messaging-notify] broadcastNewMessageToAdmins:", err)
     );
+
+  // Opt-in mobile push to admins (push-only, no DB notification row).
+  try {
+    const optedInAdmins = await prisma.user.findMany({
+      where: {
+        role: "ADMIN",
+        adminMessageNotifications: true,
+        id: { not: args.message.senderId },
+      },
+      select: { id: true },
+    });
+    if (optedInAdmins.length > 0) {
+      // No badge: admins track message unread via the thread's teamLastReadAt
+      // column (SSE-driven), not Notification rows, so there's no per-user count
+      // to surface — and we don't want to clobber their real notification badge.
+      await sendPushToUsers(
+        optedInAdmins.map((a) => a.id),
+        {
+          title: `${volunteerName} messaged the team`,
+          body: preview(args.message.body),
+          data: {
+            type: "DIRECT_MESSAGE_ADMIN",
+            threadId: args.threadId,
+            actionUrl: "/admin/messages",
+          },
+        }
+      );
+    }
+  } catch (err) {
+    console.error("[messaging-notify] admin message push:", err);
+  }
 }
