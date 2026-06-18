@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 
@@ -12,7 +13,7 @@ export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const teamUnreadCount = useTeamUnreadCount(isAuthenticated);
 
-  const eeLight = {
+  const eeLight = useMemo(() => ({
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
@@ -22,9 +23,9 @@ export default function TabLayout() {
       border: Colors.light.border,
       primary: Colors.light.primary,
     },
-  };
+  }), []);
 
-  const eeDark = {
+  const eeDark = useMemo(() => ({
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
@@ -34,7 +35,7 @@ export default function TabLayout() {
       border: Colors.dark.border,
       primary: Colors.dark.tint,
     },
-  };
+  }), []);
 
   // Show login screen if not authenticated (no redirect, no navigation)
   if (!isLoading && !isAuthenticated) {
