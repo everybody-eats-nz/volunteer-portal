@@ -32,6 +32,15 @@ export const queryKeys = {
     all: ['team'] as const,
     unreadCount: () => [...queryKeys.team.all, 'unread-count'] as const,
   },
+  admin: {
+    all: ['admin'] as const,
+    threads: (status: string, q: string) =>
+      [...queryKeys.admin.all, 'threads', status, q] as const,
+    thread: (id: string) => [...queryKeys.admin.all, 'thread', id] as const,
+    unreadCount: () => [...queryKeys.admin.all, 'unread-count'] as const,
+    today: (date: string) => [...queryKeys.admin.all, 'today', date] as const,
+    pending: () => [...queryKeys.admin.all, 'pending'] as const,
+  },
   feedComments: {
     all: ['feed', 'comments'] as const,
     forItem: (itemId: string) => [...queryKeys.feedComments.all, itemId] as const,
