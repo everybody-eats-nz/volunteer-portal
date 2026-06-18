@@ -1,3 +1,9 @@
+## [0.123.1] - 2026-06-18
+
+### Changes
+- fix(push): surface silent Expo push failures for admin message notifications ([#1011](https://github.com/everybody-eats-nz/volunteer-portal/pull/1011)) by @malinmalliyawadu
+
+
 ## [0.123.0] - 2026-06-18
 
 ### Changes
