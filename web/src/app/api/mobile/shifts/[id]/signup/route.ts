@@ -4,6 +4,7 @@ import { requireMobileUser } from "@/lib/mobile-auth";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getNotificationService } from "@/lib/notification-service";
+import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 
 /**
@@ -225,6 +226,19 @@ export async function POST(
       user.id,
       shift.id
     );
+
+    // Still needs a human? Ping the restaurant's managers (fire-and-forget).
+    if (
+      autoApprovalResult.status === "PENDING" ||
+      autoApprovalResult.status === "REGULAR_PENDING"
+    ) {
+      void notifyManagersOfPendingSignup(signup.id).catch((err) =>
+        console.error(
+          "[mobile/signup] Failed to notify managers of pending signup:",
+          err
+        )
+      );
+    }
 
     return NextResponse.json({
       id: signup.id,

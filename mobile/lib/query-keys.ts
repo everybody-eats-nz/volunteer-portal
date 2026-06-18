@@ -38,8 +38,13 @@ export const queryKeys = {
       [...queryKeys.admin.all, 'threads', status, q] as const,
     thread: (id: string) => [...queryKeys.admin.all, 'thread', id] as const,
     unreadCount: () => [...queryKeys.admin.all, 'unread-count'] as const,
-    today: (date: string) => [...queryKeys.admin.all, 'today', date] as const,
-    pending: () => [...queryKeys.admin.all, 'pending'] as const,
+    locations: () => [...queryKeys.admin.all, 'locations'] as const,
+    messageNotifyPref: () =>
+      [...queryKeys.admin.all, 'message-notify-pref'] as const,
+    today: (date: string, location: string | null) =>
+      [...queryKeys.admin.all, 'today', date, location ?? 'all'] as const,
+    pending: (location: string | null) =>
+      [...queryKeys.admin.all, 'pending', location ?? 'all'] as const,
   },
   feedComments: {
     all: ['feed', 'comments'] as const,

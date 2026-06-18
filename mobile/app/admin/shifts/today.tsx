@@ -13,9 +13,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAdminToday } from "@/hooks/use-admin";
+import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { formatTimeRange, initialOf } from "@/lib/admin-format";
 import type { TodayShift } from "@/lib/admin";
 
@@ -50,7 +52,11 @@ export default function TonightShiftsScreen() {
 
   const [offset, setOffset] = useState(0);
   const dateParam = useMemo(() => dateParamForOffset(offset), [offset]);
-  const { data, isPending, isError, refetch, isRefetching } = useAdminToday(dateParam);
+  const selectedLocation = useAdminLocationFilter((s) => s.selected);
+  const { data, isPending, isError, refetch, isRefetching } = useAdminToday(
+    dateParam,
+    selectedLocation
+  );
 
   const rule = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)";
   const eyebrow = isDark ? Brand.greenLight : Brand.green;
@@ -82,6 +88,10 @@ export default function TonightShiftsScreen() {
         </Pressable>
       </View>
 
+      <View style={styles.filterRow}>
+        <AdminLocationFilter />
+      </View>
+
       {isPending ? (
         <View style={styles.center}>
           <ActivityIndicator color={eyebrow} />
@@ -98,7 +108,9 @@ export default function TonightShiftsScreen() {
           <Text style={styles.emptyEmoji}>🌙</Text>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No shifts scheduled</Text>
           <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-            Nothing on the roster for this day.
+            {selectedLocation
+              ? `Nothing on the roster at ${selectedLocation} for this day.`
+              : "Nothing on the roster for this day."}
           </Text>
         </View>
       ) : (
@@ -238,6 +250,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stepLabel: { fontFamily: FontFamily.heading, fontSize: 17 },
+  filterRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 42, marginBottom: 12 },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 21, marginBottom: 8, textAlign: "center" },

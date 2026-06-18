@@ -14,9 +14,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAdminPending } from "@/hooks/use-admin";
+import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { formatLongDate, formatTimeRange, GRADE_COLORS, initialOf } from "@/lib/admin-format";
 import { actOnSignup, type PendingSignup } from "@/lib/admin";
 import { queryClient } from "@/lib/query-client";
@@ -29,7 +31,9 @@ export default function ApprovalsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const { data, isPending, isError, refetch, isRefetching } = useAdminPending();
+  const selectedLocation = useAdminLocationFilter((s) => s.selected);
+  const { data, isPending, isError, refetch, isRefetching } =
+    useAdminPending(selectedLocation);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const rule = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)";
@@ -47,8 +51,9 @@ export default function ApprovalsScreen() {
         const res = await actOnSignup(signup.id, action);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         // Drop the handled signup from the cached list immediately.
-        queryClient.setQueryData<PendingSignup[]>(queryKeys.admin.pending(), (prev) =>
-          (prev ?? []).filter((s) => s.id !== signup.id)
+        queryClient.setQueryData<PendingSignup[]>(
+          queryKeys.admin.pending(selectedLocation),
+          (prev) => (prev ?? []).filter((s) => s.id !== signup.id)
         );
         // Counts elsewhere (hub, tonight's shifts) may have shifted.
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
@@ -65,7 +70,7 @@ export default function ApprovalsScreen() {
         setBusyId(null);
       }
     },
-    []
+    [selectedLocation]
   );
 
   const confirmDecline = useCallback(
@@ -92,6 +97,10 @@ export default function ApprovalsScreen() {
         <View style={styles.headerSide} />
       </View>
 
+      <View style={styles.filterRow}>
+        <AdminLocationFilter />
+      </View>
+
       {isPending ? (
         <View style={styles.center}>
           <ActivityIndicator color={eyebrow} />
@@ -108,7 +117,9 @@ export default function ApprovalsScreen() {
           <Text style={styles.emptyEmoji}>✅</Text>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Queue&apos;s clear</Text>
           <Text style={[styles.emptyBody, { color: colors.textSecondary }]}>
-            No signups waiting on approval. Ka pai!
+            {selectedLocation
+              ? `No signups waiting at ${selectedLocation}. Ka pai!`
+              : "No signups waiting on approval. Ka pai!"}
           </Text>
         </View>
       ) : (
@@ -257,6 +268,13 @@ const styles = StyleSheet.create({
   },
   headerSide: { width: 40, alignItems: "flex-start", justifyContent: "center" },
   headerTitle: { fontFamily: FontFamily.heading, fontSize: 20 },
+  filterRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 42, marginBottom: 12 },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 21, marginBottom: 8, textAlign: "center" },

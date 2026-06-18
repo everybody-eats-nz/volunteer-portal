@@ -170,6 +170,22 @@ export function fetchAdminUnreadCount(): Promise<{ count: number }> {
   return api<{ count: number }>("/api/mobile/admin/messages/unread-count");
 }
 
+/** Whether this admin gets a push when a volunteer messages the team. */
+export function fetchAdminMessageNotifyPref(): Promise<{ enabled: boolean }> {
+  return api<{ enabled: boolean }>(
+    "/api/mobile/admin/messages/notify-preference"
+  );
+}
+
+export function setAdminMessageNotifyPref(
+  enabled: boolean
+): Promise<{ enabled: boolean }> {
+  return api<{ enabled: boolean }>(
+    "/api/mobile/admin/messages/notify-preference",
+    { method: "PUT", body: { enabled } }
+  );
+}
+
 /* ─── Shifts ─────────────────────────────────────────────────── */
 
 export function fetchAdminToday(
@@ -194,6 +210,13 @@ export function fetchAdminPending(
   return api<{ signups: PendingSignup[] }>(
     `/api/mobile/admin/signups/pending${qs}`
   );
+}
+
+/* ─── Locations ──────────────────────────────────────────────── */
+
+/** Active restaurants, by name, for the admin location filter. */
+export function fetchAdminLocations(): Promise<{ locations: string[] }> {
+  return api<{ locations: string[] }>("/api/mobile/admin/locations");
 }
 
 export function actOnSignup(

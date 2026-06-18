@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter, type Href } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -16,8 +17,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAdminThreads, clearAdminUnreadCount } from "@/hooks/use-admin";
+import {
+  useAdminThreads,
+  clearAdminUnreadCount,
+  useAdminMessageNotifyPref,
+} from "@/hooks/use-admin";
 import { formatRelativeTime, initialOf } from "@/lib/admin-format";
+import { syncPushTokenWithServer } from "@/lib/push-notifications";
 import { queryClient } from "@/lib/query-client";
 import type { AdminThreadListItem, ThreadStatus } from "@/lib/admin";
 
@@ -61,6 +67,25 @@ export default function AdminInboxScreen() {
   const rule = isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)";
   const eyebrow = isDark ? Brand.greenLight : Brand.green;
 
+  const notifyPref = useAdminMessageNotifyPref();
+  const toggleNotify = useCallback(async () => {
+    const next = !notifyPref.enabled;
+    Haptics.selectionAsync();
+    // Turning on: make sure the OS has granted permission and the device's
+    // push token is registered, otherwise the toggle would silently do nothing.
+    if (next) {
+      const token = await syncPushTokenWithServer({ requestIfNeeded: true });
+      if (!token) {
+        Alert.alert(
+          "Notifications are off",
+          "Turn on notifications for Everybody Eats in your device settings to get message alerts."
+        );
+        return;
+      }
+    }
+    notifyPref.setEnabled(next);
+  }, [notifyPref]);
+
   const renderItem = useCallback(
     ({ item }: { item: AdminThreadListItem }) => (
       <ThreadRow
@@ -90,7 +115,25 @@ export default function AdminInboxScreen() {
           <Ionicons name="chevron-back" size={24} color={eyebrow} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
-        <View style={styles.backBtn} />
+        <Pressable
+          onPress={toggleNotify}
+          hitSlop={12}
+          disabled={notifyPref.isLoading || notifyPref.isSaving}
+          style={styles.notifyBtn}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: notifyPref.enabled }}
+          accessibilityLabel={
+            notifyPref.enabled
+              ? "Turn off new-message notifications"
+              : "Turn on new-message notifications"
+          }
+        >
+          <Ionicons
+            name={notifyPref.enabled ? "notifications" : "notifications-off-outline"}
+            size={22}
+            color={notifyPref.enabled ? eyebrow : colors.textSecondary}
+          />
+        </Pressable>
       </View>
 
       {/* Search */}
@@ -296,6 +339,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backBtn: { width: 40, alignItems: "flex-start", justifyContent: "center" },
+  notifyBtn: { width: 40, alignItems: "flex-end", justifyContent: "center" },
   headerTitle: { fontFamily: FontFamily.heading, fontSize: 20 },
   controls: { paddingHorizontal: 16, paddingTop: 14, gap: 12 },
   searchField: {
