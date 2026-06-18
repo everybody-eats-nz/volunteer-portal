@@ -104,6 +104,14 @@ const SHIFT_COVERS = {
   chefPlating: require('@/assets/photos/ee-chef-plating.jpg'),
   /** Volunteer serving a plated meal to the floor */
   fohServing: require('@/assets/photos/ee-foh-serving.jpg'),
+  /** Beaming front-of-house volunteer carrying two plates through a full room */
+  fohPortrait: require('@/assets/photos/ee-foh-portrait.jpg'),
+  /** Two volunteers carrying plates through an event venue */
+  crewPlates: require('@/assets/photos/ee-crew-plates.jpg'),
+  /** Buffet / catering spread with a gathered crowd — events & info sessions */
+  cateringSpread: require('@/assets/photos/ee-volunteer-team.jpg'),
+  /** Volunteer holding three plated meals outdoors — pop-up service */
+  servingPlates: require('@/assets/photos/ee-serving-plates.jpg'),
 };
 
 export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
@@ -190,8 +198,188 @@ const DEFAULT_SHIFT_TYPE_THEME: ShiftTypeTheme = {
   heroImage: SHIFT_COVERS.diningRoom,
 };
 
+/**
+ * Keyword fallback for shift types that aren't an exact match above. Shift type
+ * names carry location/variant suffixes ("GI", "ONE", "(Onehunga)", "Pop-Up
+ * Stand") and hyphenation ("Front-of-House") that an exact lookup misses, which
+ * left ~20 of the live shift types on the generic dining-room cover. First rule
+ * whose keyword appears in the (normalised) name wins, so order matters: the
+ * most specific role keywords come first. */
+const KEYWORD_THEME_RULES: { keywords: string[]; theme: ShiftTypeTheme }[] = [
+  {
+    keywords: ['dishwash'],
+    theme: {
+      emoji: '🧽',
+      color: '#2563eb',
+      colorDark: '#60a5fa',
+      bgLight: '#eff6ff',
+      bgDark: 'rgba(37, 99, 235, 0.12)',
+      heroImage: SHIFT_COVERS.dishwasher,
+    },
+  },
+  {
+    keywords: ['food rescue', 'rescue'],
+    theme: {
+      emoji: '🥕',
+      color: '#65a30d',
+      colorDark: '#bef264',
+      bgLight: '#f7fee7',
+      bgDark: 'rgba(101, 163, 13, 0.12)',
+      heroImage: SHIFT_COVERS.cateringSpread,
+    },
+  },
+  {
+    keywords: ['save a bite'],
+    theme: {
+      emoji: '🥪',
+      color: '#0d9488',
+      colorDark: '#5eead4',
+      bgLight: '#f0fdfa',
+      bgDark: 'rgba(13, 148, 136, 0.12)',
+      heroImage: SHIFT_COVERS.servingPlates,
+    },
+  },
+  {
+    keywords: ['photograph', 'socials', 'media'],
+    theme: {
+      emoji: '📷',
+      color: '#db2777',
+      colorDark: '#f472b6',
+      bgLight: '#fdf2f8',
+      bgDark: 'rgba(219, 39, 119, 0.12)',
+      heroImage: SHIFT_COVERS.servicePass,
+    },
+  },
+  {
+    keywords: ['moving', 'packing', 'sorting'],
+    theme: {
+      emoji: '📦',
+      color: '#7c3aed',
+      colorDark: '#a78bfa',
+      bgLight: '#f5f3ff',
+      bgDark: 'rgba(124, 58, 237, 0.12)',
+      heroImage: SHIFT_COVERS.crewPlates,
+    },
+  },
+  {
+    keywords: ['offsite'],
+    theme: {
+      emoji: '🚚',
+      color: '#0891b2',
+      colorDark: '#67e8f9',
+      bgLight: '#ecfeff',
+      bgDark: 'rgba(8, 145, 178, 0.12)',
+      heroImage: SHIFT_COVERS.frontOfHouse,
+    },
+  },
+  {
+    // Before 'clean' so "Front of House Service & Clean Up" reads as FOH.
+    keywords: ['front of house', 'foh'],
+    theme: {
+      emoji: '✨',
+      color: '#9333ea',
+      colorDark: '#c084fc',
+      bgLight: '#faf5ff',
+      bgDark: 'rgba(147, 51, 234, 0.12)',
+      heroImage: SHIFT_COVERS.fohPortrait,
+    },
+  },
+  {
+    keywords: ['clean'],
+    theme: {
+      emoji: '🧹',
+      color: '#2563eb',
+      colorDark: '#60a5fa',
+      bgLight: '#eff6ff',
+      bgDark: 'rgba(37, 99, 235, 0.12)',
+      heroImage: SHIFT_COVERS.dishwasher,
+    },
+  },
+  {
+    keywords: ['kitchen prep', 'prep'],
+    theme: {
+      emoji: '🔪',
+      color: '#ea580c',
+      colorDark: '#fb923c',
+      bgLight: '#fff7ed',
+      bgDark: 'rgba(234, 88, 12, 0.12)',
+      heroImage: SHIFT_COVERS.kitchenPrep,
+    },
+  },
+  {
+    keywords: ['kitchen'],
+    theme: {
+      emoji: '🍳',
+      color: '#dc2626',
+      colorDark: '#f87171',
+      bgLight: '#fef2f2',
+      bgDark: 'rgba(220, 38, 38, 0.12)',
+      heroImage: SHIFT_COVERS.kitchenTeam,
+    },
+  },
+  {
+    // Before 'event' so "Event Set-up" reads as a set-up shift.
+    keywords: ['set up', 'setup'],
+    theme: {
+      emoji: '🛠️',
+      color: '#d97706',
+      colorDark: '#fbbf24',
+      bgLight: '#fffbeb',
+      bgDark: 'rgba(217, 119, 6, 0.12)',
+      heroImage: SHIFT_COVERS.communityTable,
+    },
+  },
+  {
+    keywords: ['information', 'info session', 'session'],
+    theme: {
+      emoji: '📋',
+      color: '#0891b2',
+      colorDark: '#67e8f9',
+      bgLight: '#ecfeff',
+      bgDark: 'rgba(8, 145, 178, 0.12)',
+      heroImage: SHIFT_COVERS.diningRoom,
+    },
+  },
+  {
+    keywords: ['event'],
+    theme: {
+      emoji: '🎉',
+      color: '#9333ea',
+      colorDark: '#c084fc',
+      bgLight: '#faf5ff',
+      bgDark: 'rgba(147, 51, 234, 0.12)',
+      heroImage: SHIFT_COVERS.communityTable,
+    },
+  },
+  {
+    keywords: ['service', 'serving'],
+    theme: {
+      emoji: '✨',
+      color: '#9333ea',
+      colorDark: '#c084fc',
+      bgLight: '#faf5ff',
+      bgDark: 'rgba(147, 51, 234, 0.12)',
+      heroImage: SHIFT_COVERS.fohServing,
+    },
+  },
+];
+
 export function getShiftThemeByName(name: string): ShiftTypeTheme {
-  return SHIFT_TYPE_THEMES_BY_NAME[name] ?? DEFAULT_SHIFT_TYPE_THEME;
+  // 1. Exact, hand-curated match wins.
+  const exact = SHIFT_TYPE_THEMES_BY_NAME[name];
+  if (exact) return exact;
+
+  // 2. Keyword match — flatten hyphens/slashes so "Front-of-House" and
+  //    "Helper & Prep" still resolve to a role-appropriate cover.
+  const normalized = name.toLowerCase().replace(/[-/]/g, ' ');
+  for (const rule of KEYWORD_THEME_RULES) {
+    if (rule.keywords.some((keyword) => normalized.includes(keyword))) {
+      return rule.theme;
+    }
+  }
+
+  // 3. Generic fallback.
+  return DEFAULT_SHIFT_TYPE_THEME;
 }
 
 /** Volunteer signup info for display on shift detail */
