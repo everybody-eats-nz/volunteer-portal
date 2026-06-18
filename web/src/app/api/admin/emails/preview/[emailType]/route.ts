@@ -12,8 +12,7 @@ type EmailType =
   | "emailVerification"
   | "parentalConsentApproval"
   | "userInvitation"
-  | "profileCompletion"
-  | "migration";
+  | "profileCompletion";
 
 const validEmailTypes: EmailType[] = [
   "shortage",
@@ -25,7 +24,6 @@ const validEmailTypes: EmailType[] = [
   "parentalConsentApproval",
   "userInvitation",
   "profileCompletion",
-  "migration",
 ];
 
 export async function GET(

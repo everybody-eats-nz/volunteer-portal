@@ -6,8 +6,6 @@ import {
   ChefHat,
   Star,
   Plus,
-  Upload,
-  CheckCircle,
   Mail,
   Bell,
   Settings,
@@ -279,39 +277,6 @@ export const adminNavCategories: AdminNavCategory[] = [
       },
     ],
   },
-  {
-    label: "User Migration",
-    items: [
-      {
-        title: "Bulk Migration",
-        href: "/admin/migration#migration",
-        icon: Upload,
-        description: "Import users in bulk",
-        commandKey: "bulk-migration",
-      },
-      {
-        title: "Migration Status",
-        href: "/admin/migration#status",
-        icon: CheckCircle,
-        description: "Track migration progress",
-        commandKey: "migration-status",
-      },
-      {
-        title: "User Invitations",
-        href: "/admin/migration#invitations",
-        icon: Mail,
-        description: "Send account invitations",
-        commandKey: "user-invitations",
-      },
-      {
-        title: "Migrated Users",
-        href: "/admin/migration#users",
-        icon: Users,
-        description: "View imported users",
-        commandKey: "migrated-users",
-      },
-    ],
-  },
 ];
 
 export const publicNavItems: AdminNavItem[] = [
@@ -380,12 +345,6 @@ export const getIconColor = (
     "Chat Guides": "text-emerald-500",
     "Chat Logs": "text-emerald-600",
     "Content Moderation": "text-red-600",
-
-    // User Migration
-    "Bulk Migration": "text-blue-600",
-    "Migration Status": "text-green-600",
-    "User Invitations": "text-purple-600",
-    "Migrated Users": "text-slate-600",
 
     // Public
     "View Public Shifts": "text-emerald-600",

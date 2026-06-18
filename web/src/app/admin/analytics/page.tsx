@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/page-container";
 import { RestaurantAnalyticsClient } from "./restaurant-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
 import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
+import { getRestaurantReports } from "@/lib/restaurant-reports";
 import { parseDaysParam } from "@/lib/parse-days-param";
 
 export default async function AnalyticsPage({
@@ -27,9 +28,16 @@ export default async function AnalyticsPage({
   const months = (params.months as string) || "3";
   const location = (params.location as string) || "all";
   const days = (params.days as string) || "";
+  const from = (params.from as string) || "";
+  const to = (params.to as string) || "";
   const daysFilter = parseDaysParam(days);
+  // "all" → 0, a sentinel the libs treat as "all time" (earliest record → today)
+  const monthsNum = months === "all" ? 0 : parseInt(months, 10) || 3;
 
-  const data = await getRestaurantAnalytics(parseInt(months, 10), location, daysFilter);
+  const [data, reports] = await Promise.all([
+    getRestaurantAnalytics(monthsNum, location, daysFilter, from || null, to || null),
+    getRestaurantReports(monthsNum, location, daysFilter, from || null, to || null),
+  ]);
 
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
@@ -39,14 +47,17 @@ export default async function AnalyticsPage({
   return (
     <AdminPageWrapper
       title="Restaurant Analytics"
-      description="Meals served metrics and year-over-year comparisons across all locations"
+      description="Guests served, koha, volunteers and service-night insights across all locations"
     >
       <PageContainer testid="restaurant-analytics-page">
         <RestaurantAnalyticsClient
           data={data}
+          reports={reports}
           months={months}
           location={location}
           days={days}
+          from={from}
+          to={to}
           locations={locationOptions}
         />
       </PageContainer>

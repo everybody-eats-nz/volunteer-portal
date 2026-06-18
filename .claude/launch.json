@@ -3,9 +3,11 @@
   "configurations": [
     {
       "name": "web",
-      "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "source $HOME/.nvm/nvm.sh && nvm use 24 && cd web && npm run dev"],
-      "port": 3000
+      "cwd": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true
     },
     {
       "name": "docs",

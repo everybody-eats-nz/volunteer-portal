@@ -436,8 +436,10 @@ test.describe("Parental Consent System", () => {
       await page.getByTestId("sidebar-parental-consent").click();
       await waitForPageLoad(page);
 
-      // Wait for the page content to load
-      await page.waitForLoadState("networkidle");
+      // NB: don't wait for "networkidle" here — admin pages mount the
+      // notification bell, which holds a long-lived SSE stream open, so the
+      // network never goes idle and the wait would time out. The web-first
+      // assertion below already waits for the section to render.
 
       // The approved section should now render with our test user
       const approvedHeading = page

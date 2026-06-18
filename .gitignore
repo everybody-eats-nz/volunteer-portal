@@ -2,3 +2,4 @@ node_modules
 .DS_Store
 mobile/build
 everybody-eats-play.json
+.vercel

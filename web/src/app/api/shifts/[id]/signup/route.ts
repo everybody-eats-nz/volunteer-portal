@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getNotificationService } from "@/lib/notification-service";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
-import { checkForBot } from "@/lib/bot-protection";
 import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
@@ -27,14 +26,6 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Check for bot traffic first
-  const botResponse = await checkForBot(
-    "Shift signup blocked due to automated activity detection."
-  );
-  if (botResponse) {
-    return botResponse;
-  }
-
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -13,6 +13,8 @@ const routeConfig = {
     "/shifts", // Public shifts page
     "/api/auth", // NextAuth routes and auth endpoints
     "/api/migration", // Migration registration API
+    "/api/cron", // Scheduled jobs - routes verify CRON_SECRET themselves
+    "/api/health", // Container healthcheck probe
   ],
   
   // User routes - require login (volunteer access)

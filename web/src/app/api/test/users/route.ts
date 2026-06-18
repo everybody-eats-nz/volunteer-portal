@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
       firstName = "Test",
       lastName = "User",
       profileCompleted = true,
-      isMigrationUser = false,
       ...additionalData
     } = body;
 
@@ -62,7 +61,6 @@ export async function POST(request: NextRequest) {
       where: { email },
     });
 
-    // For migration users, don't set password or profileCompleted
     const userData = {
       email,
       role,
@@ -72,16 +70,10 @@ export async function POST(request: NextRequest) {
       ...additionalData,
     };
 
-    if (isMigrationUser) {
-      // Migration users need to complete registration
-      userData.profileCompleted = false;
-      userData.hashedPassword = null;
-    } else {
-      // Regular users get a password and completed profile
-      userData.hashedPassword = await bcrypt.hash(password || "Test123456", 10);
-      userData.profileCompleted = profileCompleted;
-      userData.emailVerified = true; // Test users have verified emails by default
-    }
+    // Test users get a password and completed profile
+    userData.hashedPassword = await bcrypt.hash(password || "Test123456", 10);
+    userData.profileCompleted = profileCompleted;
+    userData.emailVerified = true; // Test users have verified emails by default
 
     const user = await prisma.user.create({
       data: userData,
@@ -111,6 +103,19 @@ export async function DELETE(request: NextRequest) {
     const email = searchParams.get("email");
 
     if (email) {
+      // Remove dependent rows that block deletion via a Restrict FK before
+      // deleting the user. Signup→User is onDelete: Restrict, so a user who
+      // still has a signup can't be deleted directly — without this the delete
+      // throws a FK violation and leaves orphaned test state behind.
+      const users = await prisma.user.findMany({
+        where: { email },
+        select: { id: true },
+      });
+      const userIds = users.map((u) => u.id);
+      if (userIds.length > 0) {
+        await prisma.signup.deleteMany({ where: { userId: { in: userIds } } });
+      }
+
       await prisma.user.deleteMany({
         where: { email },
       });

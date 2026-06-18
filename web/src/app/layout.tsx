@@ -8,8 +8,6 @@ import { SiteFooterWrapper } from "@/components/site-footer-wrapper";
 import { Providers } from "@/components/providers";
 import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { BotProtectionClient } from "@/components/bot-protection-client";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { getBaseUrl } from "@/lib/utils";
 import { SEO_CONFIG } from "@/lib/seo";
@@ -106,7 +104,15 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#fdf8ef" />
       </head>
+      {/*
+        suppressHydrationWarning: the e2e test harness adds an `e2e-testing`
+        class to <body> before React hydrates (to disable animations), and
+        browser extensions commonly mutate <body> attributes too. Suppressing
+        the resulting benign hydration warning keeps it from triggering
+        Next.js's dev error overlay.
+      */}
       <body
+        suppressHydrationWarning
         className={`${jakarta.variable} ${fraunces.variable} antialiased`}
       >
         <Providers>
@@ -124,8 +130,6 @@ export default function RootLayout({
           </Suspense>
           <Toaster position="top-right" closeButton />
         </Providers>
-        <BotProtectionClient />
-        <SpeedInsights />
       </body>
     </html>
   );
