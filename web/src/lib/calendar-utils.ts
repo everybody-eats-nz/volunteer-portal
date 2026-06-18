@@ -1,6 +1,7 @@
 import { formatInNZT } from "./timezone";
 import { LOCATION_ADDRESSES } from "./locations";
 import { getBaseUrl } from "./utils";
+import { getShiftDescription } from "./shift-description";
 
 /**
  * Calendar utilities for generating calendar links for shifts
@@ -11,6 +12,7 @@ interface ShiftCalendarData {
   start: Date;
   end: Date;
   location: string | null;
+  notes?: string | null;
   shiftType: {
     name: string;
     description: string | null;
@@ -56,7 +58,8 @@ function buildCalendarDescription(
 ): string {
   const shiftDetailsLink = `${getBaseUrl()}/shifts/${shift.id}`;
   const fullAddress = getFullAddress(shift.location, false); // Don't escape yet
-  const shiftDescription = shift.shiftType.description || "";
+  const shiftDescription =
+    getShiftDescription(shift.notes, shift.shiftType.description) || "";
 
   if (format === "ics") {
     // For ICS: use separators that display consistently across all calendar apps

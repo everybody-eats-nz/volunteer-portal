@@ -5,6 +5,7 @@ import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
+import { getShiftDescription } from "@/lib/shift-description";
 
 /** Hour cutoff (NZ time) — shifts starting before this are "Day", at or after are "Evening" */
 export const DAY_EVENING_CUTOFF_HOUR = 16;
@@ -74,6 +75,7 @@ export async function getConcurrentShifts(shiftId: string) {
       id: true,
       start: true,
       capacity: true,
+      notes: true,
       shiftType: {
         select: {
           name: true,
@@ -97,7 +99,7 @@ export async function getConcurrentShifts(shiftId: string) {
   return concurrentShifts.map((s) => ({
     id: s.id,
     shiftTypeName: s.shiftType.name,
-    shiftTypeDescription: s.shiftType.description,
+    shiftTypeDescription: getShiftDescription(s.notes, s.shiftType.description),
     spotsRemaining: Math.max(0, s.capacity - getShiftEffectiveCount(s)),
   }));
 }

@@ -14,6 +14,7 @@ interface ShiftSignupButtonProps {
     end: Date;
     location: string | null;
     capacity: number;
+    notes?: string | null;
     shiftType: {
       name: string;
       description: string | null;

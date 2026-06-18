@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
+import { getShiftDescription } from "@/lib/shift-description";
 import {
   Calendar,
   Clock,
@@ -31,6 +32,7 @@ interface FriendShift {
   start: string;
   end: string;
   location: string | null;
+  notes: string | null;
   shiftType: {
     name: string;
     description: string | null;
@@ -199,7 +201,10 @@ export function FriendProfileDialog({
                             <div>
                               <h4 className="font-medium">{shift.shiftType.name}</h4>
                               <p className="text-sm text-gray-600 mb-2">
-                                {shift.shiftType.description}
+                                {getShiftDescription(
+                                  shift.notes,
+                                  shift.shiftType.description
+                                )}
                               </p>
                               <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <div className="flex items-center">
