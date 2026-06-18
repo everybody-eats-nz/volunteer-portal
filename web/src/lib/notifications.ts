@@ -548,6 +548,80 @@ export async function notifyFeedItemCommentReply(args: {
 }
 
 /**
+ * Notify the restaurant managers for a shift's location that a volunteer has
+ * signed up and is waiting on approval. Mirrors the shift-cancellation manager
+ * notification, but for inbound pending signups.
+ *
+ * Recipients are restaurant managers whose assigned `locations` include the
+ * shift's location and who have `receiveNotifications` enabled (the toggle on
+ * the admin restaurant-managers page). Bell + push via
+ * `createNotificationsForUsers`. No-ops when the shift has no location or no
+ * manager is assigned to it.
+ *
+ * Safe to call fire-and-forget after a signup is created — re-reads the signup
+ * so it only fires when the status is still PENDING / REGULAR_PENDING (i.e. it
+ * wasn't auto-approved).
+ */
+export async function notifyManagersOfPendingSignup(
+  signupId: string
+): Promise<void> {
+  const signup = await prisma.signup.findUnique({
+    where: { id: signupId },
+    select: {
+      status: true,
+      user: {
+        select: { firstName: true, lastName: true, name: true, email: true },
+      },
+      shift: {
+        select: {
+          id: true,
+          location: true,
+          start: true,
+          shiftType: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  if (!signup) return;
+  if (signup.status !== "PENDING" && signup.status !== "REGULAR_PENDING") return;
+
+  const location = signup.shift.location;
+  if (!location) return;
+
+  const managers = await prisma.restaurantManager.findMany({
+    where: {
+      locations: { has: location },
+      receiveNotifications: true,
+      user: { role: "ADMIN" },
+    },
+    select: { userId: true },
+  });
+  if (managers.length === 0) return;
+
+  const volunteerName =
+    [signup.user.firstName, signup.user.lastName].filter(Boolean).join(" ") ||
+    signup.user.name ||
+    signup.user.email;
+
+  const dateLabel = new Intl.DateTimeFormat("en-NZ", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "Pacific/Auckland",
+  }).format(signup.shift.start);
+
+  await createNotificationsForUsers({
+    userIds: managers.map((m) => m.userId),
+    type: "SHIFT_SIGNUP_REQUEST",
+    title: "New signup to review",
+    message: `${volunteerName} signed up for ${signup.shift.shiftType.name} on ${dateLabel} at ${location}`,
+    actionUrl: `/admin/shifts/${signup.shift.id}`,
+    relatedId: signup.shift.id,
+  });
+}
+
+/**
  * Create a shift canceled notification
  */
 export async function createShiftCanceledNotification(

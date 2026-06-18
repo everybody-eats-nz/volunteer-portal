@@ -5,6 +5,7 @@ import React, { useCallback } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AdminLocationFilter } from "@/components/admin/location-filter";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -13,6 +14,7 @@ import {
   useAdminToday,
   useAdminUnreadCount,
 } from "@/hooks/use-admin";
+import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { useAuth } from "@/lib/auth";
 
 /* ─── Editorial palette (mirrors the Help landing) ──────────────── */
@@ -52,9 +54,10 @@ export default function AdminScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
+  const selectedLocation = useAdminLocationFilter((s) => s.selected);
   const unread = useAdminUnreadCount(true);
-  const pending = useAdminPending();
-  const today = useAdminToday("");
+  const pending = useAdminPending(selectedLocation);
+  const today = useAdminToday("", selectedLocation);
 
   const refetchAll = useCallback(() => {
     void pending.refetch();
@@ -118,6 +121,7 @@ export default function AdminScreen() {
 
         <View style={styles.channelEyebrow}>
           <Eyebrow color={paperTint.eyebrow}>What needs you</Eyebrow>
+          <AdminLocationFilter />
         </View>
 
         <View style={styles.optionList}>
@@ -263,7 +267,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: { paddingHorizontal: 24 },
   eyebrowSpacing: { marginBottom: 20 },
-  channelEyebrow: { marginTop: 28, marginBottom: 16 },
+  channelEyebrow: {
+    marginTop: 28,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   footerEyebrow: { alignSelf: "center" },
   heroBlock: { marginBottom: 28 },
   heroLine: { marginBottom: 18 },
