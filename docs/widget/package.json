@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@types/dompurify": "^3.2.0",
-    "dompurify": "^3.4.10",
+    "dompurify": "^3.4.11",
     "marked": "^18.0.5"
   }
 }
