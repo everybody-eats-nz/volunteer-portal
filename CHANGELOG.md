@@ -1,3 +1,9 @@
+## [0.123.2] - 2026-06-18
+
+### Changes
+- test: shift-theme unit tests + cross-platform colour alignment (follow-up to #1008) ([#1012](https://github.com/everybody-eats-nz/volunteer-portal/pull/1012)) by @malinmalliyawadu
+
+
 ## [0.123.1] - 2026-06-18
 
 ### Changes
