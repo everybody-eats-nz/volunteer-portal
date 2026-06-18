@@ -52,8 +52,15 @@ test.describe("Achievements Leaderboard", () => {
   test("should display user ranks and points", async ({ page }) => {
     await expandLeaderboard(page);
 
-    // Check for rank badges (circular elements with numbers)
-    const rankBadges = page.locator('[class*="rounded-full"][class*="flex items-center justify-center"]');
+    // Check for rank badges (circular elements with numbers). Scope to the
+    // leaderboard user cards so the locator doesn't match other rounded-full
+    // flex-centered elements elsewhere on the page (e.g. header icon buttons).
+    const userCards = page.locator('[class*="border"][class*="rounded-lg"]').filter({
+      has: page.locator('[class*="rounded-full"]'),
+    });
+    const rankBadges = userCards.locator(
+      '[class*="rounded-full"][class*="flex items-center justify-center"]'
+    );
     await expect(rankBadges.first()).toBeVisible();
 
     // Check for points display
