@@ -94,6 +94,9 @@ describe("broadcastNewMessageToAdmins", () => {
       threadId: "thread-1",
       actionUrl: "/admin/messages",
     });
+    // Intentionally no badge — admins track message unread via teamLastReadAt,
+    // not Notification rows, so we don't clobber their real badge count.
+    expect(payload.badge).toBeUndefined();
   });
 
   it("does not push when no admin has opted in", async () => {

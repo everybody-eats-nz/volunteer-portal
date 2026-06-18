@@ -98,6 +98,28 @@ describe("notifyManagersOfPendingSignup", () => {
     expect(pushToUsers.mock.calls[0][0]).toEqual(["manager-1", "manager-2"]);
   });
 
+  it("formats the shift date in NZ time in the notification message", async () => {
+    // 13:00 UTC on Jun 30 is 01:00 on Jul 1 in NZ (UTC+12) — a deliberate
+    // midnight-crossing time so a UTC-vs-NZ bug would show "30 Jun" instead.
+    signupFind.mockResolvedValue(pendingSignup({
+      shift: {
+        id: "shift-1",
+        location: "Wellington",
+        start: new Date("2026-06-30T13:00:00.000Z"),
+        shiftType: { name: "Dinner Service" },
+      },
+    }));
+    managerFind.mockResolvedValue([{ userId: "manager-1" }]);
+
+    await notifyManagersOfPendingSignup("signup-1");
+
+    const message = notificationCreateMany.mock.calls[0][0].data[0].message as string;
+    expect(message).toContain("Sam Lee signed up for Dinner Service");
+    expect(message).toContain("at Wellington");
+    expect(message).toContain("1 Jul");
+    expect(message).not.toContain("30 Jun");
+  });
+
   it("also fires for REGULAR_PENDING signups", async () => {
     signupFind.mockResolvedValue(pendingSignup({ status: "REGULAR_PENDING" }));
     managerFind.mockResolvedValue([{ userId: "manager-1" }]);
