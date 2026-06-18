@@ -113,6 +113,10 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
   // New volunteers are derived from attendance (read-only), not entered.
   const [newVolunteers, setNewVolunteers] = useState<number | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [stripeSyncing, setStripeSyncing] = useState(false);
+  // Pop-up / special-event venues take koha outside the per-restaurant Stripe
+  // products, so the Stripe field stays manual-only (no Sync) for them.
+  const [isPopupLocation, setIsPopupLocation] = useState(false);
 
   const set = (key: StatKey, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -175,6 +179,7 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
         setNewVolunteers(
           typeof data.newVolunteers === "number" ? data.newVolunteers : null
         );
+        setIsPopupLocation(data.isPopup === true);
         if (typeof data.defaultMealsServed === "number") {
           setDefaultValue(data.defaultMealsServed);
         }
@@ -227,12 +232,49 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
     }).format(d);
   }, [date]);
 
-  // Placeholder for the future Stripe API integration — the UI is in place but
-  // the figure is still entered manually until the backend sync is built.
-  const handleStripeSync = () => {
-    toast.info("Stripe sync is coming soon", {
-      description: "For now, enter tonight's Stripe total manually.",
-    });
+  // Pull tonight's Stripe koha for this location and fill the field. The figure
+  // is non-destructive — the admin reviews it and saves with the rest of the form.
+  const handleStripeSync = async () => {
+    setStripeSyncing(true);
+    try {
+      const res = await fetch(
+        `/api/admin/meals-served/stripe-sync?date=${date}&location=${encodeURIComponent(
+          location
+        )}`
+      );
+      if (res.status === 503) {
+        toast.info("Stripe isn't connected yet", {
+          description: "Add a Stripe API key to enable syncing.",
+        });
+        return;
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        toast.error(err?.error || "Couldn't sync with Stripe");
+        return;
+      }
+      const data = await res.json();
+      const total: number = typeof data.total === "number" ? data.total : 0;
+      const count: number =
+        typeof data.paymentCount === "number" ? data.paymentCount : 0;
+
+      if (count === 0) {
+        toast.info("No Stripe koha found for this night", {
+          description: "Nothing to sync — enter manually if needed.",
+        });
+        return;
+      }
+      set("stripe", total.toFixed(2));
+      toast.success(`Synced ${NZD.format(total)} from Stripe`, {
+        description: `Across ${count} payment${
+          count === 1 ? "" : "s"
+        } — review and save.`,
+      });
+    } catch {
+      toast.error("Couldn't sync with Stripe");
+    } finally {
+      setStripeSyncing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -526,22 +568,22 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
             value={form.stripe}
             onChange={(v) => set("stripe", v)}
             action={
-              <div className="flex items-center gap-1.5">
-                <Badge
-                  variant="secondary"
-                  className="h-4 px-1.5 text-[10px] font-medium uppercase tracking-wide"
-                >
-                  Soon
-                </Badge>
+              isPopupLocation ? undefined : (
                 <button
                   type="button"
                   onClick={handleStripeSync}
-                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                  disabled={stripeSyncing}
+                  aria-label="Sync Stripe koha for this night"
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100/70 disabled:cursor-default disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
                 >
-                  <RefreshCw className="h-3 w-3" />
-                  Sync
+                  {stripeSyncing ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                  {stripeSyncing ? "Syncing…" : "Sync"}
                 </button>
-              </div>
+              )
             }
           />
           <CountField
