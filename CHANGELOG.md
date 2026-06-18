@@ -1,3 +1,9 @@
+## [0.121.0] - 2026-06-18
+
+### Changes
+- feat(mobile): admin section with two-way volunteer messaging, approvals & shift overview ([#1005](https://github.com/everybody-eats-nz/volunteer-portal/pull/1005)) by @malinmalliyawadu
+
+
 ## [0.120.0] - 2026-06-18
 
 ### Changes
