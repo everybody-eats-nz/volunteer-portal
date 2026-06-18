@@ -193,6 +193,10 @@ export default function RootLayout() {
           />
           <Stack.Screen name="help/ai" options={{ headerShown: false }} />
           <Stack.Screen name="help/team" options={{ headerShown: false }} />
+          <Stack.Screen name="admin/messages/index" options={{ headerShown: false }} />
+          <Stack.Screen name="admin/messages/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="admin/shifts/today" options={{ headerShown: false }} />
+          <Stack.Screen name="admin/approvals" options={{ headerShown: false }} />
         </Stack>
       </AuthGate>
       <StatusBar style="auto" />
