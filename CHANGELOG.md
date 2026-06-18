@@ -1,3 +1,9 @@
+## [0.124.0] - 2026-06-18
+
+### Changes
+- feat(admin): sync service-night Stripe koha from the Stripe API ([#1019](https://github.com/everybody-eats-nz/volunteer-portal/pull/1019)) by @malinmalliyawadu
+
+
 ## [0.123.2] - 2026-06-18
 
 ### Changes
