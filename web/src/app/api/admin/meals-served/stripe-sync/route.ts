@@ -32,13 +32,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Pop-up / special-event venues are koha-manual-only — koha there isn't taken
-  // through the per-restaurant Stripe products, so never attribute charges to them.
   const locationConfig = await prisma.location.findUnique({
     where: { name: location },
     select: { isPopup: true },
   });
-  if (locationConfig?.isPopup) {
+  if (!locationConfig) {
+    return NextResponse.json({ error: "Location not found" }, { status: 404 });
+  }
+
+  // Pop-up / special-event venues are koha-manual-only — koha there isn't taken
+  // through the per-restaurant Stripe products, so never attribute charges to them.
+  if (locationConfig.isPopup) {
     return NextResponse.json(
       { error: "Stripe sync isn't available for special events — enter koha manually" },
       { status: 422 }
