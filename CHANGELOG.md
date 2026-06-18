@@ -1,3 +1,9 @@
+## [0.120.0] - 2026-06-18
+
+### Changes
+- feat(mobile): up-front shift signup eligibility gating (conflict, email, parental consent) ([#1002](https://github.com/everybody-eats-nz/volunteer-portal/pull/1002)) by @malinmalliyawadu
+
+
 ## [0.119.1] - 2026-06-18
 
 ### Changes
