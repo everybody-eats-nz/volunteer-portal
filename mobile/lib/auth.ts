@@ -19,6 +19,8 @@ export type User = {
   role: 'VOLUNTEER' | 'ADMIN';
   image?: string | null;
   profileComplete: boolean;
+  /** True once both required agreements are accepted; gates app entry. */
+  agreementsAccepted: boolean;
 };
 
 type AuthResponse = { token: string; user: User };
@@ -57,6 +59,7 @@ type AuthState = {
     token: OAuthToken,
   ) => Promise<void>;
   loginWithPasskey: (response: PasskeyAuthResponse) => Promise<void>;
+  acceptAgreements: () => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   restoreSession: () => Promise<void>;
@@ -143,6 +146,19 @@ export const useAuth = create<AuthState>((set) => ({
       body: { authenticationResponse: response },
     });
     await persist(data, set, 'passkey');
+  },
+
+  acceptAgreements: async () => {
+    const { user } = await api<{ user: User }>(
+      '/api/auth/mobile/agreements',
+      { method: 'POST' }
+    );
+    set({ user });
+    posthog?.capture('agreements_accepted', {
+      platform: 'mobile',
+      user_id: user.id,
+      timestamp: new Date().toISOString(),
+    });
   },
 
   logout: async () => {

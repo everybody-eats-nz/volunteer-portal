@@ -15,10 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import {
-  openBrowserAsync,
-  WebBrowserPresentationStyle,
-} from "expo-web-browser";
 import Animated, {
   Easing,
   FadeInDown,
@@ -27,10 +23,18 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
+import { AgreementGate, AgreementModal } from "@/components/agreement-modal";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import { Brand, Colors, FontFamily } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
+import {
+  AGREEMENTS,
+  type AgreementKey,
+  useAgreementPolicies,
+} from "@/hooks/use-agreement-policies";
+import { useOAuthSignIn } from "@/hooks/use-oauth-sign-in";
 import { posthog } from "@/lib/posthog";
 
 const HERO_IMAGE = require("@/assets/photos/ee-kitchen-team.jpg");
@@ -67,6 +71,30 @@ export default function RegisterScreen({
   const [agreeSafety, setAgreeSafety] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // OAuth sign-up (also creates the account); new accounts pass through the
+  // agreement gate in AuthGate afterwards.
+  const { busyProvider, googleReady, handleGoogle, handleApple } =
+    useOAuthSignIn();
+  const oauthBusy = busyProvider !== null;
+
+  // Which agreement modal is open (null = none).
+  const [activeAgreement, setActiveAgreement] = useState<AgreementKey | null>(
+    null
+  );
+  const policies = useAgreementPolicies();
+
+  function openAgreement(key: AgreementKey) {
+    Haptics.selectionAsync();
+    if (!policies.text[key] && !policies.loading[key]) policies.load(key);
+    setActiveAgreement(key);
+  }
+
+  function acceptAgreement(key: AgreementKey) {
+    if (key === "volunteer") setAgreeVolunteer(true);
+    else setAgreeSafety(true);
+    setActiveAgreement(null);
+  }
+
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -87,7 +115,8 @@ export default function RegisterScreen({
     passwordsMatch &&
     agreeVolunteer &&
     agreeSafety &&
-    !isSubmitting;
+    !isSubmitting &&
+    !oauthBusy;
 
   // Card surface tokens shared with the login screen for visual continuity.
   const cardSurface = isDark
@@ -243,7 +272,32 @@ export default function RegisterScreen({
               A few details and you're ready to volunteer
             </ThemedText>
 
-            <View style={{ marginTop: 20, gap: 12 }}>
+            {/* Quick sign-up with a provider */}
+            <View style={{ marginTop: 20 }}>
+              <OAuthButtons
+                busyProvider={busyProvider}
+                googleReady={googleReady}
+                disabled={isSubmitting || oauthBusy}
+                onApple={handleApple}
+                onGoogle={handleGoogle}
+                isDark={isDark}
+              />
+            </View>
+
+            {/* Divider before the email form */}
+            <View style={styles.divider}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+              />
+              <ThemedText style={[styles.dividerText, { color: mutedText }]}>
+                or sign up with email
+              </ThemedText>
+              <View
+                style={[styles.dividerLine, { backgroundColor: inputStroke }]}
+              />
+            </View>
+
+            <View style={{ marginTop: 4, gap: 12 }}>
               {/* Name row */}
               <View style={styles.nameRow}>
                 <View
@@ -449,42 +503,29 @@ export default function RegisterScreen({
               )}
             </View>
 
-            {/* Agreements */}
-            <View style={{ marginTop: 18, gap: 12 }}>
-              <AgreementRow
-                checked={agreeVolunteer}
-                onToggle={() => {
-                  Haptics.selectionAsync();
-                  setAgreeVolunteer((v) => !v);
-                }}
-                label="I have read and agree with the Volunteer Agreement"
+            {/* Agreements — must be opened and read before they can be accepted */}
+            <View style={{ marginTop: 18, gap: 10 }}>
+              <ThemedText style={[styles.agreementsLabel, { color: mutedText }]}>
+                Please read and agree to continue
+              </ThemedText>
+              <AgreementGate
+                title="Volunteer Agreement"
+                agreed={agreeVolunteer}
+                onPress={() => openAgreement("volunteer")}
+                inputBg={inputBg}
                 inputStroke={inputStroke}
                 mutedText={mutedText}
                 textColor={colors.text}
               />
-              <AgreementRow
-                checked={agreeSafety}
-                onToggle={() => {
-                  Haptics.selectionAsync();
-                  setAgreeSafety((v) => !v);
-                }}
-                label="I have read and agree with the Health & Safety Policy"
+              <AgreementGate
+                title="Health & Safety Policy"
+                agreed={agreeSafety}
+                onPress={() => openAgreement("safety")}
+                inputBg={inputBg}
                 inputStroke={inputStroke}
                 mutedText={mutedText}
                 textColor={colors.text}
               />
-              <Pressable
-                hitSlop={6}
-                onPress={() =>
-                  openBrowserAsync("https://www.everybodyeats.nz", {
-                    presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-                  })
-                }
-              >
-                <ThemedText style={[styles.policyLink, { color: mutedText }]}>
-                  Read the full policies ↗
-                </ThemedText>
-              </Pressable>
             </View>
 
             {/* Submit */}
@@ -525,54 +566,24 @@ export default function RegisterScreen({
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Agreement readers — gated on scroll-to-end before they can be accepted */}
+      {activeAgreement && (
+        <AgreementModal
+          visible
+          title={AGREEMENTS[activeAgreement].title}
+          content={policies.text[activeAgreement]}
+          loading={policies.loading[activeAgreement]}
+          error={policies.error[activeAgreement]}
+          onRetry={() => policies.load(activeAgreement)}
+          onClose={() => setActiveAgreement(null)}
+          onAgree={() => acceptAgreement(activeAgreement)}
+        />
+      )}
     </View>
   );
 }
 
-function AgreementRow({
-  checked,
-  onToggle,
-  label,
-  inputStroke,
-  mutedText,
-  textColor,
-}: {
-  checked: boolean;
-  onToggle: () => void;
-  label: string;
-  inputStroke: string;
-  mutedText: string;
-  textColor: string;
-}) {
-  return (
-    <Pressable
-      onPress={onToggle}
-      style={styles.agreementRow}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked }}
-      accessibilityLabel={label}
-    >
-      <View
-        style={[
-          styles.checkbox,
-          {
-            backgroundColor: checked ? Brand.green : "transparent",
-            borderColor: checked ? Brand.green : inputStroke,
-          },
-        ]}
-      >
-        {checked && (
-          <Ionicons name="checkmark" size={15} color={Brand.accent} />
-        )}
-      </View>
-      <ThemedText
-        style={[styles.agreementText, { color: checked ? textColor : mutedText }]}
-      >
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
-}
 
 const styles = StyleSheet.create({
   heroWrapper: {
@@ -695,30 +706,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     marginTop: -4,
   },
-  agreementRow: {
+  divider: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    borderWidth: 1.5,
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
+    gap: 12,
+    marginTop: 20,
   },
-  agreementText: {
+  dividerLine: {
     flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: 14,
-    lineHeight: 20,
+    height: 1,
   },
-  policyLink: {
-    fontFamily: FontFamily.semiBold,
+  dividerText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+  agreementsLabel: {
+    fontFamily: FontFamily.medium,
     fontSize: 13,
-    paddingLeft: 36,
+    paddingHorizontal: 2,
   },
   primaryBtn: {
     flexDirection: "row",

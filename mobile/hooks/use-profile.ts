@@ -79,6 +79,8 @@ export function useProfile(): UseProfileReturn {
         role: data.profile.role as "VOLUNTEER" | "ADMIN",
         image: data.profile.image,
         profileComplete: true,
+        // The profile screen is only reachable inside the app, past the gate.
+        agreementsAccepted: true,
         firstName: data.profile.firstName ?? "",
         lastName: data.profile.lastName ?? "",
         phone: data.profile.phone ?? "",
