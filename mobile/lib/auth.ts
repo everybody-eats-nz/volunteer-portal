@@ -26,6 +26,17 @@ type AuthResponse = { token: string; user: User };
 // 'oauth_facebook' omitted — Facebook login is disabled (broken integration).
 type LoginMethod = 'email' | 'oauth_apple' | 'oauth_google' | 'passkey';
 
+export type RegisterInput = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  phone?: string;
+  volunteerAgreementAccepted: boolean;
+  healthSafetyPolicyAccepted: boolean;
+};
+
 function identifyInPostHog(user: User) {
   posthog?.identify(user.id, {
     email: user.email,
@@ -40,6 +51,7 @@ type AuthState = {
   isAuthenticated: boolean;
 
   loginWithEmail: (email: string, password: string) => Promise<void>;
+  registerWithEmail: (input: RegisterInput) => Promise<void>;
   loginWithOAuth: (
     provider: 'apple' | 'google',
     token: OAuthToken,
@@ -85,6 +97,34 @@ export const useAuth = create<AuthState>((set) => ({
     const data = await api<AuthResponse>('/api/auth/mobile/login', {
       method: 'POST',
       body: { email, password },
+    });
+    await persist(data, set, 'email');
+  },
+
+  registerWithEmail: async (input) => {
+    // Dedicated mobile endpoint: it skips the web's Turnstile gate (the app
+    // can't produce a token) and returns a session token directly, so there's
+    // no second login round-trip. A verification email is still sent; mobile
+    // login doesn't block on it.
+    const data = await api<AuthResponse>('/api/auth/mobile/register', {
+      method: 'POST',
+      body: {
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        email: input.email.trim(),
+        password: input.password,
+        confirmPassword: input.confirmPassword,
+        phone: input.phone?.trim() || undefined,
+        volunteerAgreementAccepted: input.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: input.healthSafetyPolicyAccepted,
+        // Mirror the web default — opt the volunteer into the newsletter.
+        emailNewsletterSubscription: true,
+      },
+    });
+    posthog?.capture('user_registered', {
+      platform: 'mobile',
+      method: 'email',
+      timestamp: new Date().toISOString(),
     });
     await persist(data, set, 'email');
   },
