@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -27,9 +27,15 @@ export function AdminLocationFilter() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
 
-  const { selected, setSelected } = useAdminLocationFilter();
+  const { selected, setSelected, hydrate } = useAdminLocationFilter();
   const { data: locations } = useAdminLocations();
   const [open, setOpen] = useState(false);
+
+  // Restore the manager's saved restaurant on first mount. Idempotent — the
+  // store guards against re-running, so it's safe on every admin screen.
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
 
   const label = selected ?? "All restaurants";
 
