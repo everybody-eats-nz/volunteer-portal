@@ -88,10 +88,12 @@ beforeEach(() => {
   // source doesn't leave a real 10s timer dangling after the test. Date is
   // left real so the past-shift attendance checks still work.
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  // Default: update echoes back the requested status.
+  // Default: update echoes back the requested status. Cast the whole
+  // implementation to `never` — Prisma's update() is heavily overloaded and we
+  // only care about the data.status round-trip here.
   mockedUpdate.mockImplementation(
-    (args: { data: { status: SignupStatus } }) =>
-      Promise.resolve({ id: "signup_1", status: args.data.status }) as never
+    ((args: { data: { status: SignupStatus } }) =>
+      Promise.resolve({ id: "signup_1", status: args.data.status })) as never
   );
 });
 
