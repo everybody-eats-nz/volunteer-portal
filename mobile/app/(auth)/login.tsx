@@ -47,7 +47,11 @@ const HERO_IMAGES = [
 // Facebook login is disabled — the integration has been broken for a while.
 type OAuthProvider = "apple" | "google";
 
-export default function LoginScreen() {
+export default function LoginScreen({
+  onNavigateToRegister,
+}: {
+  onNavigateToRegister?: () => void;
+} = {}) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const colors = Colors[isDark ? "dark" : "light"];
@@ -517,14 +521,22 @@ export default function LoginScreen() {
               </ThemedText>
               <Pressable
                 hitSlop={8}
-                onPress={() =>
-                  openBrowserAsync(
-                    "https://volunteers.everybodyeats.nz/register",
-                    {
-                      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-                    }
-                  )
-                }
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  if (onNavigateToRegister) {
+                    onNavigateToRegister();
+                  } else {
+                    // Fallback for any context that renders LoginScreen without
+                    // the in-app register flow wired up.
+                    openBrowserAsync(
+                      "https://volunteers.everybodyeats.nz/register",
+                      {
+                        presentationStyle:
+                          WebBrowserPresentationStyle.AUTOMATIC,
+                      }
+                    );
+                  }
+                }}
               >
                 <ThemedText style={styles.footerLink}>
                   Join our whānau

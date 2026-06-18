@@ -73,7 +73,41 @@ describe("Mobile Authentication", () => {
         role: "VOLUNTEER",
         image: "https://example.com/photo.jpg",
         profileComplete: true,
+        agreementsAccepted: true,
       });
+    });
+
+    it("reports agreementsAccepted only when both agreements are accepted", () => {
+      const base = {
+        id: "user-3",
+        name: "Sam",
+        email: "sam@example.com",
+        role: "VOLUNTEER",
+        profilePhotoUrl: null,
+        profileCompleted: false,
+        firstName: "Sam",
+        lastName: null,
+        phone: null,
+        dateOfBirth: null,
+        emergencyContactName: null,
+        emergencyContactPhone: null,
+      } as const;
+
+      expect(
+        toMobileUser({
+          ...base,
+          volunteerAgreementAccepted: true,
+          healthSafetyPolicyAccepted: true,
+        }).agreementsAccepted
+      ).toBe(true);
+
+      expect(
+        toMobileUser({
+          ...base,
+          volunteerAgreementAccepted: true,
+          healthSafetyPolicyAccepted: false,
+        }).agreementsAccepted
+      ).toBe(false);
     });
 
     it("should detect incomplete profiles", () => {

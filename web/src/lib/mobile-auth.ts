@@ -20,6 +20,8 @@ export type MobileUser = {
   role: "VOLUNTEER" | "ADMIN";
   image: string | null;
   profileComplete: boolean;
+  /** True once the volunteer has accepted both required agreements. */
+  agreementsAccepted: boolean;
 };
 
 interface MobileTokenPayload extends JWTPayload {
@@ -113,6 +115,9 @@ export function toMobileUser(
     role: user.role as "VOLUNTEER" | "ADMIN",
     image: user.profilePhotoUrl,
     profileComplete,
+    agreementsAccepted: Boolean(
+      user.volunteerAgreementAccepted && user.healthSafetyPolicyAccepted
+    ),
   };
 }
 

@@ -12,6 +12,7 @@ export const DUMMY_USER: User = {
   role: 'VOLUNTEER',
   image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face',
   profileComplete: true,
+  agreementsAccepted: true,
 };
 
 export type UserProfile = User & {
