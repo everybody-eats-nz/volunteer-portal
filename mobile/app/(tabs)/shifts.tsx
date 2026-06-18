@@ -35,7 +35,8 @@ import { Image } from "expo-image";
 
 import { ShiftMonthCalendar } from "@/components/shift-month-calendar";
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import { getShiftThemeByName, type Shift } from "@/lib/dummy-data";
@@ -127,10 +128,10 @@ const STATUS_CONFIG: Record<
 > = {
   CONFIRMED: {
     icon: "checkmark-circle",
-    bg: "#dcfce7",
-    bgDark: "rgba(34, 197, 94, 0.15)",
-    text: "#166534",
-    textDark: "#86efac",
+    bg: "#E3EEE5", // soft forest tint
+    bgDark: "rgba(29, 83, 55, 0.22)",
+    text: Palette.forest500,
+    textDark: "#86D99B",
     label: "Confirmed",
   },
   PENDING: {
@@ -151,8 +152,8 @@ const STATUS_CONFIG: Record<
   },
   COMPLETED: {
     icon: "checkmark-done",
-    bg: "#f1ede4",
-    bgDark: "rgba(255,255,255,0.06)",
+    bg: Palette.cream200,
+    bgDark: "rgba(253,248,239,0.08)",
     text: "#57534e",
     textDark: "#d6d3d1",
     label: "Completed",
@@ -391,8 +392,11 @@ export default function ShiftsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="title">Shifts</ThemedText>
+          <View style={{ flex: 1, gap: 8 }}>
+            <Eyebrow>Find your mahi</Eyebrow>
+            <ThemedText type="title">
+              Your <ThemedText type="accent">shifts</ThemedText>
+            </ThemedText>
             <ThemedText type="caption" style={{ color: colors.textSecondary }}>
               Your mahi and open shifts
             </ThemedText>
@@ -474,9 +478,9 @@ export default function ShiftsScreen() {
             style={[
               styles.calendarCard,
               {
-                backgroundColor: isDark ? colors.card : "#ffffff",
-                borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e4dfd7",
-                shadowColor: isDark ? "#000" : "#94a3b8",
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                shadowColor: isDark ? "#000" : Palette.forest700,
                 marginTop: nextShift ? 14 : 20,
               },
             ]}
@@ -507,8 +511,8 @@ export default function ShiftsScreen() {
                   styles.dayEmptyIcon,
                   {
                     backgroundColor: isDark
-                      ? "rgba(255,255,255,0.04)"
-                      : "rgba(14, 58, 35, 0.05)",
+                      ? "rgba(253, 248, 239, 0.04)"
+                      : "rgba(29, 83, 55, 0.05)",
                   },
                 ]}
               >
@@ -609,8 +613,8 @@ function LocationPill({
       style={({ pressed }) => [
         styles.locationPill,
         {
-          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#ffffff",
-          borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e4dfd7",
+          backgroundColor: isDark ? "rgba(253,248,239,0.06)" : colors.card,
+          borderColor: colors.border,
           opacity: pressed ? 0.7 : 1,
         },
       ]}
@@ -687,8 +691,8 @@ function LocationPickerSheet({
               styles.sheetHandle,
               {
                 backgroundColor: isDark
-                  ? "rgba(255,255,255,0.2)"
-                  : "rgba(0,0,0,0.15)",
+                  ? "rgba(253,248,239,0.22)"
+                  : "rgba(29,83,55,0.18)",
               },
             ]}
           />
@@ -714,7 +718,7 @@ function LocationPickerSheet({
             style={({ pressed }) => [
               styles.sheetClose,
               {
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
+                backgroundColor: isDark ? "rgba(253,248,239,0.08)" : colors.surfaceSunk,
                 opacity: pressed ? 0.6 : 1,
               },
             ]}
@@ -739,12 +743,12 @@ function LocationPickerSheet({
                   {
                     backgroundColor: active
                       ? isDark
-                        ? "rgba(134, 239, 172, 0.12)"
+                        ? "rgba(29, 83, 55, 0.22)"
                         : Brand.greenLight
                       : pressed
                       ? isDark
-                        ? "rgba(255,255,255,0.04)"
-                        : "#f8fafc"
+                        ? "rgba(253,248,239,0.04)"
+                        : colors.surfaceSoft
                       : "transparent",
                   },
                 ]}
@@ -757,7 +761,7 @@ function LocationPickerSheet({
                   color={
                     active
                       ? isDark
-                        ? "#86efac"
+                        ? colors.tint
                         : Brand.green
                       : colors.textSecondary
                   }
@@ -768,7 +772,7 @@ function LocationPickerSheet({
                     {
                       color: active
                         ? isDark
-                          ? "#86efac"
+                          ? colors.tint
                           : Brand.green
                         : colors.text,
                       fontFamily: active
@@ -783,7 +787,7 @@ function LocationPickerSheet({
                   <Ionicons
                     name="checkmark"
                     size={18}
-                    color={isDark ? "#86efac" : Brand.green}
+                    color={isDark ? colors.tint : Brand.green}
                   />
                 )}
               </Pressable>
@@ -821,9 +825,9 @@ function NextShiftPill({
       style={({ pressed }) => [
         styles.nextShiftPill,
         {
-          backgroundColor: isDark ? colors.card : "#ffffff",
-          borderColor: isDark ? "rgba(255,255,255,0.06)" : "#e4dfd7",
-          shadowColor: isDark ? "#000" : "#94a3b8",
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          shadowColor: isDark ? "#000" : Palette.forest700,
           opacity: pressed ? 0.92 : 1,
           transform: [{ scale: pressed ? 0.99 : 1 }],
         },
@@ -883,8 +887,8 @@ function DateNavHeader({
           styles.dateNavButton,
           {
             backgroundColor: isDark
-              ? "rgba(255,255,255,0.06)"
-              : "rgba(14, 58, 35, 0.05)",
+              ? "rgba(253,248,239,0.06)"
+              : "rgba(29, 83, 55, 0.05)",
             opacity: pressed ? 0.6 : 1,
           },
         ]}
@@ -905,11 +909,11 @@ function DateNavHeader({
               {
                 backgroundColor: isTodayLabel
                   ? isDark
-                    ? "rgba(134, 239, 172, 0.15)"
+                    ? "rgba(29, 83, 55, 0.22)"
                     : Brand.greenLight
                   : isDark
-                  ? "rgba(255,255,255,0.05)"
-                  : "rgba(14, 58, 35, 0.05)",
+                  ? "rgba(253,248,239,0.05)"
+                  : "rgba(29, 83, 55, 0.05)",
               },
             ]}
           >
@@ -919,7 +923,7 @@ function DateNavHeader({
                 {
                   color: isTodayLabel
                     ? isDark
-                      ? "#86efac"
+                      ? colors.tint
                       : Brand.green
                     : colors.textSecondary,
                 },
@@ -938,8 +942,8 @@ function DateNavHeader({
           styles.dateNavButton,
           {
             backgroundColor: isDark
-              ? "rgba(255,255,255,0.06)"
-              : "rgba(14, 58, 35, 0.05)",
+              ? "rgba(253,248,239,0.06)"
+              : "rgba(29, 83, 55, 0.05)",
             opacity: pressed ? 0.6 : 1,
           },
         ]}
@@ -969,11 +973,12 @@ function FriendAvatarStack({
   borderColor?: string;
   accentColor?: string;
 }) {
+  const colors = Colors[isDark ? "dark" : "light"];
   const shown = friends.slice(0, maxShow);
   const overflow = friends.length - maxShow;
-  const ring = borderColor ?? (isDark ? "#0f1114" : Brand.warmWhite);
-  const fallbackBg = isDark ? "rgba(14,58,35,0.4)" : Brand.greenLight;
-  const fallbackFg = accentColor ?? (isDark ? "#86efac" : Brand.green);
+  const ring = borderColor ?? (isDark ? "#0F1114" : Brand.warmWhite);
+  const fallbackBg = isDark ? "rgba(29,83,55,0.4)" : Brand.greenLight;
+  const fallbackFg = accentColor ?? (isDark ? "#86D99B" : Brand.green);
   const overlap = Math.max(6, Math.round(size * 0.33));
 
   return (
@@ -1026,7 +1031,7 @@ function FriendAvatarStack({
                 height: size,
                 borderRadius: size / 2,
                 borderColor: ring,
-                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#eceae3",
+                backgroundColor: isDark ? "rgba(253,248,239,0.08)" : Palette.cream200,
               },
             ]}
           >
@@ -1034,7 +1039,7 @@ function FriendAvatarStack({
               style={[
                 styles.friendOverflow,
                 {
-                  color: isDark ? "#cbd5e1" : "#475569",
+                  color: colors.textSecondary,
                   fontSize: Math.round(size * 0.38),
                 },
               ]}
@@ -1069,19 +1074,19 @@ function PeriodHeader({
     : "moon-outline";
   const accent = isDay
     ? isDark
-      ? "#fbbf24"
-      : "#d97706"
+      ? Palette.sun200
+      : Palette.forest500
     : isDark
     ? "#c4b5fd"
     : "#6d28d9";
   const chipBg = isDay
     ? isDark
-      ? "rgba(251, 191, 36, 0.12)"
-      : "rgba(217, 119, 6, 0.08)"
+      ? "rgba(248, 251, 105, 0.14)"
+      : "rgba(248, 251, 105, 0.35)"
     : isDark
     ? "rgba(196, 181, 253, 0.14)"
     : "rgba(109, 40, 217, 0.08)";
-  const ruleColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(14, 58, 35, 0.1)";
+  const ruleColor = colors.border;
 
   return (
     <View style={styles.periodHeader}>
@@ -1172,8 +1177,8 @@ function ShiftCard({
   const accentBg = isDark ? theme.bgDark : theme.bgLight;
   const duration = getDuration(shift.start, shift.end);
   const { range: timeRange } = formatTimeRange(date, endDate);
-  const cardBg = isDark ? "#1a2026" : "#ffffff";
-  const dividerColor = isDark ? "rgba(255,255,255,0.08)" : "#ebe5d9";
+  const cardBg = colors.card;
+  const dividerColor = colors.border;
   const isUserSignedUp = !!(showStatus && shift.status);
   const isPast = endDate.getTime() < Date.now();
   const isCompleted = isUserSignedUp && shift.status === "CONFIRMED" && isPast;
@@ -1189,8 +1194,8 @@ function ShiftCard({
         styles.card,
         {
           backgroundColor: cardBg,
-          borderColor: isDark ? "rgba(255,255,255,0.06)" : "#ece6d8",
-          shadowColor: isDark ? "#000" : "#94a3b8",
+          borderColor: colors.border,
+          shadowColor: isDark ? "#000" : Palette.forest700,
           opacity: pressed ? 0.97 : 1,
           transform: [{ scale: pressed ? 0.985 : 1 }],
         },
@@ -1217,8 +1222,8 @@ function ShiftCard({
               {
                 backgroundColor: accentBg,
                 borderColor: isDark
-                  ? "rgba(255,255,255,0.06)"
-                  : "rgba(14,58,35,0.06)",
+                  ? "rgba(253,248,239,0.06)"
+                  : "rgba(29,83,55,0.06)",
               },
             ]}
           >
@@ -1276,7 +1281,7 @@ function ShiftCard({
                   : Brand.accentSubtle,
                 borderColor: isDark
                   ? "rgba(248, 251, 105, 0.2)"
-                  : "rgba(14,58,35,0.08)",
+                  : "rgba(29,83,55,0.08)",
               },
             ]}
           >
@@ -1299,8 +1304,8 @@ function ShiftCard({
               {
                 backgroundColor: isPast
                   ? isDark
-                    ? "rgba(255,255,255,0.25)"
-                    : "#cbd5e1"
+                    ? "rgba(253,248,239,0.25)"
+                    : Palette.forest200
                   : isFull
                   ? isDark
                     ? "#fca5a5"
@@ -1310,8 +1315,8 @@ function ShiftCard({
                     ? "#fbbf24"
                     : "#d97706"
                   : isDark
-                  ? "#86efac"
-                  : "#16a34a",
+                  ? "#86D99B"
+                  : Palette.forest400,
               },
             ]}
           />
@@ -1433,8 +1438,8 @@ function SpotsBadge({
     label = `${spotsLeft} left`;
   } else {
     icon = "people";
-    bg = isDark ? "rgba(13, 148, 136, 0.15)" : "#f0fdfa";
-    textColor = isDark ? "#5eead4" : "#0d9488";
+    bg = isDark ? "rgba(29, 83, 55, 0.22)" : "#E3EEE5";
+    textColor = isDark ? "#86D99B" : Palette.forest500;
     label = `${spotsLeft} left`;
   }
 
@@ -1548,7 +1553,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
@@ -1587,7 +1592,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     paddingHorizontal: 8,
     paddingVertical: 14,
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: 1,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -1747,7 +1752,7 @@ const styles = StyleSheet.create({
   // Card
   card: {
     flexDirection: "row",
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
     shadowOffset: { width: 0, height: 6 },

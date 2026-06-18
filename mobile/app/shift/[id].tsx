@@ -26,7 +26,7 @@ import { differenceInMinutes } from "date-fns";
 import { formatNZT } from "@/lib/dates";
 
 import { ThemedText } from "@/components/themed-text";
-import { Colors, Brand, FontFamily } from "@/constants/theme";
+import { Colors, Brand, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
 import { api, ApiError } from "@/lib/api";
@@ -37,6 +37,7 @@ import {
 } from "@/lib/calendar-sync";
 import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { GlassButton } from "@/components/glass-button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
 import { posthog } from "@/lib/posthog";
 
@@ -234,7 +235,7 @@ export default function ShiftDetailScreen() {
             style={[
               s.notFoundIcon,
               {
-                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9",
+                backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.surfaceSoft,
               },
             ]}
           >
@@ -319,12 +320,12 @@ export default function ShiftDetailScreen() {
           title: "",
           headerShown: true,
           headerTransparent: true,
-          headerTintColor: "#fffdf7",
+          headerTintColor: Palette.cream50,
           headerRight: () => (
             <Ionicons
               name="share-outline"
               size={22}
-              color="#fffdf7"
+              color={Palette.cream50}
               onPress={handleShare}
             />
           ),
@@ -345,7 +346,11 @@ export default function ShiftDetailScreen() {
         <View style={s.hero}>
           {theme.heroImage && (
             <Image
-              source={{ uri: theme.heroImage }}
+              source={
+                typeof theme.heroImage === "string"
+                  ? { uri: theme.heroImage }
+                  : theme.heroImage
+              }
               style={s.heroImage}
               contentFit="cover"
             />
@@ -354,30 +359,29 @@ export default function ShiftDetailScreen() {
           {/* Layered gradient — faint top, atmospheric middle, solid-green pour at base */}
           <LinearGradient
             colors={[
-              "rgba(14,58,35,0.25)",
-              "rgba(14,58,35,0.55)",
-              "rgba(14,58,35,0.88)",
-              Brand.green,
+              "rgba(14,42,28,0.25)",
+              "rgba(14,42,28,0.55)",
+              "rgba(14,42,28,0.9)",
+              Palette.forest700,
             ]}
             locations={[0, 0.45, 0.82, 1]}
             style={s.heroGradient}
           />
 
-          <View style={s.heroBody}>
-            {/* Eyebrow */}
-            <View style={s.heroOverlineRow}>
-              <View style={s.heroOverlineRule} />
-              <Text style={s.heroOverline}>
-                {isCompleted
-                  ? "Completed · Ngā mihi"
-                  : isMyShift
-                  ? "You're in the whānau"
-                  : "Ngā mahi · A shift"}
-              </Text>
-              <View style={s.heroOverlineRule} />
-            </View>
+          {/* Warm sun glow on the dark forest hero */}
+          <View pointerEvents="none" style={s.heroGlow} />
 
-            {/* Display title — oversized Fraunces */}
+          <View style={s.heroBody}>
+            {/* Eyebrow kicker */}
+            <Eyebrow color={Palette.sun200}>
+              {isCompleted
+                ? "Completed · Ngā mihi"
+                : isMyShift
+                ? "You're in the whānau"
+                : "Ngā mahi · A shift"}
+            </Eyebrow>
+
+            {/* Display title — light editorial Fraunces */}
             <Text
               style={s.heroTitle}
               numberOfLines={3}
@@ -442,7 +446,7 @@ export default function ShiftDetailScreen() {
           <View
             style={[
               s.statusStrip,
-              { backgroundColor: isDark ? "#1a1d21" : "#ffffff" },
+              { backgroundColor: colors.card },
             ]}
           >
             {isCompleted ? (
@@ -480,7 +484,7 @@ export default function ShiftDetailScreen() {
                     {
                       backgroundColor: isDark
                         ? "rgba(248,251,105,0.12)"
-                        : "#f1ede4",
+                        : Palette.cream200,
                     },
                   ]}
                 >
@@ -656,12 +660,12 @@ export default function ShiftDetailScreen() {
             <GlassButton
               onPress={() => openSignupSheet(false)}
               isDark={isDark}
-              tintColor="rgba(14,58,35,0.8)"
+              tintColor="rgba(29,83,55,0.85)"
               androidBg={Brand.green}
               accessibilityLabel="Sign up for shift"
             >
               <Text style={s.glassCtaText}>Join this shift</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fffdf7" />
+              <Ionicons name="arrow-forward" size={18} color={Palette.cream50} />
             </GlassButton>
           ) : (
             <GlassButton
@@ -671,7 +675,7 @@ export default function ShiftDetailScreen() {
               androidBg={isDark ? "#92400e" : "#c2410c"}
               accessibilityLabel="Join shift waitlist"
             >
-              <Ionicons name="list-outline" size={18} color="#fffdf7" />
+              <Ionicons name="list-outline" size={18} color={Palette.cream50} />
               <Text style={s.glassCtaText}>Join the waitlist</Text>
             </GlassButton>
           )}
@@ -742,7 +746,7 @@ function VolunteersSection({
             {
               backgroundColor: isDark
                 ? "rgba(255,255,255,0.04)"
-                : "rgba(14,58,35,0.04)",
+                : "rgba(29,83,55,0.05)",
             },
           ]}
         >
@@ -752,7 +756,7 @@ function VolunteersSection({
               {
                 backgroundColor: isDark
                   ? "rgba(248,251,105,0.12)"
-                  : "rgba(14,58,35,0.08)",
+                  : "rgba(29,83,55,0.09)",
               },
             ]}
           >
@@ -819,15 +823,15 @@ function FriendStackAvatar({
       ? roleTheme.bgDark
       : roleTheme.bgLight
     : isDark
-    ? "rgba(14,58,35,0.3)"
-    : "#e8f5e8";
+    ? "rgba(29,83,55,0.3)"
+    : Palette.forest100;
   const roleInk = roleTheme
     ? isDark
       ? roleTheme.colorDark
       : roleTheme.color
     : Brand.green;
 
-  const borderColor = isDark ? "#0f1114" : Brand.warmWhite;
+  const borderColor = isDark ? Colors.dark.background : Brand.warmWhite;
 
   return (
     <View
@@ -887,8 +891,8 @@ function FriendRow({
       ? roleTheme.bgDark
       : roleTheme.bgLight
     : isDark
-    ? "rgba(14,58,35,0.3)"
-    : "#e8f5e8";
+    ? "rgba(29,83,55,0.3)"
+    : Palette.forest100;
 
   const openProfile = () => {
     Haptics.selectionAsync();
@@ -1040,7 +1044,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
   },
   backButtonText: {
-    color: "#fffdf7",
+    color: Palette.cream50,
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
   },
@@ -1051,7 +1055,7 @@ const s = StyleSheet.create({
     paddingTop: 140,
     paddingBottom: 48,
     overflow: "hidden",
-    backgroundColor: Brand.green,
+    backgroundColor: Palette.forest700,
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
@@ -1059,38 +1063,30 @@ const s = StyleSheet.create({
   heroGradient: {
     ...StyleSheet.absoluteFillObject,
   },
+  heroGlow: {
+    position: "absolute",
+    bottom: -120,
+    left: -60,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: "rgba(248,251,105,0.1)",
+  },
   heroBody: {
     position: "relative",
     paddingHorizontal: 24,
     gap: 14,
   },
-  heroOverlineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  heroOverlineRule: {
-    width: 18,
-    height: 1,
-    backgroundColor: "rgba(248,251,105,0.6)",
-  },
-  heroOverline: {
-    color: Brand.accent,
-    fontSize: 10.5,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 2.5,
-    textTransform: "uppercase",
-  },
   heroTitle: {
-    color: "#fffdf7",
-    fontSize: 40,
-    lineHeight: 44,
-    fontFamily: FontFamily.headingBold,
-    letterSpacing: -0.8,
-    marginTop: 2,
+    color: Palette.cream50,
+    fontSize: 44,
+    lineHeight: 48,
+    fontFamily: FontFamily.display,
+    letterSpacing: -1,
+    marginTop: 4,
   },
   heroDescription: {
-    color: "rgba(255,253,247,0.78)",
+    color: "rgba(253,248,239,0.8)",
     fontSize: 15,
     lineHeight: 22,
     fontFamily: FontFamily.regular,
@@ -1104,20 +1100,20 @@ const s = StyleSheet.create({
     marginTop: 18,
     paddingTop: 18,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(255,253,247,0.25)",
+    borderTopColor: "rgba(253,248,239,0.25)",
   },
   heroMetaCol: {
     flex: 1,
     gap: 3,
   },
   heroMetaLabel: {
-    color: "rgba(248,251,105,0.8)",
+    color: "rgba(248,251,105,0.85)",
     fontSize: 9.5,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 1.8,
   },
   heroMetaValue: {
-    color: "#fffdf7",
+    color: Palette.cream50,
     fontSize: 17,
     lineHeight: 21,
     fontFamily: FontFamily.heading,
@@ -1129,11 +1125,11 @@ const s = StyleSheet.create({
   },
   heroMetaLink: {
     textDecorationLine: "underline",
-    textDecorationColor: "rgba(255,253,247,0.35)",
+    textDecorationColor: "rgba(253,248,239,0.35)",
   },
   heroMetaRule: {
     width: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,253,247,0.25)",
+    backgroundColor: "rgba(253,248,239,0.25)",
   },
 
   /* ── STATUS STRIP (bridges hero + content) ── */
@@ -1454,8 +1450,8 @@ const s = StyleSheet.create({
 
   /* ── GLASS CTA ── */
   glassCtaText: {
-    color: "#fffdf7",
-    fontFamily: FontFamily.bold,
+    color: Palette.cream50,
+    fontFamily: FontFamily.semiBold,
     fontSize: 16,
     letterSpacing: -0.1,
   },

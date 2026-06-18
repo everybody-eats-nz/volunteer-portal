@@ -21,7 +21,7 @@
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
     "@expo-google-fonts/fraunces": "^0.4.1",
-    "@expo-google-fonts/libre-franklin": "^0.4.2",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-menu/menu": "^2.0.0",
@@ -77,8 +77,10 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.10",
+    "@types/react-test-renderer": "^19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~55.0.0",
+    "react-test-renderer": "^19.2.7",
     "typescript": "~5.9.2",
     "vitest": "^4.0.15"
   },

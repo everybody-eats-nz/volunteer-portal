@@ -74,7 +74,35 @@ export type ShiftTypeTheme = {
   colorDark: string;
   bgLight: string;
   bgDark: string;
-  heroImage?: string;
+  /** Cover photo — a bundled require() asset (number) or a remote URL (string).
+   *  Required: every theme (incl. the default fallback) provides a cover. */
+  heroImage: number | string;
+};
+
+/**
+ * Shift cover photos — the bundled Everybody Eats photo set used across the app
+ * (login hero carousel + brand library). Local assets so covers load instantly
+ * and work offline, and read as one brand with the marketing homepage.
+ */
+const SHIFT_COVERS = {
+  /** Guests sharing kai in the dining room */
+  diningRoom: require('@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg'),
+  /** Plated dishes lined up at the service pass */
+  servicePass: require('@/assets/photos/6722babbc2238d67bcc7f7a1_OUR STORY 6.jpg'),
+  /** Front of house (existing cover) */
+  frontOfHouse: require('@/assets/photos/66da1b4267d61fe68398d065_280443354_2008401622656620_5596744644117168718_n.jpg'),
+  /** Communal long table — events / media */
+  communityTable: require('@/assets/photos/69d2ed111c8583513cde79a6_A. McVinnie - E.E X Kingi Oct-_K9A0991-p-2000.jpeg'),
+  /** Volunteer loading the dish rack at the wash station */
+  dishwasher: require('@/assets/photos/ee-dishwasher.jpg'),
+  /** Volunteer at the kitchen prep bench */
+  kitchenPrep: require('@/assets/photos/ee-kitchen-prep.jpg'),
+  /** Kitchen team plating bowls during service */
+  kitchenTeam: require('@/assets/photos/ee-kitchen-team.jpg'),
+  /** Chef plating a dish at the pass */
+  chefPlating: require('@/assets/photos/ee-chef-plating.jpg'),
+  /** Volunteer serving a plated meal to the floor */
+  fohServing: require('@/assets/photos/ee-foh-serving.jpg'),
 };
 
 export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
@@ -84,7 +112,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#86efac',
     bgLight: '#f0fdf4',
     bgDark: 'rgba(22, 163, 74, 0.12)',
-    heroImage: 'https://cdn.prod.website-files.com/66d7cb82647de44647142131/66da1b4267d61fe68398d065_280443354_2008401622656620_5596744644117168718_n.jpg',
+    heroImage: SHIFT_COVERS.frontOfHouse,
   },
   'Kitchen Prep': {
     emoji: '🔪',
@@ -92,7 +120,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#fb923c',
     bgLight: '#fff7ed',
     bgDark: 'rgba(234, 88, 12, 0.12)',
-    heroImage: 'https://cdn.prod.website-files.com/66d7cb82647de44647142131/66da1b3ff05e25dfe4f25db3_260078656_1880774448752672_8447810127498984605_n.jpg',
+    heroImage: SHIFT_COVERS.kitchenPrep,
   },
   'Kitchen Service & Pack Down': {
     emoji: '📦',
@@ -100,7 +128,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#a78bfa',
     bgLight: '#f5f3ff',
     bgDark: 'rgba(124, 58, 237, 0.12)',
-    heroImage: 'https://cdn.prod.website-files.com/66d7cb82647de44647142131/66da1b42f46ae80d24cbef3e_280398558_2008401602656622_8497750126913093706_n.jpg',
+    heroImage: SHIFT_COVERS.servicePass,
   },
   'FOH Set-Up & Service': {
     emoji: '✨',
@@ -108,6 +136,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#c084fc',
     bgLight: '#faf5ff',
     bgDark: 'rgba(147, 51, 234, 0.12)',
+    heroImage: SHIFT_COVERS.fohServing,
   },
   'Kitchen': {
     emoji: '🧽',
@@ -115,6 +144,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#60a5fa',
     bgLight: '#eff6ff',
     bgDark: 'rgba(37, 99, 235, 0.12)',
+    heroImage: SHIFT_COVERS.kitchenTeam,
   },
   'Kitchen Prep & Service': {
     emoji: '🍳',
@@ -122,6 +152,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#f87171',
     bgLight: '#fef2f2',
     bgDark: 'rgba(220, 38, 38, 0.12)',
+    heroImage: SHIFT_COVERS.chefPlating,
   },
   'Dishwasher': {
     emoji: '🧽',
@@ -129,6 +160,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#60a5fa',
     bgLight: '#eff6ff',
     bgDark: 'rgba(37, 99, 235, 0.12)',
+    heroImage: SHIFT_COVERS.dishwasher,
   },
   'FOH': {
     emoji: '✨',
@@ -136,6 +168,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#c084fc',
     bgLight: '#faf5ff',
     bgDark: 'rgba(147, 51, 234, 0.12)',
+    heroImage: SHIFT_COVERS.diningRoom,
   },
   'Media Role': {
     emoji: '📷',
@@ -143,6 +176,7 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     colorDark: '#f472b6',
     bgLight: '#fdf2f8',
     bgDark: 'rgba(219, 39, 119, 0.12)',
+    heroImage: SHIFT_COVERS.communityTable,
   },
 };
 
@@ -152,6 +186,7 @@ const DEFAULT_SHIFT_TYPE_THEME: ShiftTypeTheme = {
   colorDark: '#86efac',
   bgLight: '#e8f5e8',
   bgDark: 'rgba(14, 58, 35, 0.2)',
+  heroImage: SHIFT_COVERS.diningRoom,
 };
 
 export function getShiftThemeByName(name: string): ShiftTypeTheme {

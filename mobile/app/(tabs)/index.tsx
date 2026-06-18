@@ -33,7 +33,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageViewer } from "@/components/image-viewer";
 import { useFeed } from "@/hooks/use-feed";
@@ -407,8 +408,8 @@ export default function HomeScreen() {
               {
                 backgroundColor:
                   colorScheme === "dark"
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(14, 58, 35, 0.06)",
+                    ? "rgba(253, 248, 239, 0.06)"
+                    : "rgba(29, 83, 55, 0.06)",
                 opacity: pressed ? 0.7 : 1,
               },
             ]}
@@ -495,6 +496,9 @@ export default function HomeScreen() {
 
       {/* ── Activity Feed ── */}
       <View style={styles.feedSection}>
+        <View style={styles.feedEyebrow}>
+          <Eyebrow>From the whānau</Eyebrow>
+        </View>
         <ThemedText type="heading" style={styles.feedHeading}>
           What&apos;s happening 🌿
         </ThemedText>
@@ -608,16 +612,16 @@ const HERO_PALETTE: Record<
   }
 > = {
   CONFIRMED: {
-    gradient: ["#0b2c1b", "#165135", "#0a2416"],
+    gradient: [Palette.forest700, Palette.forest500, Palette.forest800],
     glow: "rgba(248, 251, 105, 0.22)",
-    ring: "rgba(255, 255, 255, 0.07)",
+    ring: "rgba(253, 248, 239, 0.08)",
     pillBg: Brand.accent,
     pillText: Brand.nearBlack,
     accent: Brand.accent,
-    heroText: "#f8fcef",
-    bodyText: "rgba(248, 252, 239, 0.92)",
-    mutedText: "rgba(248, 252, 239, 0.62)",
-    chevron: "rgba(255, 255, 255, 0.45)",
+    heroText: Palette.cream50,
+    bodyText: "rgba(253, 248, 239, 0.92)",
+    mutedText: "rgba(253, 248, 239, 0.62)",
+    chevron: "rgba(253, 248, 239, 0.45)",
     eyebrow: "Your next shift",
     label: "Confirmed",
     icon: "checkmark-circle",
@@ -759,9 +763,7 @@ function NextShiftHero({
 
         {/* Hero time block */}
         <View style={heroStyles.heroBlock}>
-          <Text style={[heroStyles.eyebrow, { color: palette.mutedText }]}>
-            {palette.eyebrow}
-          </Text>
+          <Eyebrow color={palette.accent}>{palette.eyebrow}</Eyebrow>
           <Text style={[heroStyles.heroTime, { color: palette.heroText }]}>
             {formatNZT(start, "h:mm a")}
           </Text>
@@ -801,7 +803,7 @@ function NextShiftHero({
           <View
             style={[
               heroStyles.friendsRow,
-              { borderTopColor: "rgba(255,255,255,0.08)" },
+              { borderTopColor: "rgba(253, 248, 239, 0.10)" },
             ]}
           >
             <HeroFriendAvatars friends={friends} />
@@ -826,7 +828,7 @@ function NextShiftHero({
           <View
             style={[
               heroStyles.countdown,
-              { borderTopColor: "rgba(255,255,255,0.08)" },
+              { borderTopColor: "rgba(253, 248, 239, 0.10)" },
             ]}
           >
             <View style={heroStyles.countdownLeft}>
@@ -915,9 +917,9 @@ function HeroFriendAvatars({ friends }: { friends: PeriodFriend[] }) {
 const heroStyles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: "hidden",
-    backgroundColor: "#0b2c1b",
+    backgroundColor: Palette.forest700,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.18,
@@ -984,17 +986,11 @@ const heroStyles = StyleSheet.create({
     marginTop: 22,
     alignItems: "flex-start",
   },
-  eyebrow: {
-    fontSize: 11,
-    fontFamily: FontFamily.semiBold,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-  },
   heroTime: {
     marginTop: 6,
     fontSize: 46,
     lineHeight: 52,
-    fontFamily: FontFamily.headingBold,
+    fontFamily: FontFamily.display,
     letterSpacing: -0.5,
   },
   accentBar: {
@@ -1045,27 +1041,27 @@ const heroStyles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: "rgba(253, 248, 239, 0.20)",
   },
   friendAvatarFallback: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(253, 248, 239, 0.14)",
   },
   friendInitial: {
     fontSize: 12,
     fontFamily: FontFamily.semiBold,
-    color: "#ffffff",
+    color: Palette.cream50,
   },
   friendOverflowPill: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(253, 248, 239, 0.20)",
   },
   friendOverflowText: {
     fontSize: 11,
     fontFamily: FontFamily.bold,
-    color: "#ffffff",
+    color: Palette.cream50,
   },
   friendsTextBlock: {
     flex: 1,
@@ -1147,27 +1143,27 @@ type NeedPalette = {
 };
 
 const NEED_PALETTE_LIGHT: NeedPalette = {
-  cardBg: "#fffdf4",
-  cardBorder: "rgba(14, 58, 35, 0.08)",
+  cardBg: Palette.cream100,
+  cardBorder: "rgba(29, 83, 55, 0.10)",
   glow: "rgba(248, 251, 105, 0.35)",
-  shadow: "#0e3a23",
+  shadow: Palette.forest700,
   eyebrow: Brand.green,
   displayText: Brand.green,
-  supportText: "rgba(16, 20, 24, 0.72)",
+  supportText: "rgba(26, 20, 16, 0.72)",
   chipBg: Brand.green,
   chipDate: Brand.accent,
   chipName: Brand.warmWhite,
-  chipLocation: "rgba(255, 253, 247, 0.65)",
+  chipLocation: "rgba(253, 248, 239, 0.70)",
   chipNeedsBg: Brand.accent,
   chipNeedsText: Brand.nearBlack,
-  ctaBorder: "rgba(14, 58, 35, 0.18)",
+  ctaBorder: "rgba(29, 83, 55, 0.18)",
   ctaText: Brand.green,
   ctaArrowBg: Brand.green,
   ctaArrowIcon: Brand.warmWhite,
-  seeAllBg: "#f7f2e0",
-  seeAllBorder: "rgba(14, 58, 35, 0.14)",
+  seeAllBg: Palette.cream200,
+  seeAllBorder: "rgba(29, 83, 55, 0.14)",
   seeAllTitle: Brand.green,
-  seeAllHint: "rgba(14, 58, 35, 0.58)",
+  seeAllHint: "rgba(29, 83, 55, 0.62)",
   seeAllArrowBg: Brand.green,
   seeAllArrowIcon: Brand.accent,
   seeAllAccent: Brand.accent,
@@ -1175,25 +1171,25 @@ const NEED_PALETTE_LIGHT: NeedPalette = {
 
 const NEED_PALETTE_DARK: NeedPalette = {
   // Deep warm forest — reads as a dark notice board behind paper chips
-  cardBg: "#15231b",
+  cardBg: Palette.forest700,
   cardBorder: "rgba(248, 251, 105, 0.18)",
   glow: "rgba(248, 251, 105, 0.22)",
   shadow: "#000000",
   eyebrow: Brand.accent,
-  displayText: "#f3f1e3",
-  supportText: "rgba(243, 241, 227, 0.72)",
+  displayText: Palette.cream50,
+  supportText: "rgba(253, 248, 239, 0.72)",
   // Chips are muted cream — dimmer than paper so they don't glow against dark
-  chipBg: "#d9d3be",
+  chipBg: Palette.cream200,
   chipDate: Brand.green,
   chipName: Brand.nearBlack,
-  chipLocation: "rgba(16, 20, 24, 0.62)",
+  chipLocation: "rgba(26, 20, 16, 0.62)",
   chipNeedsBg: Brand.green,
   chipNeedsText: Brand.accent,
   ctaBorder: "rgba(248, 251, 105, 0.22)",
   ctaText: Brand.accent,
   ctaArrowBg: Brand.accent,
   ctaArrowIcon: Brand.green,
-  seeAllBg: "#1d2f24",
+  seeAllBg: Palette.forest600,
   seeAllBorder: "rgba(248, 251, 105, 0.28)",
   seeAllTitle: Brand.accent,
   seeAllHint: "rgba(248, 251, 105, 0.62)",
@@ -1389,9 +1385,7 @@ function VolunteersNeededCard({
 
       {/* Header: eyebrow + emoji */}
       <View style={needStyles.headerRow}>
-        <Text style={[needStyles.eyebrow, { color: palette.eyebrow }]}>
-          Help needed soon
-        </Text>
+        <Eyebrow color={palette.eyebrow}>Help needed soon</Eyebrow>
         <Text style={needStyles.handsEmoji}>🙌</Text>
       </View>
 
@@ -1658,7 +1652,7 @@ function SeeAllShiftsChip({
 const needStyles = StyleSheet.create({
   card: {
     marginHorizontal: 20,
-    borderRadius: 24,
+    borderRadius: 28,
     overflow: "hidden",
     borderWidth: 1,
     paddingTop: 24,
@@ -1682,19 +1676,13 @@ const needStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 22,
   },
-  eyebrow: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.6,
-    textTransform: "uppercase",
-  },
   handsEmoji: {
     fontSize: 22,
   },
   displayNumber: {
     fontSize: 56,
     lineHeight: 62,
-    fontFamily: FontFamily.headingBold,
+    fontFamily: FontFamily.display,
     letterSpacing: -1,
     paddingHorizontal: 22,
     marginTop: 12,
@@ -1878,7 +1866,7 @@ const needStyles = StyleSheet.create({
   // coming up. Slim header is always visible; tapping expands the chips + CTA.
   collapsibleCard: {
     marginHorizontal: 20,
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: "hidden",
     shadowOffset: { width: 0, height: 4 },
@@ -3073,7 +3061,7 @@ function FeedItemSheet({
                 <Ionicons
                   name="close"
                   size={16}
-                  color={isDark ? colors.textSecondary : "#6b7280"}
+                  color={colors.textSecondary}
                 />
               </Pressable>
 
@@ -3091,7 +3079,7 @@ function FeedItemSheet({
                     style={[
                       sheet.heroAvatarBadge,
                       {
-                        backgroundColor: isDark ? colors.card : "#ffffff",
+                        backgroundColor: colors.card,
                         borderColor: isDark ? colors.card : config.bg,
                       },
                     ]}
@@ -3177,7 +3165,7 @@ function FeedItemSheet({
                       {
                         backgroundColor: isDark
                           ? "rgba(255,255,255,0.05)"
-                          : "#f8fafc",
+                          : colors.surfaceSoft,
                       },
                     ]}
                   >
@@ -3204,7 +3192,7 @@ function FeedItemSheet({
                         {
                           backgroundColor: isDark
                             ? "rgba(255,255,255,0.05)"
-                            : "#f8fafc",
+                            : colors.surfaceSoft,
                         },
                       ]}
                     >
@@ -3228,7 +3216,7 @@ function FeedItemSheet({
                         {
                           backgroundColor: isDark
                             ? "rgba(255,255,255,0.05)"
-                            : "#f8fafc",
+                            : colors.surfaceSoft,
                         },
                       ]}
                     >
@@ -3255,7 +3243,7 @@ function FeedItemSheet({
                     {
                       backgroundColor: isDark
                         ? "rgba(255,255,255,0.05)"
-                        : "#f8fafc",
+                        : colors.surfaceSoft,
                     },
                   ]}
                 >
@@ -3312,14 +3300,14 @@ function FeedItemSheet({
                       {
                         backgroundColor: isDark
                           ? "rgba(134,239,172,0.14)"
-                          : "#dcfce7",
+                          : Brand.greenLight,
                       },
                     ]}
                   >
                     <Ionicons
                       name="checkmark-circle"
                       size={22}
-                      color={isDark ? "#86efac" : "#16a34a"}
+                      color={isDark ? colors.tint : Brand.green}
                     />
                   </View>
                   <Text
@@ -3392,7 +3380,7 @@ function FeedItemSheet({
                           <Text
                             style={[
                               sheet.shiftListDay,
-                              { color: isDark ? "#86efac" : Brand.green },
+                              { color: isDark ? colors.tint : Brand.green },
                             ]}
                           >
                             {formatNZT(start, "EEE").toUpperCase()}
@@ -3400,7 +3388,7 @@ function FeedItemSheet({
                           <Text
                             style={[
                               sheet.shiftListDayNum,
-                              { color: isDark ? "#86efac" : Brand.green },
+                              { color: isDark ? colors.tint : Brand.green },
                             ]}
                           >
                             {formatNZT(start, "d")}
@@ -3454,7 +3442,7 @@ function FeedItemSheet({
                     <Text
                       style={[
                         sheet.shiftListCTAText,
-                        { color: isDark ? "#86efac" : Brand.green },
+                        { color: isDark ? colors.tint : Brand.green },
                       ]}
                     >
                       {item.count > item.preview.length
@@ -3464,7 +3452,7 @@ function FeedItemSheet({
                     <Ionicons
                       name="arrow-forward"
                       size={16}
-                      color={isDark ? "#86efac" : Brand.green}
+                      color={isDark ? colors.tint : Brand.green}
                     />
                   </Pressable>
                 </View>
@@ -3496,10 +3484,19 @@ function FeedItemSheet({
                   accessibilityRole="button"
                   accessibilityLabel="See shifts available on this day"
                 >
-                  <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
+                  <Text
+                    style={[
+                      sheet.shiftListCTAText,
+                      { color: Palette.cream50 },
+                    ]}
+                  >
                     See shifts for this day
                   </Text>
-                  <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={Palette.cream50}
+                  />
                 </Pressable>
               )}
 
@@ -3525,10 +3522,19 @@ function FeedItemSheet({
                   accessibilityRole="button"
                   accessibilityLabel={`Sign up for the ${item.shiftTypeName} shift`}
                 >
-                  <Text style={[sheet.shiftListCTAText, { color: "#ffffff" }]}>
+                  <Text
+                    style={[
+                      sheet.shiftListCTAText,
+                      { color: Palette.cream50 },
+                    ]}
+                  >
                     Sign up for this shift
                   </Text>
-                  <Ionicons name="arrow-forward" size={16} color="#ffffff" />
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={Palette.cream50}
+                  />
                 </Pressable>
               )}
 
@@ -3623,7 +3629,7 @@ function FeedItemSheet({
                         ? "rgba(225, 29, 72, 0.10)"
                         : isDark
                         ? "rgba(255,255,255,0.05)"
-                        : "#f8fafc",
+                        : colors.surfaceSoft,
                       transform: [{ scale: pressed ? 0.92 : 1 }],
                     },
                   ]}
@@ -3721,7 +3727,7 @@ function FeedItemSheet({
                             {
                               backgroundColor: isDark
                                 ? "rgba(255,255,255,0.08)"
-                                : "#f1f5f9",
+                                : colors.surfaceSoft,
                             },
                           ]}
                         >
@@ -3747,7 +3753,7 @@ function FeedItemSheet({
                   {
                     backgroundColor: isDark
                       ? "rgba(255,255,255,0.06)"
-                      : "#f1f5f9",
+                      : colors.surfaceSoft,
                   },
                 ]}
               />
@@ -3854,10 +3860,8 @@ function FeedItemSheet({
                                     color: colors.text,
                                     backgroundColor: isDark
                                       ? "rgba(255,255,255,0.05)"
-                                      : "#f8fafc",
-                                    borderColor: isDark
-                                      ? "rgba(255,255,255,0.1)"
-                                      : "#e2e8f0",
+                                      : colors.surfaceSoft,
+                                    borderColor: colors.border,
                                   },
                                 ]}
                                 accessibilityLabel="Edit comment"
@@ -3891,9 +3895,7 @@ function FeedItemSheet({
                                     sheet.commentEditSaveBtn,
                                     {
                                       backgroundColor: editDisabled
-                                        ? isDark
-                                          ? "rgba(255,255,255,0.05)"
-                                          : "#e2e8f0"
+                                        ? colors.surfaceSunk
                                         : Brand.green,
                                       opacity:
                                         pressed && !editDisabled ? 0.75 : 1,
@@ -3908,7 +3910,7 @@ function FeedItemSheet({
                                       {
                                         color: editDisabled
                                           ? colors.textSecondary
-                                          : "#ffffff",
+                                          : Palette.cream50,
                                       },
                                     ]}
                                   >
@@ -3976,9 +3978,7 @@ function FeedItemSheet({
                   sheet.commentInputRow,
                   {
                     borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: isDark
-                      ? "rgba(255,255,255,0.06)"
-                      : "#f1f5f9",
+                    borderTopColor: colors.border,
                   },
                 ]}
               >
@@ -3989,7 +3989,7 @@ function FeedItemSheet({
                       color: colors.text,
                       backgroundColor: isDark
                         ? "rgba(255,255,255,0.05)"
-                        : "#f8fafc",
+                        : colors.surfaceSoft,
                     },
                   ]}
                   placeholder="Add a comment..."
@@ -4014,9 +4014,7 @@ function FeedItemSheet({
                     {
                       backgroundColor: commentText.trim()
                         ? Brand.green
-                        : isDark
-                        ? "rgba(255,255,255,0.05)"
-                        : "#e2e8f0",
+                        : colors.surfaceSunk,
                       opacity: pressed && commentText.trim() ? 0.7 : 1,
                     },
                   ]}
@@ -4027,7 +4025,9 @@ function FeedItemSheet({
                     name="arrow-up"
                     size={18}
                     color={
-                      commentText.trim() ? "#ffffff" : colors.textSecondary
+                      commentText.trim()
+                        ? Palette.cream50
+                        : colors.textSecondary
                     }
                   />
                 </Pressable>
@@ -4042,7 +4042,7 @@ function FeedItemSheet({
                   {
                     backgroundColor: isDark
                       ? "rgba(255,255,255,0.03)"
-                      : "#fafafa",
+                      : colors.surfaceSoft,
                     borderColor: colors.border,
                   },
                 ]}
@@ -4161,7 +4161,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontSize: 20,
     fontFamily: FontFamily.bold,
   },
@@ -4170,6 +4170,9 @@ const styles = StyleSheet.create({
   feedSection: {
     marginTop: 28,
     paddingHorizontal: 20,
+  },
+  feedEyebrow: {
+    marginBottom: 8,
   },
   feedHeading: {
     marginBottom: 14,
@@ -4302,7 +4305,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#ffffff",
+    borderColor: Palette.cream50,
   },
   feedAvatarBadgeEmoji: {
     fontSize: 10,

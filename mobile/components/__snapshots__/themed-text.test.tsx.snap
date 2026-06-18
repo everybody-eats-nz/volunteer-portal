@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ThemedText > matches the title snapshot 1`] = `
+<Text
+  style={
+    [
+      {
+        "color": "#0E2A1C",
+      },
+      {
+        "fontFamily": "Fraunces_300Light",
+        "fontSize": 28,
+        "letterSpacing": -0.5,
+        "lineHeight": 32,
+      },
+      undefined,
+    ]
+  }
+>
+  Kia ora
+</Text>
+`;

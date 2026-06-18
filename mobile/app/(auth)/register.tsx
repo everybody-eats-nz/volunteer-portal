@@ -33,7 +33,7 @@ import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { posthog } from "@/lib/posthog";
 
-const HERO_IMAGE = require("@/assets/photos/66da3c585f61f1e0ba83fbcc_03.png");
+const HERO_IMAGE = require("@/assets/photos/ee-kitchen-team.jpg");
 
 // Mirrors web/src/lib/utils/password-validation.ts so client-side checks match
 // what the /api/auth/register endpoint enforces.

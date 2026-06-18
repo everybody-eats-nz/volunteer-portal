@@ -27,7 +27,8 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
@@ -36,8 +37,11 @@ import { signInWithApple, useGoogleAuth } from "@/lib/oauth";
 import { posthog } from "@/lib/posthog";
 
 const HERO_IMAGES = [
-  require("@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg"),
-  require("@/assets/photos/66da3c585f61f1e0ba83fbcc_03.png"),
+  require("@/assets/photos/6721b8345984b5e427f7d246_HOMEPAGE - HERO1-2.jpg"), // guests dining
+  require("@/assets/photos/ee-serving-plates.jpg"), // volunteer serving two plates
+  require("@/assets/photos/ee-foh-portrait.jpg"), // smiling front-of-house volunteer
+  require("@/assets/photos/ee-crew-plates.jpg"), // crew with plates
+  require("@/assets/photos/ee-volunteer-team.jpg"), // volunteer team in aprons
 ];
 
 // Facebook login is disabled — the integration has been broken for a while.
@@ -190,20 +194,29 @@ export default function LoginScreen({
     }
   }
 
-  // Card surface: warm white that sits on top of the photo.
+  // Card surface: warm cream paper that sits on top of the photo.
   const cardSurface = isDark
-    ? "rgba(16, 20, 24, 0.88)"
-    : "rgba(255, 253, 247, 0.96)";
-  const cardStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(14,58,35,0.08)";
-  const inputBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(14,58,35,0.04)";
-  const inputStroke = isDark ? "rgba(255,255,255,0.10)" : "rgba(14,58,35,0.12)";
-  const mutedText = isDark ? "rgba(229,240,232,0.62)" : "rgba(16,20,24,0.56)";
+    ? "rgba(22, 24, 29, 0.90)"
+    : "rgba(253, 248, 239, 0.97)";
+  const cardStroke = isDark
+    ? "rgba(253,248,239,0.10)"
+    : "rgba(29,83,55,0.12)";
+  const inputBg = isDark ? "rgba(253,248,239,0.05)" : Palette.cream200;
+  const inputStroke = isDark
+    ? "rgba(253,248,239,0.12)"
+    : "rgba(29,83,55,0.15)";
+  const mutedText = isDark ? colors.textSecondary : "rgba(26,20,16,0.56)";
 
   const windowHeight = Dimensions.get("window").height;
   const heroHeight = Math.min(Math.max(windowHeight * 0.48, 320), 520);
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDark ? "#0b0d10" : "#f1eadc" }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: isDark ? colors.background : Palette.cream100,
+      }}
+    >
       <StatusBar style="light" />
 
       {/* Hero image — full-bleed, absolutely positioned so the form can overlap */}
@@ -217,9 +230,9 @@ export default function LoginScreen({
         {/* Dim + warm tint the photo so typography pops */}
         <LinearGradient
           colors={[
-            "rgba(14,58,35,0.55)",
-            "rgba(14,58,35,0.15)",
-            isDark ? "rgba(11,13,16,0.85)" : "rgba(241,234,220,0.98)",
+            "rgba(14,42,28,0.58)",
+            "rgba(14,42,28,0.15)",
+            isDark ? "rgba(15,17,20,0.88)" : "rgba(250,242,228,0.98)",
           ]}
           locations={[0, 0.45, 1]}
           style={StyleSheet.absoluteFill}
@@ -232,21 +245,32 @@ export default function LoginScreen({
             .easing(Easing.out(Easing.cubic))}
           style={[styles.greeting, { paddingTop: insets.top + 48 }]}
         >
+          <Eyebrow color={Palette.cream50} style={styles.heroEyebrow}>
+            Everybody Eats · Volunteer portal
+          </Eyebrow>
           <View style={styles.greetingRow}>
             <ThemedText
               style={styles.kiaOra}
-              lightColor="#fffdf7"
-              darkColor="#fffdf7"
+              lightColor={Palette.cream50}
+              darkColor={Palette.cream50}
             >
-              Kia ora
+              Kia ora,
             </ThemedText>
-            {/* Lime accent curl under the greeting */}
-            <View style={styles.accentCurl} />
+            {/* Accent word with a sun underline anchored to its width */}
+            <View style={styles.accentWrap}>
+              <ThemedText
+                type="accent"
+                style={[styles.kiaOraAccent, { color: Palette.cream50 }]}
+              >
+                whānau
+              </ThemedText>
+              <View style={styles.accentUnderline} />
+            </View>
           </View>
           <ThemedText
             style={styles.tagline}
-            lightColor="#fffdf7"
-            darkColor="#fffdf7"
+            lightColor={Palette.cream50}
+            darkColor={Palette.cream50}
           >
             Making a difference one plate at a time
           </ThemedText>
@@ -286,22 +310,22 @@ export default function LoginScreen({
                 styles.grabHandle,
                 {
                   backgroundColor: isDark
-                    ? "rgba(255,255,255,0.15)"
-                    : "rgba(14,58,35,0.18)",
+                    ? "rgba(253,248,239,0.18)"
+                    : "rgba(29,83,55,0.20)",
                 },
               ]}
             />
 
             <ThemedText
-              type="heading"
+              type="display"
               style={styles.cardTitle}
               lightColor={Brand.green}
               darkColor={colors.text}
             >
-              Sign in to volunteer
-            </ThemedText>
-            <ThemedText style={[styles.cardSubtitle, { color: mutedText }]}>
-              One step closer to your next shift
+              Sign in to{" "}
+              <ThemedText type="accent" style={styles.cardTitleAccent}>
+                volunteer
+              </ThemedText>
             </ThemedText>
 
             {/* Passkey — primary path when supported */}
@@ -549,15 +573,15 @@ function OAuthCircle({
   const style =
     provider === "apple"
       ? {
-          bg: isDark ? "#f5f5f7" : "#0b0d10",
+          bg: isDark ? Palette.cream50 : Palette.ink,
           border: "transparent",
-          icon: isDark ? "#0b0d10" : "#ffffff",
+          icon: isDark ? Palette.ink : Palette.cream50,
           label: "Apple",
         }
       : {
-          bg: "#ffffff",
-          border: "rgba(0,0,0,0.08)",
-          icon: "#0b0d10",
+          bg: isDark ? "rgba(253,248,239,0.06)" : Palette.cream50,
+          border: isDark ? "rgba(253,248,239,0.14)" : "rgba(29,83,55,0.15)",
+          icon: Palette.ink,
           label: "Google",
         };
   return (
@@ -599,22 +623,35 @@ const styles = StyleSheet.create({
   greeting: {
     paddingHorizontal: 28,
   },
+  heroEyebrow: {
+    marginBottom: 16,
+    opacity: 0.92,
+  },
   greetingRow: {
     alignItems: "flex-start",
   },
   kiaOra: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 56,
-    lineHeight: 60,
-    letterSpacing: -1.5,
+    fontFamily: FontFamily.display,
+    fontSize: 46,
+    lineHeight: 50,
+    letterSpacing: -1,
   },
-  accentCurl: {
-    marginTop: 6,
-    width: 72,
-    height: 6,
+  kiaOraAccent: {
+    fontSize: 46,
+    lineHeight: 50,
+  },
+  /** Wrapper shrinks to the accent word so the underline matches its width */
+  accentWrap: {
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  /** Sun-yellow highlight under the accent word */
+  accentUnderline: {
+    alignSelf: "stretch",
+    height: 7,
     borderRadius: 3,
+    marginTop: -2,
     backgroundColor: Brand.accent,
-    opacity: 0.92,
   },
   tagline: {
     fontFamily: FontFamily.medium,
@@ -645,9 +682,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   cardTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 24,
-    lineHeight: 30,
+    fontFamily: FontFamily.display,
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.5,
+  },
+  cardTitleAccent: {
+    fontSize: 28,
+    lineHeight: 32,
   },
   cardSubtitle: {
     fontFamily: FontFamily.regular,
@@ -660,7 +702,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     minHeight: 54,
-    borderRadius: 16,
+    borderRadius: 999,
     paddingHorizontal: 20,
   },
   signInBtn: {
@@ -669,7 +711,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 16,
-    color: "#fffdf7",
+    color: Palette.cream50,
     letterSpacing: 0.2,
   },
   divider: {
