@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTeamUnreadCount } from "@/hooks/use-team-unread";
 import { fetchTeamThread } from "@/lib/messages";
@@ -25,6 +26,8 @@ type PaperTint = {
   rule: string;
   accent: string;
   eyebrow: string;
+  card: string;
+  cardStroke: string;
 };
 
 function usePaperTint(
@@ -34,10 +37,12 @@ function usePaperTint(
   return {
     paper: colors.background,
     ink: isDark ? colors.text : Brand.green,
-    inkSoft: isDark ? colors.textSecondary : "#4a5a4f",
-    rule: isDark ? "rgba(232,245,232,0.12)" : "rgba(14,58,35,0.14)",
+    inkSoft: colors.textSecondary,
+    rule: isDark ? "rgba(253,248,239,0.12)" : "rgba(29,83,55,0.14)",
     accent: Brand.accent,
     eyebrow: isDark ? Brand.greenLight : Brand.green,
+    card: isDark ? colors.surfaceSoft : Palette.cream100,
+    cardStroke: isDark ? "rgba(253,248,239,0.10)" : "rgba(29,83,55,0.12)",
   };
 }
 
@@ -116,14 +121,16 @@ export default function HelpScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.eyebrow, { color: paperTint.eyebrow }]}>
-          EVERYBODY EATS HELP
-        </Text>
+        <Eyebrow color={paperTint.eyebrow} style={styles.eyebrowSpacing}>
+          Everybody Eats help
+        </Eyebrow>
 
         <View style={styles.heroBlock}>
           <Text style={styles.heroLine}>
-            <Text style={[styles.hero, { color: paperTint.ink }]}>Kia ora</Text>
-            <Text style={[styles.hero, { color: paperTint.accent }]}>.</Text>
+            <Text style={[styles.hero, { color: paperTint.ink }]}>Kia </Text>
+            <Text style={[styles.hero, styles.heroAccent, { color: paperTint.ink }]}>
+              ora
+            </Text>
           </Text>
           <Text style={[styles.heroSubtitle, { color: paperTint.inkSoft }]}>
             How can we help today?
@@ -132,14 +139,9 @@ export default function HelpScreen() {
 
         <View style={[styles.hairline, { backgroundColor: paperTint.rule }]} />
 
-        <Text
-          style={[
-            styles.eyebrow,
-            { color: paperTint.eyebrow, marginTop: 28, marginBottom: 4 },
-          ]}
-        >
-          PICK A CHANNEL
-        </Text>
+        <View style={styles.channelEyebrow}>
+          <Eyebrow color={paperTint.eyebrow}>Pick a channel</Eyebrow>
+        </View>
 
         <View style={styles.optionList}>
           <OptionRow
@@ -173,9 +175,11 @@ export default function HelpScreen() {
               { backgroundColor: paperTint.rule, marginBottom: 14 },
             ]}
           />
-          <Text style={[styles.eyebrowCentered, { color: colors.textSecondary }]}>
-            NGĀ MIHI · WE&apos;RE HERE TO HELP
-          </Text>
+          <View style={styles.footerEyebrow}>
+            <Eyebrow color={colors.textSecondary} rule={false}>
+              Ngā mihi · we&apos;re here to help
+            </Eyebrow>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -222,17 +226,20 @@ function OptionRow({
       style={({ pressed }) => [
         styles.optionRow,
         {
-          borderBottomColor: paperTint.rule,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          opacity: pressed ? 0.6 : 1,
+          backgroundColor: paperTint.card,
+          borderColor: paperTint.cardStroke,
+          opacity: pressed ? 0.85 : 1,
+          transform: [{ scale: pressed ? 0.99 : 1 }],
         },
-        firstRow && {
-          borderTopColor: paperTint.rule,
-          borderTopWidth: StyleSheet.hairlineWidth,
-        },
+        !firstRow && styles.optionRowSpacing,
       ]}
     >
-      <View style={styles.optionEmojiWrap}>
+      <View
+        style={[
+          styles.optionEmojiWrap,
+          { backgroundColor: paperTint.accent },
+        ]}
+      >
         <Text style={styles.optionEmoji}>{emoji}</Text>
       </View>
       <View style={styles.optionBody}>
@@ -283,12 +290,9 @@ function OptionRow({
           </View>
         )}
       </View>
-      <Ionicons
-        name="arrow-forward"
-        size={16}
-        color={paperTint.eyebrow}
-        style={styles.optionArrow}
-      />
+      <View style={[styles.optionArrow, { backgroundColor: Brand.green }]}>
+        <Ionicons name="arrow-forward" size={16} color={Palette.cream50} />
+      </View>
     </Pressable>
   );
 }
@@ -298,25 +302,26 @@ function OptionRow({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 24 },
-  eyebrow: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    letterSpacing: 2,
+  eyebrowSpacing: {
     marginBottom: 20,
   },
-  eyebrowCentered: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 10.5,
-    letterSpacing: 1.8,
-    textAlign: "center",
+  channelEyebrow: {
+    marginTop: 28,
+    marginBottom: 16,
+  },
+  footerEyebrow: {
+    alignSelf: "center",
   },
   heroBlock: { marginBottom: 28 },
   heroLine: { marginBottom: 18 },
   hero: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 64,
-    lineHeight: 66,
-    letterSpacing: -1.2,
+    fontFamily: FontFamily.display,
+    fontSize: 56,
+    lineHeight: 60,
+    letterSpacing: -1,
+  },
+  heroAccent: {
+    fontFamily: FontFamily.displayItalic,
   },
   heroSubtitle: {
     fontFamily: FontFamily.regular,
@@ -332,13 +337,19 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 22,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
     gap: 14,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  optionRowSpacing: {
+    marginTop: 12,
   },
   optionEmojiWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -360,15 +371,22 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 18,
   },
-  optionArrow: { marginLeft: 4 },
+  optionArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
+  },
   unreadPill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 999,
     backgroundColor: Brand.green,
   },
   unreadPillText: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontFamily: FontFamily.semiBold,
     fontSize: 10.5,
     letterSpacing: 0.4,

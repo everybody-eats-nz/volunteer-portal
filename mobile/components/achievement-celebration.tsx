@@ -15,8 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Brand, Colors, FontFamily } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemedText } from '@/components/themed-text';
+import { Brand, FontFamily, Palette } from '@/constants/theme';
 import { useAchievementCelebrationStore } from '@/hooks/use-achievement-celebration';
 import type { Achievement } from '@/lib/dummy-data';
 
@@ -41,9 +41,6 @@ const CONFETTI_COLORS = [
 const PARTICLE_COUNT = 32;
 
 export function AchievementCelebration() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
 
   const pending = useAchievementCelebrationStore((s) => s.pending);
@@ -81,15 +78,11 @@ export function AchievementCelebration() {
       presentationStyle="pageSheet"
       animationType="slide"
       onRequestClose={handleClose}>
-      <View style={[styles.root, { backgroundColor: colors.background }]}>
-        {/* Soft tinted gradient backdrop sets a warm celebratory tone without
-            competing with the content. */}
+      <View style={[styles.root, { backgroundColor: Palette.forest700 }]}>
+        {/* Warm sun glow radiating from the top sets a celebratory tone on the
+            dark forest panel without competing with the content. */}
         <LinearGradient
-          colors={
-            isDark
-              ? ['rgba(248,251,105,0.08)', 'rgba(14,58,35,0)']
-              : ['rgba(248,251,105,0.45)', 'rgba(255,253,247,0)']
-          }
+          colors={['rgba(248,251,105,0.20)', 'rgba(14,42,28,0)']}
           locations={[0, 0.7]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
@@ -102,11 +95,7 @@ export function AchievementCelebration() {
           <View
             style={[
               styles.handleBar,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(255,255,255,0.2)'
-                  : 'rgba(0,0,0,0.15)',
-              },
+              { backgroundColor: 'rgba(253,248,239,0.3)' },
             ]}
           />
         </View>
@@ -121,11 +110,11 @@ export function AchievementCelebration() {
             styles.closeButton,
             {
               top: 16,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+              backgroundColor: 'rgba(253,248,239,0.10)',
               opacity: pressed ? 0.6 : 1,
             },
           ]}>
-          <Ionicons name="close" size={18} color={colors.textSecondary} />
+          <Ionicons name="close" size={18} color={Palette.cream50} />
         </Pressable>
 
         <ScrollView
@@ -137,8 +126,6 @@ export function AchievementCelebration() {
           <Hero
             count={pending.length}
             totalPoints={pending.reduce((sum, a) => sum + a.points, 0)}
-            colors={colors}
-            isDark={isDark}
             reduceMotion={reduceMotion}
           />
 
@@ -148,8 +135,6 @@ export function AchievementCelebration() {
                 key={achievement.id}
                 achievement={achievement}
                 index={index}
-                colors={colors}
-                isDark={isDark}
                 reduceMotion={reduceMotion}
               />
             ))}
@@ -162,10 +147,8 @@ export function AchievementCelebration() {
             styles.footer,
             {
               paddingBottom: insets.bottom + 16,
-              backgroundColor: isDark
-                ? 'rgba(15,17,20,0.9)'
-                : 'rgba(255,253,247,0.9)',
-              borderTopColor: colors.border,
+              backgroundColor: 'rgba(14,42,28,0.92)',
+              borderTopColor: 'rgba(253,248,239,0.14)',
             },
           ]}>
           <Pressable
@@ -175,8 +158,9 @@ export function AchievementCelebration() {
             style={({ pressed }) => [
               styles.cta,
               {
-                backgroundColor: Brand.green,
+                backgroundColor: Brand.accent,
                 opacity: pressed ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
               },
             ]}>
             <Text style={styles.ctaLabel}>Ka pai! 🙌</Text>
@@ -190,14 +174,10 @@ export function AchievementCelebration() {
 function Hero({
   count,
   totalPoints,
-  colors,
-  isDark,
   reduceMotion,
 }: {
   count: number;
   totalPoints: number;
-  colors: (typeof Colors)['light'];
-  isDark: boolean;
   reduceMotion: boolean;
 }) {
   return (
@@ -219,28 +199,19 @@ function Hero({
         🎉
       </Animated.Text>
 
-      <Text style={[styles.heroEyebrow, { color: colors.textSecondary }]}>
+      <Text style={[styles.heroEyebrow, { color: Palette.sun200 }]}>
         Ngā mihi nui
       </Text>
-      <Text style={[styles.heroTitle, { color: colors.text }]}>
+      <ThemedText
+        type="displayLarge"
+        style={[styles.heroTitle, { color: Palette.cream50 }]}>
         {count > 1 ? 'Achievements unlocked!' : 'Achievement unlocked!'}
-      </Text>
+      </ThemedText>
 
       {totalPoints > 0 ? (
         <View
-          style={[
-            styles.pointsPill,
-            {
-              backgroundColor: isDark
-                ? 'rgba(248,251,105,0.18)'
-                : Brand.accent,
-            },
-          ]}>
-          <Text
-            style={[
-              styles.pointsLabel,
-              { color: isDark ? Brand.accent : Brand.nearBlack },
-            ]}>
+          style={[styles.pointsPill, { backgroundColor: Brand.accent }]}>
+          <Text style={[styles.pointsLabel, { color: Brand.nearBlack }]}>
             +{totalPoints} {totalPoints === 1 ? 'point' : 'points'} earned
           </Text>
         </View>
@@ -252,14 +223,10 @@ function Hero({
 function AchievementCard({
   achievement,
   index,
-  colors,
-  isDark,
   reduceMotion,
 }: {
   achievement: Achievement;
   index: number;
-  colors: (typeof Colors)['light'];
-  isDark: boolean;
   reduceMotion: boolean;
 }) {
   const accent = CATEGORY_ACCENT[achievement.category] ?? Brand.green;
@@ -269,8 +236,8 @@ function AchievementCard({
       style={[
         styles.card,
         {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
+          backgroundColor: Palette.forest600,
+          borderColor: 'rgba(253,248,239,0.12)',
         },
         !reduceMotion && {
           animationName: {
@@ -290,7 +257,7 @@ function AchievementCard({
       <View style={{ flex: 1 }}>
         <View style={styles.cardHeader}>
           <Text
-            style={[styles.cardTitle, { color: colors.text }]}
+            style={[styles.cardTitle, { color: Palette.cream50 }]}
             numberOfLines={2}>
             {achievement.name}
           </Text>
@@ -307,7 +274,10 @@ function AchievementCard({
 
         {achievement.description ? (
           <Text
-            style={[styles.cardDescription, { color: colors.textSecondary }]}>
+            style={[
+              styles.cardDescription,
+              { color: 'rgba(253,248,239,0.7)' },
+            ]}>
             {achievement.description}
           </Text>
         ) : null}
@@ -438,8 +408,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   heroTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 28,
+    fontSize: 34,
+    lineHeight: 38,
     textAlign: 'center',
     marginBottom: 14,
   },
@@ -521,7 +491,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaLabel: {
-    color: '#ffffff',
+    color: Palette.ink,
     fontFamily: FontFamily.semiBold,
     fontSize: 16,
   },
