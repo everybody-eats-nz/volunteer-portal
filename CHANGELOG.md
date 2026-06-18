@@ -1,3 +1,9 @@
+## [0.119.0] - 2026-06-18
+
+### Changes
+- feat(mobile): in-app registration with scroll-to-read agreements & Apple/Google sign-up ([#1000](https://github.com/everybody-eats-nz/volunteer-portal/pull/1000)) by @malinmalliyawadu
+
+
 ## [0.118.0] - 2026-06-18
 
 ### Changes
