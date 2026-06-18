@@ -5,6 +5,17 @@ const EXPO_RECEIPT_URL = "https://exp.host/--/api/v2/push/getReceipts";
 const MAX_CHUNK = 100; // Expo's per-request message limit
 
 /**
+ * Expo error codes we branch on. `DeviceNotRegistered` is the only one that
+ * means the token is permanently dead; the credential codes point at a
+ * server-side APNs/FCM misconfiguration and must NOT delete the token.
+ */
+const EXPO_ERROR = {
+  DEVICE_NOT_REGISTERED: "DeviceNotRegistered",
+  INVALID_CREDENTIALS: "InvalidCredentials",
+  MISMATCH_SENDER_ID: "MismatchSenderId",
+} as const;
+
+/**
  * Required when the Expo project has "Enhanced Security for Push Notifications"
  * enabled — without it Expo rejects every send with a top-level error. Optional
  * otherwise. Set EXPO_ACCESS_TOKEN in the server environment if pushes silently
@@ -195,11 +206,11 @@ async function dispatchMessages(messages: ExpoPushMessage[]): Promise<void> {
           // InvalidCredentials/MismatchSenderId are *server-side* push-credential
           // problems (APNs key / FCM sender) — deleting the token here would
           // wipe a perfectly valid device and mask the real misconfiguration.
-          if (code === "DeviceNotRegistered") {
+          if (code === EXPO_ERROR.DEVICE_NOT_REGISTERED) {
             invalidTokens.push(token);
           } else if (
-            code === "InvalidCredentials" ||
-            code === "MismatchSenderId"
+            code === EXPO_ERROR.INVALID_CREDENTIALS ||
+            code === EXPO_ERROR.MISMATCH_SENDER_ID
           ) {
             console.error(
               `[EXPO_PUSH] Push credentials misconfigured (${code}) — check the project's APNs key / FCM credentials. Token kept.`
@@ -284,9 +295,12 @@ async function checkReceiptsLater(
         console.warn(
           `[EXPO_PUSH] Delivery failed (${code ?? "unknown"}) for token ${token}: ${receipt.message}`
         );
-        if (code === "DeviceNotRegistered" && token) {
+        if (code === EXPO_ERROR.DEVICE_NOT_REGISTERED && token) {
           deadTokens.push(token);
-        } else if (code === "InvalidCredentials" || code === "MismatchSenderId") {
+        } else if (
+          code === EXPO_ERROR.INVALID_CREDENTIALS ||
+          code === EXPO_ERROR.MISMATCH_SENDER_ID
+        ) {
           console.error(
             `[EXPO_PUSH] Delivery rejected (${code}) — APNs/FCM push credentials are misconfigured for this project.`
           );
