@@ -74,8 +74,9 @@ export type ShiftTypeTheme = {
   colorDark: string;
   bgLight: string;
   bgDark: string;
-  /** Cover photo — a bundled require() asset (number) or a remote URL (string). */
-  heroImage?: number | string;
+  /** Cover photo — a bundled require() asset (number) or a remote URL (string).
+   *  Required: every theme (incl. the default fallback) provides a cover. */
+  heroImage: number | string;
 };
 
 /**
