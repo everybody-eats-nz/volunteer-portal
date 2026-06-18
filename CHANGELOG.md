@@ -1,3 +1,9 @@
+## [0.123.0] - 2026-06-18
+
+### Changes
+- feat: cover photos & themes for all shift types via keyword fallback ([#1008](https://github.com/everybody-eats-nz/volunteer-portal/pull/1008)) by @malinmalliyawadu
+
+
 ## [0.122.0] - 2026-06-18
 
 ### Changes
