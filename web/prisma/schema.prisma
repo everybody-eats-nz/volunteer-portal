@@ -36,6 +36,10 @@ model User {
   emailNewsletterSubscription  Boolean                @default(true)
   newsletterLists              String[]               @default([])
   notificationPreference       NotificationPreference @default(EMAIL)
+  // Admins only: opt-in to a mobile push when a volunteer messages the team.
+  // Off by default so existing admins aren't surprised; toggled on the mobile
+  // admin messages screen.
+  adminMessageNotifications    Boolean                @default(false)
   volunteerAgreementAccepted   Boolean                @default(false)
   healthSafetyPolicyAccepted   Boolean                @default(false)
   profileCompleted             Boolean                @default(false)
@@ -482,6 +486,7 @@ enum NotificationType {
   FEED_ITEM_LIKED // Someone liked your feed item (achievement, friend signup, announcement)
   FEED_ITEM_COMMENTED // Someone commented on your feed item
   FEED_ITEM_COMMENT_REPLY // Someone commented on a feed item you also commented on (thread participant)
+  SHIFT_SIGNUP_REQUEST // Volunteer signed up and needs approval - notify managers for that location
 }
 
 model RestaurantManager {

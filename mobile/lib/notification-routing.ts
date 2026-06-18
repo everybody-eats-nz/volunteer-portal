@@ -60,6 +60,23 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
+  // Admin: a pending-signup notification links to /admin/shifts/:id on web.
+  // Mobile has no per-shift admin page, so route to the approvals queue where
+  // the signup can actually be actioned.
+  if (
+    pathname === "/admin/approvals" ||
+    pathname.startsWith("/admin/shifts/")
+  ) {
+    router.push("/admin/approvals");
+    return;
+  }
+
+  // Admin: a new-message push links to the admin inbox.
+  if (pathname === "/admin/messages" || pathname.startsWith("/admin/messages")) {
+    router.push("/admin/messages");
+    return;
+  }
+
   // /shifts or /shifts/mine -> shifts tab
   if (pathname === "/shifts" || pathname.startsWith("/shifts/")) {
     router.push("/(tabs)/shifts");
