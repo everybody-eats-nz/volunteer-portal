@@ -20,6 +20,7 @@ import { router } from 'expo-router';
 import { Colors, Brand, FontFamily, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, ApiError } from '@/lib/api';
+import { getShiftDescription } from '@/lib/shift-description';
 
 type ConcurrentShift = {
   id: string;
@@ -67,6 +68,7 @@ type ShiftSignupSheetProps = {
     location: string;
     capacity: number;
     signedUp: number;
+    notes?: string | null;
   };
   isWaitlist: boolean;
   formatDate: (date: Date, fmt: string) => string;
@@ -255,9 +257,9 @@ export function ShiftSignupSheet({
           {/* Shift details card */}
           <View style={[ss.card, { backgroundColor: colors.surfaceSoft }]}>
             <Text style={[ss.cardTitle, { color: colors.text }]}>{shift.shiftType.name}</Text>
-            {shift.shiftType.description ? (
+            {getShiftDescription(shift.notes, shift.shiftType.description) ? (
               <Text style={[ss.cardDescription, { color: colors.textSecondary }]}>
-                {shift.shiftType.description}
+                {getShiftDescription(shift.notes, shift.shiftType.description)}
               </Text>
             ) : null}
             <View style={ss.cardDetails}>

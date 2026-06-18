@@ -18,6 +18,7 @@ import { getAuthInfo } from "@/lib/auth-utils";
 import { LocationAddress } from "@/components/location-address";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
+import { getShiftDescription } from "@/lib/shift-description";
 import {
   captureFunnelEvent,
   FunnelEvent,
@@ -438,16 +439,18 @@ export default async function ShiftsCalendarPage({
   }
 
   // Generate Event schema for up to 20 shifts
-  const shiftSchemas = shiftSummaries.slice(0, 20).map((shift) =>
+  const shiftSchemas = shifts.slice(0, 20).map((shift) =>
     buildShiftEventSchema({
       id: shift.id,
       name: shift.shiftType.name,
-      description: shift.shiftType.description,
+      description: getShiftDescription(shift.notes, shift.shiftType.description),
       startDate: shift.start,
       endDate: shift.end,
       location: shift.location,
       capacity: shift.capacity,
-      spotsAvailable: shift.capacity - shift.confirmedCount,
+      spotsAvailable:
+        shift.capacity -
+        (shift._count.signups + shift._count.placeholders),
     })
   );
 

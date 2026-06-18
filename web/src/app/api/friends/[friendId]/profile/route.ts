@@ -178,6 +178,7 @@ export async function GET(
       start: signup.shift.start,
       end: signup.shift.end,
       location: signup.shift.location,
+      notes: signup.shift.notes,
       shiftType: signup.shift.shiftType,
       status: signup.status,
     }));
