@@ -58,6 +58,19 @@ export async function GET(
     return NextResponse.json({ error: "Shift not found" }, { status: 404 });
   }
 
+  // Account-level signup eligibility (mirrors the gates in the signup POST
+  // route) so the app can disable the CTA up front instead of only surfacing
+  // a server error on submit.
+  const userRecord = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      emailVerified: true,
+      profileCompleted: true,
+      requiresParentalConsent: true,
+      parentalConsentReceived: true,
+    },
+  });
+
   // Get the current user's friendship data to determine who is a friend
   const friendships = await prisma.friendship.findMany({
     where: {
@@ -117,5 +130,13 @@ export async function GET(
     status: userStatus,
     notes: shift.notes,
     signups,
+    eligibility: {
+      emailVerified: Boolean(userRecord?.emailVerified),
+      profileComplete: Boolean(userRecord?.profileCompleted),
+      needsParentalConsent: Boolean(
+        userRecord?.requiresParentalConsent &&
+          !userRecord?.parentalConsentReceived
+      ),
+    },
   });
 }
