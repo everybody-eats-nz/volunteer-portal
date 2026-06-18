@@ -11,7 +11,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-const deleteMany = prisma.pushToken.deleteMany as ReturnType<typeof vi.fn>;
+const deleteMany = vi.mocked(prisma.pushToken.deleteMany);
 
 const TOKEN = "ExponentPushToken[abc123]";
 
@@ -32,8 +32,11 @@ describe("isExpoPushToken", () => {
   it("accepts Expo token formats and rejects others", () => {
     expect(isExpoPushToken("ExponentPushToken[xyz]")).toBe(true);
     expect(isExpoPushToken("ExpoPushToken[xyz]")).toBe(true);
+    expect(isExpoPushToken("ExponentPushToken[]")).toBe(true);
     expect(isExpoPushToken("not-a-token")).toBe(false);
     expect(isExpoPushToken("")).toBe(false);
+    // Defensive: guards against non-string values at runtime despite the type.
+    expect(isExpoPushToken(null as unknown as string)).toBe(false);
   });
 });
 
@@ -58,6 +61,21 @@ describe("dispatchMessages (via sendPushToTokens)", () => {
     fetchMock.mockResolvedValueOnce(
       ticketResponse([
         { status: "error", message: "creds", details: { error: "InvalidCredentials" } },
+      ])
+    );
+
+    await sendPushToTokens([TOKEN], { title: "t", body: "b" });
+
+    expect(deleteMany).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("Push credentials misconfigured")
+    );
+  });
+
+  it("does NOT delete the token on MismatchSenderId (server-side FCM error)", async () => {
+    fetchMock.mockResolvedValueOnce(
+      ticketResponse([
+        { status: "error", message: "sender", details: { error: "MismatchSenderId" } },
       ])
     );
 
