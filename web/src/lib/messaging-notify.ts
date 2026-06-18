@@ -112,6 +112,9 @@ export async function broadcastNewMessageToAdmins(
       },
       select: { id: true },
     });
+    console.log(
+      `[messaging-notify] volunteer ${args.volunteer.id} messaged team; ${optedInAdmins.length} opted-in admin(s) to push`
+    );
     if (optedInAdmins.length > 0) {
       // No badge: admins track message unread via the thread's teamLastReadAt
       // column (SSE-driven), not Notification rows, so there's no per-user count
