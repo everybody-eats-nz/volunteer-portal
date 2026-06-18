@@ -1,3 +1,4 @@
+import { Alert } from "react-native";
 import {
   useMutation,
   useQuery,
@@ -119,9 +120,14 @@ export function useAdminMessageNotifyPref() {
       return { previous };
     },
     onError: (_err, _enabled, context) => {
+      // Roll the optimistic toggle back and let the admin know it didn't stick.
       queryClient.setQueryData(
         queryKeys.admin.messageNotifyPref(),
         context?.previous ?? false
+      );
+      Alert.alert(
+        "Couldn't update notifications",
+        "Please check your connection and try again."
       );
     },
     onSuccess: (enabled) => {

@@ -113,6 +113,9 @@ export async function broadcastNewMessageToAdmins(
       select: { id: true },
     });
     if (optedInAdmins.length > 0) {
+      // No badge: admins track message unread via the thread's teamLastReadAt
+      // column (SSE-driven), not Notification rows, so there's no per-user count
+      // to surface — and we don't want to clobber their real notification badge.
       await sendPushToUsers(
         optedInAdmins.map((a) => a.id),
         {
