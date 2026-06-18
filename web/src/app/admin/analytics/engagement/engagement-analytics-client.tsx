@@ -594,7 +594,7 @@ export function EngagementAnalyticsClient({
                           colors: data.breakdown.map((b) => b.color),
                           legend: {
                             position: "bottom" as const,
-                            fontFamily: "var(--font-libre-franklin), sans-serif",
+                            fontFamily: "var(--font-jakarta), sans-serif",
                             fontSize: "12px",
                             markers: { size: 6, offsetX: -2 },
                             itemMargin: { horizontal: 8, vertical: 4 },
@@ -607,7 +607,7 @@ export function EngagementAnalyticsClient({
                             style: {
                               fontSize: "11px",
                               fontFamily:
-                                "var(--font-libre-franklin), sans-serif",
+                                "var(--font-jakarta), sans-serif",
                               fontWeight: 600,
                             },
                             dropShadow: { enabled: false },
@@ -621,14 +621,14 @@ export function EngagementAnalyticsClient({
                                   name: {
                                     fontSize: "13px",
                                     fontFamily:
-                                      "var(--font-libre-franklin), sans-serif",
+                                      "var(--font-jakarta), sans-serif",
                                     fontWeight: 500,
                                     offsetY: -4,
                                   },
                                   value: {
                                     fontSize: "22px",
                                     fontFamily:
-                                      "var(--font-libre-franklin), sans-serif",
+                                      "var(--font-jakarta), sans-serif",
                                     fontWeight: 700,
                                     offsetY: 4,
                                   },
@@ -636,7 +636,7 @@ export function EngagementAnalyticsClient({
                                     show: true,
                                     label: "Total",
                                     fontFamily:
-                                      "var(--font-libre-franklin), sans-serif",
+                                      "var(--font-jakarta), sans-serif",
                                     fontSize: "13px",
                                     fontWeight: 500,
                                   },
@@ -714,7 +714,7 @@ export function EngagementAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -722,7 +722,7 @@ export function EngagementAnalyticsClient({
                           text: "Volunteers",
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                             fontWeight: 400,
                           },
@@ -732,7 +732,7 @@ export function EngagementAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "12px",
                           },
                         },
@@ -745,7 +745,7 @@ export function EngagementAnalyticsClient({
                         },
                         style: {
                           fontFamily:
-                            "var(--font-libre-franklin), sans-serif",
+                            "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                           fontWeight: 600,
                         },
@@ -788,7 +788,7 @@ export function EngagementAnalyticsClient({
                         position: "top" as const,
                         fontSize: "12px",
                         fontFamily:
-                          "var(--font-libre-franklin), sans-serif",
+                          "var(--font-jakarta), sans-serif",
                         markers: { size: 6, offsetX: -2 },
                       },
                       annotations: {
@@ -810,7 +810,7 @@ export function EngagementAnalyticsClient({
                               style: {
                                 fontSize: "9px",
                                 fontFamily:
-                                  "var(--font-libre-franklin), sans-serif",
+                                  "var(--font-jakarta), sans-serif",
                                 color: "#64748b",
                                 background: "transparent",
                                 padding: { left: 4, right: 4, top: 1, bottom: 1 },
@@ -916,7 +916,7 @@ export function EngagementAnalyticsClient({
                           hideOverlappingLabels: true,
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -927,7 +927,7 @@ export function EngagementAnalyticsClient({
                         labels: {
                           style: {
                             fontFamily:
-                              "var(--font-libre-franklin), sans-serif",
+                              "var(--font-jakarta), sans-serif",
                             fontSize: "11px",
                           },
                         },
@@ -974,7 +974,7 @@ export function EngagementAnalyticsClient({
                         position: "top" as const,
                         fontSize: "12px",
                         fontFamily:
-                          "var(--font-libre-franklin), sans-serif",
+                          "var(--font-jakarta), sans-serif",
                         markers: { size: 6, offsetX: -2 },
                       },
                       theme: { mode: chartThemeMode },
@@ -1125,7 +1125,7 @@ export function EngagementAnalyticsClient({
                       },
                       style: {
                         fontSize: "11px",
-                        fontFamily: "var(--font-libre-franklin), sans-serif",
+                        fontFamily: "var(--font-jakarta), sans-serif",
                         fontWeight: 500,
                         colors: [resolvedTheme === "dark" ? "#e2e8f0" : "#1e293b"],
                       },
@@ -1134,7 +1134,7 @@ export function EngagementAnalyticsClient({
                       position: "top" as const,
                       labels: {
                         style: {
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                         },
                       },
@@ -1145,7 +1145,7 @@ export function EngagementAnalyticsClient({
                     yaxis: {
                       labels: {
                         style: {
-                          fontFamily: "var(--font-libre-franklin), sans-serif",
+                          fontFamily: "var(--font-jakarta), sans-serif",
                           fontSize: "11px",
                         },
                       },

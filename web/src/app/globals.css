@@ -41,20 +41,21 @@
 }
 
 :root {
-  /* Everybody Eats brand-inspired palette */
-  --ee-bg: #fffdf7; /* warm off-white */
-  --ee-fg: #101418; /* near-black */
-  --ee-primary: #0e3a23; /* brand green — used for filled/gradient surfaces */
-  --ee-primary-700: #256628; /* darker hover */
-  --ee-primary-text: #0e3a23; /* brand green — used for text/icons; brightens in dark mode */
-  --ee-primary-light: #e8f5e8; /* light green tint */
-  --ee-accent: #f8fb69; /* brand accent */
-  --ee-accent-subtle: #fcfd94; /* lighter accent */
+  /* Everybody Eats brand palette — shared with marketing-cms
+     (new.everybodyeats.nz): cream paper surfaces, forest green, sun accent. */
+  --ee-bg: #fdf8ef; /* cream-50 — paper page background */
+  --ee-fg: #14181c; /* near-black */
+  --ee-primary: #1d5337; /* forest-500 — actions and filled surfaces */
+  --ee-primary-700: #163f2a; /* forest-600 — darker hover */
+  --ee-primary-text: #1d5337; /* forest-500 — text/icons; brightens in dark mode */
+  --ee-primary-light: #eef4ef; /* forest-50 tint */
+  --ee-accent: #f8fb69; /* sun-200 brand accent */
+  --ee-accent-subtle: #fbfcb8; /* sun-100 */
   --ee-muted: #fef3c7; /* light yellow for better readability and brand consistency */
-  --ee-border: #e5e7eb; /* gray-200 */
+  --ee-border: rgb(29 83 55 / 0.15); /* forest hairline */
   --ee-card-bg: #ffffff; /* pure white for cards */
   --ee-gradient-start: #1d5337;
-  --ee-gradient-end: #256628;
+  --ee-gradient-end: #2e6438;
   --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.147 0.004 49.25);
@@ -94,13 +95,13 @@
   --ee-bg: #0f1114 !important;
   --ee-fg: #e5f0e8 !important;
   --ee-primary: #1d5337;
-  --ee-primary-700: #3d8b40;
+  --ee-primary-700: #2e6438; /* forest-400 hover on dark */
   --ee-primary-text: #86d99b; /* lighter green so accents stay readable on dark bg */
   --ee-primary-light: #1a2f1a;
   --ee-accent: #3a3b2a; /* Much darker olive for dark mode */
   --ee-accent-subtle: #2a2b20; /* Very subtle for dark mode backgrounds */
   --ee-muted: #1a1d23; /* Slightly lighter for better layering */
-  --ee-border: #1f2937;
+  --ee-border: rgb(253 248 239 / 0.14); /* cream hairline */
   --ee-card-bg: #16181d; /* Slightly adjusted for better contrast */
 
   /* shadcn/ui dark mode variables */
@@ -148,7 +149,7 @@
   --color-muted: var(--ee-muted);
   --color-border: var(--ee-border);
   --color-card-bg: var(--ee-card-bg);
-  --font-sans: var(--font-libre-franklin);
+  --font-sans: var(--font-jakarta);
   --font-accent: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -181,13 +182,39 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Marketing-site brand palette — mirrors marketing-cms tailwind.config.ts
+   (new.everybodyeats.nz). Used by the public landing page so it reads as
+   one brand with the marketing site. */
+@theme {
+  --color-cream-50: #fdf8ef;
+  --color-cream-100: #faf2e4;
+  --color-cream-200: #f5e9d2;
+  --color-forest-100: #d4e3d6;
+  --color-forest-200: #9bbda0;
+  --color-forest-300: #5a8b62;
+  --color-forest-400: #2e6438;
+  --color-forest-500: #1d5337;
+  --color-forest-600: #163f2a;
+  --color-forest-700: #0e2a1c;
+  --color-forest-800: #091a11;
+  --color-sun-100: #fbfcb8;
+  --color-sun-200: #f8fb69;
+  --color-sun-300: #edf03f;
+}
+
 html {
-  background-color: #0e3a23;
+  background-color: #fdf8ef;
+}
+html.dark {
+  background-color: #0f1114;
 }
 
 body {
   background: var(--ee-bg);
   color: var(--ee-fg);
+  /* Plus Jakarta Sans body — matches the marketing site. Set explicitly:
+     the `--font-sans` mapping in `@theme inline` doesn't reach preflight. */
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
@@ -226,31 +253,30 @@ h6 em,
 }
 
 .font-sans {
-  font-family: var(--font-libre-franklin);
+  font-family: var(--font-jakarta);
 }
 
-/* Simple utility for branded buttons */
+/* Branded buttons — pill-shaped with a subtle hover lift, matching the
+   marketing site's btn-primary / btn-ghost system. */
 .btn {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 font-medium transition-all duration-200;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition-all duration-200;
 }
 .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+.btn:active {
+  transform: translateY(0);
 }
 .btn-sm {
-  @apply px-3 py-2 text-sm rounded-md;
+  @apply px-4 py-2 text-sm;
 }
 .btn-primary {
-  background: linear-gradient(
-    135deg,
-    var(--ee-gradient-start),
-    var(--ee-gradient-end)
-  );
-  color: white;
+  background: var(--ee-primary);
+  color: #fdf8ef;
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--ee-primary-700), var(--ee-primary));
+  background: var(--ee-primary-700);
 }
 .btn-secondary {
   @apply border;
@@ -263,24 +289,29 @@ h6 em,
   border-color: var(--ee-primary);
 }
 .btn-outline {
-  @apply border-2;
-  border-color: var(--ee-primary);
-  color: var(--ee-primary);
+  @apply border;
+  border-color: rgb(29 83 55 / 0.3);
+  color: var(--ee-primary-text);
   background: transparent;
 }
 .btn-outline:hover {
   background: var(--ee-primary);
-  color: white;
+  color: #fdf8ef;
+  border-color: var(--ee-primary);
 }
 
 /* Dark mode specific styling for better contrast */
+.dark .btn-primary {
+  color: #fdf8ef;
+}
 .dark .btn-outline {
-  border-color: #4ade80; /* light green for better contrast */
-  color: #4ade80;
+  border-color: rgb(253 248 239 / 0.3);
+  color: #e5f0e8;
 }
 .dark .btn-outline:hover {
-  background: #4ade80;
-  color: #0f1114; /* dark background color for contrast */
+  background: #fdf8ef;
+  color: #0e2a1c;
+  border-color: #fdf8ef;
 }
 
 .header-link {
@@ -369,153 +400,84 @@ h6 em,
 }
 
 /* ============================================
-   Civic dashboard homepage utilities
+   Marketing-site landing utilities
+   Shared brand system with marketing-cms (new.everybodyeats.nz) —
+   see that repo's STYLEGUIDE.md for the canonical reference.
    ============================================ */
 
-/* Tabular figures for stat numbers — prevents layout jitter on counter updates */
-.tnum {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
-}
-
-/* Mono caps label — terminal-ish data labels */
-.mono-label {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono",
-    Consolas, monospace;
+/* Eyebrow / kicker text — pair with a colour utility per surface */
+.eyebrow {
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.6875rem; /* 11px */
+  letter-spacing: 0.18em;
   font-weight: 500;
 }
 
-/* Dotted hairline divider */
-.divider-dotted {
-  background-image: radial-gradient(
-    currentColor 1px,
-    transparent 1px
-  );
-  background-size: 6px 1px;
-  background-repeat: repeat-x;
-  background-position: 0 50%;
-  height: 1px;
-  width: 100%;
-  opacity: 0.35;
+/* Display heading — Fraunces at the marketing site's light weight.
+   Plain (un-layered) CSS so it outranks the global `h1–h6 { 600 }` rule,
+   which Tailwind's layered font-weight utilities cannot override. */
+.display {
+  font-family: var(--font-fraunces);
+  letter-spacing: -0.025em;
+  font-weight: 300;
+}
+.display-medium {
+  font-weight: 500;
 }
 
-/* Subtle paper grid background — used behind the dashboard hero */
-.paper-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--ee-fg) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--ee-fg) 4%, transparent) 1px, transparent 1px);
-  background-size: 32px 32px;
-  background-position: -1px -1px;
-}
-.dark .paper-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--ee-fg) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--ee-fg) 6%, transparent) 1px, transparent 1px);
-}
-
-/* Sticker-style chartreuse highlight applied behind inline text */
-.sticker {
+/* Subtle paper grain — applied to backgrounds */
+.grain {
   position: relative;
-  display: inline-block;
   isolation: isolate;
 }
-.sticker::before {
-  content: "";
-  position: absolute;
-  inset: 0.05em -0.18em 0.08em -0.18em;
-  background: var(--ee-accent);
-  z-index: -1;
-  transform: rotate(-1.2deg) skew(-3deg);
-  border-radius: 4px;
-}
-.dark .sticker::before {
-  background: #c8d33a;
-}
-
-/* Live pulse dot */
-.live-dot {
-  position: relative;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #16a34a;
-  box-shadow: 0 0 0 0 rgb(22 163 74 / 0.6);
-}
-.live-dot::after {
+.grain::after {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: inherit;
-  animation: live-pulse 2s ease-out infinite;
-  opacity: 0.6;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.6"/></svg>');
 }
-@keyframes live-pulse {
-  0% { transform: scale(1); opacity: 0.6; }
-  80%, 100% { transform: scale(2.4); opacity: 0; }
-}
-.dark .live-dot { background: #4ade80; }
-
-/* Dashboard panel — bordered, paper-backed surface used across hero/stats */
-.dash-panel {
-  background: var(--ee-card-bg);
-  border: 1.5px solid var(--ee-fg);
-  border-radius: 14px;
-  position: relative;
-}
-.dark .dash-panel {
-  border-color: color-mix(in srgb, var(--ee-fg) 35%, transparent);
+/* Multiply vanishes on dark surfaces — switch to screen so grain stays visible. */
+.dark .grain::after {
+  mix-blend-mode: screen;
+  opacity: 0.04;
 }
 
-/* Capacity meter — chunky terminal-style bar */
-.cap-bar {
-  height: 8px;
-  background: color-mix(in srgb, var(--ee-fg) 8%, transparent);
-  border-radius: 999px;
-  overflow: hidden;
-  position: relative;
+/* Hero carousel active-dot progress fill — animates over the slide interval.
+   Keyed on the active frame in the component so it restarts each advance. */
+@keyframes dot-progress {
+  from { width: 0%; }
+  to { width: 100%; }
 }
-.cap-bar > span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--ee-primary), var(--ee-primary-700));
-  border-radius: 999px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.cap-bar.urgent > span {
-  background: linear-gradient(90deg, #d97706, #f59e0b);
-}
-
-/* Stat tile number — large display figure */
-.stat-figure {
-  font-family: var(--font-fraunces);
-  font-variation-settings: "WONK" 0, "SOFT" 50;
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 0.95;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Marquee for activity ticker (CSS-only) */
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.ticker-track {
-  display: inline-flex;
-  gap: 3rem;
-  padding-right: 3rem;
-  animation: ticker-scroll 40s linear infinite;
-  will-change: transform;
-}
-.ticker-mask:hover .ticker-track {
-  animation-play-state: paused;
+.dot-progress {
+  animation: dot-progress linear forwards;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ticker-track { animation: none; }
+  .dot-progress { animation: none; width: 100%; }
+}
+
+/* Marquee track (CSS-only, pauses on hover) */
+.marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  white-space: nowrap;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+  will-change: transform;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
 }
 
 @layer base {

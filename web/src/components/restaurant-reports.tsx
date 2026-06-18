@@ -33,7 +33,7 @@ import { StackModeToggle, type StackMode } from "@/components/stack-mode-toggle"
 import type { RestaurantReports } from "@/lib/restaurant-reports";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
-const FONT = "var(--font-libre-franklin), sans-serif";
+const FONT = "var(--font-jakarta), sans-serif";
 
 const NZD0 = new Intl.NumberFormat("en-NZ", { style: "currency", currency: "NZD", maximumFractionDigits: 0 });
 const NZD2 = new Intl.NumberFormat("en-NZ", { style: "currency", currency: "NZD", minimumFractionDigits: 2, maximumFractionDigits: 2 });

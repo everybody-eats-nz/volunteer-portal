@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Libre_Franklin } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { Suspense } from "react";
 import "./globals.css";
@@ -12,8 +12,10 @@ import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { getBaseUrl } from "@/lib/utils";
 import { SEO_CONFIG } from "@/lib/seo";
 
-const libreFranklin = Libre_Franklin({
-  variable: "--font-libre-franklin",
+// Body font — Plus Jakarta Sans, matching the marketing site
+// (new.everybodyeats.nz).
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
 });
 
@@ -100,7 +102,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#0e3a23" />
+        <meta name="theme-color" content="#fdf8ef" />
       </head>
       {/*
         suppressHydrationWarning: the e2e test harness adds an `e2e-testing`
@@ -111,7 +113,7 @@ export default function RootLayout({
       */}
       <body
         suppressHydrationWarning
-        className={`${libreFranklin.variable} ${fraunces.variable} antialiased`}
+        className={`${jakarta.variable} ${fraunces.variable} antialiased`}
       >
         <Providers>
           <ImpersonationBanner />

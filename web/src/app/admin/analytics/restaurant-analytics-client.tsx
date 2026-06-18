@@ -66,7 +66,7 @@ import type { RestaurantReports as RestaurantReportsData } from "@/lib/restauran
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-const FONT = "var(--font-libre-franklin), sans-serif";
+const FONT = "var(--font-jakarta), sans-serif";
 
 interface Props {
   data: RestaurantAnalyticsData;

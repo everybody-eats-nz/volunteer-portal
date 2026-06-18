@@ -25,7 +25,7 @@ test.describe("Home Page", () => {
       const heroTitle = page.getByTestId("hero-title");
       await expect(heroTitle).toBeVisible();
       await expect(heroTitle).toContainText(
-        "Making a difference one plate at a time"
+        "Make a difference, one shift at a time"
       );
 
       // Check hero description
@@ -87,6 +87,44 @@ test.describe("Home Page", () => {
       const meaningfulWork = page.getByTestId("feature-meaningful-work");
       await expect(meaningfulWork).toBeVisible();
       await expect(meaningfulWork).toContainText("Meaningful Work");
+    });
+
+    test("should display impact stats section", async ({ page }) => {
+      await page.goto("/");
+      await page.waitForLoadState("load");
+
+      const statsSection = page.getByTestId("stats-section");
+      await expect(statsSection).toBeVisible();
+      await expect(statsSection).toContainText("Volunteers strong");
+      await expect(statsSection).toContainText("Meals served");
+      await expect(statsSection).toContainText("Hours of mahi");
+    });
+
+    test("should display mobile app section with store links", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await page.waitForLoadState("load");
+
+      const appSection = page.getByTestId("app-section");
+      await expect(appSection).toBeVisible();
+
+      const appTitle = page.getByTestId("app-section-title");
+      await expect(appTitle).toContainText("Take the mahi with you");
+
+      const appStoreBadge = page.getByTestId("app-store-badge");
+      await expect(appStoreBadge).toBeVisible();
+      await expect(appStoreBadge).toHaveAttribute(
+        "href",
+        "https://apps.apple.com/nz/app/everybody-eats-nz/id6760931588"
+      );
+
+      const googlePlayBadge = page.getByTestId("google-play-badge");
+      await expect(googlePlayBadge).toBeVisible();
+      await expect(googlePlayBadge).toHaveAttribute(
+        "href",
+        "https://play.google.com/store/apps/details?id=com.everybodyeats.app"
+      );
     });
 
     test("should display final call-to-action section for unauthenticated users", async ({

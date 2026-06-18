@@ -17,11 +17,7 @@ export function getPostHogServer(): PostHog {
 /** Feature flag names — keep in one place per PostHog integration rules */
 export enum FeatureFlag {
   CHAT_GUIDES = "chat-guides",
-  HOMEPAGE_REDESIGN = "homepage-redesign",
 }
-
-/** Variant names for the homepage A/B test. Keep in sync with PostHog config. */
-export type HomepageVariant = "control" | "dashboard";
 
 /**
  * Check a boolean feature flag for a given user.
