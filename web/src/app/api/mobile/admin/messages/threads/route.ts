@@ -22,7 +22,9 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const status = (url.searchParams.get("status") ?? "OPEN").toUpperCase();
   const unreadOnly = url.searchParams.get("unread") === "true";
-  const search = url.searchParams.get("q") ?? undefined;
+  // Prisma `contains` is parameterised (no injection risk), but cap the length
+  // so a pathologically long term can't turn into an expensive scan.
+  const search = (url.searchParams.get("q") ?? "").trim().slice(0, 200) || undefined;
   const location = url.searchParams.get("location") ?? undefined;
   const cursor = url.searchParams.get("cursor") ?? undefined;
   const limit = Number(url.searchParams.get("limit") ?? 30);

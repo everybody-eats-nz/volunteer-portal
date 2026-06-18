@@ -31,7 +31,7 @@ import {
 } from "@/lib/admin";
 import type { TeamMessage } from "@/lib/messages";
 
-const POLL_MS = 15000;
+const POLL_MS = 15_000;
 
 export default function AdminConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -75,14 +75,22 @@ export default function AdminConversationScreen() {
   );
 
   useEffect(() => {
+    // `active` guards against the in-flight poll re-scheduling itself after
+    // the component unmounts (clearTimeout alone can't catch a load() that is
+    // already running when cleanup fires).
+    let active = true;
     void load();
     const tick = () => {
       pollRef.current = setTimeout(() => {
-        void load(false).finally(tick);
+        if (!active) return;
+        void load(false).finally(() => {
+          if (active) tick();
+        });
       }, POLL_MS);
     };
     tick();
     return () => {
+      active = false;
       if (pollRef.current) clearTimeout(pollRef.current);
     };
   }, [load]);
