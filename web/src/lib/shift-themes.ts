@@ -271,6 +271,11 @@ const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
   },
 ];
 
+/**
+ * Resolve the theme for a shift type. Resolution order: exact name match →
+ * keyword match (names normalised so hyphen/slash variants still match) →
+ * generic default. Always returns a complete theme; never null.
+ */
 export function getShiftTheme(shiftTypeName: string): ShiftTheme {
   // 1. Exact, hand-curated match wins.
   const exact = SHIFT_THEMES[shiftTypeName as keyof typeof SHIFT_THEMES];

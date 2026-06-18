@@ -7,6 +7,12 @@ describe("getShiftTheme", () => {
   // production shift type gets a role-appropriate theme, none fall to default.
   // The same names + emoji are expected to resolve identically in the mobile
   // app (mobile/lib/dummy-data.ts) — keep both in sync.
+  //
+  // NOTE: if these tests fail after a production change, it most likely means a
+  // shift-type name was renamed (or a new type was added) in the database.
+  // Update this array to match the new reality and confirm the keyword rules in
+  // shift-themes.ts still resolve it correctly — that's expected maintenance,
+  // not a regression.
   const PRODUCTION_SHIFT_TYPES: [name: string, emoji: string][] = [
     ["Dishwasher", "🧽"], // exact
     ["Event Front-of-House", "✨"], // foh keyword (hyphen normalised)
