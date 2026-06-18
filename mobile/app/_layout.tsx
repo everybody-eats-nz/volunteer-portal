@@ -10,12 +10,15 @@ import React, { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import {
-  LibreFranklin_400Regular,
-  LibreFranklin_500Medium,
-  LibreFranklin_600SemiBold,
-  LibreFranklin_700Bold,
-} from '@expo-google-fonts/libre-franklin';
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import {
+  Fraunces_300Light,
+  Fraunces_300Light_Italic,
+  Fraunces_500Medium,
   Fraunces_600SemiBold,
   Fraunces_700Bold,
 } from '@expo-google-fonts/fraunces';
@@ -26,7 +29,7 @@ import {
   getUnreadCount,
   subscribeToNotificationsUnread,
 } from '@/hooks/use-notifications';
-import { Brand } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { AchievementCelebration } from '@/components/achievement-celebration';
 import { AuthGate } from '@/components/auth-gate';
 import { OnboardingFlow } from '@/components/onboarding-flow';
@@ -43,10 +46,13 @@ export default function RootLayout() {
   useInitAchievementCelebration();
 
   const [fontsLoaded] = useFonts({
-    LibreFranklin_400Regular,
-    LibreFranklin_500Medium,
-    LibreFranklin_600SemiBold,
-    LibreFranklin_700Bold,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    Fraunces_300Light,
+    Fraunces_300Light_Italic,
+    Fraunces_500Medium,
     Fraunces_600SemiBold,
     Fraunces_700Bold,
   });
@@ -118,9 +124,11 @@ export default function RootLayout() {
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
-      background: Brand.warmWhite,
-      card: '#ffffff',
-      primary: Brand.green,
+      background: Colors.light.background,
+      card: Colors.light.card,
+      text: Colors.light.text,
+      border: Colors.light.border,
+      primary: Colors.light.primary,
     },
   }), []);
 
@@ -128,9 +136,11 @@ export default function RootLayout() {
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
-      background: '#0f1114',
-      card: '#1a1d21',
-      primary: Brand.greenLight,
+      background: Colors.dark.background,
+      card: Colors.dark.card,
+      text: Colors.dark.text,
+      border: Colors.dark.border,
+      primary: Colors.dark.tint,
     },
   }), []);
 

@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { unarchiveUser } from "@/lib/archive-service";
 import { ArchiveTriggerSource } from "@/generated/client";
+import { verifyPasskeyAuthentication } from "@/lib/passkey-auth";
 
 type AppRole = "ADMIN" | "VOLUNTEER";
 
@@ -168,25 +169,17 @@ export const authOptions: NextAuthOptions = {
         try {
           const response = JSON.parse(credentials.authenticationResponse);
 
-          // Call our verification endpoint
-          const verifyResult = await fetch(
-            `${process.env.NEXTAUTH_URL}/api/passkey/authenticate/verify-authentication`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ authenticationResponse: response }),
-            }
-          );
+          // Verify in-process. Do NOT fetch our own public URL here — in
+          // production the server can't reliably route back to its own
+          // hostname, which times out the whole passkey login.
+          const result = await verifyPasskeyAuthentication(response);
 
-          if (!verifyResult.ok) {
-            console.error("Passkey verification failed:", await verifyResult.text());
+          if (!result.verified) {
+            console.error("Passkey verification failed:", result.error);
             return null;
           }
 
-          const { verified, user } = await verifyResult.json();
-
-          if (!verified || !user) return null;
-
+          const { user } = result;
           return {
             id: user.id,
             email: user.email,

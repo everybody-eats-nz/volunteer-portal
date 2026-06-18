@@ -21,7 +21,7 @@ import {
 } from "react-native";
 
 import { formatNZT } from "@/lib/dates";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 
 type ShiftMonthCalendarProps = {
   selectedDate: Date;
@@ -114,8 +114,8 @@ export function ShiftMonthCalendar({
             styles.monthNavButton,
             {
               backgroundColor: isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(14, 58, 35, 0.06)",
+                ? "rgba(253, 248, 239, 0.06)"
+                : "rgba(29, 83, 55, 0.06)",
               opacity: pressed ? 0.6 : 1,
             },
           ]}
@@ -136,8 +136,8 @@ export function ShiftMonthCalendar({
             styles.monthNavButton,
             {
               backgroundColor: isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(14, 58, 35, 0.06)",
+                ? "rgba(253, 248, 239, 0.06)"
+                : "rgba(29, 83, 55, 0.06)",
               opacity: pressed ? 0.6 : 1,
             },
           ]}
@@ -205,9 +205,11 @@ export function ShiftMonthCalendar({
               styles.legendSquare,
               {
                 backgroundColor: isDark
-                  ? "rgba(134, 239, 172, 0.18)"
+                  ? "rgba(155, 189, 160, 0.20)"
                   : Brand.greenLight,
-                borderColor: isDark ? "rgba(134, 239, 172, 0.4)" : "#b8dbb8",
+                borderColor: isDark
+                  ? "rgba(155, 189, 160, 0.45)"
+                  : Palette.forest200,
               },
             ]}
           />
@@ -221,8 +223,8 @@ export function ShiftMonthCalendar({
               styles.legendDot,
               {
                 backgroundColor: isDark
-                  ? "rgba(134, 239, 172, 0.55)"
-                  : "#94a3b8",
+                  ? "rgba(155, 189, 160, 0.6)"
+                  : Palette.forest200,
               },
             ]}
           />
@@ -231,7 +233,7 @@ export function ShiftMonthCalendar({
           </Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: "#f5c518" }]} />
+          <View style={[styles.legendDot, { backgroundColor: Palette.sun300 }]} />
           <Text style={[styles.legendText, { color: colors.textSecondary }]}>
             Friends going
           </Text>
@@ -271,43 +273,46 @@ function DayCell({
   const colors = Colors[isDark ? "dark" : "light"];
   const dayNumber = formatNZT(day, "d");
 
-  const pastDotColor = isDark ? "rgba(134, 239, 172, 0.55)" : "#94a3b8";
-  const friendColor = "#f5c518"; // gold — distinct from green
+  const pastDotColor = isDark ? "rgba(155, 189, 160, 0.6)" : Palette.forest200;
+  const friendColor = Palette.sun300; // sun accent — distinct from forest
 
   // Subtle tappable-target background for days that have shifts available
   const hasShiftsBg = shiftCount > 0 && !isSelected && !isSignedUp;
 
   const cellBg = isSelected
-    ? Brand.green
+    ? Brand.green // forest fill for selected day
     : isSignedUp
       ? isDark
-        ? "rgba(134, 239, 172, 0.18)"
+        ? "rgba(155, 189, 160, 0.20)"
         : Brand.greenLight
       : hasShiftsBg
         ? isDark
-          ? "rgba(255,255,255,0.04)"
-          : "rgba(14, 58, 35, 0.04)"
+          ? "rgba(253, 248, 239, 0.04)"
+          : "rgba(29, 83, 55, 0.04)"
         : "transparent";
 
   const cellBorderColor = isSelected
     ? Brand.green
-    : isSignedUp
-      ? isDark
-        ? "rgba(134, 239, 172, 0.4)"
-        : "#b8dbb8"
-      : "transparent";
+    : isToday
+      ? Palette.sun200 // today marker — sun accent ring
+      : isSignedUp
+        ? isDark
+          ? "rgba(155, 189, 160, 0.45)"
+          : Palette.forest200
+        : "transparent";
+
+  // Today gets the sun ring even when it has no content/signup
+  const showRing = isSelected || isSignedUp || (isToday && !isSelected);
 
   // Dim empty days so shift days pop — still show today's accent regardless
-  const emptyOpacity = hasContent ? 1 : 0.3;
+  const emptyOpacity = hasContent || isToday ? 1 : 0.3;
 
   const numberColor = isSelected
-    ? "#ffffff"
+    ? Palette.cream50
     : !inMonth
       ? colors.textSecondary
       : isToday
-        ? isDark
-          ? "#86efac"
-          : Brand.green
+        ? colors.tint
         : colors.text;
 
   const numberWeight = isToday || isSelected || isSignedUp
@@ -338,7 +343,7 @@ function DayCell({
           {
             backgroundColor: cellBg,
             borderColor: cellBorderColor,
-            borderWidth: isSelected || isSignedUp ? 1 : 0,
+            borderWidth: showRing ? 1 : 0,
             opacity: emptyOpacity,
           },
         ]}
@@ -362,7 +367,7 @@ function DayCell({
               style={[
                 styles.dot,
                 {
-                  backgroundColor: isSelected ? "#ffffff" : pastDotColor,
+                  backgroundColor: isSelected ? Palette.cream50 : pastDotColor,
                 },
               ]}
             />
