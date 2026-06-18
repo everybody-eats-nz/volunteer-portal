@@ -4,19 +4,10 @@ import { Text } from 'react-native';
 import { ThemedText, type ThemedTextProps } from '@/components/themed-text';
 import { Colors, FontFamily } from '@/constants/theme';
 import { render } from '@/test-utils/render';
+import { flatten } from '@/test-utils/style';
 
 // `vi.mock` is hoisted above the imports above (see test-utils/react-native).
 vi.mock('react-native', () => import('@/test-utils/react-native'));
-
-function flatten(style: unknown): Record<string, unknown> {
-  if (Array.isArray(style)) {
-    return style.filter(Boolean).reduce<Record<string, unknown>>(
-      (acc, s) => Object.assign(acc, flatten(s)),
-      {}
-    );
-  }
-  return (style as Record<string, unknown>) ?? {};
-}
 
 const styleOf = (type: ThemedTextProps['type']) =>
   flatten(render(<ThemedText type={type}>Kia ora</ThemedText>).root.findByType(Text).props.style);

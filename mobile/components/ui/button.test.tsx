@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, Text } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Colors, Palette } from '@/constants/theme';
 import { render } from '@/test-utils/render';
+import { flatten } from '@/test-utils/style';
 
 // `vi.mock` is hoisted above the imports above, so the component resolves these
 // stubs. Native primitives → lightweight stubs (see test-utils/react-native).
@@ -14,17 +15,6 @@ vi.mock('expo-haptics', () => ({
   impactAsync: vi.fn(),
   ImpactFeedbackStyle: { Light: 'light' },
 }));
-
-/** Flatten a style value (possibly a nested array) into one object. */
-function flatten(style: unknown): Record<string, unknown> {
-  if (Array.isArray(style)) {
-    return style.filter(Boolean).reduce<Record<string, unknown>>(
-      (acc, s) => Object.assign(acc, flatten(s)),
-      {}
-    );
-  }
-  return (style as Record<string, unknown>) ?? {};
-}
 
 /** Resolve Pressable's `style` render-prop (unpressed) into one object. */
 function pressableStyle(tree: ReturnType<typeof render>) {
