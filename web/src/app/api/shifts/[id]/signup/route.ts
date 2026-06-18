@@ -287,7 +287,7 @@ export async function POST(
       autoApprovalResult.status === "PENDING" ||
       autoApprovalResult.status === "REGULAR_PENDING"
     ) {
-      void notifyManagersOfPendingSignup(signup.id).catch((err) =>
+      notifyManagersOfPendingSignup(signup.id).catch((err) =>
         console.error(
           "[signup] Failed to notify managers of pending signup:",
           err
