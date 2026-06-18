@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 
-import { Brand } from "@/constants/theme";
+import { Brand, Palette } from "@/constants/theme";
 
 // expo-auth-session redirects here after Google OAuth on Android (the URL
 // uses the app's `scheme` from app.json, not the iOS-style reversed client
@@ -26,6 +26,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Brand.green,
+    backgroundColor: Palette.forest700,
   },
 });

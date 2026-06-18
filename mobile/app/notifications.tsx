@@ -22,7 +22,8 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useNotifications,
@@ -53,7 +54,7 @@ const ICON_MAP: Record<NotificationType, IconSpec> = {
   SHIFT_CONFIRMED: {
     name: "checkmark-circle",
     color: Brand.green,
-    bg: "rgba(14, 58, 35, 0.10)",
+    bg: "rgba(29, 83, 55, 0.10)",
   },
   SHIFT_WAITLISTED: {
     name: "time",
@@ -361,13 +362,19 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
             },
           ]}
         />
-        <Text style={[styles.heroEyebrow, { color: colors.textSecondary }]}>
-          LATEST UPDATES
-        </Text>
+        <Eyebrow rule={false} color={colors.textSecondary}>
+          Latest updates
+        </Eyebrow>
       </View>
 
-      <ThemedText type="title" style={styles.heroTitle}>
-        {hasUnread ? "Something new" : "All quiet"}
+      <ThemedText type="display" style={styles.heroTitle}>
+        {hasUnread ? (
+          <>
+            Something <ThemedText type="accent">new</ThemedText>
+          </>
+        ) : (
+          "All quiet"
+        )}
       </ThemedText>
 
       <Text style={[styles.heroSub, { color: colors.textSecondary }]}>
@@ -523,7 +530,7 @@ function EmptyState({
           style={[
             styles.emptyRingInner,
             {
-              backgroundColor: isDark ? "rgba(14, 58, 35, 0.55)" : Brand.green,
+              backgroundColor: isDark ? "rgba(29, 83, 55, 0.55)" : Brand.green,
             },
           ]}
         >
@@ -605,15 +612,11 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  heroEyebrow: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    letterSpacing: 1.8,
-  },
   heroTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 30,
-    lineHeight: 36,
+    fontFamily: FontFamily.display,
+    fontSize: 34,
+    lineHeight: 38,
+    letterSpacing: -0.6,
   },
   heroSub: {
     fontFamily: FontFamily.regular,
@@ -741,13 +744,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   retryButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    borderRadius: 999,
     marginTop: 8,
   },
   retryText: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
   },

@@ -22,7 +22,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Brand, Colors, FontFamily } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
+import { Eyebrow } from '@/components/ui/eyebrow';
+import { Brand, Colors, FontFamily, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -241,8 +243,8 @@ export function OnboardingFlow() {
                 {
                   opacity: stepIndex === 0 ? 0 : pressed ? 0.5 : 1,
                   backgroundColor: isDark
-                    ? 'rgba(255,255,255,0.06)'
-                    : 'rgba(14,58,35,0.06)',
+                    ? 'rgba(253,248,239,0.06)'
+                    : 'rgba(29,83,55,0.06)',
                 },
               ]}
             >
@@ -271,8 +273,8 @@ export function OnboardingFlow() {
               styles.progressTrack,
               {
                 backgroundColor: isDark
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(14,58,35,0.08)',
+                  ? 'rgba(253,248,239,0.10)'
+                  : 'rgba(29,83,55,0.10)',
               },
             ]}
           >
@@ -435,16 +437,20 @@ function WelcomeStep({
       showsVerticalScrollIndicator={false}
     >
       <StepHero
-        bg={isDark ? 'rgba(248,251,105,0.18)' : Brand.accentSubtle}
+        bg={isDark ? colors.accentGlow : Brand.accentSubtle}
         emoji="🌿"
         ring={[Brand.accent, Brand.greenLight]}
       />
-      <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-        Kia ora
-      </Text>
-      <Text style={[styles.title, { color: colors.text }]}>
-        Welcome, {firstName} 👋
-      </Text>
+      <View style={styles.eyebrowWrap}>
+        <Eyebrow color={colors.textSecondary}>Kia ora</Eyebrow>
+      </View>
+      <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
+        Welcome,{' '}
+        <ThemedText type="accent" style={styles.title}>
+          {firstName}
+        </ThemedText>{' '}
+        👋
+      </ThemedText>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         You&apos;re joining Aotearoa&apos;s pay-as-you-feel restaurant
         community. Here&apos;s a quick tour of how the app works — we&apos;ll
@@ -455,11 +461,11 @@ function WelcomeStep({
           styles.quoteBlock,
           {
             backgroundColor: isDark
-              ? 'rgba(255,255,255,0.04)'
-              : 'rgba(14,58,35,0.04)',
+              ? 'rgba(253,248,239,0.04)'
+              : 'rgba(29,83,55,0.04)',
             borderColor: isDark
-              ? 'rgba(255,255,255,0.08)'
-              : 'rgba(14,58,35,0.08)',
+              ? 'rgba(253,248,239,0.08)'
+              : 'rgba(29,83,55,0.08)',
           },
         ]}
       >
@@ -503,16 +509,19 @@ function BookingStep({ isDark, colors }: StepCommon) {
       showsVerticalScrollIndicator={false}
     >
       <StepHero
-        bg={isDark ? 'rgba(134,239,172,0.08)' : Brand.greenLight}
+        bg={isDark ? colors.primaryLight : Brand.greenLight}
         emoji="🍽️"
         ring={[Brand.green, Brand.greenLight]}
       />
-      <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-        Step by step
-      </Text>
-      <Text style={[styles.title, { color: colors.text }]}>
-        Booking a shift
-      </Text>
+      <View style={styles.eyebrowWrap}>
+        <Eyebrow color={colors.textSecondary}>Step by step</Eyebrow>
+      </View>
+      <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
+        Booking a{' '}
+        <ThemedText type="accent" style={styles.title}>
+          shift
+        </ThemedText>
+      </ThemedText>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         Three taps and you&apos;re on the roster.
       </Text>
@@ -524,9 +533,7 @@ function BookingStep({ isDark, colors }: StepCommon) {
             style={[
               styles.listRow,
               {
-                backgroundColor: isDark
-                  ? 'rgba(255,255,255,0.04)'
-                  : '#ffffff',
+                backgroundColor: colors.card,
                 borderColor: colors.border,
               },
             ]}
@@ -536,7 +543,7 @@ function BookingStep({ isDark, colors }: StepCommon) {
                 styles.listIcon,
                 {
                   backgroundColor: isDark
-                    ? 'rgba(134,239,172,0.10)'
+                    ? colors.primaryLight
                     : Brand.greenLight,
                 },
               ]}
@@ -544,7 +551,7 @@ function BookingStep({ isDark, colors }: StepCommon) {
               <Ionicons
                 name={s.icon}
                 size={20}
-                color={isDark ? '#86efac' : Brand.green}
+                color={colors.tint}
               />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
@@ -576,10 +583,10 @@ function FeedStep({ isDark, colors }: StepCommon) {
       label: 'New shift',
       text: 'Fresh shifts dropped for Wellington this week.',
       tint: {
-        bg: '#f0fdf4',
-        bgDark: 'rgba(22,163,74,0.16)',
-        fg: '#16a34a',
-        fgDark: '#86efac',
+        bg: Palette.forest100,
+        bgDark: 'rgba(45,100,56,0.22)',
+        fg: Palette.forest500,
+        fgDark: Palette.forest200,
       },
     },
     {
@@ -611,16 +618,19 @@ function FeedStep({ isDark, colors }: StepCommon) {
       showsVerticalScrollIndicator={false}
     >
       <StepHero
-        bg={isDark ? 'rgba(134,239,172,0.08)' : Brand.greenLight}
+        bg={isDark ? colors.primaryLight : Brand.greenLight}
         emoji="📢"
         ring={[Brand.green, Brand.greenLight]}
       />
-      <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-        Your Home tab
-      </Text>
-      <Text style={[styles.title, { color: colors.text }]}>
-        Stay in the loop
-      </Text>
+      <View style={styles.eyebrowWrap}>
+        <Eyebrow color={colors.textSecondary}>Your Home tab</Eyebrow>
+      </View>
+      <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
+        Stay in the{' '}
+        <ThemedText type="accent" style={styles.title}>
+          loop
+        </ThemedText>
+      </ThemedText>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         The feed is where your whānau shows up — new shifts, milestones, and
         celebrations as they happen.
@@ -633,9 +643,7 @@ function FeedStep({ isDark, colors }: StepCommon) {
             style={[
               styles.feedCard,
               {
-                backgroundColor: isDark
-                  ? 'rgba(255,255,255,0.04)'
-                  : '#ffffff',
+                backgroundColor: colors.card,
                 borderColor: colors.border,
               },
             ]}
@@ -690,16 +698,19 @@ function CalendarStep({
       showsVerticalScrollIndicator={false}
     >
       <StepHero
-        bg={isDark ? 'rgba(134,239,172,0.08)' : Brand.greenLight}
+        bg={isDark ? colors.primaryLight : Brand.greenLight}
         emoji="📅"
         ring={[Brand.green, Brand.accent]}
       />
-      <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-        Stay on schedule
-      </Text>
-      <Text style={[styles.title, { color: colors.text }]}>
-        Never miss a shift
-      </Text>
+      <View style={styles.eyebrowWrap}>
+        <Eyebrow color={colors.textSecondary}>Stay on schedule</Eyebrow>
+      </View>
+      <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
+        Never miss a{' '}
+        <ThemedText type="accent" style={styles.title}>
+          shift
+        </ThemedText>
+      </ThemedText>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         Add your upcoming shifts to your device calendar automatically.
         They&apos;ll sync when you sign up — and disappear if you cancel.
@@ -737,16 +748,19 @@ function NotificationsStep({
       showsVerticalScrollIndicator={false}
     >
       <StepHero
-        bg={isDark ? 'rgba(134,239,172,0.08)' : Brand.greenLight}
+        bg={isDark ? colors.primaryLight : Brand.greenLight}
         emoji="🔔"
         ring={[Brand.green, Brand.accent]}
       />
-      <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-        Tap on the shoulder
-      </Text>
-      <Text style={[styles.title, { color: colors.text }]}>
-        Get the important pings
-      </Text>
+      <View style={styles.eyebrowWrap}>
+        <Eyebrow color={colors.textSecondary}>Tap on the shoulder</Eyebrow>
+      </View>
+      <ThemedText type="display" style={[styles.title, { color: colors.text }]}>
+        Get the important{' '}
+        <ThemedText type="accent" style={styles.title}>
+          pings
+        </ThemedText>
+      </ThemedText>
       <Text style={[styles.body, { color: colors.textSecondary }]}>
         Shift reminders, friend requests, and urgent coverage asks — nothing
         spammy. You can fine-tune what you get in Settings later.
@@ -772,16 +786,22 @@ function TermsStep({ isDark, colors }: StepCommon) {
     <View style={{ flex: 1 }}>
       <View style={[styles.stepContent, { paddingBottom: 8 }]}>
         <StepHero
-          bg={isDark ? 'rgba(248,251,105,0.18)' : Brand.accentSubtle}
+          bg={isDark ? colors.accentGlow : Brand.accentSubtle}
           emoji="💚"
           ring={[Brand.accent, Brand.greenLight]}
         />
-        <Text style={[styles.eyebrow, { color: colors.textSecondary }]}>
-          One last thing
-        </Text>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Before you join the whānau
-        </Text>
+        <View style={styles.eyebrowWrap}>
+          <Eyebrow color={colors.textSecondary}>One last thing</Eyebrow>
+        </View>
+        <ThemedText
+          type="display"
+          style={[styles.title, { color: colors.text }]}
+        >
+          Before you join the{' '}
+          <ThemedText type="accent" style={styles.title}>
+            whānau
+          </ThemedText>
+        </ThemedText>
         <Text style={[styles.body, { color: colors.textSecondary }]}>
           Please read and agree to our Terms of Use. They help keep the
           community safe for every volunteer.
@@ -796,7 +816,7 @@ function TermsStep({ isDark, colors }: StepCommon) {
           style={[
             styles.termsBox,
             {
-              backgroundColor: isDark ? '#1a1d21' : '#f8faf8',
+              backgroundColor: colors.surfaceSoft,
               borderColor: colors.border,
             },
           ]}
@@ -875,14 +895,12 @@ function PermissionStatusCard({
         {
           backgroundColor: enabled
             ? isDark
-              ? 'rgba(134,239,172,0.08)'
+              ? colors.primaryLight
               : Brand.greenLight
-            : isDark
-              ? 'rgba(255,255,255,0.04)'
-              : '#ffffff',
+            : colors.card,
           borderColor: enabled
             ? isDark
-              ? 'rgba(134,239,172,0.22)'
+              ? 'rgba(155,189,160,0.30)'
               : Brand.green
             : colors.border,
         },
@@ -895,18 +913,18 @@ function PermissionStatusCard({
             backgroundColor: enabled
               ? Brand.green
               : isDark
-                ? 'rgba(255,255,255,0.18)'
-                : '#cbd5e1',
+                ? 'rgba(253,248,239,0.18)'
+                : Palette.forest200,
           },
         ]}
       >
         {busy ? (
-          <ActivityIndicator size="small" color="#ffffff" />
+          <ActivityIndicator size="small" color={Palette.cream50} />
         ) : (
           <Ionicons
             name={enabled ? 'checkmark' : 'ellipsis-horizontal'}
             size={18}
-            color="#ffffff"
+            color={Palette.cream50}
           />
         )}
       </View>
@@ -949,7 +967,7 @@ function PrimaryButton({
       ]}
     >
       {busy ? (
-        <ActivityIndicator color="#ffffff" />
+        <ActivityIndicator color={Palette.cream50} />
       ) : (
         <Text style={styles.primaryBtnText}>{label}</Text>
       )}
@@ -1058,19 +1076,14 @@ const styles = StyleSheet.create({
   heroEmoji: {
     fontSize: 52,
   },
-  eyebrow: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 12,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    textAlign: 'center',
+  eyebrowWrap: {
+    alignItems: 'center',
   },
   title: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 32,
+    lineHeight: 38,
     textAlign: 'center',
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
   },
   body: {
     fontFamily: FontFamily.regular,
@@ -1218,14 +1231,14 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   primaryBtn: {
-    borderRadius: 14,
+    borderRadius: 999,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
   },
   primaryBtnText: {
-    color: '#ffffff',
+    color: Palette.cream50,
     fontSize: 16,
     fontFamily: FontFamily.semiBold,
   },

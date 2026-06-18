@@ -4,7 +4,7 @@ import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTeamUnreadCount } from '@/hooks/use-team-unread';
 import { useAuth } from '@/lib/auth';
-import { Brand } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import LoginScreen from '@/app/(auth)/login';
 
 export default function TabLayout() {
@@ -16,9 +16,11 @@ export default function TabLayout() {
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
-      background: Brand.warmWhite,
-      card: '#ffffff',
-      primary: Brand.green,
+      background: Colors.light.background,
+      card: Colors.light.card,
+      text: Colors.light.text,
+      border: Colors.light.border,
+      primary: Colors.light.primary,
     },
   };
 
@@ -26,9 +28,11 @@ export default function TabLayout() {
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
-      background: '#0f1114',
-      card: '#1a1d21',
-      primary: Brand.greenLight,
+      background: Colors.dark.background,
+      card: Colors.dark.card,
+      text: Colors.dark.text,
+      border: Colors.dark.border,
+      primary: Colors.dark.tint,
     },
   };
 

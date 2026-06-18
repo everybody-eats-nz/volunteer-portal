@@ -17,7 +17,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { formatNZT } from "@/lib/dates";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -326,7 +327,7 @@ export default function UserProfileScreen() {
         options={{
           title: "",
           headerTransparent: true,
-          headerTintColor: "#fffdf7",
+          headerTintColor: Palette.cream50,
         }}
       />
       <ScrollView
@@ -339,7 +340,9 @@ export default function UserProfileScreen() {
         <View style={[styles.hero, { height: heroHeight }]}>
           <LinearGradient
             colors={
-              isDark ? ["#13311f", Brand.greenDark] : [Brand.green, "#0b2c1a"]
+              isDark
+                ? [Palette.forest600, Palette.forest800]
+                : [Palette.forest500, Palette.forest700]
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -353,8 +356,8 @@ export default function UserProfileScreen() {
                 height: accentShapeSize,
                 top: heroHeight - accentShapeSize * 0.55,
                 right: -accentShapeSize * 0.35,
-                backgroundColor: isDark ? "#2a3b1a" : Brand.accent,
-                opacity: isDark ? 0.55 : 0.85,
+                backgroundColor: isDark ? Palette.forest500 : Brand.accent,
+                opacity: isDark ? 0.45 : 0.85,
               },
             ]}
           />
@@ -541,7 +544,7 @@ function IdentityBlock({
                 height: avatarSize,
                 borderRadius: avatarSize / 2,
                 borderColor: colors.background,
-                backgroundColor: isDark ? "#223524" : Brand.greenLight,
+                backgroundColor: isDark ? Palette.forest600 : Brand.greenLight,
               },
             ]}
           >
@@ -555,6 +558,12 @@ function IdentityBlock({
             </Text>
           </View>
         )}
+      </View>
+
+      <View style={styles.identityEyebrow}>
+        <Eyebrow color={colors.textSecondary}>
+          {isFriends ? "Your whānau" : "Volunteer"}
+        </Eyebrow>
       </View>
 
       <Text style={[styles.heroName, { color: colors.text }]}>
@@ -704,31 +713,25 @@ function FullProfile({
         <View
           style={[
             styles.bentoHero,
-            {
-              backgroundColor: isDark ? "#262a1a" : Brand.accent,
-            },
+            { backgroundColor: Palette.forest700 },
           ]}
         >
+          {/* Warm sun glow on the dark forest stat panel */}
+          <View pointerEvents="none" style={styles.bentoGlow} />
           <Text
-            style={[
-              styles.bentoLabel,
-              { color: isDark ? "#bdc48a" : "#3d4416" },
-            ]}
+            style={[styles.bentoLabel, { color: "rgba(253,248,239,0.7)" }]}
           >
             SHARED SHIFTS
           </Text>
           <Text
-            style={[
-              styles.bentoHeroValue,
-              { color: isDark ? "#f0f8a0" : "#0e3a23" },
-            ]}
+            style={[styles.bentoHeroValue, { color: Palette.sun200 }]}
           >
             {connection.shiftsTogether}
           </Text>
           <Text
             style={[
               styles.bentoHeroCaption,
-              { color: isDark ? "#bdc48a" : "#3d4416" },
+              { color: "rgba(253,248,239,0.7)" },
             ]}
           >
             mahi done together
@@ -737,8 +740,8 @@ function FullProfile({
             style={[
               styles.bentoArc,
               {
-                borderColor: isDark ? "#3d4416" : "#0e3a23",
-                opacity: 0.14,
+                borderColor: Palette.cream50,
+                opacity: 0.12,
               },
             ]}
           />
@@ -919,7 +922,7 @@ function FullProfile({
                           {
                             backgroundColor: isDark
                               ? "rgba(248,251,105,0.12)"
-                              : "#f6f8d4",
+                              : Palette.sun100,
                           },
                         ]}
                       >
@@ -1133,17 +1136,17 @@ function Badge({
     tone === "accent"
       ? isDark
         ? "rgba(248,251,105,0.14)"
-        : "#fbfdc6"
+        : Palette.sun100
       : isDark
-      ? "rgba(134,239,172,0.14)"
+      ? "rgba(155,189,160,0.16)"
       : Brand.greenLight;
   const fg =
     tone === "accent"
       ? isDark
         ? Brand.accent
-        : "#3d4416"
+        : Palette.ink
       : isDark
-      ? "#86efac"
+      ? Palette.forest200
       : Brand.green;
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
@@ -1172,7 +1175,7 @@ function EmptyCanvas({
           borderColor: colors.border,
           backgroundColor: isDark
             ? "rgba(255,255,255,0.015)"
-            : "rgba(14,58,35,0.02)",
+            : "rgba(29,83,55,0.03)",
         },
       ]}
     >
@@ -1250,19 +1253,19 @@ function FriendshipAction({
           {isAccepting ? (
             <ActivityIndicator
               size="small"
-              color={isDark ? Brand.green : "#fffdf7"}
+              color={isDark ? Brand.green : Palette.cream50}
             />
           ) : (
             <Ionicons
               name="checkmark-circle-outline"
               size={18}
-              color={isDark ? Brand.green : "#fffdf7"}
+              color={isDark ? Brand.green : Palette.cream50}
             />
           )}
           <Text
             style={[
               styles.primaryBtnText,
-              { color: isDark ? Brand.green : "#fffdf7" },
+              { color: isDark ? Brand.green : Palette.cream50 },
             ]}
           >
             {isAccepting ? "Accepting…" : "Accept request"}
@@ -1331,19 +1334,19 @@ function FriendshipAction({
       {isSending ? (
         <ActivityIndicator
           size="small"
-          color={isDark ? Brand.green : "#fffdf7"}
+          color={isDark ? Brand.green : Palette.cream50}
         />
       ) : (
         <Ionicons
           name="person-add-outline"
           size={18}
-          color={isDark ? Brand.green : "#fffdf7"}
+          color={isDark ? Brand.green : Palette.cream50}
         />
       )}
       <Text
         style={[
           styles.primaryBtnText,
-          { color: isDark ? Brand.green : "#fffdf7" },
+          { color: isDark ? Brand.green : Palette.cream50 },
         ]}
       >
         {isSending ? "Sending…" : "Add friend"}
@@ -1420,7 +1423,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#fffdf7",
+    backgroundColor: Palette.cream50,
   },
 
   /* Identity */
@@ -1448,12 +1451,16 @@ const styles = StyleSheet.create({
     fontSize: 44,
     fontFamily: FontFamily.headingBold,
   },
+  identityEyebrow: {
+    marginBottom: 10,
+    alignSelf: "center",
+  },
   heroName: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontFamily: FontFamily.headingBold,
+    fontSize: 34,
+    lineHeight: 40,
+    fontFamily: FontFamily.display,
     textAlign: "center",
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   heroTagline: {
     marginTop: 6,
@@ -1498,7 +1505,7 @@ const styles = StyleSheet.create({
   },
   bentoCard: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
     gap: 8,
@@ -1520,11 +1527,20 @@ const styles = StyleSheet.create({
   },
   bentoHero: {
     flex: 1.35,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     justifyContent: "space-between",
     overflow: "hidden",
     minHeight: 160,
+  },
+  bentoGlow: {
+    position: "absolute",
+    top: -60,
+    left: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(248,251,105,0.12)",
   },
   bentoArc: {
     position: "absolute",
@@ -1541,7 +1557,7 @@ const styles = StyleSheet.create({
   },
   bentoMini: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 14,
     borderWidth: StyleSheet.hairlineWidth,
     justifyContent: "space-between",
@@ -1554,7 +1570,7 @@ const styles = StyleSheet.create({
   bentoHeroValue: {
     fontSize: 56,
     lineHeight: 60,
-    fontFamily: FontFamily.headingBold,
+    fontFamily: FontFamily.display,
     letterSpacing: -2,
     fontVariant: ["tabular-nums"],
     marginTop: 4,
@@ -1600,7 +1616,7 @@ const styles = StyleSheet.create({
   /* Status card */
   statusCard: {
     flexDirection: "row",
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
@@ -1630,7 +1646,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 16,
-    borderRadius: 16,
+    minHeight: 54,
+    borderRadius: 999,
   },
   primaryBtnText: {
     fontSize: 15,
@@ -1643,7 +1660,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 14,
-    borderRadius: 14,
+    minHeight: 48,
+    borderRadius: 999,
     borderWidth: 1.25,
   },
   declineBtnText: {
@@ -1807,7 +1825,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
   },
   upcomingIcon: {
@@ -1876,7 +1894,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 13,
-    borderRadius: 12,
+    minHeight: 44,
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
   removeFriendText: {
@@ -1897,7 +1916,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     paddingVertical: 11,
-    borderRadius: 12,
+    minHeight: 44,
+    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
   safetyBtnText: {
