@@ -1,3 +1,9 @@
+## [0.118.0] - 2026-06-18
+
+### Changes
+- feat(web): redesign homepage, header & footer to match marketing site ([#959](https://github.com/everybody-eats-nz/volunteer-portal/pull/959)) by @malinmalliyawadu
+
+
 ## [0.117.0] - 2026-06-17
 
 ### Changes
