@@ -23,7 +23,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Eyebrow } from "@/components/ui/eyebrow";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFriends } from "@/hooks/use-friends";
 import { useProfile } from "@/hooks/use-profile";
@@ -388,8 +389,8 @@ export default function ProfileScreen() {
                 styles.avatarHalo,
                 {
                   backgroundColor: isDark
-                    ? "rgba(134,239,172,0.10)"
-                    : "rgba(14,58,35,0.07)",
+                    ? "rgba(155,189,160,0.12)"
+                    : "rgba(29,83,55,0.07)",
                 },
               ]}
             />
@@ -427,9 +428,9 @@ export default function ProfileScreen() {
               ]}
             >
               {isUploadingPhoto ? (
-                <ActivityIndicator size={12} color="#ffffff" />
+                <ActivityIndicator size={12} color={Palette.cream50} />
               ) : (
-                <Ionicons name="camera" size={13} color="#ffffff" />
+                <Ionicons name="camera" size={13} color={Palette.cream50} />
               )}
             </View>
           </Pressable>
@@ -437,14 +438,14 @@ export default function ProfileScreen() {
           <Text
             style={[
               styles.heroGreeting,
-              { color: isDark ? "#86efac" : Brand.greenDark },
+              { color: isDark ? Palette.forest200 : Brand.green },
             ]}
           >
             Kia ora,
           </Text>
-          <Text style={[styles.heroName, { color: colors.text }]}>
+          <ThemedText type="title" style={styles.heroName}>
             {user.firstName} {user.lastName}
-          </Text>
+          </ThemedText>
 
           <Text style={[styles.heroMeta, { color: colors.textSecondary }]}>
             Volunteer since {formatNZT(new Date(user.memberSince), "MMMM yyyy")}
@@ -454,9 +455,7 @@ export default function ProfileScreen() {
         {/* ── Your Mahi (Impact Panel) ── */}
         <View style={styles.mahiContainer}>
           <LinearGradient
-            colors={
-              isDark ? ["#0d2a1b", "#14422a"] : [Brand.green, Brand.greenDark]
-            }
+            colors={[Palette.forest700, Palette.forest500, Palette.forest800]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.mahiCard}
@@ -466,13 +465,7 @@ export default function ProfileScreen() {
             <View style={styles.mahiBloomInner} pointerEvents="none" />
 
             <View style={styles.mahiLabelRow}>
-              <View
-                style={[
-                  styles.mahiLabelLine,
-                  { backgroundColor: Brand.accent },
-                ]}
-              />
-              <Text style={styles.mahiLabel}>Your mahi</Text>
+              <Eyebrow color={Brand.accent}>Your mahi</Eyebrow>
             </View>
 
             <View style={styles.mahiHero}>
@@ -501,6 +494,9 @@ export default function ProfileScreen() {
 
         {/* ── Whānau ── */}
         <View style={styles.section}>
+          <View style={styles.sectionEyebrow}>
+            <Eyebrow>Your people</Eyebrow>
+          </View>
           <SectionHeader
             title="Whānau"
             subtitle={`${friends.length} ${
@@ -515,7 +511,7 @@ export default function ProfileScreen() {
                 <Ionicons
                   name="sparkles"
                   size={14}
-                  color={isDark ? "#d4dc63" : Brand.green}
+                  color={isDark ? Palette.sun200 : Brand.green}
                 />
                 <Text
                   style={[
@@ -596,6 +592,9 @@ export default function ProfileScreen() {
 
         {/* ── Achievements ── */}
         <View style={styles.section}>
+          <View style={styles.sectionEyebrow}>
+            <Eyebrow>Milestones</Eyebrow>
+          </View>
           <SectionHeader
             title="Achievements"
             subtitle={`${unlocked.length} unlocked · ${totalPoints} points`}
@@ -630,15 +629,15 @@ export default function ProfileScreen() {
                     styles.subsectionLine,
                     {
                       backgroundColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(14,58,35,0.14)",
+                        ? "rgba(253,248,239,0.10)"
+                        : "rgba(29,83,55,0.14)",
                     },
                   ]}
                 />
                 <Text
                   style={[
                     styles.subsectionLabel,
-                    { color: isDark ? "#86efac" : Brand.greenDark },
+                    { color: isDark ? Palette.forest200 : Brand.green },
                   ]}
                 >
                   NEXT GOALS
@@ -648,8 +647,8 @@ export default function ProfileScreen() {
                     styles.subsectionLine,
                     {
                       backgroundColor: isDark
-                        ? "rgba(255,255,255,0.08)"
-                        : "rgba(14,58,35,0.14)",
+                        ? "rgba(253,248,239,0.10)"
+                        : "rgba(29,83,55,0.14)",
                     },
                   ]}
                 />
@@ -670,6 +669,9 @@ export default function ProfileScreen() {
 
         {/* ── Account actions ── */}
         <View style={styles.settingsGroup}>
+          <View style={styles.settingsEyebrow}>
+            <Eyebrow>Settings</Eyebrow>
+          </View>
           <SettingsRow
             icon="person-outline"
             label="Edit profile"
@@ -686,8 +688,8 @@ export default function ProfileScreen() {
               styles.settingsDivider,
               {
                 backgroundColor: isDark
-                  ? "rgba(255,255,255,0.06)"
-                  : "rgba(14,58,35,0.06)",
+                  ? "rgba(253,248,239,0.06)"
+                  : "rgba(29,83,55,0.08)",
               },
             ]}
           />
@@ -706,8 +708,8 @@ export default function ProfileScreen() {
               styles.settingsDivider,
               {
                 backgroundColor: isDark
-                  ? "rgba(255,255,255,0.06)"
-                  : "rgba(14,58,35,0.06)",
+                  ? "rgba(253,248,239,0.06)"
+                  : "rgba(29,83,55,0.08)",
               },
             ]}
           />
@@ -743,6 +745,7 @@ export default function ProfileScreen() {
             style={({ pressed }) => [
               styles.signOutButton,
               {
+                borderColor: colors.destructive,
                 opacity: pressed ? 0.6 : 1,
               },
             ]}
@@ -766,8 +769,8 @@ export default function ProfileScreen() {
               styles.footerOrnament,
               {
                 backgroundColor: isDark
-                  ? "rgba(134,239,172,0.25)"
-                  : "rgba(14,58,35,0.2)",
+                  ? "rgba(155,189,160,0.30)"
+                  : "rgba(29,83,55,0.25)",
               },
             ]}
           />
@@ -856,8 +859,8 @@ function FeaturedUnlock({
           opacity: pressed ? 0.92 : 1,
           transform: [{ scale: pressed ? 0.995 : 1 }],
           borderColor: isDark
-            ? "rgba(255,255,255,0.04)"
-            : "rgba(14,58,35,0.04)",
+            ? "rgba(253,248,239,0.05)"
+            : "rgba(29,83,55,0.06)",
         },
       ]}
       accessibilityRole="button"
@@ -970,8 +973,8 @@ function AchievementRow({
                 styles.progressTrack,
                 {
                   backgroundColor: isDark
-                    ? "rgba(255,255,255,0.06)"
-                    : "#eef2e8",
+                    ? "rgba(253,248,239,0.06)"
+                    : colors.primaryLight,
                 },
               ]}
             >
@@ -1114,7 +1117,7 @@ function AchievementSheet({
               <Ionicons
                 name="close"
                 size={16}
-                color={isDark ? colors.textSecondary : "#6b7280"}
+                color={isDark ? colors.textSecondary : colors.textSecondary}
               />
             </Pressable>
 
@@ -1154,8 +1157,8 @@ function AchievementSheet({
                 achieveSheet.titleCard,
                 {
                   backgroundColor: colors.card,
-                  shadowColor: isDark ? "#000" : "#0f172a",
-                  borderColor: isDark ? colors.border : "#eef0ec",
+                  shadowColor: isDark ? "#000" : Palette.forest700,
+                  borderColor: isDark ? colors.border : Palette.cream200,
                 },
               ]}
             >
@@ -1180,8 +1183,8 @@ function AchievementSheet({
                   {
                     backgroundColor: isDark
                       ? "rgba(255,255,255,0.03)"
-                      : "#fafaf6",
-                    borderColor: isDark ? colors.border : "#eef0ec",
+                      : Palette.cream100,
+                    borderColor: isDark ? colors.border : Palette.cream200,
                   },
                 ]}
               >
@@ -1204,7 +1207,7 @@ function AchievementSheet({
                     {
                       backgroundColor: isDark
                         ? "rgba(255,255,255,0.08)"
-                        : "#e8eae4",
+                        : "rgba(29,83,55,0.12)",
                     },
                   ]}
                 />
@@ -1269,7 +1272,7 @@ function AchievementSheet({
                     achieveSheet.dataCard,
                     {
                       backgroundColor: colors.card,
-                      borderColor: isDark ? colors.border : "#eef0ec",
+                      borderColor: isDark ? colors.border : Palette.cream200,
                     },
                   ]}
                 >
@@ -1334,7 +1337,7 @@ function AchievementSheet({
                     achieveSheet.dataCard,
                     {
                       backgroundColor: colors.card,
-                      borderColor: isDark ? colors.border : "#eef0ec",
+                      borderColor: isDark ? colors.border : Palette.cream200,
                     },
                   ]}
                 >
@@ -1379,7 +1382,7 @@ function AchievementSheet({
                     achieveSheet.dataCard,
                     {
                       backgroundColor: colors.card,
-                      borderColor: isDark ? colors.border : "#eef0ec",
+                      borderColor: isDark ? colors.border : Palette.cream200,
                     },
                   ]}
                 >
@@ -1428,7 +1431,7 @@ function AchievementSheet({
                       {
                         backgroundColor: isDark
                           ? "rgba(255,255,255,0.06)"
-                          : "#f1f3ee",
+                          : Palette.cream100,
                       },
                     ]}
                   >
@@ -1464,7 +1467,7 @@ function AchievementSheet({
                   achieveSheet.dataCard,
                   {
                     backgroundColor: colors.card,
-                    borderColor: isDark ? colors.border : "#eef0ec",
+                    borderColor: isDark ? colors.border : Palette.cream200,
                   },
                 ]}
               >
@@ -1492,7 +1495,7 @@ function AchievementSheet({
                       {
                         backgroundColor: isDark
                           ? "rgba(255,255,255,0.08)"
-                          : "#e8eae4",
+                          : "rgba(29,83,55,0.12)",
                       },
                     ]}
                   />
@@ -1530,7 +1533,7 @@ function AchievementSheet({
                           {
                             backgroundColor: isDark
                               ? "rgba(255,255,255,0.08)"
-                              : "#e8eae4",
+                              : "rgba(29,83,55,0.12)",
                           },
                         ]}
                       />
@@ -1615,7 +1618,7 @@ function AchievementSheet({
                                     {
                                       backgroundColor: isDark
                                         ? "rgba(255,255,255,0.06)"
-                                        : "#f1f3ee",
+                                        : Palette.cream100,
                                     },
                                   ]}
                                 >
@@ -1679,9 +1682,9 @@ function FriendCard({
           opacity: pressed ? 0.92 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
           borderColor: isDark
-            ? "rgba(255,255,255,0.05)"
-            : "rgba(14,58,35,0.06)",
-          shadowColor: "#000",
+            ? "rgba(253,248,239,0.05)"
+            : "rgba(29,83,55,0.06)",
+          shadowColor: Palette.forest700,
           shadowOpacity: isDark ? 0.06 : 0,
           elevation: isDark ? 2 : 0,
         },
@@ -1789,22 +1792,22 @@ function SuggestedFriendCard({
   const showPhoto = !!suggestion.profilePhotoUrl && !photoFailed;
 
   // Theme-aware, token-driven palette — designed for both modes together.
-  const ringColor = isDark ? "#d4dc63" : Brand.accent;
+  const ringColor = isDark ? Palette.sun200 : Brand.accent;
   const cardBorder = isDark
-    ? "rgba(255,255,255,0.12)"
-    : "rgba(14,58,35,0.10)";
+    ? "rgba(253,248,239,0.12)"
+    : "rgba(29,83,55,0.10)";
   const chipBg = isDark
-    ? "rgba(212,220,99,0.14)"
-    : "rgba(14,58,35,0.07)";
-  const chipFg = isDark ? "#d8e08a" : Brand.green;
+    ? "rgba(248,251,105,0.14)"
+    : "rgba(29,83,55,0.07)";
+  const chipFg = isDark ? Palette.sun200 : Brand.green;
   const ribbonBg = isDark
     ? "rgba(251,191,36,0.18)"
     : "rgba(251,191,36,0.16)";
   const ribbonFg = isDark ? "#fcd9a3" : "#9a5b14";
-  // CTA mirrors the app's established primary convention (see user/[id].tsx):
-  // deep green on light, bright lime on dark — high contrast in both.
+  // CTA mirrors the app's established primary convention:
+  // deep forest on light, bright sun on dark — high contrast in both.
   const ctaBg = isDark ? Brand.accent : Brand.green;
-  const ctaFg = isDark ? Brand.green : Brand.warmWhite;
+  const ctaFg = isDark ? Palette.ink : Brand.warmWhite;
 
   return (
     <View
@@ -1813,7 +1816,7 @@ function SuggestedFriendCard({
         {
           backgroundColor: colors.card,
           borderColor: cardBorder,
-          shadowColor: isDark ? "#000000" : "#0e3a23",
+          shadowColor: isDark ? Palette.forest800 : Palette.forest700,
           shadowOpacity: isDark ? 0.35 : 0.06,
           shadowRadius: isDark ? 10 : 12,
           shadowOffset: { width: 0, height: isDark ? 4 : 6 },
@@ -1970,7 +1973,7 @@ function SettingsRow({
           styles.settingsIcon,
           {
             backgroundColor: isDark
-              ? "rgba(134,239,172,0.10)"
+              ? "rgba(155,189,160,0.14)"
               : Brand.greenLight,
           },
         ]}
@@ -1978,7 +1981,7 @@ function SettingsRow({
         <Ionicons
           name={icon}
           size={18}
-          color={isDark ? "#86efac" : Brand.green}
+          color={isDark ? Palette.forest200 : Brand.green}
         />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
@@ -2022,7 +2025,7 @@ function SettingsToggleRow({
           styles.settingsIcon,
           {
             backgroundColor: isDark
-              ? "rgba(134,239,172,0.10)"
+              ? "rgba(155,189,160,0.14)"
               : Brand.greenLight,
           },
         ]}
@@ -2030,7 +2033,7 @@ function SettingsToggleRow({
         <Ionicons
           name={icon}
           size={18}
-          color={isDark ? "#86efac" : Brand.green}
+          color={isDark ? Palette.forest200 : Brand.green}
         />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
@@ -2106,7 +2109,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarInitial: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontSize: 38,
     fontFamily: FontFamily.headingBold,
   },
@@ -2130,9 +2133,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   heroName: {
-    fontSize: 30,
-    fontFamily: FontFamily.headingBold,
-    lineHeight: 36,
+    fontSize: 32,
+    lineHeight: 38,
     textAlign: "center",
     marginBottom: 10,
   },
@@ -2147,7 +2149,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   mahiCard: {
-    borderRadius: 24,
+    borderRadius: 28,
     paddingVertical: 26,
     paddingHorizontal: 24,
     overflow: "hidden",
@@ -2171,44 +2173,29 @@ const styles = StyleSheet.create({
     left: -40,
   },
   mahiLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
     marginBottom: 8,
-  },
-  mahiLabelLine: {
-    width: 20,
-    height: 2,
-    borderRadius: 1,
-  },
-  mahiLabel: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    color: Brand.accent,
-    letterSpacing: 1.8,
-    textTransform: "uppercase",
   },
   mahiHero: {
     marginTop: 2,
     marginBottom: 22,
   },
   mahiHeroNumber: {
-    fontSize: 56,
-    lineHeight: 62,
-    fontFamily: FontFamily.headingBold,
-    color: "#ffffff",
+    fontSize: 60,
+    lineHeight: 64,
+    fontFamily: FontFamily.display,
+    color: Palette.cream50,
     letterSpacing: -1.5,
   },
   mahiHeroCaption: {
     fontSize: 14,
     fontFamily: FontFamily.medium,
-    color: "rgba(255,253,247,0.85)",
+    color: "rgba(253,248,239,0.85)",
     marginTop: 2,
     fontStyle: "italic",
   },
   mahiDivider: {
     height: 1,
-    backgroundColor: "rgba(255,253,247,0.14)",
+    backgroundColor: "rgba(253,248,239,0.14)",
     marginBottom: 18,
   },
   mahiStatsRow: {
@@ -2221,22 +2208,22 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   mahiStatValue: {
-    fontSize: 22,
-    fontFamily: FontFamily.headingBold,
-    color: "#ffffff",
+    fontSize: 24,
+    fontFamily: FontFamily.display,
+    color: Palette.cream50,
     letterSpacing: -0.3,
   },
   mahiStatLabel: {
     fontSize: 11,
     fontFamily: FontFamily.medium,
-    color: "rgba(255,253,247,0.7)",
+    color: "rgba(253,248,239,0.7)",
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   mahiStatDivider: {
     width: 1,
     height: 28,
-    backgroundColor: "rgba(255,253,247,0.14)",
+    backgroundColor: "rgba(253,248,239,0.14)",
   },
 
   /* Section */
@@ -2252,8 +2239,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 22,
-    fontFamily: FontFamily.headingBold,
+    fontFamily: FontFamily.heading,
     letterSpacing: -0.3,
+  },
+  sectionEyebrow: {
+    marginBottom: 8,
+    paddingLeft: 2,
+  },
+  settingsEyebrow: {
+    marginBottom: 14,
+    paddingLeft: 4,
   },
   sectionSubtitle: {
     fontSize: 12,
@@ -2294,7 +2289,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   friendAvatarInitial: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontSize: 22,
     fontFamily: FontFamily.headingBold,
   },
@@ -2659,6 +2654,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     marginTop: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 48,
   },
   signOutText: {
     fontFamily: FontFamily.semiBold,
@@ -3045,7 +3043,7 @@ const achieveSheet = StyleSheet.create({
     justifyContent: "center",
   },
   friendInitial: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontSize: 16,
     fontFamily: FontFamily.bold,
   },

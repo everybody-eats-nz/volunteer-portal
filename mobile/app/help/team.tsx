@@ -17,8 +17,12 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ReAnimated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { clearTeamUnreadCount } from "@/hooks/use-team-unread";
 import { queryClient } from "@/lib/query-client";
@@ -49,8 +53,8 @@ function usePaperTint(
   return {
     paper: colors.background,
     ink: isDark ? colors.text : Brand.green,
-    inkSoft: isDark ? colors.textSecondary : "#4a5a4f",
-    rule: isDark ? "rgba(232,245,232,0.12)" : "rgba(14,58,35,0.14)",
+    inkSoft: isDark ? colors.textSecondary : "#5B6A5E",
+    rule: isDark ? "rgba(253,248,239,0.14)" : "rgba(29,83,55,0.15)",
     accent: Brand.accent,
     eyebrow: isDark ? Brand.greenLight : Brand.green,
   };
@@ -161,6 +165,7 @@ export default function TeamThreadScreen() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
+  const [hintHeight, setHintHeight] = useState(0);
   const flatListRef = useRef<FlatList<TeamMessage>>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -246,6 +251,20 @@ export default function TeamThreadScreen() {
   );
 
   const floatingBottom = insets.bottom + 8;
+  /* iOS: lift the absolute composer above the keyboard (padding-based
+     KeyboardAvoidingView can't move an absolute child; Android resizes the
+     window so it rides up on its own). */
+  const keyboard = useAnimatedKeyboard();
+  const keyboardLift = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          Platform.OS === "ios"
+            ? -Math.max(keyboard.height.value - insets.bottom, 0)
+            : 0,
+      },
+    ],
+  }));
 
   const useNativeGlass = isLiquidGlassAvailable();
   const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
@@ -284,12 +303,14 @@ export default function TeamThreadScreen() {
         accessibilityRole="button"
       >
         {sending ? (
-          <ActivityIndicator color={hasInput ? "#ffffff" : colors.textSecondary} />
+          <ActivityIndicator
+            color={hasInput ? Palette.cream50 : colors.textSecondary}
+          />
         ) : (
           <Ionicons
             name="arrow-up"
             size={18}
-            color={hasInput ? "#ffffff" : colors.textSecondary}
+            color={hasInput ? Palette.cream50 : colors.textSecondary}
           />
         )}
       </Pressable>
@@ -350,10 +371,24 @@ export default function TeamThreadScreen() {
           keyExtractor={(m) => m.id}
           contentContainerStyle={[
             styles.messageList,
-            { paddingBottom: composerHeight + floatingBottom + 16 },
+            {
+              paddingBottom:
+                composerHeight +
+                floatingBottom +
+                16 +
+                (hours && !hours.isOpenNow ? hintHeight + 12 : 0),
+            },
           ]}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => {
+            requestAnimationFrame(() => {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            });
+          }}
+          // The list also needs to pin to the bottom once its own viewport is
+          // measured — on first mount onContentSizeChange can fire before the
+          // FlatList has a height, leaving the initial scrollToEnd short.
+          onLayout={() => {
             requestAnimationFrame(() => {
               flatListRef.current?.scrollToEnd({ animated: false });
             });
@@ -364,13 +399,15 @@ export default function TeamThreadScreen() {
       {/* Off-hours hint */}
       {hours && !hours.isOpenNow && (
         <View
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 0 && Math.abs(h - hintHeight) > 0.5) setHintHeight(h);
+          }}
           style={[
             styles.offHoursHint,
             {
               bottom: floatingBottom + composerHeight + 12,
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(14,58,35,0.05)",
+              backgroundColor: colors.surfaceSoft,
               borderColor: paperTint.rule,
             },
           ]}
@@ -385,7 +422,7 @@ export default function TeamThreadScreen() {
       )}
 
       {/* Composer */}
-      <View
+      <ReAnimated.View
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           if (h > 0 && Math.abs(h - composerHeight) > 0.5) {
@@ -395,6 +432,7 @@ export default function TeamThreadScreen() {
         style={[
           styles.floatingWrap,
           { bottom: floatingBottom },
+          keyboardLift,
           Platform.OS === "ios" && {
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 4 },
@@ -421,7 +459,7 @@ export default function TeamThreadScreen() {
                 {
                   backgroundColor: isDark
                     ? "rgba(40,44,52,0.55)"
-                    : "rgba(255,253,247,0.78)",
+                    : "rgba(253,248,239,0.80)",
                   borderColor: paperTint.rule,
                   borderWidth: StyleSheet.hairlineWidth,
                   borderRadius: 22,
@@ -431,7 +469,7 @@ export default function TeamThreadScreen() {
             {composerInner}
           </View>
         )}
-      </View>
+      </ReAnimated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -545,7 +583,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   userBubbleText: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontFamily: FontFamily.regular,
     fontSize: 15.5,
     lineHeight: 22,

@@ -17,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
-import { Colors, Brand, FontFamily } from '@/constants/theme';
+import { Colors, Brand, FontFamily, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, ApiError } from '@/lib/api';
 
@@ -222,7 +222,7 @@ export function ShiftSignupSheet({
           <View
             style={[
               ss.handleBar,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' },
+              { backgroundColor: isDark ? 'rgba(253,248,239,0.22)' : 'rgba(29,83,55,0.18)' },
             ]}
           />
         </View>
@@ -239,7 +239,7 @@ export function ShiftSignupSheet({
             style={({ pressed }) => [
               ss.closeButton,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                backgroundColor: isDark ? 'rgba(253,248,239,0.08)' : colors.surfaceSunk,
                 opacity: pressed ? 0.6 : 1,
               },
             ]}>
@@ -253,7 +253,7 @@ export function ShiftSignupSheet({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           {/* Shift details card */}
-          <View style={[ss.card, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc' }]}>
+          <View style={[ss.card, { backgroundColor: colors.surfaceSoft }]}>
             <Text style={[ss.cardTitle, { color: colors.text }]}>{shift.shiftType.name}</Text>
             {shift.shiftType.description ? (
               <Text style={[ss.cardDescription, { color: colors.textSecondary }]}>
@@ -282,7 +282,7 @@ export function ShiftSignupSheet({
                 <Text style={[ss.cardValue, { color: colors.text }]}>
                   {shift.signedUp}/{shift.capacity} confirmed
                   {!isWaitlist && spotsLeft > 0 && (
-                    <Text style={{ color: '#16a34a' }}> ({spotsLeft} spots left)</Text>
+                    <Text style={{ color: isDark ? colors.tint : Palette.forest400 }}> ({spotsLeft} spots left)</Text>
                   )}
                 </Text>
               </View>
@@ -291,10 +291,10 @@ export function ShiftSignupSheet({
 
           {/* Volunteers signed up for this period (friends + public profiles) */}
           {periodFriends.length > 0 && (
-            <View style={[ss.friendsSection, { backgroundColor: isDark ? 'rgba(14,58,35,0.15)' : Brand.greenLight }]}>
+            <View style={[ss.friendsSection, { backgroundColor: isDark ? 'rgba(14,42,28,0.45)' : Brand.greenLight }]}>
               <View style={ss.friendsHeader}>
-                <Ionicons name="people" size={16} color={isDark ? '#86efac' : Brand.green} />
-                <Text style={[ss.friendsTitle, { color: isDark ? '#86efac' : Brand.green }]}>
+                <Ionicons name="people" size={16} color={isDark ? colors.tint : Brand.green} />
+                <Text style={[ss.friendsTitle, { color: isDark ? colors.tint : Brand.green }]}>
                   {periodFriends.length} volunteer{periodFriends.length !== 1 ? 's' : ''} going
                 </Text>
               </View>
@@ -310,16 +310,16 @@ export function ShiftSignupSheet({
                           style={ss.friendAvatar}
                         />
                       ) : (
-                        <View style={[ss.friendAvatarFallback, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : '#ffffff' }]}>
-                          <Text style={[ss.friendInitial, { color: isDark ? '#86efac' : Brand.green }]}>{initial}</Text>
+                        <View style={[ss.friendAvatarFallback, { backgroundColor: isDark ? 'rgba(253,248,239,0.12)' : colors.card }]}>
+                          <Text style={[ss.friendInitial, { color: isDark ? colors.tint : Brand.green }]}>{initial}</Text>
                         </View>
                       )}
                       <View style={{ flexShrink: 1 }}>
-                        <Text style={[ss.friendName, { color: isDark ? '#e5f0e8' : Brand.nearBlack }]} numberOfLines={1}>
+                        <Text style={[ss.friendName, { color: isDark ? colors.text : Brand.nearBlack }]} numberOfLines={1}>
                           {friend.name}
                         </Text>
                         {onDifferentRole && (
-                          <Text style={[ss.friendRole, { color: isDark ? 'rgba(255,255,255,0.5)' : colors.textSecondary }]} numberOfLines={1}>
+                          <Text style={[ss.friendRole, { color: isDark ? 'rgba(253,248,239,0.5)' : colors.textSecondary }]} numberOfLines={1}>
                             {friend.shiftTypeName}
                           </Text>
                         )}
@@ -333,26 +333,26 @@ export function ShiftSignupSheet({
 
           {/* Auto-approval indicator */}
           {autoApproval.loading ? (
-            <View style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc' }]}>
+            <View style={[ss.infoBox, { backgroundColor: colors.surfaceSoft }]}>
               <ActivityIndicator size="small" color={colors.textSecondary} />
               <Text style={[ss.infoText, { color: colors.textSecondary }]}>
                 Checking eligibility...
               </Text>
             </View>
           ) : autoApproval.eligible && !isWaitlist ? (
-            <View style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(34,197,94,0.08)' : '#f0fdf4' }]}>
+            <View style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(29,83,55,0.18)' : colors.primaryLight }]}>
               <Text style={ss.infoEmoji}>🎉</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[ss.infoTitle, { color: isDark ? '#86efac' : '#16a34a' }]}>
+                <Text style={[ss.infoTitle, { color: isDark ? colors.tint : Palette.forest500 }]}>
                   Instant Approval Available!
                 </Text>
-                <Text style={[ss.infoText, { color: isDark ? '#86efac' : '#15803d' }]}>
-                  You'll be automatically confirmed based on your volunteer history.
+                <Text style={[ss.infoText, { color: isDark ? colors.tint : Palette.forest400 }]}>
+                  You’ll be automatically confirmed based on your volunteer history.
                 </Text>
               </View>
             </View>
           ) : (
-            <View style={[ss.infoBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc' }]}>
+            <View style={[ss.infoBox, { backgroundColor: colors.surfaceSoft }]}>
               <Text style={ss.infoEmoji}>{isWaitlist ? '📋' : 'ℹ️'}</Text>
               <Text style={[ss.infoText, { color: colors.textSecondary, flex: 1 }]}>
                 {isWaitlist
@@ -373,7 +373,7 @@ export function ShiftSignupSheet({
                 ss.addNoteButton,
                 {
                   borderColor: colors.border,
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#fafafa',
+                  backgroundColor: isDark ? 'rgba(253,248,239,0.03)' : colors.surfaceSunk,
                   opacity: pressed ? 0.7 : 1,
                 },
               ]}>
@@ -387,7 +387,7 @@ export function ShiftSignupSheet({
                 style={[
                   ss.noteInput,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fafafa',
+                    backgroundColor: isDark ? 'rgba(253,248,239,0.05)' : colors.surfaceSunk,
                     borderColor: colors.border,
                     color: colors.text,
                   },
@@ -410,7 +410,7 @@ export function ShiftSignupSheet({
 
           {/* Backup shift options */}
           {concurrentShifts.length > 0 && (
-            <View style={[ss.backupSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc' }]}>
+            <View style={[ss.backupSection, { backgroundColor: colors.surfaceSoft }]}>
               <Text style={[ss.fieldLabel, { color: colors.text }]}>
                 Flexible with shift changes?
               </Text>
@@ -427,17 +427,17 @@ export function ShiftSignupSheet({
                       ss.backupRow,
                       {
                         borderColor: selected
-                          ? isDark ? '#86efac' : Brand.green
+                          ? isDark ? colors.tint : Brand.green
                           : colors.border,
                         backgroundColor: selected
-                          ? isDark ? 'rgba(14,58,35,0.2)' : Brand.greenLight
+                          ? isDark ? 'rgba(29,83,55,0.22)' : Brand.greenLight
                           : 'transparent',
                         opacity: pressed ? 0.7 : 1,
                       },
                     ]}>
                     <View style={ss.backupCheck}>
                       {selected ? (
-                        <Ionicons name="checkbox" size={22} color={isDark ? '#86efac' : Brand.green} />
+                        <Ionicons name="checkbox" size={22} color={isDark ? colors.tint : Brand.green} />
                       ) : (
                         <Ionicons name="square-outline" size={22} color={colors.textSecondary} />
                       )}
@@ -454,7 +454,7 @@ export function ShiftSignupSheet({
                       <Text
                         style={[
                           ss.backupSpots,
-                          { color: cs.spotsRemaining > 0 ? '#16a34a' : '#ea580c' },
+                          { color: cs.spotsRemaining > 0 ? (isDark ? colors.tint : Palette.forest400) : '#ea580c' },
                         ]}>
                         {cs.spotsRemaining > 0
                           ? `${cs.spotsRemaining} spot${cs.spotsRemaining !== 1 ? 's' : ''} available`
@@ -560,11 +560,12 @@ export function ShiftSignupSheet({
               {
                 backgroundColor: isSubmitting ? colors.textSecondary : Brand.green,
                 opacity: pressed ? 0.9 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
                 flex: 1,
               },
             ]}>
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color={Palette.cream50} />
             ) : (
               <Text style={ss.footerButtonPrimaryText}>{buttonLabel}</Text>
             )}
@@ -595,9 +596,10 @@ const ss = StyleSheet.create({
     gap: 12,
   },
   title: {
-    fontSize: 20,
-    fontFamily: FontFamily.headingBold,
-    lineHeight: 26,
+    fontSize: 24,
+    fontFamily: FontFamily.display,
+    lineHeight: 28,
+    letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 14,
@@ -620,7 +622,7 @@ const ss = StyleSheet.create({
 
   // Shift details card
   card: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 16,
     gap: 8,
   },
@@ -655,7 +657,7 @@ const ss = StyleSheet.create({
 
   // Friends section
   friendsSection: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 14,
     gap: 10,
   },
@@ -681,7 +683,7 @@ const ss = StyleSheet.create({
     paddingLeft: 3,
     paddingVertical: 3,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(253,248,239,0.5)',
   },
   friendAvatar: {
     width: 26,
@@ -739,7 +741,7 @@ const ss = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 999,
     borderWidth: 1,
   },
   addNoteText: {
@@ -776,7 +778,7 @@ const ss = StyleSheet.create({
 
   // Backup shifts
   backupSection: {
-    borderRadius: 14,
+    borderRadius: 24,
     padding: 16,
     gap: 10,
   },
@@ -847,9 +849,10 @@ const ss = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 999,
     paddingVertical: 10,
     paddingHorizontal: 14,
+    minHeight: 44,
   },
   profileIncompleteButtonText: {
     fontSize: 14,
@@ -865,12 +868,13 @@ const ss = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   footerButtonSecondary: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 999,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 50,
   },
   footerButtonSecondaryText: {
     fontSize: 15,
@@ -878,13 +882,13 @@ const ss = StyleSheet.create({
   },
   footerButtonPrimary: {
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 50,
   },
   footerButtonPrimaryText: {
-    color: '#ffffff',
+    color: Palette.cream50,
     fontSize: 15,
     fontFamily: FontFamily.bold,
   },

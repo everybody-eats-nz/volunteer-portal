@@ -1,3 +1,21 @@
+## [0.119.1] - 2026-06-18
+
+### Changes
+- fix(auth): verify passkey assertion in-process to fix prod login timeout ([#1001](https://github.com/everybody-eats-nz/volunteer-portal/pull/1001)) by @malinmalliyawadu
+
+
+## [0.119.0] - 2026-06-18
+
+### Changes
+- feat(mobile): in-app registration with scroll-to-read agreements & Apple/Google sign-up ([#1000](https://github.com/everybody-eats-nz/volunteer-portal/pull/1000)) by @malinmalliyawadu
+
+
+## [0.118.0] - 2026-06-18
+
+### Changes
+- feat(web): redesign homepage, header & footer to match marketing site ([#959](https://github.com/everybody-eats-nz/volunteer-portal/pull/959)) by @malinmalliyawadu
+
+
 ## [0.117.0] - 2026-06-17
 
 ### Changes

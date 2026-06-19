@@ -19,9 +19,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ReAnimated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import MarkdownDisplay from "react-native-markdown-display";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { api } from "@/lib/api";
 import { chatWithAssistant } from "@/lib/chat";
@@ -72,8 +76,8 @@ function usePaperTint(
   return {
     paper: colors.background,
     ink: isDark ? colors.text : Brand.green,
-    inkSoft: isDark ? colors.textSecondary : "#4a5a4f",
-    rule: isDark ? "rgba(232,245,232,0.12)" : "rgba(14,58,35,0.14)",
+    inkSoft: isDark ? colors.textSecondary : "#5B6A5E",
+    rule: isDark ? "rgba(253,248,239,0.14)" : "rgba(29,83,55,0.15)",
     accent: Brand.accent,
     eyebrow: isDark ? Brand.greenLight : Brand.green,
   };
@@ -267,7 +271,7 @@ const MessageBubble = React.memo(function MessageBubble({
               backgroundColor: "transparent",
             },
             code_inline: {
-              backgroundColor: isDark ? "#252830" : "rgba(14,58,35,0.06)",
+              backgroundColor: isDark ? "#252830" : "rgba(29,83,55,0.07)",
               color: colors.text,
               fontSize: 14,
               paddingHorizontal: 4,
@@ -522,8 +526,24 @@ export default function ChatScreen() {
     [input, isLoading, messages]
   );
 
-  /* ── Floating bar vertical position (KeyboardAvoidingView handles keyboard offset) ── */
+  /* ── Floating bar vertical position ──
+     KeyboardAvoidingView (behavior="padding") lifts the message list, but it
+     CANNOT move the absolutely-positioned composer (padding doesn't shift an
+     absolute bottom-anchored child). On Android the window resizes so the
+     composer rides up on its own; on iOS we lift it manually with the keyboard
+     height via reanimated. */
   const floatingBottom = insets.bottom + 8;
+  const keyboard = useAnimatedKeyboard();
+  const keyboardLift = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          Platform.OS === "ios"
+            ? -Math.max(keyboard.height.value - insets.bottom, 0)
+            : 0,
+      },
+    ],
+  }));
 
   /* ── Scroll tracking: show button when not at bottom and list is scrollable ── */
   const updateScrollButton = useCallback(() => {
@@ -634,7 +654,7 @@ export default function ChatScreen() {
         <Ionicons
           name="arrow-up"
           size={18}
-          color={hasInput ? "#ffffff" : colors.textSecondary}
+          color={hasInput ? Palette.cream50 : colors.textSecondary}
         />
       </Pressable>
     </>
@@ -768,10 +788,10 @@ export default function ChatScreen() {
             styles.scrollToBottomBtn,
             {
               bottom: floatingBottom + FLOATING_BAR_HEIGHT + 14,
-              backgroundColor: isDark ? "#1a1d21" : "#ffffff",
+              backgroundColor: colors.card,
               borderColor: isDark
-                ? "rgba(255,255,255,0.14)"
-                : "rgba(14,58,35,0.14)",
+                ? "rgba(253,248,239,0.14)"
+                : "rgba(29,83,55,0.15)",
               transform: [{ scale: pressed ? 0.9 : 1 }],
             },
           ]}
@@ -784,7 +804,7 @@ export default function ChatScreen() {
       )}
 
       {/* ── Floating composer ── */}
-      <View
+      <ReAnimated.View
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           if (h > 0 && Math.abs(h - composerHeight) > 0.5) {
@@ -794,6 +814,7 @@ export default function ChatScreen() {
         style={[
           styles.floatingWrap,
           { bottom: floatingBottom },
+          keyboardLift,
           Platform.OS === "ios" && {
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 4 },
@@ -809,10 +830,10 @@ export default function ChatScreen() {
               styles.glassBar,
               styles.glassBarFallback,
               {
-                backgroundColor: isDark ? "#1a1d21" : "#ffffff",
+                backgroundColor: colors.card,
                 borderColor: isDark
-                  ? "rgba(255,255,255,0.12)"
-                  : "rgba(14, 58, 35, 0.14)",
+                  ? "rgba(253,248,239,0.12)"
+                  : "rgba(29, 83, 55, 0.15)",
                 borderWidth: StyleSheet.hairlineWidth,
               },
             ]}
@@ -836,10 +857,10 @@ export default function ChatScreen() {
                 {
                   backgroundColor: isDark
                     ? "rgba(40,44,52,0.55)"
-                    : "rgba(255,253,247,0.78)",
+                    : "rgba(253,248,239,0.80)",
                   borderColor: isDark
-                    ? "rgba(255,255,255,0.18)"
-                    : "rgba(14, 58, 35, 0.14)",
+                    ? "rgba(253,248,239,0.18)"
+                    : "rgba(29, 83, 55, 0.15)",
                   borderWidth: StyleSheet.hairlineWidth,
                   borderRadius: 22,
                 },
@@ -848,7 +869,7 @@ export default function ChatScreen() {
             {inputContents}
           </View>
         )}
-      </View>
+      </ReAnimated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -931,7 +952,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   hero: {
-    fontFamily: FontFamily.headingBold,
+    fontFamily: FontFamily.display,
     fontSize: 64,
     lineHeight: 66,
     letterSpacing: -1.2,
@@ -996,7 +1017,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 6,
   },
   userText: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontFamily: FontFamily.regular,
     fontSize: 15.5,
     lineHeight: 22,

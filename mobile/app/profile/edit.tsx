@@ -23,7 +23,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Brand, Colors, FontFamily } from "@/constants/theme";
+import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
 import { api, ApiError, apiUpload } from "@/lib/api";
@@ -499,13 +499,13 @@ export default function EditProfileScreen() {
               {isSaving ? (
                 <ActivityIndicator
                   size="small"
-                  color={isDark ? "#86efac" : Brand.green}
+                  color={isDark ? Palette.forest200 : Brand.green}
                 />
               ) : (
                 <Ionicons
                   name="checkmark"
                   size={28}
-                  color={isDark ? "#86efac" : Brand.green}
+                  color={isDark ? Palette.forest200 : Brand.green}
                 />
               )}
             </Pressable>
@@ -551,11 +551,11 @@ export default function EditProfileScreen() {
             )}
             {isUploadingPhoto ? (
               <View style={[s.avatarBadge, { backgroundColor: Brand.green }]}>
-                <ActivityIndicator size={14} color="#ffffff" />
+                <ActivityIndicator size={14} color={Palette.cream50} />
               </View>
             ) : (
               <View style={[s.avatarBadge, { backgroundColor: Brand.green }]}>
-                <Ionicons name="camera" size={14} color="#ffffff" />
+                <Ionicons name="camera" size={14} color={Palette.cream50} />
               </View>
             )}
           </Pressable>
@@ -563,7 +563,7 @@ export default function EditProfileScreen() {
             <Text
               style={[
                 s.changePhotoText,
-                { color: isDark ? "#86efac" : Brand.green },
+                { color: isDark ? Palette.forest200 : Brand.green },
               ]}
             >
               {isUploadingPhoto ? "Uploading..." : "Change Photo"}
@@ -634,9 +634,7 @@ export default function EditProfileScreen() {
               style={({ pressed }) => [
                 s.locationSelector,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.04)"
-                    : "#ffffff",
+                  backgroundColor: isDark ? colors.surfaceSunk : colors.card,
                   borderColor: colors.border,
                   opacity: pressed ? 0.7 : 1,
                 },
@@ -654,7 +652,7 @@ export default function EditProfileScreen() {
                 color={
                   form.defaultLocation
                     ? isDark
-                      ? "#86efac"
+                      ? Palette.forest200
                       : Brand.green
                     : colors.textSecondary
                 }
@@ -745,7 +743,7 @@ export default function EditProfileScreen() {
             Notifications
           </Text>
           <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
-            Choose how you'd like to hear from us.
+            Choose how you’d like to hear from us.
           </Text>
 
           {CHANNEL_OPTIONS.map((ch) => {
@@ -781,7 +779,7 @@ export default function EditProfileScreen() {
                   color={
                     enabled
                       ? isDark
-                        ? "#86efac"
+                        ? Palette.forest200
                         : Brand.green
                       : colors.textSecondary
                   }
@@ -797,7 +795,7 @@ export default function EditProfileScreen() {
                 {showSpinner ? (
                   <ActivityIndicator
                     size="small"
-                    color={isDark ? "#86efac" : Brand.green}
+                    color={isDark ? Palette.forest200 : Brand.green}
                   />
                 ) : (
                   <Ionicons
@@ -806,7 +804,7 @@ export default function EditProfileScreen() {
                     color={
                       enabled
                         ? isDark
-                          ? "#86efac"
+                          ? Palette.forest200
                           : Brand.green
                         : colors.textSecondary
                     }
@@ -851,7 +849,7 @@ export default function EditProfileScreen() {
               color={
                 form.receiveShortageNotifications
                   ? isDark
-                    ? "#86efac"
+                    ? Palette.forest200
                     : Brand.green
                   : colors.textSecondary
               }
@@ -863,9 +861,7 @@ export default function EditProfileScreen() {
               style={[
                 s.nestedSection,
                 {
-                  backgroundColor: isDark
-                    ? "rgba(255,255,255,0.04)"
-                    : "#f8fafc",
+                  backgroundColor: isDark ? colors.surfaceSunk : colors.surfaceSoft,
                 },
               ]}
             >
@@ -897,7 +893,7 @@ export default function EditProfileScreen() {
                       color={
                         included
                           ? isDark
-                            ? "#86efac"
+                            ? Palette.forest200
                             : Brand.green
                           : colors.textSecondary
                       }
@@ -945,7 +941,7 @@ export default function EditProfileScreen() {
               color={
                 form.emailNewsletterSubscription
                   ? isDark
-                    ? "#86efac"
+                    ? Palette.forest200
                     : Brand.green
                   : colors.textSecondary
               }
@@ -958,9 +954,7 @@ export default function EditProfileScreen() {
                 style={[
                   s.nestedSection,
                   {
-                    backgroundColor: isDark
-                      ? "rgba(255,255,255,0.04)"
-                      : "#f8fafc",
+                    backgroundColor: isDark ? colors.surfaceSunk : colors.surfaceSoft,
                   },
                 ]}
               >
@@ -993,7 +987,7 @@ export default function EditProfileScreen() {
                         color={
                           subscribed
                             ? isDark
-                              ? "#86efac"
+                              ? Palette.forest200
                               : Brand.green
                             : colors.textSecondary
                         }
@@ -1033,7 +1027,7 @@ export default function EditProfileScreen() {
           <View style={{ gap: 8 }}>
             {VISIBILITY_OPTIONS.map((opt) => {
               const active = form.friendVisibility === opt.value;
-              const activeColor = isDark ? "#86efac" : Brand.green;
+              const activeColor = isDark ? Palette.forest200 : Brand.green;
               return (
                 <Pressable
                   key={opt.value}
@@ -1047,15 +1041,15 @@ export default function EditProfileScreen() {
                       borderColor: active ? activeColor : colors.border,
                       backgroundColor: active
                         ? isDark
-                          ? "rgba(134, 239, 172, 0.08)"
-                          : Brand.greenLight
+                          ? "rgba(155,189,160,0.10)"
+                          : colors.primaryLight
                         : pressed
                         ? isDark
-                          ? "rgba(255,255,255,0.04)"
-                          : "#f8fafc"
+                          ? colors.surfaceSoft
+                          : colors.surfaceSoft
                         : isDark
-                        ? "rgba(255,255,255,0.04)"
-                        : "#ffffff",
+                        ? colors.surfaceSunk
+                        : colors.card,
                     },
                   ]}
                   accessibilityRole="radio"
@@ -1121,7 +1115,7 @@ export default function EditProfileScreen() {
               color={
                 form.allowFriendRequests
                   ? isDark
-                    ? "#86efac"
+                    ? Palette.forest200
                     : Brand.green
                   : colors.textSecondary
               }
@@ -1153,7 +1147,7 @@ export default function EditProfileScreen() {
               color={
                 form.allowFriendSuggestions
                   ? isDark
-                    ? "#86efac"
+                    ? Palette.forest200
                     : Brand.green
                   : colors.textSecondary
               }
@@ -1189,7 +1183,7 @@ export default function EditProfileScreen() {
             </View>
             <Text style={[s.dangerBody, { color: colors.textSecondary }]}>
               Permanently delete your account, shift history, achievements, and
-              friendships. This can't be undone.
+              friendships. This can’t be undone.
             </Text>
             <Pressable
               onPress={() => {
@@ -1363,8 +1357,8 @@ function DefaultLocationSheet({
               s.sheetClose,
               {
                 backgroundColor: isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "#f1f5f9",
+                  ? "rgba(253,248,239,0.08)"
+                  : colors.surfaceSunk,
                 opacity: pressed ? 0.6 : 1,
               },
             ]}
@@ -1379,7 +1373,7 @@ function DefaultLocationSheet({
         >
           {items.map((item) => {
             const active = item.value === selected;
-            const activeColor = isDark ? "#86efac" : Brand.green;
+            const activeColor = isDark ? Palette.forest200 : Brand.green;
             return (
               <Pressable
                 key={item.key}
@@ -1389,12 +1383,12 @@ function DefaultLocationSheet({
                   {
                     backgroundColor: active
                       ? isDark
-                        ? "rgba(134, 239, 172, 0.12)"
-                        : Brand.greenLight
+                        ? "rgba(155,189,160,0.12)"
+                        : colors.primaryLight
                       : pressed
                       ? isDark
-                        ? "rgba(255,255,255,0.04)"
-                        : "#f8fafc"
+                        ? colors.surfaceSoft
+                        : colors.surfaceSoft
                       : "transparent",
                   },
                 ]}
@@ -1461,7 +1455,7 @@ function FormField({
       <Text style={[s.fieldLabel, { color: colors.text }]}>
         {label}
         {required && (
-          <Text style={{ color: isDark ? "#fca5a5" : "#dc2626" }}> *</Text>
+          <Text style={{ color: colors.destructive }}> *</Text>
         )}
       </Text>
       <TextInput
@@ -1471,7 +1465,7 @@ function FormField({
           {
             color: colors.text,
             borderColor: colors.border,
-            backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#ffffff",
+            backgroundColor: isDark ? colors.surfaceSunk : colors.card,
           },
         ]}
         value={value}
@@ -1521,7 +1515,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   avatarInitial: {
-    color: "#ffffff",
+    color: Palette.cream50,
     fontSize: 40,
     fontFamily: FontFamily.bold,
   },
@@ -1533,7 +1527,7 @@ const s = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 3,
-    borderColor: "#ffffff",
+    borderColor: Palette.cream50,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -1553,8 +1547,9 @@ const s = StyleSheet.create({
     gap: 14,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: FontFamily.headingBold,
+    fontSize: 19,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
   },
   sectionHint: {
     fontSize: 13,
