@@ -62,26 +62,29 @@ export async function GET(request: NextRequest) {
       end: endOfDayUTC,
     });
 
-    const mealsRecord = await prisma.mealsServed.findUnique({
-      where: {
-        date_location: {
-          date: startOfDayUTC,
-          location,
+    const [mealsRecord, locationConfig] = await Promise.all([
+      prisma.mealsServed.findUnique({
+        where: {
+          date_location: {
+            date: startOfDayUTC,
+            location,
+          },
         },
-      },
-    });
+      }),
+      prisma.location.findUnique({ where: { name: location } }),
+    ]);
+
+    // Pop-up / special-event venues are koha-manual-only (no Stripe sync).
+    const isPopup = locationConfig?.isPopup ?? false;
 
     // If no record exists, get the default from Location model
     if (!mealsRecord) {
-      const locationConfig = await prisma.location.findUnique({
-        where: { name: location },
-      });
-
       return NextResponse.json({
         mealsServed: null,
         defaultMealsServed: locationConfig?.defaultMealsServed || 60,
         notes: null,
         newVolunteers,
+        isPopup,
       });
     }
 
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
       ...serializeStats(mealsRecord),
       newVolunteers, // live value overrides the stored snapshot
       defaultMealsServed: null,
+      isPopup,
     });
   } catch (error) {
     console.error("Error fetching meals served:", error);

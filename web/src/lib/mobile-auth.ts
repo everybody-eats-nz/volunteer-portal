@@ -162,3 +162,17 @@ export async function requireMobileUser(request: Request): Promise<{
   if (!user) return null;
   return { user, userId: user.id };
 }
+
+/**
+ * Like requireMobileUser but additionally enforces the ADMIN role.
+ * Returns null for unauthenticated requests OR authenticated non-admins;
+ * routes collapse both to 403 to avoid leaking whether a token was valid.
+ */
+export async function requireMobileAdmin(request: Request): Promise<{
+  user: MobileUser;
+  userId: string;
+} | null> {
+  const user = await getMobileUser(request);
+  if (!user || user.role !== "ADMIN") return null;
+  return { user, userId: user.id };
+}

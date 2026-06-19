@@ -1,3 +1,51 @@
+## [0.124.0] - 2026-06-18
+
+### Changes
+- feat(admin): sync service-night Stripe koha from the Stripe API ([#1019](https://github.com/everybody-eats-nz/volunteer-portal/pull/1019)) by @malinmalliyawadu
+
+
+## [0.123.2] - 2026-06-18
+
+### Changes
+- test: shift-theme unit tests + cross-platform colour alignment (follow-up to #1008) ([#1012](https://github.com/everybody-eats-nz/volunteer-portal/pull/1012)) by @malinmalliyawadu
+
+
+## [0.123.1] - 2026-06-18
+
+### Changes
+- fix(push): surface silent Expo push failures for admin message notifications ([#1011](https://github.com/everybody-eats-nz/volunteer-portal/pull/1011)) by @malinmalliyawadu
+
+
+## [0.123.0] - 2026-06-18
+
+### Changes
+- feat: cover photos & themes for all shift types via keyword fallback ([#1008](https://github.com/everybody-eats-nz/volunteer-portal/pull/1008)) by @malinmalliyawadu
+
+
+## [0.122.0] - 2026-06-18
+
+### Changes
+- feat(shifts): show per-shift notes as the volunteer-facing description ([#1009](https://github.com/everybody-eats-nz/volunteer-portal/pull/1009)) by @malinmalliyawadu
+
+
+## [0.121.1] - 2026-06-18
+
+### Changes
+- test(notifications): admin signup-request + message push helpers (+ review polish) ([#1007](https://github.com/everybody-eats-nz/volunteer-portal/pull/1007)) by @malinmalliyawadu
+
+
+## [0.121.0] - 2026-06-18
+
+### Changes
+- feat(mobile): admin section with two-way volunteer messaging, approvals & shift overview ([#1005](https://github.com/everybody-eats-nz/volunteer-portal/pull/1005)) by @malinmalliyawadu
+
+
+## [0.120.0] - 2026-06-18
+
+### Changes
+- feat(mobile): up-front shift signup eligibility gating (conflict, email, parental consent) ([#1002](https://github.com/everybody-eats-nz/volunteer-portal/pull/1002)) by @malinmalliyawadu
+
+
 ## [0.119.1] - 2026-06-18
 
 ### Changes

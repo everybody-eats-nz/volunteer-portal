@@ -23,6 +23,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
+import { getShiftDescription } from "@/lib/shift-description";
 import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
 import { ShiftSignupButton } from "@/components/shift-signup-button";
 import { ShareShiftButton } from "@/components/share-shift-button";
@@ -354,9 +355,9 @@ export default async function ShiftDetailPage({
               <h1 className="display text-4xl leading-[1.04] tracking-tight sm:text-5xl">
                 {shift.shiftType.name}
               </h1>
-              {shift.shiftType.description && (
+              {getShiftDescription(shift.notes, shift.shiftType.description) && (
                 <p className="mt-3 max-w-xl leading-relaxed text-cream-50/80">
-                  {shift.shiftType.description}
+                  {getShiftDescription(shift.notes, shift.shiftType.description)}
                 </p>
               )}
             </div>
@@ -691,7 +692,10 @@ export default async function ShiftDetailPage({
             buildShiftEventSchema({
               id: shift.id,
               name: shift.shiftType.name,
-              description: shift.shiftType.description,
+              description: getShiftDescription(
+                shift.notes,
+                shift.shiftType.description
+              ),
               startDate: new Date(shift.start),
               endDate: new Date(shift.end),
               location: shift.location,

@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge } from "@/lib/utils";
+import { getShiftDescription } from "@/lib/shift-description";
 import {
   MessageSquareDot,
   User,
@@ -96,6 +97,7 @@ interface ShiftSignupDialogProps {
     end: Date;
     location: string | null;
     capacity: number;
+    notes?: string | null;
     shiftType: {
       name: string;
       description: string | null;
@@ -511,12 +513,12 @@ export function ShiftSignupDialog({
               {shift.shiftType.name}
             </h3>
 
-            {shift.shiftType.description && (
+            {getShiftDescription(shift.notes, shift.shiftType.description) && (
               <p
                 className="mt-1 text-sm text-forest-700/65 dark:text-cream-50/60"
                 data-testid="shift-details-description"
               >
-                {shift.shiftType.description}
+                {getShiftDescription(shift.notes, shift.shiftType.description)}
               </p>
             )}
 

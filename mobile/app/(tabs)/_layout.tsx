@@ -4,14 +4,17 @@ import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTeamUnreadCount } from '@/hooks/use-team-unread';
+import { useAdminUnreadCount } from '@/hooks/use-admin';
 import { useAuth } from '@/lib/auth';
 import { Colors } from '@/constants/theme';
 import LoginScreen from '@/app/(auth)/login';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const teamUnreadCount = useTeamUnreadCount(isAuthenticated);
+  const isAdmin = user?.role === 'ADMIN';
+  const adminUnreadCount = useAdminUnreadCount(isAuthenticated && isAdmin);
 
   const eeLight = useMemo(() => ({
     ...DefaultTheme,
@@ -77,6 +80,21 @@ export default function TabLayout() {
             </NativeTabs.Trigger.Badge>
           )}
         </NativeTabs.Trigger>
+
+        {isAdmin && (
+          <NativeTabs.Trigger name="admin">
+            <NativeTabs.Trigger.Label>Admin</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Icon
+              sf={{ default: 'shield', selected: 'shield.fill' }}
+              md="shield"
+            />
+            {adminUnreadCount > 0 && (
+              <NativeTabs.Trigger.Badge>
+                {adminUnreadCount > 99 ? '99+' : String(adminUnreadCount)}
+              </NativeTabs.Trigger.Badge>
+            )}
+          </NativeTabs.Trigger>
+        )}
 
         <NativeTabs.Trigger name="profile">
           <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>

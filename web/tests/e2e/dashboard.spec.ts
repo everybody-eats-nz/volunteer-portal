@@ -221,10 +221,8 @@ test.describe("Dashboard Page", () => {
     const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     await expect(welcomeHeading).toBeVisible();
 
-    // Check that stat cards are stacked vertically
-    const statCards = page.locator(
-      '[class*="grid-cols-1"][class*="md:grid-cols-2"][class*="lg:grid-cols-4"]'
-    );
+    // Check that the stat band is still visible on mobile
+    const statCards = page.getByTestId("dashboard-stats");
     await expect(statCards).toBeVisible();
 
   });

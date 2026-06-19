@@ -21,6 +21,7 @@ import {
   Moon,
 } from "lucide-react";
 import { getShiftTheme } from "@/lib/shift-themes";
+import { getShiftDescription } from "@/lib/shift-description";
 import { checkProfileCompletion } from "@/lib/profile-completion";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getBaseUrl } from "@/lib/utils";
@@ -65,7 +66,10 @@ function getConcurrentShiftsFromList(
       return {
         id: shift.id,
         shiftTypeName: shift.shiftType.name,
-        shiftTypeDescription: shift.shiftType.description,
+        shiftTypeDescription: getShiftDescription(
+          shift.notes,
+          shift.shiftType.description
+        ),
         spotsRemaining: Math.max(0, shift.capacity - confirmedCount),
       };
     });
@@ -208,9 +212,9 @@ function ShiftCard({
               </div>
             </div>
 
-            {shift.shiftType.description && (
+            {getShiftDescription(shift.notes, shift.shiftType.description) && (
               <p className="text-sm text-forest-700/70 dark:text-cream-50/65 leading-relaxed line-clamp-2">
-                {shift.shiftType.description}
+                {getShiftDescription(shift.notes, shift.shiftType.description)}
               </p>
             )}
 

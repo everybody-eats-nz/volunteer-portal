@@ -29,6 +29,11 @@ import { ThemedText } from "@/components/themed-text";
 import { Colors, Brand, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
+import { useShifts } from "@/hooks/use-shifts";
+import {
+  findConflictingShift,
+  getShiftPeriodLabel,
+} from "@/lib/shift-eligibility";
 import { api, ApiError } from "@/lib/api";
 import {
   addShiftToCalendar,
@@ -39,6 +44,7 @@ import { ShiftSignupSheet } from "@/components/shift-signup-sheet";
 import { GlassButton } from "@/components/glass-button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
+import { getShiftDescription } from "@/lib/shift-description";
 import { posthog } from "@/lib/posthog";
 
 /* ── Duration Helper ── */
@@ -64,11 +70,19 @@ export default function ShiftDetailScreen() {
     shift,
     signups: shiftSignups,
     periodFriends,
+    eligibility,
     isLoading,
     error,
     refresh,
   } = useShiftDetail(id);
+  // Cached from the shifts list (react-query) — used to mirror the web's
+  // pre-emptive "one Day + one Evening shift per day" conflict gate.
+  const { myShifts } = useShifts();
   const isMyShift = shift?.status != null;
+  const conflictingShift = useMemo(
+    () => (shift && !isMyShift ? findConflictingShift(shift, myShifts) : null),
+    [shift, isMyShift, myShifts]
+  );
   const [signupSheetVisible, setSignupSheetVisible] = useState(false);
   const [signupSheetWaitlist, setSignupSheetWaitlist] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -392,9 +406,9 @@ export default function ShiftDetailScreen() {
             </Text>
 
             {/* Description pulled tight under title */}
-            {shift.shiftType.description ? (
+            {getShiftDescription(shift.notes, shift.shiftType.description) ? (
               <Text style={s.heroDescription} numberOfLines={2}>
-                {shift.shiftType.description}
+                {getShiftDescription(shift.notes, shift.shiftType.description)}
               </Text>
             ) : null}
 
@@ -637,25 +651,45 @@ export default function ShiftDetailScreen() {
           ]}
           pointerEvents="box-none"
         >
+          {/* `eligibility.profileComplete` is intentionally not gated here:
+              an incomplete profile is surfaced inside the signup sheet, where
+              the message links straight to /profile/edit so the user can fix
+              it in one tap. Email verification and parental consent aren't
+              self-resolvable in-app, so they block up front instead. */}
           {isPast ? (
-            <View
-              style={[
-                s.pastPill,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <Ionicons
-                name="time-outline"
-                size={18}
-                color={colors.textSecondary}
-              />
-              <Text style={[s.pastPillText, { color: colors.textSecondary }]}>
-                This shift was in the past
-              </Text>
-            </View>
+            <BlockedPill
+              icon="time-outline"
+              label="This shift was in the past"
+              tone="neutral"
+              colors={colors}
+              isDark={isDark}
+            />
+          ) : eligibility && !eligibility.emailVerified ? (
+            <BlockedPill
+              icon="mail-unread-outline"
+              label="Verify your email to sign up"
+              tone="warn"
+              colors={colors}
+              isDark={isDark}
+            />
+          ) : eligibility && eligibility.needsParentalConsent ? (
+            <BlockedPill
+              icon="shield-outline"
+              label="Parental consent required to sign up"
+              tone="warn"
+              colors={colors}
+              isDark={isDark}
+            />
+          ) : conflictingShift ? (
+            <BlockedPill
+              icon="calendar-outline"
+              label={`You already have a ${getShiftPeriodLabel(
+                shift.start
+              )} shift that day`}
+              tone="neutral"
+              colors={colors}
+              isDark={isDark}
+            />
           ) : spotsLeft > 0 ? (
             <GlassButton
               onPress={() => openSignupSheet(false)}
@@ -976,6 +1010,50 @@ function FriendRow({
         )
       )}
     </Pressable>
+  );
+}
+
+/* ═════════════════════════════════════════════════════════
+   BLOCKED CTA PILL — shown in place of the signup button when the
+   user can't sign up (past shift, unverified email, parental consent,
+   or a same-period clash). `warn` flags an account issue the user can act on.
+   ═════════════════════════════════════════════════════════ */
+
+function BlockedPill({
+  icon,
+  label,
+  tone,
+  colors,
+  isDark,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  tone: "neutral" | "warn";
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  const warn = tone === "warn";
+  const textColor = warn
+    ? isDark
+      ? "#fbbf24"
+      : "#d97706"
+    : colors.textSecondary;
+  const backgroundColor = warn
+    ? isDark
+      ? "rgba(245,158,11,0.12)"
+      : "#fffbeb"
+    : colors.card;
+  const borderColor = warn
+    ? isDark
+      ? "rgba(245,158,11,0.28)"
+      : "#fde68a"
+    : colors.border;
+
+  return (
+    <View style={[s.pastPill, { backgroundColor, borderColor }]}>
+      <Ionicons name={icon} size={18} color={textColor} />
+      <Text style={[s.pastPillText, { color: textColor }]}>{label}</Text>
+    </View>
   );
 }
 

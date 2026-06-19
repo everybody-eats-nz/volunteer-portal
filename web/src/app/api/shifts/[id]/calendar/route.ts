@@ -31,6 +31,7 @@ export async function GET(
       start: shift.start,
       end: shift.end,
       location: shift.location,
+      notes: shift.notes,
       shiftType: {
         name: shift.shiftType.name,
         description: shift.shiftType.description,
