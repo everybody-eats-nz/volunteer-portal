@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
-import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
 import { useCallback, useState } from "react";
 import {
@@ -70,7 +69,7 @@ function ViewerOverlay({
 }) {
   const insets = useSafeAreaInsets();
   const { currentIndex, totalCount } = useGestureViewerState();
-  const [busy, setBusy] = useState<null | "share" | "save">(null);
+  const [busy, setBusy] = useState<null | "share">(null);
 
   const currentUri = images[currentIndex] ?? images[0];
 
@@ -101,30 +100,6 @@ function ViewerOverlay({
       });
     } catch {
       Alert.alert("Couldn't share", "Please try again.");
-    } finally {
-      setBusy(null);
-    }
-  }, [busy, currentUri, downloadToCache]);
-
-  const handleSave = useCallback(async () => {
-    if (busy || !currentUri) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setBusy("save");
-    try {
-      const permission = await MediaLibrary.requestPermissionsAsync(true);
-      if (!permission.granted) {
-        Alert.alert(
-          "Permission needed",
-          "Please allow photo library access to save this image."
-        );
-        return;
-      }
-      const localUri = await downloadToCache(currentUri);
-      await MediaLibrary.saveToLibraryAsync(localUri);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Saved", "Photo saved to your library.");
-    } catch {
-      Alert.alert("Couldn't save", "Please try again.");
     } finally {
       setBusy(null);
     }
@@ -193,24 +168,6 @@ function ViewerOverlay({
             />
           )}
           <Text style={styles.actionLabel}>Share</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={handleSave}
-          disabled={busy !== null}
-          style={({ pressed }) => [
-            styles.actionButton,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
-          accessibilityLabel="Save photo to library"
-          accessibilityRole="button"
-        >
-          {busy === "save" ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Ionicons name="download-outline" size={24} color="#fff" />
-          )}
-          <Text style={styles.actionLabel}>Save</Text>
         </Pressable>
       </View>
     </>

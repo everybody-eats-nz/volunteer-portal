@@ -2,7 +2,7 @@
   "expo": {
     "name": "Everybody Eats",
     "slug": "everybody-eats",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "everybody-eats",
@@ -36,7 +36,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.READ_MEDIA_VISUAL_USER_SELECTED"],
+      "permissions": [],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -85,14 +85,6 @@
         {
           "color": "#0e3a23",
           "defaultChannel": "default"
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Everybody Eats to save shift photos to your library.",
-          "savePhotosPermission": "Allow Everybody Eats to save shift photos to your library.",
-          "isAccessMediaLocationEnabled": false
         }
       ],
       [
