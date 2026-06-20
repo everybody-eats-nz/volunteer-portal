@@ -800,8 +800,17 @@ class EmailService {
       spotsNeeded: String(shift.neededVolunteers),
     }));
 
-    // Build shifts page link with date and location from first shift
-    const shiftsPageLink = `${getBaseUrl()}/shifts/details?date=${firstShift.shiftDateISO}&location=${encodeURIComponent(firstShift.location)}`;
+    // Build shifts page link for the shortage day. Only pin the location when
+    // every shift shares one — otherwise the link would wrongly filter a
+    // multi-location send down to the first shift's location.
+    const allSameLocation = params.shifts.every(
+      (s) => s.location === firstShift.location
+    );
+    const shiftsPageLink = `${getBaseUrl()}/shifts/details?date=${firstShift.shiftDateISO}${
+      allSameLocation
+        ? `&location=${encodeURIComponent(firstShift.location)}`
+        : ""
+    }`;
 
     const emailData: ShiftShortageEmailData = {
       firstName,
