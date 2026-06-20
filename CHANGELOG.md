@@ -1,3 +1,9 @@
+## [0.124.1] - 2026-06-20
+
+### Changes
+- fix(notifications): deep-link shift shortage notifications to the day ([#1022](https://github.com/everybody-eats-nz/volunteer-portal/pull/1022)) by @malinmalliyawadu
+
+
 ## [0.124.0] - 2026-06-18
 
 ### Changes
