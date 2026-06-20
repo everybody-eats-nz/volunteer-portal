@@ -61,6 +61,23 @@ const nextConfig: NextConfig = {
     return config;
   },
 
+  // Serve the mobile-app association files as JSON. apple-app-site-association
+  // has no file extension, so Next would otherwise serve it as
+  // application/octet-stream — iOS requires application/json to validate
+  // Universal Links. assetlinks.json is set explicitly for parity.
+  async headers() {
+    return [
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+    ];
+  },
+
   // Rewrites for PostHog ingestion endpoints
   async rewrites() {
     return [

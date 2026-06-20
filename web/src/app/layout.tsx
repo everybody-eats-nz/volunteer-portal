@@ -64,6 +64,11 @@ export const metadata: Metadata = {
     icon: [{ url: "/favicon.png", type: "image/png" }],
     apple: "/favicon.png",
   },
+  // iOS Safari Smart App Banner — promotes installing/opening the mobile app.
+  // Pairs with the Universal Links setup so "Open" deep-links into the app.
+  itunes: {
+    appId: "6760931588",
+  },
   openGraph: {
     type: "website",
     locale: "en_NZ",
