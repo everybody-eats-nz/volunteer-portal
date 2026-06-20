@@ -59,27 +59,47 @@
             {
               "scheme": "https",
               "host": "volunteers.everybodyeats.nz",
-              "pathPrefix": "/shifts"
+              "path": "/shifts"
             },
             {
               "scheme": "https",
               "host": "volunteers.everybodyeats.nz",
-              "pathPrefix": "/dashboard"
+              "pathPrefix": "/shifts/"
             },
             {
               "scheme": "https",
               "host": "volunteers.everybodyeats.nz",
-              "pathPrefix": "/profile"
+              "path": "/dashboard"
             },
             {
               "scheme": "https",
               "host": "volunteers.everybodyeats.nz",
-              "pathPrefix": "/friends"
+              "path": "/profile"
             },
             {
               "scheme": "https",
               "host": "volunteers.everybodyeats.nz",
-              "pathPrefix": "/achievements"
+              "pathPrefix": "/profile/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/friends"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/friends/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/achievements"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/achievements/"
             }
           ]
         }

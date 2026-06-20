@@ -37,8 +37,13 @@ the browser by design. **Keep these three places in sync:**
 | `/friends/:id`   | `/user/[id]`        |
 | `/achievements*` | `/(tabs)/profile`   |
 
-The three places: the AASA `components`, the Android `intentFilters`
-`pathPrefix` list, and the `mapToAppRoute` matcher in `+native-intent.ts`.
+The three places: the AASA `components`, the Android `intentFilters` `data`
+list, and the `mapDeepLinkToRoute` matcher in
+[`mobile/lib/deep-link-routing.ts`](../../mobile/lib/deep-link-routing.ts)
+(covered by `deep-link-routing.test.ts`). Android uses an exact `path` plus a
+trailing-slash `pathPrefix` (e.g. `/shifts` and `/shifts/`) so it claims the
+same set as the iOS `/shifts` + `/shifts/*` patterns — a bare `pathPrefix`
+would also over-match unrelated paths like `/shifts-archive`.
 
 ## ⚠️ Required before Android release
 
@@ -70,3 +75,17 @@ testing). Then redeploy the web app and reinstall the Android build.
   opens on the right screen. Note: iOS caches the AASA — test on a fresh
   install or after re-installing the build that contains the new
   `associatedDomains`.
+
+## Troubleshooting
+
+- **iOS link opens Safari, not the app** — iOS fetches the AASA once at install
+  via Apple's CDN and caches it. Reinstall the app after the AASA changes, and
+  confirm the build contains `applinks:` in `associatedDomains`. Long-press the
+  link in Messages/Notes to see an "Open in Everybody Eats" option.
+- **Android opens the browser** — auto-verification failed. Check
+  `adb shell pm get-app-links com.everybodyeats.app` for the verification
+  state; it stays `none`/`legacy_failure` until `assetlinks.json` holds the
+  real **app-signing** SHA-256 (not the upload key). Re-trigger with
+  `adb shell pm verify-app-links --re-verify com.everybodyeats.app`.
+- **App opens but lands on the wrong screen** — the path isn't mapped in
+  `mapDeepLinkToRoute`; add a case and a test in `deep-link-routing.test.ts`.
