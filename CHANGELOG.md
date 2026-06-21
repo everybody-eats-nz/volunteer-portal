@@ -1,3 +1,9 @@
+## [0.125.0] - 2026-06-21
+
+### Changes
+- feat(seo): per-city volunteer landing pages (/volunteer, /volunteer/[city]) ([#1024](https://github.com/everybody-eats-nz/volunteer-portal/pull/1024)) by @malinmalliyawadu
+
+
 ## [0.124.1] - 2026-06-20
 
 ### Changes
