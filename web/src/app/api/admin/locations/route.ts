@@ -110,9 +110,56 @@ export async function PATCH(request: NextRequest) {
     if (targetPerNight !== undefined)
       updateData.targetPerNight = parseTarget(targetPerNight);
 
-    const location = await prisma.location.update({
+    // The location name is stored as a free-text string (no FK) across many
+    // tables, so a rename must cascade to keep them in sync — otherwise old
+    // records keep the previous name and surface as a duplicate location.
+    const existing = await prisma.location.findUnique({
       where: { id },
-      data: updateData,
+      select: { name: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 404 }
+      );
+    }
+
+    const oldName = existing.name;
+    const newName = typeof name === "string" ? name : undefined;
+    const isRename = newName !== undefined && newName !== oldName;
+
+    const location = await prisma.$transaction(async (tx) => {
+      const updated = await tx.location.update({
+        where: { id },
+        data: updateData,
+      });
+
+      if (isRename) {
+        const where = { location: oldName };
+        const data = { location: newName };
+        await Promise.all([
+          tx.shift.updateMany({ where, data }),
+          tx.shiftTemplate.updateMany({ where, data }),
+          tx.regularVolunteer.updateMany({ where, data }),
+          tx.autoAcceptRule.updateMany({ where, data }),
+          tx.mealsServed.updateMany({ where, data }),
+          tx.dailyMenu.updateMany({ where, data }),
+          tx.messagingHours.updateMany({ where, data }),
+          tx.user.updateMany({
+            where: { defaultLocation: oldName },
+            data: { defaultLocation: newName },
+          }),
+          // RestaurantManager.locations is a string[] — replace in place.
+          tx.$executeRaw`
+            UPDATE "RestaurantManager"
+            SET "locations" = array_replace("locations", ${oldName}, ${newName})
+            WHERE ${oldName} = ANY("locations")
+          `,
+        ]);
+      }
+
+      return updated;
     });
 
     return NextResponse.json(location);
