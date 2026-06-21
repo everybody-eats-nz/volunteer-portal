@@ -1,3 +1,9 @@
+## [0.125.2] - 2026-06-21
+
+### Changes
+- feat(impact-story): expose per-location non-paying share ([#1035](https://github.com/everybody-eats-nz/volunteer-portal/pull/1035)) by @malinmalliyawadu
+
+
 ## [0.125.1] - 2026-06-21
 
 ### Changes
