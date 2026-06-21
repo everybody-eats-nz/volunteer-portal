@@ -17,7 +17,8 @@ import {
 } from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
 
-/** How many upcoming shifts to preview in the "Find your role" section. */
+/** How many upcoming shifts to preview in the "Find your role" section
+ *  before linking out to the full list. */
 export const PREVIEW_SHIFT_COUNT = 6;
 
 export interface Venue {
