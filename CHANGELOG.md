@@ -1,3 +1,15 @@
+## [0.125.1] - 2026-06-21
+
+### Changes
+- chore(deps-dev): bump @types/node from 25.9.3 to 26.0.0 in /web ([#1033](https://github.com/everybody-eats-nz/volunteer-portal/pull/1033)) by @dependabot[bot]
+
+
+## [0.125.0] - 2026-06-21
+
+### Changes
+- feat(seo): per-city volunteer landing pages (/volunteer, /volunteer/[city]) ([#1024](https://github.com/everybody-eats-nz/volunteer-portal/pull/1024)) by @malinmalliyawadu
+
+
 ## [0.124.1] - 2026-06-20
 
 ### Changes

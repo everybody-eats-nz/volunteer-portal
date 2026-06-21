@@ -108,6 +108,67 @@ export function buildOrganizationSchema() {
   };
 }
 
+// LocalBusiness + Breadcrumb + FAQ schema for a per-city volunteer page.
+// Helps Google understand we're a real org with physical restaurants in this
+// city, and powers FAQ rich results for "volunteering <city>" queries.
+interface VolunteerLocationSchemaData {
+  city: string;
+  slug: string;
+  intro: string;
+  venues: { name: string; address: string }[];
+  faqs: { question: string; answer: string }[];
+}
+
+export function buildVolunteerLocationSchema(data: VolunteerLocationSchemaData) {
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/volunteer/${data.slug}`;
+
+  const organizations = data.venues.map((venue) => ({
+    "@context": "https://schema.org",
+    "@type": ["NGO", "FoodEstablishment"],
+    name: `Everybody Eats ${venue.name}`,
+    description: data.intro,
+    url,
+    parentOrganization: {
+      "@type": "NGO",
+      name: "Everybody Eats",
+      url: "https://everybodyeats.nz",
+    },
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: venue.address,
+      addressRegion: data.city,
+      addressCountry: "NZ",
+    },
+    potentialAction: {
+      "@type": "JoinAction",
+      name: `Volunteer in ${data.city}`,
+      target: `${baseUrl}/register`,
+    },
+  }));
+
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Volunteer", item: `${baseUrl}/volunteer` },
+      { "@type": "ListItem", position: 2, name: data.city, item: url },
+    ],
+  };
+
+  const faqPage = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: data.faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  };
+
+  return [...organizations, breadcrumb, faqPage];
+}
+
 // Shift Event Schema Data
 interface ShiftEventData {
   id: string;
