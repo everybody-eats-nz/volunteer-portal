@@ -7,6 +7,7 @@
 // the keyword "volunteer" with a specific city name + suburb addresses — the
 // thing the portal previously never said out loud.
 
+import type { SignupStatus } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { cacheLife } from "next/cache";
 import { getGoogleMapsUrl } from "@/lib/locations";
@@ -15,6 +16,9 @@ import {
   getShiftEffectiveCount,
 } from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
+
+/** How many upcoming shifts to preview in the "Find your role" section. */
+export const PREVIEW_SHIFT_COUNT = 6;
 
 export interface Venue {
   /** Suburb / restaurant name, e.g. "Onehunga". Matches Shift.location. */
@@ -135,8 +139,14 @@ export interface UpcomingShift {
 }
 
 // Statuses that occupy a spot — mirrors the public shifts listing so the
-// "spots left" figure here matches what volunteers see on /shifts.
-const SPOT_TAKING_STATUSES = ["CONFIRMED", "PENDING", "REGULAR_PENDING"] as const;
+// "spots left" figure here matches what volunteers see on /shifts. `satisfies`
+// validates the literals against the Prisma enum, so a renamed/removed status
+// fails the build here rather than silently miscounting.
+const SPOT_TAKING_STATUSES = [
+  "CONFIRMED",
+  "PENDING",
+  "REGULAR_PENDING",
+] as const satisfies readonly SignupStatus[];
 
 /**
  * Real upcoming shifts for a city's restaurants, soonest first. Powers the
@@ -146,7 +156,7 @@ const SPOT_TAKING_STATUSES = ["CONFIRMED", "PENDING", "REGULAR_PENDING"] as cons
  */
 export async function getUpcomingShifts(
   shiftLocations: string[],
-  limit = 6
+  limit = PREVIEW_SHIFT_COUNT
 ): Promise<UpcomingShift[]> {
   "use cache";
   cacheLife("hours");

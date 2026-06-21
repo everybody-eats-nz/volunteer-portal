@@ -13,6 +13,7 @@ import { buildPageMetadata, buildVolunteerLocationSchema } from "@/lib/seo";
 import {
   VOLUNTEER_LOCATIONS,
   VOLUNTEER_ROLES,
+  PREVIEW_SHIFT_COUNT,
   getVolunteerLocation,
   getUpcomingShiftCount,
   getUpcomingShifts,
@@ -100,7 +101,11 @@ function ShiftCard({
           </p>
           <span
             aria-label={
-              isFull ? "This shift is full — join the waitlist" : undefined
+              isFull
+                ? "This shift is full — join the waitlist"
+                : `${shift.spotsAvailable} ${
+                    shift.spotsAvailable === 1 ? "spot" : "spots"
+                  } available for this shift`
             }
             className={`rounded-full px-3 py-1 text-xs font-medium ${
               isFull
@@ -166,10 +171,18 @@ export default async function VolunteerLocationPage({
   const loc = getVolunteerLocation(location);
   if (!loc) notFound();
 
-  const [shiftCount, upcomingShifts] = await Promise.all([
-    getUpcomingShiftCount(loc.shiftLocations),
-    getUpcomingShifts(loc.shiftLocations, 6),
-  ]);
+  const upcomingShifts = await getUpcomingShifts(
+    loc.shiftLocations,
+    PREVIEW_SHIFT_COUNT
+  );
+  // When the city has fewer than a full preview's worth of shifts, the list IS
+  // the total — skip the extra count query (and avoid the two cached values
+  // drifting). Only when the preview is full do we fetch the real total for the
+  // "See N upcoming shifts" CTA.
+  const shiftCount =
+    upcomingShifts.length < PREVIEW_SHIFT_COUNT
+      ? upcomingShifts.length
+      : await getUpcomingShiftCount(loc.shiftLocations);
   const faqs = buildFaqs(loc);
   const schema = buildVolunteerLocationSchema({
     city: loc.city,
