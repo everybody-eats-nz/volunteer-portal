@@ -282,7 +282,7 @@ Uses **motion.dev** — not CSS animations. All variants in `src/lib/motion.ts`.
 ### SEO
 
 - Sitemap: `src/app/sitemap.ts`, Robots: `src/app/robots.ts`, Metadata: `src/lib/seo.ts`
-- Public pages (indexable): `/`, `/login`, `/register`, `/shifts`, `/resources`
+- Public pages (indexable): `/`, `/login`, `/register`, `/shifts`, `/resources`, `/volunteer`, `/volunteer/[city]`
 - Private pages (noindex): `/dashboard`, `/profile`, `/admin/*`, `/api/*`
 - Use `buildPageMetadata()` from `@/lib/seo` for new public pages
 
