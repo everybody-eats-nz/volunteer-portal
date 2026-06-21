@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 
 // Koha target per night — "" / null / undefined clear it; otherwise parse to 2dp.
 function parseTarget(value: unknown): number | null {
@@ -101,6 +102,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (
+      name !== undefined &&
+      (typeof name !== "string" || name.trim() === "")
+    ) {
+      return NextResponse.json(
+        { error: "Location name must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+
     const updateData: Record<string, string | number | boolean | null> = {};
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
@@ -136,6 +147,9 @@ export async function PATCH(request: NextRequest) {
       });
 
       if (isRename) {
+        // Only rows explicitly referencing the old name are touched; rows with
+        // a null location (templates/rules that apply to all locations) are
+        // intentionally left untouched.
         const where = { location: oldName };
         const data = { location: newName };
         await Promise.all([
@@ -165,6 +179,21 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(location);
   } catch (error) {
     console.error("Error updating location:", error);
+    // A rename can collide with a unique constraint on one of the cascaded
+    // tables (e.g. MealsServed/DailyMenu [date, location]); surface that
+    // clearly instead of a generic 500.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot rename location: a conflicting record already exists under the new name",
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { error: "Failed to update location" },
       { status: 500 }
