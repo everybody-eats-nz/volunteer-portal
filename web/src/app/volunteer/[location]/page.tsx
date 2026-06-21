@@ -99,6 +99,9 @@ function ShiftCard({
             {shift.dateLabel}
           </p>
           <span
+            aria-label={
+              isFull ? "This shift is full — join the waitlist" : undefined
+            }
             className={`rounded-full px-3 py-1 text-xs font-medium ${
               isFull
                 ? "bg-forest-500/10 text-forest-700/70 dark:bg-cream-50/10 dark:text-cream-50/60"
@@ -262,6 +265,7 @@ export default async function VolunteerLocationPage({
                         href={venueMapsUrl(venue)}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`${venue.name} — ${venue.address} (opens map in new tab)`}
                         className="group flex items-start gap-3"
                       >
                         <MapPinIcon className="mt-0.5 h-5 w-5 shrink-0 text-forest-500 dark:text-forest-200" />
