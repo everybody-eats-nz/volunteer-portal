@@ -1,3 +1,9 @@
+## [0.125.3] - 2026-06-22
+
+### Changes
+- chore(deps-dev): bump baseline-browser-mapping from 2.10.37 to 2.10.38 in /web in the development-dependencies group across 1 directory ([#1029](https://github.com/everybody-eats-nz/volunteer-portal/pull/1029)) by @dependabot[bot]
+
+
 ## [0.125.2] - 2026-06-21
 
 ### Changes
