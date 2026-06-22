@@ -112,7 +112,7 @@
     "@types/react-dom": "19.2.3",
     "@vitest/ui": "^4.1.9",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.10.37",
+    "baseline-browser-mapping": "^2.10.38",
     "csv-parse": "^6.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
