@@ -6,12 +6,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CustomLabelBadge } from "@/components/custom-label-badge";
+import { Check, Ban } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { type CustomLabel } from "@/generated/client";
+import { COLOR_OPTIONS, ICON_OPTIONS, FAMILY_THEME } from "./label-colors";
 
 interface CustomLabelDialogProps {
   open: boolean;
@@ -23,70 +27,6 @@ interface CustomLabelDialogProps {
     icon?: string;
   }) => Promise<void>;
 }
-
-// Predefined color options that match volunteer grade colors
-const COLOR_OPTIONS = [
-  {
-    name: "Purple",
-    value:
-      "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/30",
-  },
-  {
-    name: "Blue",
-    value:
-      "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/30",
-  },
-  {
-    name: "Green",
-    value:
-      "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-950/30",
-  },
-  {
-    name: "Yellow",
-    value:
-      "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950/30",
-  },
-  {
-    name: "Pink",
-    value:
-      "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-950/30",
-  },
-  {
-    name: "Indigo",
-    value:
-      "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-950/30",
-  },
-  {
-    name: "Teal",
-    value:
-      "bg-teal-50 dark:bg-teal-950/20 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-950/30",
-  },
-  {
-    name: "Orange",
-    value:
-      "bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-950/30",
-  },
-];
-
-// Common emoji options for icons
-const ICON_OPTIONS = [
-  "⭐",
-  "🔥",
-  "💎",
-  "🏆",
-  "🎯",
-  "⚡",
-  "🌟",
-  "🎖️",
-  "👑",
-  "🔔",
-  "📌",
-  "🚀",
-  "✨",
-  "💝",
-  "🎪",
-  "🌈",
-];
 
 export function CustomLabelDialog({
   open,
@@ -113,11 +53,7 @@ export function CustomLabelDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!name.trim() || !color) {
-      return;
-    }
-
+    if (!name.trim() || !color) return;
     setIsSubmitting(true);
     try {
       await onSave({
@@ -132,7 +68,7 @@ export function CustomLabelDialog({
 
   const previewLabel: CustomLabel = {
     id: "preview",
-    name: name.trim() || "Label Name",
+    name: name.trim() || "Label name",
     color,
     icon: icon.trim() || null,
     isActive: true,
@@ -142,87 +78,120 @@ export function CustomLabelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle>{label ? "Edit Label" : "Create Label"}</DialogTitle>
+          <DialogTitle className="font-accent text-xl">
+            {label ? "Edit label" : "Create a label"}
+          </DialogTitle>
+          <DialogDescription>
+            {label
+              ? "Update the name, colour or icon for this label."
+              : "Name it, pick a colour, and add an optional icon."}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Live preview */}
+        <div className="flex items-center justify-center rounded-xl border border-border bg-gradient-to-br from-muted/60 to-muted/20 py-6">
+          <CustomLabelBadge label={previewLabel} size="lg" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="label-name">Label Name</Label>
+            <Label htmlFor="label-name">Label name</Label>
             <Input
               id="label-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter label name"
+              placeholder="e.g. Kitchen lead, First aider…"
               required
+              autoFocus
+              maxLength={40}
               data-testid="label-name-input"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Color</Label>
+            <Label>Colour</Label>
             <div className="grid grid-cols-4 gap-2">
-              {COLOR_OPTIONS.map((option) => (
+              {COLOR_OPTIONS.map((option) => {
+                const theme = FAMILY_THEME[option.family];
+                const selected = color === option.value;
+                return (
+                  <button
+                    key={option.name}
+                    type="button"
+                    onClick={() => setColor(option.value)}
+                    aria-pressed={selected}
+                    className={cn(
+                      "group flex flex-col items-center gap-1.5 rounded-xl border p-2.5 transition-all",
+                      selected
+                        ? "border-transparent ring-2 ring-[#1d5337] ring-offset-2 ring-offset-background dark:ring-emerald-400"
+                        : "border-border hover:border-foreground/20 hover:bg-muted/50"
+                    )}
+                    data-testid={`color-option-${option.name.toLowerCase()}`}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-full text-white shadow-sm",
+                        theme.dot
+                      )}
+                    >
+                      {selected && <Check className="h-4 w-4" />}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {option.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Icon</Label>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setIcon("")}
+                aria-label="No icon"
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors",
+                  icon === ""
+                    ? "border-[#1d5337] bg-[#1d5337]/10 text-[#1d5337] dark:border-emerald-400 dark:text-emerald-300"
+                    : "border-border hover:bg-muted"
+                )}
+                data-testid="icon-option-none"
+              >
+                <Ban className="h-4 w-4" />
+              </button>
+              {ICON_OPTIONS.map((emoji) => (
                 <button
-                  key={option.name}
+                  key={emoji}
                   type="button"
-                  onClick={() => setColor(option.value)}
-                  className={`
-                    p-3 rounded border-2 text-xs font-medium
-                    ${option.value}
-                    ${
-                      color === option.value
-                        ? "ring-2 ring-offset-2 ring-slate-400"
-                        : ""
-                    }
-                  `}
-                  data-testid={`color-option-${option.name.toLowerCase()}`}
+                  onClick={() => setIcon(emoji)}
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-all",
+                    icon === emoji
+                      ? "border-[#1d5337] bg-[#1d5337]/10 ring-1 ring-[#1d5337] dark:border-emerald-400 dark:ring-emerald-400"
+                      : "border-border hover:scale-105 hover:bg-muted"
+                  )}
+                  data-testid={`icon-option-${emoji}`}
                 >
-                  {option.name}
+                  {emoji}
                 </button>
               ))}
             </div>
+            <Input
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              placeholder="…or paste your own emoji"
+              maxLength={2}
+              className="mt-1"
+              data-testid="label-icon-input"
+            />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="label-icon">Icon (optional)</Label>
-            <div className="space-y-2">
-              <Input
-                id="label-icon"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                placeholder="Enter emoji or leave blank"
-                maxLength={2}
-                data-testid="label-icon-input"
-              />
-              <div className="grid grid-cols-8 gap-1">
-                {ICON_OPTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setIcon(emoji)}
-                    className={`
-                      p-1 text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 rounded
-                      ${icon === emoji ? "bg-slate-200 dark:bg-zinc-700" : ""}
-                    `}
-                    data-testid={`icon-option-${emoji}`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Preview</Label>
-            <div className="p-3 bg-slate-50 dark:bg-zinc-900 rounded">
-              <CustomLabelBadge label={previewLabel} />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -234,9 +203,14 @@ export function CustomLabelDialog({
             <Button
               type="submit"
               disabled={!name.trim() || isSubmitting}
+              className="bg-[#1d5337] text-white hover:bg-[#1d5337]/90"
               data-testid="save-label-button"
             >
-              {isSubmitting ? "Saving..." : label ? "Update" : "Create"}
+              {isSubmitting
+                ? "Saving…"
+                : label
+                  ? "Save changes"
+                  : "Create label"}
             </Button>
           </div>
         </form>
