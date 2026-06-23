@@ -42,16 +42,14 @@ export default async function RestaurantManagersPage() {
   }));
 
   return (
-    <AdminPageWrapper 
-      title="Restaurant Manager Assignments" 
-      description="Assign admins to restaurant locations to receive shift cancellation notifications."
+    <AdminPageWrapper
+      title="Restaurant Manager Assignments"
+      description="Make sure every venue has someone alerted to cancellations and signups awaiting approval."
     >
-      <div className="space-y-6">
-        <RestaurantManagersContent 
-          adminUsers={adminUsers}
-          locations={locations}
-        />
-      </div>
+      <RestaurantManagersContent
+        adminUsers={adminUsers}
+        locations={locations}
+      />
     </AdminPageWrapper>
   );
 }
