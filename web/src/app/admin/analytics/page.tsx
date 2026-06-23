@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
-import { RestaurantAnalyticsClient } from "./restaurant-analytics-client";
+import { AnalyticsDashboard } from "./_components/analytics-dashboard";
 import { LOCATIONS } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
 import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
 import { getRestaurantReports } from "@/lib/restaurant-reports";
 import { parseDaysParam } from "@/lib/parse-days-param";
+import { nowInNZT } from "@/lib/timezone";
 
 export default async function AnalyticsPage({
   searchParams,
@@ -26,7 +27,7 @@ export default async function AnalyticsPage({
   }
 
   const params = await searchParams;
-  const months = (params.months as string) || "3";
+  const months = (params.months as string) || "ytd";
   const location = (params.location as string) || "all";
   const days = (params.days as string) || "";
   const from = (params.from as string) || "";
@@ -35,9 +36,21 @@ export default async function AnalyticsPage({
   // "all" → 0, a sentinel the libs treat as "all time" (earliest record → today)
   const monthsNum = months === "all" ? 0 : parseInt(months, 10) || 3;
 
+  // YTD resolves to an explicit Jan 1 → today window, handed to the libs via
+  // their custom-range path (whose year-over-year comparison shifts both ends
+  // back exactly one year — i.e. "this year so far vs the same point last year").
+  let effFrom = from || null;
+  let effTo = to || null;
+  if (months === "ytd" && !(from && to)) {
+    const nz = nowInNZT();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    effFrom = `${nz.getFullYear()}-01-01`;
+    effTo = `${nz.getFullYear()}-${pad(nz.getMonth() + 1)}-${pad(nz.getDate())}`;
+  }
+
   const [data, reports] = await Promise.all([
-    getRestaurantAnalytics(monthsNum, location, daysFilter, from || null, to || null),
-    getRestaurantReports(monthsNum, location, daysFilter, from || null, to || null),
+    getRestaurantAnalytics(monthsNum, location, daysFilter, effFrom, effTo),
+    getRestaurantReports(monthsNum, location, daysFilter, effFrom, effTo),
   ]);
 
   // Offer every venue that has service-night data (incl. historical pop-ups),
@@ -58,7 +71,7 @@ export default async function AnalyticsPage({
       description="Guests served, koha, volunteers and service-night insights across all locations"
     >
       <PageContainer testid="restaurant-analytics-page">
-        <RestaurantAnalyticsClient
+        <AnalyticsDashboard
           data={data}
           reports={reports}
           months={months}

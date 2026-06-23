@@ -95,7 +95,8 @@ export async function GET(request: NextRequest) {
   const isLocationFiltered = !!location && location !== "all";
   const monthsRaw = sp.get("months") || "3";
   const allTime = monthsRaw === "all";
-  const months = allTime ? 0 : parseInt(monthsRaw, 10) || 3;
+  const ytd = monthsRaw === "ytd";
+  const months = allTime || ytd ? 0 : parseInt(monthsRaw, 10) || 3;
   const from = sp.get("from");
   const to = sp.get("to");
   const daysFilter = parseDaysParam(sp.get("days") || "");
@@ -123,6 +124,9 @@ export async function GET(request: NextRequest) {
     endDate = new Date(`${to}T23:59:59.999`);
   } else if (allTime) {
     startDate = new Date(2015, 0, 1); // floor before any EE data
+    endDate = todayEnd;
+  } else if (ytd) {
+    startDate = new Date(nz.getFullYear(), 0, 1); // Jan 1 this year
     endDate = todayEnd;
   } else {
     endDate = todayEnd;
