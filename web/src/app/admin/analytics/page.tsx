@@ -32,6 +32,7 @@ export default async function AnalyticsPage({
   const days = (params.days as string) || "";
   const from = (params.from as string) || "";
   const to = (params.to as string) || "";
+  const tab = (params.tab as string) || "overview";
   const daysFilter = parseDaysParam(days);
   // "all" → 0, a sentinel the libs treat as "all time" (earliest record → today)
   const monthsNum = months === "all" ? 0 : parseInt(months, 10) || 3;
@@ -39,6 +40,9 @@ export default async function AnalyticsPage({
   // YTD resolves to an explicit Jan 1 → today window, handed to the libs via
   // their custom-range path (whose year-over-year comparison shifts both ends
   // back exactly one year — i.e. "this year so far vs the same point last year").
+  // nowInNZT() returns the wall-clock date in Pacific/Auckland, so getFullYear()
+  // already rolls to the new year exactly at NZ midnight on Jan 1 — no UTC/DST
+  // edge case here. effTo is just "today" in NZ; an explicit Jan 1 needs no day math.
   let effFrom = from || null;
   let effTo = to || null;
   if (months === "ytd" && !(from && to)) {
@@ -79,6 +83,7 @@ export default async function AnalyticsPage({
           days={days}
           from={from}
           to={to}
+          tab={tab}
           locations={locationOptions}
         />
       </PageContainer>

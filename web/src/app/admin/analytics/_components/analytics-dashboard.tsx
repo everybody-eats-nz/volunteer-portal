@@ -32,6 +32,8 @@ const MONTHS_LABELS: Record<string, string> = {
   all: "all time",
 };
 
+const TAB_VALUES = ["overview", "donations", "service", "history"] as const;
+
 interface Props {
   data: RestaurantAnalyticsData;
   reports: RestaurantReports;
@@ -40,6 +42,7 @@ interface Props {
   days: string;
   from: string;
   to: string;
+  tab: string;
   locations: Array<{ value: string; label: string }>;
 }
 
@@ -51,12 +54,30 @@ export function AnalyticsDashboard({
   days: appliedDays,
   from: appliedFrom,
   to: appliedTo,
+  tab: initialTab,
   locations,
 }: Props) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const [isPending, startTransition] = useTransition();
   const [exporting, setExporting] = useState(false);
+
+  // Active tab is kept in the URL (?tab=…) so views are shareable, but updated
+  // via history.replaceState — switching tabs must not re-run the server
+  // component or refetch the (heavy) analytics queries.
+  const [tab, setTab] = useState(
+    TAB_VALUES.includes(initialTab as (typeof TAB_VALUES)[number])
+      ? initialTab
+      : "overview"
+  );
+  const handleTabChange = (value: string) => {
+    setTab(value);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", value);
+      window.history.replaceState(null, "", url);
+    }
+  };
 
   // Draft filter state (edited in the toolbar; applied on "Apply").
   const [draft, setDraft] = useState<FilterState>({
@@ -133,13 +154,16 @@ export function AnalyticsDashboard({
           .get("Content-Disposition")
           ?.match(/filename="?([^"]+)"?/)?.[1] ?? "service-nights.csv";
       const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
       toast.success(
         `Exported ${rows.toLocaleString()} service night${rows === 1 ? "" : "s"}`
       );
@@ -196,22 +220,38 @@ export function AnalyticsDashboard({
           </motion.div>
         ) : (
           <motion.div variants={staggerItem}>
-            <Tabs defaultValue="overview" className="gap-4">
+            <Tabs value={tab} onValueChange={handleTabChange} className="gap-4">
               <div className="overflow-x-auto">
                 <TabsList className="h-10">
-                  <TabsTrigger value="overview" className="px-3">
+                  <TabsTrigger
+                    value="overview"
+                    className="px-3"
+                    data-testid="analytics-tab-overview"
+                  >
                     <BarChart3 className="h-4 w-4" />
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger value="donations" className="px-3">
+                  <TabsTrigger
+                    value="donations"
+                    className="px-3"
+                    data-testid="analytics-tab-donations"
+                  >
                     <HandCoins className="h-4 w-4" />
                     Koha &amp; Donations
                   </TabsTrigger>
-                  <TabsTrigger value="service" className="px-3">
+                  <TabsTrigger
+                    value="service"
+                    className="px-3"
+                    data-testid="analytics-tab-service"
+                  >
                     <UtensilsCrossed className="h-4 w-4" />
                     Service &amp; Guests
                   </TabsTrigger>
-                  <TabsTrigger value="history" className="px-3">
+                  <TabsTrigger
+                    value="history"
+                    className="px-3"
+                    data-testid="analytics-tab-history"
+                  >
                     <CalendarRange className="h-4 w-4" />
                     History
                   </TabsTrigger>

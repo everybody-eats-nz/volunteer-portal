@@ -1,5 +1,6 @@
 "use client";
 
+import { Component, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { ArrowDownRight, ArrowUpRight, Info, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,37 @@ export const ApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
   loading: () => <ChartSkeleton />,
 });
+
+/**
+ * Isolates a single chart/section so a render error in one ApexCharts instance
+ * (bad data, misconfig) degrades to a friendly message instead of taking down
+ * the whole dashboard.
+ */
+export class ChartErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("Chart failed to render:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-[260px] flex-col items-center justify-center gap-1 px-4 text-center text-sm text-muted-foreground">
+          <span>Couldn&rsquo;t render this section.</span>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export function ChartSkeleton({ height = 300 }: { height?: number }) {
   return (
@@ -87,7 +119,9 @@ export function ChartCard({
         </h3>
         {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
       </header>
-      <div className={cn("flex-1 px-2 pb-3", bodyClassName)}>{children}</div>
+      <div className={cn("flex-1 px-2 pb-3", bodyClassName)}>
+        <ChartErrorBoundary>{children}</ChartErrorBoundary>
+      </div>
     </section>
   );
 }

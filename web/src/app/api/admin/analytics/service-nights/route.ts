@@ -11,6 +11,9 @@ const toNum = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// Floor for the "all time" window — predates any Everybody Eats service data.
+const EARLIEST_DATA_DATE = new Date(2015, 0, 1);
+
 export interface ServiceNightRow {
   date: string; // YYYY-MM-DD (NZ)
   location: string;
@@ -123,7 +126,7 @@ export async function GET(request: NextRequest) {
     startDate = new Date(`${from}T00:00:00`);
     endDate = new Date(`${to}T23:59:59.999`);
   } else if (allTime) {
-    startDate = new Date(2015, 0, 1); // floor before any EE data
+    startDate = EARLIEST_DATA_DATE;
     endDate = todayEnd;
   } else if (ytd) {
     startDate = new Date(nz.getFullYear(), 0, 1); // Jan 1 this year

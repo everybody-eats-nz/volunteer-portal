@@ -25,9 +25,11 @@ import { nzd, num } from "../_lib/chart-theme";
 function Sparkline({
   data,
   color,
+  mode,
 }: {
   data: number[];
   color: string;
+  mode: "light" | "dark";
 }) {
   if (!data.some((v) => v > 0)) return <div className="h-10" />;
   return (
@@ -47,7 +49,7 @@ function Sparkline({
           gradient: { opacityFrom: 0.4, opacityTo: 0.02, stops: [0, 100] },
         },
         tooltip: { enabled: false },
-        theme: { mode: "light" },
+        theme: { mode },
       }}
       series={[{ data }]}
     />
@@ -62,6 +64,7 @@ function PrimaryCard({
   tint,
   spark,
   sparkColor,
+  sparkMode,
   footer,
   tooltip,
 }: {
@@ -72,6 +75,7 @@ function PrimaryCard({
   tint: string;
   spark: number[];
   sparkColor: string;
+  sparkMode: "light" | "dark";
   footer?: React.ReactNode;
   tooltip: string;
 }) {
@@ -103,7 +107,7 @@ function PrimaryCard({
           </p>
           <div className="mt-2 min-h-5">{footer}</div>
           <div className="-mx-1 mt-2">
-            <Sparkline data={spark} color={sparkColor} />
+            <Sparkline data={spark} color={sparkColor} mode={sparkMode} />
           </div>
         </div>
       </TooltipTrigger>
@@ -172,9 +176,8 @@ export function KpiHero({
   reports: RestaurantReports;
   rangeLabel: string;
 }) {
-  // next-themes resolvedTheme isn't needed for sparklines (transparent), but we
-  // keep the hook out to avoid hydration flashes; sparkline colours are fixed.
-  useTheme();
+  const { resolvedTheme } = useTheme();
+  const sparkMode = resolvedTheme === "dark" ? "dark" : "light";
   const s = data.serviceStats;
   const m = reports.monthly;
 
@@ -298,7 +301,7 @@ export function KpiHero({
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {primaries.map((p) => (
-          <PrimaryCard key={p.label} {...p} />
+          <PrimaryCard key={p.label} {...p} sparkMode={sparkMode} />
         ))}
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

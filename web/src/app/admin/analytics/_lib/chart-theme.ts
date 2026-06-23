@@ -56,17 +56,30 @@ export function chartTokens(mode: ChartMode): ChartTokens {
   };
 }
 
+/**
+ * Charts animate by default, but never during e2e runs — the test harness adds
+ * an `.e2e-testing` class to <body> (see app/layout.tsx) so Playwright isn't
+ * racing transitions. Guarded with `typeof document` so it's safe during SSR.
+ */
+export function animationsEnabled(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    !document.body?.classList.contains("e2e-testing")
+  );
+}
+
 /** Common options every chart shares — keeps the system coherent. */
 export function baseOptions(t: ChartTokens): ApexOptions {
+  const animate = animationsEnabled();
   return {
     chart: {
       toolbar: { show: false },
       background: "transparent",
       fontFamily: FONT,
       animations: {
-        enabled: true,
+        enabled: animate,
         speed: 320,
-        animateGradually: { enabled: true, delay: 40 },
+        animateGradually: { enabled: animate, delay: 40 },
       },
       parentHeightOffset: 0,
     },
