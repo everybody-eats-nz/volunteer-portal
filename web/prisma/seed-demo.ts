@@ -18,6 +18,7 @@ import {
   CriteriaLogic,
   NotificationPreference,
   NotificationType,
+  Prisma,
   VolunteerGrade,
 } from "@/generated/client";
 
@@ -994,36 +995,41 @@ async function main() {
   // Create restaurant locations
   await prisma.location.upsert({
     where: { name: "Wellington" },
-    update: {},
+    update: { targetPerNight: 1500 },
     create: {
       name: "Wellington",
       address: "60 Dixon Street, Te Aro, Wellington, New Zealand",
       defaultMealsServed: 60,
+      targetPerNight: 1500,
       isActive: true,
     },
   });
 
   await prisma.location.upsert({
     where: { name: "Glen Innes" },
-    update: {},
+    update: { targetPerNight: 1200 },
     create: {
       name: "Glen Innes",
       address: "133 Line Road, Glen Innes, Auckland, New Zealand",
       defaultMealsServed: 60,
+      targetPerNight: 1200,
       isActive: true,
     },
   });
 
   await prisma.location.upsert({
     where: { name: "Onehunga" },
-    update: {},
+    update: { targetPerNight: 1100 },
     create: {
       name: "Onehunga",
       address: "306 Onehunga Mall, Auckland, New Zealand",
       defaultMealsServed: 60,
+      targetPerNight: 1100,
       isActive: true,
     },
   });
+
+  await seedMealsServed();
 
   // Create site settings
   await prisma.siteSetting.upsert({
@@ -2908,6 +2914,74 @@ async function main() {
   console.log(`✅ Seeded 3 surveys with ${assignmentCount} assignments`);
 
   await downloadAndConvertProfileImages();
+}
+
+/**
+ * Seed service-night (MealsServed) records so the admin analytics dashboard has
+ * realistic data to render. Spans Jan 1 of last year → today, so the YTD, 12M
+ * and year-over-year views all have something to show. Deterministic (no RNG)
+ * for stable demos and e2e tests; idempotent via the [date, location] unique key.
+ */
+async function seedMealsServed() {
+  const locations = [
+    { name: "Wellington", base: 82, perHead: 5.6, weekdays: [2, 3, 4, 5] },
+    { name: "Glen Innes", base: 66, perHead: 4.9, weekdays: [3, 5] },
+    { name: "Onehunga", base: 60, perHead: 4.6, weekdays: [2, 4] },
+  ];
+  const proteins = ["Beef", "Chicken", "Vege curry", "Fish", "Pork", "Lamb"];
+  const weathers = ["Fine", "Overcast", "Light rain", "Cloudy", "Windy"];
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear() - 1, 0, 1)); // Jan 1 last year
+  const end = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+
+  const rows: Prisma.MealsServedCreateManyInput[] = [];
+  let i = 0;
+  for (const loc of locations) {
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      if (loc.weekdays.includes(cursor.getUTCDay())) {
+        i++;
+        // Gentle, deterministic seasonal variation + per-night wobble.
+        const wave = Math.sin(i / 3) * 0.15 + Math.sin(i / 11) * 0.1;
+        const customers = Math.max(20, Math.round(loc.base * (1 + wave)));
+        const perHead = loc.perHead * (1 + (i % 5) * 0.03);
+        const koha = customers * perHead;
+        const cash = round2(koha * 0.45);
+        const eftpos = round2(koha * 0.4);
+        const stripe = round2(koha - cash - eftpos);
+        rows.push({
+          date: new Date(cursor),
+          location: loc.name,
+          mealsServed: customers,
+          nonPayingCount: Math.round(customers * (0.12 + (i % 7) * 0.01)),
+          newVolunteers: i % 4 === 0 ? (i % 3) + 1 : 0,
+          bookingsPax: Math.round(customers * 0.7),
+          vege: Math.round(customers * 0.25),
+          takeaways: i % 3,
+          eftposTransactions: Math.round(customers * 0.4),
+          cash,
+          eftpos,
+          stripe,
+          protein: proteins[i % proteins.length],
+          weather: weathers[i % weathers.length],
+          createdBy: "demo-seed",
+        });
+      }
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+
+  const result = await prisma.mealsServed.createMany({
+    data: rows,
+    skipDuplicates: true,
+  });
+  console.log(
+    `✅ Seeded ${result.count} service-night (MealsServed) records across ${locations.length} locations`
+  );
 }
 
 main()
