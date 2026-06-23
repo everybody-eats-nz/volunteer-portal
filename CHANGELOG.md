@@ -1,3 +1,9 @@
+## [0.128.0] - 2026-06-23
+
+### Changes
+- Redesign restaurant-managers around venue alert coverage ([#1041](https://github.com/everybody-eats-nz/volunteer-portal/pull/1041)) by @malinmalliyawadu
+
+
 ## [0.127.0] - 2026-06-23
 
 ### Changes
