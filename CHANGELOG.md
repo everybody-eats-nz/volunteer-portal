@@ -1,3 +1,9 @@
+## [0.127.0] - 2026-06-23
+
+### Changes
+- feat(admin): redesign restaurant analytics dashboard ([#1040](https://github.com/everybody-eats-nz/volunteer-portal/pull/1040)) by @malinmalliyawadu
+
+
 ## [0.126.1] - 2026-06-23
 
 ### Changes
