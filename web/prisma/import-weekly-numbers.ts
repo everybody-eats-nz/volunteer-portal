@@ -35,7 +35,6 @@ const argv = process.argv.slice(2);
 const DRY_RUN = argv.includes("--dry-run");
 const xlsxPath = argv.find((a) => !a.startsWith("--")) ?? DEFAULT_PATH;
 
-const MAIN_LOCATIONS = ["Glen Innes", "Onehunga", "Wellington"];
 // Aliases / abbreviations seen in the sheet → canonical main-venue name.
 const ALIASES: Record<string, string> = {
   one: "Onehunga",
