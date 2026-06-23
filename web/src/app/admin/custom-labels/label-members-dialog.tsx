@@ -304,7 +304,7 @@ export function LabelMembersDialog({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <Link
-                          href={`/admin/users/${member.id}`}
+                          href={`/admin/volunteers/${member.id}`}
                           className="truncate font-medium hover:underline"
                         >
                           {displayName(member)}
@@ -331,7 +331,7 @@ export function LabelMembersDialog({
                         className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
                       >
                         <Link
-                          href={`/admin/users/${member.id}`}
+                          href={`/admin/volunteers/${member.id}`}
                           aria-label={`Open ${displayName(member)}'s profile`}
                         >
                           <ExternalLink className="h-4 w-4" />
