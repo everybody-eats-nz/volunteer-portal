@@ -1,3 +1,9 @@
+## [0.129.0] - 2026-06-23
+
+### Changes
+- Redesign custom labels admin page with members modal ([#1042](https://github.com/everybody-eats-nz/volunteer-portal/pull/1042)) by @malinmalliyawadu
+
+
 ## [0.128.0] - 2026-06-23
 
 ### Changes
