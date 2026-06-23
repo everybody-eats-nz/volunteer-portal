@@ -217,6 +217,10 @@ export function CustomLabelsContent({
   };
 
   const handleMemberRemoved = (labelId: string, userId: string) => {
+    // Removing a member always decrements the count. The avatar preview only
+    // holds the 5 most-recent members, so filtering by userId is a no-op when
+    // the removed volunteer wasn't in that preview — which is fine: the stack
+    // still reflects "recent members", just one fewer in the total count.
     setLabels((prev) =>
       prev.map((label) =>
         label.id === labelId

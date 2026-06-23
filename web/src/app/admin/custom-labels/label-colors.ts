@@ -189,6 +189,28 @@ export const COLOR_OPTIONS: ColorOption[] = [
   },
 ];
 
+/**
+ * Return the first grapheme cluster of a string. A label icon is a single
+ * emoji, but many emoji span multiple UTF-16 code units (skin tones, flags,
+ * ZWJ sequences), so a naïve `slice(0, 2)` would corrupt them. Uses
+ * `Intl.Segmenter` where available and falls back to the raw input otherwise.
+ */
+export function firstGrapheme(input: string): string {
+  if (!input) return "";
+  const Segmenter = (
+    Intl as typeof Intl & { Segmenter?: typeof Intl.Segmenter }
+  ).Segmenter;
+  if (typeof Segmenter === "function") {
+    const segmenter = new Segmenter(undefined, { granularity: "grapheme" });
+    for (const { segment } of segmenter.segment(input)) {
+      return segment;
+    }
+    return "";
+  }
+  // Fallback: take the first code point (handles surrogate pairs).
+  return Array.from(input)[0] ?? "";
+}
+
 // Emoji glyphs offered in the icon picker.
 export const ICON_OPTIONS = [
   "⭐",

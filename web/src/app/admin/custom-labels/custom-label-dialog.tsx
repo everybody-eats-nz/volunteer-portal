@@ -15,7 +15,12 @@ import { CustomLabelBadge } from "@/components/custom-label-badge";
 import { Check, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CustomLabel } from "@/generated/client";
-import { COLOR_OPTIONS, ICON_OPTIONS, FAMILY_THEME } from "./label-colors";
+import {
+  COLOR_OPTIONS,
+  ICON_OPTIONS,
+  FAMILY_THEME,
+  firstGrapheme,
+} from "./label-colors";
 
 interface CustomLabelDialogProps {
   open: boolean;
@@ -183,9 +188,8 @@ export function CustomLabelDialog({
             </div>
             <Input
               value={icon}
-              onChange={(e) => setIcon(e.target.value)}
+              onChange={(e) => setIcon(firstGrapheme(e.target.value))}
               placeholder="…or paste your own emoji"
-              maxLength={2}
               className="mt-1"
               data-testid="label-icon-input"
             />
