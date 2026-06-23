@@ -1,3 +1,9 @@
+## [0.126.0] - 2026-06-23
+
+### Changes
+- feat(admin): support historical pop-up / one-off venues in analytics ([#1039](https://github.com/everybody-eats-nz/volunteer-portal/pull/1039)) by @malinmalliyawadu
+
+
 ## [0.125.4] - 2026-06-22
 
 ### Changes
