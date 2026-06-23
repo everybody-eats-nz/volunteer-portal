@@ -1,3 +1,9 @@
+## [0.129.1] - 2026-06-23
+
+### Changes
+- Fix broken volunteer profile links in custom-label members modal ([#1043](https://github.com/everybody-eats-nz/volunteer-portal/pull/1043)) by @malinmalliyawadu
+
+
 ## [0.129.0] - 2026-06-23
 
 ### Changes
