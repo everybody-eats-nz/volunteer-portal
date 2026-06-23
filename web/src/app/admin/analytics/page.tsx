@@ -5,6 +5,7 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { RestaurantAnalyticsClient } from "./restaurant-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
+import { prisma } from "@/lib/prisma";
 import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
 import { getRestaurantReports } from "@/lib/restaurant-reports";
 import { parseDaysParam } from "@/lib/parse-days-param";
@@ -39,10 +40,17 @@ export default async function AnalyticsPage({
     getRestaurantReports(monthsNum, location, daysFilter, from || null, to || null),
   ]);
 
-  const locationOptions = LOCATIONS.map((loc) => ({
-    value: loc,
-    label: loc,
-  }));
+  // Offer every venue that has service-night data (incl. historical pop-ups),
+  // union the active main venues so they always appear even with no data yet.
+  const dataLocations = (
+    await prisma.mealsServed.findMany({
+      distinct: ["location"],
+      select: { location: true },
+    })
+  ).map((l) => l.location);
+  const locationOptions = Array.from(new Set([...LOCATIONS, ...dataLocations]))
+    .sort((a, b) => a.localeCompare(b))
+    .map((loc) => ({ value: loc, label: loc }));
 
   return (
     <AdminPageWrapper
