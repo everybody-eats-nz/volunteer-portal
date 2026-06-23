@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 
 // Koha target per night — "" / null / undefined clear it; otherwise parse to 2dp.
 function parseTarget(value: unknown): number | null {
@@ -101,6 +102,16 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (
+      name !== undefined &&
+      (typeof name !== "string" || name.trim() === "")
+    ) {
+      return NextResponse.json(
+        { error: "Location name must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+
     const updateData: Record<string, string | number | boolean | null> = {};
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
@@ -110,14 +121,79 @@ export async function PATCH(request: NextRequest) {
     if (targetPerNight !== undefined)
       updateData.targetPerNight = parseTarget(targetPerNight);
 
-    const location = await prisma.location.update({
+    // The location name is stored as a free-text string (no FK) across many
+    // tables, so a rename must cascade to keep them in sync — otherwise old
+    // records keep the previous name and surface as a duplicate location.
+    const existing = await prisma.location.findUnique({
       where: { id },
-      data: updateData,
+      select: { name: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Location not found" },
+        { status: 404 }
+      );
+    }
+
+    const oldName = existing.name;
+    const newName = typeof name === "string" ? name : undefined;
+    const isRename = newName !== undefined && newName !== oldName;
+
+    const location = await prisma.$transaction(async (tx) => {
+      const updated = await tx.location.update({
+        where: { id },
+        data: updateData,
+      });
+
+      if (isRename) {
+        // Only rows explicitly referencing the old name are touched; rows with
+        // a null location (templates/rules that apply to all locations) are
+        // intentionally left untouched.
+        const where = { location: oldName };
+        const data = { location: newName };
+        await Promise.all([
+          tx.shift.updateMany({ where, data }),
+          tx.shiftTemplate.updateMany({ where, data }),
+          tx.regularVolunteer.updateMany({ where, data }),
+          tx.autoAcceptRule.updateMany({ where, data }),
+          tx.mealsServed.updateMany({ where, data }),
+          tx.dailyMenu.updateMany({ where, data }),
+          tx.messagingHours.updateMany({ where, data }),
+          tx.user.updateMany({
+            where: { defaultLocation: oldName },
+            data: { defaultLocation: newName },
+          }),
+          // RestaurantManager.locations is a string[] — replace in place.
+          tx.$executeRaw`
+            UPDATE "RestaurantManager"
+            SET "locations" = array_replace("locations", ${oldName}, ${newName})
+            WHERE ${oldName} = ANY("locations")
+          `,
+        ]);
+      }
+
+      return updated;
     });
 
     return NextResponse.json(location);
   } catch (error) {
     console.error("Error updating location:", error);
+    // A rename can collide with a unique constraint on one of the cascaded
+    // tables (e.g. MealsServed/DailyMenu [date, location]); surface that
+    // clearly instead of a generic 500.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot rename location: a conflicting record already exists under the new name",
+        },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { error: "Failed to update location" },
       { status: 500 }
