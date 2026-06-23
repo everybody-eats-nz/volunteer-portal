@@ -1,3 +1,9 @@
+## [0.126.1] - 2026-06-23
+
+### Changes
+- fix(flaky): moving pending volunteer changes status to confirmed ([#1036](https://github.com/everybody-eats-nz/volunteer-portal/pull/1036)) by @malinmalliyawadu
+
+
 ## [0.126.0] - 2026-06-23
 
 ### Changes
