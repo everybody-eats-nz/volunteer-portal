@@ -1,0 +1,63 @@
+# EAS upload ignore list.
+# NOTE: when this file exists, EAS uses it INSTEAD of .gitignore (it does not
+# extend it), so every pattern needed to keep the upload small must live here.
+# Goal: only ship the JS/TS source + config EAS needs to build in the cloud.
+
+# --- dependencies (installed fresh on the build worker) ---
+node_modules/
+
+# --- generated native projects (rebuilt by prebuild on the worker) ---
+# These are the main culprits for multi-GB uploads: Pods, Gradle caches,
+# build outputs, .cxx, DerivedData, etc.
+/ios
+/android
+.kotlin/
+
+# --- Expo / Metro / build outputs ---
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# --- TypeScript / lint caches ---
+*.tsbuildinfo
+
+# --- env & secrets (provided via EAS env / secrets, not the archive) ---
+.env
+.env*.local
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+everybody-eats-play.json
+
+# --- store / marketing assets not needed to build the app ---
+android-screenshots/
+ios-screenshots.pco/
+Unlinked Picasso App/
+*.png.import
+
+# --- tests & local-only tooling ---
+test-utils/
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+.vscode/
+.claude/
+
+# --- docs / reports ---
+README.md
+STYLE_GUIDE.md
+posthog-setup-report.md
+
+# --- debug logs ---
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# --- OS cruft ---
+.DS_Store
