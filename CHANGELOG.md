@@ -1,3 +1,9 @@
+## [0.129.2] - 2026-06-24
+
+### Changes
+- fix(admin): coerce numeric inputs in auto-accept rule form ([#1044](https://github.com/everybody-eats-nz/volunteer-portal/pull/1044)) by @malinmalliyawadu
+
+
 ## [0.129.1] - 2026-06-23
 
 ### Changes
