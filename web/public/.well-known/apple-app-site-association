@@ -1,7 +1,23 @@
 {
-  "webcredentials": {
-    "apps": [
-      "7FDX32A6XF.com.malinmw.everybody-eats"
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["7FDX32A6XF.com.malinmw.everybody-eats"],
+        "components": [
+          { "/": "/shifts", "comment": "Shifts list" },
+          { "/": "/shifts/*", "comment": "Shift detail" },
+          { "/": "/dashboard", "comment": "Volunteer dashboard / home feed" },
+          { "/": "/profile", "comment": "Own profile" },
+          { "/": "/profile/*", "comment": "Profile sub-pages" },
+          { "/": "/friends", "comment": "Friends" },
+          { "/": "/friends/*", "comment": "Friend profile" },
+          { "/": "/achievements", "comment": "Achievements" },
+          { "/": "/achievements/*", "comment": "Achievement detail" }
+        ]
+      }
     ]
+  },
+  "webcredentials": {
+    "apps": ["7FDX32A6XF.com.malinmw.everybody-eats"]
   }
 }

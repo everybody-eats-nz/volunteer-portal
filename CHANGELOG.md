@@ -1,3 +1,15 @@
+## [0.131.0] - 2026-06-24
+
+### Changes
+- feat: universal links + app links for mobile app rollout ([#1023](https://github.com/everybody-eats-nz/volunteer-portal/pull/1023)) by @malinmalliyawadu
+
+
+## [0.130.1] - 2026-06-24
+
+### Changes
+- chore(deps): bump react-day-picker from 9.14.0 to 10.0.1 in /web ([#1032](https://github.com/everybody-eats-nz/volunteer-portal/pull/1032)) by @dependabot[bot]
+
+
 ## [0.130.0] - 2026-06-24
 
 ### Changes

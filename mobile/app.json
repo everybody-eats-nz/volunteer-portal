@@ -12,7 +12,10 @@
       "bundleIdentifier": "com.malinmw.everybody-eats",
       "buildNumber": "2",
       "usesAppleSignIn": true,
-      "associatedDomains": ["webcredentials:volunteers.everybodyeats.nz"],
+      "associatedDomains": [
+        "applinks:volunteers.everybodyeats.nz",
+        "webcredentials:volunteers.everybodyeats.nz"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["remote-notification"],
@@ -45,6 +48,58 @@
             {
               "scheme": "com.everybodyeats.app",
               "path": "/oauthredirect"
+            }
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/shifts"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/shifts/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/dashboard"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/profile"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/profile/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/friends"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/friends/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/achievements"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/achievements/"
             }
           ]
         }
