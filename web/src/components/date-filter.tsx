@@ -106,7 +106,7 @@ export function DateFilter({ rawDateFrom, rawDateTo }: DateFilterProps) {
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start" data-testid="date-filter-popover">
           <Calendar
-            initialFocus
+            autoFocus
             mode="range"
             defaultMonth={dateRange?.from}
             selected={dateRange}
