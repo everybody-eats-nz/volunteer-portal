@@ -56,7 +56,7 @@ export function DateTimeSection({ templateStartTime, templateEndTime }: DateTime
               mode="single"
               selected={date}
               onSelect={setDate}
-              initialFocus
+              autoFocus
             />
           </PopoverContent>
         </Popover>
@@ -155,7 +155,7 @@ export function BulkDateRangeSection() {
             mode="range"
             selected={dateRange}
             onSelect={setDateRange}
-            initialFocus
+            autoFocus
             numberOfMonths={2}
           />
         </PopoverContent>

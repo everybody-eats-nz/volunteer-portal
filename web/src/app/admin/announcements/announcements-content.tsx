@@ -1446,7 +1446,7 @@ function ExpiryDateTimePicker({
             mode="single"
             selected={dateValue}
             onSelect={setDate}
-            initialFocus
+            autoFocus
           />
         </PopoverContent>
       </Popover>
