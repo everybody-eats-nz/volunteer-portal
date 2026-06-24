@@ -1,3 +1,9 @@
+## [0.132.0] - 2026-06-24
+
+### Changes
+- feat(analytics): add Bookings column to Summary by Location table ([#1048](https://github.com/everybody-eats-nz/volunteer-portal/pull/1048)) by @malinmalliyawadu
+
+
 ## [0.131.0] - 2026-06-24
 
 ### Changes
