@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.everybodyeats.app",
+      "sha256_cert_fingerprints": [
+        "B5:68:7A:3C:9E:FF:D7:5C:E7:2F:E0:02:9C:30:93:22:EC:A6:C4:78:74:D0:F4:20:26:B1:6A:96:FF:96:0A:D3"
+      ]
+    }
+  }
+]
