@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -64,6 +64,18 @@ const ruleFormSchema = z.object({
 });
 
 type RuleFormValues = z.infer<typeof ruleFormSchema>;
+
+// `<input type="number">` reports its value as a string, so convert it back
+// to a number before handing it to react-hook-form. `emptyValue` is what we
+// store when the field is cleared (0 for required priority, "" for optional
+// criteria — matching the schema and the onSubmit cleanup). An unparseable
+// value (valueAsNumber === NaN) falls back to emptyValue too.
+const handleNumericChange =
+  (onChange: (value: number | "") => void, emptyValue: number | "") =>
+  (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.valueAsNumber;
+    onChange(e.target.value === "" || Number.isNaN(value) ? emptyValue : value);
+  };
 
 interface RuleFormDialogProps {
   open: boolean;
@@ -308,7 +320,12 @@ export function RuleFormDialog({
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
                     <FormControl>
-                      <Input type="number" min="0" {...field} />
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        onChange={handleNumericChange(field.onChange, 0)}
+                      />
                     </FormControl>
                     <FormDescription>
                       Higher priority rules are evaluated first
@@ -463,6 +480,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 5"
                           {...field}
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -483,6 +501,7 @@ export function RuleFormDialog({
                           max="100"
                           placeholder="e.g., 80"
                           {...field}
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -502,6 +521,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 30"
                           {...field}
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -521,6 +541,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 14"
                           {...field}
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormDescription>
@@ -543,6 +564,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 18"
                           {...field}
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormDescription>
