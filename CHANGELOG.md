@@ -1,3 +1,9 @@
+## [0.130.0] - 2026-06-24
+
+### Changes
+- feat(admin): redesign surveys list and responses pages ([#1045](https://github.com/everybody-eats-nz/volunteer-portal/pull/1045)) by @malinmalliyawadu
+
+
 ## [0.129.2] - 2026-06-24
 
 ### Changes
