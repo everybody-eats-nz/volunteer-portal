@@ -1,3 +1,81 @@
+## [0.130.0] - 2026-06-24
+
+### Changes
+- feat(admin): redesign surveys list and responses pages ([#1045](https://github.com/everybody-eats-nz/volunteer-portal/pull/1045)) by @malinmalliyawadu
+
+
+## [0.129.2] - 2026-06-24
+
+### Changes
+- fix(admin): coerce numeric inputs in auto-accept rule form ([#1044](https://github.com/everybody-eats-nz/volunteer-portal/pull/1044)) by @malinmalliyawadu
+
+
+## [0.129.1] - 2026-06-23
+
+### Changes
+- Fix broken volunteer profile links in custom-label members modal ([#1043](https://github.com/everybody-eats-nz/volunteer-portal/pull/1043)) by @malinmalliyawadu
+
+
+## [0.129.0] - 2026-06-23
+
+### Changes
+- Redesign custom labels admin page with members modal ([#1042](https://github.com/everybody-eats-nz/volunteer-portal/pull/1042)) by @malinmalliyawadu
+
+
+## [0.128.0] - 2026-06-23
+
+### Changes
+- Redesign restaurant-managers around venue alert coverage ([#1041](https://github.com/everybody-eats-nz/volunteer-portal/pull/1041)) by @malinmalliyawadu
+
+
+## [0.127.0] - 2026-06-23
+
+### Changes
+- feat(admin): redesign restaurant analytics dashboard ([#1040](https://github.com/everybody-eats-nz/volunteer-portal/pull/1040)) by @malinmalliyawadu
+
+
+## [0.126.1] - 2026-06-23
+
+### Changes
+- fix(flaky): moving pending volunteer changes status to confirmed ([#1036](https://github.com/everybody-eats-nz/volunteer-portal/pull/1036)) by @malinmalliyawadu
+
+
+## [0.126.0] - 2026-06-23
+
+### Changes
+- feat(admin): support historical pop-up / one-off venues in analytics ([#1039](https://github.com/everybody-eats-nz/volunteer-portal/pull/1039)) by @malinmalliyawadu
+
+
+## [0.125.4] - 2026-06-22
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 16 updates ([#1031](https://github.com/everybody-eats-nz/volunteer-portal/pull/1031)) by @dependabot[bot]
+
+
+## [0.125.3] - 2026-06-22
+
+### Changes
+- chore(deps-dev): bump baseline-browser-mapping from 2.10.37 to 2.10.38 in /web in the development-dependencies group across 1 directory ([#1029](https://github.com/everybody-eats-nz/volunteer-portal/pull/1029)) by @dependabot[bot]
+
+
+## [0.125.2] - 2026-06-21
+
+### Changes
+- feat(impact-story): expose per-location non-paying share ([#1035](https://github.com/everybody-eats-nz/volunteer-portal/pull/1035)) by @malinmalliyawadu
+
+
+## [0.125.1] - 2026-06-21
+
+### Changes
+- chore(deps-dev): bump @types/node from 25.9.3 to 26.0.0 in /web ([#1033](https://github.com/everybody-eats-nz/volunteer-portal/pull/1033)) by @dependabot[bot]
+
+
+## [0.125.0] - 2026-06-21
+
+### Changes
+- feat(seo): per-city volunteer landing pages (/volunteer, /volunteer/[city]) ([#1024](https://github.com/everybody-eats-nz/volunteer-portal/pull/1024)) by @malinmalliyawadu
+
+
 ## [0.124.1] - 2026-06-20
 
 ### Changes

@@ -279,11 +279,18 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
     const submitButton = page.getByTestId("assign-manager-button");
     await expect(submitButton).toBeDisabled();
 
-    // Select a user but no locations
+    // Select a user
     await page.getByTestId("user-select").click();
     await page.locator('[role="option"]').first().click();
 
-    // Submit button should still be disabled
+    // Selecting an admin who already has an assignment pre-fills their existing
+    // locations; clear any so we can assert the "no locations" invariant.
+    const removeButtons = page.locator('[data-testid^="remove-location-"]');
+    for (let i = 0; i < 10 && (await removeButtons.count()) > 0; i++) {
+      await removeButtons.first().click();
+    }
+
+    // With a user selected but no locations, submit must stay disabled
     await expect(submitButton).toBeDisabled();
   });
 
