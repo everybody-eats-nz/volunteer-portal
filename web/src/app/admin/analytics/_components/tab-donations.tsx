@@ -473,6 +473,7 @@ function SummaryByLocation({ reports }: { reports: RestaurantReports }) {
               <TableHead className="text-right text-xs">Total koha</TableHead>
               <TableHead className="text-right text-xs">Avg koha/night</TableHead>
               <TableHead className="text-right text-xs">Customers</TableHead>
+              <TableHead className="text-right text-xs">Bookings</TableHead>
               <TableHead className="text-right text-xs">$ / head</TableHead>
               <TableHead className="text-right text-xs">Avg non-paying</TableHead>
               <TableHead className="text-right text-xs">Avg customers</TableHead>
@@ -486,6 +487,7 @@ function SummaryByLocation({ reports }: { reports: RestaurantReports }) {
                 <TableCell className="text-right text-sm tabular-nums">{money0(r.totalKoha)}</TableCell>
                 <TableCell className="text-right text-sm tabular-nums">{money2(r.avgKohaPerNight)}</TableCell>
                 <TableCell className="text-right text-sm tabular-nums">{num(r.customers)}</TableCell>
+                <TableCell className="text-right text-sm tabular-nums">{num(r.bookings)}</TableCell>
                 <TableCell className="text-right text-sm tabular-nums">{money2(r.perHead)}</TableCell>
                 <TableCell className="text-right text-sm tabular-nums">{oneDp(r.aveNonPaying)}</TableCell>
                 <TableCell className="text-right text-sm tabular-nums">{oneDp(r.aveCustomers)}</TableCell>
@@ -497,6 +499,7 @@ function SummaryByLocation({ reports }: { reports: RestaurantReports }) {
               <TableCell className="text-right text-sm tabular-nums">{money0(grand.totalKoha)}</TableCell>
               <TableCell className="text-right text-sm tabular-nums">{money2(grand.avgKohaPerNight)}</TableCell>
               <TableCell className="text-right text-sm tabular-nums">{num(grand.customers)}</TableCell>
+              <TableCell className="text-right text-sm tabular-nums">{num(grand.bookings)}</TableCell>
               <TableCell className="text-right text-sm tabular-nums">{money2(grand.perHead)}</TableCell>
               <TableCell className="text-right text-sm tabular-nums">{oneDp(grand.aveNonPaying)}</TableCell>
               <TableCell className="text-right text-sm tabular-nums">{oneDp(grand.aveCustomers)}</TableCell>
