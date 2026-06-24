@@ -9,6 +9,16 @@ import {
   deleteTestSurveys,
 } from "./helpers/test-helpers";
 import { randomUUID } from "crypto";
+import type { Page } from "@playwright/test";
+
+/**
+ * Row actions (edit, assign, bulk assign, activate/deactivate, delete) live
+ * inside a per-card "..." dropdown in the redesigned surveys list. Open it
+ * before interacting with any of those actions.
+ */
+async function openSurveyActions(page: Page, surveyId: string) {
+  await page.getByTestId(`survey-actions-${surveyId}`).click();
+}
 
 test.describe("Admin Surveys Management", () => {
   test.describe("Page Access and Authentication", () => {
@@ -336,6 +346,7 @@ test.describe("Admin Surveys Management", () => {
       page,
     }) => {
       // Find the edit button on the survey card
+      await openSurveyActions(page, surveyIds[0]);
       const editButton = page.getByTestId(`edit-survey-${surveyIds[0]}`);
       await editButton.click();
 
@@ -348,6 +359,7 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should allow updating survey title", async ({ page }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const editButton = page.getByTestId(`edit-survey-${surveyIds[0]}`);
       await editButton.click();
 
@@ -370,6 +382,7 @@ test.describe("Admin Surveys Management", () => {
     test("should allow adding new questions to existing survey", async ({
       page,
     }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const editButton = page.getByTestId(`edit-survey-${surveyIds[0]}`);
       await editButton.click();
 
@@ -386,6 +399,7 @@ test.describe("Admin Surveys Management", () => {
 
     test("should allow removing questions from survey", async ({ page }) => {
       // First add a second question so we can remove one
+      await openSurveyActions(page, surveyIds[0]);
       const editButton = page.getByTestId(`edit-survey-${surveyIds[0]}`);
       await editButton.click();
 
@@ -403,6 +417,7 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should allow changing trigger type", async ({ page }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const editButton = page.getByTestId(`edit-survey-${surveyIds[0]}`);
       await editButton.click();
 
@@ -456,6 +471,7 @@ test.describe("Admin Surveys Management", () => {
       await expect(page.getByText("Toggle Active Survey")).toBeVisible();
 
       // Click deactivate button
+      await openSurveyActions(page, surveyIds[0]);
       const toggleButton = page.getByTestId(`toggle-survey-${surveyIds[0]}`);
       await toggleButton.click();
 
@@ -465,6 +481,7 @@ test.describe("Admin Surveys Management", () => {
 
     test("should show inactive badge after deactivation", async ({ page }) => {
       // Deactivate the survey
+      await openSurveyActions(page, surveyIds[0]);
       const toggleButton = page.getByTestId(`toggle-survey-${surveyIds[0]}`);
       await toggleButton.click();
 
@@ -514,11 +531,13 @@ test.describe("Admin Surveys Management", () => {
       await expect(page.getByText("Delete Confirm Survey")).toBeVisible();
 
       // Click delete button
+      await openSurveyActions(page, survey.id);
       const deleteButton = page.getByTestId(`delete-survey-${survey.id}`);
       await deleteButton.click();
 
       // Confirmation dialog should appear
-      await expect(page.getByText("Delete Survey")).toBeVisible();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+      await expect(page.getByText(/delete survey/i)).toBeVisible();
     });
 
     test("should delete survey with no assignments", async ({ page }) => {
@@ -536,6 +555,7 @@ test.describe("Admin Surveys Management", () => {
       await expect(page.getByText("Delete No Assign Survey")).toBeVisible();
 
       // Click delete
+      await openSurveyActions(page, survey.id);
       const deleteButton = page.getByTestId(`delete-survey-${survey.id}`);
       await deleteButton.click();
 
@@ -574,6 +594,7 @@ test.describe("Admin Surveys Management", () => {
       await expect(page.getByText("Delete With Assign Survey")).toBeVisible();
 
       // Click delete
+      await openSurveyActions(page, survey.id);
       const deleteButton = page.getByTestId(`delete-survey-${survey.id}`);
       await deleteButton.click();
 
@@ -596,6 +617,7 @@ test.describe("Admin Surveys Management", () => {
       await expect(page.getByText("Cancel Delete Survey")).toBeVisible();
 
       // Click delete
+      await openSurveyActions(page, survey.id);
       const deleteButton = page.getByTestId(`delete-survey-${survey.id}`);
       await deleteButton.click();
 
@@ -644,6 +666,7 @@ test.describe("Admin Surveys Management", () => {
     test("should open assign dialog when clicking assign button", async ({
       page,
     }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
       await assignButton.click();
 
@@ -655,6 +678,7 @@ test.describe("Admin Surveys Management", () => {
     test("should search and filter users in assign dialog", async ({
       page,
     }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
       await assignButton.click();
 
@@ -675,6 +699,7 @@ test.describe("Admin Surveys Management", () => {
     test("should allow selecting multiple users for assignment", async ({
       page,
     }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
       await assignButton.click();
 
@@ -707,6 +732,7 @@ test.describe("Admin Surveys Management", () => {
 
       await page.reload();
 
+      await openSurveyActions(page, surveyIds[0]);
       const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
       await assignButton.click();
 
@@ -722,6 +748,7 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should assign survey to selected users", async ({ page }) => {
+      await openSurveyActions(page, surveyIds[0]);
       const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
       await assignButton.click();
 
@@ -746,11 +773,14 @@ test.describe("Admin Surveys Management", () => {
       }
     });
 
-    test("should show MANUAL surveys with prominent assign button", async ({
+    test("should expose assign action for MANUAL surveys", async ({
       page,
     }) => {
-      // MANUAL trigger surveys should have the assign button visible
-      const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
+      // Assign lives in the per-card actions dropdown in the redesign.
+      await openSurveyActions(page, surveyIds[0]);
+      const assignButton = page.getByTestId(
+        new RegExp(`assign-survey-${surveyIds[0]}`)
+      );
       await expect(assignButton).toBeVisible();
     });
   });
@@ -801,11 +831,11 @@ test.describe("Admin Surveys Management", () => {
       await page.goto(`/admin/surveys/${surveyIds[0]}/responses`);
       await page.waitForLoadState("load");
 
-      // Should show the survey title
+      // Should show the survey title in the hero
       await expect(page.getByText("Responses Test Survey").first()).toBeVisible();
 
-      // Should show tabs (Summary, Responses, Assignments)
-      await expect(page.getByText(/responses/i).first()).toBeVisible();
+      // Should show the two-lens view switcher (Insights / Respondents)
+      await expect(page.getByRole("tab", { name: /respondents/i })).toBeVisible();
     });
 
     test("should show response details when clicking a response", async ({
@@ -814,22 +844,25 @@ test.describe("Admin Surveys Management", () => {
       await page.goto(`/admin/surveys/${surveyIds[0]}/responses`);
       await page.waitForLoadState("load");
 
-      // Verify tabs are present
-      await expect(page.getByRole("tab", { name: /assignments/i })).toBeVisible();
+      // Verify the view switcher tabs are present
+      await expect(page.getByRole("tab", { name: /insights/i })).toBeVisible();
+      await expect(page.getByRole("tab", { name: /respondents/i })).toBeVisible();
     });
 
-    test("should allow filtering responses by status", async ({ page }) => {
+    test("should allow filtering respondents by status", async ({ page }) => {
       await page.goto(`/admin/surveys/${surveyIds[0]}/responses`);
       await page.waitForLoadState("load");
 
-      // Check for the assignments tab which shows status
-      const assignmentsTab = page.getByRole("tab", { name: /assignments/i });
-      await assignmentsTab.click();
+      // Open the Respondents lens (default when there are no responses)
+      await page.getByRole("tab", { name: /respondents/i }).click();
 
-      // Should show the assignments list (may be empty)
-      const hasNoAssignments = await page.getByText(/no assignments yet/i).count() > 0;
-      const hasTable = await page.locator("table").count() > 0;
-      expect(hasNoAssignments || hasTable).toBeTruthy();
+      // Status filter chips replace the old Assignments tab/table
+      await expect(
+        page.getByRole("button", { name: /^All/ }).first()
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Completed/ }).first()
+      ).toBeVisible();
     });
   });
 
@@ -858,9 +891,12 @@ test.describe("Admin Surveys Management", () => {
       page,
     }) => {
       // We need a survey to edit - check if any exist
-      const editButton = page.locator('[data-testid^="edit-survey-"]').first();
-      if ((await editButton.count()) > 0) {
-        await editButton.click();
+      const actionsTrigger = page
+        .locator('[data-testid^="survey-actions-"]')
+        .first();
+      if ((await actionsTrigger.count()) > 0) {
+        await actionsTrigger.click();
+        await page.locator('[data-testid^="edit-survey-"]').first().click();
 
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();
@@ -874,9 +910,12 @@ test.describe("Admin Surveys Management", () => {
     test("should show preview email button in assign dialog", async ({
       page,
     }) => {
-      const assignButton = page.locator('[data-testid^="assign-survey-"]').first();
-      if ((await assignButton.count()) > 0) {
-        await assignButton.click();
+      const actionsTrigger = page
+        .locator('[data-testid^="survey-actions-"]')
+        .first();
+      if ((await actionsTrigger.count()) > 0) {
+        await actionsTrigger.click();
+        await page.locator('[data-testid^="assign-survey-"]').first().click();
 
         const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();

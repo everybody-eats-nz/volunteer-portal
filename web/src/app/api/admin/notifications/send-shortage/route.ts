@@ -164,14 +164,30 @@ export async function POST(request: Request) {
 
     if (notifiedUserIds.length > 0) {
       const firstShift = shiftsForEmail[0];
+      // Shortage notifications always cover a single day, so multi-shift
+      // notifications can deep-link to that date's shift list. Include the
+      // location too when every shift shares one.
+      const allSameLocation = shiftsForEmail.every(
+        (s) => s.location === firstShift.location
+      );
+      const dateLink = `/shifts/details?date=${firstShift.shiftDateISO}${
+        allSameLocation
+          ? `&location=${encodeURIComponent(firstShift.location)}`
+          : ""
+      }`;
+
       const pushTitle =
         shifts.length === 1
           ? `Shift needs volunteers: ${firstShift.shiftName}`
-          : `${shifts.length} shifts need volunteers`;
+          : `${shifts.length} shifts need volunteers on ${firstShift.shiftDate}`;
       const pushMessage =
         shifts.length === 1
           ? `${firstShift.shiftName} on ${firstShift.shiftDate} at ${firstShift.location} — ${firstShift.neededVolunteers} more needed.`
-          : `Tap to see ${shifts.length} shifts across our locations that still need cover.`;
+          : `${firstShift.shiftDate}: ${shifts.length} shifts ${
+              allSameLocation
+                ? `at ${firstShift.location} `
+                : "across our locations "
+            }still need cover. Tap to help out.`;
 
       await createNotificationsForUsers({
         userIds: notifiedUserIds,
@@ -179,7 +195,7 @@ export async function POST(request: Request) {
         title: pushTitle,
         message: pushMessage,
         actionUrl:
-          shifts.length === 1 ? `/shifts/${firstShift.shiftId}` : "/shifts",
+          shifts.length === 1 ? `/shifts/${firstShift.shiftId}` : dateLink,
       });
     }
 

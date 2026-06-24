@@ -206,15 +206,8 @@ export default function ProfileScreen() {
       }
       result = await ImagePicker.launchCameraAsync(common);
     } else {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Photos access needed",
-          "Please enable photo library access in Settings to choose a profile photo."
-        );
-        return;
-      }
+      // Uses the system photo picker (Android Photo Picker / iOS PHPicker),
+      // which requires no media-library permission.
       result = await ImagePicker.launchImageLibraryAsync(common);
     }
 

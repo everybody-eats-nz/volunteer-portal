@@ -77,6 +77,17 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
+  // /shifts/details?date=YYYY-MM-DD -> shifts tab focused on that day.
+  // Shortage notifications deep-link here; the shifts tab honours ?date=.
+  // (location isn't forwarded — the tab applies the user's own filter.)
+  if (pathname === "/shifts/details") {
+    const date = query.get("date");
+    router.push(
+      date ? { pathname: "/(tabs)/shifts", params: { date } } : "/(tabs)/shifts"
+    );
+    return;
+  }
+
   // /shifts or /shifts/mine -> shifts tab
   if (pathname === "/shifts" || pathname.startsWith("/shifts/")) {
     router.push("/(tabs)/shifts");

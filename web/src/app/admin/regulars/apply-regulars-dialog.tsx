@@ -283,7 +283,7 @@ export function ApplyRegularsDialog({
                     setDateRange(range);
                     reset();
                   }}
-                  initialFocus
+                  autoFocus
                   numberOfMonths={2}
                 />
               </PopoverContent>

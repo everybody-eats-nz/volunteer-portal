@@ -47,6 +47,8 @@ export type ImpactStoryLocation = {
   customers: number;
   koha: number;
   perHead: number | null;
+  /** Share of this venue's diners who ate as guests (paid nothing). */
+  nonPayingPercent: number | null;
   avgCustomersPerNight: number;
   weeknightPerHead: number | null;
   weekendPerHead: number | null;
@@ -266,6 +268,7 @@ export async function getPublicImpactStory(): Promise<PublicImpactStory> {
       customers: b.customers,
       koha: Math.round(b.koha),
       perHead: perHead(b),
+      nonPayingPercent: nonPayingPercent(b),
       avgCustomersPerNight: b.nights > 0 ? Math.round(b.customers / b.nights) : 0,
       weeknightPerHead: perHead(locWeeknight.get(name) ?? emptyBucket()),
       weekendPerHead: perHead(locWeekend.get(name) ?? emptyBucket()),

@@ -27,6 +27,7 @@ export interface SummaryRow {
   totalKoha: number;
   avgKohaPerNight: number | null;
   customers: number;
+  bookings: number;
   perHead: number | null;
   aveNonPaying: number | null;
   aveCustomers: number | null;
@@ -233,6 +234,7 @@ export async function getRestaurantReports(
     totalKoha: round2(b.koha),
     avgKohaPerNight: div(b.koha, b.nights),
     customers: b.customers,
+    bookings: b.bookings,
     perHead: div(b.koha, b.customers),
     aveNonPaying: div(b.nonPaying, b.nights),
     aveCustomers: div(b.customers, b.nights),
@@ -246,6 +248,7 @@ export async function getRestaurantReports(
     grandBucket.koha += b.koha;
     grandBucket.nights += b.nights;
     grandBucket.nonPaying += b.nonPaying;
+    grandBucket.bookings += b.bookings;
   });
   const grand = summaryRow("Grand total", grandBucket);
 

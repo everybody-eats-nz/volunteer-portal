@@ -220,7 +220,7 @@ export default async function SurveyResponsesPage({
   });
 
   return (
-    <AdminPageWrapper title={`Survey Responses: ${survey.title}`}>
+    <AdminPageWrapper title="Survey Responses">
       <PageContainer>
         <ResponsesContent
           survey={{

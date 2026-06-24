@@ -2,7 +2,7 @@
   "expo": {
     "name": "Everybody Eats",
     "slug": "everybody-eats",
-    "version": "1.0.5",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "everybody-eats",
@@ -12,7 +12,10 @@
       "bundleIdentifier": "com.malinmw.everybody-eats",
       "buildNumber": "2",
       "usesAppleSignIn": true,
-      "associatedDomains": ["webcredentials:volunteers.everybodyeats.nz"],
+      "associatedDomains": [
+        "applinks:volunteers.everybodyeats.nz",
+        "webcredentials:volunteers.everybodyeats.nz"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["remote-notification"],
@@ -36,7 +39,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.READ_MEDIA_VISUAL_USER_SELECTED"],
+      "permissions": [],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -45,6 +48,58 @@
             {
               "scheme": "com.everybodyeats.app",
               "path": "/oauthredirect"
+            }
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": ["DEFAULT", "BROWSABLE"],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/shifts"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/shifts/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/dashboard"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/profile"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/profile/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/friends"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/friends/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/achievements"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/achievements/"
             }
           ]
         }
@@ -85,14 +140,6 @@
         {
           "color": "#0e3a23",
           "defaultChannel": "default"
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Everybody Eats to save shift photos to your library.",
-          "savePhotosPermission": "Allow Everybody Eats to save shift photos to your library.",
-          "isAccessMediaLocationEnabled": false
         }
       ],
       [
