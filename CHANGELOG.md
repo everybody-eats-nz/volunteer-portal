@@ -1,3 +1,9 @@
+## [0.131.0] - 2026-06-24
+
+### Changes
+- feat: universal links + app links for mobile app rollout ([#1023](https://github.com/everybody-eats-nz/volunteer-portal/pull/1023)) by @malinmalliyawadu
+
+
 ## [0.130.1] - 2026-06-24
 
 ### Changes
