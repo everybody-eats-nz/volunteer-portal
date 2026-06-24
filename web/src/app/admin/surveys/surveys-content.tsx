@@ -47,6 +47,7 @@ import {
   TRIGGER_META,
 } from "./_components/survey-ui";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminPageTitle } from "@/hooks/use-admin-page-title";
 import { cn } from "@/lib/utils";
 import type { Survey, SurveyTriggerType } from "@/generated/client";
 import Link from "next/link";
@@ -259,6 +260,29 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
     setDialogOpen(true);
   };
 
+  const headerActions = useMemo(
+    () => (
+      <Button
+        size="sm"
+        onClick={() => {
+          setEditingSurvey(null);
+          setDialogOpen(true);
+        }}
+        data-testid="create-survey-button"
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        Create survey
+      </Button>
+    ),
+    []
+  );
+
+  useAdminPageTitle(
+    "Surveys",
+    "Design, deploy and track volunteer feedback across the motu.",
+    headerActions
+  );
+
   const handleAssignmentComplete = () => {
     window.location.reload();
   };
@@ -304,24 +328,6 @@ export function SurveysContent({ initialSurveys }: SurveysContentProps) {
 
   return (
     <div className="space-y-6">
-      {/* Intro */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Surveys</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Design, deploy and track volunteer feedback across the motu.
-          </p>
-        </div>
-        <Button
-          onClick={openCreateDialog}
-          data-testid="create-survey-button"
-          className="w-full sm:w-auto"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create survey
-        </Button>
-      </div>
-
       {/* Overview KPIs */}
       {surveys.length > 0 && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

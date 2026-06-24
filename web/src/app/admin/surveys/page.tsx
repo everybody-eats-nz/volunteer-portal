@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
-import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { SurveysContent } from "./surveys-content";
 
@@ -63,10 +62,8 @@ export default async function SurveysPage() {
   );
 
   return (
-    <AdminPageWrapper title="Surveys">
-      <PageContainer>
-        <SurveysContent initialSurveys={surveysWithStats} />
-      </PageContainer>
-    </AdminPageWrapper>
+    <PageContainer>
+      <SurveysContent initialSurveys={surveysWithStats} />
+    </PageContainer>
   );
 }
