@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -64,6 +64,15 @@ const ruleFormSchema = z.object({
 });
 
 type RuleFormValues = z.infer<typeof ruleFormSchema>;
+
+// `<input type="number">` reports its value as a string, so convert it back
+// to a number before handing it to react-hook-form. `emptyValue` is what we
+// store when the field is cleared (0 for required priority, "" for optional
+// criteria — matching the schema and the onSubmit cleanup).
+const handleNumericChange =
+  (onChange: (value: number | "") => void, emptyValue: number | "") =>
+  (e: ChangeEvent<HTMLInputElement>) =>
+    onChange(e.target.value === "" ? emptyValue : e.target.valueAsNumber);
 
 interface RuleFormDialogProps {
   open: boolean;
@@ -312,13 +321,7 @@ export function RuleFormDialog({
                         type="number"
                         min="0"
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? 0
-                              : e.target.valueAsNumber
-                          )
-                        }
+                        onChange={handleNumericChange(field.onChange, 0)}
                       />
                     </FormControl>
                     <FormDescription>
@@ -474,13 +477,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 5"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? ""
-                                : e.target.valueAsNumber
-                            )
-                          }
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -501,13 +498,7 @@ export function RuleFormDialog({
                           max="100"
                           placeholder="e.g., 80"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? ""
-                                : e.target.valueAsNumber
-                            )
-                          }
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -527,13 +518,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 30"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? ""
-                                : e.target.valueAsNumber
-                            )
-                          }
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormMessage />
@@ -553,13 +538,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 14"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? ""
-                                : e.target.valueAsNumber
-                            )
-                          }
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormDescription>
@@ -582,13 +561,7 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 18"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? ""
-                                : e.target.valueAsNumber
-                            )
-                          }
+                          onChange={handleNumericChange(field.onChange, "")}
                         />
                       </FormControl>
                       <FormDescription>
