@@ -55,6 +55,7 @@ STYLE_GUIDE.md
 posthog-setup-report.md
 
 # --- debug logs ---
+*.log
 npm-debug.*
 yarn-debug.*
 yarn-error.*
