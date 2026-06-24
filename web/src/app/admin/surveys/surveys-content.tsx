@@ -612,7 +612,7 @@ function SurveyCard({
                 </span>
               ) : (
                 <Badge variant="secondary" className="text-[11px]">
-                  Paused
+                  Inactive
                 </Badge>
               )}
             </div>
