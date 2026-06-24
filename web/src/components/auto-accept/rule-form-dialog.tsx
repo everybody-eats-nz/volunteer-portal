@@ -308,7 +308,18 @@ export function RuleFormDialog({
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
                     <FormControl>
-                      <Input type="number" min="0" {...field} />
+                      <Input
+                        type="number"
+                        min="0"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? 0
+                              : e.target.valueAsNumber
+                          )
+                        }
+                      />
                     </FormControl>
                     <FormDescription>
                       Higher priority rules are evaluated first
@@ -463,6 +474,13 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 5"
                           {...field}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? ""
+                                : e.target.valueAsNumber
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -483,6 +501,13 @@ export function RuleFormDialog({
                           max="100"
                           placeholder="e.g., 80"
                           {...field}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? ""
+                                : e.target.valueAsNumber
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -502,6 +527,13 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 30"
                           {...field}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? ""
+                                : e.target.valueAsNumber
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -521,6 +553,13 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 14"
                           {...field}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? ""
+                                : e.target.valueAsNumber
+                            )
+                          }
                         />
                       </FormControl>
                       <FormDescription>
@@ -543,6 +582,13 @@ export function RuleFormDialog({
                           min="0"
                           placeholder="e.g., 18"
                           {...field}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? ""
+                                : e.target.valueAsNumber
+                            )
+                          }
                         />
                       </FormControl>
                       <FormDescription>
