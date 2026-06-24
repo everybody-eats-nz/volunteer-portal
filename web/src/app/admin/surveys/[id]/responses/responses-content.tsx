@@ -200,21 +200,31 @@ export function ResponsesContent({
         ? respondents
         : respondents.filter((r) => statusOf(r) === statusFilter);
 
+    // Stable tie-breaker so equal primary keys keep a deterministic order
+    // (prevents rows reshuffling on re-render).
+    const tieBreak = (a: Respondent, b: Respondent) =>
+      (a.user.name || "").localeCompare(b.user.name || "") ||
+      a.id.localeCompare(b.id);
+
     const sorted = [...filtered].sort((a, b) => {
+      let cmp = 0;
       switch (sortKey) {
         case "name":
-          return (a.user.name || "").localeCompare(b.user.name || "");
+          cmp = (a.user.name || "").localeCompare(b.user.name || "");
+          break;
         case "shifts":
-          return (b.user.completedShifts || 0) - (a.user.completedShifts || 0);
+          cmp = (b.user.completedShifts || 0) - (a.user.completedShifts || 0);
+          break;
         case "member":
-          return (
+          cmp =
             new Date(a.user.createdAt).getTime() -
-            new Date(b.user.createdAt).getTime()
-          );
+            new Date(b.user.createdAt).getTime();
+          break;
         case "recent":
         default:
-          return updateTime(b) - updateTime(a);
+          cmp = updateTime(b) - updateTime(a);
       }
+      return cmp || tieBreak(a, b);
     });
     return sorted;
   }, [respondents, statusFilter, sortKey]);
@@ -271,8 +281,12 @@ export function ResponsesContent({
   };
 
   const exportCsv = () => {
-    const escapeCsv = (value: string) =>
-      /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+    const escapeCsv = (value: string) => {
+      // Neutralise CSV formula injection — spreadsheets execute cells that
+      // begin with =, +, -, @, tab or CR (e.g. a "=1+1" survey answer).
+      const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+      return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+    };
     const headers = [
       "Volunteer Name",
       "Email",
