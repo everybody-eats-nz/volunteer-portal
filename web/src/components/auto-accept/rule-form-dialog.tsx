@@ -68,11 +68,14 @@ type RuleFormValues = z.infer<typeof ruleFormSchema>;
 // `<input type="number">` reports its value as a string, so convert it back
 // to a number before handing it to react-hook-form. `emptyValue` is what we
 // store when the field is cleared (0 for required priority, "" for optional
-// criteria — matching the schema and the onSubmit cleanup).
+// criteria — matching the schema and the onSubmit cleanup). An unparseable
+// value (valueAsNumber === NaN) falls back to emptyValue too.
 const handleNumericChange =
   (onChange: (value: number | "") => void, emptyValue: number | "") =>
-  (e: ChangeEvent<HTMLInputElement>) =>
-    onChange(e.target.value === "" ? emptyValue : e.target.valueAsNumber);
+  (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.valueAsNumber;
+    onChange(e.target.value === "" || Number.isNaN(value) ? emptyValue : value);
+  };
 
 interface RuleFormDialogProps {
   open: boolean;
