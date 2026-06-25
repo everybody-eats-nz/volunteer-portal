@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import {
   getPublicImpactStats,
+  getActiveVolunteerCount,
   FOOD_SAVED_KG_PER_MEAL,
 } from "./impact-stats";
 import { prisma } from "./prisma";
@@ -97,5 +98,35 @@ describe("getPublicImpactStats", () => {
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
     );
     expect(new Date(stats.generatedAt).toISOString()).toBe(stats.generatedAt);
+  });
+});
+
+describe("getActiveVolunteerCount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("counts distinct users with CONFIRMED finished shifts", async () => {
+    mockedQueryRaw.mockResolvedValue([{ count: 42 }]);
+
+    const count = await getActiveVolunteerCount(new Date());
+
+    expect(count).toBe(42);
+  });
+
+  it("treats a null count as zero", async () => {
+    mockedQueryRaw.mockResolvedValue([{ count: null }]);
+
+    const count = await getActiveVolunteerCount(new Date());
+
+    expect(count).toBe(0);
+  });
+
+  it("defends against an empty raw-query result set", async () => {
+    mockedQueryRaw.mockResolvedValue([]);
+
+    const count = await getActiveVolunteerCount(new Date());
+
+    expect(count).toBe(0);
   });
 });
