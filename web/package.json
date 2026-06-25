@@ -114,7 +114,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.10.38",
     "csv-parse": "^6.2.1",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.2.9",
     "exceljs": "^4.4.0",
     "prisma": "^7.8.0",
