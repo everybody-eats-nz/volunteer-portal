@@ -1,3 +1,9 @@
+## [0.132.1] - 2026-06-25
+
+### Changes
+- fix(analytics): use NZ calendar date for restaurant report bucketing & Service Nights table ([#1050](https://github.com/everybody-eats-nz/volunteer-portal/pull/1050)) by @malinmalliyawadu
+
+
 ## [0.132.0] - 2026-06-24
 
 ### Changes
