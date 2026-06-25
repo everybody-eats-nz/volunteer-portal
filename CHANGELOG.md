@@ -1,3 +1,9 @@
+## [0.132.2] - 2026-06-25
+
+### Changes
+- fix(home): correct undercounted homepage hours and volunteers stats ([#1049](https://github.com/everybody-eats-nz/volunteer-portal/pull/1049)) by @malinmalliyawadu
+
+
 ## [0.132.1] - 2026-06-25
 
 ### Changes
