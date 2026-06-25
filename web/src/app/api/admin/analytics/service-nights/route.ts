@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { nowInNZT, toNZT } from "@/lib/timezone";
+import { formatInNZT, nowInNZT, toNZT } from "@/lib/timezone";
 import { parseDaysParam } from "@/lib/parse-days-param";
 
 const toNum = (v: unknown): number => {
@@ -174,7 +174,9 @@ export async function GET(request: NextRequest) {
           Math.round((toNum(cash) + toNum(eftpos) + toNum(stripe)) * 100) / 100;
         const customers = r.mealsServed;
         return {
-          date: r.date.toISOString().substring(0, 10),
+          // Stored as NZ-midnight in UTC, so format in NZT to recover the
+          // actual NZ calendar date (a raw UTC slice lands a day early).
+          date: formatInNZT(r.date, "yyyy-MM-dd"),
           location: r.location,
           customers,
           nonPaying: r.nonPayingCount,
