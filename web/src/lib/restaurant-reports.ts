@@ -179,14 +179,15 @@ export async function getRestaurantReports(
   const scatter: Array<{ bookings: number; koha: number }> = [];
 
   records.forEach((rec) => {
-    if (daysFilter) {
-      const nzDay = toNZT(rec.date).getDay();
-      if (!daysFilter.includes(nzDay)) return;
-    }
-    const iso = rec.date.toISOString();
-    const ym = iso.substring(0, 7);
-    const year = iso.substring(0, 4);
-    const weekday = toNZT(rec.date).getDay();
+    // Bucket by the NZ calendar date. Records are stored as NZ-midnight
+    // expressed in UTC (e.g. NZ Jul 1 → 2024-06-30T12:00Z), so reading the
+    // month/year off the raw UTC instant would misfile 1st-of-month nights
+    // into the previous month (and Jan 1 into the previous year).
+    const nzDate = toNZT(rec.date);
+    const weekday = nzDate.getDay();
+    if (daysFilter && !daysFilter.includes(weekday)) return;
+    const year = String(nzDate.getFullYear());
+    const ym = `${year}-${String(nzDate.getMonth() + 1).padStart(2, "0")}`;
     const loc = rec.location;
     const customers = rec.mealsServed ?? 0;
     const koha = toNum(rec.cash) + toNum(rec.eftpos) + toNum(rec.stripe);
