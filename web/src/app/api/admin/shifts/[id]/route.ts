@@ -44,7 +44,12 @@ export async function DELETE(
         where: { shiftId: id },
       });
 
-      await deleteNotificationsForDeletedShifts([id], tx);
+      const { count } = await deleteNotificationsForDeletedShifts([id], tx);
+      if (count > 0) {
+        console.info(
+          `Cleaned up ${count} dangling notification(s) for deleted shift ${id}`
+        );
+      }
 
       await tx.shift.delete({
         where: { id },

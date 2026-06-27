@@ -83,7 +83,15 @@ export async function DELETE(request: NextRequest) {
       // Notification model has no FK/cascade to Shift, so their
       // `/shifts/{id}` and `/admin/shifts/{id}` links would otherwise survive
       // as dead "Shift not found" links.
-      await deleteNotificationsForDeletedShifts(shiftIds, tx);
+      const { count } = await deleteNotificationsForDeletedShifts(
+        shiftIds,
+        tx
+      );
+      if (count > 0) {
+        console.info(
+          `Cleaned up ${count} dangling notification(s) for ${shiftIds.length} deleted shift(s)`
+        );
+      }
 
       // Delete the shifts
       await tx.shift.deleteMany({

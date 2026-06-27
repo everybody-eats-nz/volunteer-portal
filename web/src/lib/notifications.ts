@@ -661,6 +661,11 @@ function shiftActionUrls(shiftId: string): string[] {
  * Call this whenever a shift is deleted so no dangling "Shift not found"
  * notifications are left behind. Accepts an optional transaction client so it
  * can run inside the same transaction as the shift deletion.
+ *
+ * Matches the exact deep links produced by `shiftActionUrls` (`/shifts/{id}`,
+ * `/admin/shifts/{id}`). A future notification type that appends a query string
+ * or fragment (e.g. `/shifts/{id}?tab=details`) would not be matched unless this
+ * helper is extended — all current shift notifications store the bare path.
  */
 export async function deleteNotificationsForDeletedShifts(
   shiftIds: string[],
