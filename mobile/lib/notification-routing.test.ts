@@ -54,6 +54,17 @@ describe("navigateToNotificationTarget", () => {
       );
     });
 
+    // The backend may append &location=... (see send-shortage/route.ts), but
+    // the mobile shifts tab applies the user's own location filter, so only
+    // the date is forwarded. This documents that intentional drop.
+    it("forwards only the date (not location) for /shifts/details", () => {
+      navigateToNotificationTarget("/shifts/details?date=2026-06-30&location=Wellington");
+      expect(pushMock).toHaveBeenCalledWith({
+        pathname: "/(tabs)/shifts",
+        params: { date: "2026-06-30" },
+      });
+    });
+
     it("falls back to the shifts tab when /shifts/details carries no date", () => {
       navigateToNotificationTarget("/shifts/details");
       expect(pushMock).toHaveBeenCalledWith("/(tabs)/shifts");

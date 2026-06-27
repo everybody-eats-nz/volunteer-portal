@@ -67,11 +67,12 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
   }
 
   // /shifts/:id -> shift detail modal. Exclude the web's non-id sub-routes
-  // (/shifts/mine; /shifts/details is handled above) so they aren't mistaken
-  // for a shift id and sent to a 404 "Shift not found" screen. Mirrors the
-  // same guard in deep-link-routing.ts.
+  // (/shifts/mine, /shifts/details) so they aren't mistaken for a shift id and
+  // sent to a 404 "Shift not found" screen. /shifts/details is also handled
+  // explicitly above (to forward ?date=); listing it here keeps this guard
+  // identical to the one in deep-link-routing.ts.
   const shiftDetail = pathname.match(/^\/shifts\/([^/]+)$/);
-  if (shiftDetail && shiftDetail[1] !== "mine") {
+  if (shiftDetail && !["mine", "details"].includes(shiftDetail[1])) {
     router.push({ pathname: "/shift/[id]", params: { id: shiftDetail[1] } });
     return;
   }
