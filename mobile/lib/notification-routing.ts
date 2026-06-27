@@ -53,9 +53,25 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
-  // /shifts/:id -> shift detail modal
+  // /shifts/details?date=YYYY-MM-DD -> shifts tab focused on that day.
+  // Shortage notifications deep-link here; the shifts tab honours ?date=.
+  // (location isn't forwarded — the tab applies the user's own filter.)
+  // Must run before the generic /shifts/:id match below, otherwise
+  // "details" is treated as a shift id and 404s ("Shift not found").
+  if (pathname === "/shifts/details") {
+    const date = query.get("date");
+    router.push(
+      date ? { pathname: "/(tabs)/shifts", params: { date } } : "/(tabs)/shifts"
+    );
+    return;
+  }
+
+  // /shifts/:id -> shift detail modal. Exclude the web's non-id sub-routes
+  // (/shifts/mine; /shifts/details is handled above) so they aren't mistaken
+  // for a shift id and sent to a 404 "Shift not found" screen. Mirrors the
+  // same guard in deep-link-routing.ts.
   const shiftDetail = pathname.match(/^\/shifts\/([^/]+)$/);
-  if (shiftDetail) {
+  if (shiftDetail && shiftDetail[1] !== "mine") {
     router.push({ pathname: "/shift/[id]", params: { id: shiftDetail[1] } });
     return;
   }
@@ -77,18 +93,7 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
-  // /shifts/details?date=YYYY-MM-DD -> shifts tab focused on that day.
-  // Shortage notifications deep-link here; the shifts tab honours ?date=.
-  // (location isn't forwarded — the tab applies the user's own filter.)
-  if (pathname === "/shifts/details") {
-    const date = query.get("date");
-    router.push(
-      date ? { pathname: "/(tabs)/shifts", params: { date } } : "/(tabs)/shifts"
-    );
-    return;
-  }
-
-  // /shifts or /shifts/mine -> shifts tab
+  // Any other /shifts/* path -> shifts tab fallback.
   if (pathname === "/shifts" || pathname.startsWith("/shifts/")) {
     router.push("/(tabs)/shifts");
     return;
