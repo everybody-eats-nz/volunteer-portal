@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { NotificationType } from "@/generated/client";
+import { NotificationType, Prisma } from "@/generated/client";
 import {
   isUserConnected,
   sendNotificationToUser,
@@ -637,5 +637,39 @@ export async function createShiftCanceledNotification(
     message: `Your ${shiftName} shift on ${shiftDate} has been canceled by an administrator`,
     actionUrl: `/shifts/${shiftId}`,
     relatedId: shiftId,
+  });
+}
+
+/**
+ * Deep-link action URLs that point at a single shift. Notifications store these
+ * in `actionUrl`, but the Notification model has no FK/cascade to Shift, so when
+ * a shift is deleted these links survive and render "Shift not found" when
+ * tapped. Both shapes are covered:
+ *  - `/shifts/{id}` — volunteer-facing (SHIFT_CONFIRMED, SHIFT_CANCELED,
+ *    single-shift SHIFT_SHORTAGE)
+ *  - `/admin/shifts/{id}` — admin-facing (SHIFT_SIGNUP_REQUEST,
+ *    SHIFT_CANCELLATION_MANAGER)
+ * Multi-shift links (`/shifts/mine`, `/shifts/details?date=...`) embed no id and
+ * are intentionally not matched.
+ */
+function shiftActionUrls(shiftId: string): string[] {
+  return [`/shifts/${shiftId}`, `/admin/shifts/${shiftId}`];
+}
+
+/**
+ * Delete every notification whose deep link points at one of the given shifts.
+ * Call this whenever a shift is deleted so no dangling "Shift not found"
+ * notifications are left behind. Accepts an optional transaction client so it
+ * can run inside the same transaction as the shift deletion.
+ */
+export async function deleteNotificationsForDeletedShifts(
+  shiftIds: string[],
+  client: Prisma.TransactionClient = prisma
+): Promise<{ count: number }> {
+  if (shiftIds.length === 0) return { count: 0 };
+  return client.notification.deleteMany({
+    where: {
+      actionUrl: { in: shiftIds.flatMap(shiftActionUrls) },
+    },
   });
 }
