@@ -1,3 +1,9 @@
+## [0.133.1] - 2026-06-28
+
+### Changes
+- chore(deps): bump date-fns from 4.1.0 to 4.4.0 in /web ([#1061](https://github.com/everybody-eats-nz/volunteer-portal/pull/1061)) by @dependabot[bot]
+
+
 ## [0.133.0] - 2026-06-28
 
 ### Changes
