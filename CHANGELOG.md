@@ -1,3 +1,9 @@
+## [0.132.4] - 2026-06-28
+
+### Changes
+- chore(deps): bump posthog-js from 1.376.5 to 1.395.0 in /web ([#1063](https://github.com/everybody-eats-nz/volunteer-portal/pull/1063)) by @dependabot[bot]
+
+
 ## [0.132.3] - 2026-06-28
 
 ### Changes
