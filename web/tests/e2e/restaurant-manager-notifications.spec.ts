@@ -1,10 +1,33 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { selectFirstOption } from "./helpers/select";
+
+/**
+ * Removes every restaurant-manager assignment via the authenticated admin API so
+ * each test starts from a known-empty state. Without this the assignment tests
+ * are order-dependent: they pick the "first admin" and "first location", so a
+ * prior run leaves that admin already assigned - which flips the success toast to
+ * an update, the notifications checkbox to the stored value, and (because the
+ * selectable-location pool is small) eventually empties the location dropdown.
+ * Requires an active admin session, so call after loginAsAdmin().
+ */
+async function clearRestaurantManagerAssignments(page: Page) {
+  const res = await page.request.get("/api/admin/restaurant-managers");
+  if (!res.ok()) return;
+  const managers: Array<{ id: string }> = await res.json();
+  for (const manager of managers) {
+    await page.request.delete(`/api/admin/restaurant-managers/${manager.id}`);
+  }
+}
 
 test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to admin dashboard
     await loginAsAdmin(page);
+    // Start each test from a clean slate so the "first admin/first location"
+    // assignment flow is deterministic and order-independent.
+    await clearRestaurantManagerAssignments(page);
   });
 
   test("admin can assign restaurant managers to locations", async ({
@@ -39,12 +62,10 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
     await page.waitForLoadState("load");
 
     // Select an admin user (assuming we have at least one admin)
-    await page.getByTestId("user-select").click();
-    await page.locator('[role="option"]').first().click();
+    await selectFirstOption(page.getByTestId("user-select"));
 
     // Add a location
-    await page.getByTestId("location-select").click();
-    await page.locator('[role="option"]').first().click();
+    await selectFirstOption(page.getByTestId("location-select"));
 
     // Check notification preference is enabled by default
     const notificationCheckbox = page.getByTestId("notifications-checkbox");
@@ -54,7 +75,8 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
     await page.getByTestId("assign-manager-button").click();
 
     // Should show success message (assuming toast notifications)
-    // Note: This might need to be adjusted based on your actual toast implementation
+    // The beforeEach clears assignments, so this is always a fresh "create"
+    // and the toast reads "Successfully assigned …".
     await expect(page.getByText(/successfully assigned/i)).toBeVisible({
       timeout: 5000,
     });
@@ -113,10 +135,8 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
 
     if (!hasAssignments) {
       // Create a manager assignment first
-      await page.getByTestId("user-select").click();
-      await page.locator('[role="option"]').first().click();
-      await page.getByTestId("location-select").click();
-      await page.locator('[role="option"]').first().click();
+      await selectFirstOption(page.getByTestId("user-select"));
+      await selectFirstOption(page.getByTestId("location-select"));
       await page.getByTestId("assign-manager-button").click();
       await page.waitForTimeout(2000);
 
@@ -158,10 +178,8 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
 
     if (!hasAssignments) {
       // Create a manager assignment first
-      await page.getByTestId("user-select").click();
-      await page.locator('[role="option"]').first().click();
-      await page.getByTestId("location-select").click();
-      await page.locator('[role="option"]').first().click();
+      await selectFirstOption(page.getByTestId("user-select"));
+      await selectFirstOption(page.getByTestId("location-select"));
       await page.getByTestId("assign-manager-button").click();
       await page.waitForTimeout(2000);
 
@@ -269,6 +287,7 @@ test.describe("Shift Cancellation Notification Flow", () => {
 test.describe("Restaurant Manager Assignment Data Validation", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
+    await clearRestaurantManagerAssignments(page);
   });
 
   test("form validates required fields", async ({ page }) => {
@@ -280,8 +299,7 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
     await expect(submitButton).toBeDisabled();
 
     // Select a user
-    await page.getByTestId("user-select").click();
-    await page.locator('[role="option"]').first().click();
+    await selectFirstOption(page.getByTestId("user-select"));
 
     // Selecting an admin who already has an assignment pre-fills their existing
     // locations; clear any so we can assert the "no locations" invariant.
@@ -299,15 +317,10 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
     await page.waitForLoadState("load");
 
     // Select a user first
-    await page.getByTestId("user-select").click();
-    await page.locator('[role="option"]').first().click();
-
-    // Add multiple locations
-    const locationDropdown = page.getByTestId("location-select");
+    await selectFirstOption(page.getByTestId("user-select"));
 
     // Add first location
-    await locationDropdown.click();
-    await page.locator('[role="option"]').first().click();
+    await selectFirstOption(page.getByTestId("location-select"));
 
     // Should show selected location as badge
     await expect(page.getByTestId("selected-locations")).toBeVisible();
@@ -323,11 +336,9 @@ test.describe("Restaurant Manager Assignment Data Validation", () => {
     await page.waitForLoadState("load");
 
     // Fill out form
-    await page.getByTestId("user-select").click();
-    await page.locator('[role="option"]').first().click();
+    await selectFirstOption(page.getByTestId("user-select"));
 
-    await page.getByTestId("location-select").click();
-    await page.locator('[role="option"]').first().click();
+    await selectFirstOption(page.getByTestId("location-select"));
 
     // Submit form
     await page.getByTestId("assign-manager-button").click();
