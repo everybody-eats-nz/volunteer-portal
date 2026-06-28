@@ -1,3 +1,9 @@
+## [0.133.0] - 2026-06-28
+
+### Changes
+- feat(analytics): add month/year dropdowns to custom date range picker ([#1066](https://github.com/everybody-eats-nz/volunteer-portal/pull/1066)) by @malinmalliyawadu
+
+
 ## [0.132.4] - 2026-06-28
 
 ### Changes
