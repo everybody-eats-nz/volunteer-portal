@@ -23,6 +23,10 @@ interface SelectOptionTarget {
 /**
  * Opens the Select identified by `trigger`, waits for the listbox portal to be
  * open and populated, then clicks the requested option scoped to that listbox.
+ *
+ * Assumes the listbox has at least one option: if it opens empty (e.g. every
+ * choice has already been picked), the populated-check below times out rather
+ * than failing fast. Callers that can hit an empty list should guard for it.
  */
 export async function selectOption(
   trigger: Locator,
@@ -42,7 +46,7 @@ export async function selectOption(
   await expect(options.first()).toBeVisible();
 
   const option =
-    target.name !== undefined
+    target.name != null
       ? options.filter({ hasText: target.name }).first()
       : options.nth(target.index ?? 0);
 

@@ -138,7 +138,10 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
       await selectFirstOption(page.getByTestId("user-select"));
       await selectFirstOption(page.getByTestId("location-select"));
       await page.getByTestId("assign-manager-button").click();
-      await page.waitForTimeout(2000);
+      // Wait for the create to confirm rather than a fixed delay.
+      await expect(page.getByText(/successfully assigned/i)).toBeVisible({
+        timeout: 5000,
+      });
 
       // Reload to see the table
       await page.goto("/admin/restaurant-managers");
@@ -181,7 +184,10 @@ test.describe("Restaurant Manager Shift Cancellation Notifications", () => {
       await selectFirstOption(page.getByTestId("user-select"));
       await selectFirstOption(page.getByTestId("location-select"));
       await page.getByTestId("assign-manager-button").click();
-      await page.waitForTimeout(2000);
+      // Wait for the create to confirm rather than a fixed delay.
+      await expect(page.getByText(/successfully assigned/i)).toBeVisible({
+        timeout: 5000,
+      });
 
       await page.goto("/admin/restaurant-managers");
       await page.waitForLoadState("load");
