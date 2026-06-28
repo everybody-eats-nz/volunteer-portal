@@ -1,3 +1,9 @@
+## [0.132.3] - 2026-06-28
+
+### Changes
+- chore(deps): bump tailwind-merge from 3.5.0 to 3.6.0 in /web ([#1062](https://github.com/everybody-eats-nz/volunteer-portal/pull/1062)) by @dependabot[bot]
+
+
 ## [0.132.2] - 2026-06-25
 
 ### Changes
