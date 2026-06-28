@@ -68,6 +68,12 @@ export function FilterBar({
   const fromDate = state.from ? new Date(`${state.from}T00:00:00`) : undefined;
   const toDate = state.to ? new Date(`${state.to}T00:00:00`) : undefined;
 
+  // Bound the calendar's month/year dropdowns to the range of available data
+  // (the restaurant has operated since 2017) so admins can jump straight to a
+  // year instead of clicking back one month at a time.
+  const calendarStartMonth = new Date(2017, 0, 1);
+  const calendarEndMonth = new Date();
+
   return (
     <div className="sticky top-2 z-30 rounded-xl border bg-card/95 shadow-md supports-[backdrop-filter]:bg-card/80 supports-[backdrop-filter]:backdrop-blur">
       <div className="flex flex-col gap-3 p-3">
@@ -120,6 +126,9 @@ export function FilterBar({
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="range"
+                captionLayout="dropdown"
+                startMonth={calendarStartMonth}
+                endMonth={calendarEndMonth}
                 defaultMonth={fromDate}
                 selected={{ from: fromDate, to: toDate }}
                 onSelect={(range) => {
