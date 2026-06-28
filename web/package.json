@@ -103,7 +103,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
-    "@playwright/test": "^1.61.0",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/canvas-confetti": "^1.9.0",
@@ -112,7 +112,7 @@
     "@types/react-dom": "19.2.3",
     "@vitest/ui": "^4.1.9",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.10.38",
+    "baseline-browser-mapping": "^2.10.40",
     "csv-parse": "^6.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
