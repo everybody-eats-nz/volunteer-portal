@@ -1,3 +1,9 @@
+## [0.133.2] - 2026-06-29
+
+### Changes
+- fix(flaky): wait for hydration before keyboard shortcuts and button clicks ([#1067](https://github.com/everybody-eats-nz/volunteer-portal/pull/1067)) by @malinmalliyawadu
+
+
 ## [0.133.1] - 2026-06-28
 
 ### Changes
