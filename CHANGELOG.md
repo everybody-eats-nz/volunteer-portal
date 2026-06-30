@@ -1,3 +1,9 @@
+## [0.133.3] - 2026-06-30
+
+### Changes
+- feat(admin): redesign volunteer availability card ([#1068](https://github.com/everybody-eats-nz/volunteer-portal/pull/1068)) by @malinmalliyawadu
+
+
 ## [0.133.2] - 2026-06-29
 
 ### Changes
