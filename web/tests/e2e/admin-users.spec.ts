@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import {
@@ -5,6 +6,17 @@ import {
   deleteTestUsers,
 } from "./helpers/test-helpers";
 import { randomUUID } from "crypto";
+
+/**
+ * Locate the users list scoped to the visible instance.
+ *
+ * During Next.js streaming the page and its loading fallback can momentarily
+ * coexist, so the same testid can appear twice and trip Playwright strict
+ * mode. Matching the visible instance keeps the locator deterministic.
+ */
+function visibleUsersList(page: Page) {
+  return page.locator('[data-testid="users-list"]:visible').first();
+}
 
 test.describe("Admin Users Management", () => {
   test.beforeEach(async ({ page }) => {
@@ -133,10 +145,7 @@ test.describe("Admin Users Management", () => {
       await page.goto("/admin/users");
 
       // Check if users list exists
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
         // Get all user rows
@@ -354,10 +363,7 @@ test.describe("Admin Users Management", () => {
     test("should navigate to user details page", async ({ page }) => {
       await page.goto("/admin/users");
 
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -400,10 +406,7 @@ test.describe("Admin Users Management", () => {
     }) => {
       await page.goto("/admin/users");
 
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -439,10 +442,7 @@ test.describe("Admin Users Management", () => {
     test("should open delete confirmation dialog", async ({ page }) => {
       await page.goto("/admin/users");
 
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -505,10 +505,7 @@ test.describe("Admin Users Management", () => {
     test("should validate email confirmation requirement", async ({ page }) => {
       await page.goto("/admin/users");
 
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -564,10 +561,7 @@ test.describe("Admin Users Management", () => {
     test("should handle delete API errors gracefully", async ({ page }) => {
       await page.goto("/admin/users");
 
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -713,10 +707,7 @@ test.describe("Admin Users Management", () => {
       // The implementation would depend on how we identify the current user
       // in the test environment
 
-      // Scope to the visible instance to stay deterministic under streaming.
-      const usersList = page
-        .locator('[data-testid="users-list"]:visible')
-        .first();
+      const usersList = visibleUsersList(page);
       await expect(usersList).toBeVisible();
 
       // In a complete implementation, we would:
