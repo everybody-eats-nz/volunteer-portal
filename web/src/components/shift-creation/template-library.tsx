@@ -1,6 +1,16 @@
 import React from "react";
-import { ClockIcon, MapPinIcon, UsersIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ClockIcon,
+  MapPinIcon,
+  UsersIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { CreateTemplateDialog } from "@/components/create-template-dialog";
 import { EditTemplateDialog } from "@/components/edit-template-dialog";
 import { DeleteTemplateForm } from "@/components/delete-template-form";
@@ -58,17 +68,27 @@ export function TemplateLibrary({
           </p>
         </div>
       ) : (
-        <div className="space-y-7">
+        <div className="space-y-3">
           {groups.map(([location, group]) => (
-            <div key={location}>
-              <div className="mb-2.5 flex items-baseline gap-2">
-                <MapPinIcon className="h-4 w-4 self-center text-forest-400 dark:text-forest-200" />
+            <Collapsible
+              key={location}
+              className="rounded-xl border border-border"
+            >
+              <CollapsibleTrigger
+                className="group flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left"
+                data-testid={`template-location-group-${location
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}`}
+              >
+                <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                <MapPinIcon className="h-4 w-4 shrink-0 text-forest-400 dark:text-forest-200" />
                 <h4 className="text-base text-foreground">{location}</h4>
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {group.length} template{group.length === 1 ? "" : "s"}
                 </span>
-              </div>
-              <ul className="divide-y divide-border rounded-xl border border-border">
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ul className="divide-y divide-border border-t border-border">
                 {group.map((template) => {
                   const displayName = templateDisplayName(
                     template.name,
@@ -138,8 +158,9 @@ export function TemplateLibrary({
                   </li>
                   );
                 })}
-              </ul>
-            </div>
+                </ul>
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </div>
       )}

@@ -11,9 +11,14 @@ import {
   startOfDay,
 } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -310,78 +315,101 @@ export function WeeklyPlanner({
           title="Which shifts"
           description="Each template creates one shift per service day, with its usual time, capacity, and location."
         >
-          <div className="space-y-7">
+          <div className="space-y-3">
+            {/* Selected templates submit via these always-mounted inputs -
+                Radix unmounts collapsed content, so checkboxes inside a
+                collapsed group would otherwise drop out of the FormData */}
+            {templates
+              .filter((t) => selectedTemplates.has(t.name))
+              .map((t) => (
+                <input
+                  key={t.id}
+                  type="hidden"
+                  name={`template_${t.name}`}
+                  value="on"
+                />
+              ))}
             {templateGroups.map(([location, group]) => {
               const selectedInLocation = group.filter((t) =>
                 selectedTemplates.has(t.name)
               ).length;
               const allSelected = selectedInLocation === group.length;
               return (
-                <div key={location}>
-                  <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                    <h4 className="text-base text-foreground">{location}</h4>
-                    <div className="flex items-baseline gap-3">
+                <Collapsible
+                  key={location}
+                  className="rounded-xl border border-border"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1 pr-3 pl-1">
+                    <CollapsibleTrigger className="group flex min-h-10 flex-1 cursor-pointer items-center gap-2 px-2 text-left">
+                      <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                      <h4 className="text-base text-foreground">{location}</h4>
                       <span
-                        className="text-xs text-muted-foreground tabular-nums"
+                        className={cn(
+                          "text-xs tabular-nums",
+                          selectedInLocation > 0
+                            ? "font-semibold text-forest-400 dark:text-forest-200"
+                            : "text-muted-foreground"
+                        )}
                         aria-live="polite"
                       >
                         {selectedInLocation} of {group.length} selected
                       </span>
-                      <button
-                        type="button"
-                        className="cursor-pointer text-xs font-semibold text-forest-400 underline-offset-2 hover:underline dark:text-forest-200"
-                        onClick={() => toggleLocation(group, !allSelected)}
-                      >
-                        {allSelected ? "Clear all" : "Select all"}
-                      </button>
+                    </CollapsibleTrigger>
+                    <button
+                      type="button"
+                      className="cursor-pointer text-xs font-semibold text-forest-400 underline-offset-2 hover:underline dark:text-forest-200"
+                      onClick={() => toggleLocation(group, !allSelected)}
+                    >
+                      {allSelected ? "Clear all" : "Select all"}
+                    </button>
+                  </div>
+                  <CollapsibleContent>
+                    <div className="grid gap-2 border-t border-border p-3 xl:grid-cols-2">
+                      {group.map((template) => {
+                        const displayName = templateDisplayName(
+                          template.name,
+                          location
+                        );
+                        return (
+                          <label
+                            key={template.id}
+                            className={cn(
+                              "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
+                              "border-border bg-card hover:border-forest-300",
+                              "has-checked:border-forest-500 has-checked:bg-forest-500/5 dark:has-checked:bg-forest-500/15"
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedTemplates.has(template.name)}
+                              onChange={(e) =>
+                                toggleTemplate(template.name, e.target.checked)
+                              }
+                              data-testid={templateTestId(template.name)}
+                              className="mt-0.5 size-4 shrink-0 cursor-pointer accent-forest-500"
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-baseline justify-between gap-2">
+                                <span className="truncate text-sm font-semibold text-foreground">
+                                  {displayName}
+                                </span>
+                                <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+                                  {template.startTime} - {template.endTime}
+                                </span>
+                              </span>
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {template.capacity} place
+                                {template.capacity === 1 ? "" : "s"}
+                                {template.shiftTypeName !== displayName &&
+                                  ` · ${template.shiftTypeName}`}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
                     </div>
-                  </div>
-                  <div className="grid gap-2 xl:grid-cols-2">
-                    {group.map((template) => {
-                      const displayName = templateDisplayName(
-                        template.name,
-                        location
-                      );
-                      return (
-                        <label
-                          key={template.id}
-                          className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
-                            "border-border bg-card hover:border-forest-300",
-                            "has-checked:border-forest-500 has-checked:bg-forest-500/5 dark:has-checked:bg-forest-500/15"
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            name={`template_${template.name}`}
-                            checked={selectedTemplates.has(template.name)}
-                            onChange={(e) =>
-                              toggleTemplate(template.name, e.target.checked)
-                            }
-                            data-testid={templateTestId(template.name)}
-                            className="mt-0.5 size-4 shrink-0 cursor-pointer accent-forest-500"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-baseline justify-between gap-2">
-                              <span className="truncate text-sm font-semibold text-foreground">
-                                {displayName}
-                              </span>
-                              <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-                                {template.startTime} - {template.endTime}
-                              </span>
-                            </span>
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                              {template.capacity} place
-                              {template.capacity === 1 ? "" : "s"}
-                              {template.shiftTypeName !== displayName &&
-                                ` · ${template.shiftTypeName}`}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               );
             })}
             {templateGroups.length === 0 && (
