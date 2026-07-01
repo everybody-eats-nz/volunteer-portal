@@ -1,3 +1,9 @@
+## [0.137.1] - 2026-07-01
+
+### Changes
+- fix(shifts): delete dangling notifications when a shift is deleted ([#1053](https://github.com/everybody-eats-nz/volunteer-portal/pull/1053)) by @malinmalliyawadu
+
+
 ## [0.137.0] - 2026-07-01
 
 ### Changes
