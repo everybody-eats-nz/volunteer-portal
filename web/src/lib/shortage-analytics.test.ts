@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aggregateShortageLogs,
+  CONVERSION_WINDOW_DAYS,
   parseMonthsParam,
   percentage,
   sitesForLog,
@@ -9,6 +10,8 @@ import {
   type ShortageLogRow,
   type SignupIndex,
 } from "./shortage-analytics";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Build a log row, defaulting the fields a test doesn't care about. */
 function log(overrides: Partial<ShortageLogRow>): ShortageLogRow {
@@ -293,6 +296,42 @@ describe("aggregateShortageLogs — conversions (effectiveness)", () => {
     const signups = index([
       ["vol-1", "shift-a", new Date("2026-01-09T09:00:00.000Z")], // before
     ]);
+
+    const { totals } = aggregateShortageLogs(logs, null, signups);
+    expect(totals.converted).toBe(0);
+    expect(totals.conversionRate).toBe(0);
+  });
+
+  it(`counts a signup exactly ${CONVERSION_WINDOW_DAYS} days after the alert`, () => {
+    const logs = [
+      log({
+        sentAt,
+        recipientId: "vol-1",
+        shifts: [{ shiftId: "shift-a", shiftLocation: "Wellington" }],
+      }),
+    ];
+    const atBoundary = new Date(
+      sentAt.getTime() + CONVERSION_WINDOW_DAYS * DAY_MS
+    );
+    const signups = index([["vol-1", "shift-a", atBoundary]]);
+
+    const { totals } = aggregateShortageLogs(logs, null, signups);
+    expect(totals.converted).toBe(1);
+  });
+
+  it(`does not count a signup more than ${CONVERSION_WINDOW_DAYS} days after the alert`, () => {
+    const logs = [
+      log({
+        sentAt,
+        recipientId: "vol-1",
+        shifts: [{ shiftId: "shift-a", shiftLocation: "Wellington" }],
+      }),
+    ];
+    // One hour past the window.
+    const tooLate = new Date(
+      sentAt.getTime() + CONVERSION_WINDOW_DAYS * DAY_MS + 60 * 60 * 1000
+    );
+    const signups = index([["vol-1", "shift-a", tooLate]]);
 
     const { totals } = aggregateShortageLogs(logs, null, signups);
     expect(totals.converted).toBe(0);
