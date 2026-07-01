@@ -1,3 +1,9 @@
+## [0.136.0] - 2026-07-01
+
+### Changes
+- feat(admin): cap shortage-alert conversions to a 3-day success window ([#1075](https://github.com/everybody-eats-nz/volunteer-portal/pull/1075)) by @malinmalliyawadu
+
+
 ## [0.135.2] - 2026-07-01
 
 ### Changes
