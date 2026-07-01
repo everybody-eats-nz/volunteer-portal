@@ -933,21 +933,19 @@ export default async function AdminVolunteerPage({
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium",
                               isDefault
-                                ? "border-primary/30 bg-primary/5 text-primary"
+                                ? "border-green-600/30 bg-green-600/10 text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300"
                                 : "border-border bg-muted/40 text-foreground"
                             )}
                           >
                             <MapPin
                               className={cn(
                                 "h-3.5 w-3.5",
-                                isDefault
-                                  ? "text-primary"
-                                  : "text-green-600 dark:text-green-400"
+                                "text-green-600 dark:text-green-400"
                               )}
                             />
                             {locationLabels[location] || location}
                             {isDefault && (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-green-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:bg-green-400/15 dark:text-green-300">
                                 <Star className="h-2.5 w-2.5 fill-current" />
                                 Default
                               </span>
@@ -969,11 +967,11 @@ export default async function AdminVolunteerPage({
                         Default Location
                       </label>
                       <div>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-sm font-medium text-primary">
-                          <MapPin className="h-3.5 w-3.5" />
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-600/30 bg-green-600/10 px-2.5 py-1.5 text-sm font-medium text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300">
+                          <MapPin className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                           {locationLabels[volunteer.defaultLocation] ||
                             volunteer.defaultLocation}
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-green-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:bg-green-400/15 dark:text-green-300">
                             <Star className="h-2.5 w-2.5 fill-current" />
                             Default
                           </span>
