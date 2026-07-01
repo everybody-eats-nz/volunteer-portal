@@ -1,5 +1,47 @@
 import { test, expect } from "./base";
+import type { Page } from "@playwright/test";
 import { loginAsVolunteer } from "./helpers/auth";
+
+/**
+ * Reads the number of notification items in an open dropdown, but only once the
+ * list has demonstrably settled.
+ *
+ * The dropdown becomes visible immediately when opened, while `NotificationList`
+ * is still in its `loading` state and fetches `/api/notifications` async. On top
+ * of that a live SSE stream can push a new item in at any moment. Reading the
+ * count the instant the dropdown is visible therefore races both the fetch and
+ * the stream. We first wait for the loading spinner to detach and the list (or
+ * empty state) to render, then poll until the item count stops changing so a
+ * late-arriving item can't produce a mismatched read.
+ */
+async function readSettledNotificationCount(page: Page): Promise<number> {
+  // Wait for the async list fetch to finish: spinner gone, list/empty rendered.
+  await expect(page.getByTestId("notification-loading")).toHaveCount(0);
+  await expect(
+    page
+      .getByTestId("notification-list")
+      .or(page.getByTestId("no-notifications"))
+  ).toBeVisible();
+
+  const items = page.locator('[data-testid*="notification-item-"]');
+
+  // Poll until the count is identical across two consecutive reads spaced apart,
+  // so anything still streaming/hydrating in has stopped before we commit.
+  let previous = -1;
+  await expect
+    .poll(
+      async () => {
+        const current = await items.count();
+        const stable = current === previous;
+        previous = current;
+        return stable;
+      },
+      { timeout: 5000, intervals: [250, 250, 250, 250] }
+    )
+    .toBe(true);
+
+  return items.count();
+}
 
 test.describe("Notification System", () => {
   test.beforeEach(async ({ page }) => {
@@ -348,9 +390,7 @@ test.describe("Notification System", () => {
     await bellButton.click();
     await expect(page.getByTestId("notification-dropdown")).toBeVisible();
 
-    const initialNotificationCount = await page
-      .locator('[data-testid*="notification-item-"]')
-      .count();
+    const initialNotificationCount = await readSettledNotificationCount(page);
 
     if (initialNotificationCount > 0) {
       // Mark first notification as read
@@ -364,7 +404,14 @@ test.describe("Notification System", () => {
       if (wasUnread) {
         await firstNotification.hover();
         await firstNotification.getByTestId("mark-read-button").click();
-        await page.waitForTimeout(500);
+        // Wait for the mark-read to actually land instead of a fixed timeout:
+        // the item only drops its unread badge once the PUT resolves 200 (see
+        // NotificationItem.onRead), so this guarantees the change persisted
+        // server-side before we reload. A fixed wait races a cold/slow API
+        // route, and reloading would abort the in-flight request.
+        await expect(
+          firstNotification.getByTestId("unread-badge")
+        ).not.toBeVisible();
       }
 
       // Close dropdown
@@ -379,9 +426,7 @@ test.describe("Notification System", () => {
       await expect(page.getByTestId("notification-dropdown")).toBeVisible();
 
       // Should have same number of notifications
-      const newNotificationCount = await page
-        .locator('[data-testid*="notification-item-"]')
-        .count();
+      const newNotificationCount = await readSettledNotificationCount(page);
       expect(newNotificationCount).toBe(initialNotificationCount);
 
       // Previously read notification should still be marked as read

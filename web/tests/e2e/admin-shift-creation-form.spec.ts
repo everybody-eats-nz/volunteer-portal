@@ -31,17 +31,16 @@ test.describe("Admin Shift Creation Form", () => {
       // Check main tabs - Weekly Schedule is now default
       await expect(page.getByRole("tab", { name: "Single Shift" })).toBeVisible();
       await expect(page.getByRole("tab", { name: "Weekly Schedule" })).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Edit Templates" })).toBeVisible();
-      
+      await expect(page.getByRole("tab", { name: "Templates" })).toBeVisible();
+
       // Switch to Single Shift to check form sections
       await page.getByRole("tab", { name: "Single Shift" }).click();
-      
+
       // Check form sections are present
-      await expect(page.getByText("Quick Templates")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Shift Type" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Location & Capacity" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Additional Information" })).toBeVisible();
+      await expect(page.getByText("Quick start from a template")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Role and location" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Date and time" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Capacity and notes" })).toBeVisible();
     });
 
     test("should have create shift type functionality", async ({ page }) => {
@@ -54,7 +53,7 @@ test.describe("Admin Shift Creation Form", () => {
       // Check create shift type button exists
       const createButton = page.getByTestId("create-shift-type-button");
       await expect(createButton).toBeVisible();
-      await expect(page.getByText("Create New Type")).toBeVisible();
+      await expect(page.getByText("New Shift Type")).toBeVisible();
       
       // Open create shift type dialog
       await createButton.click();
@@ -73,8 +72,8 @@ test.describe("Admin Shift Creation Form", () => {
       await page.goto("/admin/shifts/new");
       await page.waitForLoadState("load");
 
-      // Switch to Edit Templates tab
-      await page.getByRole("tab", { name: "Edit Templates" }).click();
+      // Switch to Templates tab
+      await page.getByRole("tab", { name: "Templates" }).click();
 
       // Check template management interface
       await expect(page.getByText("Manage Shift Templates")).toBeVisible();
@@ -88,8 +87,8 @@ test.describe("Admin Shift Creation Form", () => {
       await page.goto("/admin/shifts/new");
       await page.waitForLoadState("load");
 
-      // Switch to Edit Templates tab
-      await page.getByRole("tab", { name: "Edit Templates" }).click();
+      // Switch to Templates tab
+      await page.getByRole("tab", { name: "Templates" }).click();
 
       // Open add template dialog
       await page.getByRole("button", { name: /Create.*Template/ }).click();
@@ -177,11 +176,11 @@ test.describe("Admin Shift Creation Form", () => {
       // Switch to bulk creation tab
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
 
-      // Check bulk-specific elements - now using combined date range picker
+      // Check bulk-specific elements - date range, day picker, and templates
       await expect(page.getByTestId("bulk-date-range-input")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Date Range" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Days of Week" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Shift Templates" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "When" })).toBeVisible();
+      await expect(page.getByText("Days of the week")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Which shifts" })).toBeVisible();
     });
 
     test("should have day selection checkboxes", async ({ page }) => {
