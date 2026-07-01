@@ -30,13 +30,15 @@ import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 
 // Templates are stored in the database and fetched dynamically
 
+const VALID_TABS = ["bulk", "single", "templates"] as const;
+
 export default async function NewShiftPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab } = await searchParams;
-  const initialTab = ["bulk", "single", "templates"].includes(tab ?? "")
+  const initialTab = (VALID_TABS as readonly string[]).includes(tab ?? "")
     ? (tab as string)
     : "bulk";
   const session = await getServerSession(authOptions);
@@ -119,7 +121,8 @@ export default async function NewShiftPage({
       });
 
       await createRegularVolunteerSignups([shift], regularVolunteers);
-    } catch {
+    } catch (error) {
+      console.error("Shift creation error:", error);
       redirect("/admin/shifts/new?error=create&tab=single");
     }
 
