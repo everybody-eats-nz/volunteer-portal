@@ -85,6 +85,30 @@ describe("getShiftTheme", () => {
     expect(getShiftTheme("")).toBe(DEFAULT_THEME);
   });
 
+  it("resolves 'Cafe Helpers' to the exact coffee theme", () => {
+    const theme = getShiftTheme("Cafe Helpers");
+    expect(theme).toBe(SHIFT_THEMES["Cafe Helpers"]);
+    expect(theme.emoji).toBe("☕");
+  });
+
+  it("resolves cafe name variants via keyword (incl. accented 'café')", () => {
+    for (const name of [
+      "Cafe Helpers (Onehunga)",
+      "Café Helpers GI",
+      "Barista Support",
+    ]) {
+      const theme = getShiftTheme(name);
+      expect(theme.emoji, name).toBe("☕");
+      expect(theme, name).not.toBe(DEFAULT_THEME);
+    }
+  });
+
+  it("respects keyword order: 'cafe' beats 'service'/'set up'", () => {
+    // The cafe rule is registered before the set-up/service rules, so a
+    // combined name still resolves to the coffee theme, not 🛠️/✨.
+    expect(getShiftTheme("Cafe Set-up & Service").emoji).toBe("☕");
+  });
+
   it("always returns a complete theme object (no missing class fields)", () => {
     const fields = [
       "emoji",

@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
+import { WeekAvailability } from "@/components/week-availability";
 import { VolunteerGradeToggle } from "@/components/volunteer-grade-toggle";
 import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
 import { getDisplayGradeInfo } from "@/lib/volunteer-grades";
@@ -267,16 +268,6 @@ export default async function AdminVolunteerPage({
   const noShows = allSignups.filter(
     (signup: (typeof allSignups)[0]) => signup.status === "NO_SHOW"
   ).length;
-
-  const dayLabels: Record<string, string> = {
-    monday: "Monday",
-    tuesday: "Tuesday",
-    wednesday: "Wednesday",
-    thursday: "Thursday",
-    friday: "Friday",
-    saturday: "Saturday",
-    sunday: "Sunday",
-  };
 
   const locationLabels: Record<string, string> = {
     wellington: "Wellington",
@@ -857,17 +848,9 @@ export default async function AdminVolunteerPage({
                         <label className="text-sm font-medium">
                           Available Days
                         </label>
-                        <div className="flex flex-wrap gap-2">
-                          {regularVolunteer.availableDays.map((day: string) => (
-                            <Badge
-                              key={day}
-                              variant="outline"
-                              className="border-yellow-500/20 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20"
-                            >
-                              {day}
-                            </Badge>
-                          ))}
-                        </div>
+                        <WeekAvailability
+                          availableDays={regularVolunteer.availableDays}
+                        />
                       </div>
 
                       {regularVolunteer.notes && (
@@ -923,76 +906,94 @@ export default async function AdminVolunteerPage({
               <CardContent className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-sm font-medium">Available Days</label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableDays.length > 0 ? (
-                      availableDays.map((day: string) => (
-                        <Badge
-                          key={day}
-                          variant="outline"
-                          className="border-blue-500/20 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20"
-                        >
-                          {dayLabels[day] || day}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground italic">
-                        Not specified
+                  <WeekAvailability availableDays={availableDays} />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">
+                      Available Locations
+                    </label>
+                    {availableLocations.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {availableLocations.length}{" "}
+                        {availableLocations.length === 1
+                          ? "location"
+                          : "locations"}
                       </span>
                     )}
                   </div>
-                </div>
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">
-                    Available Locations
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableLocations.length > 0 ? (
-                      availableLocations.map((location: string) => (
-                        <Badge
-                          key={location}
-                          variant="outline"
-                          className="border-green-500/20 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
-                        >
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {locationLabels[location] || location}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground italic">
-                        Not specified
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">
-                    Default Location
-                  </label>
-                  {volunteer.defaultLocation ? (
-                    <Badge
-                      variant="outline"
-                      className="border-primary/30 text-primary bg-primary/5"
-                    >
-                      <MapPin className="h-3 w-3 mr-1" />
-                      {locationLabels[volunteer.defaultLocation] ||
-                        volunteer.defaultLocation}
-                    </Badge>
+                  {availableLocations.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {availableLocations.map((location: string) => {
+                        const isDefault =
+                          volunteer.defaultLocation === location;
+                        return (
+                          <span
+                            key={location}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium",
+                              isDefault
+                                ? "border-green-600/30 bg-green-600/10 text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300"
+                                : "border-border bg-muted/40 text-foreground"
+                            )}
+                          >
+                            <MapPin
+                              className={cn(
+                                "h-3.5 w-3.5",
+                                "text-green-600 dark:text-green-400"
+                              )}
+                            />
+                            {locationLabels[location] || location}
+                            {isDefault && (
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-green-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:bg-green-400/15 dark:text-green-300">
+                                <Star className="h-2.5 w-2.5 fill-current" />
+                                Default
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground italic">
-                      Not set
-                    </span>
+                    <p className="rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2.5 text-sm italic text-muted-foreground">
+                      No locations specified
+                    </p>
                   )}
                 </div>
-                <div className="pt-4 border-t space-y-1">
-                  <label className="text-sm font-medium">
-                    How did they hear about us?
-                  </label>
-                  <p className="text-sm text-muted-foreground">
-                    {volunteer.howDidYouHearAboutUs
-                      ? hearAboutLabels[volunteer.howDidYouHearAboutUs] ||
-                        volunteer.howDidYouHearAboutUs
-                      : "Not specified"}
-                  </p>
+                {volunteer.defaultLocation &&
+                  !availableLocations.includes(volunteer.defaultLocation) && (
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium">
+                        Default Location
+                      </label>
+                      <div>
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-600/30 bg-green-600/10 px-2.5 py-1.5 text-sm font-medium text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300">
+                          <MapPin className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                          {locationLabels[volunteer.defaultLocation] ||
+                            volunteer.defaultLocation}
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-green-600/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700 dark:bg-green-400/15 dark:text-green-300">
+                            <Star className="h-2.5 w-2.5 fill-current" />
+                            Default
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                <div className="flex items-start gap-3 border-t pt-4">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Megaphone className="h-4 w-4" />
+                  </span>
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium">
+                      How did they hear about us?
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      {volunteer.howDidYouHearAboutUs
+                        ? hearAboutLabels[volunteer.howDidYouHearAboutUs] ||
+                          volunteer.howDidYouHearAboutUs
+                        : "Not specified"}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

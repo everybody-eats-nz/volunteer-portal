@@ -540,8 +540,9 @@ test.describe("Admin Volunteer Profile View", () => {
       await page.goto("/admin/volunteers/non-existent-id-12345");
       await waitForPageLoad(page);
 
-      // Should show 404 or not found page
-      const notFoundText = page.getByText(/not found|404/i);
+      // Should show 404 or not found page. The regex matches nested ancestor
+      // elements too, so scope to the first match to avoid strict-mode errors.
+      const notFoundText = page.getByText(/not found|404/i).first();
       await expect(notFoundText).toBeVisible();
     });
 
@@ -566,7 +567,7 @@ test.describe("Admin Volunteer Profile View", () => {
         const isErrorPage =
           currentUrl.includes("404") ||
           currentUrl.includes("error") ||
-          (await page.getByText(/not found|error|404/i).isVisible());
+          (await page.getByText(/not found|error|404/i).first().isVisible());
 
         expect(isErrorPage).toBe(true);
       }

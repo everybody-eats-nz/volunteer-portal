@@ -1,3 +1,57 @@
+## [0.135.1] - 2026-07-01
+
+### Changes
+- fix(flaky): make admin e2e locators deterministic under streaming ([#1072](https://github.com/everybody-eats-nz/volunteer-portal/pull/1072)) by @malinmalliyawadu
+
+
+## [0.135.0] - 2026-07-01
+
+### Changes
+- feat(admin): shortage notifications analytics report with effectiveness drill-down ([#1070](https://github.com/everybody-eats-nz/volunteer-portal/pull/1070)) by @malinmalliyawadu
+
+
+## [0.134.0] - 2026-07-01
+
+### Changes
+- feat(shifts): emoji + cover image support for Cafe Helpers shift type ([#1069](https://github.com/everybody-eats-nz/volunteer-portal/pull/1069)) by @malinmalliyawadu
+
+
+## [0.133.3] - 2026-06-30
+
+### Changes
+- feat(admin): redesign volunteer availability card ([#1068](https://github.com/everybody-eats-nz/volunteer-portal/pull/1068)) by @malinmalliyawadu
+
+
+## [0.133.2] - 2026-06-29
+
+### Changes
+- fix(flaky): wait for hydration before keyboard shortcuts and button clicks ([#1067](https://github.com/everybody-eats-nz/volunteer-portal/pull/1067)) by @malinmalliyawadu
+
+
+## [0.133.1] - 2026-06-28
+
+### Changes
+- chore(deps): bump date-fns from 4.1.0 to 4.4.0 in /web ([#1061](https://github.com/everybody-eats-nz/volunteer-portal/pull/1061)) by @dependabot[bot]
+
+
+## [0.133.0] - 2026-06-28
+
+### Changes
+- feat(analytics): add month/year dropdowns to custom date range picker ([#1066](https://github.com/everybody-eats-nz/volunteer-portal/pull/1066)) by @malinmalliyawadu
+
+
+## [0.132.4] - 2026-06-28
+
+### Changes
+- chore(deps): bump posthog-js from 1.376.5 to 1.395.0 in /web ([#1063](https://github.com/everybody-eats-nz/volunteer-portal/pull/1063)) by @dependabot[bot]
+
+
+## [0.132.3] - 2026-06-28
+
+### Changes
+- chore(deps): bump tailwind-merge from 3.5.0 to 3.6.0 in /web ([#1062](https://github.com/everybody-eats-nz/volunteer-portal/pull/1062)) by @dependabot[bot]
+
+
 ## [0.132.2] - 2026-06-25
 
 ### Changes

@@ -16,20 +16,19 @@ export async function POST(request: NextRequest) {
     let { shiftTypeId } = body;
     const { location, start, end, capacity, notes } = body;
 
-    // If no shiftTypeId provided, find or create a default one for tests
+    // If no shiftTypeId provided, find or create a default one for tests.
+    // Use an atomic upsert on the unique `name` field: a non-atomic
+    // findFirst-then-create races when e2e tests run in parallel, with the
+    // losing request failing on the ShiftType.name unique constraint.
     if (!shiftTypeId) {
-      let defaultShiftType = await prisma.shiftType.findFirst({
+      const defaultShiftType = await prisma.shiftType.upsert({
         where: { name: "Kitchen" },
+        update: {},
+        create: {
+          name: "Kitchen",
+          description: "Kitchen duties",
+        },
       });
-
-      if (!defaultShiftType) {
-        defaultShiftType = await prisma.shiftType.create({
-          data: {
-            name: "Kitchen",
-            description: "Kitchen duties",
-          },
-        });
-      }
 
       shiftTypeId = defaultShiftType.id;
     }

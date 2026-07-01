@@ -81,6 +81,15 @@ export const SHIFT_THEMES = {
     bgColor: "bg-pink-50 dark:bg-pink-950/20",
     fullGradient: "from-pink-500 to-rose-500",
   },
+  "Cafe Helpers": {
+    emoji: "☕",
+    borderColor: "border-amber-300",
+    textColor: "text-amber-800",
+    gradient: "from-amber-100 to-orange-100",
+    // Public page specific styles
+    bgColor: "bg-amber-50 dark:bg-amber-950/20",
+    fullGradient: "from-amber-500 to-orange-600",
+  },
 };
 
 export const DEFAULT_THEME = {
@@ -93,7 +102,15 @@ export const DEFAULT_THEME = {
   fullGradient: "from-gray-500 to-slate-500",
 };
 
-type ShiftTheme = typeof DEFAULT_THEME;
+export interface ShiftTheme {
+  emoji: string;
+  borderColor: string;
+  textColor: string;
+  gradient: string;
+  // Public page specific styles
+  bgColor: string;
+  fullGradient: string;
+}
 
 /**
  * Keyword fallback, mirroring the mobile app's shift-type themes
@@ -113,6 +130,18 @@ type ShiftTheme = typeof DEFAULT_THEME;
  * the generic default. See shift-themes.test.ts for the expected resolutions.
  */
 const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
+  {
+    // Unique keyword — safe near the top; also matches the accented "café".
+    keywords: ["cafe", "café", "barista"],
+    theme: {
+      emoji: "☕",
+      borderColor: "border-amber-300",
+      textColor: "text-amber-800",
+      gradient: "from-amber-100 to-orange-100",
+      bgColor: "bg-amber-50 dark:bg-amber-950/20",
+      fullGradient: "from-amber-500 to-orange-600",
+    },
+  },
   {
     keywords: ["dishwash"],
     theme: {

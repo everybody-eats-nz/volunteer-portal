@@ -76,7 +76,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Next.js build cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: web/.next/cache
           key: ${{ runner.os }}-docker-nextjs-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/src/**') }}

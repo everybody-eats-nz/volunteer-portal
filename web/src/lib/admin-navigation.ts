@@ -103,6 +103,14 @@ export const adminNavCategories: AdminNavCategory[] = [
           "Shifts run, positions filled, and understaffing by restaurant",
         commandKey: "coverage",
       },
+      {
+        title: "Shortage Notifications",
+        href: "/admin/analytics/shortage-notifications",
+        icon: Bell,
+        description:
+          "Shortage alerts sent and the signups they drove, org-wide and by restaurant",
+        commandKey: "shortage-notifications",
+      },
     ],
   },
   {
