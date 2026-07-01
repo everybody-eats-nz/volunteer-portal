@@ -1,3 +1,21 @@
+## [0.137.1] - 2026-07-01
+
+### Changes
+- fix(shifts): delete dangling notifications when a shift is deleted ([#1053](https://github.com/everybody-eats-nz/volunteer-portal/pull/1053)) by @malinmalliyawadu
+
+
+## [0.137.0] - 2026-07-01
+
+### Changes
+- feat(admin): converters table + create notification groups from responders ([#1076](https://github.com/everybody-eats-nz/volunteer-portal/pull/1076)) by @malinmalliyawadu
+
+
+## [0.136.0] - 2026-07-01
+
+### Changes
+- feat(admin): cap shortage-alert conversions to a 3-day success window ([#1075](https://github.com/everybody-eats-nz/volunteer-portal/pull/1075)) by @malinmalliyawadu
+
+
 ## [0.135.2] - 2026-07-01
 
 ### Changes

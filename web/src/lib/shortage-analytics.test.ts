@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  aggregateConverters,
   aggregateShortageLogs,
+  CONVERSION_WINDOW_DAYS,
   parseMonthsParam,
   percentage,
   sitesForLog,
@@ -9,6 +11,8 @@ import {
   type ShortageLogRow,
   type SignupIndex,
 } from "./shortage-analytics";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Build a log row, defaulting the fields a test doesn't care about. */
 function log(overrides: Partial<ShortageLogRow>): ShortageLogRow {
@@ -299,6 +303,42 @@ describe("aggregateShortageLogs — conversions (effectiveness)", () => {
     expect(totals.conversionRate).toBe(0);
   });
 
+  it(`counts a signup exactly ${CONVERSION_WINDOW_DAYS} days after the alert`, () => {
+    const logs = [
+      log({
+        sentAt,
+        recipientId: "vol-1",
+        shifts: [{ shiftId: "shift-a", shiftLocation: "Wellington" }],
+      }),
+    ];
+    const atBoundary = new Date(
+      sentAt.getTime() + CONVERSION_WINDOW_DAYS * DAY_MS
+    );
+    const signups = index([["vol-1", "shift-a", atBoundary]]);
+
+    const { totals } = aggregateShortageLogs(logs, null, signups);
+    expect(totals.converted).toBe(1);
+  });
+
+  it(`does not count a signup more than ${CONVERSION_WINDOW_DAYS} days after the alert`, () => {
+    const logs = [
+      log({
+        sentAt,
+        recipientId: "vol-1",
+        shifts: [{ shiftId: "shift-a", shiftLocation: "Wellington" }],
+      }),
+    ];
+    // One hour past the window.
+    const tooLate = new Date(
+      sentAt.getTime() + CONVERSION_WINDOW_DAYS * DAY_MS + 60 * 60 * 1000
+    );
+    const signups = index([["vol-1", "shift-a", tooLate]]);
+
+    const { totals } = aggregateShortageLogs(logs, null, signups);
+    expect(totals.converted).toBe(0);
+    expect(totals.conversionRate).toBe(0);
+  });
+
   it("does not credit a failed (undelivered) alert even if they signed up", () => {
     const logs = [
       log({
@@ -373,5 +413,75 @@ describe("aggregateShortageLogs — conversions (effectiveness)", () => {
     const january = trend.find((t) => t.month === "2026-01");
     expect(january?.deliveredEmails).toBe(2);
     expect(january?.signups).toBe(1);
+  });
+});
+
+describe("aggregateConverters", () => {
+  const sentAt = new Date("2026-01-10T02:00:00.000Z");
+
+  function index(entries: Array<[string, string, Date]>): SignupIndex {
+    return new Map(entries.map(([u, s, at]) => [signupKey(u, s), at]));
+  }
+
+  it("returns only volunteers who signed up, with per-volunteer stats", () => {
+    const logs = [
+      // vol-1: two delivered alerts, converts on one → 1/2 = 50%.
+      log({ sentAt, recipientId: "vol-1", shifts: [{ shiftId: "s1", shiftLocation: "Wellington" }] }),
+      log({
+        sentAt: new Date("2026-01-20T02:00:00.000Z"),
+        recipientId: "vol-1",
+        shifts: [{ shiftId: "s2", shiftLocation: "Wellington" }],
+      }),
+      // vol-2: one delivered alert, never signs up → excluded.
+      log({ sentAt, recipientId: "vol-2", shifts: [{ shiftId: "s3", shiftLocation: "Wellington" }] }),
+      // vol-3: one delivered alert, converts → 1/1 = 100%.
+      log({ sentAt, recipientId: "vol-3", shifts: [{ shiftId: "s4", shiftLocation: "Wellington" }] }),
+    ];
+    const signups = index([
+      ["vol-1", "s1", new Date("2026-01-11T09:00:00.000Z")],
+      ["vol-3", "s4", new Date("2026-01-10T09:00:00.000Z")],
+    ]);
+
+    const converters = aggregateConverters(logs, null, signups);
+
+    expect(converters.map((c) => c.userId)).not.toContain("vol-2");
+    // Sorted by signups desc then rate desc: vol-3 (100%) before vol-1 (50%).
+    expect(converters.map((c) => c.userId)).toEqual(["vol-3", "vol-1"]);
+
+    const v1 = converters.find((c) => c.userId === "vol-1");
+    expect(v1?.alertsReceived).toBe(2);
+    expect(v1?.signups).toBe(1);
+    expect(v1?.conversionRate).toBe(50);
+    expect(v1?.lastSignupAt).toBe("2026-01-11T09:00:00.000Z");
+
+    const v3 = converters.find((c) => c.userId === "vol-3");
+    expect(v3?.conversionRate).toBe(100);
+  });
+
+  it("does not count signups outside the 3-day window toward a converter", () => {
+    const logs = [
+      log({ sentAt, recipientId: "vol-1", shifts: [{ shiftId: "s1", shiftLocation: "Wellington" }] }),
+    ];
+    const signups = index([
+      // 10 days later — outside the window.
+      ["vol-1", "s1", new Date("2026-01-20T09:00:00.000Z")],
+    ]);
+    expect(aggregateConverters(logs, null, signups)).toEqual([]);
+  });
+
+  it("only counts alerts and signups for the filtered site", () => {
+    const logs = [
+      log({ sentAt, recipientId: "vol-1", shifts: [{ shiftId: "wel-1", shiftLocation: "Wellington" }] }),
+      log({ sentAt, recipientId: "vol-1", shifts: [{ shiftId: "gi-1", shiftLocation: "Glen Innes" }] }),
+    ];
+    const signups = index([
+      ["vol-1", "wel-1", new Date("2026-01-11T00:00:00.000Z")],
+      ["vol-1", "gi-1", new Date("2026-01-11T00:00:00.000Z")],
+    ]);
+
+    const wellington = aggregateConverters(logs, "Wellington", signups);
+    expect(wellington).toHaveLength(1);
+    expect(wellington[0].alertsReceived).toBe(1);
+    expect(wellington[0].signups).toBe(1);
   });
 });

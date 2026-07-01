@@ -7,7 +7,9 @@ import { ShortageNotificationsAnalyticsClient } from "./shortage-notifications-a
 import { LOCATIONS } from "@/lib/locations";
 import {
   getShortageNotificationAnalytics,
+  getShortageConverters,
   parseMonthsParam,
+  CONVERSION_WINDOW_DAYS,
 } from "@/lib/shortage-analytics";
 
 export default async function ShortageNotificationsAnalyticsPage({
@@ -31,7 +33,10 @@ export default async function ShortageNotificationsAnalyticsPage({
   const location = (params.location as string) || "all";
   const monthsNum = parseMonthsParam(months);
 
-  const data = await getShortageNotificationAnalytics(monthsNum, location);
+  const [data, convertersResult] = await Promise.all([
+    getShortageNotificationAnalytics(monthsNum, location),
+    getShortageConverters(monthsNum, location),
+  ]);
 
   const locationOptions = LOCATIONS.map((loc) => ({
     value: loc,
@@ -46,9 +51,11 @@ export default async function ShortageNotificationsAnalyticsPage({
       <PageContainer testid="shortage-notifications-analytics-page">
         <ShortageNotificationsAnalyticsClient
           data={data}
+          converters={convertersResult}
           months={months}
           location={location}
           locations={locationOptions}
+          windowDays={CONVERSION_WINDOW_DAYS}
         />
       </PageContainer>
     </AdminPageWrapper>
