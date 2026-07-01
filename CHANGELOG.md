@@ -1,3 +1,9 @@
+## [0.138.0] - 2026-07-01
+
+### Changes
+- feat(admin): redesign shift creation page with live run sheet and shift type management ([#1078](https://github.com/everybody-eats-nz/volunteer-portal/pull/1078)) by @malinmalliyawadu
+
+
 ## [0.137.1] - 2026-07-01
 
 ### Changes
