@@ -5,7 +5,10 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { ShortageNotificationsAnalyticsClient } from "./shortage-notifications-analytics-client";
 import { LOCATIONS } from "@/lib/locations";
-import { getShortageNotificationAnalytics } from "@/lib/shortage-analytics";
+import {
+  getShortageNotificationAnalytics,
+  parseMonthsParam,
+} from "@/lib/shortage-analytics";
 
 export default async function ShortageNotificationsAnalyticsPage({
   searchParams,
@@ -26,7 +29,7 @@ export default async function ShortageNotificationsAnalyticsPage({
 
   const months = (params.months as string) || "12";
   const location = (params.location as string) || "all";
-  const monthsNum = months === "all" ? 0 : parseInt(months, 10) || 12;
+  const monthsNum = parseMonthsParam(months);
 
   const data = await getShortageNotificationAnalytics(monthsNum, location);
 

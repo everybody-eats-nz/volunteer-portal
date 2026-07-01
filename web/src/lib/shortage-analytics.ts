@@ -114,6 +114,17 @@ export function percentage(part: number, whole: number): number {
   return whole > 0 ? Math.round((part / whole) * 100) : 0;
 }
 
+/**
+ * Parse a `months` query/search param into a trailing-window length. Returns
+ * `0` for "all" (all time); any missing, invalid, or non-positive value falls
+ * back to the 12-month default.
+ */
+export function parseMonthsParam(value: string | null | undefined): number {
+  if (value === "all") return 0;
+  const parsed = parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 12;
+}
+
 /** Stable identifier for the send batch a log row belongs to. */
 function batchKey(row: ShortageLogRow): string {
   return `${row.sentAt.toISOString()}|${row.sentBy}`;
@@ -480,7 +491,9 @@ export async function getShortageConversions(
     },
   });
 
-  // Fetch signups for the notified (recipient, shift) pairs.
+  // Fetch signups for the notified (recipient, shift) pairs. We deliberately
+  // fetch every status (including later-canceled ones): if a volunteer signed
+  // up after an alert, the nudge worked regardless of a subsequent cancellation.
   const recipientIds = new Set<string>();
   const shiftIds = new Set<string>();
   for (const log of logs) {

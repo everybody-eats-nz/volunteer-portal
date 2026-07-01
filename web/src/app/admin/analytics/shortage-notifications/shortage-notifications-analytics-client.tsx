@@ -394,7 +394,7 @@ export function ShortageNotificationsAnalyticsClient({
                 <span aria-hidden>→</span>
               </span>
             }
-            tooltip="Volunteers who signed up for a shift after a delivered alert. Click to see who."
+            tooltip="Volunteers who signed up for a shift after a delivered alert. This is a correlation - some may have signed up regardless. Click to see who."
             onClick={() => openConversions(initialLocation)}
           />
           <KpiCard
@@ -407,7 +407,7 @@ export function ShortageNotificationsAnalyticsClient({
             sparkColor="#8b5cf6"
             mode={mode}
             footer={`${num(totals.converted)} of ${num(totals.successfulEmails)} delivered`}
-            tooltip="Share of delivered alerts that led to a signup (signups ÷ delivered alerts)."
+            tooltip="Share of delivered alerts that led to a signup (signups ÷ delivered alerts). A correlation, not proof of cause."
           />
         </div>
 

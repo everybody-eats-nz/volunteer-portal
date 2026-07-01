@@ -145,6 +145,13 @@ function DialogBody({
   );
 }
 
+/** Compact shift date, adding the year only when it isn't the current year. */
+function formatShiftDate(iso: string): string {
+  const currentYear = formatInNZT(new Date(), "yyyy");
+  const shiftYear = formatInNZT(iso, "yyyy");
+  return formatInNZT(iso, shiftYear === currentYear ? "d MMM" : "d MMM yyyy");
+}
+
 function getInitials(name: string, email: string): string {
   const source = name.trim() || email;
   const parts = source.split(/\s+/).filter(Boolean);
@@ -191,7 +198,7 @@ function ConversionRow({ conversion: c }: { conversion: ShortageConversion }) {
             </Badge>
           </div>
           <p className="text-[11px] text-muted-foreground tabular-nums">
-            {formatInNZT(c.shiftDate, "d MMM")} · {lag}
+            {formatShiftDate(c.shiftDate)} · {lag}
           </p>
         </div>
       </Link>

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aggregateShortageLogs,
+  parseMonthsParam,
   percentage,
   sitesForLog,
   signupKey,
@@ -31,6 +32,26 @@ describe("percentage", () => {
   it("returns 0 rather than dividing by zero", () => {
     expect(percentage(0, 0)).toBe(0);
     expect(percentage(5, 0)).toBe(0);
+  });
+});
+
+describe("parseMonthsParam", () => {
+  it("returns 0 for all-time", () => {
+    expect(parseMonthsParam("all")).toBe(0);
+  });
+
+  it("accepts positive integers", () => {
+    expect(parseMonthsParam("3")).toBe(3);
+    expect(parseMonthsParam("12")).toBe(12);
+  });
+
+  it("falls back to 12 for missing, invalid, or non-positive values", () => {
+    expect(parseMonthsParam(null)).toBe(12);
+    expect(parseMonthsParam(undefined)).toBe(12);
+    expect(parseMonthsParam("")).toBe(12);
+    expect(parseMonthsParam("abc")).toBe(12);
+    expect(parseMonthsParam("-3")).toBe(12);
+    expect(parseMonthsParam("0")).toBe(12);
   });
 });
 
