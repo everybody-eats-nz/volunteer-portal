@@ -126,24 +126,30 @@ test.describe("Shift Creation Form Validation", () => {
     test("should validate date range with calendar picker", async ({
       page,
     }) => {
+      // Scope to :visible - dev streaming can leave a hidden duplicate of the
+      // page in the DOM, which breaks strict mode for testid locators
+      const rangeInput = page.locator(
+        '[data-testid="bulk-date-range-input"]:visible'
+      );
+
       // Open combined date range picker
-      await page.getByTestId("bulk-date-range-input").click();
+      await rangeInput.click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
-      // Select start date (first available date)
-      const dateButtons = page.locator('[role="gridcell"] button');
+      // Select start date (first selectable date - past days are disabled)
+      const dateButtons = page.locator(
+        '[role="gridcell"] button:not([disabled])'
+      );
       await dateButtons.first().click();
 
-      // Select end date (a few days later in the same month)
+      // Select end date (a few days later)
       await dateButtons.nth(5).click();
 
       // Close the picker by clicking outside or pressing Escape
       await page.keyboard.press("Escape");
 
       // The input should now show a date range instead of placeholder
-      const rangeValue = await page
-        .getByTestId("bulk-date-range-input")
-        .textContent();
+      const rangeValue = await rangeInput.textContent();
 
       expect(rangeValue).not.toContain("Pick a date range");
     });
@@ -176,7 +182,7 @@ test.describe("Shift Creation Form Validation", () => {
   test.describe("Template Management Validation", () => {
     test.beforeEach(async ({ page }) => {
       // Go to Templates tab
-      await page.getByRole("tab", { name: "Edit Templates" }).click();
+      await page.getByRole("tab", { name: "Templates" }).click();
     });
 
     test("should validate template form fields", async ({ page }) => {
