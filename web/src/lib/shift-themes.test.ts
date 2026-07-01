@@ -85,11 +85,10 @@ describe("getShiftTheme", () => {
     expect(getShiftTheme("")).toBe(DEFAULT_THEME);
   });
 
-  it("resolves 'Cafe Helpers' to the exact coffee theme with a cover image", () => {
+  it("resolves 'Cafe Helpers' to the exact coffee theme", () => {
     const theme = getShiftTheme("Cafe Helpers");
     expect(theme).toBe(SHIFT_THEMES["Cafe Helpers"]);
     expect(theme.emoji).toBe("☕");
-    expect(theme.coverImage).toBe("/shift-covers/cafe-helpers.webp");
   });
 
   it("resolves cafe name variants via keyword (incl. accented 'café')", () => {
@@ -100,7 +99,6 @@ describe("getShiftTheme", () => {
     ]) {
       const theme = getShiftTheme(name);
       expect(theme.emoji, name).toBe("☕");
-      expect(theme.coverImage, name).toBe("/shift-covers/cafe-helpers.webp");
       expect(theme, name).not.toBe(DEFAULT_THEME);
     }
   });
@@ -108,14 +106,7 @@ describe("getShiftTheme", () => {
   it("respects keyword order: 'cafe' beats 'service'/'set up'", () => {
     // The cafe rule is registered before the set-up/service rules, so a
     // combined name still resolves to the coffee theme, not 🛠️/✨.
-    const theme = getShiftTheme("Cafe Set-up & Service");
-    expect(theme.emoji).toBe("☕");
-    expect(theme.coverImage).toBe("/shift-covers/cafe-helpers.webp");
-  });
-
-  it("leaves coverImage undefined for themes without a cover", () => {
-    expect(getShiftTheme("Dishwasher").coverImage).toBeUndefined();
-    expect(DEFAULT_THEME).not.toHaveProperty("coverImage");
+    expect(getShiftTheme("Cafe Set-up & Service").emoji).toBe("☕");
   });
 
   it("always returns a complete theme object (no missing class fields)", () => {

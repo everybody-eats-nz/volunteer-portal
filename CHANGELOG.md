@@ -1,3 +1,21 @@
+## [0.135.2] - 2026-07-01
+
+### Changes
+- feat(shifts): remove the Cafe Helpers cover image from web (listing + detail) ([#1073](https://github.com/everybody-eats-nz/volunteer-portal/pull/1073)) by @malinmalliyawadu
+
+
+## [0.135.1] - 2026-07-01
+
+### Changes
+- fix(flaky): make admin e2e locators deterministic under streaming ([#1072](https://github.com/everybody-eats-nz/volunteer-portal/pull/1072)) by @malinmalliyawadu
+
+
+## [0.135.0] - 2026-07-01
+
+### Changes
+- feat(admin): shortage notifications analytics report with effectiveness drill-down ([#1070](https://github.com/everybody-eats-nz/volunteer-portal/pull/1070)) by @malinmalliyawadu
+
+
 ## [0.134.0] - 2026-07-01
 
 ### Changes

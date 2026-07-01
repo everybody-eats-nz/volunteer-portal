@@ -89,8 +89,6 @@ export const SHIFT_THEMES = {
     // Public page specific styles
     bgColor: "bg-amber-50 dark:bg-amber-950/20",
     fullGradient: "from-amber-500 to-orange-600",
-    // Cover image shown on the shift detail hero + browse card.
-    coverImage: "/shift-covers/cafe-helpers.webp",
   },
 };
 
@@ -112,11 +110,6 @@ export interface ShiftTheme {
   // Public page specific styles
   bgColor: string;
   fullGradient: string;
-  /**
-   * Optional cover image (a path under /public), keyed by shift type. Only some
-   * types ship a cover; when absent, surfaces fall back to the gradient accent.
-   */
-  coverImage?: string;
 }
 
 /**
@@ -147,7 +140,6 @@ const KEYWORD_THEMES: { keywords: string[]; theme: ShiftTheme }[] = [
       gradient: "from-amber-100 to-orange-100",
       bgColor: "bg-amber-50 dark:bg-amber-950/20",
       fullGradient: "from-amber-500 to-orange-600",
-      coverImage: "/shift-covers/cafe-helpers.webp",
     },
   },
   {
