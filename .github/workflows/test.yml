@@ -177,6 +177,9 @@ jobs:
 
       - name: Deploy Playwright report to Vercel
         id: deploy_report
+        # Report hosting is informational. A Vercel outage or fair-use block must
+        # not fail this job and block merging code whose tests all passed.
+        continue-on-error: true
         run: |
           cd web/playwright-report
 
@@ -200,7 +203,7 @@ jobs:
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
       - name: Add/Update Playwright Report Comment on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.deploy_report.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
