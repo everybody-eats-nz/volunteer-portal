@@ -133,7 +133,10 @@ test.describe("Admin Users Management", () => {
       await page.goto("/admin/users");
 
       // Check if users list exists
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
 
       if (await usersList.isVisible()) {
         // Get all user rows
@@ -351,7 +354,10 @@ test.describe("Admin Users Management", () => {
     test("should navigate to user details page", async ({ page }) => {
       await page.goto("/admin/users");
 
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -394,7 +400,10 @@ test.describe("Admin Users Management", () => {
     }) => {
       await page.goto("/admin/users");
 
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -430,7 +439,10 @@ test.describe("Admin Users Management", () => {
     test("should open delete confirmation dialog", async ({ page }) => {
       await page.goto("/admin/users");
 
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -493,7 +505,10 @@ test.describe("Admin Users Management", () => {
     test("should validate email confirmation requirement", async ({ page }) => {
       await page.goto("/admin/users");
 
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -549,7 +564,10 @@ test.describe("Admin Users Management", () => {
     test("should handle delete API errors gracefully", async ({ page }) => {
       await page.goto("/admin/users");
 
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
 
       if (await usersList.isVisible()) {
         const userRows = page.locator("[data-testid^='user-row-']");
@@ -695,7 +713,10 @@ test.describe("Admin Users Management", () => {
       // The implementation would depend on how we identify the current user
       // in the test environment
 
-      const usersList = page.getByTestId("users-list");
+      // Scope to the visible instance to stay deterministic under streaming.
+      const usersList = page
+        .locator('[data-testid="users-list"]:visible')
+        .first();
       await expect(usersList).toBeVisible();
 
       // In a complete implementation, we would:
