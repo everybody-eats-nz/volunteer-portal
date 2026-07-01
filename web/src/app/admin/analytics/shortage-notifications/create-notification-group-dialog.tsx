@@ -75,7 +75,9 @@ export function CreateNotificationGroupDialog({
       );
       onCreated?.();
       onOpenChange(false);
-      setName(defaultName);
+      // Clear the form so a re-open starts fresh rather than showing the
+      // just-used name (which would collide with the group we just created).
+      setName("");
       setDescription("");
     } catch (err) {
       toast.error(
