@@ -219,12 +219,19 @@ jobs:
     steps:
       - name: Check all jobs
         run: |
-          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.merge-reports.result }}" == "failure" ]]; then
+          # Only the actual test job gates merges. merge-reports just publishes
+          # the Playwright HTML report to Vercel and comments the link - an
+          # informational step that must not block the required check when the
+          # report can't be published (e.g. a Vercel account/fair-use block).
+          if [[ "${{ needs.test.result }}" == "failure" ]]; then
             echo "❌ Tests failed"
             exit 1
-          elif [[ "${{ needs.test.result }}" == "cancelled" || "${{ needs.merge-reports.result }}" == "cancelled" ]]; then
+          elif [[ "${{ needs.test.result }}" == "cancelled" ]]; then
             echo "🟡 Tests cancelled"
             exit 1
           else
             echo "✅ All tests passed"
+            if [[ "${{ needs.merge-reports.result }}" != "success" ]]; then
+              echo "ℹ️ Report publishing did not succeed (${{ needs.merge-reports.result }}); not blocking - see the merge-reports job."
+            fi
           fi
