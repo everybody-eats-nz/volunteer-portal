@@ -126,6 +126,7 @@ export function ShortageConvertersTable({
                     />
                   </TableHead>
                   <TableHead>Volunteer</TableHead>
+                  <TableHead>Home site</TableHead>
                   <TableHead className="text-right">Alerts</TableHead>
                   <TableHead className="text-right">Signups</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
@@ -170,6 +171,9 @@ export function ShortageConvertersTable({
                             </p>
                           </div>
                         </Link>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {c.defaultLocation ?? "—"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {c.alertsReceived}

@@ -675,9 +675,11 @@ export interface ShortageConverterCore {
   lastSignupAt: string | null;
 }
 
-/** A converting volunteer, enriched with profile photo for display. */
+/** A converting volunteer, enriched with profile photo + home site. */
 export interface ShortageConverter extends ShortageConverterCore {
   profilePhotoUrl: string | null;
+  /** The volunteer's default/home restaurant, if set. */
+  defaultLocation: string | null;
 }
 
 export interface ShortageConvertersResult {
@@ -833,7 +835,7 @@ export async function getShortageConverters(
 
   const core = aggregateConverters(logs, location, signups);
 
-  // Enrich with current name + photo from the User table.
+  // Enrich with current name, photo, and home site from the User table.
   const users = await prisma.user.findMany({
     where: { id: { in: core.map((c) => c.userId) } },
     select: {
@@ -842,6 +844,7 @@ export async function getShortageConverters(
       firstName: true,
       lastName: true,
       profilePhotoUrl: true,
+      defaultLocation: true,
     },
   });
   const userById = new Map(users.map((u) => [u.id, u]));
@@ -857,6 +860,7 @@ export async function getShortageConverters(
       ...c,
       name: currentName,
       profilePhotoUrl: u?.profilePhotoUrl ?? null,
+      defaultLocation: u?.defaultLocation ?? null,
     };
   });
 
