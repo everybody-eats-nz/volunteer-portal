@@ -35,6 +35,10 @@ export interface ShortageLogRow {
   success: boolean;
   /** JSON payload: an array of {@link LoggedShift}. */
   shifts: unknown;
+  /** Denormalized recipient name — only selected for the converters rollup. */
+  recipientName?: string;
+  /** Denormalized recipient email — only selected for the converters rollup. */
+  recipientEmail?: string;
 }
 
 /** Notification figures for a single restaurant (or "Unknown"). */
@@ -189,10 +193,32 @@ function withinConversionWindow(sentAt: Date, signedUpAt: Date): boolean {
 }
 
 /**
- * True if `recipientId` signed up for any of `shiftIds` within the crediting
- * window after `sentAt` — i.e. the alert plausibly drove the signup. Signups
+ * The earliest signup by `recipientId` for any of `shiftIds` that falls within
+ * the crediting window after `sentAt`, or `null` if none qualifies. Signups
  * before the alert (already-committed volunteers) or more than
  * {@link CONVERSION_WINDOW_DAYS} days later don't count.
+ */
+function qualifyingSignupTime(
+  recipientId: string,
+  shiftIds: string[],
+  sentAt: Date,
+  signups: SignupIndex
+): Date | null {
+  let earliest: Date | null = null;
+  for (const shiftId of shiftIds) {
+    const signedUpAt = signups.get(signupKey(recipientId, shiftId));
+    if (signedUpAt && withinConversionWindow(sentAt, signedUpAt)) {
+      if (!earliest || signedUpAt.getTime() < earliest.getTime()) {
+        earliest = signedUpAt;
+      }
+    }
+  }
+  return earliest;
+}
+
+/**
+ * True if `recipientId` signed up for any of `shiftIds` within the crediting
+ * window after `sentAt` — i.e. the alert plausibly drove the signup.
  */
 function convertedForShifts(
   recipientId: string,
@@ -200,11 +226,7 @@ function convertedForShifts(
   sentAt: Date,
   signups: SignupIndex
 ): boolean {
-  for (const shiftId of shiftIds) {
-    const signedUpAt = signups.get(signupKey(recipientId, shiftId));
-    if (signedUpAt && withinConversionWindow(sentAt, signedUpAt)) return true;
-  }
-  return false;
+  return qualifyingSignupTime(recipientId, shiftIds, sentAt, signups) !== null;
 }
 
 interface SiteAccumulator {
@@ -635,5 +657,212 @@ export async function getShortageConversions(
     conversions: all.slice(0, CONVERSIONS_CAP),
     total: all.length,
     cap: CONVERSIONS_CAP,
+  };
+}
+
+/** Per-volunteer responsiveness to shortage alerts (before User enrichment). */
+export interface ShortageConverterCore {
+  userId: string;
+  name: string;
+  email: string;
+  /** Delivered alerts this volunteer received in the period. */
+  alertsReceived: number;
+  /** Of those, how many led to a signup within the crediting window. */
+  signups: number;
+  /** signups / alertsReceived as a 0–100 percentage. */
+  conversionRate: number;
+  /** ISO timestamp of their most recent qualifying signup, or null. */
+  lastSignupAt: string | null;
+}
+
+/** A converting volunteer, enriched with profile photo for display. */
+export interface ShortageConverter extends ShortageConverterCore {
+  profilePhotoUrl: string | null;
+}
+
+export interface ShortageConvertersResult {
+  converters: ShortageConverter[];
+  total: number;
+  /** Max rows returned; `total` may exceed this. */
+  cap: number;
+}
+
+const CONVERTERS_CAP = 500;
+
+interface ConverterAccumulator {
+  userId: string;
+  name: string;
+  email: string;
+  alertsReceived: number;
+  signups: number;
+  lastSignupAt: Date | null;
+}
+
+/**
+ * Roll delivered alerts up per volunteer: how many alerts each received and how
+ * many led to a signup within the crediting window. Only volunteers with at
+ * least one signup are returned (the "converters"). Pure and DB-free so it can
+ * be unit tested; the async wrapper adds profile photos.
+ *
+ * When `location` names a specific site, only alerts covering that site count,
+ * and conversions are credited only for that site's shifts.
+ */
+export function aggregateConverters(
+  logs: ShortageLogRow[],
+  location: string | null,
+  signups: SignupIndex
+): ShortageConverterCore[] {
+  const isSiteFiltered = !!location && location !== "all";
+  const byUser = new Map<string, ConverterAccumulator>();
+
+  for (const row of logs) {
+    if (!row.success) continue;
+    const byLoc = shiftsByLocationForLog(row);
+    if (isSiteFiltered && !byLoc.has(location as string)) continue;
+
+    let acc = byUser.get(row.recipientId);
+    if (!acc) {
+      acc = {
+        userId: row.recipientId,
+        name: row.recipientName ?? "",
+        email: row.recipientEmail ?? "",
+        alertsReceived: 0,
+        signups: 0,
+        lastSignupAt: null,
+      };
+      byUser.set(row.recipientId, acc);
+    }
+    acc.alertsReceived += 1;
+
+    const shiftIds = isSiteFiltered
+      ? byLoc.get(location as string) ?? []
+      : [...byLoc.values()].flat();
+    const signedUpAt = qualifyingSignupTime(
+      row.recipientId,
+      shiftIds,
+      row.sentAt,
+      signups
+    );
+    if (signedUpAt) {
+      acc.signups += 1;
+      if (
+        !acc.lastSignupAt ||
+        signedUpAt.getTime() > acc.lastSignupAt.getTime()
+      ) {
+        acc.lastSignupAt = signedUpAt;
+      }
+    }
+  }
+
+  return [...byUser.values()]
+    .filter((acc) => acc.signups > 0)
+    .map((acc) => ({
+      userId: acc.userId,
+      name: acc.name,
+      email: acc.email,
+      alertsReceived: acc.alertsReceived,
+      signups: acc.signups,
+      conversionRate: percentage(acc.signups, acc.alertsReceived),
+      lastSignupAt: acc.lastSignupAt ? acc.lastSignupAt.toISOString() : null,
+    }))
+    .sort(
+      (a, b) =>
+        b.signups - a.signups ||
+        b.conversionRate - a.conversionRate ||
+        a.name.localeCompare(b.name)
+    );
+}
+
+/**
+ * The volunteers who respond to shortage alerts — one row each, ordered by
+ * signups then conversion rate — for the "who converts" table and for building
+ * a notification group of reliable responders.
+ *
+ * @param months Length of the trailing window; `0` means all time.
+ * @param location A specific restaurant, or `null`/`"all"` for the whole org.
+ */
+export async function getShortageConverters(
+  months: number,
+  location: string | null = null
+): Promise<ShortageConvertersResult> {
+  const now = new Date();
+  const where: { success: boolean; sentAt?: { gte: Date; lte: Date } } = {
+    success: true,
+  };
+  if (months > 0) {
+    const periodStart = new Date(now);
+    periodStart.setMonth(periodStart.getMonth() - months);
+    where.sentAt = { gte: periodStart, lte: now };
+  }
+
+  const logs = (await prisma.shortageNotificationLog.findMany({
+    where,
+    select: {
+      sentAt: true,
+      sentBy: true,
+      recipientId: true,
+      recipientName: true,
+      recipientEmail: true,
+      success: true,
+      shifts: true,
+    },
+  })) as ShortageLogRow[];
+
+  const recipientIds = new Set<string>();
+  const shiftIds = new Set<string>();
+  for (const log of logs) {
+    recipientIds.add(log.recipientId);
+    for (const ids of shiftsByLocationForLog(log).values()) {
+      for (const id of ids) shiftIds.add(id);
+    }
+  }
+  if (recipientIds.size === 0 || shiftIds.size === 0) {
+    return { converters: [], total: 0, cap: CONVERTERS_CAP };
+  }
+
+  const signupRows = await prisma.signup.findMany({
+    where: {
+      userId: { in: [...recipientIds] },
+      shiftId: { in: [...shiftIds] },
+    },
+    select: { userId: true, shiftId: true, createdAt: true },
+  });
+  const signups: SignupIndex = new Map(
+    signupRows.map((row) => [signupKey(row.userId, row.shiftId), row.createdAt])
+  );
+
+  const core = aggregateConverters(logs, location, signups);
+
+  // Enrich with current name + photo from the User table.
+  const users = await prisma.user.findMany({
+    where: { id: { in: core.map((c) => c.userId) } },
+    select: {
+      id: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      profilePhotoUrl: true,
+    },
+  });
+  const userById = new Map(users.map((u) => [u.id, u]));
+
+  const converters: ShortageConverter[] = core.map((c) => {
+    const u = userById.get(c.userId);
+    const currentName =
+      u?.name ||
+      [u?.firstName, u?.lastName].filter(Boolean).join(" ").trim() ||
+      c.name ||
+      c.email;
+    return {
+      ...c,
+      name: currentName,
+      profilePhotoUrl: u?.profilePhotoUrl ?? null,
+    };
+  });
+
+  return {
+    converters: converters.slice(0, CONVERTERS_CAP),
+    total: converters.length,
+    cap: CONVERTERS_CAP,
   };
 }

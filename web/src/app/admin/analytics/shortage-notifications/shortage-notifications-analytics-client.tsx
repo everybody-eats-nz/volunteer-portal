@@ -47,13 +47,16 @@ import {
   SERIES_COLORS,
 } from "../_lib/chart-theme";
 import { ShortageConversionsDialog } from "./shortage-conversions-dialog";
+import { ShortageConvertersTable } from "./shortage-converters-table";
 import type {
   ShortageNotificationAnalytics,
+  ShortageConvertersResult,
   ShortageSiteRow,
 } from "@/lib/shortage-analytics";
 
 interface Props {
   data: ShortageNotificationAnalytics;
+  converters: ShortageConvertersResult;
   months: string;
   location: string;
   locations: Array<{ value: string; label: string }>;
@@ -241,6 +244,7 @@ function StatChip({
 
 export function ShortageNotificationsAnalyticsClient({
   data,
+  converters,
   months: initialMonths,
   location: initialLocation,
   locations,
@@ -656,6 +660,14 @@ export function ShortageNotificationsAnalyticsClient({
             </Table>
           </div>
         </ChartCard>
+
+        {/* Volunteers who convert + build a group from them */}
+        <ShortageConvertersTable
+          data={converters}
+          months={initialMonths}
+          location={initialLocation}
+          windowLabel={windowLabel}
+        />
       </div>
 
       <ShortageConversionsDialog
