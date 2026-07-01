@@ -277,7 +277,7 @@ test.describe("My Shifts Page", () => {
         await shiftRows.first().click();
 
         // Dialog should open
-        const dialog = page.locator("[role='dialog']");
+        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
         await expect(dialog).toBeVisible();
 
         // Dialog should have title
@@ -297,7 +297,7 @@ test.describe("My Shifts Page", () => {
       if (rowCount > 0) {
         await shiftRows.first().click();
 
-        const dialog = page.locator("[role='dialog']");
+        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
         await expect(dialog).toBeVisible();
 
         // Should show status
@@ -331,7 +331,7 @@ test.describe("My Shifts Page", () => {
       if (rowCount > 0) {
         await upcomingRows.first().click();
 
-        const dialog = page.locator("[role='dialog']");
+        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
         await expect(dialog).toBeVisible();
 
         // Cancel button should be visible and enabled
@@ -375,7 +375,7 @@ test.describe("My Shifts Page", () => {
       if (rowCount > 0) {
         await shiftRows.first().click();
 
-        const dialog = page.locator("[role='dialog']");
+        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
         await expect(dialog).toBeVisible();
 
         // Look for friends section ("Whānau joining" / "Whānau who joined")
@@ -466,7 +466,7 @@ test.describe("My Shifts Page", () => {
 
         // On mobile the responsive dialog renders as a drawer — both have
         // role="dialog"
-        const dialog = page.locator("[role='dialog']");
+        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
         await expect(dialog).toBeVisible();
       }
     });
@@ -569,7 +569,7 @@ test.describe("My Shifts Page", () => {
         await firstRow.click();
 
         // Dialog should be accessible
-        const dialog = page.locator("[role='dialog']");
+        const dialog = page.locator("[role='dialog']:not([data-nextjs-dialog])");
         if (await dialog.isVisible()) {
           await expect(dialog).toBeVisible();
           await page.keyboard.press("Escape");
