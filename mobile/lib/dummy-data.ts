@@ -112,8 +112,9 @@ const SHIFT_COVERS = {
   cateringSpread: require('@/assets/photos/ee-volunteer-team.jpg'),
   /** Volunteer holding three plated meals outdoors — pop-up service */
   servingPlates: require('@/assets/photos/ee-serving-plates.jpg'),
-  /** Warm Wellington dining room set with communal tables — cafe helpers
-   *  (the same homepage-carousel photo used for the web cover) */
+  /** Location-neutral cafe scene — whānau sharing kai at communal tables.
+   *  Same homepage-carousel photo as the web cover; jpg here to match
+   *  mobile's bundled-asset convention (web serves webp for size). */
   cafeHelpers: require('@/assets/photos/ee-cafe-helpers.jpg'),
 };
 

@@ -105,6 +105,14 @@ describe("getShiftTheme", () => {
     }
   });
 
+  it("respects keyword order: 'cafe' beats 'service'/'set up'", () => {
+    // The cafe rule is registered before the set-up/service rules, so a
+    // combined name still resolves to the coffee theme, not 🛠️/✨.
+    const theme = getShiftTheme("Cafe Set-up & Service");
+    expect(theme.emoji).toBe("☕");
+    expect(theme.coverImage).toBe("/shift-covers/cafe-helpers.webp");
+  });
+
   it("leaves coverImage undefined for themes without a cover", () => {
     expect(getShiftTheme("Dishwasher").coverImage).toBeUndefined();
     expect(DEFAULT_THEME).not.toHaveProperty("coverImage");
