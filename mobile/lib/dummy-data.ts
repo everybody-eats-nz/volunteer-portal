@@ -112,6 +112,9 @@ const SHIFT_COVERS = {
   cateringSpread: require('@/assets/photos/ee-volunteer-team.jpg'),
   /** Volunteer holding three plated meals outdoors — pop-up service */
   servingPlates: require('@/assets/photos/ee-serving-plates.jpg'),
+  /** Warm Wellington dining room set with communal tables — cafe helpers
+   *  (the same homepage-carousel photo used for the web cover) */
+  cafeHelpers: require('@/assets/photos/ee-cafe-helpers.jpg'),
 };
 
 export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
@@ -187,6 +190,14 @@ export const SHIFT_TYPE_THEMES_BY_NAME: Record<string, ShiftTypeTheme> = {
     bgDark: 'rgba(219, 39, 119, 0.12)',
     heroImage: SHIFT_COVERS.communityTable,
   },
+  'Cafe Helpers': {
+    emoji: '☕',
+    color: '#d97706',
+    colorDark: '#fbbf24',
+    bgLight: '#fffbeb',
+    bgDark: 'rgba(217, 119, 6, 0.12)',
+    heroImage: SHIFT_COVERS.cafeHelpers,
+  },
 };
 
 const DEFAULT_SHIFT_TYPE_THEME: ShiftTypeTheme = {
@@ -211,6 +222,18 @@ const DEFAULT_SHIFT_TYPE_THEME: ShiftTypeTheme = {
  * emoji) so both apps resolve identically; if shift-type names change, update
  * both. */
 const KEYWORD_THEME_RULES: { keywords: string[]; theme: ShiftTypeTheme }[] = [
+  {
+    // Unique keyword — safe near the top; also matches the accented "café".
+    keywords: ['cafe', 'café', 'barista'],
+    theme: {
+      emoji: '☕',
+      color: '#d97706',
+      colorDark: '#fbbf24',
+      bgLight: '#fffbeb',
+      bgDark: 'rgba(217, 119, 6, 0.12)',
+      heroImage: SHIFT_COVERS.cafeHelpers,
+    },
+  },
   {
     keywords: ['dishwash'],
     theme: {

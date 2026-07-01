@@ -85,6 +85,31 @@ describe("getShiftTheme", () => {
     expect(getShiftTheme("")).toBe(DEFAULT_THEME);
   });
 
+  it("resolves 'Cafe Helpers' to the exact coffee theme with a cover image", () => {
+    const theme = getShiftTheme("Cafe Helpers");
+    expect(theme).toBe(SHIFT_THEMES["Cafe Helpers"]);
+    expect(theme.emoji).toBe("☕");
+    expect(theme.coverImage).toBe("/shift-covers/cafe-helpers.webp");
+  });
+
+  it("resolves cafe name variants via keyword (incl. accented 'café')", () => {
+    for (const name of [
+      "Cafe Helpers (Onehunga)",
+      "Café Helpers GI",
+      "Barista Support",
+    ]) {
+      const theme = getShiftTheme(name);
+      expect(theme.emoji, name).toBe("☕");
+      expect(theme.coverImage, name).toBe("/shift-covers/cafe-helpers.webp");
+      expect(theme, name).not.toBe(DEFAULT_THEME);
+    }
+  });
+
+  it("leaves coverImage undefined for themes without a cover", () => {
+    expect(getShiftTheme("Dishwasher").coverImage).toBeUndefined();
+    expect(DEFAULT_THEME).not.toHaveProperty("coverImage");
+  });
+
   it("always returns a complete theme object (no missing class fields)", () => {
     const fields = [
       "emoji",

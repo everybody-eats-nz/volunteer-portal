@@ -162,12 +162,29 @@ function ShiftCard({
       data-testid={`shift-card-${shift.id}`}
       className={`group relative overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${theme.bgColor} h-full`}
     >
-      <div
-        className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.fullGradient}`}
-      />
+      {!theme.coverImage && (
+        <div
+          className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.fullGradient}`}
+        />
+      )}
       <CardContent className="p-6 h-full">
         <div className="flex flex-col h-full">
           <div className="space-y-4 flex-1">
+            {theme.coverImage && (
+              <div className="relative -mx-6 -mt-6 h-28 overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={theme.coverImage}
+                  alt=""
+                  aria-hidden="true"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+                <div
+                  className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.fullGradient}`}
+                />
+              </div>
+            )}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div
