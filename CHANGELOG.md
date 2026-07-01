@@ -1,3 +1,9 @@
+## [0.137.0] - 2026-07-01
+
+### Changes
+- feat(admin): converters table + create notification groups from responders ([#1076](https://github.com/everybody-eats-nz/volunteer-portal/pull/1076)) by @malinmalliyawadu
+
+
 ## [0.136.0] - 2026-07-01
 
 ### Changes
