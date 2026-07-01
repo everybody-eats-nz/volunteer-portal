@@ -1,3 +1,9 @@
+## [0.135.0] - 2026-07-01
+
+### Changes
+- feat(admin): shortage notifications analytics report with effectiveness drill-down ([#1070](https://github.com/everybody-eats-nz/volunteer-portal/pull/1070)) by @malinmalliyawadu
+
+
 ## [0.134.0] - 2026-07-01
 
 ### Changes
