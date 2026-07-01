@@ -1,3 +1,9 @@
+## [0.135.1] - 2026-07-01
+
+### Changes
+- fix(flaky): make admin e2e locators deterministic under streaming ([#1072](https://github.com/everybody-eats-nz/volunteer-portal/pull/1072)) by @malinmalliyawadu
+
+
 ## [0.135.0] - 2026-07-01
 
 ### Changes
