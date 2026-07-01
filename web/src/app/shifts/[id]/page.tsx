@@ -292,6 +292,19 @@ export default async function ShiftDetailPage({
         </Button>
       </div>
 
+      {theme.coverImage && (
+        <div className="relative mb-6 aspect-[3/1] w-full overflow-hidden rounded-2xl border sm:aspect-[4/1]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={theme.coverImage}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      )}
+
       <div className="flex items-center gap-4 mb-6">
         <div
           className={`p-3 rounded-xl bg-gradient-to-br ${theme.gradient} shadow-lg flex items-center justify-center text-white text-2xl`}
