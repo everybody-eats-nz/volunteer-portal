@@ -1,3 +1,9 @@
+## [0.134.0] - 2026-07-01
+
+### Changes
+- feat(shifts): emoji + cover image support for Cafe Helpers shift type ([#1069](https://github.com/everybody-eats-nz/volunteer-portal/pull/1069)) by @malinmalliyawadu
+
+
 ## [0.133.3] - 2026-06-30
 
 ### Changes
