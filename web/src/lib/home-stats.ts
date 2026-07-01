@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import {
+  getActiveVolunteerCount,
+  getConfirmedVolunteerHours,
+} from "@/lib/impact-stats";
+import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
@@ -35,24 +39,17 @@ export async function getHomeStats(): Promise<HomeStats> {
   const weekStart = startOfWeekUTC(now);
   const weekEnd = endOfWeekUTC(now);
 
-  const [volunteers, mealsAggregate, completedSignups, openShiftsRaw, weekShifts] =
+  const [volunteers, mealsAggregate, hoursLogged, openShiftsRaw, weekShifts] =
     await Promise.all([
-      prisma.user.count({
-        where: { role: "VOLUNTEER", archivedAt: null },
-      }),
+      // Volunteers: distinct people who have actually done a shift, not
+      // everyone who ever registered. Shared with the public impact endpoint.
+      getActiveVolunteerCount(now),
       prisma.mealsServed.aggregate({
         _sum: { mealsServed: true },
       }),
-      prisma.signup.findMany({
-        where: {
-          status: "CONFIRMED",
-          shift: { end: { lt: now } },
-        },
-        select: {
-          shift: { select: { start: true, end: true } },
-        },
-        take: 20000,
-      }),
+      // Hours logged: sum of completed CONFIRMED signups' shift duration.
+      // Computed in SQL (no row cap) — shared with the public impact endpoint.
+      getConfirmedVolunteerHours(now),
       prisma.shift.findMany({
         where: { start: { gte: now } },
         select: {
@@ -65,13 +62,6 @@ export async function getHomeStats(): Promise<HomeStats> {
         where: { start: { gte: weekStart, lt: weekEnd } },
       }),
     ]);
-
-  // Hours logged: sum of completed CONFIRMED signups' shift duration (hours)
-  let hoursLoggedMs = 0;
-  for (const s of completedSignups) {
-    hoursLoggedMs += s.shift.end.getTime() - s.shift.start.getTime();
-  }
-  const hoursLogged = Math.round(hoursLoggedMs / (1000 * 60 * 60));
 
   const openShiftsCount = openShiftsRaw.filter(
     (s) => getShiftEffectiveCount(s) < s.capacity

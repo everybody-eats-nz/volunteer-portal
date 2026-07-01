@@ -26,6 +26,40 @@ export type PublicImpactStats = {
 };
 
 /**
+ * Total volunteer hours logged across every CONFIRMED signup whose shift has
+ * finished, as of `now`. Computed in SQL (`SUM` over shift durations) so there
+ * is no row cap — the single source of truth for the headline hours figure,
+ * shared by the public endpoint and the home landing page.
+ */
+export async function getConfirmedVolunteerHours(now: Date): Promise<number> {
+  const hoursRows = await prisma.$queryRaw<{ seconds: number | null }[]>`
+    SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (s."end" - s."start"))), 0)::float8 AS seconds
+    FROM "Signup" sg
+    JOIN "Shift" s ON s.id = sg."shiftId"
+    WHERE sg.status = 'CONFIRMED' AND s."end" < ${now}
+  `;
+  return Math.round((hoursRows[0]?.seconds ?? 0) / 3600);
+}
+
+/**
+ * Count of distinct volunteers who have actually done a shift, as of `now` —
+ * i.e. people with at least one CONFIRMED signup whose shift has finished.
+ * Uses the same CONFIRMED + finished-shift basis as the hours figure, so the
+ * two headline numbers tell a consistent story. This is the single source of
+ * truth, shared by the public endpoint and the home landing page; it counts
+ * people who showed up, not everyone who ever registered an account.
+ */
+export async function getActiveVolunteerCount(now: Date): Promise<number> {
+  const rows = await prisma.$queryRaw<{ count: number | null }[]>`
+    SELECT COUNT(DISTINCT sg."userId")::int AS count
+    FROM "Signup" sg
+    JOIN "Shift" s ON s.id = sg."shiftId"
+    WHERE sg.status = 'CONFIRMED' AND s."end" < ${now}
+  `;
+  return rows[0]?.count ?? 0;
+}
+
+/**
  * Computes the headline impact figures shared publicly (e.g. on the marketing
  * site). Kept deliberately lean — only the three numbers we expose — so it can
  * back a cacheable public endpoint without the heavier home-dashboard queries.
@@ -37,18 +71,12 @@ export type PublicImpactStats = {
 export async function getPublicImpactStats(): Promise<PublicImpactStats> {
   const now = new Date();
 
-  const [mealsAggregate, hoursRows] = await Promise.all([
+  const [mealsAggregate, volunteerHours] = await Promise.all([
     prisma.mealsServed.aggregate({ _sum: { mealsServed: true } }),
-    prisma.$queryRaw<{ seconds: number | null }[]>`
-      SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (s."end" - s."start"))), 0)::float8 AS seconds
-      FROM "Signup" sg
-      JOIN "Shift" s ON s.id = sg."shiftId"
-      WHERE sg.status = 'CONFIRMED' AND s."end" < ${now}
-    `,
+    getConfirmedVolunteerHours(now),
   ]);
 
   const peopleServed = mealsAggregate._sum.mealsServed ?? 0;
-  const volunteerHours = Math.round((hoursRows[0]?.seconds ?? 0) / 3600);
   const foodSavedKg = Math.round(peopleServed * FOOD_SAVED_KG_PER_MEAL);
 
   return {

@@ -33,6 +33,11 @@ test.describe("Admin Command Palette", () => {
   test.describe("Keyboard Shortcuts", () => {
     test("Cmd+K opens command palette on Mac", async ({ page }) => {
       await page.goto("/admin");
+      // Wait for the trigger to be visible before pressing keyboard shortcuts —
+      // this ensures the React keyboard listener is registered after hydration.
+      await page
+        .getByTestId("admin-command-palette-trigger")
+        .waitFor({ state: "visible" });
 
       // Use Meta key for Mac (Cmd)
       await page.keyboard.press("Meta+k");
@@ -43,6 +48,11 @@ test.describe("Admin Command Palette", () => {
 
     test("Ctrl+K opens command palette", async ({ page }) => {
       await page.goto("/admin");
+      // Wait for the trigger to be visible before pressing keyboard shortcuts —
+      // this ensures the React keyboard listener is registered after hydration.
+      await page
+        .getByTestId("admin-command-palette-trigger")
+        .waitFor({ state: "visible" });
 
       await page.keyboard.press("Control+k");
 
@@ -52,6 +62,11 @@ test.describe("Admin Command Palette", () => {
 
     test("Escape closes command palette", async ({ page }) => {
       await page.goto("/admin");
+      // Wait for the trigger to be visible before pressing keyboard shortcuts —
+      // this ensures the React keyboard listener is registered after hydration.
+      await page
+        .getByTestId("admin-command-palette-trigger")
+        .waitFor({ state: "visible" });
 
       // Open command palette
       await page.keyboard.press("Meta+k");

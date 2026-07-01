@@ -179,9 +179,13 @@ test.describe("Admin Dashboard Page", () => {
 
     test("should navigate to create new shift page", async ({ page }) => {
       const createShiftButton = page.getByTestId("create-shift-button");
+      // loginAsAdmin waits for admin-dashboard-page to be "attached" which can
+      // fire from loading.tsx before the real page content is interactive.
+      // Waiting for the button to be visible ensures it is hydrated and clickable.
+      await createShiftButton.waitFor({ state: "visible" });
       await createShiftButton.click();
 
-      await expect(page).toHaveURL("/admin/shifts/new");
+      await expect(page).toHaveURL("/admin/shifts/new", { timeout: 10000 });
     });
 
     test("should navigate to manage shifts page", async ({ page }) => {

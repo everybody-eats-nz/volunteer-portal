@@ -771,7 +771,7 @@ model SiteSetting {
 // Meals served tracking (per day, per location)
 model MealsServed {
   id          String   @id @default(cuid())
-  date        DateTime // Date for this record (stored as start of day in UTC)
+  date        DateTime // Service night, stored as NZ-midnight expressed in UTC (e.g. NZ Jul 1 -> 2024-06-30T12:00Z). Read with toNZT()/formatInNZT() — a raw UTC slice lands a day early.
   location    String // Location name (Wellington, Glen Innes, Onehunga)
   mealsServed Int? // Customers / people served that day — headline count (nullable — admins may save notes without a count)
   notes       String? // Optional notes about the day
