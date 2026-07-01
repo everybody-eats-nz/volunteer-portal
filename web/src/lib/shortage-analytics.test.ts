@@ -198,6 +198,41 @@ describe("aggregateShortageLogs — monthly trend", () => {
     expect(january?.sendEvents).toBe(1);
     expect(january?.emails).toBe(2);
   });
+
+  it("splits delivered alerts per location aligned to the trend months", () => {
+    const jan = new Date("2026-01-10T02:00:00.000Z");
+    const feb = new Date("2026-02-10T02:00:00.000Z");
+    const { trend, trendByLocation } = aggregateShortageLogs([
+      log({
+        sentAt: jan,
+        recipientId: "a",
+        shifts: [{ shiftId: "s1", shiftLocation: "Wellington" }],
+      }),
+      log({
+        sentAt: jan,
+        recipientId: "b",
+        shifts: [{ shiftId: "s2", shiftLocation: "Glen Innes" }],
+      }),
+      log({
+        sentAt: feb,
+        recipientId: "c",
+        shifts: [{ shiftId: "s3", shiftLocation: "Wellington" }],
+      }),
+      // A failed alert must not contribute to the stacked delivered series.
+      log({
+        sentAt: feb,
+        recipientId: "d",
+        success: false,
+        shifts: [{ shiftId: "s4", shiftLocation: "Glen Innes" }],
+      }),
+    ]);
+
+    expect(trend.map((t) => t.month)).toEqual(["2026-01", "2026-02"]);
+    const wellington = trendByLocation.find((l) => l.location === "Wellington");
+    const glenInnes = trendByLocation.find((l) => l.location === "Glen Innes");
+    expect(wellington?.delivered).toEqual([1, 1]);
+    expect(glenInnes?.delivered).toEqual([1, 0]);
+  });
 });
 
 describe("aggregateShortageLogs — conversions (effectiveness)", () => {

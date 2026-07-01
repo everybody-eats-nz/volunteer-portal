@@ -44,7 +44,7 @@ import {
   chartTokens,
   compactCount,
   num,
-  PALETTE,
+  SERIES_COLORS,
 } from "../_lib/chart-theme";
 import { ShortageConversionsDialog } from "./shortage-conversions-dialog";
 import type {
@@ -268,8 +268,26 @@ export function ShortageNotificationsAnalyticsClient({
     setModalOpen(true);
   };
 
-  const { totals, bySite, trend } = data;
+  const { totals, bySite, trend, trendByLocation } = data;
   const hasData = totals.emails > 0;
+
+  // Stacked "delivered by restaurant" columns + a total signups line on top.
+  const locationColors = trendByLocation.map(
+    (_, i) => SERIES_COLORS[i % SERIES_COLORS.length]
+  );
+  const signupsColor = mode === "dark" ? "#e2e8f0" : "#0f172a";
+  const trendSeries = [
+    ...trendByLocation.map((l) => ({
+      name: l.location,
+      type: "column" as const,
+      data: l.delivered,
+    })),
+    {
+      name: "Signups from alerts",
+      type: "line" as const,
+      data: trend.map((t) => t.signups),
+    },
+  ];
   const avgPerSend =
     totals.sendEvents > 0 ? Math.round(totals.emails / totals.sendEvents) : 0;
   const periodLabel = MONTHS_LABELS[initialMonths] ?? "the period";
@@ -436,16 +454,22 @@ export function ShortageNotificationsAnalyticsClient({
           accent="text-sky-600 dark:text-sky-400"
           info={{
             title: "Notifications Over Time",
-            description: "Alerts delivered vs signups they drove, by month",
+            description: "Alerts delivered each month, stacked by restaurant",
             body: (
               <>
                 <p>
-                  Columns show notification emails delivered each month; the line
-                  shows how many of those alerts led to a signup.
+                  Each column is the notification emails delivered that month,
+                  stacked by restaurant so you can see where shortages are
+                  concentrated.
                 </p>
                 <p>
-                  The gap between the two is the share of alerts that
-                  didn&rsquo;t convert.
+                  The line shows how many of those alerts led to a signup across
+                  the whole org.
+                </p>
+                <p>
+                  A single alert covering shifts at more than one restaurant
+                  counts toward each, so a month&rsquo;s stack can exceed its
+                  delivered total.
                 </p>
               </>
             ),
@@ -461,13 +485,16 @@ export function ShortageNotificationsAnalyticsClient({
                 chart: {
                   ...baseOptions(tokens).chart,
                   type: "line",
-                  stacked: false,
+                  stacked: true,
                 },
-                stroke: { width: [0, 3], curve: "smooth" },
+                stroke: {
+                  width: [...trendByLocation.map(() => 0), 3],
+                  curve: "smooth",
+                },
                 plotOptions: {
                   bar: {
-                    columnWidth: "45%",
-                    borderRadius: 4,
+                    columnWidth: "55%",
+                    borderRadius: 3,
                     borderRadiusApplication: "end",
                   },
                 },
@@ -482,27 +509,16 @@ export function ShortageNotificationsAnalyticsClient({
                   forceNiceScale: true,
                   labels: { formatter: compactCount, style: tokens.axisStyle },
                 },
-                colors: [PALETTE.eftpos, PALETTE.guests],
-                fill: { opacity: [0.85, 1] },
+                colors: [...locationColors, signupsColor],
+                fill: { opacity: 1 },
                 markers: {
-                  size: [0, 5],
+                  size: [...trendByLocation.map(() => 0), 5],
                   strokeWidth: 2,
                   strokeColors: tokens.mode === "dark" ? "#0f1114" : "#fff",
                 },
                 tooltip: { shared: true, intersect: false },
               }}
-              series={[
-                {
-                  name: "Alerts delivered",
-                  type: "column",
-                  data: trend.map((t) => t.deliveredEmails),
-                },
-                {
-                  name: "Signups from alerts",
-                  type: "line",
-                  data: trend.map((t) => t.signups),
-                },
-              ]}
+              series={trendSeries}
             />
           ) : (
             <ChartEmpty message="No shortage notifications sent in the selected period" />

@@ -89,10 +89,22 @@ export interface ShortageTrendPoint {
   signups: number;
 }
 
+/** Delivered alerts for one restaurant across the trend months. */
+export interface ShortageTrendLocationSeries {
+  location: string;
+  /** Delivered alerts at this site per month, aligned to `trend[].month`. */
+  delivered: number[];
+}
+
 export interface ShortageNotificationAnalytics {
   totals: ShortageTotals;
   bySite: ShortageSiteRow[];
   trend: ShortageTrendPoint[];
+  /**
+   * Delivered alerts per month split by restaurant, in the same month order as
+   * `trend`, for the stacked "over time" chart. Location order matches `bySite`.
+   */
+  trendByLocation: ShortageTrendLocationSeries[];
   /** 0 means "all time" (no lower bound on the window). */
   periodMonths: number;
 }
@@ -275,6 +287,8 @@ export function aggregateShortageLogs(
 
   // ── Monthly trend (NZ time) ─────────────────────────────────────────────
   const trendMap = new Map<string, TrendAccumulator>();
+  // month → site → delivered alerts, for the stacked-by-location chart.
+  const monthSiteDelivered = new Map<string, Map<string, number>>();
   for (const row of rows) {
     const month = formatInNZT(row.sentAt, "yyyy-MM");
     let acc = trendMap.get(month);
@@ -292,9 +306,19 @@ export function aggregateShortageLogs(
     acc.emails += 1;
     if (row.success) {
       acc.delivered += 1;
-      const shiftIds = [...shiftsByLocationForLog(row).values()].flat();
+      const byLoc = shiftsByLocationForLog(row);
+      const shiftIds = [...byLoc.values()].flat();
       if (convertedForShifts(row.recipientId, shiftIds, row.sentAt, signups)) {
         acc.converted += 1;
+      }
+      // A delivered alert counts toward each site it covered (as in bySite).
+      let siteMonth = monthSiteDelivered.get(month);
+      if (!siteMonth) {
+        siteMonth = new Map();
+        monthSiteDelivered.set(month, siteMonth);
+      }
+      for (const site of byLoc.keys()) {
+        siteMonth.set(site, (siteMonth.get(site) ?? 0) + 1);
       }
     }
   }
@@ -309,7 +333,17 @@ export function aggregateShortageLogs(
     }))
     .sort((a, b) => a.month.localeCompare(b.month));
 
-  return { totals, bySite, trend };
+  // Per-location delivered series aligned to the sorted trend months; location
+  // order follows bySite (busiest first) so chart and table agree.
+  const monthOrder = trend.map((t) => t.month);
+  const trendByLocation: ShortageTrendLocationSeries[] = bySite.map((site) => ({
+    location: site.location,
+    delivered: monthOrder.map(
+      (month) => monthSiteDelivered.get(month)?.get(site.location) ?? 0
+    ),
+  }));
+
+  return { totals, bySite, trend, trendByLocation };
 }
 
 /**
@@ -367,13 +401,13 @@ export async function getShortageNotificationAnalytics(
     );
   }
 
-  const { totals, bySite, trend } = aggregateShortageLogs(
+  const { totals, bySite, trend, trendByLocation } = aggregateShortageLogs(
     logs,
     location,
     signups
   );
 
-  return { totals, bySite, trend, periodMonths: months };
+  return { totals, bySite, trend, trendByLocation, periodMonths: months };
 }
 
 /** One volunteer who signed up for a shift after being alerted about it. */
