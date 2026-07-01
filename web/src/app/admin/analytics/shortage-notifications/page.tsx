@@ -8,6 +8,7 @@ import { LOCATIONS } from "@/lib/locations";
 import {
   getShortageNotificationAnalytics,
   parseMonthsParam,
+  CONVERSION_WINDOW_DAYS,
 } from "@/lib/shortage-analytics";
 
 export default async function ShortageNotificationsAnalyticsPage({
@@ -49,6 +50,7 @@ export default async function ShortageNotificationsAnalyticsPage({
           months={months}
           location={location}
           locations={locationOptions}
+          windowDays={CONVERSION_WINDOW_DAYS}
         />
       </PageContainer>
     </AdminPageWrapper>

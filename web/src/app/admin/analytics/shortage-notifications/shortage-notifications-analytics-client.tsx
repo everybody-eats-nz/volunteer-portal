@@ -57,6 +57,8 @@ interface Props {
   months: string;
   location: string;
   locations: Array<{ value: string; label: string }>;
+  /** Days after an alert within which a signup still counts as driven by it. */
+  windowDays: number;
 }
 
 const MONTHS_LABELS: Record<string, string> = {
@@ -242,6 +244,7 @@ export function ShortageNotificationsAnalyticsClient({
   months: initialMonths,
   location: initialLocation,
   locations,
+  windowDays,
 }: Props) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
@@ -296,6 +299,8 @@ export function ShortageNotificationsAnalyticsClient({
   const convTrend = trend.map((t) =>
     t.deliveredEmails > 0 ? Math.round((t.signups / t.deliveredEmails) * 100) : 0
   );
+
+  const windowLabel = `${windowDays} day${windowDays === 1 ? "" : "s"}`;
 
   const modalTitle =
     modalLocation === "all"
@@ -394,7 +399,7 @@ export function ShortageNotificationsAnalyticsClient({
                 <span aria-hidden>→</span>
               </span>
             }
-            tooltip="Volunteers who signed up for a shift after a delivered alert. This is a correlation - some may have signed up regardless. Click to see who."
+            tooltip={`Volunteers who signed up for a shift within ${windowLabel} of a delivered alert. This is a correlation - some may have signed up regardless. Click to see who.`}
             onClick={() => openConversions(initialLocation)}
           />
           <KpiCard
@@ -407,7 +412,7 @@ export function ShortageNotificationsAnalyticsClient({
             sparkColor="#8b5cf6"
             mode={mode}
             footer={`${num(totals.converted)} of ${num(totals.successfulEmails)} delivered`}
-            tooltip="Share of delivered alerts that led to a signup (signups ÷ delivered alerts). A correlation, not proof of cause."
+            tooltip={`Share of delivered alerts that led to a signup within ${windowLabel} (signups ÷ delivered alerts). A correlation, not proof of cause.`}
           />
         </div>
 
@@ -463,8 +468,8 @@ export function ShortageNotificationsAnalyticsClient({
                   concentrated.
                 </p>
                 <p>
-                  The line shows how many of those alerts led to a signup across
-                  the whole org.
+                  The line shows how many of those alerts led to a signup within
+                  {` ${windowLabel}`} across the whole org.
                 </p>
                 <p>
                   A single alert covering shifts at more than one restaurant
@@ -537,8 +542,8 @@ export function ShortageNotificationsAnalyticsClient({
             body: (
               <>
                 <p>
-                  Click a row to see the volunteers who signed up after an alert
-                  at that restaurant.
+                  Click a row to see the volunteers who signed up within
+                  {` ${windowLabel}`} of an alert at that restaurant.
                 </p>
                 <p>
                   A single alert covering shifts at more than one restaurant
@@ -659,7 +664,7 @@ export function ShortageNotificationsAnalyticsClient({
         months={initialMonths}
         location={modalLocation}
         title={modalTitle}
-        subtitle="Volunteers who signed up for a shift after getting a shortage alert"
+        subtitle={`Volunteers who signed up for a shift within ${windowLabel} of getting a shortage alert`}
       />
     </div>
   );

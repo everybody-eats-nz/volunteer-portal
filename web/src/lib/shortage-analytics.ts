@@ -171,9 +171,28 @@ export function signupKey(userId: string, shiftId: string): string {
 }
 
 /**
- * True if `recipientId` signed up for any of `shiftIds` strictly after
- * `sentAt` — i.e. the alert plausibly drove the signup. Signups made before
- * the alert (already-committed volunteers) don't count.
+ * How soon after a delivered alert a signup must land to be credited to it.
+ * A signup weeks later almost certainly wasn't driven by the alert, so only
+ * signups within this window count toward effectiveness.
+ */
+export const CONVERSION_WINDOW_DAYS = 3;
+const CONVERSION_WINDOW_MS = CONVERSION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+/**
+ * True if `signedUpAt` falls in the crediting window for an alert sent at
+ * `sentAt`: strictly after the alert and no more than
+ * {@link CONVERSION_WINDOW_DAYS} days later.
+ */
+function withinConversionWindow(sentAt: Date, signedUpAt: Date): boolean {
+  const gap = signedUpAt.getTime() - sentAt.getTime();
+  return gap > 0 && gap <= CONVERSION_WINDOW_MS;
+}
+
+/**
+ * True if `recipientId` signed up for any of `shiftIds` within the crediting
+ * window after `sentAt` — i.e. the alert plausibly drove the signup. Signups
+ * before the alert (already-committed volunteers) or more than
+ * {@link CONVERSION_WINDOW_DAYS} days later don't count.
  */
 function convertedForShifts(
   recipientId: string,
@@ -183,7 +202,7 @@ function convertedForShifts(
 ): boolean {
   for (const shiftId of shiftIds) {
     const signedUpAt = signups.get(signupKey(recipientId, shiftId));
-    if (signedUpAt && signedUpAt.getTime() > sentAt.getTime()) return true;
+    if (signedUpAt && withinConversionWindow(sentAt, signedUpAt)) return true;
   }
   return false;
 }
@@ -459,9 +478,9 @@ interface LoggedShiftDetail {
 
 /**
  * The list behind the "signups from alerts" figure: volunteers who signed up
- * for a shift after a delivered alert about it. One row per distinct
- * (volunteer, shift); when several alerts covered the same shift, the earliest
- * delivered one is treated as the nudge.
+ * for a shift within {@link CONVERSION_WINDOW_DAYS} days of a delivered alert
+ * about it. One row per distinct (volunteer, shift); when several alerts
+ * covered the same shift, the earliest qualifying one is treated as the nudge.
  *
  * @param months Length of the trailing window; `0` means all time.
  * @param location A specific restaurant, or `null`/`"all"` for the whole org.
@@ -541,7 +560,7 @@ export async function getShortageConversions(
       const shiftId = s?.shiftId;
       if (!shiftId) continue;
       const signedUpAt = signups.get(signupKey(log.recipientId, shiftId));
-      if (!signedUpAt || signedUpAt.getTime() <= log.sentAt.getTime()) continue;
+      if (!signedUpAt || !withinConversionWindow(log.sentAt, signedUpAt)) continue;
 
       const site = (s.shiftLocation ?? "").trim() || UNKNOWN_SITE;
       if (isSiteFiltered && site !== location) continue;
