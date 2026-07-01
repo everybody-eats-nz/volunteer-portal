@@ -1,3 +1,9 @@
+## [0.135.2] - 2026-07-01
+
+### Changes
+- feat(shifts): remove the Cafe Helpers cover image from web (listing + detail) ([#1073](https://github.com/everybody-eats-nz/volunteer-portal/pull/1073)) by @malinmalliyawadu
+
+
 ## [0.135.1] - 2026-07-01
 
 ### Changes
