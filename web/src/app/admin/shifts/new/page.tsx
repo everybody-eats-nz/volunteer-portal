@@ -1,20 +1,22 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollableTabsList } from "@/components/ui/scrollable-tabs";
-import { PlusIcon, CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
+import { PlusIcon, CalendarDaysIcon, LayersIcon } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
-import { BulkDateRangeSection } from "@/components/shift-date-time-section";
-import { ShiftCreationClientForm } from "@/components/shift-creation-client-form";
-import { CollapsibleTemplateSelection } from "@/components/collapsible-template-selection";
+import { RedirectFeedback } from "@/components/shift-creation/redirect-feedback";
+import { ShiftTypeManager } from "@/components/shift-creation/shift-type-manager";
+import { WeeklyPlanner } from "@/components/shift-creation/weekly-planner";
+import { SingleShiftPlanner } from "@/components/shift-creation/single-shift-planner";
+import { TemplateLibrary } from "@/components/shift-creation/template-library";
+import type { TemplateOption } from "@/components/shift-creation/types";
 import {
   formatInNZT,
   createNZDate,
@@ -22,17 +24,21 @@ import {
   nowInNZT,
   toUTC,
 } from "@/lib/timezone";
-import { DeleteTemplateForm } from "@/components/delete-template-form";
-import { CreateTemplateDialog } from "@/components/create-template-dialog";
-import { EditTemplateDialog } from "@/components/edit-template-dialog";
 import { LOCATIONS } from "@/lib/locations";
 import { createShiftRecord } from "@/lib/services/shift-service";
 import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
-import { BulkShiftSubmitButton } from "@/components/shift-creation-submit-buttons";
 
-// Templates are now stored in the database and fetched dynamically
+// Templates are stored in the database and fetched dynamically
 
-export default async function NewShiftPage() {
+export default async function NewShiftPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
+  const initialTab = ["bulk", "single", "templates"].includes(tab ?? "")
+    ? (tab as string)
+    : "bulk";
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
   const sortedLocations = LOCATIONS;
@@ -67,7 +73,7 @@ export default async function NewShiftPage() {
     });
 
     if (!parsed.success) {
-      redirect("/admin/shifts/new?error=validation");
+      redirect("/admin/shifts/new?error=validation&tab=single");
     }
 
     const { shiftTypeId, date, startTime, endTime, location, capacity, notes } =
@@ -80,14 +86,14 @@ export default async function NewShiftPage() {
     const end = createNZDate(date, endHour, endMinute);
 
     if (!(start instanceof Date) || isNaN(start.getTime()))
-      redirect("/admin/shifts/new?error=startdate");
+      redirect("/admin/shifts/new?error=startdate&tab=single");
     if (!(end instanceof Date) || isNaN(end.getTime()))
-      redirect("/admin/shifts/new?error=enddate");
-    if (end <= start) redirect("/admin/shifts/new?error=range");
+      redirect("/admin/shifts/new?error=enddate&tab=single");
+    if (end <= start) redirect("/admin/shifts/new?error=range&tab=single");
 
     // Use NZ timezone for "now" to ensure consistent validation
     const now = toUTC(nowInNZT());
-    if (start <= now) redirect("/admin/shifts/new?error=past");
+    if (start <= now) redirect("/admin/shifts/new?error=past&tab=single");
 
     try {
       // Create the shift
@@ -114,7 +120,7 @@ export default async function NewShiftPage() {
 
       await createRegularVolunteerSignups([shift], regularVolunteers);
     } catch {
-      redirect("/admin/shifts/new?error=create");
+      redirect("/admin/shifts/new?error=create&tab=single");
     }
 
     redirect("/admin/shifts?created=1");
@@ -311,7 +317,7 @@ export default async function NewShiftPage() {
     });
 
     if (!parsed.success) {
-      redirect("/admin/shifts/new?error=template_validation");
+      redirect("/admin/shifts/new?error=template_validation&tab=templates");
     }
 
     const { name, shiftTypeId, startTime, endTime, location, capacity, notes } =
@@ -330,11 +336,11 @@ export default async function NewShiftPage() {
           isActive: true,
         },
       });
-      redirect("/admin/shifts/new?template_created=1");
     } catch (error) {
       console.error("Template creation error:", error);
-      redirect("/admin/shifts/new?error=template_create");
+      redirect("/admin/shifts/new?error=template_create&tab=templates");
     }
+    redirect("/admin/shifts/new?template_created=1&tab=templates");
   }
 
   async function editTemplate(formData: FormData) {
@@ -369,7 +375,7 @@ export default async function NewShiftPage() {
     });
 
     if (!parsed.success) {
-      redirect("/admin/shifts/new?error=template_validation");
+      redirect("/admin/shifts/new?error=template_validation&tab=templates");
     }
 
     const {
@@ -396,11 +402,11 @@ export default async function NewShiftPage() {
           notes,
         },
       });
-      redirect("/admin/shifts/new?template_updated=1");
     } catch (error) {
       console.error("Template edit error:", error);
-      redirect("/admin/shifts/new?error=template_edit");
+      redirect("/admin/shifts/new?error=template_edit&tab=templates");
     }
+    redirect("/admin/shifts/new?template_updated=1&tab=templates");
   }
 
   async function deleteTemplate(formData: FormData) {
@@ -408,7 +414,7 @@ export default async function NewShiftPage() {
 
     const templateId = formData.get("templateId") as string;
     if (!templateId) {
-      redirect("/admin/shifts/new?error=template_invalid");
+      redirect("/admin/shifts/new?error=template_invalid&tab=templates");
     }
 
     try {
@@ -416,15 +422,20 @@ export default async function NewShiftPage() {
         where: { id: templateId },
         data: { isActive: false },
       });
-      redirect("/admin/shifts/new?template_deleted=1");
     } catch (error) {
       console.error("Template deletion error:", error);
-      redirect("/admin/shifts/new?error=template_delete");
+      redirect("/admin/shifts/new?error=template_delete&tab=templates");
     }
+    redirect("/admin/shifts/new?template_deleted=1&tab=templates");
   }
 
   async function createShiftType(formData: FormData) {
     "use server";
+
+    // The create dialog lives on both the Single Shift tab and the
+    // Templates & Roles tab - return the admin to wherever they came from.
+    const returnTab =
+      formData.get("returnTab") === "single" ? "single" : "templates";
 
     const schema = z.object({
       name: z.string().min(1, "Name is required").max(100, "Name too long"),
@@ -441,38 +452,159 @@ export default async function NewShiftPage() {
     });
 
     if (!parsed.success) {
-      redirect("/admin/shifts/new?error=shift_type_validation");
+      redirect(`/admin/shifts/new?error=shift_type_validation&tab=${returnTab}`);
     }
 
     const { name, description } = parsed.data;
 
+    // Check if shift type with this name already exists
+    const existing = await prisma.shiftType.findUnique({
+      where: { name },
+    });
+
+    if (existing) {
+      redirect(`/admin/shifts/new?error=shift_type_exists&tab=${returnTab}`);
+    }
+
     try {
-      // Check if shift type with this name already exists
-      const existing = await prisma.shiftType.findUnique({
-        where: { name },
-      });
-
-      if (existing) {
-        redirect("/admin/shifts/new?error=shift_type_exists");
-      }
-
       await prisma.shiftType.create({
         data: {
           name,
           description,
         },
       });
-
-      redirect("/admin/shifts/new?shift_type_created=1");
     } catch (error) {
       console.error("Shift type creation error:", error);
-      redirect("/admin/shifts/new?error=shift_type_create");
+      redirect(`/admin/shifts/new?error=shift_type_create&tab=${returnTab}`);
     }
+
+    redirect(`/admin/shifts/new?shift_type_created=1&tab=${returnTab}`);
   }
 
-  const shiftTypes = await prisma.shiftType.findMany({
+  async function editShiftType(formData: FormData) {
+    "use server";
+
+    const schema = z.object({
+      shiftTypeId: z.string().cuid(),
+      name: z.string().min(1, "Name is required").max(100, "Name too long"),
+      description: z
+        .string()
+        .optional()
+        .nullable()
+        .transform((v) => (v && v.length > 0 ? v : null)),
+    });
+
+    const parsed = schema.safeParse({
+      shiftTypeId: formData.get("shiftTypeId"),
+      name: formData.get("name"),
+      description: formData.get("description"),
+    });
+
+    if (!parsed.success) {
+      redirect("/admin/shifts/new?error=shift_type_validation&tab=templates");
+    }
+
+    const { shiftTypeId, name, description } = parsed.data;
+
+    // The name is unique - make sure it isn't taken by another type
+    const existing = await prisma.shiftType.findUnique({ where: { name } });
+    if (existing && existing.id !== shiftTypeId) {
+      redirect("/admin/shifts/new?error=shift_type_exists&tab=templates");
+    }
+
+    try {
+      await prisma.shiftType.update({
+        where: { id: shiftTypeId },
+        data: { name, description },
+      });
+    } catch (error) {
+      console.error("Shift type edit error:", error);
+      redirect("/admin/shifts/new?error=shift_type_edit&tab=templates");
+    }
+
+    redirect("/admin/shifts/new?shift_type_updated=1&tab=templates");
+  }
+
+  async function deleteShiftType(formData: FormData) {
+    "use server";
+
+    const shiftTypeId = formData.get("shiftTypeId") as string;
+    if (!shiftTypeId) {
+      redirect("/admin/shifts/new?error=shift_type_invalid&tab=templates");
+    }
+
+    const shiftType = await prisma.shiftType.findUnique({
+      where: { id: shiftTypeId },
+      include: {
+        _count: {
+          select: {
+            shifts: true,
+            shiftTemplates: true,
+            regularVolunteers: true,
+            autoAcceptRules: true,
+          },
+        },
+      },
+    });
+
+    if (!shiftType) {
+      redirect("/admin/shifts/new?error=shift_type_invalid&tab=templates");
+    }
+
+    // Shift types are referenced by shifts, templates, regular volunteers,
+    // and auto-accept rules - deleting one that is in use would orphan them.
+    const inUse =
+      shiftType._count.shifts +
+        shiftType._count.shiftTemplates +
+        shiftType._count.regularVolunteers +
+        shiftType._count.autoAcceptRules >
+      0;
+    if (inUse) {
+      redirect("/admin/shifts/new?error=shift_type_in_use&tab=templates");
+    }
+
+    try {
+      await prisma.shiftType.delete({ where: { id: shiftTypeId } });
+    } catch (error) {
+      console.error("Shift type deletion error:", error);
+      redirect("/admin/shifts/new?error=shift_type_delete&tab=templates");
+    }
+
+    redirect("/admin/shifts/new?shift_type_deleted=1&tab=templates");
+  }
+
+  const shiftTypesWithUsage = await prisma.shiftType.findMany({
     orderBy: { name: "asc" },
+    include: {
+      _count: {
+        select: {
+          shifts: true,
+          shiftTemplates: true,
+          regularVolunteers: true,
+          autoAcceptRules: true,
+        },
+      },
+    },
   });
+
+  const shiftTypes = shiftTypesWithUsage.map((type) => ({
+    id: type.id,
+    name: type.name,
+  }));
+
+  const shiftTypeDetails = shiftTypesWithUsage.map((type) => ({
+    id: type.id,
+    name: type.name,
+    description: type.description,
+    templateCount: type._count.shiftTemplates,
+    shiftCount: type._count.shifts,
+    inUse:
+      type._count.shifts +
+        type._count.shiftTemplates +
+        type._count.regularVolunteers +
+        type._count.autoAcceptRules >
+      0,
+  }));
 
   // Fetch shift templates from database
   const dbTemplates = await prisma.shiftTemplate.findMany({
@@ -481,27 +613,27 @@ export default async function NewShiftPage() {
     orderBy: [{ location: "asc" }, { name: "asc" }],
   });
 
-  // Convert database templates to the format expected by the component
-  const templatesWithShiftTypes = Object.fromEntries(
-    dbTemplates.map((template) => [
-      template.name,
-      {
-        name: template.name,
-        startTime: template.startTime,
-        endTime: template.endTime,
-        capacity: template.capacity,
-        notes: template.notes || "",
-        shiftTypeId: template.shiftTypeId,
-        location: template.location || undefined, // Convert null to undefined to match interface
-        id: template.id, // Include database ID for editing/deleting
-      },
-    ])
-  );
+  const templateOptions: TemplateOption[] = dbTemplates.map((template) => ({
+    id: template.id,
+    name: template.name,
+    shiftTypeId: template.shiftTypeId,
+    shiftTypeName: template.shiftType.name,
+    location: template.location || "",
+    startTime: template.startTime,
+    endTime: template.endTime,
+    capacity: template.capacity,
+    notes: template.notes || "",
+  }));
+
+  const tabTriggerClasses =
+    "h-10 rounded-full px-4 gap-2 text-sm font-medium cursor-pointer " +
+    "data-[state=active]:bg-forest-500 data-[state=active]:text-cream-50 data-[state=active]:shadow-none " +
+    "dark:data-[state=active]:bg-forest-500 dark:data-[state=active]:text-cream-50 dark:data-[state=active]:border-transparent";
 
   return (
     <AdminPageWrapper
       title="Create shifts"
-      description="Schedule new volunteer shifts efficiently with single or bulk creation options."
+      description="Plan whole weeks from templates, or add a one-off shift."
       actions={
         <Button asChild variant="outline" size="sm">
           <Link href="/admin/shifts">← Back to shifts</Link>
@@ -509,227 +641,61 @@ export default async function NewShiftPage() {
       }
     >
       <PageContainer testid="create-shift-page">
-        <Tabs defaultValue="bulk" className="space-y-6">
-          <ScrollableTabsList>
-            <TabsTrigger value="single" className="flex items-center gap-2">
-              <PlusIcon className="h-4 w-4" />
-              Single Shift
-            </TabsTrigger>
-            <TabsTrigger value="bulk" className="flex items-center gap-2">
+        <Suspense fallback={null}>
+          <RedirectFeedback />
+        </Suspense>
+        <Tabs defaultValue={initialTab} className="gap-6">
+          <ScrollableTabsList className="h-12 rounded-full border border-border bg-card p-1 dark:border-border dark:bg-card">
+            <TabsTrigger value="bulk" className={tabTriggerClasses}>
               <CalendarDaysIcon className="h-4 w-4" />
               Weekly Schedule
             </TabsTrigger>
-            <TabsTrigger value="templates" className="flex items-center gap-2">
-              <RefreshCwIcon className="h-4 w-4" />
-              Edit Templates
+            <TabsTrigger value="single" className={tabTriggerClasses}>
+              <PlusIcon className="h-4 w-4" />
+              Single Shift
+            </TabsTrigger>
+            <TabsTrigger value="templates" className={tabTriggerClasses}>
+              <LayersIcon className="h-4 w-4" />
+              Templates & Roles
             </TabsTrigger>
           </ScrollableTabsList>
 
-          {/* Single Shift Creation */}
-          <TabsContent value="single">
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                  <PlusIcon className="h-5 w-5" />
-                  Create Single Shift
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Create a single volunteer shift with specific details.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                <form action={createShift} className="space-y-8">
-                  <ShiftCreationClientForm
-                    shiftTypes={shiftTypes}
-                    initialTemplates={templatesWithShiftTypes}
-                    locations={sortedLocations}
-                    createShiftTypeAction={createShiftType}
-                  />
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Bulk Creation */}
+          {/* Weekly schedule (default): the main operational task */}
           <TabsContent value="bulk">
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                  <CalendarDaysIcon className="h-5 w-5" />
-                  Create Weekly Schedule
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Create multiple shifts across several days using templates for
-                  efficient weekly planning.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                <form action={createBulkShifts} className="space-y-8">
-                  {/* Date Range */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      Date Range
-                    </h3>
-                    <BulkDateRangeSection />
-                  </div>
-
-                  {/* Days Selection */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      Days of Week
-                    </h3>
-                    <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
-                      {[
-                        "Monday",
-                        "Tuesday",
-                        "Wednesday",
-                        "Thursday",
-                        "Friday",
-                        "Saturday",
-                        "Sunday",
-                      ].map((day) => (
-                        <div key={day} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            name={`day_${day}`}
-                            id={`day_${day}`}
-                            defaultChecked={true}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            data-testid={`day-${day.toLowerCase()}-checkbox`}
-                          />
-                          <Label htmlFor={`day_${day}`} className="text-sm">
-                            {day.slice(0, 3)}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Template Selection - Grouped by Location */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                      Shift Templates
-                    </h3>
-                    {(() => {
-                      // Group templates by location
-                      const templatesByLocation = Object.entries(
-                        templatesWithShiftTypes
-                      ).reduce((acc, [name, template]) => {
-                        const location = template.location || "General";
-                        if (!acc[location]) acc[location] = [];
-                        acc[location].push([name, template]);
-                        return acc;
-                      }, {} as Record<string, [string, (typeof templatesWithShiftTypes)[string]][]>);
-
-                      return (
-                        <CollapsibleTemplateSelection
-                          templatesByLocation={templatesByLocation}
-                          sortedLocations={sortedLocations}
-                          shiftTypes={shiftTypes}
-                        />
-                      );
-                    })()}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <BulkShiftSubmitButton />
-                </form>
-              </CardContent>
-            </Card>
+            <WeeklyPlanner
+              templates={templateOptions}
+              locations={sortedLocations}
+              action={createBulkShifts}
+            />
           </TabsContent>
 
-          {/* Edit Templates */}
-          <TabsContent value="templates">
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50">
-              <CardHeader className="pb-6">
-                <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                  <RefreshCwIcon className="h-5 w-5" />
-                  Manage Shift Templates
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Create, edit, and organize shift templates for efficient
-                  scheduling.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {dbTemplates.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                        Existing Templates
-                      </h3>
-                      <CreateTemplateDialog
-                        shiftTypes={shiftTypes}
-                        locations={sortedLocations}
-                        createAction={createTemplate}
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      {dbTemplates.map((template) => (
-                        <div
-                          key={template.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 dark:hover:bg-accent/30 transition-colors"
-                        >
-                          <div className="space-y-1">
-                            <div className="font-medium">{template.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {template.shiftType.name} •{" "}
-                              {template.location || "General"}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {template.startTime} - {template.endTime} •{" "}
-                              {template.capacity} volunteers
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <EditTemplateDialog
-                              template={{
-                                id: template.id,
-                                name: template.name,
-                                shiftTypeId: template.shiftTypeId,
-                                startTime: template.startTime,
-                                endTime: template.endTime,
-                                location: template.location,
-                                capacity: template.capacity,
-                                notes: template.notes,
-                              }}
-                              shiftTypes={shiftTypes}
-                              locations={sortedLocations}
-                              editAction={editTemplate}
-                            />
-                            <DeleteTemplateForm
-                              templateId={template.id}
-                              templateName={template.name}
-                              deleteAction={deleteTemplate}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-muted/50 dark:bg-muted/20 rounded-lg border border-dashed border-border">
-                    <div className="h-12 w-12 bg-muted dark:bg-muted/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <PlusIcon className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">
-                      No templates found
-                    </h3>
-                    <p className="text-muted-foreground mb-6">
-                      Templates help you quickly create consistent shifts across
-                      different days.
-                    </p>
-                    <CreateTemplateDialog
-                      shiftTypes={shiftTypes}
-                      locations={sortedLocations}
-                      createAction={createTemplate}
-                      triggerText="Create First Template"
-                      triggerVariant="default"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {/* One-off shift */}
+          <TabsContent value="single">
+            <SingleShiftPlanner
+              shiftTypes={shiftTypes}
+              templates={templateOptions}
+              locations={sortedLocations}
+              action={createShift}
+              createShiftTypeAction={createShiftType}
+            />
+          </TabsContent>
+
+          {/* Template library: the building blocks of the weekly schedule */}
+          <TabsContent value="templates" className="space-y-6">
+            <TemplateLibrary
+              templates={templateOptions}
+              shiftTypes={shiftTypes}
+              locations={[...sortedLocations]}
+              createAction={createTemplate}
+              editAction={editTemplate}
+              deleteAction={deleteTemplate}
+            />
+            <ShiftTypeManager
+              shiftTypes={shiftTypeDetails}
+              createAction={createShiftType}
+              editAction={editShiftType}
+              deleteAction={deleteShiftType}
+            />
           </TabsContent>
         </Tabs>
       </PageContainer>
