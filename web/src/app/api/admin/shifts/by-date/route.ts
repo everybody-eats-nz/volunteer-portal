@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { deleteNotificationsForDeletedShifts } from "@/lib/notifications";
 import { startOfDay, endOfDay } from "date-fns";
 import { parseISOInNZT, toUTC } from "@/lib/timezone";
 
@@ -77,6 +78,20 @@ export async function DELETE(request: NextRequest) {
       await tx.signup.deleteMany({
         where: { shiftId: { in: shiftIds } },
       });
+
+      // Clear dangling notifications deep-linking to these shifts. The
+      // Notification model has no FK/cascade to Shift, so their
+      // `/shifts/{id}` and `/admin/shifts/{id}` links would otherwise survive
+      // as dead "Shift not found" links.
+      const { count } = await deleteNotificationsForDeletedShifts(
+        shiftIds,
+        tx
+      );
+      if (count > 0) {
+        console.info(
+          `Cleaned up ${count} dangling notification(s) for ${shiftIds.length} deleted shift(s)`
+        );
+      }
 
       // Delete the shifts
       await tx.shift.deleteMany({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { deleteNotificationsForDeletedShifts } from "@/lib/notifications";
 
 export async function DELETE(
   request: NextRequest,
@@ -34,14 +35,25 @@ export async function DELETE(
       );
     }
 
-    // Delete all signups for this shift first
-    await prisma.signup.deleteMany({
-      where: { shiftId: id },
-    });
+    // Delete in a transaction: signups → dangling notifications → shift.
+    // Notifications have no FK/cascade to Shift, so their `/shifts/{id}` and
+    // `/admin/shifts/{id}` deep links must be cleared here or they become dead
+    // "Shift not found" links.
+    await prisma.$transaction(async (tx) => {
+      await tx.signup.deleteMany({
+        where: { shiftId: id },
+      });
 
-    // Then delete the shift
-    await prisma.shift.delete({
-      where: { id },
+      const { count } = await deleteNotificationsForDeletedShifts([id], tx);
+      if (count > 0) {
+        console.info(
+          `Cleaned up ${count} dangling notification(s) for deleted shift ${id}`
+        );
+      }
+
+      await tx.shift.delete({
+        where: { id },
+      });
     });
 
     return NextResponse.json({ success: true });
