@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import {
   createTestUser,
@@ -13,6 +14,20 @@ import {
 } from "./helpers/test-helpers";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
 import { randomUUID } from "crypto";
+
+/**
+ * Locate a shift card scoped to the visible instance.
+ *
+ * On the admin shifts page the same `shift-card-<id>` testid can briefly
+ * appear twice in the DOM during Next.js streaming / motion exit transitions
+ * (one copy hidden or animating out). Matching the visible instance keeps the
+ * locator deterministic and avoids Playwright strict-mode violations.
+ */
+function visibleShiftCard(page: Page, shiftId: string) {
+  return page
+    .locator(`[data-testid="shift-card-${shiftId}"]:visible`)
+    .first();
+}
 
 test.describe.configure({ timeout: 60_000 });
 test.describe("General Volunteer Movement System", () => {
@@ -127,9 +142,7 @@ test.describe("General Volunteer Movement System", () => {
       await page.waitForLoadState("load");
 
       // Find this test's specific source shift card
-      const shiftCard = page.locator(
-        `[data-testid="shift-card-${sourceShiftId}"]`
-      );
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
 
       await expect(shiftCard).toBeVisible({ timeout: 15000 });
 
@@ -172,9 +185,7 @@ test.describe("General Volunteer Movement System", () => {
       await page.waitForLoadState("load");
 
       // Find and click the move button on this test's source shift card
-      const shiftCard = page.locator(
-        `[data-testid="shift-card-${sourceShiftId}"]`
-      );
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
 
       await expect(shiftCard).toBeVisible({ timeout: 15000 });
 
@@ -222,9 +233,7 @@ test.describe("General Volunteer Movement System", () => {
       await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
       await page.waitForLoadState("load");
 
-      const fohShiftCard = page.locator(
-        `[data-testid="shift-card-${targetShiftId}"]`
-      );
+      const fohShiftCard = visibleShiftCard(page, targetShiftId);
 
       await expect(fohShiftCard).toBeVisible({ timeout: 15000 });
       await expect(fohShiftCard.getByText("Test User")).toBeVisible({
@@ -253,9 +262,7 @@ test.describe("General Volunteer Movement System", () => {
       await page.waitForLoadState("load");
 
       // Find this test's specific target shift card
-      const fohShiftCard = page.locator(
-        `[data-testid="shift-card-${targetShiftId}"]`
-      );
+      const fohShiftCard = visibleShiftCard(page, targetShiftId);
 
       await expect(fohShiftCard).toBeVisible({ timeout: 15000 });
       await expect(fohShiftCard.getByText("Test User")).toBeVisible({
@@ -266,9 +273,7 @@ test.describe("General Volunteer Movement System", () => {
       });
 
       // This test's source shift should no longer have the volunteer
-      const originalShiftCard = page.locator(
-        `[data-testid="shift-card-${sourceShiftId}"]`
-      );
+      const originalShiftCard = visibleShiftCard(page, sourceShiftId);
 
       if (await originalShiftCard.isVisible()) {
         await expect(
@@ -378,9 +383,7 @@ test.describe("General Volunteer Movement System", () => {
       await page.waitForLoadState("load");
 
       // Verify volunteer is in this test's specific target shift
-      const fohShiftCard = page.locator(
-        `[data-testid="shift-card-${targetShiftId}"]`
-      );
+      const fohShiftCard = visibleShiftCard(page, targetShiftId);
 
       await expect(fohShiftCard).toBeVisible({ timeout: 15000 });
       await expect(fohShiftCard.getByText("Test User")).toBeVisible({
