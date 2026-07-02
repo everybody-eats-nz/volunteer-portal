@@ -93,12 +93,12 @@ export function LocationSwitcher({
           data-testid="location-switcher-trigger"
         >
           <span>{showAll ? "All locations" : selectedLocation ?? "Shifts"}</span>
-          <span className="relative inline-flex translate-y-[-0.2em] items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 font-sans text-xs font-medium tracking-normal text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-foreground sm:text-sm">
+          <span className="relative inline-flex translate-y-[-0.2em] items-center gap-1.5 rounded-full border border-[var(--ee-primary-text)]/30 bg-[var(--ee-primary-light)] px-3 py-1.5 font-sans text-xs font-semibold tracking-normal text-[var(--ee-primary-text)] transition-colors group-hover:border-[var(--ee-primary-text)]/60 group-hover:bg-[var(--ee-primary-light)]/70 sm:text-sm">
             <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
             Change location
             {hasNewLocation && (
               <span
-                className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background"
+                className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[var(--ee-primary-text)] ring-2 ring-background"
                 data-testid="location-switcher-new-dot"
                 aria-hidden
               />
