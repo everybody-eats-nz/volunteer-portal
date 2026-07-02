@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
+import { getLiveLocations } from "@/lib/live-locations";
 import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 import {
   getShiftEffectiveCount,
@@ -256,10 +257,15 @@ export async function GET(request: Request) {
     );
   }
 
+  // Locations volunteers can browse (live = has upcoming shifts, not
+  // disabled), with the "New" flag for recently launched restaurants.
+  const liveLocations = await getLiveLocations();
+
   return NextResponse.json({
     myShifts: mySignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)
     ),
+    locations: liveLocations.map(({ name, isNew }) => ({ name, isNew })),
     available: availableShifts.map((s) => toMobileShift(s)),
     past: pastSignups.map((signup) =>
       toMobileShift(signup.shift, signup.status)

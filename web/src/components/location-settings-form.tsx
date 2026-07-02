@@ -29,6 +29,8 @@ interface Location {
   targetPerNight: number | null;
   isActive: boolean;
   isPopup: boolean;
+  /** False while a location has no upcoming shifts - volunteers can't see it yet. */
+  hasUpcomingShifts?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -358,6 +360,18 @@ export function LocationSettingsForm({
               {location.isPopup && (
                 <Badge variant="secondary" className="font-normal">
                   Pop-up
+                </Badge>
+              )}
+              {isActive && location.hasUpcomingShifts === false && (
+                <Badge
+                  variant="outline"
+                  className="font-normal text-muted-foreground"
+                  title="Volunteers won't see this location in shift browsing until it has upcoming shifts"
+                  data-testid={`location-not-launched-${location.name
+                    .toLowerCase()
+                    .replace(/\s+/g, "-")}`}
+                >
+                  Hidden until shifts are published
                 </Badge>
               )}
             </CardTitle>

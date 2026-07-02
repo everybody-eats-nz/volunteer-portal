@@ -1,3 +1,9 @@
+## [0.139.0] - 2026-07-02
+
+### Changes
+- feat: quick location switcher with New badges, hide locations until shifts are published ([#1080](https://github.com/everybody-eats-nz/volunteer-portal/pull/1080)) by @malinmalliyawadu
+
+
 ## [0.138.0] - 2026-07-01
 
 ### Changes

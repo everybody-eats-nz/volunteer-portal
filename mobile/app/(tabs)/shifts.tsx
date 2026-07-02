@@ -43,6 +43,7 @@ import {
   getShiftPeriodKey,
   getShiftPeriodLabel,
 } from "@/lib/shift-eligibility";
+import { useVolunteerLocationFilter } from "@/lib/volunteer-location-filter";
 import { getShiftThemeByName, type Shift } from "@/lib/dummy-data";
 
 /* ── Types ── */
@@ -182,23 +183,26 @@ export default function ShiftsScreen() {
     loadMorePast,
     isLoadingMore,
     userDefaultLocation,
+    browsableLocations,
     shiftFriends,
   } = useShifts();
 
-  /* Silent location default — applies the user's explicit default location without surfacing a picker */
-  const [locationFilter, setLocationFilter] = useState<string | null>(null);
-  const lastAppliedDefault = useRef<string | null | undefined>(undefined);
+  /* Location filter - persisted so a switch survives app restarts. Until the
+     volunteer explicitly picks, the profile's default location applies. */
+  const {
+    selected: chosenLocation,
+    hasChosen: hasChosenLocation,
+    setSelected: setLocationFilter,
+    hydrate: hydrateLocationFilter,
+  } = useVolunteerLocationFilter();
 
   useEffect(() => {
-    // Apply the user's saved default location on first load and whenever it
-    // changes (e.g. after editing on the profile screen). Skip when unchanged
-    // so a manual filter choice isn't overwritten on refetch.
-    if (lastAppliedDefault.current === userDefaultLocation) return;
-    lastAppliedDefault.current = userDefaultLocation;
-    if (userDefaultLocation) {
-      setLocationFilter(userDefaultLocation);
-    }
-  }, [userDefaultLocation]);
+    void hydrateLocationFilter();
+  }, [hydrateLocationFilter]);
+
+  const locationFilter = hasChosenLocation
+    ? chosenLocation
+    : userDefaultLocation ?? null;
 
   // Refetch shifts when the tab regains focus so profile edits (e.g. a new
   // default location) propagate. Skip the initial focus — useShifts already
@@ -251,13 +255,34 @@ export default function ShiftsScreen() {
     return keys;
   }, [myShifts]);
 
-  /* Available locations across all shifts — used by the picker */
+  /* Locations for the picker: server-driven browsable list (carries "New"
+     launch flags) merged with any venue from the user's own loaded shifts so
+     past-only locations stay pickable. */
   const locations = useMemo(() => {
     const all = [...myShifts, ...available, ...past];
-    return [...new Set(all.map((s) => s.location))].sort();
-  }, [myShifts, available, past]);
+    return [
+      ...new Set([
+        ...browsableLocations.map((l) => l.name),
+        ...all.map((s) => s.location),
+      ]),
+    ].sort();
+  }, [browsableLocations, myShifts, available, past]);
+
+  const newLocationNames = useMemo(
+    () => browsableLocations.filter((l) => l.isNew).map((l) => l.name),
+    [browsableLocations]
+  );
+
+  /* Subtle nudge: green dot on the location pill while any restaurant is
+     within its "New" launch window. */
+  const hasNewLocation = newLocationNames.length > 0;
 
   const [pickerVisible, setPickerVisible] = useState(false);
+
+  const openLocationPicker = useCallback(() => {
+    Haptics.selectionAsync();
+    setPickerVisible(true);
+  }, []);
 
   /* Selected date — respects ?date=YYYY-MM-DD deep links (e.g. from the
      "volunteers needed" home card), falling back to today. */
@@ -421,10 +446,8 @@ export default function ShiftsScreen() {
           {locations.length > 1 && (
             <LocationPill
               label={locationFilter ?? "All locations"}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setPickerVisible(true);
-              }}
+              showNewDot={hasNewLocation}
+              onPress={openLocationPicker}
               isDark={isDark}
               colors={colors}
             />
@@ -436,6 +459,7 @@ export default function ShiftsScreen() {
       <LocationPickerSheet
         visible={pickerVisible}
         locations={locations}
+        newLocationNames={newLocationNames}
         selected={locationFilter}
         onSelect={(value) => {
           Haptics.selectionAsync();
@@ -619,11 +643,14 @@ export default function ShiftsScreen() {
 
 function LocationPill({
   label,
+  showNewDot,
   onPress,
   isDark,
   colors,
 }: {
   label: string;
+  /** A newly launched restaurant hasn't been seen in the picker yet. */
+  showNewDot: boolean;
   onPress: () => void;
   isDark: boolean;
   colors: (typeof Colors)["light"];
@@ -641,7 +668,11 @@ function LocationPill({
         },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`Location: ${label}. Tap to change.`}
+      accessibilityLabel={
+        showNewDot
+          ? `Location: ${label}. New location available. Tap to change.`
+          : `Location: ${label}. Tap to change.`
+      }
     >
       <Ionicons name="location" size={13} color={colors.textSecondary} />
       <Text
@@ -651,6 +682,17 @@ function LocationPill({
         {label}
       </Text>
       <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
+      {showNewDot && (
+        <View
+          style={[
+            styles.locationPillDot,
+            {
+              backgroundColor: isDark ? colors.tint : Brand.green,
+              borderColor: colors.background,
+            },
+          ]}
+        />
+      )}
     </Pressable>
   );
 }
@@ -660,6 +702,7 @@ function LocationPill({
 function LocationPickerSheet({
   visible,
   locations,
+  newLocationNames,
   selected,
   onSelect,
   onClose,
@@ -668,6 +711,8 @@ function LocationPickerSheet({
 }: {
   visible: boolean;
   locations: string[];
+  /** Recently launched restaurants - flagged with a "New" chip. */
+  newLocationNames: string[];
   selected: string | null;
   onSelect: (value: string | null) => void;
   onClose: () => void;
@@ -680,13 +725,21 @@ function LocationPickerSheet({
     label: string;
     value: string | null;
     icon: keyof typeof Ionicons.glyphMap;
+    isNew: boolean;
   }[] = [
-    { key: "all", label: "All locations", value: null, icon: "globe-outline" },
+    {
+      key: "all",
+      label: "All locations",
+      value: null,
+      icon: "globe-outline",
+      isNew: false,
+    },
     ...locations.map((loc) => ({
       key: loc,
       label: loc,
       value: loc,
       icon: "location" as const,
+      isNew: newLocationNames.includes(loc),
     })),
   ];
 
@@ -788,23 +841,47 @@ function LocationPickerSheet({
                       : colors.textSecondary
                   }
                 />
-                <Text
-                  style={[
-                    styles.sheetItemText,
-                    {
-                      color: active
-                        ? isDark
-                          ? colors.tint
-                          : Brand.green
-                        : colors.text,
-                      fontFamily: active
-                        ? FontFamily.semiBold
-                        : FontFamily.regular,
-                    },
-                  ]}
-                >
-                  {item.label}
-                </Text>
+                <View style={styles.sheetItemLabelRow}>
+                  <Text
+                    style={[
+                      styles.sheetItemText,
+                      {
+                        color: active
+                          ? isDark
+                            ? colors.tint
+                            : Brand.green
+                          : colors.text,
+                        fontFamily: active
+                          ? FontFamily.semiBold
+                          : FontFamily.regular,
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.label}
+                  </Text>
+                  {item.isNew && (
+                    <View
+                      style={[
+                        styles.newChip,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(29, 83, 55, 0.35)"
+                            : Brand.greenLight,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.newChipText,
+                          { color: isDark ? colors.tint : Brand.green },
+                        ]}
+                      >
+                        NEW
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 {active && (
                   <Ionicons
                     name="checkmark"
@@ -1541,6 +1618,25 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     maxWidth: 120,
   },
+  locationPillDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+  },
+  newChip: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  newChipText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 0.6,
+  },
 
   // Location picker sheet (pageSheet)
   sheetPage: { flex: 1 },
@@ -1594,8 +1690,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     minHeight: 48,
   },
-  sheetItemText: {
+  sheetItemLabelRow: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sheetItemText: {
+    flexShrink: 1,
     fontSize: 15,
     lineHeight: 20,
   },
