@@ -1,11 +1,15 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.everybodyeats.app",
       "sha256_cert_fingerprints": [
-        "B5:68:7A:3C:9E:FF:D7:5C:E7:2F:E0:02:9C:30:93:22:EC:A6:C4:78:74:D0:F4:20:26:B1:6A:96:FF:96:0A:D3"
+        "B5:68:7A:3C:9E:FF:D7:5C:E7:2F:E0:02:9C:30:93:22:EC:A6:C4:78:74:D0:F4:20:26:B1:6A:96:FF:96:0A:D3",
+        "FB:14:14:E5:63:AE:31:CD:9B:E3:15:3E:3A:E0:FD:79:E6:62:3F:13:BA:AC:86:BC:91:88:C7:B1:B3:63:E0:E7"
       ]
     }
   }
