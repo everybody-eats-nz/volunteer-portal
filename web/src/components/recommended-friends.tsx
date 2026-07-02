@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { UserPlus, Sparkles, Calendar, Users } from "lucide-react";
+import { Calendar, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { formatInNZT } from "@/lib/timezone";
@@ -19,6 +16,39 @@ import {
   getRecommendedFriendDisplayName,
   getRecommendedFriendInitials,
 } from "@/lib/friends-utils";
+
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
+
+/** Dark forest panel — the marketing site's "app section" treatment, with the
+    sun glow as a radial gradient (NOT blur-3xl, which escapes the corner clip
+    on composited layers in Chromium). */
+function SuggestionsPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <section
+      data-testid="recommended-friends-section"
+      className="grain relative overflow-hidden rounded-[2rem] bg-forest-700 px-6 py-10 text-cream-50 sm:px-10 sm:py-12"
+    >
+      <div
+        className="absolute -bottom-32 -right-32 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.16),transparent)]"
+        aria-hidden
+      />
+      <div className="relative">
+        <p className="eyebrow mb-4 flex items-center gap-3 text-sun-200/90">
+          <span className="inline-block h-px w-8 bg-sun-200/50" />
+          People you may know
+        </p>
+        {children}
+      </div>
+    </section>
+  );
+}
 
 export function RecommendedFriends() {
   const router = useRouter();
@@ -73,176 +103,137 @@ export function RecommendedFriends() {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Suggested Friends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg animate-pulse"
-              >
-                <div className="h-10 w-10 bg-muted rounded-full"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-muted rounded w-32"></div>
-                  <div className="h-3 bg-muted rounded w-24"></div>
-                </div>
+      <SuggestionsPanel>
+        <div className="h-9 w-64 animate-pulse rounded-full bg-cream-50/10" />
+        <div className="mt-8 grid animate-pulse gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-2xl bg-cream-50/[0.06] p-5 ring-1 ring-cream-50/10"
+            >
+              <div className="h-12 w-12 rounded-full bg-cream-50/10" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-32 rounded-full bg-cream-50/10" />
+                <div className="h-3 w-24 rounded-full bg-cream-50/10" />
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          ))}
+        </div>
+      </SuggestionsPanel>
     );
   }
 
   if (recommendedFriends.length === 0) {
     return (
-      <Card
-        className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background"
-        data-testid="recommended-friends-empty"
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Suggested Friends
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center text-center py-6 px-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Users className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold text-foreground mb-2">
-              No suggestions yet
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-sm mb-5">
-              Sign up for more shifts to see suggestions here. Once you&apos;ve
-              shared 3+ shifts with another volunteer in the last 3 months,
-              they&apos;ll show up as a suggested friend.
-            </p>
-            <Button asChild size="sm" variant="default">
-              <Link href="/shifts">
-                <Calendar className="h-3 w-3 mr-1" />
-                Browse shifts
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div data-testid="recommended-friends-empty">
+        <SuggestionsPanel>
+          <h2 className="display text-3xl tracking-tight sm:text-4xl">
+            Met someone on a <em>shift</em>?
+          </h2>
+          <p className="mt-4 max-w-xl leading-relaxed text-cream-50/80">
+            Sign up for more shifts to see suggestions here. Once you&apos;ve
+            shared 3+ shifts with another volunteer in the last 3 months,
+            they&apos;ll show up as a suggested friend.
+          </p>
+          <Link
+            href="/shifts"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-sun-200 px-6 py-3 text-sm font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sun-300 hover:shadow-lg active:translate-y-0"
+          >
+            <Calendar className="h-4 w-4" aria-hidden />
+            Browse shifts
+          </Link>
+        </SuggestionsPanel>
+      </div>
     );
   }
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          Suggested Friends
-        </CardTitle>
-        <p className="text-sm text-muted-foreground mt-1">
-          Volunteers you&apos;ve recently worked with (3+ shared shifts in the
-          last 3 months)
-        </p>
-      </CardHeader>
-      <CardContent>
-        <motion.div
-          className="space-y-3"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-        >
-          {recommendedFriends.map((friend) => {
-            const displayName = getRecommendedFriendDisplayName(friend);
-            const initials = getRecommendedFriendInitials(friend);
+    <SuggestionsPanel>
+      <h2 className="display text-3xl tracking-tight sm:text-4xl">
+        Familiar faces from the <em>kitchen</em>
+      </h2>
+      <p className="mt-4 max-w-xl leading-relaxed text-cream-50/80">
+        Volunteers you&apos;ve recently worked with — 3+ shared shifts in the
+        last 3 months.
+      </p>
 
-            return (
-              <motion.div key={friend.id} variants={staggerItem}>
-                <Card className="group hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <Avatar className="h-12 w-12 ring-2 ring-primary/20 shadow-sm">
-                          <AvatarImage
-                            src={friend.profilePhotoUrl || undefined}
-                            alt={displayName}
-                          />
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
+      <motion.div
+        className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        {recommendedFriends.map((friend) => {
+          const displayName = getRecommendedFriendDisplayName(friend);
+          const initials = getRecommendedFriendInitials(friend);
+          const isSending = sendingRequest.has(friend.id);
 
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-sm text-foreground truncate mb-1">
-                            {displayName}
-                          </h3>
-                          <div className="flex flex-wrap gap-1.5 items-center mb-2">
-                            <Badge
-                              variant="secondary"
-                              className="bg-primary/10 text-primary border-primary/20 text-xs"
-                            >
-                              {friend.sharedShiftsCount} shared shifts
-                            </Badge>
-                          </div>
+          return (
+            <motion.div
+              key={friend.id}
+              variants={staggerItem}
+              data-testid="recommended-friend-card"
+              className="flex flex-col rounded-2xl bg-cream-50/[0.06] p-5 ring-1 ring-cream-50/15 transition-all duration-200 hover:bg-cream-50/[0.1] hover:ring-cream-50/25"
+            >
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 shrink-0 ring-2 ring-cream-50/20">
+                  <AvatarImage
+                    src={friend.profilePhotoUrl || undefined}
+                    alt={displayName}
+                  />
+                  <AvatarFallback className="bg-cream-50/15 font-semibold text-cream-50">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h3 className="display display-medium truncate text-lg leading-tight tracking-tight">
+                    {displayName}
+                  </h3>
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-sun-200/15 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-sun-100">
+                    <Sparkle className="h-2.5 w-2.5 text-sun-200" />
+                    {friend.sharedShiftsCount} shared shifts
+                  </span>
+                </div>
+              </div>
 
-                          {/* Recent shared shifts */}
-                          {friend.recentSharedShifts.length > 0 && (
-                            <div className="text-xs text-muted-foreground space-y-0.5">
-                              {friend.recentSharedShifts
-                                .slice(0, 2)
-                                .map((shift) => (
-                                  <div
-                                    key={shift.id}
-                                    className="flex items-center gap-1"
-                                  >
-                                    <Calendar className="h-3 w-3" />
-                                    <span>
-                                      {shift.shiftTypeName} •{" "}
-                                      {formatInNZT(
-                                        new Date(shift.start),
-                                        "MMM d"
-                                      )}
-                                    </span>
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+              {/* Recent shared shifts */}
+              {friend.recentSharedShifts.length > 0 && (
+                <ul className="mt-4 space-y-1 text-xs text-cream-50/65">
+                  {friend.recentSharedShifts.slice(0, 2).map((shift) => (
+                    <li key={shift.id} className="flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3 shrink-0" aria-hidden />
+                      <span className="truncate">
+                        {shift.shiftTypeName} ·{" "}
+                        {formatInNZT(new Date(shift.start), "MMM d")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={() =>
-                          handleSendRequest(friend.id, displayName)
-                        }
-                        disabled={sendingRequest.has(friend.id)}
-                        className="flex-shrink-0"
-                      >
-                        {sendingRequest.has(friend.id) ? (
-                          <>
-                            <MotionSpinner size="sm" className="mr-1" />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-3 w-3 mr-1" />
-                            Add Friend
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      </CardContent>
-    </Card>
+              <button
+                type="button"
+                onClick={() => handleSendRequest(friend.id, displayName)}
+                disabled={isSending}
+                data-testid="recommended-add-friend-button"
+                className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-sun-200 px-5 py-2.5 text-sm font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sun-300 hover:shadow-lg active:translate-y-0 disabled:pointer-events-none disabled:opacity-60"
+              >
+                {isSending ? (
+                  <>
+                    <MotionSpinner size="sm" />
+                    Sending…
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" aria-hidden />
+                    Add Friend
+                  </>
+                )}
+              </button>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </SuggestionsPanel>
   );
 }

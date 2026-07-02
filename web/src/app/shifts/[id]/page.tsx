@@ -5,8 +5,6 @@ import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
 import { getConcurrentShifts } from "@/lib/concurrent-shifts";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
 import { CancelSignupButton } from "../mine/cancel-signup-button";
@@ -18,9 +16,11 @@ import {
   ArrowLeft,
   AlertCircle,
   CalendarPlus,
+  CalendarDays,
+  Timer,
 } from "lucide-react";
 import Link from "next/link";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import Image from "next/image";
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { getShiftDescription } from "@/lib/shift-description";
@@ -32,6 +32,15 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/utils";
+
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -272,224 +281,136 @@ export default async function ShiftDetailPage({
       (1000 * 60 * 60)
   );
 
+  const capacityPct =
+    shift.capacity > 0
+      ? Math.min(100, Math.round((confirmedCount / shift.capacity) * 100))
+      : 0;
+
+  const mapsQuery = shift.location
+    ? `Everybody Eats ${
+        LOCATION_ADDRESSES[shift.location as Location] || shift.location
+      }`
+    : "";
+  const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    mapsQuery
+  )}`;
+  const mapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(
+    mapsQuery
+  )}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+
+  const statusLabel = isPastShift
+    ? "Past shift"
+    : isWaitlist
+      ? "Waitlist only"
+      : `${spotsRemaining} ${spotsRemaining === 1 ? "spot" : "spots"} left`;
+  const statusChipClass = isPastShift
+    ? "border-cream-50/15 bg-cream-50/10 text-cream-50/70"
+    : isWaitlist
+      ? "border-amber-200/30 bg-amber-300/15 text-amber-100"
+      : "border-transparent bg-sun-200 text-forest-700";
+
+  const calendarUrls = generateCalendarUrls(shift);
+
   return (
-    <PageContainer>
-      <div className="mb-6">
-        <Button variant="ghost" size="sm" asChild>
-          <Link
-            href={`/shifts/details?date=${formatInNZT(
-              new Date(shift.start),
-              "yyyy-MM-dd"
-            )}${
-              shift.location
-                ? `&location=${encodeURIComponent(shift.location)}`
-                : ""
-            }`}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Shifts
-          </Link>
-        </Button>
-      </div>
+    <PageContainer className="space-y-6">
+      {/* Back link */}
+      <Link
+        href={`/shifts/details?date=${formatInNZT(
+          new Date(shift.start),
+          "yyyy-MM-dd"
+        )}${
+          shift.location
+            ? `&location=${encodeURIComponent(shift.location)}`
+            : ""
+        }`}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700/70 transition-colors hover:text-forest-500 dark:text-cream-50/70 dark:hover:text-cream-50"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to shifts
+      </Link>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div
-          className={`p-3 rounded-xl bg-gradient-to-br ${theme.gradient} shadow-lg flex items-center justify-center text-white text-2xl`}
-        >
-          {theme.emoji}
-        </div>
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            {shift.shiftType.name}
-          </h1>
-          {getShiftDescription(shift.notes, shift.shiftType.description) && (
-            <p className="text-muted-foreground mt-1">
-              {getShiftDescription(shift.notes, shift.shiftType.description)}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="space-y-3">
-              <CardTitle className="text-2xl">{shiftDate}</CardTitle>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" className="gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  {shiftTime}
-                </Badge>
-                <Badge variant="secondary" className="gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {shift.location || "TBD"}
-                </Badge>
+      {/* ============ Hero ============ */}
+      <section className="grain relative overflow-hidden rounded-[2.5rem] bg-forest-700 px-7 py-10 text-cream-50 sm:px-12 sm:py-14">
+        <Image
+          src="/patterns/kawakawa.avif"
+          alt=""
+          width={416}
+          height={416}
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-10 w-72 opacity-20 sm:w-96"
+        />
+        <div className="relative">
+          <p className="eyebrow mb-6 flex items-center gap-3 text-sun-200/90">
+            <span className="inline-block h-px w-8 bg-sun-200/50" />
+            Volunteer shift{shift.location ? ` · ${shift.location}` : ""}
+          </p>
+          <div className="flex items-start gap-5">
+            <div className="relative hidden shrink-0 sm:block">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cream-50/10 text-3xl ring-1 ring-cream-50/15">
+                {theme.emoji}
               </div>
+              <Sparkle className="absolute -right-2.5 -top-2.5 h-5 w-5 text-sun-200" />
             </div>
-            <div className="flex-shrink-0">
-              {isPastShift ? (
-                <Badge variant="outline">Past Shift</Badge>
-              ) : isWaitlist ? (
-                <Badge
-                  variant="outline"
-                  className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50"
-                >
-                  Waitlist Only
-                </Badge>
-              ) : (
-                <Badge className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800/50">
-                  {spotsRemaining} {spotsRemaining === 1 ? "spot" : "spots"} left
-                </Badge>
+            <div className="min-w-0">
+              <h1 className="display text-4xl leading-[1.04] tracking-tight sm:text-5xl">
+                {shift.shiftType.name}
+              </h1>
+              {getShiftDescription(shift.notes, shift.shiftType.description) && (
+                <p className="mt-3 max-w-xl leading-relaxed text-cream-50/80">
+                  {getShiftDescription(shift.notes, shift.shiftType.description)}
+                </p>
               )}
             </div>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-6">
-          {isAlreadySignedUp && !isPastShift && (
-            <div className="flex items-center gap-2 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800/50">
-              <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <span className="font-medium text-green-700 dark:text-green-300">
-                You&apos;re signed up for this shift!
+          {/* Fact chips */}
+          <div className="mt-8 flex flex-wrap items-center gap-2.5">
+            {[
+              { icon: CalendarDays, label: shiftDate },
+              { icon: Clock, label: shiftTime },
+              {
+                icon: Timer,
+                label: `${duration} ${duration === 1 ? "hour" : "hours"}`,
+              },
+            ].map((f, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1.5 rounded-full border border-cream-50/15 bg-cream-50/10 px-3.5 py-1.5 text-sm text-cream-50/90"
+              >
+                <f.icon className="h-3.5 w-3.5 text-sun-200" />
+                {f.label}
               </span>
-            </div>
-          )}
-
-          {!isPastShift && !userSignup && spotsRemaining > 3 && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Volunteers needed!</strong> We still need{" "}
-                {spotsRemaining} more volunteers for this shift.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            {isLoggedOut && (
-              <div className="w-full">
-                <Alert>
-                  <AlertDescription>
-                    Please{" "}
-                    <Link
-                      href={`/login?callbackUrl=/shifts/${id}`}
-                      className="font-medium underline"
-                    >
-                      sign in
-                    </Link>{" "}
-                    to sign up for this shift.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-
-            {isPastShift && !isLoggedOut && (
-              <Button disabled variant="secondary" className="w-full sm:w-auto">
-                Shift has ended
-              </Button>
-            )}
-
-            {isAlreadySignedUp && !isPastShift && (
-              <CancelSignupButton
-                shiftId={id}
-                shiftName={shift.shiftType.name}
-              />
-            )}
-
-            {!canSignUp &&
-              !isLoggedOut &&
-              !isPastShift &&
-              !isAlreadySignedUp &&
-              hasConflictingSignup && (
-                <Button disabled variant="secondary" className="w-full sm:w-auto">
-                  Already signed up for this {isAMShift(shift.start) ? "AM" : "PM"} period
-                </Button>
-              )}
-
-            {!canSignUp &&
-              !isLoggedOut &&
-              !isPastShift &&
-              !isAlreadySignedUp &&
-              !hasConflictingSignup &&
-              needsParentalConsent && (
-                <div className="w-full space-y-2">
-                  <Button disabled variant="secondary" className="w-full sm:w-auto">
-                    Parental Consent Required
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Please download the consent form from your dashboard, have
-                    your parent/guardian sign it, and email it to{" "}
-                    <strong>volunteer@everybodyeats.nz</strong> for approval.
-                  </p>
-                </div>
-              )}
-
-            {!canSignUp &&
-              !isLoggedOut &&
-              !isPastShift &&
-              !isAlreadySignedUp &&
-              !hasConflictingSignup &&
-              !needsParentalConsent &&
-              hasIncompleteProfile && (
-                <div className="w-full space-y-2">
-                  <Button disabled variant="secondary" className="w-full sm:w-auto">
-                    Complete Profile Required
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    Please complete your profile to sign up for shifts.
-                  </p>
-                </div>
-              )}
-
-            {canSignUp && (
-              <ShiftSignupButton
-                theme={getShiftTheme(shift.shiftType.name)}
-                isFull={isWaitlist}
-                shift={shift}
-                confirmedCount={confirmedCount}
-                currentUserId={userId}
-                concurrentShifts={concurrentShifts}
-              />
-            )}
+            ))}
+            <span
+              className={`inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium ${statusChipClass}`}
+            >
+              {statusLabel}
+            </span>
           </div>
+        </div>
+      </section>
 
-          {session && (needsParentalConsent || hasIncompleteProfile) && (
-            <div className="py-2">
-              <Suspense fallback={null}>
-                <ProfileCompletionBannerServer />
-              </Suspense>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Duration</p>
-              <p className="font-medium">{duration} hours</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Capacity</p>
-              <p className="font-medium">
-                {confirmedCount} of {shift.capacity} volunteers
-              </p>
-            </div>
-          </div>
-
+      {/* ============ Body ============ */}
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        {/* Main column */}
+        <div className="space-y-6 lg:col-span-7">
+          {/* Location */}
           {shift.location && (
-            <div className="space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-medium">{shift.location}</p>
+            <div className="grain overflow-hidden rounded-3xl border border-forest-500/10 bg-card dark:border-cream-50/10">
+              <div className="flex items-start justify-between gap-4 p-6 sm:p-7">
+                <div className="min-w-0 space-y-1">
+                  <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+                    <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+                    Where
+                  </p>
+                  <p className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                    {shift.location}
+                  </p>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `Everybody Eats ${
-                        LOCATION_ADDRESSES[shift.location as Location] ||
-                        shift.location
-                      }`
-                    )}`}
+                    href={mapsSearchUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5 text-sm text-forest-700/65 underline-offset-4 transition-colors hover:text-forest-500 hover:underline dark:text-cream-50/60 dark:hover:text-cream-50"
                   >
                     <MapPin className="h-3.5 w-3.5" />
                     {LOCATION_ADDRESSES[shift.location as Location] ||
@@ -498,20 +419,15 @@ export default async function ShiftDetailPage({
                 </div>
                 <Button variant="outline" size="sm" asChild>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `Everybody Eats ${
-                        LOCATION_ADDRESSES[shift.location as Location] ||
-                        shift.location
-                      }`
-                    )}`}
+                    href={mapsSearchUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Get Directions
+                    Get directions
                   </a>
                 </Button>
               </div>
-              <div className="rounded-lg overflow-hidden border h-48">
+              <div className="h-56 w-full border-t border-forest-500/10 dark:border-cream-50/10">
                 <iframe
                   title="Shift location map"
                   width="100%"
@@ -519,116 +435,276 @@ export default async function ShiftDetailPage({
                   style={{ border: 0 }}
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                    `Everybody Eats ${
-                      LOCATION_ADDRESSES[shift.location as Location] ||
-                      shift.location
-                    }`
-                  )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                  src={mapsEmbedUrl}
                 />
               </div>
             </div>
           )}
 
+          {/* Who's coming */}
           {(friendSignups.length > 0 || otherVolunteersCount > 0) && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">
+            <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-7 dark:border-cream-50/10">
+              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+                Who&apos;s coming
+              </p>
+              <h3 className="mt-1 display text-xl tracking-tight text-forest-700 dark:text-cream-50">
                 {friendSignups.length > 0
                   ? `${friendSignups.length} friend${
                       friendSignups.length !== 1 ? "s" : ""
                     } joining`
-                  : "Current Volunteers"}
+                  : "Your volunteering whānau"}
               </h3>
-              <AvatarList
-                users={friendSignups.map((signup) => ({
-                  id: signup.user.id,
-                  name:
-                    signup.user.name ||
-                    `${signup.user.firstName} ${signup.user.lastName}`.trim() ||
-                    "Volunteer",
-                  firstName: signup.user.firstName,
-                  lastName: signup.user.lastName,
-                  email: signup.user.email,
-                  profilePhotoUrl: signup.user.profilePhotoUrl,
-                }))}
-                maxDisplay={8}
-                totalCount={friendSignups.length + otherVolunteersCount}
-              />
-            </div>
-          )}
-
-          {!isPastShift && (
-            <div className="pt-2 border-t space-y-4">
-              <div>
-                <div className="text-sm font-medium text-muted-foreground mb-2">
-                  Add to Calendar
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {(() => {
-                    const urls = generateCalendarUrls(shift);
-                    return (
-                      <>
-                        <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                          <a href={urls.google} target="_blank" rel="noopener noreferrer">
-                            <CalendarPlus className="h-3.5 w-3.5" />
-                            Google
-                          </a>
-                        </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                          <a href={urls.outlook} target="_blank" rel="noopener noreferrer">
-                            <CalendarPlus className="h-3.5 w-3.5" />
-                            Outlook
-                          </a>
-                        </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                          <a href={urls.ics} download={`shift-${shift.id}.ics`}>
-                            <CalendarPlus className="h-3.5 w-3.5" />
-                            .ics
-                          </a>
-                        </Button>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium text-muted-foreground mb-2">
-                  Spread the word
-                </div>
-                <ShareShiftButton
-                  url={`${getBaseUrl()}/shifts/${shift.id}`}
-                  title={`Volunteer with Everybody Eats — ${shift.shiftType.name}`}
-                  text={`Kia ora! Come volunteer on ${shiftDate}, ${shiftTime}${
-                    shift.location ? ` at ${shift.location}` : ""
-                  }.`}
+              <div className="mt-4">
+                <AvatarList
+                  users={friendSignups.map((signup) => ({
+                    id: signup.user.id,
+                    name:
+                      signup.user.name ||
+                      `${signup.user.firstName} ${signup.user.lastName}`.trim() ||
+                      "Volunteer",
+                    firstName: signup.user.firstName,
+                    lastName: signup.user.lastName,
+                    email: signup.user.email,
+                    profilePhotoUrl: signup.user.profilePhotoUrl,
+                  }))}
+                  maxDisplay={8}
+                  totalCount={friendSignups.length + otherVolunteersCount}
                 />
               </div>
             </div>
           )}
 
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(
-                buildShiftEventSchema({
-                  id: shift.id,
-                  name: shift.shiftType.name,
-                  description: getShiftDescription(
-                    shift.notes,
-                    shift.shiftType.description
-                  ),
-                  startDate: new Date(shift.start),
-                  endDate: new Date(shift.end),
-                  location: shift.location,
-                  capacity: shift.capacity,
-                  spotsAvailable: spotsRemaining,
-                })
+          {/* Calendar + share */}
+          {!isPastShift && (
+            <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-7 dark:border-cream-50/10">
+              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+                Don&apos;t miss it
+              </p>
+              <div className="mt-5 grid gap-6 sm:grid-cols-2">
+                <div>
+                  <div className="mb-2 text-sm font-medium text-forest-700/75 dark:text-cream-50/70">
+                    Add to calendar
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                      <a
+                        href={calendarUrls.google}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        Google
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                      <a
+                        href={calendarUrls.outlook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        Outlook
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                      <a href={calendarUrls.ics} download={`shift-${shift.id}.ics`}>
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        .ics
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-medium text-forest-700/75 dark:text-cream-50/70">
+                    Spread the word
+                  </div>
+                  <ShareShiftButton
+                    url={`${getBaseUrl()}/shifts/${shift.id}`}
+                    title={`Volunteer with Everybody Eats — ${shift.shiftType.name}`}
+                    text={`Kia ora! Come volunteer on ${shiftDate}, ${shiftTime}${
+                      shift.location ? ` at ${shift.location}` : ""
+                    }.`}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Signup sidebar */}
+        <aside className="lg:col-span-5">
+          <div className="lg:sticky lg:top-24">
+            <div className="grain rounded-3xl border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+                Your spot
+              </p>
+
+              {/* Capacity */}
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="display text-5xl tracking-tight tabular-nums text-forest-700 dark:text-cream-50">
+                  {isPastShift ? "—" : isWaitlist ? "Full" : spotsRemaining}
+                </span>
+                {!isPastShift && !isWaitlist && (
+                  <span className="text-sm text-forest-700/60 dark:text-cream-50/55">
+                    {spotsRemaining === 1 ? "spot left" : "spots left"}
+                  </span>
+                )}
+              </div>
+              <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-forest-500/10 dark:bg-cream-50/10">
+                <div
+                  className="h-full rounded-full bg-forest-500 dark:bg-forest-400"
+                  style={{ width: `${capacityPct}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm tabular-nums text-forest-700/60 dark:text-cream-50/55">
+                {confirmedCount} of {shift.capacity} volunteers signed up
+              </p>
+
+              {/* Signed-up confirmation */}
+              {isAlreadySignedUp && !isPastShift && (
+                <div className="mt-5 flex items-center gap-2 rounded-2xl border border-forest-500/15 bg-forest-500/[0.07] p-4 dark:border-cream-50/10 dark:bg-cream-50/5">
+                  <UserCheck className="h-5 w-5 shrink-0 text-forest-500 dark:text-forest-300" />
+                  <span className="font-medium text-forest-700 dark:text-cream-50">
+                    You&apos;re signed up for this shift!
+                  </span>
+                </div>
+              )}
+
+              {/* Volunteers-needed nudge */}
+              {!isPastShift && !userSignup && spotsRemaining > 3 && (
+                <p className="mt-5 flex items-start gap-2 text-sm leading-relaxed text-forest-700/75 dark:text-cream-50/70">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-forest-500 dark:text-cream-50/60" />
+                  <span>
+                    <strong className="font-semibold text-forest-700 dark:text-cream-50">
+                      Volunteers needed!
+                    </strong>{" "}
+                    We still need {spotsRemaining} more for this shift.
+                  </span>
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="mt-5 space-y-2">
+                {isLoggedOut && (
+                  <>
+                    <Button asChild className="w-full">
+                      <Link href={`/login?callbackUrl=/shifts/${id}`}>
+                        Sign in to sign up
+                      </Link>
+                    </Button>
+                    <p className="text-center text-sm text-forest-700/55 dark:text-cream-50/55">
+                      You&apos;ll need an account to join this shift.
+                    </p>
+                  </>
+                )}
+
+                {isPastShift && !isLoggedOut && (
+                  <Button disabled variant="secondary" className="w-full">
+                    Shift has ended
+                  </Button>
+                )}
+
+                {isAlreadySignedUp && !isPastShift && (
+                  <CancelSignupButton
+                    shiftId={id}
+                    shiftName={shift.shiftType.name}
+                    className="w-full"
+                  />
+                )}
+
+                {!canSignUp &&
+                  !isLoggedOut &&
+                  !isPastShift &&
+                  !isAlreadySignedUp &&
+                  hasConflictingSignup && (
+                    <Button disabled variant="secondary" className="w-full">
+                      Already signed up for this{" "}
+                      {isAMShift(shift.start) ? "AM" : "PM"} period
+                    </Button>
+                  )}
+
+                {!canSignUp &&
+                  !isLoggedOut &&
+                  !isPastShift &&
+                  !isAlreadySignedUp &&
+                  !hasConflictingSignup &&
+                  needsParentalConsent && (
+                    <div className="w-full space-y-2">
+                      <Button disabled variant="secondary" className="w-full">
+                        Parental Consent Required
+                      </Button>
+                      <p className="text-sm text-forest-700/65 dark:text-cream-50/60">
+                        Please download the consent form from your dashboard,
+                        have your parent/guardian sign it, and email it to{" "}
+                        <strong>volunteer@everybodyeats.nz</strong> for approval.
+                      </p>
+                    </div>
+                  )}
+
+                {!canSignUp &&
+                  !isLoggedOut &&
+                  !isPastShift &&
+                  !isAlreadySignedUp &&
+                  !hasConflictingSignup &&
+                  !needsParentalConsent &&
+                  hasIncompleteProfile && (
+                    <div className="w-full space-y-2">
+                      <Button disabled variant="secondary" className="w-full">
+                        Complete Profile Required
+                      </Button>
+                      <p className="text-sm text-forest-700/65 dark:text-cream-50/60">
+                        Please complete your profile to sign up for shifts.
+                      </p>
+                    </div>
+                  )}
+
+                {canSignUp && (
+                  <ShiftSignupButton
+                    theme={getShiftTheme(shift.shiftType.name)}
+                    isFull={isWaitlist}
+                    shift={shift}
+                    confirmedCount={confirmedCount}
+                    currentUserId={userId}
+                    concurrentShifts={concurrentShifts}
+                  />
+                )}
+              </div>
+
+              {session && (needsParentalConsent || hasIncompleteProfile) && (
+                <div className="mt-4">
+                  <Suspense fallback={null}>
+                    <ProfileCompletionBannerServer />
+                  </Suspense>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            buildShiftEventSchema({
+              id: shift.id,
+              name: shift.shiftType.name,
+              description: getShiftDescription(
+                shift.notes,
+                shift.shiftType.description
               ),
-            }}
-          />
-        </CardContent>
-      </Card>
+              startDate: new Date(shift.start),
+              endDate: new Date(shift.end),
+              location: shift.location,
+              capacity: shift.capacity,
+              spotsAvailable: spotsRemaining,
+            })
+          ),
+        }}
+      />
     </PageContainer>
   );
 }

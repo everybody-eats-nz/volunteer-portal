@@ -5,32 +5,39 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { differenceInDays, differenceInHours, subMonths } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
-import { isAMShift, getShiftDate, getShiftPeriodLabel } from "@/lib/concurrent-shifts";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  isAMShift,
+  getShiftDate,
+  getShiftPeriodLabel,
+} from "@/lib/concurrent-shifts";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { AnimatedStatsGrid } from "@/components/animated-stats-grid";
-import {
-  Users,
-  Calendar,
-  Clock,
-  TrendingUp,
-  Heart,
-  UserCheck,
-  Handshake,
-  Sparkles,
-} from "lucide-react";
-import {
-  MotionCard,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/motion-card";
+import { StatBand } from "@/components/ui/stat-band";
+import { Calendar, MapPin } from "lucide-react";
 import { MotionFriendStats } from "@/components/motion-friends";
 
 interface FriendProfileContentProps {
   friendId: string;
 }
+
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
+
+const eyebrowLight =
+  "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
+const eyebrowRule =
+  "inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40";
+
+/* Pill links — shared brand system with the marketing site. */
+const pillGhost =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-forest-500/30 px-6 py-3 text-sm font-medium text-forest-700 transition-all duration-200 hover:border-forest-700 hover:bg-forest-700 hover:text-cream-50 dark:border-cream-50/30 dark:text-cream-50 dark:hover:border-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700";
+const pillPrimary =
+  "inline-flex items-center justify-center gap-2 rounded-full bg-forest-500 px-7 py-3.5 text-sm font-medium text-cream-50 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-lg active:translate-y-0";
 
 export async function FriendProfileContent({
   friendId,
@@ -337,304 +344,299 @@ export async function FriendProfileContent({
     friend.email[0]
   ).toUpperCase();
 
+  const now = new Date();
+
   return (
     <div className="space-y-8">
-      {/* Enhanced Friend Profile Header */}
+      {/* Profile header — dark forest panel with sun glow (radial gradient,
+          NOT blur-3xl, which escapes the corner clip in Chromium). */}
       <MotionFriendStats delay={0.1}>
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-background to-background shadow-md">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-transparent"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
-          <div className="relative p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="relative">
-              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-primary/20 ring-offset-4 ring-offset-background shadow-lg">
+        <section className="grain relative overflow-hidden rounded-[2rem] bg-forest-700 p-6 text-cream-50 sm:p-10">
+          <div
+            className="absolute -right-28 -top-28 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.15),transparent)]"
+            aria-hidden
+          />
+          <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+            <div className="relative shrink-0">
+              <Avatar className="h-24 w-24 ring-4 ring-cream-50/20 sm:h-28 sm:w-28">
                 <AvatarImage
                   src={friend.profilePhotoUrl || undefined}
                   alt={displayName}
                 />
-                <AvatarFallback className="bg-gradient-to-br from-primary/40 to-primary/20 text-primary text-3xl sm:text-4xl font-bold">
+                <AvatarFallback className="bg-cream-50/15 text-3xl font-semibold text-cream-50 sm:text-4xl">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full border-4 border-background flex items-center justify-center shadow-lg">
-                <Heart className="w-5 h-5 text-white fill-white" />
-              </div>
+              <Sparkle className="absolute -right-1 -top-1 h-6 w-6 text-sun-200" />
             </div>
-            <div className="flex-1 space-y-3">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
-                  {displayName}
-                </h1>
-                <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <span>Friends for {daysSinceFriendship} days</span>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-2">
-                    <Handshake className="h-4 w-4 text-primary" />
-                    <span>Volunteer friend</span>
-                  </div>
+            <div className="flex-1">
+              <p className="eyebrow mb-3 flex items-center gap-3 text-sun-200/90">
+                <span className="inline-block h-px w-8 bg-sun-200/50" />
+                Volunteer whānau
+              </p>
+              <h1 className="display text-3xl tracking-tight sm:text-5xl">
+                {displayName}
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-cream-50/75 sm:text-base">
+                Friends for {daysSinceFriendship}{" "}
+                {daysSinceFriendship === 1 ? "day" : "days"}
+              </p>
+              {(daysSinceFriendship <= 30 || sharedShiftsCount > 10) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {daysSinceFriendship <= 30 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-sun-200 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-forest-700">
+                      <Sparkle className="h-2.5 w-2.5" />
+                      New friend
+                    </span>
+                  )}
+                  {sharedShiftsCount > 10 && (
+                    <span className="inline-flex items-center rounded-full border border-cream-50/30 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-cream-50/90">
+                      Close volunteer buddy
+                    </span>
+                  )}
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {daysSinceFriendship <= 30 && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
-                  >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    New Friend
-                  </Badge>
-                )}
-                {sharedShiftsCount > 10 && (
-                  <Badge
-                    variant="secondary"
-                    className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-                  >
-                    <Handshake className="h-3 w-3 mr-1" />
-                    Close Volunteer Buddy
-                  </Badge>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        </div>
+        </section>
       </MotionFriendStats>
 
-      {/* Enhanced Friendship & Activity Stats */}
-      <AnimatedStatsGrid
-        data-testid="friend-stats-grid"
+      {/* Friendship & activity stats — editorial hairline band */}
+      <StatBand
+        testId="friend-stats-grid"
         stats={[
           {
-            title: "Days Connected",
+            label: "Days Connected",
             value: daysSinceFriendship,
-            iconType: "heart",
-            variant: "red",
             testId: "days-connected",
           },
           {
-            title: "Shared Shifts",
+            label: "Shared Shifts",
             value: sharedShiftsCount,
-            iconType: "handshake",
-            variant: "green",
             testId: "shared-shifts",
           },
           {
-            title: "Total Shifts",
+            label: "Total Shifts",
             value: friendTotalShifts,
-            iconType: "trendingUp",
-            variant: "blue",
             testId: "total-shifts",
           },
           {
-            title: "Hours Volunteered",
+            label: "Hours Volunteered",
             value: friendTotalHours,
-            iconType: "clock",
-            variant: "purple",
             testId: "hours-volunteered",
           },
         ]}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* Enhanced Friend's Activity Summary */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Friend's activity summary */}
         <MotionFriendStats delay={0.2}>
-          <MotionCard className="overflow-hidden">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center shadow-sm">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <span className="text-xl">{displayName}&apos;s Activity</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="group p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-background rounded-xl border border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-md">
-                  <p className="text-4xl font-bold text-primary mb-2 group-hover:scale-110 transition-transform">
-                    {friendThisMonthShifts}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                    This Month
-                  </p>
-                </div>
-                <div className="group p-5 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-background rounded-xl border border-blue-500/20 hover:border-blue-500/40 transition-all duration-300 hover:shadow-md">
-                  <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2 group-hover:scale-110 transition-transform">
-                    {avgPerMonth}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                    Avg/Month (Last 6 Months)
-                  </p>
-                </div>
+          <section className="grain relative h-full overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+            <p className={`${eyebrowLight} mb-3`}>
+              <span className={eyebrowRule} />
+              On the tools
+            </p>
+            <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
+              {displayName.split(" ")[0]}&apos;s <em>activity</em>
+            </h2>
+
+            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-forest-500/15 ring-1 ring-forest-500/15 dark:bg-cream-50/15 dark:ring-cream-50/15">
+              <div className="bg-background px-5 py-6">
+                <p className="display text-4xl tracking-tight text-forest-700 tabular-nums sm:text-5xl dark:text-cream-50">
+                  {friendThisMonthShifts}
+                </p>
+                <p className="mt-2 text-[0.65rem] uppercase tracking-[0.15em] text-forest-500/70 dark:text-cream-50/55">
+                  This month
+                </p>
               </div>
-              {favoriteShiftType && (
-                <div className="text-center p-5 bg-gradient-to-br from-muted/50 to-background rounded-xl border border-border hover:border-primary/30 transition-all duration-300">
-                  <Badge variant="outline" className="mb-3 bg-background shadow-sm">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    Favorite Role
-                  </Badge>
-                  <p className="font-bold text-xl mb-1 text-foreground">
-                    {favoriteShiftType}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Completed {shiftTypeCounts[favoriteShiftType]} times
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </MotionCard>
+              <div className="bg-background px-5 py-6">
+                <p className="display text-4xl tracking-tight text-forest-700 tabular-nums sm:text-5xl dark:text-cream-50">
+                  {avgPerMonth}
+                </p>
+                <p className="mt-2 text-[0.65rem] uppercase tracking-[0.15em] text-forest-500/70 dark:text-cream-50/55">
+                  Avg/month · last 6 months
+                </p>
+              </div>
+            </div>
+
+            {favoriteShiftType && (
+              <div className="grain relative mt-4 overflow-hidden rounded-2xl bg-sun-100/70 p-5 text-center ring-1 ring-forest-500/10 dark:bg-sun-200/10 dark:ring-cream-50/10">
+                <p className="eyebrow text-forest-600/80 dark:text-sun-200/80">
+                  Favourite role
+                </p>
+                <p className="display display-medium mt-2 text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                  {favoriteShiftType}
+                </p>
+                <p className="mt-1 text-sm text-forest-700/70 dark:text-cream-50/65">
+                  Completed {shiftTypeCounts[favoriteShiftType]} times
+                </p>
+              </div>
+            )}
+          </section>
         </MotionFriendStats>
 
-        {/* Enhanced Shared Volunteering History */}
+        {/* Shared volunteering history */}
         <MotionFriendStats delay={0.3}>
-          <MotionCard className="overflow-hidden">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500/20 to-green-500/10 rounded-xl flex items-center justify-center shadow-sm">
-                  <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <span className="text-xl">Shared Volunteering</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {sharedShifts.length > 0 ? (
-                <div className="space-y-3">
-                  {sharedShifts.slice(0, 5).map((shift) => (
-                    <div
-                      key={shift.id}
-                      className="group flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border hover:shadow-sm"
-                    >
-                      <div className="w-3 h-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex-shrink-0 group-hover:scale-125 group-hover:shadow-lg transition-all" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate mb-1">
-                          {getShiftPeriodLabel(shift.start)} · {shift.location}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatInNZT(shift.start, "MMM d, yyyy")}
-                        </p>
-                      </div>
-                      <Badge
-                        variant={
-                          shift.start >= new Date() ? "default" : "secondary"
-                        }
-                        className="text-xs shadow-sm"
+          <section className="grain relative h-full overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+            <p className={`${eyebrowLight} mb-3`}>
+              <span className={eyebrowRule} />
+              Side by side
+            </p>
+            <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
+              Shared <em>volunteering</em>
+            </h2>
+
+            {sharedShifts.length > 0 ? (
+              <div className="mt-6">
+                <ul className="divide-y divide-forest-500/10 dark:divide-cream-50/10">
+                  {sharedShifts.slice(0, 5).map((shift) => {
+                    const isUpcoming = shift.start >= now;
+                    return (
+                      <li
+                        key={shift.id}
+                        className="flex items-center gap-4 py-3"
                       >
-                        {shift.start >= new Date() ? "Upcoming" : "Completed"}
-                      </Badge>
-                    </div>
-                  ))}
-                  {sharedShifts.length > 5 && (
-                    <div className="text-center pt-4 border-t border-border/50">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        +{sharedShifts.length - 5} more shared shifts
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="relative w-20 h-20 mx-auto mb-5">
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
-                    <div className="relative w-full h-full bg-gradient-to-br from-muted/80 to-muted/40 rounded-full flex items-center justify-center">
-                      <UserCheck className="h-10 w-10 text-muted-foreground/50" />
-                    </div>
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">
-                    No shared shifts yet
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-                    Sign up for the same shifts to volunteer together and build
-                    memories!
+                        <div className="w-11 shrink-0 text-center">
+                          <div className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+                            {formatInNZT(shift.start, "MMM")}
+                          </div>
+                          <div className="display mt-0.5 text-2xl leading-none text-forest-700 tabular-nums dark:text-cream-50">
+                            {formatInNZT(shift.start, "d")}
+                          </div>
+                        </div>
+                        <div className="h-10 w-px shrink-0 bg-forest-500/10 dark:bg-cream-50/15" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-forest-700 dark:text-cream-50">
+                            {getShiftPeriodLabel(shift.start)} ·{" "}
+                            {shift.location}
+                          </p>
+                          <p className="text-xs text-forest-700/60 dark:text-cream-50/55">
+                            {formatInNZT(shift.start, "MMM d, yyyy")}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] ${
+                            isUpcoming
+                              ? "bg-sun-200 text-forest-700"
+                              : "border border-forest-500/20 text-forest-700/70 dark:border-cream-50/20 dark:text-cream-50/65"
+                          }`}
+                        >
+                          {isUpcoming ? "Upcoming" : "Completed"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {sharedShifts.length > 5 && (
+                  <p className="mt-4 border-t border-forest-500/10 pt-4 text-center text-sm text-forest-700/65 dark:border-cream-50/10 dark:text-cream-50/60">
+                    +{sharedShifts.length - 5} more shared shifts
                   </p>
-                  <Button
-                    asChild
-                    size="default"
-                    className="shadow-md hover:shadow-lg transition-all"
-                  >
-                    <Link href="/shifts">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Browse Shifts
-                    </Link>
-                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="px-4 py-12 text-center">
+                <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-500/10 dark:bg-cream-50/10">
+                  <Calendar
+                    className="h-7 w-7 text-forest-500 dark:text-cream-50/70"
+                    aria-hidden
+                  />
+                  <Sparkle className="absolute -right-2 -top-2 h-4 w-4 text-sun-300" />
                 </div>
-              )}
-            </CardContent>
-          </MotionCard>
+                <h3 className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                  No shared shifts <em>yet</em>
+                </h3>
+                <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/70">
+                  Sign up for the same shifts to volunteer together and build
+                  memories!
+                </p>
+                <Link href="/shifts" className={`${pillPrimary} mt-6`}>
+                  Browse Shifts
+                </Link>
+              </div>
+            )}
+          </section>
         </MotionFriendStats>
       </div>
 
-      {/* Friend's Upcoming Shifts */}
+      {/* Friend's upcoming shifts */}
       {(friend.friendVisibility === "PUBLIC" ||
         friend.friendVisibility === "FRIENDS_ONLY") && (
         <MotionFriendStats delay={0.4}>
-          <MotionCard>
-            <CardHeader>
-              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-500/10 rounded-xl flex items-center justify-center shadow-sm">
-                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <span className="text-xl">
-                    {displayName}&apos;s Upcoming Shifts
-                  </span>
-                </div>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="shadow-sm hover:shadow-md transition-all"
-                >
-                  <Link href="/shifts">View All Shifts</Link>
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {friendUpcomingShifts.length > 0 ? (
-                <div className="space-y-3">
-                  {friendUpcomingShifts.map((signup) => (
-                    <div
-                      key={signup.id}
-                      className="group flex items-center gap-4 p-4 border border-border rounded-xl hover:bg-accent/50 hover:border-primary/30 transition-all duration-200 hover:shadow-sm"
-                    >
-                      <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                        <Calendar className="w-6 h-6 text-primary" />
+          <section className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className={`${eyebrowLight} mb-3`}>
+                  <span className={eyebrowRule} />
+                  Coming up
+                </p>
+                <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
+                  {displayName.split(" ")[0]}&apos;s upcoming <em>shifts</em>
+                </h2>
+              </div>
+              <Link href="/shifts" className={`${pillGhost} w-fit shrink-0`}>
+                View All Shifts
+              </Link>
+            </div>
+
+            {friendUpcomingShifts.length > 0 ? (
+              <div className="mt-6 space-y-3">
+                {friendUpcomingShifts.map((signup) => (
+                  <div
+                    key={signup.id}
+                    className="flex items-center gap-3 rounded-2xl border border-forest-500/10 bg-background p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:gap-5 dark:border-cream-50/10"
+                  >
+                    <div className="w-11 shrink-0 text-center sm:w-12">
+                      <div className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+                        {formatInNZT(signup.shift.start, "EEE")}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold mb-1">
-                          {signup.shift.shiftType.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {signup.shift.location}
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-foreground">
-                          {formatInNZT(signup.shift.start, "MMM d")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatInNZT(signup.shift.start, "h:mm a")}
-                        </p>
+                      <div className="display mt-0.5 text-2xl leading-none text-forest-700 tabular-nums sm:text-3xl dark:text-cream-50">
+                        {formatInNZT(signup.shift.start, "d")}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="relative w-20 h-20 mx-auto mb-5">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-primary/20 rounded-full blur-xl"></div>
-                    <div className="relative w-full h-full bg-gradient-to-br from-muted/80 to-muted/40 rounded-full flex items-center justify-center">
-                      <Calendar className="h-10 w-10 text-muted-foreground/50" />
+                    <div className="h-12 w-px shrink-0 bg-forest-500/10 dark:bg-cream-50/15" />
+                    <div className="min-w-0 flex-1">
+                      <p className="display display-medium text-lg leading-tight tracking-tight text-forest-700 dark:text-cream-50">
+                        {signup.shift.shiftType.name}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-forest-700/70 dark:text-cream-50/65">
+                        {signup.shift.location && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5" aria-hidden />
+                            {signup.shift.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold text-forest-700 dark:text-cream-50">
+                        {formatInNZT(signup.shift.start, "MMM d")}
+                      </p>
+                      <p className="text-xs text-forest-700/60 dark:text-cream-50/55">
+                        {formatInNZT(signup.shift.start, "h:mm a")}
+                      </p>
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-2">
-                    No upcoming shifts
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                    Check back later to see {displayName}&apos;s schedule
-                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-12 text-center">
+                <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-500/10 dark:bg-cream-50/10">
+                  <Calendar
+                    className="h-7 w-7 text-forest-500 dark:text-cream-50/70"
+                    aria-hidden
+                  />
+                  <Sparkle className="absolute -right-2 -top-2 h-4 w-4 text-sun-300" />
                 </div>
-              )}
-            </CardContent>
-          </MotionCard>
+                <h3 className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                  No upcoming <em>shifts</em>
+                </h3>
+                <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/70">
+                  Check back later to see {displayName.split(" ")[0]}&apos;s
+                  schedule.
+                </p>
+              </div>
+            )}
+          </section>
         </MotionFriendStats>
       )}
     </div>

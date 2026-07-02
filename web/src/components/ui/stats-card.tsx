@@ -13,49 +13,41 @@ export interface StatsCardProps {
   testId?: string;
 }
 
-const variantStyles = {
-  green: {
-    card: "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800/50",
-    value: "text-green-700 dark:text-green-300",
-    title: "text-green-600 dark:text-green-400",
-    iconBg: "bg-green-100 dark:bg-green-900/50",
-    iconColor: "text-green-600 dark:text-green-400",
-  },
-  blue: {
-    card: "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800/50",
-    value: "text-blue-700 dark:text-blue-300",
-    title: "text-blue-600 dark:text-blue-400",
-    iconBg: "bg-blue-100 dark:bg-blue-900/50",
-    iconColor: "text-blue-600 dark:text-blue-400",
-  },
-  purple: {
-    card: "bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 border-purple-200 dark:border-purple-800/50",
-    value: "text-purple-700 dark:text-purple-300",
-    title: "text-purple-600 dark:text-purple-400",
-    iconBg: "bg-purple-100 dark:bg-purple-900/50",
-    iconColor: "text-purple-600 dark:text-purple-400",
-  },
-  amber: {
-    card: "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800/50",
-    value: "text-amber-700 dark:text-amber-300",
-    title: "text-amber-600 dark:text-amber-400",
-    iconBg: "bg-amber-100 dark:bg-amber-900/50",
-    iconColor: "text-amber-600 dark:text-amber-400",
-  },
-  red: {
-    card: "bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-200 dark:border-red-800/50",
-    value: "text-red-700 dark:text-red-300",
-    title: "text-red-600 dark:text-red-400",
-    iconBg: "bg-red-100 dark:bg-red-900/50",
-    iconColor: "text-red-600 dark:text-red-400",
-  },
-  primary: {
-    card: "bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 border-primary/20 dark:border-primary/30",
-    value: "text-primary dark:text-primary",
-    title: "text-primary/80 dark:text-primary/90",
-    iconBg: "bg-primary/10 dark:bg-primary/20",
-    iconColor: "text-primary dark:text-primary",
-  },
+/* Brand-cohesive stat cards (new.everybodyeats.nz): a single cream/white paper
+   surface with a forest hairline, grain and a thin forest top-accent bar — the
+   same card treatment as the shifts flow. The variant only tints the icon tile,
+   so a grid of stats reads as one calm family rather than a rainbow. Forest is
+   the default accent; "amber" maps to the sun accent for a single warm pop;
+   "red" stays semantic for genuine warnings. */
+type AccentStyle = { iconBg: string; iconColor: string; bar: string };
+
+const forestAccent: AccentStyle = {
+  iconBg:
+    "bg-forest-500/10 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:ring-cream-50/10",
+  iconColor: "text-forest-600 dark:text-cream-50/80",
+  bar: "from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300",
+};
+
+const sunAccent: AccentStyle = {
+  iconBg:
+    "bg-sun-200 ring-1 ring-forest-500/10 dark:bg-sun-200/20 dark:ring-cream-50/10",
+  iconColor: "text-forest-700 dark:text-sun-200",
+  bar: "from-sun-300 to-sun-200 dark:from-sun-300 dark:to-sun-200",
+};
+
+const redAccent: AccentStyle = {
+  iconBg: "bg-red-500/10 ring-1 ring-red-500/15 dark:bg-red-500/15",
+  iconColor: "text-red-600 dark:text-red-400",
+  bar: "from-red-500 to-red-400",
+};
+
+const variantAccents: Record<NonNullable<StatsCardProps["variant"]>, AccentStyle> = {
+  green: forestAccent,
+  blue: forestAccent,
+  purple: forestAccent,
+  primary: forestAccent,
+  amber: sunAccent,
+  red: redAccent,
 };
 
 export function StatsCard({
@@ -67,35 +59,41 @@ export function StatsCard({
   className,
   testId,
 }: StatsCardProps) {
-  const styles = variantStyles[variant];
+  const accent = variantAccents[variant];
 
   return (
     <Card
-      className={cn("p-5", styles.card, className)}
+      className={cn(
+        "grain relative overflow-hidden rounded-2xl border border-forest-500/10 bg-card p-5 shadow-sm dark:border-cream-50/10",
+        className
+      )}
       data-testid={testId}
     >
-      <div className="flex items-center justify-between">
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 h-1 bg-gradient-to-r",
+          accent.bar
+        )}
+      />
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div
-            className={cn(
-              "text-3xl font-bold tracking-tight font-accent",
-              styles.value
-            )}
+            className="text-3xl font-bold tracking-tight font-accent tabular-nums text-forest-700 dark:text-cream-50"
             data-testid={testId ? `${testId}-count` : undefined}
           >
             {value}
           </div>
-          <div className={cn("text-sm font-medium mt-0.5", styles.title)}>
+          <div className="text-sm font-medium mt-0.5 text-forest-700/70 dark:text-cream-50/70">
             {title}
           </div>
           {subtitle && (
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-xs text-forest-500/70 dark:text-cream-50/55 mt-1">
               {subtitle}
             </div>
           )}
         </div>
-        <div className={cn("p-2.5 rounded-xl", styles.iconBg)}>
-          <Icon className={cn("h-6 w-6", styles.iconColor)} />
+        <div className={cn("p-2.5 rounded-xl shrink-0", accent.iconBg)}>
+          <Icon className={cn("h-6 w-6", accent.iconColor)} />
         </div>
       </div>
     </Card>
