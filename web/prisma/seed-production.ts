@@ -81,6 +81,8 @@ async function main() {
       address: "60 Dixon Street, Te Aro, Wellington, New Zealand",
       defaultMealsServed: 60,
       isActive: true,
+      // Long-established restaurant - launched well outside the "New" badge window
+      launchedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
 
@@ -92,6 +94,7 @@ async function main() {
       address: "133 Line Road, Glen Innes, Auckland, New Zealand",
       defaultMealsServed: 60,
       isActive: true,
+      launchedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
 
@@ -103,6 +106,7 @@ async function main() {
       address: "306 Onehunga Mall, Auckland, New Zealand",
       defaultMealsServed: 60,
       isActive: true,
+      launchedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
 

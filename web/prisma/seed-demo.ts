@@ -1002,6 +1002,8 @@ async function main() {
       defaultMealsServed: 60,
       targetPerNight: 1500,
       isActive: true,
+      // Long-established restaurant - launched well outside the "New" badge window
+      launchedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
 
@@ -1014,6 +1016,7 @@ async function main() {
       defaultMealsServed: 60,
       targetPerNight: 1200,
       isActive: true,
+      launchedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
 
@@ -1026,6 +1029,7 @@ async function main() {
       defaultMealsServed: 60,
       targetPerNight: 1100,
       isActive: true,
+      launchedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
 

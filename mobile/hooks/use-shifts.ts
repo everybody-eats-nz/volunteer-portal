@@ -14,12 +14,20 @@ export type PeriodFriend = {
   isFriend: boolean;
 };
 
+export type BrowsableLocation = {
+  name: string;
+  /** Recently launched restaurant - shows a subtle "New" badge in the picker. */
+  isNew: boolean;
+};
+
 type ShiftsResponse = {
   myShifts: Shift[];
   available: Shift[];
   past: Shift[];
   pastNextCursor: string | null;
   userDefaultLocation: string | null;
+  /** Locations with upcoming shifts (server-driven, includes "New" flags). */
+  locations?: BrowsableLocation[];
   periodFriends: Record<string, PeriodFriend[]>;
   shiftFriends?: Record<string, PeriodFriend[]>;
 };
@@ -35,6 +43,8 @@ type UseShiftsReturn = {
   hasMorePast: boolean;
   isLoadingMore: boolean;
   userDefaultLocation: string | null;
+  /** Locations volunteers can browse right now, with "New" launch flags. */
+  browsableLocations: BrowsableLocation[];
   /** Friends keyed by "YYYY-MM-DD-DAY" or "YYYY-MM-DD-EVE" */
   periodFriends: Record<string, PeriodFriend[]>;
   /** Friends keyed by shift ID — friends signed up for that specific role */
@@ -95,6 +105,7 @@ export function useShifts(): UseShiftsReturn {
     hasMorePast: query.hasNextPage,
     isLoadingMore: query.isFetchingNextPage,
     userDefaultLocation: firstPage?.userDefaultLocation ?? null,
+    browsableLocations: firstPage?.locations ?? [],
     periodFriends: firstPage?.periodFriends ?? {},
     shiftFriends: firstPage?.shiftFriends ?? {},
   };
