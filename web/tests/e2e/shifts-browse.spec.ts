@@ -107,11 +107,9 @@ test.describe("Shifts Browse Page", () => {
       });
       await expect(pageTitle).toBeVisible();
 
-      // Should show back to locations button now
-      const backToLocationsButton = page.getByTestId(
-        "back-to-locations-button"
-      );
-      await expect(backToLocationsButton).toBeVisible();
+      // Should show the quick location switcher now
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await expect(switcherTrigger).toBeVisible();
     });
   });
 
@@ -372,35 +370,51 @@ test.describe("Shifts Browse Page", () => {
   });
 
   test.describe("Location Navigation", () => {
-    test("should show back to locations button after selecting a location", async ({
+    test("should show location switcher after selecting a location", async ({
       page,
     }) => {
       // Go to a specific location
       await page.goto("/shifts?location=Wellington");
       await page.waitForLoadState("load");
 
-      // Should show back to locations button
-      const backButton = page.getByTestId("back-to-locations-button");
-      await expect(backButton).toBeVisible();
-      await expect(backButton).toHaveText("← Choose Different Location");
+      // Should show the quick location switcher with the current location
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await expect(switcherTrigger).toBeVisible();
+      await expect(switcherTrigger).toContainText("Wellington");
     });
 
-    test("should return to location selection when clicking back button", async ({
+    test("should switch location from the switcher menu", async ({ page }) => {
+      // Go to a specific location
+      await page.goto("/shifts?location=Wellington");
+      await page.waitForLoadState("load");
+
+      // Open the switcher and pick a different location
+      await page.getByTestId("location-switcher-trigger").click();
+      await page.getByTestId("location-switcher-option-glen-innes").click();
+      await page.waitForLoadState("load");
+
+      // Should navigate to the newly selected location
+      await expect(page).toHaveURL("/shifts?location=Glen%20Innes");
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await expect(switcherTrigger).toContainText("Glen Innes");
+    });
+
+    test("should switch to all locations from the switcher menu", async ({
       page,
     }) => {
       // Go to a specific location
       await page.goto("/shifts?location=Wellington");
       await page.waitForLoadState("load");
 
-      // Click back to locations button
-      const backButton = page.getByTestId("back-to-locations-button");
-      await backButton.click();
+      // Open the switcher and pick "All locations"
+      await page.getByTestId("location-switcher-trigger").click();
+      await page.getByTestId("location-switcher-all").click();
       await page.waitForLoadState("load");
 
-      // Should return to location selection screen (with chooseLocation parameter)
-      await expect(page).toHaveURL("/shifts?chooseLocation=true");
-      const selectionTitle = page.getByTestId("location-selection-title");
-      await expect(selectionTitle).toBeVisible();
+      // Should show all locations
+      await expect(page).toHaveURL("/shifts?showAll=true");
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await expect(switcherTrigger).toContainText("All locations");
     });
   });
 
@@ -600,9 +614,9 @@ test.describe("Shifts Browse Page", () => {
       });
       await expect(pageTitle).toBeVisible();
 
-      // Check back button is accessible on mobile
-      const backButton = page.getByTestId("back-to-locations-button");
-      await expect(backButton).toBeVisible();
+      // Check location switcher is accessible on mobile
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await expect(switcherTrigger).toBeVisible();
 
       // Check shift cards adapt to mobile layout
       const shiftCards = page.locator('[data-testid^="shift-card-"]');
@@ -668,20 +682,21 @@ test.describe("Shifts Browse Page", () => {
 
       await expect(page).toHaveURL("/shifts?location=Wellington");
 
-      // Should show shifts page with back button
+      // Should show shifts page with the location switcher
       const pageTitle = page.getByRole("heading", {
         name: /wellington/i,
       });
       await expect(pageTitle).toBeVisible();
 
-      // Click back button
-      const backButton = page.getByTestId("back-to-locations-button");
-      await backButton.click();
+      // Switch to another location via the switcher
+      await page.getByTestId("location-switcher-trigger").click();
+      await page.getByTestId("location-switcher-option-onehunga").click();
       await page.waitForLoadState("load");
 
-      // Should return to location selection (with chooseLocation parameter)
-      await expect(page).toHaveURL("/shifts?chooseLocation=true");
-      await expect(selectionTitle).toBeVisible();
+      // Should land on the newly selected location
+      await expect(page).toHaveURL("/shifts?location=Onehunga");
+      const onehungaTitle = page.getByRole("heading", { name: /onehunga/i });
+      await expect(onehungaTitle).toBeVisible();
     });
   });
 
@@ -1044,9 +1059,9 @@ test.describe("Shifts Browse Page", () => {
       const pageHeader = page.getByTestId("shifts-page-header");
       await expect(pageHeader).toBeVisible();
 
-      // Check back button is accessible
-      const backButton = page.getByTestId("back-to-locations-button");
-      await expect(backButton).toBeVisible();
+      // Check location switcher is accessible
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await expect(switcherTrigger).toBeVisible();
 
       // Check that buttons have accessible names
       const signupButton = page
@@ -1072,10 +1087,10 @@ test.describe("Shifts Browse Page", () => {
       await wellingtonOption.click();
       await page.waitForLoadState("load");
 
-      // Check back button is keyboard accessible
-      const backButton = page.getByTestId("back-to-locations-button");
-      await backButton.focus();
-      await expect(backButton).toBeFocused();
+      // Check location switcher is keyboard accessible
+      const switcherTrigger = page.getByTestId("location-switcher-trigger");
+      await switcherTrigger.focus();
+      await expect(switcherTrigger).toBeFocused();
     });
   });
 });

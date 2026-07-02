@@ -5,13 +5,10 @@ import { MapPin } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { ShiftsCalendar } from "@/components/shifts-calendar";
-import {
-  LocationOption,
-  LOCATION_ADDRESSES,
-  Location,
-  getLocationMapsUrl,
-  LOCATIONS,
-} from "@/lib/locations";
+import { getGoogleMapsUrl } from "@/lib/locations";
+import { getLiveLocations } from "@/lib/live-locations";
+import { LocationSwitcher } from "@/components/location-switcher";
+import { Badge } from "@/components/ui/badge";
 import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-completion-banner";
 import { Suspense } from "react";
 import { getAuthInfo } from "@/lib/auth-utils";
@@ -41,7 +38,8 @@ export async function generateMetadata({
     "Explore available volunteer opportunities at Everybody Eats. From prep work to service, find shifts that fit your schedule.";
   let path = "/shifts";
 
-  if (location && LOCATIONS.includes(location as LocationOption)) {
+  const liveLocations = await getLiveLocations();
+  if (location && liveLocations.some((l) => l.name === location)) {
     title = `Volunteer Shifts in ${location}`;
     description = `Browse upcoming volunteer shifts at Everybody Eats ${location}. From prep work to service, find opportunities that fit your schedule.`;
     path = `/shifts?location=${encodeURIComponent(location)}`;
@@ -141,22 +139,28 @@ export default async function ShiftsCalendarPage({
   // Explicit default location set by the user in their profile
   const userDefaultLocation = currentUser?.defaultLocation ?? null;
 
+  // Locations volunteers can browse right now: live (has upcoming shifts) and
+  // not disabled. Locations created ahead of their shifts stay hidden here.
+  const liveLocations = await getLiveLocations();
+  const liveLocationNames = liveLocations.map((l) => l.name);
+  const addressByName = new Map(
+    liveLocations.map((l) => [l.name, l.address] as const)
+  );
+
   // Handle location filtering
   const rawLocation = Array.isArray(params.location)
     ? params.location[0]
     : params.location;
-  let selectedLocation: LocationOption | undefined = LOCATIONS.includes(
-    (rawLocation as LocationOption) ?? ("" as LocationOption)
-  )
-    ? (rawLocation as LocationOption)
-    : undefined;
+  let selectedLocation: string | undefined =
+    rawLocation && liveLocationNames.includes(rawLocation)
+      ? rawLocation
+      : undefined;
 
   const showAll = params.showAll === "true";
   const chooseLocation = params.chooseLocation === "true";
 
   // Determine filter locations
   let filterLocations: string[] = [];
-  let isUsingProfileFilter = false;
   let hasExplicitLocationChoice = false;
 
   if (selectedLocation) {
@@ -167,14 +171,13 @@ export default async function ShiftsCalendarPage({
     hasExplicitLocationChoice = true;
   } else if (
     userDefaultLocation &&
-    LOCATIONS.includes(userDefaultLocation as LocationOption) &&
+    liveLocationNames.includes(userDefaultLocation) &&
     !chooseLocation
   ) {
     // Auto-filter to the user's explicit default location unless they've
     // requested to choose one manually.
     filterLocations = [userDefaultLocation];
-    selectedLocation = userDefaultLocation as LocationOption;
-    isUsingProfileFilter = true;
+    selectedLocation = userDefaultLocation;
     hasExplicitLocationChoice = true;
   }
 
@@ -333,7 +336,7 @@ export default async function ShiftsCalendarPage({
                 <div className="grid gap-3">
                   {userPreferredLocations.map(
                     (loc) =>
-                      LOCATIONS.includes(loc as LocationOption) && (
+                      liveLocationNames.includes(loc) && (
                         <Link
                           key={loc}
                           href={`/shifts?location=${loc}`}
@@ -346,9 +349,9 @@ export default async function ShiftsCalendarPage({
                             <div className="w-3 h-3 bg-primary rounded-full"></div>
                             <div>
                               <span className="font-medium">{loc}</span>
-                              {LOCATION_ADDRESSES[loc as Location] && (
+                              {addressByName.get(loc) && (
                                 <LocationAddress
-                                  address={LOCATION_ADDRESSES[loc as Location]}
+                                  address={addressByName.get(loc)!}
                                 />
                               )}
                             </div>
@@ -371,35 +374,47 @@ export default async function ShiftsCalendarPage({
                 </p>
               )}
               <div className="grid gap-3">
-                {LOCATIONS.filter((loc) =>
-                  userPreferredLocations.length > 1
-                    ? !userPreferredLocations.includes(loc)
-                    : true
-                ).map((loc) => (
-                  <Link
-                    key={loc}
-                    href={`/shifts?location=${loc}`}
-                    className="flex items-center justify-between p-4 bg-background hover:bg-muted border border-border hover:border-primary/30 rounded-lg transition-all duration-200 group text-left"
-                    data-testid={`location-option-${loc
-                      .toLowerCase()
-                      .replace(/\s+/g, "-")}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
-                      <div>
-                        <span className="font-medium">{loc}</span>
-                        {LOCATION_ADDRESSES[loc as Location] && (
-                          <LocationAddress
-                            address={LOCATION_ADDRESSES[loc as Location]}
-                          />
-                        )}
+                {liveLocations
+                  .filter((loc) =>
+                    userPreferredLocations.length > 1
+                      ? !userPreferredLocations.includes(loc.name)
+                      : true
+                  )
+                  .map((loc) => (
+                    <Link
+                      key={loc.name}
+                      href={`/shifts?location=${loc.name}`}
+                      className="flex items-center justify-between p-4 bg-background hover:bg-muted border border-border hover:border-primary/30 rounded-lg transition-all duration-200 group text-left"
+                      data-testid={`location-option-${loc.name
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-muted-foreground rounded-full"></div>
+                        <div>
+                          <span className="flex items-center gap-2 font-medium">
+                            {loc.name}
+                            {loc.isNew && (
+                              <Badge
+                                className="h-5 px-1.5 text-[10px] uppercase tracking-wide"
+                                data-testid={`location-new-badge-${loc.name
+                                  .toLowerCase()
+                                  .replace(/\s+/g, "-")}`}
+                              >
+                                New
+                              </Badge>
+                            )}
+                          </span>
+                          {loc.address && (
+                            <LocationAddress address={loc.address} />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                      →
-                    </div>
-                  </Link>
-                ))}
+                      <div className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                        →
+                      </div>
+                    </Link>
+                  ))}
 
                 {/* Show all locations option */}
                 <Link
@@ -464,53 +479,42 @@ export default async function ShiftsCalendarPage({
         />
       ))}
       <PageContainer testid="shifts-browse-page">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-          <div className="flex-1">
-            <PageHeader
-            title={
-              selectedLocation ||
-              (showAll
-                ? "All Locations"
-                : isUsingProfileFilter && userDefaultLocation
-                ? userDefaultLocation
-                : "Shifts")
-            }
-            description={
-              (selectedLocation &&
-                LOCATION_ADDRESSES[selectedLocation as Location] && (
-                  <div
-                    className="flex items-start gap-2 text-sm text-muted-foreground"
-                    data-testid="restaurant-address-banner"
-                  >
-                    <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <a
-                      href={getLocationMapsUrl(selectedLocation as Location)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-testid="restaurant-address"
-                      className="text-left hover:text-primary hover:underline"
-                    >
-                      {LOCATION_ADDRESSES[selectedLocation as Location]}
-                    </a>
-                  </div>
-                )) ||
-              undefined
-            }
-            data-testid="shifts-page-header"
-          />
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
-          {/* Back to locations button */}
-          <Link
-            href="/shifts?chooseLocation=true"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border hover:border-primary/30 rounded-lg transition-colors"
-            data-testid="back-to-locations-button"
-          >
-            ← Choose Different Location
-          </Link>
-        </div>
-      </div>
+        {/* The page title doubles as the location switcher */}
+        <PageHeader
+          title={
+            <LocationSwitcher
+              locations={liveLocations.map(({ name, isNew }) => ({
+                name,
+                isNew,
+              }))}
+              selectedLocation={selectedLocation}
+              showAll={showAll}
+              isLoggedIn={isLoggedIn}
+              userDefaultLocation={userDefaultLocation}
+            />
+          }
+          description={
+            (selectedLocation && addressByName.get(selectedLocation) && (
+              <div
+                className="flex items-start gap-2 text-sm text-muted-foreground"
+                data-testid="restaurant-address-banner"
+              >
+                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <a
+                  href={getGoogleMapsUrl(addressByName.get(selectedLocation)!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="restaurant-address"
+                  className="text-left hover:text-primary hover:underline"
+                >
+                  {addressByName.get(selectedLocation)}
+                </a>
+              </div>
+            )) ||
+            undefined
+          }
+          data-testid="shifts-page-header"
+        />
 
       {/* Profile completion banner - shows if profile incomplete */}
       <Suspense fallback={null}>

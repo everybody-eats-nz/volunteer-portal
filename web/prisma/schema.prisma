@@ -750,6 +750,7 @@ model Location {
   targetPerNight     Decimal? @db.Decimal(10, 2) // Koha banking target per service night ($)
   isActive           Boolean  @default(true)
   isPopup            Boolean  @default(false) // Pop-up / temporary venue: selectable as an available location, but never as a user's default location
+  launchedAt         DateTime? // First time this location had upcoming published shifts. Null until then - locations are created ahead of their shifts and stay hidden from volunteers until launch. Drives the "New" badge window.
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

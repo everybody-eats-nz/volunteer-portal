@@ -14,15 +14,29 @@ export default async function LocationsPage() {
   }
 
   // Fetch all locations (both active and inactive)
-  const allLocations = await prisma.location.findMany({
-    orderBy: { name: "asc" },
-  });
+  const [allLocations, upcomingShiftGroups] = await Promise.all([
+    prisma.location.findMany({
+      orderBy: { name: "asc" },
+    }),
+    prisma.shift.groupBy({
+      by: ["location"],
+      where: { start: { gte: new Date() }, location: { not: null } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const upcomingCountByLocation = new Map(
+    upcomingShiftGroups.map((group) => [group.location, group._count._all])
+  );
 
   // Serialize Decimal targetPerNight to a plain number for the client component
   const serialized = allLocations.map((loc) => ({
     ...loc,
     targetPerNight:
       loc.targetPerNight === null ? null : Number(loc.targetPerNight),
+    // Locations without upcoming shifts are hidden from volunteer-facing
+    // location lists - surface that so admins know why after creating one.
+    hasUpcomingShifts: (upcomingCountByLocation.get(loc.name) ?? 0) > 0,
   }));
 
   const activeLocations = serialized.filter((loc) => loc.isActive);
