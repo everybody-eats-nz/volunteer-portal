@@ -76,7 +76,8 @@ export function LocationSwitcher({
       if (!res.ok) throw new Error();
       toast.success(`${selectedLocation} is now your default location`);
       router.refresh();
-    } catch {
+    } catch (error) {
+      console.error("Failed to set default location:", error);
       toast.error("Couldn't save your default location. Please try again.");
     } finally {
       setIsSavingDefault(false);

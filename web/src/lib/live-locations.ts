@@ -46,20 +46,29 @@ export async function getLiveLocationsUncached(): Promise<LiveLocation[]> {
     }),
   ]);
 
+  const normalizeName = (name: string) => name.replace(/\s+/g, " ").trim();
+
   const liveNames = new Set(
     shiftLocations
-      .map((s) => (s.location ?? "").replace(/\s+/g, " ").trim())
+      .map((s) => normalizeName(s.location ?? ""))
       .filter((name) => name.length > 0)
   );
-  const rowByName = new Map(locationRows.map((row) => [row.name, row]));
+  // Keyed by normalized name so a Location row with stray whitespace still
+  // matches the (normalized) shift venue strings.
+  const rowByName = new Map(
+    locationRows.map((row) => [normalizeName(row.name), row])
+  );
 
   // Stamp launchedAt the first time a location shows up with upcoming shifts.
   const justLaunched = locationRows.filter(
-    (row) => row.isActive && !row.launchedAt && liveNames.has(row.name)
+    (row) =>
+      row.isActive && !row.launchedAt && liveNames.has(normalizeName(row.name))
   );
   if (justLaunched.length > 0) {
+    // launchedAt: null in the WHERE keeps concurrent requests from
+    // re-stamping a location one of them already launched.
     await prisma.location.updateMany({
-      where: { id: { in: justLaunched.map((row) => row.id) } },
+      where: { id: { in: justLaunched.map((row) => row.id) }, launchedAt: null },
       data: { launchedAt: now },
     });
   }

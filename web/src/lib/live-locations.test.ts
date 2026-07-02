@@ -68,7 +68,7 @@ describe("getLiveLocationsUncached", () => {
     const result = await getLiveLocationsUncached();
 
     expect(locationUpdateMany).toHaveBeenCalledWith({
-      where: { id: { in: ["2"] } },
+      where: { id: { in: ["2"] }, launchedAt: null },
       data: { launchedAt: expect.any(Date) },
     });
     expect(result).toEqual([
@@ -114,6 +114,24 @@ describe("getLiveLocationsUncached", () => {
     const result = await getLiveLocationsUncached();
 
     expect(result.map((l) => l.name)).toEqual(["Wellington"]);
+  });
+
+  it("matches Location rows to shift venues despite stray whitespace", async () => {
+    shiftFindMany.mockResolvedValue([{ location: "Glen  Innes" }] as never);
+    locationFindMany.mockResolvedValue([
+      locationRow({ id: "1", name: " Glen Innes ", launchedAt: daysAgo(5) }),
+    ] as never);
+
+    const result = await getLiveLocationsUncached();
+
+    // The row still matches, so its address and New flag come through.
+    expect(result).toEqual([
+      expect.objectContaining({
+        name: "Glen Innes",
+        address: " Glen Innes  address",
+        isNew: true,
+      }),
+    ]);
   });
 
   it("keeps ad-hoc shift venues without a Location row, never flagged new", async () => {
