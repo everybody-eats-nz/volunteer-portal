@@ -93,12 +93,12 @@ export function LocationSwitcher({
           data-testid="location-switcher-trigger"
         >
           <span>{showAll ? "All locations" : selectedLocation ?? "Shifts"}</span>
-          <span className="relative inline-flex translate-y-[-0.2em] items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 font-sans text-xs font-medium tracking-normal text-muted-foreground transition-colors group-hover:border-primary/40 group-hover:text-foreground sm:text-sm">
+          <span className="relative inline-flex translate-y-[-0.2em] items-center gap-1.5 rounded-full border border-forest-500/25 bg-cream-50/70 px-3 py-1.5 font-sans text-xs font-medium not-italic tracking-normal text-forest-700/70 transition-colors group-hover:border-forest-500 group-hover:text-forest-700 dark:border-cream-50/20 dark:bg-cream-50/5 dark:text-cream-50/70 dark:group-hover:border-cream-50/60 dark:group-hover:text-cream-50 sm:text-sm">
             <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
             Change location
             {hasNewLocation && (
               <span
-                className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background"
+                className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-forest-500 ring-2 ring-cream-50 dark:bg-sun-300 dark:ring-forest-900"
                 data-testid="location-switcher-new-dot"
                 aria-hidden
               />
@@ -116,7 +116,7 @@ export function LocationSwitcher({
               className="gap-3 py-2.5"
               data-testid={`location-switcher-option-${slugify(location.name)}`}
             >
-              <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <MapPin className="h-4 w-4 shrink-0 text-forest-500/70 dark:text-cream-50/55" />
               <span className="flex min-w-0 flex-1 items-center gap-2">
                 <span className="truncate font-medium">{location.name}</span>
                 {location.isNew && (
@@ -128,12 +128,12 @@ export function LocationSwitcher({
                   </Badge>
                 )}
                 {location.name === userDefaultLocation && (
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <span className="text-[10px] uppercase tracking-wide text-forest-700/55 dark:text-cream-50/50">
                     Default
                   </span>
                 )}
               </span>
-              {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+              {isSelected && <Check className="h-4 w-4 shrink-0 text-forest-500 dark:text-cream-50" />}
             </DropdownMenuItem>
           );
         })}
@@ -142,9 +142,9 @@ export function LocationSwitcher({
           className="gap-3 py-2.5"
           data-testid="location-switcher-all"
         >
-          <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Globe className="h-4 w-4 shrink-0 text-forest-500/70 dark:text-cream-50/55" />
           <span className="flex-1 font-medium">All locations</span>
-          {showAll && <Check className="h-4 w-4 shrink-0 text-primary" />}
+          {showAll && <Check className="h-4 w-4 shrink-0 text-forest-500 dark:text-cream-50" />}
         </DropdownMenuItem>
         {canSetDefault && (
           <>
@@ -155,7 +155,7 @@ export function LocationSwitcher({
                 void setAsDefault();
               }}
               disabled={isSavingDefault}
-              className="gap-3 py-2.5 text-muted-foreground"
+              className="gap-3 py-2.5 text-forest-700/70 dark:text-cream-50/65"
               data-testid="location-switcher-set-default"
             >
               <Star className="h-4 w-4 shrink-0" />

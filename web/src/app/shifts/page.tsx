@@ -5,6 +5,7 @@ import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import { ShiftsCalendarSection } from "@/components/shifts-calendar-section";
 import { ShiftsCalendarSkeleton } from "@/components/shifts-calendar-skeleton";
+import { LocationSwitcher } from "@/components/location-switcher";
 import { getGoogleMapsUrl } from "@/lib/locations";
 import { getLiveLocations } from "@/lib/live-locations";
 import { Badge } from "@/components/ui/badge";
@@ -317,56 +318,48 @@ export default async function ShiftsCalendarPage({
     );
   }
 
-  // Past the early return, an explicit location choice was made: either
-  // selectedLocation is set (chosen or auto-applied from the profile default)
-  // or showAll is true.
-  const headingTitle =
-    selectedLocation || (showAll ? "All Locations" : "Shifts");
-
   return (
     <>
       <PageContainer testid="shifts-browse-page">
-        <div className="flex flex-col gap-6 pb-2 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex-1 min-w-0">
-            <p className={`${eyebrowLight} mb-4`}>
-              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
-              Browse volunteer shifts
-            </p>
-            <h1
-              className="display text-4xl leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50"
-              data-testid="shifts-page-header"
+        {/* The display heading doubles as the location switcher — the marketing
+            title itself opens the location menu (styled to match, below). */}
+        <div className="pb-2">
+          <p className={`${eyebrowLight} mb-4`}>
+            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            Browse volunteer shifts
+          </p>
+          <h1
+            className="display text-4xl italic leading-[1.0] tracking-tight text-forest-700 sm:text-5xl lg:text-6xl dark:text-cream-50"
+            data-testid="shifts-page-header"
+          >
+            <LocationSwitcher
+              locations={liveLocations.map(({ name, isNew }) => ({
+                name,
+                isNew,
+              }))}
+              selectedLocation={selectedLocation}
+              showAll={showAll}
+              isLoggedIn={isLoggedIn}
+              userDefaultLocation={userDefaultLocation}
+            />
+          </h1>
+          {selectedLocation && addressByName.get(selectedLocation) && (
+            <div
+              className="mt-4 flex items-start gap-2 text-sm text-forest-700/70 dark:text-cream-50/70"
+              data-testid="restaurant-address-banner"
             >
-              <em>{headingTitle}</em>
-            </h1>
-            {selectedLocation && addressByName.get(selectedLocation) && (
-              <div
-                className="mt-4 flex items-start gap-2 text-sm text-forest-700/70 dark:text-cream-50/70"
-                data-testid="restaurant-address-banner"
+              <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-forest-500 dark:text-cream-50/70" />
+              <a
+                href={getGoogleMapsUrl(addressByName.get(selectedLocation)!)}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="restaurant-address"
+                className="text-left underline-offset-4 hover:text-forest-500 hover:underline dark:hover:text-cream-50"
               >
-                <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-forest-500 dark:text-cream-50/70" />
-                <a
-                  href={getGoogleMapsUrl(addressByName.get(selectedLocation)!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-testid="restaurant-address"
-                  className="text-left underline-offset-4 hover:text-forest-500 hover:underline dark:hover:text-cream-50"
-                >
-                  {addressByName.get(selectedLocation)}
-                </a>
-              </div>
-            )}
-          </div>
-
-          {/* Back to locations button */}
-          <div className="flex-shrink-0">
-            <Link
-              href="/shifts?chooseLocation=true"
-              className="inline-flex items-center gap-2 rounded-full border border-forest-500/25 px-5 py-2.5 text-sm font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500 hover:bg-forest-500 hover:text-cream-50 hover:shadow-lg dark:border-cream-50/25 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
-              data-testid="back-to-locations-button"
-            >
-              ← Choose Different Location
-            </Link>
-          </div>
+                {addressByName.get(selectedLocation)}
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Profile completion banner - shows if profile incomplete */}
