@@ -191,16 +191,34 @@ export function ShiftsCalendar({
     return "available";
   };
 
-  const getStatusColor = (status: string) => {
+  /**
+   * Availability styling in the marketing palette. Colour lives in a compact
+   * dot + chip rather than a full-cell fill, so the month reads calm and
+   * editorial while still being scannable: forest = plenty, sun = few left,
+   * hollow outline = full (waitlist).
+   */
+  const statusMeta = (status: string, spots: number) => {
     switch (status) {
       case "available":
-        return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700";
+        return {
+          label: `${spots} open`,
+          dot: "bg-forest-500",
+          chip: "bg-forest-500/10 text-forest-700 dark:bg-forest-400/20 dark:text-cream-50",
+        };
       case "limited":
-        return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700";
+        return {
+          label: `${spots} left`,
+          dot: "bg-sun-300",
+          chip: "bg-sun-200/70 text-forest-800 dark:bg-sun-300/15 dark:text-sun-100",
+        };
       case "full":
-        return "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700";
+        return {
+          label: "Waitlist",
+          dot: "ring-1 ring-inset ring-forest-500/50 dark:ring-cream-50/40",
+          chip: "bg-forest-500/[0.06] text-forest-700/65 dark:bg-cream-50/10 dark:text-cream-50/65",
+        };
       default:
-        return "bg-gray-50 dark:bg-gray-900/30 text-gray-400 dark:text-gray-600";
+        return { label: "", dot: "", chip: "" };
     }
   };
 
@@ -245,23 +263,27 @@ export function ShiftsCalendar({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={previousMonth}
             disabled={
               format(currentMonth, "yyyy-MM") <= format(nowDate, "yyyy-MM")
             }
             data-testid="calendar-prev-month"
+            aria-label="Previous month"
+            className="h-9 w-9 rounded-full border-forest-500/25 text-forest-700 transition-colors hover:border-forest-500 hover:bg-forest-500 hover:text-cream-50 disabled:opacity-40 dark:border-cream-50/20 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={nextMonth}
             data-testid="calendar-next-month"
+            aria-label="Next month"
+            className="h-9 w-9 rounded-full border-forest-500/25 text-forest-700 transition-colors hover:border-forest-500 hover:bg-forest-500 hover:text-cream-50 dark:border-cream-50/20 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -290,7 +312,9 @@ export function ShiftsCalendar({
               {!selectedLocation && (
                 <div className="bg-forest-500/5 dark:bg-forest-700/30 px-6 py-4 border-b border-forest-500/10 dark:border-cream-50/10">
                   <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-primary" />
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-forest-500/10 text-forest-500 dark:bg-cream-50/10 dark:text-cream-50/80">
+                      <MapPin className="h-5 w-5" />
+                    </span>
                     <h3 className="display text-lg sm:text-xl tracking-tight text-forest-700 dark:text-cream-50">
                       {location}
                     </h3>
@@ -305,7 +329,7 @@ export function ShiftsCalendar({
                     (day, i) => (
                       <div
                         key={day}
-                        className="text-center text-[10px] sm:text-sm font-medium text-muted-foreground py-1 sm:py-2"
+                        className="text-center text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-forest-700/50 dark:text-cream-50/45 py-1 sm:py-2"
                       >
                         <span className="sm:hidden">{["S", "M", "T", "W", "T", "F", "S"][i]}</span>
                         <span className="hidden sm:inline">{day}</span>
@@ -328,117 +352,122 @@ export function ShiftsCalendar({
                     const isPastDate = dayStart < today;
                     const isToday = isSameDay(dayShifts.date, today);
 
+                    const meta = statusMeta(status, dayShifts.spotsAvailable);
+                    const isInteractive =
+                      isCurrentMonth && !isPastDate && status !== "none";
+
                     const dayContent = (
                       <div
                         className={cn(
-                          "relative aspect-square rounded-xl transition-all duration-300 group overflow-hidden",
-                          isCurrentMonth
-                            ? isPastDate
-                              ? "border-2 border-forest-500/10 dark:border-cream-50/10 bg-forest-500/5 dark:bg-forest-800/50 opacity-60"
-                              : isToday
-                              ? "bg-sun-100/70 dark:bg-forest-700/40 border-2 border-forest-500 dark:border-forest-400 shadow-lg ring-4 ring-sun-200/40 dark:ring-forest-500/30"
-                              : status === "none"
-                              ? "border-2 border-forest-500/10 dark:border-cream-50/10 bg-card dark:bg-forest-800/40 hover:bg-forest-500/5 dark:hover:bg-cream-50/5"
-                              : `border-2 ${getStatusColor(
-                                  status
-                                )} hover:shadow-lg hover:scale-[1.02] cursor-pointer transform-gpu`
-                            : "border border-forest-500/5 dark:border-cream-50/5 bg-forest-500/[0.03] dark:bg-forest-900/30 opacity-50",
-                          dayShifts.shifts.length > 0 &&
-                            isCurrentMonth &&
+                          "group relative flex aspect-square flex-col items-center justify-center gap-0.5 rounded-2xl p-1 transition-all duration-300 sm:justify-start sm:gap-0 sm:p-2.5",
+                          !isCurrentMonth && "opacity-40",
+                          isCurrentMonth &&
+                            isPastDate &&
+                            "border border-forest-500/10 bg-forest-500/[0.03] opacity-55 dark:border-cream-50/10 dark:bg-forest-900/30",
+                          isCurrentMonth &&
                             !isPastDate &&
-                            "hover:border-primary/60 shadow-md"
+                            isToday &&
+                            "border-2 border-forest-500 bg-sun-100/60 shadow-sm dark:border-forest-400 dark:bg-forest-700/40",
+                          isCurrentMonth &&
+                            !isPastDate &&
+                            isToday &&
+                            isInteractive &&
+                            "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg",
+                          isCurrentMonth &&
+                            !isPastDate &&
+                            !isToday &&
+                            status === "none" &&
+                            "border border-forest-500/10 bg-card dark:border-cream-50/10 dark:bg-forest-800/40",
+                          isInteractive &&
+                            !isToday &&
+                            "cursor-pointer border border-forest-500/15 bg-card shadow-sm hover:-translate-y-0.5 hover:border-forest-500/50 hover:shadow-lg dark:border-cream-50/10 dark:bg-forest-800/50 dark:hover:border-forest-400/50"
                         )}
                         data-testid={`calendar-day-${format(
                           dayShifts.date,
                           "yyyy-MM-dd"
                         )}`}
                       >
-                        {/* Header with date and today indicator */}
-                        <div className="absolute inset-0 sm:top-0 sm:bottom-auto sm:left-0 sm:right-0 sm:relative p-3 sm:h-auto flex items-center justify-center sm:block">
-                          <div className="flex items-center justify-between sm:justify-between w-full">
-                            <span
-                              className={cn(
-                                "text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center transition-colors sm:relative",
-                                !isCurrentMonth &&
-                                  "text-forest-700/35 dark:text-cream-50/30",
-                                isPastDate &&
-                                  isCurrentMonth &&
-                                  "text-forest-700/45 dark:text-cream-50/40",
-                                isToday &&
-                                  isCurrentMonth &&
-                                  "text-cream-50 bg-forest-500 shadow-lg shadow-forest-500/25",
-                                !isToday &&
-                                  isCurrentMonth &&
-                                  !isPastDate &&
-                                  "text-forest-700 dark:text-cream-50/85"
-                              )}
-                            >
-                              {format(dayShifts.date, "d")}
-                            </span>
-                            {isToday && (
-                              <div className="hidden sm:block text-[10px] font-semibold text-forest-700 dark:text-forest-100 bg-sun-200/80 dark:bg-forest-600/70 px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm">
-                                Today
-                              </div>
+                        {/* Date number — centered at the top of the tile */}
+                        <span
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums transition-colors",
+                            !isCurrentMonth &&
+                              "text-forest-700/35 dark:text-cream-50/30",
+                            isCurrentMonth &&
+                              isPastDate &&
+                              "text-forest-700/45 dark:text-cream-50/40",
+                            isCurrentMonth &&
+                              !isPastDate &&
+                              isToday &&
+                              "bg-forest-500 text-cream-50 shadow-sm shadow-forest-500/30",
+                            isCurrentMonth &&
+                              !isPastDate &&
+                              !isToday &&
+                              "text-forest-700 dark:text-cream-50/85"
+                          )}
+                        >
+                          {format(dayShifts.date, "d")}
+                        </span>
+
+                        {/* Mobile: a small availability dot under the number */}
+                        {isInteractive && (
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full sm:hidden",
+                              meta.dot
                             )}
-                          </div>
-                        </div>
+                            aria-hidden
+                          />
+                        )}
 
-                        {/* Content area */}
-                        <div className="absolute inset-0 pt-12 px-3 flex flex-col">
-                          {dayShifts.shifts.length > 0 &&
-                          isCurrentMonth &&
-                          !isPastDate ? (
+                        {/* Desktop: availability chip + volunteer avatars,
+                            centered in the space beneath the number */}
+                        <div className="hidden flex-1 flex-col items-center justify-center gap-1.5 sm:flex">
+                          {isInteractive ? (
                             <>
-                              {/* Status indicator - absolutely centered - hidden on mobile */}
-                              <div className="hidden sm:flex absolute inset-x-3 top-12 bottom-8 items-center justify-center">
-                                <div className="text-center">
-                                  {status === "full" ? (
-                                    <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-orange-100/80 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs font-semibold">
-                                      WAITLIST
-                                    </div>
-                                  ) : status === "limited" ? (
-                                    <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-yellow-100/80 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-xs font-semibold">
-                                      {dayShifts.spotsAvailable} LEFT
-                                    </div>
-                                  ) : (
-                                    <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-100/80 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-xs font-semibold">
-                                      {dayShifts.spotsAvailable} available
-                                    </div>
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                  meta.chip
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    "h-1.5 w-1.5 rounded-full",
+                                    meta.dot
                                   )}
-                                </div>
-                              </div>
-
-                              {/* Volunteer avatars at bottom - fixed position - hidden on mobile */}
+                                  aria-hidden
+                                />
+                                {meta.label}
+                              </span>
                               {dayShifts.totalConfirmed > 0 && (
-                                <div className="hidden sm:flex absolute bottom-2 left-0 right-0 justify-center">
-                                  <AvatarList
-                                    users={dayShifts.allFriendSignups.map(
-                                      (signup) => signup.user
-                                    )}
-                                    maxDisplay={2}
-                                    size="sm"
-                                    totalCount={dayShifts.totalConfirmed}
-                                    enableLinks={(user) => {
-                                      const signup = dayShifts.allFriendSignups.find(
+                                <AvatarList
+                                  users={dayShifts.allFriendSignups.map(
+                                    (signup) => signup.user
+                                  )}
+                                  maxDisplay={2}
+                                  size="sm"
+                                  totalCount={dayShifts.totalConfirmed}
+                                  enableLinks={(user) => {
+                                    const signup =
+                                      dayShifts.allFriendSignups.find(
                                         (s) => s.user.id === user.id
                                       );
-                                      return signup?.isFriend ?? false;
-                                    }}
-                                  />
-                                </div>
+                                    return signup?.isFriend ?? false;
+                                  }}
+                                />
                               )}
                             </>
-                          ) : (
-                            <div className="hidden sm:flex absolute inset-x-3 top-12 bottom-3 items-center justify-center">
-                              {!isPastDate && isCurrentMonth && (
-                                <div className="text-center">
-                                  <div className="text-xs text-gray-400 dark:text-gray-500 font-medium">
-                                    No shifts
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          ) : isCurrentMonth && !isPastDate && isToday ? (
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-forest-700/70 dark:text-cream-50/60">
+                              Today
+                            </span>
+                          ) : isCurrentMonth && !isPastDate ? (
+                            <span
+                              className="h-1 w-1 rounded-full bg-forest-500/25 dark:bg-cream-50/20"
+                              aria-hidden
+                            />
+                          ) : null}
                         </div>
                       </div>
                     );
