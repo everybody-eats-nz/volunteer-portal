@@ -1,3 +1,9 @@
+## [0.139.1] - 2026-07-02
+
+### Changes
+- style: make the Change location pill less muted ([#1081](https://github.com/everybody-eats-nz/volunteer-portal/pull/1081)) by @malinmalliyawadu
+
+
 ## [0.139.0] - 2026-07-02
 
 ### Changes
