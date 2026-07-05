@@ -103,8 +103,17 @@ export default function UserProfileScreen() {
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Pull the freshly-friends payload (now includes the connection block)
-      // so the screen flips to the rich layout without a manual reload.
-      await refresh();
+      // so the screen flips to the rich layout without a manual reload. The
+      // request itself succeeded at this point, so a refresh failure only
+      // delays the rich view — tell the user they're connected either way.
+      try {
+        await refresh();
+      } catch {
+        Alert.alert(
+          "You're connected!",
+          `You're now friends with ${firstName}. Pull to refresh to see their full profile.`
+        );
+      }
     } catch {
       Alert.alert("Couldn't accept request", "Please try again in a moment.");
     } finally {
@@ -768,13 +777,24 @@ function FullProfile({
             ]}
           >
             <Text style={[styles.bentoLabel, { color: colors.textSecondary }]}>
-              TOTAL SHIFTS
+              MUTUAL FRIENDS
             </Text>
             <Text style={[styles.bentoMiniValue, { color: colors.text }]}>
-              {profile.totalShifts}
+              {connection.mutualFriends}
             </Text>
           </View>
         </View>
+      </View>
+
+      {/* ── Achievements ───────────────────────────────── */}
+      <SectionHeading title="Achievements" colors={colors} />
+      <View style={styles.section}>
+        <TrophyShelf
+          achievements={connection.achievements}
+          firstName={firstName}
+          colors={colors}
+          isDark={isDark}
+        />
       </View>
 
       {/* ── Their Mahi ─────────────────────────────────── */}
@@ -850,8 +870,8 @@ function FullProfile({
         </View>
       </View>
 
-      {/* ── Shared moments ─────────────────────────────── */}
-      <SectionHeading title="Shared moments" colors={colors} />
+      {/* ── Shared shifts ──────────────────────────────── */}
+      <SectionHeading title="Shared shifts" colors={colors} />
       <View style={styles.section}>
         {connection.sharedShifts.length > 0 ? (
           <View>
@@ -1152,6 +1172,170 @@ function Badge({
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Text style={{ fontSize: 12 }}>{emoji}</Text>
       <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * The friend's achievements rendered as "plates on a shelf" — a featured
+ * latest unlock, then the rest as a horizontally scrolling row of plates.
+ * Tolerates an undefined payload (older cached profiles) by showing the
+ * empty state.
+ */
+function TrophyShelf({
+  achievements,
+  firstName,
+  colors,
+  isDark,
+}: {
+  achievements: UserConnection["achievements"] | undefined;
+  firstName: string;
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  if (!achievements || achievements.unlockedCount === 0) {
+    return (
+      <EmptyCanvas
+        title="The shelf is waiting"
+        subtitle={`${firstName} hasn't unlocked any achievements yet — their first shift will start the collection.`}
+        colors={colors}
+        isDark={isDark}
+      />
+    );
+  }
+
+  const [latest, ...rest] = achievements.items;
+  const overflow = achievements.unlockedCount - achievements.items.length;
+
+  return (
+    <View style={{ gap: 12 }}>
+      <Text style={[styles.shelfSummary, { color: colors.textSecondary }]}>
+        {achievements.unlockedCount} of {achievements.totalCount} unlocked ·{" "}
+        {achievements.totalPoints} points
+      </Text>
+
+      {/* Featured latest unlock */}
+      <View
+        style={[
+          styles.featuredUnlock,
+          {
+            backgroundColor: colors.card,
+            borderColor: isDark ? "rgba(248,251,105,0.25)" : Palette.sun300,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.plate,
+            styles.plateLarge,
+            {
+              backgroundColor: isDark
+                ? "rgba(248,251,105,0.12)"
+                : Palette.sun100,
+              borderColor: isDark ? "rgba(248,251,105,0.3)" : Palette.sun300,
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 30 }}>{latest.icon}</Text>
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text
+            style={[styles.featureEyebrow, { color: colors.textSecondary }]}
+          >
+            LATEST UNLOCK
+          </Text>
+          <Text
+            style={[styles.featuredUnlockName, { color: colors.text }]}
+            numberOfLines={1}
+          >
+            {latest.name}
+          </Text>
+          <Text
+            style={[styles.featuredUnlockMeta, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {latest.description}
+          </Text>
+          <Text
+            style={[
+              styles.featuredUnlockDate,
+              { color: isDark ? Brand.accentSubtle : Brand.greenHover },
+            ]}
+          >
+            +{latest.points} pts · {formatNZT(new Date(latest.unlockedAt), "MMM yyyy")}
+          </Text>
+        </View>
+      </View>
+
+      {/* The shelf */}
+      {rest.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.shelfScroll}
+        >
+          {rest.map((achievement) => (
+            <View
+              key={achievement.id}
+              style={[
+                styles.shelfItem,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              accessibilityLabel={`${achievement.name}: ${achievement.description}`}
+            >
+              <View
+                style={[
+                  styles.plate,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(248,251,105,0.10)"
+                      : Palette.cream100,
+                    borderColor: isDark
+                      ? "rgba(248,251,105,0.16)"
+                      : colors.border,
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 22 }}>{achievement.icon}</Text>
+              </View>
+              <Text
+                style={[styles.shelfItemName, { color: colors.text }]}
+                numberOfLines={2}
+              >
+                {achievement.name}
+              </Text>
+              <Text
+                style={[styles.shelfItemPoints, { color: colors.textSecondary }]}
+              >
+                {achievement.points} pts
+              </Text>
+            </View>
+          ))}
+          {overflow > 0 && (
+            <View
+              style={[
+                styles.shelfItem,
+                styles.shelfOverflow,
+                { borderColor: colors.border },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.shelfOverflowCount,
+                  { color: isDark ? Palette.forest200 : Brand.green },
+                ]}
+              >
+                +{overflow}
+              </Text>
+              <Text
+                style={[styles.shelfItemPoints, { color: colors.textSecondary }]}
+              >
+                more
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -1862,6 +2046,84 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     marginBottom: 4,
     marginTop: -4,
+  },
+
+  /* Trophy shelf */
+  shelfSummary: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.2,
+    marginTop: -4,
+  },
+  featuredUnlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  featuredUnlockName: {
+    fontSize: 17,
+    fontFamily: FontFamily.heading,
+    letterSpacing: -0.2,
+  },
+  featuredUnlockMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    lineHeight: 17,
+  },
+  featuredUnlockDate: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    marginTop: 2,
+  },
+  plate: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  plateLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  shelfScroll: {
+    gap: 10,
+    paddingRight: HORIZONTAL,
+  },
+  shelfItem: {
+    width: 104,
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  shelfItemName: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    textAlign: "center",
+    lineHeight: 16,
+  },
+  shelfItemPoints: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.3,
+  },
+  shelfOverflow: {
+    justifyContent: "center",
+    borderStyle: "dashed",
+    borderWidth: 1,
+  },
+  shelfOverflowCount: {
+    fontSize: 22,
+    fontFamily: FontFamily.headingBold,
+    letterSpacing: -0.5,
   },
 
   /* Empty canvas */

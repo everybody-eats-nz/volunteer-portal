@@ -215,6 +215,20 @@ export async function GET(
       time: string;
       location: string;
     }>;
+    achievements: {
+      unlockedCount: number;
+      totalCount: number;
+      totalPoints: number;
+      items: Array<{
+        id: string;
+        name: string;
+        description: string;
+        icon: string;
+        category: string;
+        points: number;
+        unlockedAt: string;
+      }>;
+    };
   } | null = null;
 
   if (friendshipStatus === "FRIENDS" && acceptedFriendship) {
@@ -225,6 +239,8 @@ export async function GET(
       mutualResult,
       favoriteRoleResult,
       upcomingShiftsRaw,
+      unlockedAchievements,
+      activeAchievementCount,
     ] = await Promise.all([
       prisma.$queryRaw<[{ count: bigint }]>`
         SELECT COUNT(*)::bigint as count
@@ -341,6 +357,27 @@ export async function GET(
         ORDER BY sh.start ASC
         LIMIT 5
       `,
+      // Intentionally un-capped: unlockedCount and totalPoints are computed
+      // from the full set below; only `items` is sliced to 12 for the shelf.
+      // The achievement catalogue is small (<20 active), so this stays cheap.
+      prisma.userAchievement.findMany({
+        where: { userId: targetId },
+        orderBy: { unlockedAt: "desc" },
+        select: {
+          unlockedAt: true,
+          achievement: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              icon: true,
+              category: true,
+              points: true,
+            },
+          },
+        },
+      }),
+      prisma.achievement.count({ where: { isActive: true } }),
     ]);
 
     const shiftsThisMonth = Number(shiftsThisMonthResult[0].count);
@@ -376,6 +413,23 @@ export async function GET(
       favoriteRoleCount: Number(favoriteRoleResult[0]?.count ?? 0),
       sharedShifts,
       upcomingShifts,
+      achievements: {
+        unlockedCount: unlockedAchievements.length,
+        totalCount: activeAchievementCount,
+        totalPoints: unlockedAchievements.reduce(
+          (sum, ua) => sum + ua.achievement.points,
+          0
+        ),
+        items: unlockedAchievements.slice(0, 12).map((ua) => ({
+          id: ua.achievement.id,
+          name: ua.achievement.name,
+          description: ua.achievement.description,
+          icon: ua.achievement.icon,
+          category: ua.achievement.category,
+          points: ua.achievement.points,
+          unlockedAt: ua.unlockedAt.toISOString(),
+        })),
+      },
     };
   }
 
