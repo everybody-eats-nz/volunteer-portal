@@ -38,6 +38,20 @@ export type UserConnection = {
     time: string;
     location: string;
   }>;
+  achievements: {
+    unlockedCount: number;
+    totalCount: number;
+    totalPoints: number;
+    items: Array<{
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      category: string;
+      points: number;
+      unlockedAt: string;
+    }>;
+  };
 };
 
 export type UserProfile = {
