@@ -523,8 +523,8 @@ export async function FriendProfileContent({
 
         {/* ── Shared moments ─────────────────────────────────── */}
         <MotionFriendStats delay={0.3}>
-          <section data-testid="shared-moments">
-            <SectionHeading title="Shared moments" />
+          <section data-testid="shared-shifts">
+            <SectionHeading title="Shared shifts" />
             {sharedShifts.length > 0 ? (
               <ol>
                 {sharedShifts.slice(0, 5).map((shift, idx) => {

@@ -861,8 +861,8 @@ function FullProfile({
         </View>
       </View>
 
-      {/* ── Shared moments ─────────────────────────────── */}
-      <SectionHeading title="Shared moments" colors={colors} />
+      {/* ── Shared shifts ──────────────────────────────── */}
+      <SectionHeading title="Shared shifts" colors={colors} />
       <View style={styles.section}>
         {connection.sharedShifts.length > 0 ? (
           <View>
