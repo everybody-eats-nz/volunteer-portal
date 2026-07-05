@@ -7,6 +7,7 @@ import {
   deleteTestShifts,
   deleteTestUsers,
   getUserByEmail,
+  visibleTestId,
 } from "./helpers/test-helpers";
 
 /**
@@ -23,6 +24,9 @@ import {
  * admin shift API.
  */
 test.describe.configure({ mode: "serial" });
+
+// The page streams its content in via Suspense after several DB queries
+const PAGE_LOAD_TIMEOUT = 15000;
 
 const FRIEND_FIRST_NAME = "Aroha";
 const FRIEND_LAST_NAME = "Ngata";
@@ -45,15 +49,6 @@ function shiftStartDaysFromNow(days: number): Date {
   const start = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   start.setUTCHours(0, 30, 0, 0);
   return start;
-}
-
-/**
- * Next.js streaming can briefly render two copies of the page content
- * (loading + streamed tree), which trips Playwright's strict mode on
- * page-level testids. Scope to the visible instance.
- */
-function visibleTestId(page: Page, testId: string) {
-  return page.locator(`[data-testid="${testId}"]:visible`);
 }
 
 async function withPage<T>(
@@ -194,7 +189,14 @@ test.afterAll(async ({ browser }) => {
     await deleteTestUsers(page, [viewerEmail, friendEmail]);
     await deleteTestShifts(page, shiftIds);
     if (achievementId) {
-      await page.request.delete(`/api/admin/achievements/${achievementId}`);
+      const deleteResponse = await page.request.delete(
+        `/api/admin/achievements/${achievementId}`
+      );
+      if (!deleteResponse.ok()) {
+        console.warn(
+          `Failed to delete achievement ${achievementId}: ${await deleteResponse.text()}`
+        );
+      }
     }
   });
 });
@@ -207,7 +209,7 @@ test.describe("Friend Profile Page", () => {
 
   test("renders the hero with the friend's name", async ({ page }) => {
     const hero = visibleTestId(page, "friend-profile-hero");
-    await expect(hero).toBeVisible({ timeout: 15000 });
+    await expect(hero).toBeVisible({ timeout: PAGE_LOAD_TIMEOUT });
     await expect(hero).toContainText(FRIEND_DISPLAY_NAME);
     // Friendship context is part of the hero band
     await expect(hero).toContainText("Connected since");
@@ -215,7 +217,7 @@ test.describe("Friend Profile Page", () => {
 
   test("renders the together bento stats", async ({ page }) => {
     const statsGrid = visibleTestId(page, "friend-stats-grid");
-    await expect(statsGrid).toBeVisible({ timeout: 15000 });
+    await expect(statsGrid).toBeVisible({ timeout: PAGE_LOAD_TIMEOUT });
 
     // Scope to the grid: a "shared-shifts" testid also exists on the
     // shared-shifts timeline section further down the page.
@@ -234,7 +236,7 @@ test.describe("Friend Profile Page", () => {
     page,
   }) => {
     const achievements = visibleTestId(page, "friend-achievements");
-    await expect(achievements).toBeVisible({ timeout: 15000 });
+    await expect(achievements).toBeVisible({ timeout: PAGE_LOAD_TIMEOUT });
 
     // The friend has UserAchievement rows, so the featured card renders
     // instead of the empty state.
@@ -248,7 +250,7 @@ test.describe("Friend Profile Page", () => {
     page,
   }) => {
     const upcomingShifts = visibleTestId(page, "upcoming-shifts");
-    await expect(upcomingShifts).toBeVisible({ timeout: 15000 });
+    await expect(upcomingShifts).toBeVisible({ timeout: PAGE_LOAD_TIMEOUT });
 
     const expectedHref = `/shifts/details?date=${upcomingShiftDate}&location=${encodeURIComponent(
       SHIFT_LOCATION
