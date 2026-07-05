@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth-options";
 import { MotionPageContainer } from "@/components/motion-page-container";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { FriendProfileContent } from "./friend-profile-content";
 import type { Metadata } from "next";
@@ -15,71 +17,6 @@ export const metadata: Metadata = {
     follow: false,
   },
 };
-
-/** Loading skeleton mirroring the redesigned layout: dark profile panel,
-    stat band, two panels, upcoming shifts. */
-function FriendProfileSkeleton() {
-  return (
-    <div className="animate-pulse space-y-8" aria-hidden>
-      {/* Profile header panel */}
-      <div className="rounded-[2rem] bg-forest-700/90 p-6 sm:p-10">
-        <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-          <div className="h-24 w-24 rounded-full bg-cream-50/10 sm:h-28 sm:w-28" />
-          <div className="flex-1 space-y-3">
-            <div className="h-3 w-40 rounded-full bg-cream-50/10" />
-            <div className="h-10 w-56 rounded-full bg-cream-50/10" />
-            <div className="h-4 w-36 rounded-full bg-cream-50/10" />
-          </div>
-        </div>
-      </div>
-
-      {/* Stat band */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl bg-forest-500/10 ring-1 ring-forest-500/10 lg:grid-cols-4 dark:bg-cream-50/10 dark:ring-cream-50/10">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-background px-5 py-6 sm:px-8 sm:py-8">
-            <div className="h-10 w-16 rounded-full bg-forest-500/10 dark:bg-cream-50/10" />
-            <div className="mt-3 h-3 w-24 rounded-full bg-forest-500/10 dark:bg-cream-50/10" />
-          </div>
-        ))}
-      </div>
-
-      {/* Two panels */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {[1, 2].map((i) => (
-          <div
-            key={i}
-            className="rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10"
-          >
-            <div className="h-3 w-36 rounded-full bg-forest-500/10 dark:bg-cream-50/10" />
-            <div className="mt-3 h-8 w-48 rounded-full bg-forest-500/10 dark:bg-cream-50/10" />
-            <div className="mt-6 space-y-3">
-              {[1, 2, 3].map((j) => (
-                <div
-                  key={j}
-                  className="h-16 rounded-2xl bg-forest-500/5 ring-1 ring-forest-500/10 dark:bg-cream-50/5 dark:ring-cream-50/10"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Upcoming shifts panel */}
-      <div className="rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
-        <div className="h-3 w-44 rounded-full bg-forest-500/10 dark:bg-cream-50/10" />
-        <div className="mt-3 h-8 w-64 rounded-full bg-forest-500/10 dark:bg-cream-50/10" />
-        <div className="mt-6 space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-20 rounded-2xl bg-forest-500/5 ring-1 ring-forest-500/10 dark:bg-cream-50/5 dark:ring-cream-50/10"
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default async function FriendProfilePage({
   params,
@@ -97,19 +34,83 @@ export default async function FriendProfilePage({
     <MotionPageContainer testid="friend-profile-page">
       <div className="space-y-8">
         {/* Header with back button renders immediately */}
-        <div>
-          <Link
-            href="/friends"
-            className="inline-flex items-center gap-2 rounded-full border border-forest-500/20 px-4 py-2 text-xs font-medium text-forest-700/80 transition-all duration-200 hover:border-forest-500/50 hover:text-forest-700 dark:border-cream-50/20 dark:text-cream-50/75 dark:hover:border-cream-50/50 dark:hover:text-cream-50"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            <span className="hidden sm:inline">Back to Friends</span>
-            <span className="sm:hidden">Back</span>
-          </Link>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" asChild className="hover:bg-accent/50">
+            <Link href="/friends" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Friends</span>
+              <span className="sm:hidden">Back</span>
+            </Link>
+          </Button>
         </div>
 
         {/* Friend profile content streams in */}
-        <Suspense fallback={<FriendProfileSkeleton />}>
+        <Suspense
+          fallback={
+            <div className="space-y-12">
+              {/* Hero band skeleton */}
+              <div className="overflow-hidden rounded-3xl border border-border">
+                <div className="flex flex-col items-start gap-6 p-8 sm:flex-row sm:items-center sm:gap-8 sm:p-10">
+                  <Skeleton className="h-24 w-24 shrink-0 rounded-full sm:h-28 sm:w-28" />
+                  <div className="space-y-3">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-11 w-64" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Together bento skeleton */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:grid-rows-2">
+                <Skeleton className="col-span-2 row-span-2 min-h-[200px] rounded-3xl" />
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-[92px] rounded-2xl" />
+                ))}
+              </div>
+
+              {/* Trophy shelf skeleton */}
+              <div>
+                <div className="mb-5 flex items-center gap-4">
+                  <Skeleton className="h-7 w-36" />
+                  <Skeleton className="h-px flex-1" />
+                </div>
+                <Skeleton className="mb-4 h-28 rounded-3xl" />
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-32 rounded-2xl" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Their mahi + shared moments skeleton */}
+              <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-8">
+                {[1, 2].map((col) => (
+                  <div key={col}>
+                    <div className="mb-5 flex items-center gap-4">
+                      <Skeleton className="h-7 w-36" />
+                      <Skeleton className="h-px flex-1" />
+                    </div>
+                    <Skeleton className="h-24 rounded-2xl" />
+                    <Skeleton className="mt-4 h-24 rounded-2xl" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Join them skeleton */}
+              <div>
+                <div className="mb-5 flex items-center gap-4">
+                  <Skeleton className="h-7 w-36" />
+                  <Skeleton className="h-px flex-1" />
+                </div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-[88px] rounded-2xl" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          }
+        >
           <FriendProfileContent friendId={friendId} />
         </Suspense>
       </div>
