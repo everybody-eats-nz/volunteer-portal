@@ -418,7 +418,7 @@ export async function FriendProfileContent({
       <MotionFriendStats delay={0.18}>
         <section data-testid="friend-achievements">
           <SectionHeading
-            title="Trophy shelf"
+            title="Achievements"
             meta={
               unlockedAchievements.length > 0
                 ? `${unlockedAchievements.length} of ${activeAchievementCount} unlocked · ${totalPoints} points`
@@ -428,10 +428,18 @@ export async function FriendProfileContent({
           {latestUnlock ? (
             <div className="space-y-4">
               {/* Featured latest unlock */}
-              <div className="flex items-center gap-5 rounded-3xl border border-forest-500/15 bg-gradient-to-r from-sun-100/60 via-card to-card p-5 dark:border-border dark:from-sun-200/10 sm:p-6">
-                <AchievementPlate icon={latestUnlock.achievement.icon} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500 dark:text-forest-200">
+              <div className="relative flex items-center gap-5 overflow-hidden rounded-3xl border border-sun-300/50 bg-gradient-to-r from-sun-100/80 via-card to-card p-5 dark:border-sun-200/25 dark:from-sun-200/15 dark:via-sun-200/[0.04] dark:to-transparent sm:p-6">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -left-12 -top-14 h-40 w-40 rounded-full bg-sun-200/40 blur-2xl dark:bg-sun-200/15"
+                />
+                <AchievementPlate
+                  icon={latestUnlock.achievement.icon}
+                  size="lg"
+                  featured
+                />
+                <div className="relative min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-500 dark:text-sun-200">
                     Latest unlock
                   </p>
                   <p className="mt-1 truncate font-accent text-xl font-semibold text-foreground">
@@ -440,12 +448,16 @@ export async function FriendProfileContent({
                   <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                     {latestUnlock.achievement.description}
                   </p>
-                </div>
-                <div className="hidden shrink-0 text-right sm:block">
-                  <p className="text-sm font-semibold text-foreground">
-                    +{latestUnlock.achievement.points} pts
+                  <p className="mt-2 text-xs font-medium text-muted-foreground sm:hidden">
+                    +{latestUnlock.achievement.points} pts ·{" "}
+                    {formatInNZT(latestUnlock.unlockedAt, "MMM d, yyyy")}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                </div>
+                <div className="relative hidden shrink-0 flex-col items-end gap-1.5 sm:flex">
+                  <span className="inline-flex items-center rounded-full bg-forest-500/10 px-3 py-1 text-xs font-bold text-forest-600 dark:bg-sun-200/15 dark:text-sun-200">
+                    +{latestUnlock.achievement.points} pts
+                  </span>
+                  <p className="text-xs text-muted-foreground">
                     {formatInNZT(latestUnlock.unlockedAt, "MMM d, yyyy")}
                   </p>
                 </div>
@@ -458,13 +470,15 @@ export async function FriendProfileContent({
                     <li
                       key={ua.achievement.id}
                       title={`${ua.achievement.description} · unlocked ${formatInNZT(ua.unlockedAt, "MMM d, yyyy")}`}
-                      className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center transition-colors hover:border-forest-500/30"
+                      className="group flex flex-col items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-4 pt-5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/30 hover:shadow-md dark:hover:border-sun-200/30"
                     >
-                      <AchievementPlate icon={ua.achievement.icon} />
+                      <div className="transition-transform duration-200 group-hover:scale-110">
+                        <AchievementPlate icon={ua.achievement.icon} />
+                      </div>
                       <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
                         {ua.achievement.name}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="-mt-1 text-[11px] font-medium text-forest-500/80 dark:text-sun-200/70">
                         {ua.achievement.points} pts
                       </p>
                     </li>
@@ -693,18 +707,28 @@ function BentoStat({
 function AchievementPlate({
   icon,
   size = "md",
+  featured = false,
 }: {
   icon: string;
   size?: "md" | "lg";
+  featured?: boolean;
 }) {
   return (
     <div
       aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-full border border-forest-500/15 bg-cream-100 shadow-[inset_0_0_0_5px_rgba(253,248,239,0.9)] dark:border-border dark:bg-white/[0.06] dark:shadow-[inset_0_0_0_5px_rgba(255,255,255,0.04)] ${
-        size === "lg" ? "h-20 w-20 text-4xl" : "h-14 w-14 text-2xl"
-      }`}
+      className={`relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-b shadow-sm ${
+        featured
+          ? "from-sun-100 to-cream-200 ring-2 ring-sun-300/70 dark:from-sun-200/25 dark:to-sun-200/[0.06] dark:ring-sun-200/40"
+          : "from-cream-100 to-cream-200 ring-1 ring-forest-500/15 dark:from-sun-200/[0.14] dark:to-white/[0.02] dark:ring-sun-200/20"
+      } ${size === "lg" ? "h-20 w-20 text-4xl" : "h-14 w-14 text-2xl"}`}
     >
-      <span>{icon}</span>
+      {/* Inner rim — reads as the lip of a plate */}
+      <div
+        className={`pointer-events-none absolute rounded-full border border-forest-500/10 dark:border-cream-50/10 ${
+          size === "lg" ? "inset-2" : "inset-1.5"
+        }`}
+      />
+      <span className="drop-shadow-sm">{icon}</span>
     </div>
   );
 }

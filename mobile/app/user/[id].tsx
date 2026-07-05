@@ -777,8 +777,8 @@ function FullProfile({
         </View>
       </View>
 
-      {/* ── Trophy shelf ───────────────────────────────── */}
-      <SectionHeading title="Trophy shelf" colors={colors} />
+      {/* ── Achievements ───────────────────────────────── */}
+      <SectionHeading title="Achievements" colors={colors} />
       <View style={styles.section}>
         <TrophyShelf
           achievements={connection.achievements}
@@ -1279,9 +1279,11 @@ function TrophyShelf({
                   styles.plate,
                   {
                     backgroundColor: isDark
-                      ? "rgba(255,255,255,0.06)"
+                      ? "rgba(248,251,105,0.10)"
                       : Palette.cream100,
-                    borderColor: colors.border,
+                    borderColor: isDark
+                      ? "rgba(248,251,105,0.16)"
+                      : colors.border,
                   },
                 ]}
               >
