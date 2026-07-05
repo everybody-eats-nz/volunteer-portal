@@ -357,6 +357,9 @@ export async function GET(
         ORDER BY sh.start ASC
         LIMIT 5
       `,
+      // Intentionally un-capped: unlockedCount and totalPoints are computed
+      // from the full set below; only `items` is sliced to 12 for the shelf.
+      // The achievement catalogue is small (<20 active), so this stays cheap.
       prisma.userAchievement.findMany({
         where: { userId: targetId },
         orderBy: { unlockedAt: "desc" },

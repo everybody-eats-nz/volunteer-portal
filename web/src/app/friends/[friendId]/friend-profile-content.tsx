@@ -217,7 +217,10 @@ export async function FriendProfileContent({
     .filter((id) => id !== user.id && id !== friendId && userFriendIds.has(id))
     .length;
 
-  // Match shared shifts based on day, AM/PM, and location
+  // Match shared shifts based on day, AM/PM, and location — deliberately
+  // coarser than exact shift-ID matching so different roles worked during the
+  // same service (e.g. kitchen vs front of house) still count as volunteering
+  // together. One shared "moment" per day/period/location.
   interface SharedShiftMatch {
     id: string;
     start: Date;

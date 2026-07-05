@@ -103,8 +103,17 @@ export default function UserProfileScreen() {
       );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Pull the freshly-friends payload (now includes the connection block)
-      // so the screen flips to the rich layout without a manual reload.
-      await refresh();
+      // so the screen flips to the rich layout without a manual reload. The
+      // request itself succeeded at this point, so a refresh failure only
+      // delays the rich view — tell the user they're connected either way.
+      try {
+        await refresh();
+      } catch {
+        Alert.alert(
+          "You're connected!",
+          `You're now friends with ${firstName}. Pull to refresh to see their full profile.`
+        );
+      }
     } catch {
       Alert.alert("Couldn't accept request", "Please try again in a moment.");
     } finally {
