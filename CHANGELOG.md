@@ -1,3 +1,9 @@
+## [0.140.0] - 2026-07-05
+
+### Changes
+- feat: redesign friend profile pages with achievements on web and mobile ([#1082](https://github.com/everybody-eats-nz/volunteer-portal/pull/1082)) by @malinmalliyawadu
+
+
 ## [0.139.1] - 2026-07-02
 
 ### Changes
