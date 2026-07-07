@@ -413,6 +413,10 @@ export function UsersDataTable({
     setIsLoading(false);
   }, [users]);
 
+  // TanStack Table's useReactTable returns non-memoizable functions, so the
+  // React Compiler correctly bails out of optimizing this hook. That bailout
+  // is expected here, not a defect.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: users,
     columns,

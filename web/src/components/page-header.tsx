@@ -45,22 +45,6 @@ const descriptionVariants: Variants = {
   },
 };
 
-const dividerVariants: Variants = {
-  hidden: {
-    scaleX: 0,
-    opacity: 0,
-  },
-  visible: {
-    scaleX: 1,
-    opacity: 1,
-    transition: {
-      duration: 0.5,
-      delay: 0.25,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  },
-};
-
 const actionsVariants: Variants = {
   hidden: {
     opacity: 0,

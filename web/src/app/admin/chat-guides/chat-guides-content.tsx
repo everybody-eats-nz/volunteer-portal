@@ -7,7 +7,6 @@ import {
   Trash2,
   Pencil,
   FileText,
-  Check,
   X,
   Info,
   Send,
@@ -689,7 +688,7 @@ export function ChatGuidesContent({
       toast({ title: "Removed from chat context", description: removingResource.title });
       setRemoveDialogOpen(false);
       setRemovingResource(null);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove resource from chat",
