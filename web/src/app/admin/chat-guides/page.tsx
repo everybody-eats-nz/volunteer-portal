@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ScrollText } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Button } from "@/components/ui/button";
@@ -18,14 +17,6 @@ export default async function ChatGuidesPage() {
   }
   if (session.user.role !== "ADMIN") {
     redirect("/dashboard");
-  }
-
-  const chatGuidesEnabled = await isFeatureEnabled(
-    FeatureFlag.CHAT_GUIDES,
-    session.user.id,
-  );
-  if (!chatGuidesEnabled) {
-    notFound();
   }
 
   const [chatResources, allResources, chatSettings] = await Promise.all([

@@ -3,6 +3,18 @@
     "app/api/admin/migration/**/*.ts": {
       "maxDuration": 60
     },
+    "app/api/mobile/chat/route.ts": {
+      "maxDuration": 90
+    },
+    "app/api/admin/chat-guides/preview/route.ts": {
+      "maxDuration": 90
+    },
+    "app/api/admin/chat-guides/refine/route.ts": {
+      "maxDuration": 90
+    },
+    "app/api/cron/refresh-website-content/route.ts": {
+      "maxDuration": 300
+    },
     "app/api/**/*.ts": {
       "maxDuration": 30
     }

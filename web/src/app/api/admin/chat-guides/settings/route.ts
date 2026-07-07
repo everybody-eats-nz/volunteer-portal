@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { isValidChatModelId } from "@/lib/chat-model";
+import { invalidateStaticChatContext } from "@/lib/chat-context";
 import { z } from "zod";
 
 const suggestedQuestionSchema = z.object({
@@ -90,6 +91,10 @@ export async function PATCH(request: Request) {
     }
 
     await Promise.all(updates);
+
+    // Serve the new prompt/model immediately (at least on this instance)
+    // instead of waiting out the 5-min static-context cache.
+    invalidateStaticChatContext();
 
     return NextResponse.json({ success: true });
   } catch (error) {
