@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat-model";
 import {
   MessageSquare,
   Plus,
@@ -117,16 +118,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   GENERAL: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
-const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
-
-Key guidelines:
-- Be warm, encouraging, and supportive — volunteers are giving their time for free
-- Weave in te reo Māori naturally: "Kia ora", "ka pai" (well done), "whānau" (family/community), "mahi" (work), "ngā mihi" (thanks)
-- Answer questions based ONLY on the knowledge base provided below
-- If you don't know something or it's not in the knowledge base, say so honestly and suggest they contact the team directly
-- Keep answers concise but thorough — volunteers are often on mobile
-- Use emojis sparingly for warmth 🌿`;
-
 const DEFAULT_QUESTIONS: SuggestedQuestion[] = [
   { emoji: "🍽️", label: "What happens on a typical shift?" },
   { emoji: "🔪", label: "Kitchen safety tips" },
@@ -137,8 +128,8 @@ const DEFAULT_QUESTIONS: SuggestedQuestion[] = [
 // Recommended models — capable enough to answer reliably from the knowledge base.
 // Avoid "nano"/"mini" tiers: they struggle to retrieve facts from long context.
 const RECOMMENDED_MODELS = [
-  "anthropic/claude-sonnet-4",
-  "anthropic/claude-3.7-sonnet",
+  "anthropic/claude-sonnet-4.5",
+  "anthropic/claude-haiku-4.5",
   "openai/gpt-5",
   "google/gemini-2.5-flash",
 ];
@@ -174,6 +165,10 @@ export function ChatGuidesContent({
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedResourceId, setSelectedResourceId] = useState("");
   const [chatContent, setChatContent] = useState("");
+  // Raw text of the URL scrape backing chatContent (LINK resources only) —
+  // saved as lastScrapedContent so the nightly refresh cron can tell page
+  // changes apart from admin edits/refinements.
+  const [addRawScrape, setAddRawScrape] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [isExtractingPdf, setIsExtractingPdf] = useState(false);
   const [isExtractingUrl, setIsExtractingUrl] = useState(false);
@@ -184,6 +179,7 @@ export function ChatGuidesContent({
   const [importTitle, setImportTitle] = useState("");
   const [importCategory, setImportCategory] = useState("GENERAL");
   const [importContent, setImportContent] = useState("");
+  const [importRawScrape, setImportRawScrape] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [isExtractingImportUrl, setIsExtractingImportUrl] = useState(false);
 
@@ -297,6 +293,7 @@ export function ChatGuidesContent({
   const handleResourceSelected = async (resourceId: string) => {
     setSelectedResourceId(resourceId);
     setChatContent("");
+    setAddRawScrape("");
 
     const resource = availableResources.find((r) => r.id === resourceId);
 
@@ -349,6 +346,7 @@ export function ChatGuidesContent({
 
         const { text } = await response.json();
         setChatContent(text);
+        setAddRawScrape(text);
         toast({
           title: "Page content extracted",
           description: "Review and edit the extracted content below.",
@@ -385,8 +383,11 @@ export function ChatGuidesContent({
 
   const isValidEEUrl = (url: string) => {
     try {
-      const parsed = new URL(url);
-      return parsed.hostname.endsWith("everybodyeats.nz");
+      const hostname = new URL(url).hostname.toLowerCase();
+      return (
+        hostname === "everybodyeats.nz" ||
+        hostname.endsWith(".everybodyeats.nz")
+      );
     } catch {
       return false;
     }
@@ -417,6 +418,7 @@ export function ChatGuidesContent({
 
       const { text, title } = await response.json();
       setImportContent(text);
+      setImportRawScrape(text);
       if (!importTitle.trim()) {
         setImportTitle(title);
       }
@@ -451,6 +453,7 @@ export function ChatGuidesContent({
           isPublished: true,
           includeInChat: true,
           chatContent: importContent.trim(),
+          lastScrapedContent: importRawScrape.trim() || undefined,
         }),
       });
 
@@ -469,6 +472,7 @@ export function ChatGuidesContent({
       setImportTitle("");
       setImportCategory("GENERAL");
       setImportContent("");
+      setImportRawScrape("");
     } catch (error) {
       toast({
         title: "Error",
@@ -510,7 +514,7 @@ export function ChatGuidesContent({
       const saveResponse = await fetch(`/api/admin/resources/${resource.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatContent: text }),
+        body: JSON.stringify({ chatContent: text, lastScrapedContent: text }),
       });
 
       if (!saveResponse.ok) {
@@ -600,7 +604,10 @@ export function ChatGuidesContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: allMsgs.map((m) => ({ role: m.role, content: m.content })),
+          // Recent turns only — matches the mobile app and the server's window
+          messages: allMsgs
+            .map((m) => ({ role: m.role, content: m.content }))
+            .slice(-20),
           model: previewModel.trim() || undefined,
         }),
       });
@@ -656,6 +663,7 @@ export function ChatGuidesContent({
         body: JSON.stringify({
           includeInChat: true,
           chatContent: chatContent.trim(),
+          lastScrapedContent: addRawScrape.trim() || undefined,
         }),
       });
 
@@ -672,6 +680,7 @@ export function ChatGuidesContent({
       setAddDialogOpen(false);
       setSelectedResourceId("");
       setChatContent("");
+      setAddRawScrape("");
     } catch (error) {
       toast({
         title: "Error",
