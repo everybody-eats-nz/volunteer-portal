@@ -1,3 +1,9 @@
+## [0.141.0] - 2026-07-07
+
+### Changes
+- feat(chat-guides): AI model config, preview override & content refine ([#1097](https://github.com/everybody-eats-nz/volunteer-portal/pull/1097)) by @malinmalliyawadu
+
+
 ## [0.140.2] - 2026-07-07
 
 ### Changes
