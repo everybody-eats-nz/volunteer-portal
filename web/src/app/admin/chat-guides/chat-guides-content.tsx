@@ -7,7 +7,6 @@ import {
   Trash2,
   Pencil,
   FileText,
-  Check,
   X,
   Info,
   Send,
@@ -93,6 +92,7 @@ interface ChatGuidesContentProps {
   estimatedTokens: number;
   initialSystemPrompt: string;
   initialSuggestedQuestions: string; // JSON string
+  initialModel: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -132,12 +132,25 @@ const DEFAULT_QUESTIONS: SuggestedQuestion[] = [
   { emoji: "📍", label: "Where are the kitchens?" },
 ];
 
+// Fallback model used when no CHAT_MODEL setting is saved (must match the API routes).
+const DEFAULT_MODEL = "anthropic/claude-sonnet-4";
+
+// Recommended models — capable enough to answer reliably from the knowledge base.
+// Avoid "nano"/"mini" tiers: they struggle to retrieve facts from long context.
+const RECOMMENDED_MODELS = [
+  "anthropic/claude-sonnet-4",
+  "anthropic/claude-3.7-sonnet",
+  "openai/gpt-5",
+  "google/gemini-2.5-flash",
+];
+
 export function ChatGuidesContent({
   initialChatResources,
   allResources,
   estimatedTokens: initialTokens,
   initialSystemPrompt,
   initialSuggestedQuestions,
+  initialModel,
 }: ChatGuidesContentProps) {
   const { toast } = useToast();
   const [chatResources, setChatResources] = useState(initialChatResources);
@@ -155,6 +168,7 @@ export function ChatGuidesContent({
       return DEFAULT_QUESTIONS;
     }
   });
+  const [model, setModel] = useState(initialModel);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Add resource dialog
@@ -222,6 +236,7 @@ export function ChatGuidesContent({
         body: JSON.stringify({
           systemPrompt,
           suggestedQuestions,
+          model: model.trim(),
         }),
       });
 
@@ -689,7 +704,7 @@ export function ChatGuidesContent({
       toast({ title: "Removed from chat context", description: removingResource.title });
       setRemoveDialogOpen(false);
       setRemovingResource(null);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove resource from chat",
@@ -764,6 +779,42 @@ export function ChatGuidesContent({
           </p>
         </div>
       </div>
+
+      {/* AI Model */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">AI Model</CardTitle>
+          <CardDescription>
+            The OpenRouter model that powers the chat assistant. Leave blank to use the
+            default ({DEFAULT_MODEL}). Avoid &quot;nano&quot; / &quot;mini&quot; tiers — they
+            struggle to answer reliably from the knowledge base.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={DEFAULT_MODEL}
+            className="font-mono text-sm"
+            aria-label="OpenRouter model ID"
+          />
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground self-center">Recommended:</span>
+            {RECOMMENDED_MODELS.map((m) => (
+              <Button
+                key={m}
+                type="button"
+                variant={model.trim() === m ? "default" : "outline"}
+                size="sm"
+                onClick={() => setModel(m)}
+                className="h-7 font-mono text-xs"
+              >
+                {m}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Prompt & Suggested Questions */}
       <div className="grid gap-6 lg:grid-cols-2">

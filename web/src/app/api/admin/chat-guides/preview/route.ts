@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch all context in parallel
-    const [resources, promptSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals] =
+    const [resources, promptSetting, modelSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals] =
       await Promise.all([
         prisma.resource.findMany({
           where: { includeInChat: true, isPublished: true, chatContent: { not: null } },
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
           orderBy: { category: "asc" },
         }),
         prisma.siteSetting.findUnique({ where: { key: "CHAT_SYSTEM_PROMPT" } }),
+        prisma.siteSetting.findUnique({ where: { key: "CHAT_MODEL" } }),
         prisma.user.findUnique({
           where: { id: userId },
           select: {
@@ -171,7 +172,10 @@ export async function POST(request: Request) {
 
     const systemPrompt = basePrompt + "\n\n" + dynamicContext + "\n\nHere is your knowledge base:\n---\n" + resourceContext + "\n---";
 
-    const modelId = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+    const modelId =
+      modelSetting?.value?.trim() ||
+      process.env.OPENROUTER_MODEL ||
+      "anthropic/claude-sonnet-4";
     console.log("[chat-preview] Starting streamText", {
       modelId,
       hasApiKey: !!process.env.OPENROUTER_API_KEY,

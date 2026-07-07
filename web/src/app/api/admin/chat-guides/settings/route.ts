@@ -12,6 +12,7 @@ const suggestedQuestionSchema = z.object({
 const updateSchema = z.object({
   systemPrompt: z.string().optional(),
   suggestedQuestions: z.array(suggestedQuestionSchema).optional(),
+  model: z.string().optional(),
 });
 
 // PATCH /api/admin/chat-guides/settings — update chat prompt settings
@@ -37,6 +38,22 @@ export async function PATCH(request: Request) {
             key: "CHAT_SYSTEM_PROMPT",
             value: parsed.systemPrompt,
             description: "System prompt for the mobile AI chat assistant",
+            category: "CHAT",
+            updatedBy: userId,
+          },
+        }),
+      );
+    }
+
+    if (parsed.model !== undefined) {
+      updates.push(
+        prisma.siteSetting.upsert({
+          where: { key: "CHAT_MODEL" },
+          update: { value: parsed.model, updatedBy: userId },
+          create: {
+            key: "CHAT_MODEL",
+            value: parsed.model,
+            description: "OpenRouter model ID for the AI chat assistant",
             category: "CHAT",
             updatedBy: userId,
           },

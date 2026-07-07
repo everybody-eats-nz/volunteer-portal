@@ -25,6 +25,7 @@ Social media & links:
 
 type StaticContext = {
   systemPrompt: string;
+  modelId: string;
   resourceContext: string;
   locationsContext: string;
   shiftTypesContext: string;
@@ -42,7 +43,7 @@ async function getStaticContext(): Promise<StaticContext> {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const [resources, promptSetting, locations, shiftTypes, totalVolunteers, recentMeals, totalMeals, recentShiftCount] =
+  const [resources, promptSetting, modelSetting, locations, shiftTypes, totalVolunteers, recentMeals, totalMeals, recentShiftCount] =
     await Promise.all([
       prisma.resource.findMany({
         where: { includeInChat: true, isPublished: true, chatContent: { not: null } },
@@ -50,6 +51,7 @@ async function getStaticContext(): Promise<StaticContext> {
         orderBy: { category: "asc" },
       }),
       prisma.siteSetting.findUnique({ where: { key: "CHAT_SYSTEM_PROMPT" } }),
+      prisma.siteSetting.findUnique({ where: { key: "CHAT_MODEL" } }),
       prisma.location.findMany({
         where: { isActive: true },
         select: { name: true, address: true, defaultMealsServed: true },
@@ -119,6 +121,10 @@ async function getStaticContext(): Promise<StaticContext> {
 
   staticCache = {
     systemPrompt: promptSetting?.value || DEFAULT_SYSTEM_PROMPT,
+    modelId:
+      modelSetting?.value?.trim() ||
+      process.env.OPENROUTER_MODEL ||
+      "anthropic/claude-sonnet-4",
     resourceContext,
     locationsContext,
     shiftTypesContext,
@@ -184,8 +190,8 @@ export async function POST(request: Request) {
       staticCtx.resourceContext +
       "\n---";
 
-    // Stream response from OpenRouter
-    const modelId = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+    // Stream response from OpenRouter (model configurable via CHAT_MODEL setting)
+    const modelId = staticCtx.modelId;
     console.log("[mobile-chat] Starting streamText", {
       modelId,
       hasApiKey: !!process.env.OPENROUTER_API_KEY,
