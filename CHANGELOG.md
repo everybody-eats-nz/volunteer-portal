@@ -1,3 +1,9 @@
+## [0.142.1] - 2026-07-07
+
+### Changes
+- chore(web): fix all eslint warnings ([#1099](https://github.com/everybody-eats-nz/volunteer-portal/pull/1099)) by @malinmalliyawadu
+
+
 ## [0.142.0] - 2026-07-07
 
 ### Changes
