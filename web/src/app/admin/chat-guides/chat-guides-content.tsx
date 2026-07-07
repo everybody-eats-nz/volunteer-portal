@@ -213,6 +213,8 @@ export function ChatGuidesContent({
   const [previewMessages, setPreviewMessages] = useState<PreviewMessage[]>([]);
   const [previewInput, setPreviewInput] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  // Per-preview model override — lets admins A/B models without changing the saved setting.
+  const [previewModel, setPreviewModel] = useState(initialModel);
   const previewEndRef = useRef<HTMLDivElement>(null);
 
   const availableResources = allResources.filter(
@@ -564,6 +566,7 @@ export function ChatGuidesContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: allMsgs.map((m) => ({ role: m.role, content: m.content })),
+          model: previewModel.trim() || undefined,
         }),
       });
 
@@ -600,7 +603,7 @@ export function ChatGuidesContent({
       setPreviewLoading(false);
       setTimeout(() => previewEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
-  }, [previewInput, previewLoading, previewMessages]);
+  }, [previewInput, previewLoading, previewMessages, previewModel]);
 
   const resetPreview = () => {
     setPreviewMessages([]);
@@ -1029,6 +1032,24 @@ export function ChatGuidesContent({
                 Reset
               </Button>
             )}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Label htmlFor="preview-model" className="shrink-0 text-xs text-muted-foreground">
+              Model
+            </Label>
+            <Input
+              id="preview-model"
+              list="preview-model-presets"
+              value={previewModel}
+              onChange={(e) => setPreviewModel(e.target.value)}
+              placeholder={`${DEFAULT_MODEL} (saved default)`}
+              className="h-8 font-mono text-xs"
+            />
+            <datalist id="preview-model-presets">
+              {RECOMMENDED_MODELS.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
           </div>
         </CardHeader>
         <CardContent>

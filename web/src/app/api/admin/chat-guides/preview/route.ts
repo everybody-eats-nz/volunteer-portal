@@ -40,7 +40,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { messages } = body as { messages: ChatMessage[] };
+    const { messages, model: modelOverride } = body as {
+      messages: ChatMessage[];
+      model?: string;
+    };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -172,7 +175,10 @@ export async function POST(request: Request) {
 
     const systemPrompt = basePrompt + "\n\n" + dynamicContext + "\n\nHere is your knowledge base:\n---\n" + resourceContext + "\n---";
 
+    // A per-request override (from the preview model picker) wins, so admins can
+    // A/B models without changing the saved CHAT_MODEL setting.
     const modelId =
+      modelOverride?.trim() ||
       modelSetting?.value?.trim() ||
       process.env.OPENROUTER_MODEL ||
       "anthropic/claude-sonnet-4";
