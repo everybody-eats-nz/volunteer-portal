@@ -16,6 +16,7 @@ import {
   Globe,
   RefreshCw,
   Link,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -197,6 +198,9 @@ export function ChatGuidesContent({
   const [editContent, setEditContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // AI refine (shared across edit / import / create dialogs; key identifies which is running)
+  const [refiningKey, setRefiningKey] = useState<null | "edit" | "import" | "create">(null);
+
   // Remove dialog
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [removingResource, setRemovingResource] = useState<ChatResource | null>(null);
@@ -227,6 +231,39 @@ export function ChatGuidesContent({
       0,
     );
     setEstimatedTokens(Math.round(chars / 4));
+  };
+
+  // Send raw imported/linked text to the AI and replace it with a cleaned-up version.
+  const handleRefine = async (
+    key: "edit" | "import" | "create",
+    content: string,
+    title: string | undefined,
+    apply: (refined: string) => void,
+  ) => {
+    if (!content.trim() || refiningKey) return;
+    setRefiningKey(key);
+    try {
+      const response = await fetch("/api/admin/chat-guides/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, title }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to refine content");
+      }
+      const { refined } = await response.json();
+      apply(refined);
+      toast({ title: "Content refined", description: "Review the result before saving." });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to refine",
+        variant: "destructive",
+      });
+    } finally {
+      setRefiningKey(null);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -1233,6 +1270,23 @@ export function ChatGuidesContent({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
+            <div className="flex items-center justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleRefine("edit", editContent, editingResource?.title, setEditContent)
+                }
+                disabled={!editContent.trim() || refiningKey !== null}
+              >
+                {refiningKey === "edit" ? (
+                  <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1 h-3 w-3" />
+                )}
+                {refiningKey === "edit" ? "Refining..." : "Refine with AI"}
+              </Button>
+            </div>
             <Textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -1240,7 +1294,8 @@ export function ChatGuidesContent({
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              ~{Math.round(editContent.length / 4).toLocaleString()} tokens
+              ~{Math.round(editContent.length / 4).toLocaleString()} tokens · Refine cleans up
+              imported text — review before saving.
             </p>
           </div>
           <DialogFooter>
@@ -1340,7 +1395,24 @@ export function ChatGuidesContent({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Extracted Content</Label>
+              <div className="flex items-center justify-between">
+                <Label>Extracted Content</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleRefine("import", importContent, importTitle, setImportContent)
+                  }
+                  disabled={!importContent.trim() || isExtractingImportUrl || refiningKey !== null}
+                >
+                  {refiningKey === "import" ? (
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3 w-3" />
+                  )}
+                  {refiningKey === "import" ? "Refining..." : "Refine with AI"}
+                </Button>
+              </div>
               <Textarea
                 value={importContent}
                 onChange={(e) => setImportContent(e.target.value)}
@@ -1409,7 +1481,24 @@ export function ChatGuidesContent({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Content</Label>
+              <div className="flex items-center justify-between">
+                <Label>Content</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleRefine("create", newContent, newTitle, setNewContent)
+                  }
+                  disabled={!newContent.trim() || refiningKey !== null}
+                >
+                  {refiningKey === "create" ? (
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3 w-3" />
+                  )}
+                  {refiningKey === "create" ? "Refining..." : "Refine with AI"}
+                </Button>
+              </div>
               <Textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
