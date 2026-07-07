@@ -1,3 +1,9 @@
+## [0.140.2] - 2026-07-07
+
+### Changes
+- feat(chat-guides): replace volunteer grade with completed shift count ([#1096](https://github.com/everybody-eats-nz/volunteer-portal/pull/1096)) by @malinmalliyawadu
+
+
 ## [0.140.1] - 2026-07-06
 
 ### Changes

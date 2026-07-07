@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch all context in parallel
-    const [resources, promptSetting, modelSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals] =
+    const [resources, promptSetting, modelSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals, completedShiftsCount] =
       await Promise.all([
         prisma.resource.findMany({
           where: { includeInChat: true, isPublished: true, chatContent: { not: null } },
@@ -71,9 +71,9 @@ export async function POST(request: Request) {
           select: {
             firstName: true,
             name: true,
-            volunteerGrade: true,
             availableDays: true,
             defaultLocation: true,
+            completedShiftAdjustment: true,
           },
         }),
         prisma.signup.findMany({
@@ -120,6 +120,14 @@ export async function POST(request: Request) {
           _sum: { mealsServed: true },
           _count: true,
         }),
+        // Number of shifts this volunteer has actually completed
+        prisma.signup.count({
+          where: {
+            userId,
+            status: "CONFIRMED",
+            shift: { end: { lt: now } },
+          },
+        }),
       ]);
 
     const basePrompt = promptSetting?.value || DEFAULT_SYSTEM_PROMPT;
@@ -133,7 +141,7 @@ export async function POST(request: Request) {
     const volunteerContext = [
       "## About This Volunteer",
       `Name: ${volunteerName}`,
-      `Grade: ${volunteer?.volunteerGrade ?? "GREEN"} (GREEN = new, YELLOW = experienced, PINK = shift leader)`,
+      `Shifts completed: ${completedShiftsCount + (volunteer?.completedShiftAdjustment ?? 0)}`,
     ].join("\n");
 
     const shiftsContext =
