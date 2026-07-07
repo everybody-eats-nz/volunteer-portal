@@ -29,7 +29,6 @@ export async function GET(request: Request) {
       : [
           { emoji: "🍽️", label: "What happens on a typical shift?" },
           { emoji: "🔪", label: "Kitchen safety tips" },
-          { emoji: "👥", label: "What are the volunteer grades?" },
           { emoji: "📍", label: "Where are the kitchens?" },
         ];
 
