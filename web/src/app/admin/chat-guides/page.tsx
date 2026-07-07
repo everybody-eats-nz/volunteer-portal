@@ -54,12 +54,13 @@ export default async function ChatGuidesPage() {
     }),
     // Chat prompt settings
     prisma.siteSetting.findMany({
-      where: { key: { in: ["CHAT_SYSTEM_PROMPT", "CHAT_SUGGESTED_QUESTIONS"] } },
+      where: { key: { in: ["CHAT_SYSTEM_PROMPT", "CHAT_SUGGESTED_QUESTIONS", "CHAT_MODEL"] } },
     }),
   ]);
 
   const systemPrompt = chatSettings.find((s) => s.key === "CHAT_SYSTEM_PROMPT")?.value ?? "";
   const suggestedQuestions = chatSettings.find((s) => s.key === "CHAT_SUGGESTED_QUESTIONS")?.value ?? "[]";
+  const model = chatSettings.find((s) => s.key === "CHAT_MODEL")?.value ?? "";
 
   // Estimate total token count (rough: ~4 chars per token)
   const totalChars = chatResources.reduce(
@@ -87,6 +88,7 @@ export default async function ChatGuidesPage() {
         estimatedTokens={estimatedTokens}
         initialSystemPrompt={systemPrompt}
         initialSuggestedQuestions={suggestedQuestions}
+        initialModel={model}
       />
     </AdminPageWrapper>
   );

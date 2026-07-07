@@ -4,6 +4,7 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { resolveChatModel } from "@/lib/chat-model";
 
 const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
 
@@ -40,7 +41,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { messages } = body as { messages: ChatMessage[] };
+    const { messages, model: modelOverride } = body as {
+      messages: ChatMessage[];
+      model?: string;
+    };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Fetch all context in parallel
-    const [resources, promptSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals, completedShiftsCount] =
+    const [resources, promptSetting, modelSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals, completedShiftsCount] =
       await Promise.all([
         prisma.resource.findMany({
           where: { includeInChat: true, isPublished: true, chatContent: { not: null } },
@@ -62,6 +66,7 @@ export async function POST(request: Request) {
           orderBy: { category: "asc" },
         }),
         prisma.siteSetting.findUnique({ where: { key: "CHAT_SYSTEM_PROMPT" } }),
+        prisma.siteSetting.findUnique({ where: { key: "CHAT_MODEL" } }),
         prisma.user.findUnique({
           where: { id: userId },
           select: {
@@ -179,7 +184,13 @@ export async function POST(request: Request) {
 
     const systemPrompt = basePrompt + "\n\n" + dynamicContext + "\n\nHere is your knowledge base:\n---\n" + resourceContext + "\n---";
 
-    const modelId = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+    // A per-request override (from the preview model picker) wins, so admins can
+    // A/B models without changing the saved CHAT_MODEL setting.
+    const modelId = resolveChatModel(
+      modelOverride,
+      modelSetting?.value,
+      process.env.OPENROUTER_MODEL,
+    );
     console.log("[chat-preview] Starting streamText", {
       modelId,
       hasApiKey: !!process.env.OPENROUTER_API_KEY,

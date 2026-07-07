@@ -7,7 +7,6 @@ import {
   Trash2,
   Pencil,
   FileText,
-  Check,
   X,
   Info,
   Send,
@@ -17,6 +16,7 @@ import {
   Globe,
   RefreshCw,
   Link,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_CHAT_MODEL } from "@/lib/chat-model";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -93,6 +94,7 @@ interface ChatGuidesContentProps {
   estimatedTokens: number;
   initialSystemPrompt: string;
   initialSuggestedQuestions: string; // JSON string
+  initialModel: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -132,12 +134,22 @@ const DEFAULT_QUESTIONS: SuggestedQuestion[] = [
   { emoji: "📍", label: "Where are the kitchens?" },
 ];
 
+// Recommended models — capable enough to answer reliably from the knowledge base.
+// Avoid "nano"/"mini" tiers: they struggle to retrieve facts from long context.
+const RECOMMENDED_MODELS = [
+  "anthropic/claude-sonnet-4",
+  "anthropic/claude-3.7-sonnet",
+  "openai/gpt-5",
+  "google/gemini-2.5-flash",
+];
+
 export function ChatGuidesContent({
   initialChatResources,
   allResources,
   estimatedTokens: initialTokens,
   initialSystemPrompt,
   initialSuggestedQuestions,
+  initialModel,
 }: ChatGuidesContentProps) {
   const { toast } = useToast();
   const [chatResources, setChatResources] = useState(initialChatResources);
@@ -155,6 +167,7 @@ export function ChatGuidesContent({
       return DEFAULT_QUESTIONS;
     }
   });
+  const [model, setModel] = useState(initialModel);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Add resource dialog
@@ -183,6 +196,9 @@ export function ChatGuidesContent({
   const [editContent, setEditContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // AI refine (shared across edit / import / create dialogs; key identifies which is running)
+  const [refiningKey, setRefiningKey] = useState<null | "edit" | "import" | "create">(null);
+
   // Remove dialog
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [removingResource, setRemovingResource] = useState<ChatResource | null>(null);
@@ -199,6 +215,8 @@ export function ChatGuidesContent({
   const [previewMessages, setPreviewMessages] = useState<PreviewMessage[]>([]);
   const [previewInput, setPreviewInput] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  // Per-preview model override — lets admins A/B models without changing the saved setting.
+  const [previewModel, setPreviewModel] = useState(initialModel);
   const previewEndRef = useRef<HTMLDivElement>(null);
 
   const availableResources = allResources.filter(
@@ -213,6 +231,39 @@ export function ChatGuidesContent({
     setEstimatedTokens(Math.round(chars / 4));
   };
 
+  // Send raw imported/linked text to the AI and replace it with a cleaned-up version.
+  const handleRefine = async (
+    key: "edit" | "import" | "create",
+    content: string,
+    title: string | undefined,
+    apply: (refined: string) => void,
+  ) => {
+    if (!content.trim() || refiningKey) return;
+    setRefiningKey(key);
+    try {
+      const response = await fetch("/api/admin/chat-guides/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, title }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to refine content");
+      }
+      const { refined } = await response.json();
+      apply(refined);
+      toast({ title: "Content refined", description: "Review the result before saving." });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to refine",
+        variant: "destructive",
+      });
+    } finally {
+      setRefiningKey(null);
+    }
+  };
+
   const handleSaveSettings = async () => {
     setIsSavingSettings(true);
     try {
@@ -222,6 +273,7 @@ export function ChatGuidesContent({
         body: JSON.stringify({
           systemPrompt,
           suggestedQuestions,
+          model: model.trim(),
         }),
       });
 
@@ -549,6 +601,7 @@ export function ChatGuidesContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: allMsgs.map((m) => ({ role: m.role, content: m.content })),
+          model: previewModel.trim() || undefined,
         }),
       });
 
@@ -585,7 +638,7 @@ export function ChatGuidesContent({
       setPreviewLoading(false);
       setTimeout(() => previewEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
-  }, [previewInput, previewLoading, previewMessages]);
+  }, [previewInput, previewLoading, previewMessages, previewModel]);
 
   const resetPreview = () => {
     setPreviewMessages([]);
@@ -689,7 +742,7 @@ export function ChatGuidesContent({
       toast({ title: "Removed from chat context", description: removingResource.title });
       setRemoveDialogOpen(false);
       setRemovingResource(null);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove resource from chat",
@@ -764,6 +817,42 @@ export function ChatGuidesContent({
           </p>
         </div>
       </div>
+
+      {/* AI Model */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">AI Model</CardTitle>
+          <CardDescription>
+            The OpenRouter model that powers the chat assistant. Leave blank to use the
+            default ({DEFAULT_CHAT_MODEL}). Avoid &quot;nano&quot; / &quot;mini&quot; tiers — they
+            struggle to answer reliably from the knowledge base.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={DEFAULT_CHAT_MODEL}
+            className="font-mono text-sm"
+            aria-label="OpenRouter model ID"
+          />
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground self-center">Recommended:</span>
+            {RECOMMENDED_MODELS.map((m) => (
+              <Button
+                key={m}
+                type="button"
+                variant={model.trim() === m ? "default" : "outline"}
+                size="sm"
+                onClick={() => setModel(m)}
+                className="h-7 font-mono text-xs"
+              >
+                {m}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Prompt & Suggested Questions */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -979,6 +1068,24 @@ export function ChatGuidesContent({
               </Button>
             )}
           </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Label htmlFor="preview-model" className="shrink-0 text-xs text-muted-foreground">
+              Model
+            </Label>
+            <Input
+              id="preview-model"
+              list="preview-model-presets"
+              value={previewModel}
+              onChange={(e) => setPreviewModel(e.target.value)}
+              placeholder={`${DEFAULT_CHAT_MODEL} (saved default)`}
+              className="h-8 font-mono text-xs"
+            />
+            <datalist id="preview-model-presets">
+              {RECOMMENDED_MODELS.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col rounded-lg border bg-muted/30">
@@ -1161,6 +1268,23 @@ export function ChatGuidesContent({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
+            <div className="flex items-center justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleRefine("edit", editContent, editingResource?.title, setEditContent)
+                }
+                disabled={!editContent.trim() || refiningKey !== null}
+              >
+                {refiningKey === "edit" ? (
+                  <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1 h-3 w-3" />
+                )}
+                {refiningKey === "edit" ? "Refining..." : "Refine with AI"}
+              </Button>
+            </div>
             <Textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -1168,7 +1292,8 @@ export function ChatGuidesContent({
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              ~{Math.round(editContent.length / 4).toLocaleString()} tokens
+              ~{Math.round(editContent.length / 4).toLocaleString()} tokens · Refine cleans up
+              imported text — review before saving.
             </p>
           </div>
           <DialogFooter>
@@ -1268,7 +1393,24 @@ export function ChatGuidesContent({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Extracted Content</Label>
+              <div className="flex items-center justify-between">
+                <Label>Extracted Content</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleRefine("import", importContent, importTitle, setImportContent)
+                  }
+                  disabled={!importContent.trim() || isExtractingImportUrl || refiningKey !== null}
+                >
+                  {refiningKey === "import" ? (
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3 w-3" />
+                  )}
+                  {refiningKey === "import" ? "Refining..." : "Refine with AI"}
+                </Button>
+              </div>
               <Textarea
                 value={importContent}
                 onChange={(e) => setImportContent(e.target.value)}
@@ -1337,7 +1479,24 @@ export function ChatGuidesContent({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Content</Label>
+              <div className="flex items-center justify-between">
+                <Label>Content</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleRefine("create", newContent, newTitle, setNewContent)
+                  }
+                  disabled={!newContent.trim() || refiningKey !== null}
+                >
+                  {refiningKey === "create" ? (
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3 w-3" />
+                  )}
+                  {refiningKey === "create" ? "Refining..." : "Refine with AI"}
+                </Button>
+              </div>
               <Textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
