@@ -69,6 +69,7 @@ export async function POST(request: Request) {
             name: true,
             availableDays: true,
             defaultLocation: true,
+            completedShiftAdjustment: true,
           },
         }),
         prisma.signup.findMany({
@@ -136,7 +137,7 @@ export async function POST(request: Request) {
     const volunteerContext = [
       "## About This Volunteer",
       `Name: ${volunteerName}`,
-      `Shifts completed: ${completedShiftsCount}`,
+      `Shifts completed: ${completedShiftsCount + (volunteer?.completedShiftAdjustment ?? 0)}`,
     ].join("\n");
 
     const shiftsContext =
