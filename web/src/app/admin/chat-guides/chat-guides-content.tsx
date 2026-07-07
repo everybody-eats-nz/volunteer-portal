@@ -57,6 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_CHAT_MODEL } from "@/lib/chat-model";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -132,9 +133,6 @@ const DEFAULT_QUESTIONS: SuggestedQuestion[] = [
   { emoji: "👥", label: "What are the volunteer grades?" },
   { emoji: "📍", label: "Where are the kitchens?" },
 ];
-
-// Fallback model used when no CHAT_MODEL setting is saved (must match the API routes).
-const DEFAULT_MODEL = "anthropic/claude-sonnet-4";
 
 // Recommended models — capable enough to answer reliably from the knowledge base.
 // Avoid "nano"/"mini" tiers: they struggle to retrieve facts from long context.
@@ -826,7 +824,7 @@ export function ChatGuidesContent({
           <CardTitle className="text-base">AI Model</CardTitle>
           <CardDescription>
             The OpenRouter model that powers the chat assistant. Leave blank to use the
-            default ({DEFAULT_MODEL}). Avoid &quot;nano&quot; / &quot;mini&quot; tiers — they
+            default ({DEFAULT_CHAT_MODEL}). Avoid &quot;nano&quot; / &quot;mini&quot; tiers — they
             struggle to answer reliably from the knowledge base.
           </CardDescription>
         </CardHeader>
@@ -834,7 +832,7 @@ export function ChatGuidesContent({
           <Input
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            placeholder={DEFAULT_MODEL}
+            placeholder={DEFAULT_CHAT_MODEL}
             className="font-mono text-sm"
             aria-label="OpenRouter model ID"
           />
@@ -1079,7 +1077,7 @@ export function ChatGuidesContent({
               list="preview-model-presets"
               value={previewModel}
               onChange={(e) => setPreviewModel(e.target.value)}
-              placeholder={`${DEFAULT_MODEL} (saved default)`}
+              placeholder={`${DEFAULT_CHAT_MODEL} (saved default)`}
               className="h-8 font-mono text-xs"
             />
             <datalist id="preview-model-presets">

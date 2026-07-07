@@ -4,6 +4,7 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { resolveChatModel } from "@/lib/chat-model";
 
 const REFINE_SYSTEM_PROMPT = `You clean up raw, imported web page or PDF text into concise knowledge-base content for an AI volunteer assistant.
 
@@ -35,10 +36,10 @@ export async function POST(request: Request) {
     const modelSetting = await prisma.siteSetting.findUnique({
       where: { key: "CHAT_MODEL" },
     });
-    const modelId =
-      modelSetting?.value?.trim() ||
-      process.env.OPENROUTER_MODEL ||
-      "anthropic/claude-sonnet-4";
+    const modelId = resolveChatModel(
+      modelSetting?.value,
+      process.env.OPENROUTER_MODEL,
+    );
 
     const { text } = await generateText({
       model: openrouter(modelId),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { isValidChatModelId } from "@/lib/chat-model";
 import { z } from "zod";
 
 const suggestedQuestionSchema = z.object({
@@ -12,7 +13,15 @@ const suggestedQuestionSchema = z.object({
 const updateSchema = z.object({
   systemPrompt: z.string().optional(),
   suggestedQuestions: z.array(suggestedQuestionSchema).optional(),
-  model: z.string().optional(),
+  // Blank clears the setting (falls back to env/default); otherwise must look
+  // like an OpenRouter id. Trimmed so we never store surrounding whitespace.
+  model: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || isValidChatModelId(v), {
+      message: "Model must be an OpenRouter id like provider/model",
+    })
+    .optional(),
 });
 
 // PATCH /api/admin/chat-guides/settings — update chat prompt settings

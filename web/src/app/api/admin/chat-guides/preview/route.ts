@@ -4,6 +4,7 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { resolveChatModel } from "@/lib/chat-model";
 
 const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
 
@@ -185,11 +186,11 @@ export async function POST(request: Request) {
 
     // A per-request override (from the preview model picker) wins, so admins can
     // A/B models without changing the saved CHAT_MODEL setting.
-    const modelId =
-      modelOverride?.trim() ||
-      modelSetting?.value?.trim() ||
-      process.env.OPENROUTER_MODEL ||
-      "anthropic/claude-sonnet-4";
+    const modelId = resolveChatModel(
+      modelOverride,
+      modelSetting?.value,
+      process.env.OPENROUTER_MODEL,
+    );
     console.log("[chat-preview] Starting streamText", {
       modelId,
       hasApiKey: !!process.env.OPENROUTER_API_KEY,

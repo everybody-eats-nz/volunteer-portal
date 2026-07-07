@@ -4,6 +4,7 @@ import { openrouter } from "@openrouter/ai-sdk-provider";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
+import { resolveChatModel } from "@/lib/chat-model";
 
 const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
 
@@ -121,10 +122,7 @@ async function getStaticContext(): Promise<StaticContext> {
 
   staticCache = {
     systemPrompt: promptSetting?.value || DEFAULT_SYSTEM_PROMPT,
-    modelId:
-      modelSetting?.value?.trim() ||
-      process.env.OPENROUTER_MODEL ||
-      "anthropic/claude-sonnet-4",
+    modelId: resolveChatModel(modelSetting?.value, process.env.OPENROUTER_MODEL),
     resourceContext,
     locationsContext,
     shiftTypesContext,
