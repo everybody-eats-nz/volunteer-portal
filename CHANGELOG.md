@@ -1,3 +1,9 @@
+## [0.142.0] - 2026-07-07
+
+### Changes
+- feat(chat-guides): harden the AI chat assistant end to end ([#1098](https://github.com/everybody-eats-nz/volunteer-portal/pull/1098)) by @malinmalliyawadu
+
+
 ## [0.141.0] - 2026-07-07
 
 ### Changes
