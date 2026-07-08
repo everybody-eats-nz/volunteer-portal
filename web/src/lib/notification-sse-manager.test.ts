@@ -71,6 +71,22 @@ describe("NotificationSSEManager write timeout", () => {
     expect(notificationSSEManager.getUserConnectionCount("user-1")).toBe(1);
   });
 
+  it("times out multiple stalled connections concurrently in a single window", async () => {
+    const stalledA = fakeWriter({ write: stalledWrite() });
+    const stalledB = fakeWriter({ write: stalledWrite() });
+    notificationSSEManager.addConnection("user-1", stalledA, "ADMIN");
+    notificationSSEManager.addConnection("user-1", stalledB, "ADMIN");
+
+    const send = notificationSSEManager.sendToUser("user-1", event);
+    // One timeout window covers both writes — serially it would take two.
+    await vi.advanceTimersByTimeAsync(WRITE_TIMEOUT_MS);
+
+    await expect(send).resolves.toBe(false);
+    expect(stalledA.abort).toHaveBeenCalledTimes(1);
+    expect(stalledB.abort).toHaveBeenCalledTimes(1);
+    expect(notificationSSEManager.getUserConnectionCount("user-1")).toBe(0);
+  });
+
   it("completes an admin broadcast even when one admin's connection stalls", async () => {
     const stalled = fakeWriter({ write: stalledWrite() });
     const healthy = fakeWriter();

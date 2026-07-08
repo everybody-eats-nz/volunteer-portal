@@ -103,25 +103,33 @@ class NotificationSSEManager {
     let successCount = 0;
     const deadConnections: SSEConnection[] = [];
 
-    for (const connection of userConnections) {
-      // Race the write against SSE_WRITE_TIMEOUT_MS: a stalled write means
-      // the client is gone, so abort the writer (rejecting the pending
-      // write) and drop the connection instead of wedging the fan-out.
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const outcome = await Promise.race([
-        connection.writer.write(connection.encoder.encode(message)).then(
-          () => ({ status: "ok" as const }),
-          (error: unknown) => ({ status: "error" as const, error })
-        ),
-        new Promise<{ status: "timeout" }>((resolve) => {
-          timer = setTimeout(
-            () => resolve({ status: "timeout" }),
-            SSE_WRITE_TIMEOUT_MS
-          );
-        }),
-      ]);
-      clearTimeout(timer);
+    // Write to all of the user's connections concurrently, racing each write
+    // against SSE_WRITE_TIMEOUT_MS: a stalled write means the client is gone,
+    // so abort the writer (rejecting the pending write) and drop the
+    // connection instead of wedging the fan-out. Concurrency matters —
+    // clients reconnect in bursts, and several zombies handled serially
+    // would each cost a full timeout window.
+    const outcomes = await Promise.all(
+      userConnections.map(async (connection) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const outcome = await Promise.race([
+          connection.writer.write(connection.encoder.encode(message)).then(
+            () => ({ status: "ok" as const }),
+            (error: unknown) => ({ status: "error" as const, error })
+          ),
+          new Promise<{ status: "timeout" }>((resolve) => {
+            timer = setTimeout(
+              () => resolve({ status: "timeout" }),
+              SSE_WRITE_TIMEOUT_MS
+            );
+          }),
+        ]);
+        clearTimeout(timer);
+        return { connection, outcome };
+      })
+    );
 
+    for (const { connection, outcome } of outcomes) {
       if (outcome.status === "ok") {
         successCount++;
       } else {
