@@ -20,7 +20,7 @@ import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
 import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
 import { LocationOption, DEFAULT_LOCATION, LOCATIONS } from "@/lib/locations";
 import { MealsServedInput } from "@/components/meals-served-input";
-import { DeleteAllShiftsButton } from "@/components/delete-all-shifts-button";
+import { DeleteShiftsMenu } from "@/components/delete-shifts-menu";
 
 interface AdminShiftsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -378,31 +378,27 @@ export default async function AdminShiftsPage({
                 </Link>
               </Button>
             )}
-            {shifts.length > 0 && (
-              <>
-                <span
-                  aria-hidden
-                  className="mx-0.5 hidden h-7 w-px self-center bg-border sm:block"
-                />
-                <DeleteAllShiftsButton
-                  shiftCount={shifts.length}
-                  volunteerCount={shifts.reduce(
-                    (sum, s) =>
-                      sum +
-                      s.signups.filter(
-                        (signup) =>
-                          signup.status !== "CANCELED" &&
-                          signup.status !== "NO_SHOW"
-                      ).length,
-                    0
-                  )}
-                  shiftTypes={shifts.map((s) => s.shiftType.name)}
-                  date={formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")}
-                  dateString={dateString}
-                  location={selectedLocation}
-                />
-              </>
-            )}
+            <span
+              aria-hidden
+              className="mx-0.5 hidden h-7 w-px self-center bg-border sm:block"
+            />
+            <DeleteShiftsMenu
+              shiftCount={shifts.length}
+              volunteerCount={shifts.reduce(
+                (sum, s) =>
+                  sum +
+                  s.signups.filter(
+                    (signup) =>
+                      signup.status !== "CANCELED" &&
+                      signup.status !== "NO_SHOW"
+                  ).length,
+                0
+              )}
+              shiftTypes={shifts.map((s) => s.shiftType.name)}
+              date={formatInNZT(selectedDateNZT, "EEEE, MMMM d, yyyy")}
+              dateString={dateString}
+              location={selectedLocation}
+            />
           </div>
         </div>
 
