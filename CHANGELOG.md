@@ -1,3 +1,9 @@
+## [0.142.4] - 2026-07-08
+
+### Changes
+- chore(deps-dev): bump csv-parse from 6.2.1 to 7.0.1 in /web ([#1093](https://github.com/everybody-eats-nz/volunteer-portal/pull/1093)) by @dependabot[bot]
+
+
 ## [0.142.3] - 2026-07-08
 
 ### Changes
