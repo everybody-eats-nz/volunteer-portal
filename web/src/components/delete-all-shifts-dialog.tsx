@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertTriangleIcon,
+  Loader2Icon,
   Trash2Icon,
   UsersIcon,
   CalendarIcon,
@@ -181,7 +182,7 @@ export function DeleteAllShiftsDialog({
           >
             {isDeleting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
                 Deleting...
               </>
             ) : (

@@ -5,16 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { deleteNotificationsForDeletedShifts } from "@/lib/notifications";
 import { startOfDay, endOfDay, differenceInCalendarDays } from "date-fns";
 import { parseISOInNZT, toUTC } from "@/lib/timezone";
+import { ACTIVE_SIGNUP_STATUSES } from "@/lib/signup-constants";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_RANGE_DAYS = 366;
-
-const SIGNUP_STATUSES_COUNTED = [
-  "CONFIRMED",
-  "PENDING",
-  "WAITLISTED",
-  "REGULAR_PENDING",
-] as const;
 
 type RangeParams =
   | { error: string }
@@ -86,7 +80,7 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             signups: {
-              where: { status: { in: [...SIGNUP_STATUSES_COUNTED] } },
+              where: { status: { in: ACTIVE_SIGNUP_STATUSES } },
             },
           },
         },
@@ -128,7 +122,7 @@ export async function DELETE(request: NextRequest) {
       },
       include: {
         signups: {
-          where: { status: { in: [...SIGNUP_STATUSES_COUNTED] } },
+          where: { status: { in: ACTIVE_SIGNUP_STATUSES } },
         },
       },
     });

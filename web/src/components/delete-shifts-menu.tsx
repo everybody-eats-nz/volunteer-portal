@@ -101,6 +101,9 @@ export function DeleteShiftsMenu({
           >
             <Trash2 className="h-4 w-4" />
             All shifts for this day
+            {shiftCount === 0 && (
+              <span className="text-xs text-muted-foreground">(none)</span>
+            )}
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => setRangeDialogOpen(true)}

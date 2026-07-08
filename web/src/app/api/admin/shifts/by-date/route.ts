@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { deleteNotificationsForDeletedShifts } from "@/lib/notifications";
 import { startOfDay, endOfDay } from "date-fns";
 import { parseISOInNZT, toUTC } from "@/lib/timezone";
+import { ACTIVE_SIGNUP_STATUSES } from "@/lib/signup-constants";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -51,9 +52,7 @@ export async function DELETE(request: NextRequest) {
       include: {
         signups: {
           where: {
-            status: {
-              in: ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING"],
-            },
+            status: { in: ACTIVE_SIGNUP_STATUSES },
           },
         },
       },
