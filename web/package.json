@@ -116,7 +116,7 @@
     "@vitest/ui": "^4.1.10",
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.10.42",
-    "csv-parse": "^6.2.1",
+    "csv-parse": "^7.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "exceljs": "^4.4.0",
