@@ -76,7 +76,11 @@ export async function broadcastNewMessageToAdmins(
     args.volunteer.name ||
     args.volunteer.email;
 
-  await notificationSSEManager
+  console.log(
+    `[messaging-notify] SSE admin broadcast starting for message ${args.message.id}`
+  );
+  const sseStart = Date.now();
+  const sseCount = await notificationSSEManager
     .broadcastToAdmins({
       type: "notification",
       timestamp: Date.now(),
@@ -98,9 +102,13 @@ export async function broadcastNewMessageToAdmins(
         },
       },
     })
-    .catch((err) =>
-      console.error("[messaging-notify] broadcastNewMessageToAdmins:", err)
-    );
+    .catch((err) => {
+      console.error("[messaging-notify] broadcastNewMessageToAdmins:", err);
+      return 0;
+    });
+  console.log(
+    `[messaging-notify] SSE admin broadcast done in ${Date.now() - sseStart}ms (${sseCount ?? 0} admin user(s) reached)`
+  );
 
   // Opt-in mobile push to admins (push-only, no DB notification row).
   try {
@@ -116,6 +124,7 @@ export async function broadcastNewMessageToAdmins(
       `[messaging-notify] volunteer ${args.volunteer.id} messaged team; ${optedInAdmins.length} opted-in admin(s) to push`
     );
     if (optedInAdmins.length > 0) {
+      const pushStart = Date.now();
       // No badge: admins track message unread via the thread's teamLastReadAt
       // column (SSE-driven), not Notification rows, so there's no per-user count
       // to surface — and we don't want to clobber their real notification badge.
@@ -130,6 +139,9 @@ export async function broadcastNewMessageToAdmins(
             actionUrl: "/admin/messages",
           },
         }
+      );
+      console.log(
+        `[messaging-notify] admin push dispatch for message ${args.message.id} completed in ${Date.now() - pushStart}ms`
       );
     }
   } catch (err) {

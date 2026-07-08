@@ -101,7 +101,15 @@ export async function sendPushToUsers(
     select: { token: true, userId: true },
   });
 
-  if (tokens.length === 0) return;
+  // A recipient list that resolves to zero devices means every target user
+  // is opted in but unregistered (token rotated away, cleaned up, or never
+  // synced) — the push silently reaches nobody, so make that state visible.
+  if (tokens.length === 0) {
+    console.warn(
+      `[EXPO_PUSH] No push tokens registered for ${userIds.length} target user(s) — nothing sent`
+    );
+    return;
+  }
 
   const messages = tokens
     .filter((t) => isExpoPushToken(t.token))
@@ -111,6 +119,13 @@ export async function sendPushToUsers(
         badge: badgeByUserId?.get(t.userId) ?? payload.badge,
       })
     );
+
+  if (messages.length === 0) {
+    console.warn(
+      `[EXPO_PUSH] All ${tokens.length} token(s) for ${userIds.length} target user(s) are malformed (not Expo push tokens) — nothing sent`
+    );
+    return;
+  }
 
   await dispatchMessages(messages);
 }
