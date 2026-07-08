@@ -14,46 +14,6 @@ export function getPostHogServer(): PostHog {
   return client;
 }
 
-/** Feature flag names — keep in one place per PostHog integration rules */
-export enum FeatureFlag {
-  CHAT_GUIDES = "chat-guides",
-}
-
-/**
- * Check a boolean feature flag for a given user.
- * Falls back to `false` if PostHog is unavailable.
- */
-export async function isFeatureEnabled(
-  flag: FeatureFlag,
-  distinctId: string,
-): Promise<boolean> {
-  try {
-    const ph = getPostHogServer();
-    return await ph.isFeatureEnabled(flag, distinctId) ?? false;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Resolve a multivariate flag to its assigned variant string. Returns the
- * provided fallback if PostHog is unavailable or the flag is unconfigured.
- */
-export async function getFlagVariant<T extends string>(
-  flag: FeatureFlag,
-  distinctId: string,
-  fallback: T,
-): Promise<T> {
-  try {
-    const ph = getPostHogServer();
-    const value = await ph.getFeatureFlag(flag, distinctId);
-    if (typeof value === "string") return value as T;
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 /**
  * Fire-and-forget server-side event capture. PostHog's flushAt:1 means the
  * payload is sent immediately, so we don't need to await flush in normal cases.

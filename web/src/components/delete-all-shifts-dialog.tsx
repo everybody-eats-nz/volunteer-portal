@@ -27,7 +27,10 @@ interface DeleteAllShiftsDialogProps {
   date: string;
   location: string;
   onDelete: () => Promise<void>;
-  children: React.ReactNode;
+  /** Controlled open state; when provided together with onOpenChange, no trigger is needed */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: React.ReactNode;
 }
 
 export function DeleteAllShiftsDialog({
@@ -37,9 +40,13 @@ export function DeleteAllShiftsDialog({
   date,
   location,
   onDelete,
+  open: controlledOpen,
+  onOpenChange,
   children,
 }: DeleteAllShiftsDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -59,7 +66,9 @@ export function DeleteAllShiftsDialog({
 
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
-      <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+      {children && (
+        <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
+      )}
       <ResponsiveDialogContent
         className="sm:max-w-md"
         data-testid="delete-all-shifts-dialog"

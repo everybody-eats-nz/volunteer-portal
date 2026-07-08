@@ -101,6 +101,10 @@ jobs:
           # Emit the standalone bundle the Docker runtime image needs.
           # (Vercel builds without this flag so it manages its own output.)
           BUILD_STANDALONE: "1"
+          # PostHog source map upload: requires POSTHOG_PERSONAL_API_KEY secret
+          # in Settings → Secrets and variables → Actions.
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_PROJECT_ID: "211852"
 
       # next build copies the build-time .env into .next/standalone/. Runtime
       # env is injected by Coolify, so strip it before packaging the image.

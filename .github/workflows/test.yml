@@ -175,10 +175,11 @@ jobs:
           path: web/playwright-report/
           retention-days: 30
 
+      # Best-effort: the HTML report deploy must never fail CI when the tests
+      # themselves passed (e.g. Vercel outages or fair-use blocks). The merged
+      # report is still available as a workflow artifact either way.
       - name: Deploy Playwright report to Vercel
         id: deploy_report
-        # Report hosting is informational. A Vercel outage or fair-use block must
-        # not fail this job and block merging code whose tests all passed.
         continue-on-error: true
         run: |
           cd web/playwright-report

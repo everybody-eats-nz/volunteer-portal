@@ -216,12 +216,16 @@ test.describe("Login Page", () => {
       const submitButton = page.getByTestId("login-submit-button");
       await submitButton.click();
 
-      // Wait for navigation away from login page
+      // Wait for navigation away from login page. The credentials sign-in
+      // redirect lands on /dashboard, which the CI webServer runs in dev
+      // mode (on-demand route compilation) — under sharded CI load the
+      // first compile of that route can take well over 10s, so this needs
+      // more headroom than a warm/production navigation would.
       await page.waitForURL(
         (url) => {
           return url.pathname !== "/login";
         },
-        { timeout: 10000 }
+        { timeout: 20000 }
       );
 
       // Verify we're no longer on login page

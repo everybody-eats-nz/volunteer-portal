@@ -1,3 +1,6 @@
+// This route renders an Open Graph image via Satori (`next/og`), which only
+// supports raw <img> elements — `next/image` cannot be used here.
+/* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from "next/og";
 import { startOfDay, endOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";

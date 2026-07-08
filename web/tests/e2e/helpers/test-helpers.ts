@@ -1,6 +1,17 @@
 import { Page, expect } from "@playwright/test";
 
 /**
+ * Locate a testid scoped to its visible instance.
+ *
+ * Next.js streaming can briefly render two copies of the page content
+ * (loading + streamed tree), which trips Playwright's strict mode on
+ * page-level testids — one copy is hidden, so scope to the visible one.
+ */
+export function visibleTestId(page: Page, testId: string) {
+  return page.locator(`[data-testid="${testId}"]:visible`);
+}
+
+/**
  * Create a test user via test API endpoint
  * Uses /api/test/users which is only available in non-production
  */
