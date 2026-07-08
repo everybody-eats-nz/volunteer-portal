@@ -1,3 +1,9 @@
+## [0.143.0] - 2026-07-08
+
+### Changes
+- feat(admin): email verification status and actions on volunteer profile ([#1105](https://github.com/everybody-eats-nz/volunteer-portal/pull/1105)) by @malinmalliyawadu
+
+
 ## [0.142.4] - 2026-07-08
 
 ### Changes

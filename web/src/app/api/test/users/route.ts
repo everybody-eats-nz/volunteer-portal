@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     userData.hashedPassword = await bcrypt.hash(password || "Test123456", 10);
     userData.profileCompleted = profileCompleted;
     // Test users have verified emails unless the test explicitly opts out
-    userData.emailVerified = userData.emailVerified ?? true;
+    userData.emailVerified = body.emailVerified ?? true;
 
     const user = await prisma.user.create({
       data: userData,

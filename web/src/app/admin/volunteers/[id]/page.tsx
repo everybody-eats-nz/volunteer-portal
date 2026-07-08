@@ -27,6 +27,8 @@ import {
   Archive,
   ArchiveRestore,
   Megaphone,
+  MailCheck,
+  MailWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -51,6 +53,7 @@ import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { ShiftCountAdjustment } from "@/components/shift-count-adjustment";
 import { VolunteerSurveyHistory } from "@/components/volunteer-survey-history";
 import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
+import { EmailVerificationActions } from "@/components/email-verification-actions";
 
 const ARCHIVE_REASON_LABELS: Record<string, string> = {
   INACTIVE_12_MONTHS: "Inactive for 12+ months",
@@ -97,6 +100,7 @@ export default async function AdminVolunteerPage({
     select: {
       id: true,
       email: true,
+      emailVerified: true,
       name: true,
       firstName: true,
       lastName: true,
@@ -474,6 +478,25 @@ export default async function AdminVolunteerPage({
                     <Heart className="h-3 w-3 mr-1" />
                     Active Member
                   </Badge>
+                  {volunteer.emailVerified ? (
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/20 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20"
+                      data-testid="email-verified-badge"
+                    >
+                      <MailCheck className="h-3 w-3 mr-1" />
+                      Email Verified
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20"
+                      data-testid="email-unverified-badge"
+                    >
+                      <MailWarning className="h-3 w-3 mr-1" />
+                      Email Not Verified
+                    </Badge>
+                  )}
                   {volunteer.volunteerAgreementAccepted && (
                     <Badge
                       variant="outline"
@@ -568,6 +591,28 @@ export default async function AdminVolunteerPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {!volunteer.emailVerified && (
+                  <div
+                    className="space-y-2"
+                    data-testid="email-verification-actions-section"
+                  >
+                    <label className="text-sm font-medium">
+                      Email Verification
+                    </label>
+                    <EmailVerificationActions
+                      userId={volunteer.id}
+                      email={volunteer.email}
+                      displayName={volunteer.name || volunteer.email}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This volunteer&apos;s email is not verified, so they
+                      cannot sign up for shifts. Resend the verification email,
+                      or mark it verified if you have confirmed the address
+                      another way.
+                    </p>
+                  </div>
+                )}
+
                 {volunteer.role === "VOLUNTEER" &&
                   volunteer.lastMobileLoginAt !== null && (
                     <div className="space-y-2">
