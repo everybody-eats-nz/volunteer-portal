@@ -68,6 +68,21 @@ type FormData = {
   allowFriendSuggestions: boolean;
 };
 
+/**
+ * Fields a volunteer must fill in before they can sign up for shifts
+ * (mirrors isProfileComplete on the server; agreements are handled by the
+ * post-login gate and the Agreements section below).
+ */
+const REQUIRED_FIELDS = [
+  "firstName",
+  "phone",
+  "dateOfBirth",
+  "emergencyContactName",
+  "emergencyContactPhone",
+] as const;
+type RequiredField = (typeof REQUIRED_FIELDS)[number];
+type FieldErrors = Partial<Record<RequiredField, string>>;
+
 type VisibilityOption = {
   value: FormData["friendVisibility"];
   label: string;
@@ -229,6 +244,7 @@ export default function EditProfileScreen() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [localImage, setLocalImage] = useState<string | null>(null);
   const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
@@ -355,11 +371,60 @@ export default function EditProfileScreen() {
     }
   }, [profile, initialized]);
 
+  // ── Required-field validation ──
+  // DOB is exempt once locked (already set server-side, shown read-only).
+  const dobLocked = Boolean(profile?.dateOfBirth);
+
+  const validateField = (
+    key: RequiredField,
+    value: string
+  ): string | undefined => {
+    const trimmed = value.trim();
+    switch (key) {
+      case "firstName":
+        return trimmed ? undefined : "Enter your first name.";
+      case "phone":
+        return trimmed ? undefined : "Enter a phone number.";
+      case "dateOfBirth":
+        if (dobLocked) return undefined;
+        if (!trimmed) return "Enter your date of birth.";
+        return displayDateToIso(trimmed)
+          ? undefined
+          : "Enter a real past date as DD/MM/YYYY.";
+      case "emergencyContactName":
+        return trimmed ? undefined : "Enter an emergency contact name.";
+      case "emergencyContactPhone":
+        return trimmed ? undefined : "Enter their phone number.";
+    }
+  };
+
   const updateField = <K extends keyof FormData>(
     key: K,
     value: FormData[K]
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    // Reward early: once a field shows an error, re-validate as the user
+    // types so the message clears the moment it's fixed.
+    if (
+      typeof value === "string" &&
+      errors[key as RequiredField] !== undefined &&
+      (REQUIRED_FIELDS as readonly string[]).includes(key)
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        [key]: validateField(key as RequiredField, value),
+      }));
+    }
+  };
+
+  // Punish late: format problems (a half-typed DOB) surface on blur, but
+  // required-empty errors wait for the save attempt.
+  const handleDobBlur = () => {
+    if (!form.dateOfBirth.trim()) return;
+    setErrors((prev) => ({
+      ...prev,
+      dateOfBirth: validateField("dateOfBirth", form.dateOfBirth),
+    }));
   };
 
   // ── Photo picker ──
@@ -480,26 +545,30 @@ export default function EditProfileScreen() {
   // ── Save ──
 
   const handleSave = async () => {
-    if (!form.firstName.trim()) {
-      Alert.alert("Required", "First name cannot be empty.");
+    // Validate every required field up front and show the problems inline,
+    // so it's clear exactly what still needs filling in.
+    const validationErrors: FieldErrors = {};
+    for (const key of REQUIRED_FIELDS) {
+      const error = validateField(key, form[key]);
+      if (error) validationErrors[key] = error;
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        "A few details still needed",
+        "Fill in the highlighted fields — they're required before you can sign up for shifts."
+      );
       return;
     }
+    setErrors({});
 
     // DOB is set-once (admins change it after that), so only send it while
-    // still unset. Validate before sending — mirrors the server rule.
-    const dobLocked = Boolean(profile?.dateOfBirth);
-    let dateOfBirthIso: string | undefined;
-    if (!dobLocked && form.dateOfBirth.trim()) {
-      const iso = displayDateToIso(form.dateOfBirth.trim());
-      if (!iso) {
-        Alert.alert(
-          "Check date of birth",
-          "Enter your date of birth as DD/MM/YYYY — it must be a real date in the past."
-        );
-        return;
-      }
-      dateOfBirthIso = iso;
-    }
+    // still unset. Format is already validated above.
+    const dateOfBirthIso =
+      !dobLocked && form.dateOfBirth.trim()
+        ? displayDateToIso(form.dateOfBirth.trim()) ?? undefined
+        : undefined;
 
     setIsSaving(true);
     try {
@@ -685,6 +754,7 @@ export default function EditProfileScreen() {
             isDark={isDark}
             autoCapitalize="words"
             required
+            error={errors.firstName}
           />
           <FormField
             label="Last Name"
@@ -704,6 +774,7 @@ export default function EditProfileScreen() {
             isDark={isDark}
             keyboardType="phone-pad"
             required
+            error={errors.phone}
           />
           {profile.dateOfBirth ? (
             <View style={s.fieldContainer}>
@@ -748,11 +819,13 @@ export default function EditProfileScreen() {
                 onChangeText={(v) =>
                   updateField("dateOfBirth", formatDobInput(v))
                 }
+                onBlur={handleDobBlur}
                 placeholder="DD/MM/YYYY"
                 colors={colors}
                 isDark={isDark}
                 keyboardType="number-pad"
                 required
+                error={errors.dateOfBirth}
               />
               <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
                 We ask so we can look after volunteers under 16. It can only be
@@ -852,6 +925,7 @@ export default function EditProfileScreen() {
             isDark={isDark}
             autoCapitalize="words"
             required
+            error={errors.emergencyContactName}
           />
           <FormField
             label="Relationship"
@@ -871,6 +945,7 @@ export default function EditProfileScreen() {
             isDark={isDark}
             keyboardType="phone-pad"
             required
+            error={errors.emergencyContactPhone}
           />
         </View>
 
@@ -1647,6 +1722,7 @@ function FormField({
   label,
   value,
   onChangeText,
+  onBlur,
   placeholder,
   colors,
   isDark,
@@ -1654,10 +1730,12 @@ function FormField({
   autoCapitalize,
   multiline,
   required,
+  error,
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
+  onBlur?: () => void;
   placeholder: string;
   colors: (typeof Colors)["light"];
   isDark: boolean;
@@ -1665,6 +1743,8 @@ function FormField({
   autoCapitalize?: "none" | "sentences" | "words";
   multiline?: boolean;
   required?: boolean;
+  /** Validation message shown below the input; also tints the border. */
+  error?: string;
 }) {
   return (
     <View style={s.fieldContainer}>
@@ -1680,19 +1760,35 @@ function FormField({
           multiline && s.fieldInputMultiline,
           {
             color: colors.text,
-            borderColor: colors.border,
+            borderColor: error ? colors.destructive : colors.border,
             backgroundColor: isDark ? colors.surfaceSunk : colors.card,
           },
         ]}
         value={value}
         onChangeText={onChangeText}
+        onBlur={onBlur}
         placeholder={placeholder}
         placeholderTextColor={colors.textSecondary}
         keyboardType={keyboardType ?? "default"}
         autoCapitalize={autoCapitalize ?? "sentences"}
         multiline={multiline}
         textAlignVertical={multiline ? "top" : "center"}
+        accessibilityLabel={
+          error ? `${label}. ${error}` : required ? `${label}, required` : label
+        }
       />
+      {error && (
+        <View style={s.fieldErrorRow} accessibilityLiveRegion="polite">
+          <Ionicons
+            name="alert-circle"
+            size={13}
+            color={colors.destructive}
+          />
+          <Text style={[s.fieldErrorText, { color: colors.destructive }]}>
+            {error}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -1799,6 +1895,17 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.regular,
     lineHeight: 16,
+  },
+  fieldErrorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  fieldErrorText: {
+    flex: 1,
+    fontSize: 12.5,
+    fontFamily: FontFamily.medium,
+    lineHeight: 17,
   },
   lockedField: {
     flexDirection: "row",
