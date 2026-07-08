@@ -592,15 +592,26 @@ export function ShiftSignupSheet({
             <Text style={[ss.footerButtonSecondaryText, { color: colors.text }]}>Cancel</Text>
           </Pressable>
 
+          {/* While the profile is incomplete the signup would only 403, so
+              the sheet's "Complete Profile" button is the real action —
+              disable the confirm CTA rather than letting it dead-end. It
+              re-enables live once the refetched eligibility clears the flag. */}
           <Pressable
             onPress={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || profileIncomplete}
+            accessibilityState={{
+              disabled: isSubmitting || profileIncomplete,
+              busy: isSubmitting,
+            }}
             style={({ pressed }) => [
               ss.footerButtonPrimary,
               {
-                backgroundColor: isSubmitting ? colors.textSecondary : Brand.green,
-                opacity: pressed ? 0.9 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
+                backgroundColor:
+                  isSubmitting || profileIncomplete
+                    ? colors.textSecondary
+                    : Brand.green,
+                opacity: profileIncomplete ? 0.5 : pressed ? 0.9 : 1,
+                transform: [{ scale: pressed && !profileIncomplete ? 0.98 : 1 }],
                 flex: 1,
               },
             ]}>
