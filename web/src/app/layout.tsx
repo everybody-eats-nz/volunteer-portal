@@ -9,6 +9,7 @@ import { Providers } from "@/components/providers";
 import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { EmailVerificationBanner } from "@/components/email-verification-banner";
 import { getBaseUrl } from "@/lib/utils";
 import { SEO_CONFIG } from "@/lib/seo";
 
@@ -125,6 +126,7 @@ export default function RootLayout({
           <Suspense>
             <SiteHeaderClientWrapper />
           </Suspense>
+          <EmailVerificationBanner />
           <main className="min-h-screen">
             <Suspense>
               <MainContentWrapper>{children}</MainContentWrapper>
