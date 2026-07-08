@@ -1,3 +1,9 @@
+## [0.142.3] - 2026-07-08
+
+### Changes
+- fix(sse): time out stalled SSE writes and decouple admin push from SSE broadcast ([#1103](https://github.com/everybody-eats-nz/volunteer-portal/pull/1103)) by @malinmalliyawadu
+
+
 ## [0.142.2] - 2026-07-08
 
 ### Changes
