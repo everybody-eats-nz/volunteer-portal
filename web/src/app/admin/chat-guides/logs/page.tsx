@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { subDays } from "date-fns";
 import { ArrowLeft, Bot, MessageSquare, User as UserIcon } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
 import { formatInNZT } from "@/lib/timezone";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
@@ -26,9 +25,6 @@ export default async function ChatLogsPage({ searchParams }: ChatLogsPageProps) 
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login?callbackUrl=/admin/chat-guides/logs");
   if (session.user.role !== "ADMIN") redirect("/dashboard");
-
-  const enabled = await isFeatureEnabled(FeatureFlag.CHAT_GUIDES, session.user.id);
-  if (!enabled) notFound();
 
   const params = await searchParams;
   const page = Math.max(1, parseInt((params.page as string) ?? "1", 10) || 1);

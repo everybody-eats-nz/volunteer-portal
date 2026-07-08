@@ -26,6 +26,10 @@ const createResourceSchema = z.object({
   isPublished: z.boolean().default(true),
   includeInChat: z.boolean().default(false),
   chatContent: z.string().nullable().optional(),
+  // Raw text of the scrape that chatContent was derived from — lets the
+  // nightly refresh cron detect real page changes without clobbering
+  // AI-refined content.
+  lastScrapedContent: z.string().nullable().optional(),
 });
 
 // GET /api/admin/resources - List all resources (including unpublished)

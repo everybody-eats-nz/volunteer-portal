@@ -11,14 +11,6 @@ const REMOVE_CLASSES = new Set([
   "nav-wrapper", "footer",
 ]);
 
-/** Inline elements — should NOT cause line breaks. */
-const INLINE_TAGS = new Set([
-  "a", "abbr", "b", "bdi", "bdo", "br", "cite", "code", "data",
-  "dfn", "em", "i", "kbd", "mark", "q", "rp", "rt", "ruby",
-  "s", "samp", "small", "span", "strong", "sub", "sup", "time",
-  "u", "var", "wbr",
-]);
-
 /** Block elements that get line separators. */
 const BLOCK_RE = /^(div|section|article|main|aside|p|h[1-6]|ul|ol|li|table|tr|blockquote|figure|figcaption|details|summary|address|dl|dt|dd)$/;
 

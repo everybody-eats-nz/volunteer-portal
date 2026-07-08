@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.140.1",
+  "version": "0.142.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -32,6 +32,9 @@
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^5.2.2",
     "@openrouter/ai-sdk-provider": "^2.3.3",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-node": "^0.220.0",
+    "@posthog/ai": "^8.3.0",
     "@posthog/nextjs-config": "^1.8.28",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.7.0",

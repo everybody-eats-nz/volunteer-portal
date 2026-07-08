@@ -18,10 +18,7 @@ import { staggerContainer, staggerItem } from "@/lib/motion";
 import {
   Users,
   TrendingUp,
-  Zap,
   UserCheck,
-  UserMinus,
-  UserX,
   RefreshCw,
   UserPlus,
   Activity,
@@ -181,7 +178,6 @@ export function EngagementAnalyticsClient({
   function rollUpToMonthly(
     weekData: typeof data.monthlyTrend
   ): Array<{ month: string; activeVolunteers: number }> {
-    const monthMap = new Map<string, Set<string>>();
     // We need to track unique volunteer IDs per month, but we only have counts.
     // Use max-per-week as a reasonable rollup (distinct volunteers active in any week).
     const monthMaxMap = new Map<string, number>();
