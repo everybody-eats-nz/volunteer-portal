@@ -267,10 +267,9 @@ test.describe("Admin Bulk Shift Delete", () => {
       await expect(successMessage).toContainText(
         /2 shifts deleted successfully/
       );
-      expect(page.url()).toContain(`date=${rangeStartStr}`);
-      expect(page.url()).toContain(
-        `location=${encodeURIComponent(rangeLocation)}`
-      );
+      const redirectedUrl = new URL(page.url());
+      expect(redirectedUrl.searchParams.get("date")).toBe(rangeStartStr);
+      expect(redirectedUrl.searchParams.get("location")).toBe(rangeLocation);
 
       testShiftIds.length = 0;
     });
