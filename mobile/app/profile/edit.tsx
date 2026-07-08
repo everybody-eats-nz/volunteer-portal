@@ -22,13 +22,21 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
 
+import { AgreementGate, AgreementModal } from "@/components/agreement-modal";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
+import {
+  AGREEMENTS,
+  type AgreementKey,
+  useAgreementPolicies,
+} from "@/hooks/use-agreement-policies";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useProfile } from "@/hooks/use-profile";
 import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { posthog } from "@/lib/posthog";
+import { queryKeys } from "@/lib/query-keys";
 import {
   syncPushTokenWithServer,
   unregisterPushTokenFromServer,
@@ -41,6 +49,10 @@ type FormData = {
   lastName: string;
   phone: string;
   pronouns: string;
+  /** Displayed and edited as DD/MM/YYYY; empty when never provided. */
+  dateOfBirth: string;
+  volunteerAgreementAccepted: boolean;
+  healthSafetyPolicyAccepted: boolean;
   emergencyContactName: string;
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
@@ -116,6 +128,46 @@ function preferenceToChannels(pref: FormData["notificationPreference"]): {
   };
 }
 
+// ── Date of birth helpers ──
+// Entered as DD/MM/YYYY (NZ convention); stored/sent as ISO YYYY-MM-DD.
+
+function isoToDisplayDate(iso: string | null): string {
+  if (!iso) return "";
+  const [year, month, day] = iso.slice(0, 10).split("-");
+  return `${day}/${month}/${year}`;
+}
+
+/** Progressive input mask: digits only, slashes inserted at DD/MM/YYYY. */
+function formatDobInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)]
+    .filter(Boolean)
+    .join("/");
+}
+
+/**
+ * Parse a DD/MM/YYYY string to ISO, or null when invalid. Mirrors the server
+ * rule: must be a real calendar date at least 1 year in the past.
+ */
+function displayDateToIso(display: string): string | null {
+  const match = display.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, dd, mm, yyyy] = match;
+  const day = Number(dd);
+  const month = Number(mm);
+  const year = Number(yyyy);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const isRealDate =
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
+  if (!isRealDate || year < 1900) return null;
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  if (date > oneYearAgo) return null;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 const CHANNEL_OPTIONS: {
   key: "email" | "sms" | "push";
   label: string;
@@ -150,12 +202,16 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { profile, availableLocations, refresh } = useProfile();
   const deleteAccount = useAuth((state) => state.deleteAccount);
+  const queryClient = useQueryClient();
 
   const [form, setForm] = useState<FormData>({
     firstName: "",
     lastName: "",
     phone: "",
     pronouns: "",
+    dateOfBirth: "",
+    volunteerAgreementAccepted: false,
+    healthSafetyPolicyAccepted: false,
     emergencyContactName: "",
     emergencyContactRelationship: "",
     emergencyContactPhone: "",
@@ -255,6 +311,20 @@ export default function EditProfileScreen() {
   // Populate form once when profile first loads
   const [initialized, setInitialized] = useState(false);
   const [locationSheetVisible, setLocationSheetVisible] = useState(false);
+
+  // ── Agreements ──
+  // Normally accepted at the post-login gate, but surfaced here too so a
+  // volunteer with an unaccepted agreement can read and accept it in place.
+  const [activeAgreement, setActiveAgreement] = useState<AgreementKey | null>(
+    null
+  );
+  const policies = useAgreementPolicies();
+
+  const openAgreement = (key: AgreementKey) => {
+    Haptics.selectionAsync();
+    if (!policies.text[key] && !policies.loading[key]) policies.load(key);
+    setActiveAgreement(key);
+  };
   useEffect(() => {
     if (profile && !initialized) {
       setForm({
@@ -262,6 +332,9 @@ export default function EditProfileScreen() {
         lastName: profile.lastName,
         phone: profile.phone,
         pronouns: profile.pronouns,
+        dateOfBirth: isoToDisplayDate(profile.dateOfBirth),
+        volunteerAgreementAccepted: profile.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: profile.healthSafetyPolicyAccepted,
         emergencyContactName: profile.emergencyContactName,
         emergencyContactRelationship: profile.emergencyContactRelationship,
         emergencyContactPhone: profile.emergencyContactPhone,
@@ -412,6 +485,22 @@ export default function EditProfileScreen() {
       return;
     }
 
+    // DOB is set-once (admins change it after that), so only send it while
+    // still unset. Validate before sending — mirrors the server rule.
+    const dobLocked = Boolean(profile?.dateOfBirth);
+    let dateOfBirthIso: string | undefined;
+    if (!dobLocked && form.dateOfBirth.trim()) {
+      const iso = displayDateToIso(form.dateOfBirth.trim());
+      if (!iso) {
+        Alert.alert(
+          "Check date of birth",
+          "Enter your date of birth as DD/MM/YYYY — it must be a real date in the past."
+        );
+        return;
+      }
+      dateOfBirthIso = iso;
+    }
+
     setIsSaving(true);
     try {
       await api("/api/mobile/profile", {
@@ -421,6 +510,14 @@ export default function EditProfileScreen() {
           lastName: form.lastName.trim(),
           phone: form.phone.trim(),
           pronouns: form.pronouns.trim(),
+          ...(dateOfBirthIso ? { dateOfBirth: dateOfBirthIso } : {}),
+          // One-way: only ever send acceptance, never revoke.
+          ...(form.volunteerAgreementAccepted
+            ? { volunteerAgreementAccepted: true }
+            : {}),
+          ...(form.healthSafetyPolicyAccepted
+            ? { healthSafetyPolicyAccepted: true }
+            : {}),
           emergencyContactName: form.emergencyContactName.trim(),
           emergencyContactRelationship:
             form.emergencyContactRelationship.trim(),
@@ -444,14 +541,20 @@ export default function EditProfileScreen() {
       posthog?.capture("profile_updated", {
         notification_preference: form.notificationPreference,
         has_emergency_contact: !!form.emergencyContactName.trim(),
+        has_date_of_birth: dobLocked || !!dateOfBirthIso,
         newsletter_subscribed: form.emailNewsletterSubscription,
       });
       await refresh();
+      // Signup eligibility on shift screens depends on profile completion —
+      // refetch so a just-completed profile unlocks the signup CTA.
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
       router.back();
-    } catch {
+    } catch (err) {
       Alert.alert(
         "Save failed",
-        "Couldn't save your changes. Please try again."
+        err instanceof ApiError
+          ? err.message
+          : "Couldn't save your changes. Please try again."
       );
     } finally {
       setIsSaving(false);
@@ -569,6 +672,9 @@ export default function EditProfileScreen() {
           <Text style={[s.sectionTitle, { color: colors.text }]}>
             Personal Details
           </Text>
+          <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+            Fields marked * are needed before you can sign up for shifts.
+          </Text>
 
           <FormField
             label="First Name"
@@ -597,7 +703,63 @@ export default function EditProfileScreen() {
             colors={colors}
             isDark={isDark}
             keyboardType="phone-pad"
+            required
           />
+          {profile.dateOfBirth ? (
+            <View style={s.fieldContainer}>
+              <Text style={[s.fieldLabel, { color: colors.text }]}>
+                Date of Birth
+              </Text>
+              <View
+                style={[
+                  s.fieldInput,
+                  s.lockedField,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: isDark
+                      ? colors.surfaceSunk
+                      : colors.surfaceSoft,
+                  },
+                ]}
+                accessibilityLabel={`Date of birth: ${isoToDisplayDate(
+                  profile.dateOfBirth
+                )}. Contact the team to change it.`}
+              >
+                <Text
+                  style={[s.lockedFieldText, { color: colors.textSecondary }]}
+                >
+                  {isoToDisplayDate(profile.dateOfBirth)}
+                </Text>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </View>
+              <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
+                Contact the Everybody Eats team if this needs changing.
+              </Text>
+            </View>
+          ) : (
+            <View style={s.fieldContainer}>
+              <FormField
+                label="Date of Birth"
+                value={form.dateOfBirth}
+                onChangeText={(v) =>
+                  updateField("dateOfBirth", formatDobInput(v))
+                }
+                placeholder="DD/MM/YYYY"
+                colors={colors}
+                isDark={isDark}
+                keyboardType="number-pad"
+                required
+              />
+              <Text style={[s.fieldHint, { color: colors.textSecondary }]}>
+                We ask so we can look after volunteers under 16. It can only be
+                set once.
+              </Text>
+            </View>
+          )}
           <FormField
             label="Pronouns"
             value={form.pronouns}
@@ -689,6 +851,7 @@ export default function EditProfileScreen() {
             colors={colors}
             isDark={isDark}
             autoCapitalize="words"
+            required
           />
           <FormField
             label="Relationship"
@@ -707,6 +870,7 @@ export default function EditProfileScreen() {
             colors={colors}
             isDark={isDark}
             keyboardType="phone-pad"
+            required
           />
         </View>
 
@@ -1148,6 +1312,44 @@ export default function EditProfileScreen() {
           </Pressable>
         </View>
 
+        {/* ── Agreements ── */}
+        <View style={s.section}>
+          <Text style={[s.sectionTitle, { color: colors.text }]}>
+            Agreements
+          </Text>
+          <Text style={[s.sectionHint, { color: colors.textSecondary }]}>
+            Both are required before you can sign up for shifts. Tap one to
+            read it{form.volunteerAgreementAccepted &&
+            form.healthSafetyPolicyAccepted
+              ? " again"
+              : " and agree"}
+            .
+          </Text>
+
+          <AgreementGate
+            title="Volunteer Agreement"
+            agreed={form.volunteerAgreementAccepted}
+            onPress={() => openAgreement("volunteer")}
+            inputBg={isDark ? "rgba(255,255,255,0.06)" : "rgba(14,58,35,0.04)"}
+            inputStroke={
+              isDark ? "rgba(255,255,255,0.10)" : "rgba(14,58,35,0.12)"
+            }
+            mutedText={colors.textSecondary}
+            textColor={colors.text}
+          />
+          <AgreementGate
+            title="Health & Safety Policy"
+            agreed={form.healthSafetyPolicyAccepted}
+            onPress={() => openAgreement("safety")}
+            inputBg={isDark ? "rgba(255,255,255,0.06)" : "rgba(14,58,35,0.04)"}
+            inputStroke={
+              isDark ? "rgba(255,255,255,0.10)" : "rgba(14,58,35,0.12)"
+            }
+            mutedText={colors.textSecondary}
+            textColor={colors.text}
+          />
+        </View>
+
         {/* ── Danger zone ── */}
         <View style={s.section}>
           <Text style={[s.sectionTitle, { color: colors.destructive }]}>
@@ -1248,6 +1450,27 @@ export default function EditProfileScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {activeAgreement && (
+        <AgreementModal
+          visible
+          title={AGREEMENTS[activeAgreement].title}
+          content={policies.text[activeAgreement]}
+          loading={policies.loading[activeAgreement]}
+          error={policies.error[activeAgreement]}
+          onRetry={() => policies.load(activeAgreement)}
+          onClose={() => setActiveAgreement(null)}
+          onAgree={() => {
+            updateField(
+              activeAgreement === "volunteer"
+                ? "volunteerAgreementAccepted"
+                : "healthSafetyPolicyAccepted",
+              true
+            );
+            setActiveAgreement(null);
+          }}
+        />
+      )}
 
       <DefaultLocationSheet
         visible={locationSheetVisible}
@@ -1438,7 +1661,7 @@ function FormField({
   placeholder: string;
   colors: (typeof Colors)["light"];
   isDark: boolean;
-  keyboardType?: "default" | "phone-pad" | "email-address";
+  keyboardType?: "default" | "phone-pad" | "email-address" | "number-pad";
   autoCapitalize?: "none" | "sentences" | "words";
   multiline?: boolean;
   required?: boolean;
@@ -1571,6 +1794,21 @@ const s = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
     paddingTop: 12,
+  },
+  fieldHint: {
+    fontSize: 12,
+    fontFamily: FontFamily.regular,
+    lineHeight: 16,
+  },
+  lockedField: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  lockedFieldText: {
+    fontSize: 15,
+    fontFamily: FontFamily.regular,
   },
 
   // Toggle rows

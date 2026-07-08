@@ -9,6 +9,10 @@ import {
   type UserProgress,
 } from "@/lib/achievements";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
+import { isProfileComplete } from "@/lib/profile-completion";
+import { isUserUnder16, autoLabelUnder16User } from "@/lib/auto-label-utils";
+import { getEmailService } from "@/lib/email-service";
+import { captureFunnelEvent, FunnelEvent } from "@/lib/funnel";
 import { z } from "zod";
 
 /**
@@ -46,6 +50,9 @@ export async function GET(request: Request) {
         emergencyContactRelationship: true,
         emergencyContactPhone: true,
         medicalConditions: true,
+        volunteerAgreementAccepted: true,
+        healthSafetyPolicyAccepted: true,
+        profileCompleted: true,
         notificationPreference: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
@@ -66,6 +73,17 @@ export async function GET(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Self-heal a stale completion flag: older mobile clients could fill in
+    // every required field without profileCompleted ever being recomputed,
+    // leaving the volunteer blocked from shift signups. Fix it on read.
+    if (!user.profileCompleted && isProfileComplete(user)) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { profileCompleted: true },
+      });
+      user.profileCompleted = true;
     }
 
     // Calculate stats from signup history
@@ -295,6 +313,9 @@ export async function GET(request: Request) {
         emergencyContactRelationship: user.emergencyContactRelationship,
         emergencyContactPhone: user.emergencyContactPhone,
         medicalConditions: user.medicalConditions,
+        volunteerAgreementAccepted: user.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: user.healthSafetyPolicyAccepted,
+        profileCompleted: user.profileCompleted,
         notificationPreference: user.notificationPreference,
         receiveShortageNotifications: user.receiveShortageNotifications,
         excludedShortageNotificationTypes: user.excludedShortageNotificationTypes,
@@ -394,6 +415,22 @@ const updateMobileProfileSchema = z.object({
   lastName: z.string().optional(),
   phone: z.string().optional(),
   pronouns: z.string().optional(),
+  dateOfBirth: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true; // Allow empty/null
+        const date = new Date(val);
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        // Date must be at least 1 year in the past
+        return !isNaN(date.getTime()) && date <= oneYearAgo;
+      },
+      { message: "Date of birth must be at least 1 year in the past" }
+    ),
+  volunteerAgreementAccepted: z.boolean().optional(),
+  healthSafetyPolicyAccepted: z.boolean().optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactRelationship: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
@@ -426,7 +463,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    const profileFields = parsed.data;
+    const { dateOfBirth: dateOfBirthInput, ...profileFields } = parsed.data;
 
     const data: Record<string, unknown> = { ...profileFields };
 
@@ -435,14 +472,50 @@ export async function PUT(request: Request) {
       data.defaultLocation = profileFields.defaultLocation || null;
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: auth.userId },
+      select: {
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
+        profileCompleted: true,
+        requiresParentalConsent: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Date of birth mirrors the web profile rules: volunteers may set it once
+    // (OAuth/mobile signups don't capture it at registration), but only
+    // administrators can change it after that.
+    if (dateOfBirthInput !== undefined) {
+      const newDateOfBirth = dateOfBirthInput
+        ? new Date(dateOfBirthInput).toISOString().split("T")[0]
+        : null;
+      const currentDateOfBirth = user.dateOfBirth
+        ? user.dateOfBirth.toISOString().split("T")[0]
+        : null;
+
+      if (currentDateOfBirth && newDateOfBirth !== currentDateOfBirth) {
+        return NextResponse.json(
+          { error: "Only administrators can change date of birth once set" },
+          { status: 403 }
+        );
+      }
+
+      const dateOfBirth = dateOfBirthInput ? new Date(dateOfBirthInput) : null;
+      data.dateOfBirth = dateOfBirth;
+      // Recompute the parental-consent requirement whenever DOB changes so
+      // under-16 signups can't bypass the consent gate.
+      data.requiresParentalConsent = isUserUnder16(dateOfBirth);
+    }
+
     // Update name field for display consistency
     if (profileFields.firstName || profileFields.lastName) {
-      const user = await prisma.user.findUnique({
-        where: { id: auth.userId },
-        select: { firstName: true, lastName: true },
-      });
-      const first = profileFields.firstName ?? user?.firstName ?? "";
-      const last = profileFields.lastName ?? user?.lastName ?? "";
+      const first = profileFields.firstName ?? user.firstName ?? "";
+      const last = profileFields.lastName ?? user.lastName ?? "";
       data.name = [first, last].filter(Boolean).join(" ");
     }
 
@@ -450,19 +523,112 @@ export async function PUT(request: Request) {
       where: { id: auth.userId },
       data,
       select: {
+        name: true,
+        email: true,
         firstName: true,
         lastName: true,
         phone: true,
         pronouns: true,
         profilePhotoUrl: true,
+        dateOfBirth: true,
         emergencyContactName: true,
         emergencyContactRelationship: true,
         emergencyContactPhone: true,
         medicalConditions: true,
+        volunteerAgreementAccepted: true,
+        healthSafetyPolicyAccepted: true,
+        requiresParentalConsent: true,
+        parentalConsentReceived: true,
+        profileCompleted: true,
       },
     });
 
-    return NextResponse.json({ profile: updatedUser });
+    if (dateOfBirthInput !== undefined) {
+      await autoLabelUnder16User(auth.userId, updatedUser.dateOfBirth);
+
+      // Notify admins when a user newly requires parental consent (e.g. an
+      // OAuth signup setting DOB for the first time). Mirrors the web
+      // PUT /api/profile.
+      const becameUnderage =
+        !user.requiresParentalConsent &&
+        updatedUser.requiresParentalConsent &&
+        !updatedUser.parentalConsentReceived;
+
+      if (becameUnderage) {
+        try {
+          const admins = await prisma.user.findMany({
+            where: { role: "ADMIN" },
+            select: { id: true },
+          });
+
+          await Promise.all(
+            admins.map((admin) =>
+              prisma.notification.create({
+                data: {
+                  userId: admin.id,
+                  type: "UNDERAGE_USER_REGISTERED",
+                  title: "New Underage Volunteer",
+                  message: `${updatedUser.name || updatedUser.email} (under 16) has registered and requires parental consent approval.`,
+                  actionUrl: "/admin/parental-consent",
+                  relatedId: auth.userId,
+                },
+              })
+            )
+          );
+        } catch (notificationError) {
+          console.error(
+            "Failed to send admin notifications for underage user:",
+            notificationError
+          );
+        }
+      }
+    }
+
+    // Flip the completion flag once every required field is present — this is
+    // what unlocks shift signups. Mirrors the web PUT /api/profile.
+    let profileCompleted = updatedUser.profileCompleted;
+    if (!user.profileCompleted && isProfileComplete(updatedUser)) {
+      profileCompleted = true;
+      await prisma.user.update({
+        where: { id: auth.userId },
+        data: { profileCompleted: true },
+      });
+
+      captureFunnelEvent({
+        event: FunnelEvent.REGISTER_COMPLETED,
+        userId: auth.userId,
+        properties: { platform: "mobile" },
+      });
+
+      try {
+        const emailService = getEmailService();
+        await emailService.sendProfileCompletion({
+          to: updatedUser.email,
+          firstName: updatedUser.firstName,
+        });
+      } catch (emailError) {
+        console.error("Failed to send profile completion email:", emailError);
+        // Don't fail the profile update if email sending fails
+      }
+    }
+
+    return NextResponse.json({
+      profile: {
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        phone: updatedUser.phone,
+        pronouns: updatedUser.pronouns,
+        profilePhotoUrl: updatedUser.profilePhotoUrl,
+        dateOfBirth: updatedUser.dateOfBirth?.toISOString() ?? null,
+        emergencyContactName: updatedUser.emergencyContactName,
+        emergencyContactRelationship: updatedUser.emergencyContactRelationship,
+        emergencyContactPhone: updatedUser.emergencyContactPhone,
+        medicalConditions: updatedUser.medicalConditions,
+        volunteerAgreementAccepted: updatedUser.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: updatedUser.healthSafetyPolicyAccepted,
+        profileCompleted,
+      },
+    });
   } catch (error) {
     console.error("Mobile profile update error:", error);
     return NextResponse.json(

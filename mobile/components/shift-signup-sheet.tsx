@@ -72,6 +72,14 @@ type ShiftSignupSheetProps = {
   };
   isWaitlist: boolean;
   formatDate: (date: Date, fmt: string) => string;
+  /**
+   * Known-incomplete profile from the shift eligibility payload, so the sheet
+   * can explain what's missing up front instead of only after a failed
+   * signup. The server re-checks on submit either way.
+   */
+  profileIncomplete?: boolean;
+  /** Required profile fields still missing, e.g. ["Date of birth"]. */
+  missingProfileFields?: string[];
 };
 
 export function ShiftSignupSheet({
@@ -81,6 +89,8 @@ export function ShiftSignupSheet({
   shift,
   isWaitlist,
   formatDate,
+  profileIncomplete: knownProfileIncomplete,
+  missingProfileFields: knownMissingFields,
 }: ShiftSignupSheetProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -99,22 +109,25 @@ export function ShiftSignupSheet({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
 
   const spotsLeft = Math.max(0, shift.capacity - shift.signedUp);
   const date = new Date(shift.start);
   const endDate = new Date(shift.end);
 
-  // Reset state when sheet opens
+  // Reset state when sheet opens. Seed the profile warning from the shift
+  // eligibility payload so the volunteer sees what's missing before trying.
   useEffect(() => {
     if (visible) {
       setNote('');
       setShowNoteField(false);
       setBackupShiftIds([]);
       setError(null);
-      setProfileIncomplete(false);
+      setProfileIncomplete(Boolean(knownProfileIncomplete));
+      setMissingFields(knownMissingFields ?? []);
       setAutoApproval({ eligible: false, loading: true });
     }
-  }, [visible]);
+  }, [visible, knownProfileIncomplete, knownMissingFields]);
 
   // Fetch auto-approval eligibility + concurrent shifts when sheet opens
   useEffect(() => {
@@ -176,6 +189,10 @@ export function ShiftSignupSheet({
           setError('This shift just filled up. You can join the waitlist instead.');
         } else if (err.message === 'Profile incomplete') {
           setProfileIncomplete(true);
+          const serverMissing = err.data?.missingFields;
+          if (Array.isArray(serverMissing)) {
+            setMissingFields(serverMissing.filter((f) => typeof f === 'string'));
+          }
         } else {
           setError(err.message);
         }
@@ -495,9 +512,30 @@ export function ShiftSignupSheet({
                   ss.profileIncompleteBody,
                   { color: isDark ? '#fca5a5' : '#dc2626' },
                 ]}>
-                Your profile is missing some required information. Finish
-                filling it in and we&apos;ll get you signed up.
+                {missingFields.length > 0
+                  ? 'Your profile still needs:'
+                  : "Your profile is missing some required information. Finish filling it in and we'll get you signed up."}
               </Text>
+              {missingFields.length > 0 && (
+                <View style={ss.missingFieldsList}>
+                  {missingFields.map((field) => (
+                    <View key={field} style={ss.missingFieldRow}>
+                      <Ionicons
+                        name="ellipse"
+                        size={5}
+                        color={isDark ? '#fca5a5' : '#dc2626'}
+                      />
+                      <Text
+                        style={[
+                          ss.missingFieldText,
+                          { color: isDark ? '#fca5a5' : '#dc2626' },
+                        ]}>
+                        {field}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               <Pressable
                 onPress={handleGoToProfile}
                 style={({ pressed }) => [
@@ -844,6 +882,21 @@ const ss = StyleSheet.create({
     fontSize: 14,
     fontFamily: FontFamily.regular,
     lineHeight: 20,
+  },
+  missingFieldsList: {
+    gap: 4,
+    marginTop: -4,
+    paddingLeft: 4,
+  },
+  missingFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  missingFieldText: {
+    fontSize: 14,
+    fontFamily: FontFamily.medium,
+    lineHeight: 19,
   },
   profileIncompleteButton: {
     flexDirection: 'row',

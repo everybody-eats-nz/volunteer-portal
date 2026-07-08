@@ -269,7 +269,7 @@ export default function RegisterScreen({
               Create your account
             </ThemedText>
             <ThemedText style={[styles.cardSubtitle, { color: mutedText }]}>
-              A few details and you're ready to volunteer
+              A few details and you&apos;re ready to volunteer
             </ThemedText>
 
             {/* Quick sign-up with a provider */}
@@ -498,7 +498,7 @@ export default function RegisterScreen({
                 <ThemedText
                   style={[styles.fieldError, { color: colors.destructive }]}
                 >
-                  Passwords don't match
+                  Passwords don&apos;t match
                 </ThemedText>
               )}
             </View>
