@@ -740,6 +740,28 @@ test.describe("Admin Volunteer Profile View", () => {
       ).toBeVisible();
     });
 
+    test("should reject resend and mark-verified for an already-verified volunteer", async ({
+      page,
+    }) => {
+      // Hit the API directly (as the logged-in admin) against the verified user
+      const resendResponse = await page.request.post(
+        `/api/admin/users/${volunteerId}/email-verification`
+      );
+      expect(resendResponse.status()).toBe(400);
+      expect((await resendResponse.json()).error).toBe(
+        "Email is already verified"
+      );
+
+      const markResponse = await page.request.patch(
+        `/api/admin/users/${volunteerId}/email-verification`,
+        { data: {} }
+      );
+      expect(markResponse.status()).toBe(400);
+      expect((await markResponse.json()).error).toBe(
+        "Email is already verified"
+      );
+    });
+
     test("should resend the verification email", async ({ page }) => {
       await page.goto(`/admin/volunteers/${unverifiedId}`);
       await waitForPageLoad(page);

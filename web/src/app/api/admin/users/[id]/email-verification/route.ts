@@ -8,7 +8,7 @@ import { getEmailService } from "@/lib/email-service";
 import { getBaseUrl } from "@/lib/utils";
 
 const markVerifiedSchema = z.object({
-  note: z.string().max(500).optional(),
+  note: z.string().max(500, "Note must be 500 characters or less").optional(),
 });
 
 interface RouteParams {
@@ -91,6 +91,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     }
 
     const { id } = await params;
+    // A missing/malformed body is treated as "no note", which is valid
     const body = await req.json().catch(() => ({}));
     const parsed = markVerifiedSchema.safeParse(body);
     if (!parsed.success) {
