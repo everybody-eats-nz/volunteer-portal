@@ -95,6 +95,15 @@ class NotificationSSEManager {
     const deadConnections: SSEConnection[] = [];
 
     for (const connection of userConnections) {
+      // writer.write() to a client that vanished without a TCP reset doesn't
+      // reject — it can stall forever on backpressure, silently blocking
+      // everything queued behind this broadcast. The watchdog makes that
+      // visible in logs; it does not cancel the write.
+      const stallWatchdog = setTimeout(() => {
+        console.warn(
+          `[SSE] write to user ${userId} still pending after 5s (connection opened ${new Date(connection.connectedAt).toISOString()})`
+        );
+      }, 5_000);
       try {
         await connection.writer.write(connection.encoder.encode(message));
         successCount++;
@@ -104,6 +113,8 @@ class NotificationSSEManager {
           error
         );
         deadConnections.push(connection);
+      } finally {
+        clearTimeout(stallWatchdog);
       }
     }
 
