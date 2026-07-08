@@ -173,6 +173,10 @@ export async function sendMessage(
     }),
   ]);
 
+  console.log(
+    `[messaging] message ${message.id} persisted in thread ${args.threadId} (sender ${args.senderId}, ${args.senderRole})`
+  );
+
   // Fan-out notifications outside the transaction.
   if (sentByVolunteer) {
     const volunteer = await prisma.user.findUnique({
@@ -186,6 +190,10 @@ export async function sendMessage(
       },
     });
     if (volunteer) {
+      console.log(
+        `[messaging] queueing admin fan-out for message ${message.id}`
+      );
+      const fanOutStart = Date.now();
       void broadcastNewMessageToAdmins({
         threadId: args.threadId,
         message: {
@@ -196,7 +204,15 @@ export async function sendMessage(
           createdAt: message.createdAt,
         },
         volunteer,
-      });
+      }).finally(() =>
+        console.log(
+          `[messaging] admin fan-out settled for message ${message.id} in ${Date.now() - fanOutStart}ms`
+        )
+      );
+    } else {
+      console.warn(
+        `[messaging] volunteer ${thread.volunteerId} not found for thread ${args.threadId} — admin fan-out skipped`
+      );
     }
   } else {
     void notifyVolunteerOfTeamMessage({

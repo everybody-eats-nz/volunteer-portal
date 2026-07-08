@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ScrollText } from "lucide-react";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { isFeatureEnabled, FeatureFlag } from "@/lib/posthog-server";
 
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { Button } from "@/components/ui/button";
@@ -18,14 +17,6 @@ export default async function ChatGuidesPage() {
   }
   if (session.user.role !== "ADMIN") {
     redirect("/dashboard");
-  }
-
-  const chatGuidesEnabled = await isFeatureEnabled(
-    FeatureFlag.CHAT_GUIDES,
-    session.user.id,
-  );
-  if (!chatGuidesEnabled) {
-    notFound();
   }
 
   const [chatResources, allResources, chatSettings] = await Promise.all([
@@ -54,12 +45,13 @@ export default async function ChatGuidesPage() {
     }),
     // Chat prompt settings
     prisma.siteSetting.findMany({
-      where: { key: { in: ["CHAT_SYSTEM_PROMPT", "CHAT_SUGGESTED_QUESTIONS"] } },
+      where: { key: { in: ["CHAT_SYSTEM_PROMPT", "CHAT_SUGGESTED_QUESTIONS", "CHAT_MODEL"] } },
     }),
   ]);
 
   const systemPrompt = chatSettings.find((s) => s.key === "CHAT_SYSTEM_PROMPT")?.value ?? "";
   const suggestedQuestions = chatSettings.find((s) => s.key === "CHAT_SUGGESTED_QUESTIONS")?.value ?? "[]";
+  const model = chatSettings.find((s) => s.key === "CHAT_MODEL")?.value ?? "";
 
   // Estimate total token count (rough: ~4 chars per token)
   const totalChars = chatResources.reduce(
@@ -87,6 +79,7 @@ export default async function ChatGuidesPage() {
         estimatedTokens={estimatedTokens}
         initialSystemPrompt={systemPrompt}
         initialSuggestedQuestions={suggestedQuestions}
+        initialModel={model}
       />
     </AdminPageWrapper>
   );

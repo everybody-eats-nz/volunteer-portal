@@ -712,6 +712,7 @@ model Resource {
   // Chat guide context — when enabled, this resource's content is passed to the mobile AI chat
   includeInChat Boolean @default(false)
   chatContent   String? // Extracted/written text content for AI context (from PDF or manual entry)
+  lastScrapedContent String? // Raw text of the most recent URL scrape — lets the refresh cron detect real page changes without clobbering AI-refined chatContent
 
   // Relations
   uploader User @relation("ResourceUploader", fields: [uploadedBy], references: [id])

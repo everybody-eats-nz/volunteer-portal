@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.140.1",
+  "version": "0.142.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -32,6 +32,9 @@
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^5.2.2",
     "@openrouter/ai-sdk-provider": "^2.3.3",
+    "@opentelemetry/resources": "^2.9.0",
+    "@opentelemetry/sdk-node": "^0.220.0",
+    "@posthog/ai": "^8.3.0",
     "@posthog/nextjs-config": "^1.8.28",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.7.0",
@@ -113,7 +116,7 @@
     "@vitest/ui": "^4.1.10",
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.10.42",
-    "csv-parse": "^6.2.1",
+    "csv-parse": "^7.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "exceljs": "^4.4.0",

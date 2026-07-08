@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { DEFAULT_SYSTEM_PROMPT } from "@/lib/chat-model";
 import {
   MessageSquare,
   Plus,
   Trash2,
   Pencil,
   FileText,
-  Check,
   X,
   Info,
   Send,
@@ -17,6 +17,7 @@ import {
   Globe,
   RefreshCw,
   Link,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_CHAT_MODEL } from "@/lib/chat-model";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -93,6 +95,7 @@ interface ChatGuidesContentProps {
   estimatedTokens: number;
   initialSystemPrompt: string;
   initialSuggestedQuestions: string; // JSON string
+  initialModel: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -115,21 +118,20 @@ const CATEGORY_COLORS: Record<string, string> = {
   GENERAL: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
-const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
-
-Key guidelines:
-- Be warm, encouraging, and supportive — volunteers are giving their time for free
-- Weave in te reo Māori naturally: "Kia ora", "ka pai" (well done), "whānau" (family/community), "mahi" (work), "ngā mihi" (thanks)
-- Answer questions based ONLY on the knowledge base provided below
-- If you don't know something or it's not in the knowledge base, say so honestly and suggest they contact the team directly
-- Keep answers concise but thorough — volunteers are often on mobile
-- Use emojis sparingly for warmth 🌿`;
-
 const DEFAULT_QUESTIONS: SuggestedQuestion[] = [
   { emoji: "🍽️", label: "What happens on a typical shift?" },
   { emoji: "🔪", label: "Kitchen safety tips" },
   { emoji: "👥", label: "What are the volunteer grades?" },
   { emoji: "📍", label: "Where are the kitchens?" },
+];
+
+// Recommended models — capable enough to answer reliably from the knowledge base.
+// Avoid "nano"/"mini" tiers: they struggle to retrieve facts from long context.
+const RECOMMENDED_MODELS = [
+  "anthropic/claude-sonnet-4.5",
+  "anthropic/claude-haiku-4.5",
+  "openai/gpt-5",
+  "google/gemini-2.5-flash",
 ];
 
 export function ChatGuidesContent({
@@ -138,6 +140,7 @@ export function ChatGuidesContent({
   estimatedTokens: initialTokens,
   initialSystemPrompt,
   initialSuggestedQuestions,
+  initialModel,
 }: ChatGuidesContentProps) {
   const { toast } = useToast();
   const [chatResources, setChatResources] = useState(initialChatResources);
@@ -155,12 +158,17 @@ export function ChatGuidesContent({
       return DEFAULT_QUESTIONS;
     }
   });
+  const [model, setModel] = useState(initialModel);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Add resource dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedResourceId, setSelectedResourceId] = useState("");
   const [chatContent, setChatContent] = useState("");
+  // Raw text of the URL scrape backing chatContent (LINK resources only) —
+  // saved as lastScrapedContent so the nightly refresh cron can tell page
+  // changes apart from admin edits/refinements.
+  const [addRawScrape, setAddRawScrape] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [isExtractingPdf, setIsExtractingPdf] = useState(false);
   const [isExtractingUrl, setIsExtractingUrl] = useState(false);
@@ -171,6 +179,7 @@ export function ChatGuidesContent({
   const [importTitle, setImportTitle] = useState("");
   const [importCategory, setImportCategory] = useState("GENERAL");
   const [importContent, setImportContent] = useState("");
+  const [importRawScrape, setImportRawScrape] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [isExtractingImportUrl, setIsExtractingImportUrl] = useState(false);
 
@@ -182,6 +191,9 @@ export function ChatGuidesContent({
   const [editingResource, setEditingResource] = useState<ChatResource | null>(null);
   const [editContent, setEditContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // AI refine (shared across edit / import / create dialogs; key identifies which is running)
+  const [refiningKey, setRefiningKey] = useState<null | "edit" | "import" | "create">(null);
 
   // Remove dialog
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
@@ -199,6 +211,8 @@ export function ChatGuidesContent({
   const [previewMessages, setPreviewMessages] = useState<PreviewMessage[]>([]);
   const [previewInput, setPreviewInput] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  // Per-preview model override — lets admins A/B models without changing the saved setting.
+  const [previewModel, setPreviewModel] = useState(initialModel);
   const previewEndRef = useRef<HTMLDivElement>(null);
 
   const availableResources = allResources.filter(
@@ -213,6 +227,39 @@ export function ChatGuidesContent({
     setEstimatedTokens(Math.round(chars / 4));
   };
 
+  // Send raw imported/linked text to the AI and replace it with a cleaned-up version.
+  const handleRefine = async (
+    key: "edit" | "import" | "create",
+    content: string,
+    title: string | undefined,
+    apply: (refined: string) => void,
+  ) => {
+    if (!content.trim() || refiningKey) return;
+    setRefiningKey(key);
+    try {
+      const response = await fetch("/api/admin/chat-guides/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, title }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to refine content");
+      }
+      const { refined } = await response.json();
+      apply(refined);
+      toast({ title: "Content refined", description: "Review the result before saving." });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to refine",
+        variant: "destructive",
+      });
+    } finally {
+      setRefiningKey(null);
+    }
+  };
+
   const handleSaveSettings = async () => {
     setIsSavingSettings(true);
     try {
@@ -222,6 +269,7 @@ export function ChatGuidesContent({
         body: JSON.stringify({
           systemPrompt,
           suggestedQuestions,
+          model: model.trim(),
         }),
       });
 
@@ -245,6 +293,7 @@ export function ChatGuidesContent({
   const handleResourceSelected = async (resourceId: string) => {
     setSelectedResourceId(resourceId);
     setChatContent("");
+    setAddRawScrape("");
 
     const resource = availableResources.find((r) => r.id === resourceId);
 
@@ -297,6 +346,7 @@ export function ChatGuidesContent({
 
         const { text } = await response.json();
         setChatContent(text);
+        setAddRawScrape(text);
         toast({
           title: "Page content extracted",
           description: "Review and edit the extracted content below.",
@@ -333,8 +383,11 @@ export function ChatGuidesContent({
 
   const isValidEEUrl = (url: string) => {
     try {
-      const parsed = new URL(url);
-      return parsed.hostname.endsWith("everybodyeats.nz");
+      const hostname = new URL(url).hostname.toLowerCase();
+      return (
+        hostname === "everybodyeats.nz" ||
+        hostname.endsWith(".everybodyeats.nz")
+      );
     } catch {
       return false;
     }
@@ -365,6 +418,7 @@ export function ChatGuidesContent({
 
       const { text, title } = await response.json();
       setImportContent(text);
+      setImportRawScrape(text);
       if (!importTitle.trim()) {
         setImportTitle(title);
       }
@@ -399,6 +453,7 @@ export function ChatGuidesContent({
           isPublished: true,
           includeInChat: true,
           chatContent: importContent.trim(),
+          lastScrapedContent: importRawScrape.trim() || undefined,
         }),
       });
 
@@ -417,6 +472,7 @@ export function ChatGuidesContent({
       setImportTitle("");
       setImportCategory("GENERAL");
       setImportContent("");
+      setImportRawScrape("");
     } catch (error) {
       toast({
         title: "Error",
@@ -458,7 +514,7 @@ export function ChatGuidesContent({
       const saveResponse = await fetch(`/api/admin/resources/${resource.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatContent: text }),
+        body: JSON.stringify({ chatContent: text, lastScrapedContent: text }),
       });
 
       if (!saveResponse.ok) {
@@ -548,7 +604,11 @@ export function ChatGuidesContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: allMsgs.map((m) => ({ role: m.role, content: m.content })),
+          // Recent turns only — matches the mobile app and the server's window
+          messages: allMsgs
+            .map((m) => ({ role: m.role, content: m.content }))
+            .slice(-20),
+          model: previewModel.trim() || undefined,
         }),
       });
 
@@ -585,7 +645,7 @@ export function ChatGuidesContent({
       setPreviewLoading(false);
       setTimeout(() => previewEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     }
-  }, [previewInput, previewLoading, previewMessages]);
+  }, [previewInput, previewLoading, previewMessages, previewModel]);
 
   const resetPreview = () => {
     setPreviewMessages([]);
@@ -603,6 +663,7 @@ export function ChatGuidesContent({
         body: JSON.stringify({
           includeInChat: true,
           chatContent: chatContent.trim(),
+          lastScrapedContent: addRawScrape.trim() || undefined,
         }),
       });
 
@@ -619,6 +680,7 @@ export function ChatGuidesContent({
       setAddDialogOpen(false);
       setSelectedResourceId("");
       setChatContent("");
+      setAddRawScrape("");
     } catch (error) {
       toast({
         title: "Error",
@@ -689,7 +751,7 @@ export function ChatGuidesContent({
       toast({ title: "Removed from chat context", description: removingResource.title });
       setRemoveDialogOpen(false);
       setRemovingResource(null);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to remove resource from chat",
@@ -764,6 +826,42 @@ export function ChatGuidesContent({
           </p>
         </div>
       </div>
+
+      {/* AI Model */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">AI Model</CardTitle>
+          <CardDescription>
+            The OpenRouter model that powers the chat assistant. Leave blank to use the
+            default ({DEFAULT_CHAT_MODEL}). Avoid &quot;nano&quot; / &quot;mini&quot; tiers — they
+            struggle to answer reliably from the knowledge base.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={DEFAULT_CHAT_MODEL}
+            className="font-mono text-sm"
+            aria-label="OpenRouter model ID"
+          />
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-muted-foreground self-center">Recommended:</span>
+            {RECOMMENDED_MODELS.map((m) => (
+              <Button
+                key={m}
+                type="button"
+                variant={model.trim() === m ? "default" : "outline"}
+                size="sm"
+                onClick={() => setModel(m)}
+                className="h-7 font-mono text-xs"
+              >
+                {m}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Prompt & Suggested Questions */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -979,6 +1077,24 @@ export function ChatGuidesContent({
               </Button>
             )}
           </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Label htmlFor="preview-model" className="shrink-0 text-xs text-muted-foreground">
+              Model
+            </Label>
+            <Input
+              id="preview-model"
+              list="preview-model-presets"
+              value={previewModel}
+              onChange={(e) => setPreviewModel(e.target.value)}
+              placeholder={`${DEFAULT_CHAT_MODEL} (saved default)`}
+              className="h-8 font-mono text-xs"
+            />
+            <datalist id="preview-model-presets">
+              {RECOMMENDED_MODELS.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col rounded-lg border bg-muted/30">
@@ -1161,6 +1277,23 @@ export function ChatGuidesContent({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
+            <div className="flex items-center justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  handleRefine("edit", editContent, editingResource?.title, setEditContent)
+                }
+                disabled={!editContent.trim() || refiningKey !== null}
+              >
+                {refiningKey === "edit" ? (
+                  <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1 h-3 w-3" />
+                )}
+                {refiningKey === "edit" ? "Refining..." : "Refine with AI"}
+              </Button>
+            </div>
             <Textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
@@ -1168,7 +1301,8 @@ export function ChatGuidesContent({
               className="font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              ~{Math.round(editContent.length / 4).toLocaleString()} tokens
+              ~{Math.round(editContent.length / 4).toLocaleString()} tokens · Refine cleans up
+              imported text — review before saving.
             </p>
           </div>
           <DialogFooter>
@@ -1268,7 +1402,24 @@ export function ChatGuidesContent({
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Extracted Content</Label>
+              <div className="flex items-center justify-between">
+                <Label>Extracted Content</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleRefine("import", importContent, importTitle, setImportContent)
+                  }
+                  disabled={!importContent.trim() || isExtractingImportUrl || refiningKey !== null}
+                >
+                  {refiningKey === "import" ? (
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3 w-3" />
+                  )}
+                  {refiningKey === "import" ? "Refining..." : "Refine with AI"}
+                </Button>
+              </div>
               <Textarea
                 value={importContent}
                 onChange={(e) => setImportContent(e.target.value)}
@@ -1337,7 +1488,24 @@ export function ChatGuidesContent({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Content</Label>
+              <div className="flex items-center justify-between">
+                <Label>Content</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleRefine("create", newContent, newTitle, setNewContent)
+                  }
+                  disabled={!newContent.trim() || refiningKey !== null}
+                >
+                  {refiningKey === "create" ? (
+                    <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1 h-3 w-3" />
+                  )}
+                  {refiningKey === "create" ? "Refining..." : "Refine with AI"}
+                </Button>
+              </div>
               <Textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}

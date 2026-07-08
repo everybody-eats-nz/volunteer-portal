@@ -23,6 +23,15 @@ interface SSEConnection {
   role?: "VOLUNTEER" | "ADMIN";
 }
 
+/**
+ * How long a single SSE write may stay pending before the connection is
+ * declared dead. A write to a client that vanished without a TCP reset
+ * doesn't reject — once the stream's queue fills it stalls forever on
+ * backpressure, wedging every broadcast queued behind it (which is how a
+ * volunteer message can silently never reach the admin push fan-out).
+ */
+const SSE_WRITE_TIMEOUT_MS = 10_000;
+
 class NotificationSSEManager {
   private connections = new Map<string, SSEConnection[]>();
   private encoder = new TextEncoder();
@@ -94,15 +103,46 @@ class NotificationSSEManager {
     let successCount = 0;
     const deadConnections: SSEConnection[] = [];
 
-    for (const connection of userConnections) {
-      try {
-        await connection.writer.write(connection.encoder.encode(message));
+    // Write to all of the user's connections concurrently, racing each write
+    // against SSE_WRITE_TIMEOUT_MS: a stalled write means the client is gone,
+    // so abort the writer (rejecting the pending write) and drop the
+    // connection instead of wedging the fan-out. Concurrency matters —
+    // clients reconnect in bursts, and several zombies handled serially
+    // would each cost a full timeout window.
+    const outcomes = await Promise.all(
+      userConnections.map(async (connection) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const outcome = await Promise.race([
+          connection.writer.write(connection.encoder.encode(message)).then(
+            () => ({ status: "ok" as const }),
+            (error: unknown) => ({ status: "error" as const, error })
+          ),
+          new Promise<{ status: "timeout" }>((resolve) => {
+            timer = setTimeout(
+              () => resolve({ status: "timeout" }),
+              SSE_WRITE_TIMEOUT_MS
+            );
+          }),
+        ]);
+        clearTimeout(timer);
+        return { connection, outcome };
+      })
+    );
+
+    for (const { connection, outcome } of outcomes) {
+      if (outcome.status === "ok") {
         successCount++;
-      } catch (error) {
-        console.error(
-          `[SSE] Failed to send to user ${userId}:`,
-          error
-        );
+      } else {
+        if (outcome.status === "timeout") {
+          console.warn(
+            `[SSE] Write to user ${userId} timed out after ${SSE_WRITE_TIMEOUT_MS}ms (connection opened ${new Date(connection.connectedAt).toISOString()}) — dropping connection`
+          );
+          void connection.writer
+            .abort(new Error("SSE write timed out"))
+            .catch(() => {});
+        } else {
+          console.error(`[SSE] Failed to send to user ${userId}:`, outcome.error);
+        }
         deadConnections.push(connection);
       }
     }
