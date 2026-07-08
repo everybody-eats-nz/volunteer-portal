@@ -23,6 +23,15 @@ interface SSEConnection {
   role?: "VOLUNTEER" | "ADMIN";
 }
 
+/**
+ * How long a single SSE write may stay pending before the connection is
+ * declared dead. A write to a client that vanished without a TCP reset
+ * doesn't reject — once the stream's queue fills it stalls forever on
+ * backpressure, wedging every broadcast queued behind it (which is how a
+ * volunteer message can silently never reach the admin push fan-out).
+ */
+const SSE_WRITE_TIMEOUT_MS = 10_000;
+
 class NotificationSSEManager {
   private connections = new Map<string, SSEConnection[]>();
   private encoder = new TextEncoder();
@@ -95,26 +104,38 @@ class NotificationSSEManager {
     const deadConnections: SSEConnection[] = [];
 
     for (const connection of userConnections) {
-      // writer.write() to a client that vanished without a TCP reset doesn't
-      // reject — it can stall forever on backpressure, silently blocking
-      // everything queued behind this broadcast. The watchdog makes that
-      // visible in logs; it does not cancel the write.
-      const stallWatchdog = setTimeout(() => {
-        console.warn(
-          `[SSE] write to user ${userId} still pending after 5s (connection opened ${new Date(connection.connectedAt).toISOString()})`
-        );
-      }, 5_000);
-      try {
-        await connection.writer.write(connection.encoder.encode(message));
+      // Race the write against SSE_WRITE_TIMEOUT_MS: a stalled write means
+      // the client is gone, so abort the writer (rejecting the pending
+      // write) and drop the connection instead of wedging the fan-out.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const outcome = await Promise.race([
+        connection.writer.write(connection.encoder.encode(message)).then(
+          () => ({ status: "ok" as const }),
+          (error: unknown) => ({ status: "error" as const, error })
+        ),
+        new Promise<{ status: "timeout" }>((resolve) => {
+          timer = setTimeout(
+            () => resolve({ status: "timeout" }),
+            SSE_WRITE_TIMEOUT_MS
+          );
+        }),
+      ]);
+      clearTimeout(timer);
+
+      if (outcome.status === "ok") {
         successCount++;
-      } catch (error) {
-        console.error(
-          `[SSE] Failed to send to user ${userId}:`,
-          error
-        );
+      } else {
+        if (outcome.status === "timeout") {
+          console.warn(
+            `[SSE] Write to user ${userId} timed out after ${SSE_WRITE_TIMEOUT_MS}ms (connection opened ${new Date(connection.connectedAt).toISOString()}) — dropping connection`
+          );
+          void connection.writer
+            .abort(new Error("SSE write timed out"))
+            .catch(() => {});
+        } else {
+          console.error(`[SSE] Failed to send to user ${userId}:`, outcome.error);
+        }
         deadConnections.push(connection);
-      } finally {
-        clearTimeout(stallWatchdog);
       }
     }
 
