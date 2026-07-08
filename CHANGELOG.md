@@ -1,3 +1,9 @@
+## [0.142.2] - 2026-07-08
+
+### Changes
+- fix(push): trace volunteer→admin message fan-out and surface silent exits ([#1102](https://github.com/everybody-eats-nz/volunteer-portal/pull/1102)) by @malinmalliyawadu
+
+
 ## [0.142.1] - 2026-07-07
 
 ### Changes
