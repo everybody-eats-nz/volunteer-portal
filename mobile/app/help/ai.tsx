@@ -411,7 +411,11 @@ export default function ChatScreen() {
 
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
+  // isLoading: waiting for the first token (typing dots).
+  // isStreaming: a request is in flight, from send until finish/error —
+  // gates sending and shows the stop button.
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState<Question[]>(
     DEFAULT_SUGGESTED_QUESTIONS
   );
@@ -419,6 +423,7 @@ export default function ChatScreen() {
   const [composerHeight, setComposerHeight] = useState(FLOATING_BAR_HEIGHT);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const pendingScrollIndexRef = useRef<number | null>(null);
   const scrollMetricsRef = useRef({
     offset: 0,
@@ -427,6 +432,13 @@ export default function ChatScreen() {
   });
 
   const showWelcome = messages.length <= 1;
+
+  /* ── Cancel any in-flight stream when leaving the screen ── */
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   /* ── Fetch suggested questions from API ── */
   useEffect(() => {
@@ -444,18 +456,26 @@ export default function ChatScreen() {
   /* ── Reset ── */
   const resetChat = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    abortRef.current?.abort();
     setMessages([WELCOME_MESSAGE]);
     setInput("");
     setIsLoading(false);
+    setIsStreaming(false);
     setShowScrollToBottom(false);
     pendingScrollIndexRef.current = null;
+  }, []);
+
+  /* ── Stop generating ── */
+  const stopStreaming = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    abortRef.current?.abort();
   }, []);
 
   /* ── Send ── */
   const sendMessage = useCallback(
     async (text?: string) => {
       const content = (text ?? input).trim();
-      if (!content || isLoading) return;
+      if (!content || isStreaming) return;
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -467,63 +487,109 @@ export default function ChatScreen() {
 
       setInput("");
       setIsLoading(true);
+      setIsStreaming(true);
 
       const assistantId = (Date.now() + 1).toString();
+      // Only the recent turns matter for context — the server trims to the
+      // same window, and sending everything would eventually trip its
+      // payload validation in a long conversation.
       const allMessages = [...messages, userMessage]
         .filter((m) => m.id !== "welcome")
-        .map((m) => ({ role: m.role, content: m.content }));
+        .map((m) => ({ role: m.role, content: m.content }))
+        .slice(-20);
       pendingScrollIndexRef.current = messages.length;
       setMessages((prev) => [...prev, userMessage]);
 
-      try {
-        await chatWithAssistant(allMessages, {
-          onStart: () => {
-            setIsLoading(false);
-            setMessages((prev) => [
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      // Show an error in the stream whether or not the assistant placeholder
+      // exists yet — errors before the first token (auth, rate limit, network)
+      // previously vanished without a trace.
+      const showAssistantError = (message: string) => {
+        setMessages((prev) => {
+          const hasPlaceholder = prev.some((m) => m.id === assistantId);
+          if (!hasPlaceholder) {
+            return [
               ...prev,
-              { id: assistantId, role: "assistant", content: "" },
-            ]);
-          },
-          onToken: (token: string) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId ? { ...m, content: m.content + token } : m
-              )
-            );
-          },
-          onFinish: () => {
-            setIsLoading(false);
-          },
-          onError: (error: string) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantId
-                  ? {
-                      ...m,
-                      content:
-                        "Sorry, I had trouble responding. Please try again — or contact the team directly if you need help right away 🌿",
-                    }
-                  : m
-              )
-            );
-            setIsLoading(false);
-            console.error("Chat error:", error);
-          },
+              { id: assistantId, role: "assistant" as const, content: message },
+            ];
+          }
+          return prev.map((m) =>
+            m.id === assistantId ? { ...m, content: message } : m
+          );
         });
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantId,
-            role: "assistant" as const,
-            content:
-              "Sorry, I couldn't connect right now. Please check your connection and try again 🌿",
-          },
-        ]);
+      };
+
+      const finishTurn = () => {
         setIsLoading(false);
+        setIsStreaming(false);
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      };
+
+      try {
+        await chatWithAssistant(
+          allMessages,
+          {
+            onStart: () => {
+              setIsLoading(false);
+              setMessages((prev) => [
+                ...prev,
+                { id: assistantId, role: "assistant", content: "" },
+              ]);
+            },
+            onToken: (token: string) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: m.content + token }
+                    : m
+                )
+              );
+            },
+            onFinish: () => {
+              // A stream that ended with no content is a failure, not an
+              // answer — surface it instead of leaving an empty bubble.
+              setMessages((prev) => {
+                const placeholder = prev.find((m) => m.id === assistantId);
+                if (placeholder && placeholder.content.trim() === "") {
+                  return prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          content:
+                            "Sorry, I couldn't come up with a response. Please try asking again 🌿",
+                        }
+                      : m
+                  );
+                }
+                return prev;
+              });
+              finishTurn();
+            },
+            onError: (error: string, status?: number) => {
+              showAssistantError(
+                status === 429
+                  ? "You've sent a lot of messages in a short time. Give it a few minutes and try again 🌿"
+                  : "Sorry, I had trouble responding. Please try again — or contact the team directly if you need help right away 🌿"
+              );
+              finishTurn();
+              console.error("Chat error:", error);
+            },
+          },
+          controller.signal
+        );
+      } catch (error) {
+        showAssistantError(
+          "Sorry, I couldn't connect right now. Please check your connection and try again 🌿"
+        );
+        finishTurn();
+        console.error("Chat error:", error);
       }
     },
-    [input, isLoading, messages]
+    [input, isStreaming, messages]
   );
 
   /* ── Floating bar vertical position ──
@@ -614,7 +680,7 @@ export default function ChatScreen() {
 
   /* ── Composer state ── */
   const sendBtnInactive = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
-  const hasInput = input.trim().length > 0 && !isLoading;
+  const hasInput = input.trim().length > 0 && !isStreaming;
   const useNativeGlass = isLiquidGlassAvailable();
 
   const inputContents = (
@@ -634,29 +700,45 @@ export default function ChatScreen() {
           maxLength={1000}
           onSubmitEditing={() => sendMessage()}
           returnKeyType="send"
-          editable={!isLoading}
           accessibilityLabel="Message input"
         />
       </View>
-      <Pressable
-        onPress={() => sendMessage()}
-        disabled={!hasInput}
-        style={({ pressed }) => [
-          styles.glassSendBtn,
-          {
-            backgroundColor: hasInput ? Brand.green : sendBtnInactive,
-            transform: [{ scale: pressed && hasInput ? 0.9 : 1 }],
-          },
-        ]}
-        accessibilityLabel="Send message"
-        accessibilityRole="button"
-      >
-        <Ionicons
-          name="arrow-up"
-          size={18}
-          color={hasInput ? Palette.cream50 : colors.textSecondary}
-        />
-      </Pressable>
+      {isStreaming ? (
+        <Pressable
+          onPress={stopStreaming}
+          style={({ pressed }) => [
+            styles.glassSendBtn,
+            {
+              backgroundColor: Brand.green,
+              transform: [{ scale: pressed ? 0.9 : 1 }],
+            },
+          ]}
+          accessibilityLabel="Stop generating"
+          accessibilityRole="button"
+        >
+          <Ionicons name="stop" size={16} color={Palette.cream50} />
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={() => sendMessage()}
+          disabled={!hasInput}
+          style={({ pressed }) => [
+            styles.glassSendBtn,
+            {
+              backgroundColor: hasInput ? Brand.green : sendBtnInactive,
+              transform: [{ scale: pressed && hasInput ? 0.9 : 1 }],
+            },
+          ]}
+          accessibilityLabel="Send message"
+          accessibilityRole="button"
+        >
+          <Ionicons
+            name="arrow-up"
+            size={18}
+            color={hasInput ? Palette.cream50 : colors.textSecondary}
+          />
+        </Pressable>
+      )}
     </>
   );
 

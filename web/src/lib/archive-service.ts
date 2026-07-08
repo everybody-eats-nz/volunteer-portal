@@ -113,7 +113,7 @@ export function whereNeverActivatedArchive(now: Date): Prisma.UserWhereInput {
  * Get users with a "lastConfirmedShiftAt" computed per user — uses raw SQL
  * because Prisma's groupBy can't aggregate across relations.
  */
-async function getUsersWithLastShift(now: Date): Promise<
+async function getUsersWithLastShift(): Promise<
   Array<{
     id: string;
     email: string;
@@ -196,7 +196,7 @@ export async function getInactiveWarningCandidates(
   now: Date = new Date()
 ): Promise<CandidateUser[]> {
   const warningCutoff = subMonths(now, ARCHIVE_THRESHOLDS.INACTIVE_WARNING_MONTHS);
-  const users = await getUsersWithLastShift(now);
+  const users = await getUsersWithLastShift();
   return users
     .filter((u) => !u.isMigrated || u.profileCompleted) // unmigrated handled separately
     .map((u) => ({
@@ -233,7 +233,7 @@ export async function getInactiveArchiveCandidates(
     now.getTime() -
       ARCHIVE_THRESHOLDS.WARNING_TO_ARCHIVE_MIN_DAYS * 24 * 60 * 60 * 1000
   );
-  const users = await getUsersWithLastShift(now);
+  const users = await getUsersWithLastShift();
   return users
     .filter((u) => !u.isMigrated || u.profileCompleted)
     .map((u) => ({
