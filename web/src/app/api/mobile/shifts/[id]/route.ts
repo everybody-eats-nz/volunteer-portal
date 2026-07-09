@@ -5,6 +5,7 @@ import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
+import { getMissingProfileFields } from "@/lib/profile-completion";
 
 /**
  * GET /api/mobile/shifts/[id]
@@ -68,6 +69,13 @@ export async function GET(
       profileCompleted: true,
       requiresParentalConsent: true,
       parentalConsentReceived: true,
+      firstName: true,
+      phone: true,
+      dateOfBirth: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
+      volunteerAgreementAccepted: true,
+      healthSafetyPolicyAccepted: true,
     },
   });
 
@@ -133,6 +141,12 @@ export async function GET(
     eligibility: {
       emailVerified: Boolean(userRecord?.emailVerified),
       profileComplete: Boolean(userRecord?.profileCompleted),
+      // Which required profile fields still need filling in, so the signup
+      // sheet can tell the volunteer exactly what to complete.
+      missingProfileFields:
+        userRecord && !userRecord.profileCompleted
+          ? getMissingProfileFields(userRecord)
+          : [],
       needsParentalConsent: Boolean(
         userRecord?.requiresParentalConsent &&
           !userRecord?.parentalConsentReceived

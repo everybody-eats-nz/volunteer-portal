@@ -20,6 +20,10 @@ export type UserProfile = User & {
   lastName: string;
   phone: string;
   pronouns: string;
+  /** ISO date string, or null when never provided (e.g. OAuth signups). */
+  dateOfBirth: string | null;
+  volunteerAgreementAccepted: boolean;
+  healthSafetyPolicyAccepted: boolean;
   volunteerGrade: 'GREEN' | 'YELLOW' | 'PINK';
   emergencyContactName: string;
   emergencyContactRelationship: string;
@@ -44,6 +48,9 @@ export const DUMMY_PROFILE: UserProfile = {
   lastName: 'Williams',
   phone: '021 123 4567',
   pronouns: 'she/her',
+  dateOfBirth: '1994-03-12',
+  volunteerAgreementAccepted: true,
+  healthSafetyPolicyAccepted: true,
   volunteerGrade: 'YELLOW',
   emergencyContactName: 'Hemi Williams',
   emergencyContactRelationship: 'Partner',

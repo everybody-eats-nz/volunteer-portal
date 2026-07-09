@@ -2,35 +2,35 @@ import { NextResponse } from "next/server";
 import { streamText } from "ai";
 import { openrouter } from "@openrouter/ai-sdk-provider";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
+import { resolveChatModel } from "@/lib/chat-model";
+import {
+  buildChatSystemMessages,
+  getStaticChatContext,
+  getVolunteerChatContext,
+} from "@/lib/chat-context";
 
-const DEFAULT_SYSTEM_PROMPT = `You are a friendly and helpful volunteer assistant for Everybody Eats, a charitable restaurant in Aotearoa New Zealand that serves free meals to the community. Your name is EE Assistant.
+// Streaming a long answer can exceed the default 30s API budget
+export const maxDuration = 90;
 
-Key guidelines:
-- Be warm, encouraging, and supportive — volunteers are giving their time for free
-- Weave in te reo Māori naturally: "Kia ora", "ka pai" (well done), "whānau" (family/community), "mahi" (work), "ngā mihi" (thanks)
-- Answer questions based ONLY on the knowledge base provided below
-- If you don't know something or it's not in the knowledge base, say so honestly and suggest they contact the team directly
-- Keep answers concise but thorough — volunteers are often on mobile
-- Use emojis sparingly for warmth 🌿
-- When volunteers ask what it's like to volunteer or want to see more, share the social media links below
+const chatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(8000),
+});
 
-Social media & links:
-- Website: https://everybodyeats.nz
-- Instagram: https://instagram.com/everybodyeatsnz
-- Facebook: https://facebook.com/EverybodyEatsNZ`;
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+const previewRequestSchema = z.object({
+  messages: z.array(chatMessageSchema).min(1).max(50),
+  model: z.string().optional(),
+});
 
 /**
  * POST /api/admin/chat-guides/preview
  *
  * Admin-only chat preview endpoint. Uses NextAuth session instead of JWT.
- * Builds the same context as the mobile endpoint so admins can test responses.
+ * Builds context through the same shared helpers as the mobile endpoint
+ * (static knowledge base + the admin's own volunteer context), so what admins
+ * test is exactly what volunteers get.
  */
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -39,151 +39,42 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json();
-    const { messages } = body as { messages: ChatMessage[] };
-
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    const parsed = previewRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Messages array is required" },
+        { error: "Invalid messages payload" },
         { status: 400 },
       );
     }
+    const { messages, model: modelOverride } = parsed.data;
 
-    const userId = session.user.id;
-    const now = new Date();
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // fresh: admins iterate on the prompt and expect the preview to reflect
+    // their edits immediately, not after the 5-min cache expires.
+    const [staticCtx, volunteerContext] = await Promise.all([
+      getStaticChatContext({ fresh: true }),
+      getVolunteerChatContext(session.user.id),
+    ]);
 
-    // Fetch all context in parallel
-    const [resources, promptSetting, volunteer, upcomingShifts, locations, shiftTypes, achievements, totalVolunteers, recentMeals] =
-      await Promise.all([
-        prisma.resource.findMany({
-          where: { includeInChat: true, isPublished: true, chatContent: { not: null } },
-          select: { title: true, category: true, chatContent: true },
-          orderBy: { category: "asc" },
-        }),
-        prisma.siteSetting.findUnique({ where: { key: "CHAT_SYSTEM_PROMPT" } }),
-        prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            firstName: true,
-            name: true,
-            volunteerGrade: true,
-            availableDays: true,
-            defaultLocation: true,
-          },
-        }),
-        prisma.signup.findMany({
-          where: {
-            userId,
-            status: { in: ["CONFIRMED", "PENDING"] },
-            shift: { start: { gte: now } },
-          },
-          select: {
-            status: true,
-            shift: {
-              select: {
-                start: true,
-                end: true,
-                location: true,
-                shiftType: { select: { name: true } },
-              },
-            },
-          },
-          orderBy: { shift: { start: "asc" } },
-          take: 10,
-        }),
-        prisma.location.findMany({
-          where: { isActive: true },
-          select: { name: true, address: true },
-        }),
-        prisma.shiftType.findMany({
-          select: { name: true, description: true },
-        }),
-        prisma.userAchievement.findMany({
-          where: { userId },
-          select: {
-            achievement: { select: { name: true, description: true } },
-          },
-          orderBy: { unlockedAt: "desc" },
-          take: 10,
-        }),
-        prisma.user.count({ where: { role: "VOLUNTEER" } }),
-        prisma.mealsServed.aggregate({
-          where: {
-            date: { gte: thirtyDaysAgo },
-            mealsServed: { not: null },
-          },
-          _sum: { mealsServed: true },
-          _count: true,
-        }),
-      ]);
-
-    const basePrompt = promptSetting?.value || DEFAULT_SYSTEM_PROMPT;
-
-    // Build all context sections
-    const resourceContext = resources
-      .map((r) => `## ${r.title} (${r.category})\n${r.chatContent}`)
-      .join("\n\n");
-
-    const volunteerName = volunteer?.firstName || volunteer?.name || "Admin";
-    const volunteerContext = [
-      "## About This Volunteer",
-      `Name: ${volunteerName}`,
-      `Grade: ${volunteer?.volunteerGrade ?? "GREEN"} (GREEN = new, YELLOW = experienced, PINK = shift leader)`,
-    ].join("\n");
-
-    const shiftsContext =
-      upcomingShifts.length > 0
-        ? "## Your Upcoming Shifts\n" +
-          upcomingShifts
-            .map((s) => {
-              const date = s.shift.start.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" });
-              const time = s.shift.start.toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit" });
-              return `- ${date} at ${time}, ${s.shift.location ?? "TBC"} (${s.shift.shiftType.name})`;
-            })
-            .join("\n")
-        : "## Your Upcoming Shifts\nNo upcoming shifts booked yet.";
-
-    const locationsContext = "## Kitchen Locations\n" +
-      locations.map((l) => `- ${l.name}: ${l.address}`).join("\n");
-
-    const shiftTypesContext = "## Shift Roles\n" +
-      shiftTypes.map((t) => `- ${t.name}${t.description ? `: ${t.description}` : ""}`).join("\n");
-
-    const avgPerService = recentMeals._count > 0
-      ? Math.round((recentMeals._sum.mealsServed ?? 0) / recentMeals._count)
-      : 60;
-
-    const statsContext = [
-      "## Community Impact",
-      `Total volunteers: ${totalVolunteers}`,
-      `Meals served (last 30 days): ~${(recentMeals._sum.mealsServed ?? 0).toLocaleString()}`,
-      `Average meals per service: ~${avgPerService}`,
-    ].join("\n");
-
-    const achievementsContext = achievements.length > 0
-      ? "## Your Achievements\n" + achievements.map((a) => `- ${a.achievement.name}: ${a.achievement.description}`).join("\n")
-      : "";
-
-    const dynamicContext = [volunteerContext, shiftsContext, locationsContext, shiftTypesContext, statsContext, achievementsContext]
-      .filter(Boolean)
-      .join("\n\n");
-
-    const systemPrompt = basePrompt + "\n\n" + dynamicContext + "\n\nHere is your knowledge base:\n---\n" + resourceContext + "\n---";
-
-    const modelId = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4";
+    // A per-request override (from the preview model picker) wins, so admins
+    // can A/B models without changing the saved CHAT_MODEL setting.
+    const modelId = resolveChatModel(modelOverride, staticCtx.modelId);
     console.log("[chat-preview] Starting streamText", {
       modelId,
       hasApiKey: !!process.env.OPENROUTER_API_KEY,
-      apiKeyLength: process.env.OPENROUTER_API_KEY?.length ?? 0,
       messageCount: messages.length,
-      systemPromptLength: systemPrompt.length,
     });
 
     const result = streamText({
       model: openrouter(modelId),
-      system: systemPrompt,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: [
+        ...buildChatSystemMessages(staticCtx, volunteerContext),
+        ...messages,
+      ],
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: "chat-guides-preview",
+        metadata: { posthog_distinct_id: session.user.id },
+      },
       onError: ({ error }) => {
         console.error("[chat-preview] streamText error:", error);
       },

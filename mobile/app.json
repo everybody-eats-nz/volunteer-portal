@@ -2,12 +2,13 @@
   "expo": {
     "name": "Everybody Eats",
     "slug": "everybody-eats",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "everybody-eats",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "icon": "./app.icon",
       "supportsTablet": false,
       "bundleIdentifier": "com.malinmw.everybody-eats",
       "buildNumber": "2",

@@ -157,21 +157,21 @@ export default function HomeScreen() {
     [apiToggleLike, updateFeedItem]
   );
 
-  const ME_AS_LIKER: LikeUser = {
-    id: profile?.id ?? "",
-    name: "You",
-    profilePhotoUrl: profile?.image ?? undefined,
-  };
-
   const getLikersForItem = useCallback(
     (item: FeedItem): LikeUser[] => {
       const myId = profile?.id;
       const others = myId
         ? item.recentLikers.filter((l) => l.id !== myId)
         : item.recentLikers;
-      return item.likedByMe ? [ME_AS_LIKER, ...others] : others;
+      if (!item.likedByMe) return others;
+      const meAsLiker: LikeUser = {
+        id: myId ?? "",
+        name: "You",
+        profilePhotoUrl: profile?.image ?? undefined,
+      };
+      return [meAsLiker, ...others];
     },
-    [ME_AS_LIKER, profile?.id]
+    [profile?.id, profile?.image]
   );
 
   const handleOpenSheet = useCallback((item: FeedItem) => {
@@ -2054,7 +2054,7 @@ function getRecapMessage(
   return RECAP_TEMPLATES[index](meals, volunteers);
 }
 
-const SKELETON_ROWS: Array<{ title: number; body: number[] }> = [
+const SKELETON_ROWS: { title: number; body: number[] }[] = [
   { title: 55, body: [92, 68] },
   { title: 45, body: [88] },
   { title: 60, body: [94, 74, 40] },

@@ -24,6 +24,9 @@ type ProfileResponse = {
     emergencyContactRelationship: string | null;
     emergencyContactPhone: string | null;
     medicalConditions: string | null;
+    volunteerAgreementAccepted: boolean;
+    healthSafetyPolicyAccepted: boolean;
+    profileCompleted: boolean;
     notificationPreference: "EMAIL" | "SMS" | "BOTH" | "NONE";
     receiveShortageNotifications: boolean;
     excludedShortageNotificationTypes: string[];
@@ -78,13 +81,17 @@ export function useProfile(): UseProfileReturn {
         email: data.profile.email,
         role: data.profile.role as "VOLUNTEER" | "ADMIN",
         image: data.profile.image,
-        profileComplete: true,
-        // The profile screen is only reachable inside the app, past the gate.
-        agreementsAccepted: true,
+        profileComplete: data.profile.profileCompleted,
+        agreementsAccepted:
+          data.profile.volunteerAgreementAccepted &&
+          data.profile.healthSafetyPolicyAccepted,
         firstName: data.profile.firstName ?? "",
         lastName: data.profile.lastName ?? "",
         phone: data.profile.phone ?? "",
         pronouns: data.profile.pronouns ?? "",
+        dateOfBirth: data.profile.dateOfBirth,
+        volunteerAgreementAccepted: data.profile.volunteerAgreementAccepted,
+        healthSafetyPolicyAccepted: data.profile.healthSafetyPolicyAccepted,
         volunteerGrade: data.profile.volunteerGrade,
         emergencyContactName: data.profile.emergencyContactName ?? "",
         emergencyContactRelationship: data.profile.emergencyContactRelationship ?? "",

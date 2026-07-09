@@ -28,6 +28,10 @@ const updateResourceSchema = z.object({
   isPublished: z.boolean().optional(),
   includeInChat: z.boolean().optional(),
   chatContent: z.string().nullable().optional(),
+  // Raw text of the scrape that chatContent was derived from — lets the
+  // nightly refresh cron detect real page changes without clobbering
+  // AI-refined content.
+  lastScrapedContent: z.string().nullable().optional(),
 });
 
 // GET /api/admin/resources/[id] - Get single resource

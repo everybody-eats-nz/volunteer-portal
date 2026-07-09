@@ -216,12 +216,16 @@ test.describe("Login Page", () => {
       const submitButton = page.getByTestId("login-submit-button");
       await submitButton.click();
 
-      // Wait for navigation away from login page
+      // Wait for navigation away from login page. The credentials sign-in
+      // redirect lands on /dashboard, which the CI webServer runs in dev
+      // mode (on-demand route compilation) — under sharded CI load the
+      // first compile of that route can take well over 10s, so this needs
+      // more headroom than a warm/production navigation would.
       await page.waitForURL(
         (url) => {
           return url.pathname !== "/login";
         },
-        { timeout: 10000 }
+        { timeout: 20000 }
       );
 
       // Verify we're no longer on login page
@@ -302,10 +306,13 @@ test.describe("Login Page", () => {
   test.describe("Navigation and Links", () => {
     test("should navigate to register page", async ({ page }) => {
       const registerLink = page.getByTestId("register-link");
-      await registerLink.click();
 
-      // Should navigate to register page
-      await expect(page).toHaveURL(/\/register/);
+      // Retry the click until navigation happens - under parallel load the
+      // first click can land before React hydration attaches the Link handler.
+      await expect(async () => {
+        await registerLink.click();
+        await expect(page).toHaveURL(/\/register/, { timeout: 2000 });
+      }).toPass({ timeout: 15000 });
 
       // Verify register page loaded
       const registerPage = page.getByTestId("register-page");

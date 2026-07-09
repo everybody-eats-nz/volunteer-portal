@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { isValidChatModelId } from "@/lib/chat-model";
+import { invalidateStaticChatContext } from "@/lib/chat-context";
 import { z } from "zod";
 
 const suggestedQuestionSchema = z.object({
@@ -12,6 +14,15 @@ const suggestedQuestionSchema = z.object({
 const updateSchema = z.object({
   systemPrompt: z.string().optional(),
   suggestedQuestions: z.array(suggestedQuestionSchema).optional(),
+  // Blank clears the setting (falls back to env/default); otherwise must look
+  // like an OpenRouter id. Trimmed so we never store surrounding whitespace.
+  model: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || isValidChatModelId(v), {
+      message: "Model must be an OpenRouter id like provider/model",
+    })
+    .optional(),
 });
 
 // PATCH /api/admin/chat-guides/settings — update chat prompt settings
@@ -44,6 +55,22 @@ export async function PATCH(request: Request) {
       );
     }
 
+    if (parsed.model !== undefined) {
+      updates.push(
+        prisma.siteSetting.upsert({
+          where: { key: "CHAT_MODEL" },
+          update: { value: parsed.model, updatedBy: userId },
+          create: {
+            key: "CHAT_MODEL",
+            value: parsed.model,
+            description: "OpenRouter model ID for the AI chat assistant",
+            category: "CHAT",
+            updatedBy: userId,
+          },
+        }),
+      );
+    }
+
     if (parsed.suggestedQuestions !== undefined) {
       updates.push(
         prisma.siteSetting.upsert({
@@ -64,6 +91,10 @@ export async function PATCH(request: Request) {
     }
 
     await Promise.all(updates);
+
+    // Serve the new prompt/model immediately (at least on this instance)
+    // instead of waiting out the 5-min static-context cache.
+    invalidateStaticChatContext();
 
     return NextResponse.json({ success: true });
   } catch (error) {

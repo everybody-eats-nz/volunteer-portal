@@ -1,3 +1,63 @@
+## [0.143.1] - 2026-07-09
+
+### Changes
+- fix(mobile): unblock shift signups for volunteers with incomplete profiles ([#1107](https://github.com/everybody-eats-nz/volunteer-portal/pull/1107)) by @malinmalliyawadu
+
+
+## [0.143.0] - 2026-07-08
+
+### Changes
+- feat(admin): email verification status and actions on volunteer profile ([#1105](https://github.com/everybody-eats-nz/volunteer-portal/pull/1105)) by @malinmalliyawadu
+
+
+## [0.142.4] - 2026-07-08
+
+### Changes
+- chore(deps-dev): bump csv-parse from 6.2.1 to 7.0.1 in /web ([#1093](https://github.com/everybody-eats-nz/volunteer-portal/pull/1093)) by @dependabot[bot]
+
+
+## [0.142.3] - 2026-07-08
+
+### Changes
+- fix(sse): time out stalled SSE writes and decouple admin push from SSE broadcast ([#1103](https://github.com/everybody-eats-nz/volunteer-portal/pull/1103)) by @malinmalliyawadu
+
+
+## [0.142.2] - 2026-07-08
+
+### Changes
+- fix(push): trace volunteer→admin message fan-out and surface silent exits ([#1102](https://github.com/everybody-eats-nz/volunteer-portal/pull/1102)) by @malinmalliyawadu
+
+
+## [0.142.1] - 2026-07-07
+
+### Changes
+- chore(web): fix all eslint warnings ([#1099](https://github.com/everybody-eats-nz/volunteer-portal/pull/1099)) by @malinmalliyawadu
+
+
+## [0.142.0] - 2026-07-07
+
+### Changes
+- feat(chat-guides): harden the AI chat assistant end to end ([#1098](https://github.com/everybody-eats-nz/volunteer-portal/pull/1098)) by @malinmalliyawadu
+
+
+## [0.141.0] - 2026-07-07
+
+### Changes
+- feat(chat-guides): AI model config, preview override & content refine ([#1097](https://github.com/everybody-eats-nz/volunteer-portal/pull/1097)) by @malinmalliyawadu
+
+
+## [0.140.2] - 2026-07-07
+
+### Changes
+- feat(chat-guides): replace volunteer grade with completed shift count ([#1096](https://github.com/everybody-eats-nz/volunteer-portal/pull/1096)) by @malinmalliyawadu
+
+
+## [0.140.1] - 2026-07-06
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 8 updates ([#1094](https://github.com/everybody-eats-nz/volunteer-portal/pull/1094)) by @dependabot[bot]
+
+
 ## [0.140.0] - 2026-07-05
 
 ### Changes

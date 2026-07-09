@@ -674,4 +674,136 @@ test.describe("Admin Volunteer Profile View", () => {
       expect(foundFallback || true).toBe(true); // Always pass, just checking for graceful handling
     });
   });
+
+  test.describe("Email Verification", () => {
+    // Each mutating test creates its own user because tests run fully parallel
+    const unverifiedEmail = `vol-unverified-${testId}@example.com`;
+    const markVerifiedEmail = `vol-mark-verified-${testId}@example.com`;
+    let unverifiedId: string;
+    let markVerifiedId: string;
+
+    test.beforeAll(async ({ browser }) => {
+      const page = await browser.newPage();
+      await createTestUser(page, unverifiedEmail, "VOLUNTEER", {
+        firstName: "Unverified",
+        lastName: "Volunteer",
+        emailVerified: false,
+      });
+      await createTestUser(page, markVerifiedEmail, "VOLUNTEER", {
+        firstName: "MarkVerified",
+        lastName: "Volunteer",
+        emailVerified: false,
+      });
+      unverifiedId = (await getUserByEmail(page, unverifiedEmail))!.id;
+      markVerifiedId = (await getUserByEmail(page, markVerifiedEmail))!.id;
+      await page.close();
+    });
+
+    test.afterAll(async ({ browser }) => {
+      const page = await browser.newPage();
+      await deleteTestUsers(page, [unverifiedEmail, markVerifiedEmail]);
+      await page.close();
+    });
+
+    test.beforeEach(async ({ page }) => {
+      await loginAsAdmin(page);
+    });
+
+    test("should show verified badge and no actions for a verified volunteer", async ({
+      page,
+    }) => {
+      await page.goto(`/admin/volunteers/${volunteerId}`);
+      await waitForPageLoad(page);
+
+      await expect(page.getByTestId("email-verified-badge")).toBeVisible();
+      await expect(page.getByTestId("email-unverified-badge")).toHaveCount(0);
+      await expect(
+        page.getByTestId("email-verification-actions-section")
+      ).toHaveCount(0);
+    });
+
+    test("should show unverified badge and actions for an unverified volunteer", async ({
+      page,
+    }) => {
+      await page.goto(`/admin/volunteers/${unverifiedId}`);
+      await waitForPageLoad(page);
+
+      await expect(page.getByTestId("email-unverified-badge")).toBeVisible();
+      await expect(
+        page.getByTestId("email-verification-actions-section")
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("resend-verification-email-button")
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("mark-email-verified-button")
+      ).toBeVisible();
+    });
+
+    test("should reject resend and mark-verified for an already-verified volunteer", async ({
+      page,
+    }) => {
+      // Hit the API directly (as the logged-in admin) against the verified user
+      const resendResponse = await page.request.post(
+        `/api/admin/users/${volunteerId}/email-verification`
+      );
+      expect(resendResponse.status()).toBe(400);
+      expect((await resendResponse.json()).error).toBe(
+        "Email is already verified"
+      );
+
+      const markResponse = await page.request.patch(
+        `/api/admin/users/${volunteerId}/email-verification`,
+        { data: {} }
+      );
+      expect(markResponse.status()).toBe(400);
+      expect((await markResponse.json()).error).toBe(
+        "Email is already verified"
+      );
+    });
+
+    test("should resend the verification email", async ({ page }) => {
+      await page.goto(`/admin/volunteers/${unverifiedId}`);
+      await waitForPageLoad(page);
+
+      await page.getByTestId("resend-verification-email-button").click();
+
+      await expect(
+        page.getByText(`Verification email sent to ${unverifiedEmail}`)
+      ).toBeVisible();
+    });
+
+    test("should mark email as verified with an audit note", async ({
+      page,
+    }) => {
+      await page.goto(`/admin/volunteers/${markVerifiedId}`);
+      await waitForPageLoad(page);
+
+      await page.getByTestId("mark-email-verified-button").click();
+      await expect(
+        page.getByTestId("mark-email-verified-dialog")
+      ).toBeVisible();
+
+      await page
+        .getByTestId("mark-email-verified-note-input")
+        .fill("Confirmed email address over the phone");
+      await page.getByTestId("mark-email-verified-confirm-button").click();
+
+      // After the refresh the badge flips to verified and the actions disappear
+      await expect(page.getByTestId("email-verified-badge")).toBeVisible();
+      await expect(
+        page.getByTestId("email-verification-actions-section")
+      ).toHaveCount(0);
+
+      // The override is recorded as an admin note. Reload so the notes
+      // manager (client component, fetches on mount) picks up the new note.
+      await page.reload();
+      await waitForPageLoad(page);
+      await expect(
+        page
+          .getByTestId("admin-notes-card")
+          .getByText("Confirmed email address over the phone")
+      ).toBeVisible();
+    });
+  });
 });
