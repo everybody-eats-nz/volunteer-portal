@@ -616,6 +616,9 @@ export default function EditProfileScreen() {
       await refresh();
       // Signup eligibility on shift screens depends on profile completion —
       // refetch so a just-completed profile unlocks the signup CTA.
+      // Deliberately not awaited: the shift screen stays mounted in the nav
+      // stack, so its active query refetches in the background (and the
+      // signup sheet re-syncs from props) while back-navigation stays instant.
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
       router.back();
     } catch (err) {
