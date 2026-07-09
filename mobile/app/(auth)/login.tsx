@@ -19,11 +19,6 @@ import {
   openBrowserAsync,
   WebBrowserPresentationStyle,
 } from "expo-web-browser";
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeInUp,
-} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/themed-text";
@@ -238,13 +233,12 @@ export default function LoginScreen({
           style={StyleSheet.absoluteFill}
         />
 
-        {/* Greeting overlay */}
-        <Animated.View
-          entering={FadeInDown.duration(700)
-            .delay(150)
-            .easing(Easing.out(Easing.cubic))}
-          style={[styles.greeting, { paddingTop: insets.top + 48 }]}
-        >
+        {/* Greeting overlay.
+            No mount animations anywhere on this screen: it mounts during the
+            logout tree-swap and on cold start, where reanimated layout
+            animations intermittently hard-crash iOS (Fabric). The hero
+            photo's expo-image fade is the screen's only motion. */}
+        <View style={[styles.greeting, { paddingTop: insets.top + 48 }]}>
           <Eyebrow color={Palette.cream50} style={styles.heroEyebrow}>
             Everybody Eats · Volunteer portal
           </Eyebrow>
@@ -274,7 +268,7 @@ export default function LoginScreen({
           >
             Making a difference one plate at a time
           </ThemedText>
-        </Animated.View>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -292,10 +286,7 @@ export default function LoginScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            entering={FadeInUp.duration(600)
-              .delay(250)
-              .easing(Easing.out(Easing.cubic))}
+          <View
             style={[
               styles.card,
               {
@@ -330,10 +321,7 @@ export default function LoginScreen({
 
             {/* Passkey — primary path when supported */}
             {passkeyReady && (
-              <Animated.View
-                entering={FadeInUp.duration(400).delay(350)}
-                style={{ marginTop: 22 }}
-              >
+              <View style={{ marginTop: 22 }}>
                 <Pressable
                   onPress={handlePasskey}
                   disabled={anyBusy}
@@ -360,7 +348,7 @@ export default function LoginScreen({
                       : "Sign in with passkey"}
                   </ThemedText>
                 </Pressable>
-              </Animated.View>
+              </View>
             )}
 
             {/* Divider: "or continue with" */}
@@ -377,10 +365,7 @@ export default function LoginScreen({
             </View>
 
             {/* OAuth row — icon-only circles */}
-            <Animated.View
-              entering={FadeInUp.duration(400).delay(400)}
-              style={styles.oauthRow}
-            >
+            <View style={styles.oauthRow}>
               {Platform.OS === "ios" && (
                 <OAuthCircle
                   provider="apple"
@@ -397,7 +382,7 @@ export default function LoginScreen({
                 onPress={handleGoogle}
                 isDark={isDark}
               />
-            </Animated.View>
+            </View>
 
             {/* Divider before email */}
             <View style={[styles.divider, { marginTop: 22 }]}>
@@ -413,10 +398,7 @@ export default function LoginScreen({
             </View>
 
             {/* Email + password form */}
-            <Animated.View
-              entering={FadeInUp.duration(400).delay(450)}
-              style={{ marginTop: 16, gap: 12 }}
-            >
+            <View style={{ marginTop: 16, gap: 12 }}>
               <View
                 style={[
                   styles.inputShell,
@@ -512,7 +494,7 @@ export default function LoginScreen({
                   {isSubmitting ? "Signing in…" : "Sign in"}
                 </ThemedText>
               </Pressable>
-            </Animated.View>
+            </View>
 
             {/* Footer */}
             <View style={styles.footer}>
@@ -550,7 +532,7 @@ export default function LoginScreen({
             >
               Ngā mihi
             </ThemedText>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

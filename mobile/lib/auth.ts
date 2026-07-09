@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { InteractionManager } from 'react-native';
 import { create } from 'zustand';
 
 import { api, ApiError } from './api';
@@ -44,6 +45,25 @@ function identifyInPostHog(user: User) {
     email: user.email,
     name: user.name,
     role: user.role,
+  });
+}
+
+/** Comfortably outlasts UIAlertController's dismissal animation (~0.3-0.4s). */
+const ALERT_DISMISSAL_SETTLE_MS = 450;
+
+/**
+ * Wait until it's safe to swap the app's UI tree after a confirm dialog.
+ *
+ * Flipping `isAuthenticated` unmounts the entire navigator (AuthGate swaps it
+ * for the login screen). Doing that while the native sign-out alert is still
+ * animating away intermittently hard-crashes iOS (Fabric unmount race).
+ * InteractionManager doesn't track UIAlertController's dismissal, so we also
+ * wait a fixed beat that comfortably outlasts it.
+ */
+async function settleUiBeforeTreeSwap(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ALERT_DISMISSAL_SETTLE_MS));
+  await new Promise((resolve) => {
+    InteractionManager.runAfterInteractions(() => resolve(undefined));
   });
 }
 
@@ -162,14 +182,23 @@ export const useAuth = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    // Unregister push token before dropping the auth token — the DELETE
-    // requires a Bearer so the server can scope deletion to this user.
-    const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
-    if (pushToken) {
-      await unregisterPushTokenFromServer(pushToken);
-      await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+    try {
+      // Unregister push token before dropping the auth token — the DELETE
+      // requires a Bearer so the server can scope deletion to this user.
+      const pushToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+      if (pushToken) {
+        await unregisterPushTokenFromServer(pushToken);
+        await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+      }
+      await SecureStore.deleteItemAsync('auth_token');
+    } catch (error) {
+      // Best-effort cleanup - a keychain/network hiccup must never strand
+      // the user in a half-signed-out state. Stale server push tokens get
+      // pruned when Expo reports them as DeviceNotRegistered.
+      console.warn('[auth] Sign-out cleanup failed:', error);
+      posthog?.capture('logout_cleanup_failed', { error: String(error) });
     }
-    await SecureStore.deleteItemAsync('auth_token');
+    await settleUiBeforeTreeSwap();
     set({ user: null, isAuthenticated: false });
     posthog?.capture('user_logged_out', {
       platform: 'mobile',
@@ -183,8 +212,18 @@ export const useAuth = create<AuthState>((set) => ({
     // so the user can retry (or contact support) rather than being silently
     // logged out with their data still on the server.
     await api('/api/auth/mobile/me', { method: 'DELETE' });
-    await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
-    await SecureStore.deleteItemAsync('auth_token');
+    try {
+      await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+      await SecureStore.deleteItemAsync('auth_token');
+    } catch (error) {
+      // Account is gone server-side; a failed keychain delete must not keep
+      // the user "signed in" to a dead account.
+      console.warn('[auth] Post-deletion cleanup failed:', error);
+      posthog?.capture('delete_account_cleanup_failed', {
+        error: String(error),
+      });
+    }
+    await settleUiBeforeTreeSwap();
     set({ user: null, isAuthenticated: false });
     posthog?.capture('user_account_deleted', {
       platform: 'mobile',
