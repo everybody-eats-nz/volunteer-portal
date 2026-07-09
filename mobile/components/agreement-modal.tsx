@@ -150,7 +150,7 @@ export function AgreementModal({
               color={mutedText}
             />
             <ThemedText style={[styles.centerText, { color: mutedText }]}>
-              Couldn't load the agreement.
+              Couldn&apos;t load the agreement.
             </ThemedText>
             <Pressable
               onPress={onRetry}

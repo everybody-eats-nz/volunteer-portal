@@ -725,6 +725,8 @@ export default function ShiftDetailScreen() {
           shift={shift}
           isWaitlist={signupSheetWaitlist}
           formatDate={formatNZT}
+          profileIncomplete={eligibility ? !eligibility.profileComplete : false}
+          missingProfileFields={eligibility?.missingProfileFields}
         />
       )}
     </View>
@@ -833,62 +835,6 @@ function VolunteersSection({
               />
             ))}
           </View>
-        </View>
-      )}
-    </View>
-  );
-}
-
-function FriendStackAvatar({
-  friend,
-  index,
-  isDark,
-}: {
-  friend: PeriodFriend;
-  index: number;
-  isDark: boolean;
-}) {
-  const initial = friend.name.charAt(0).toUpperCase();
-  const roleTheme = friend.shiftTypeName
-    ? getShiftThemeByName(friend.shiftTypeName)
-    : null;
-  const roleBg = roleTheme
-    ? isDark
-      ? roleTheme.bgDark
-      : roleTheme.bgLight
-    : isDark
-    ? "rgba(29,83,55,0.3)"
-    : Palette.forest100;
-  const roleInk = roleTheme
-    ? isDark
-      ? roleTheme.colorDark
-      : roleTheme.color
-    : Brand.green;
-
-  const borderColor = isDark ? Colors.dark.background : Brand.warmWhite;
-
-  return (
-    <View
-      style={[
-        s.friendsStackItem,
-        {
-          marginLeft: index === 0 ? 0 : -12,
-          borderColor,
-          zIndex: 10 - index,
-        },
-      ]}
-    >
-      {friend.profilePhotoUrl ? (
-        <Image
-          source={{ uri: friend.profilePhotoUrl }}
-          style={s.friendsStackImg}
-          contentFit="cover"
-        />
-      ) : (
-        <View style={[s.friendsStackFallback, { backgroundColor: roleBg }]}>
-          <Text style={[s.friendsStackInitial, { color: roleInk }]}>
-            {initial}
-          </Text>
         </View>
       )}
     </View>
