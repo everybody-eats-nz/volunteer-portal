@@ -9,6 +9,7 @@ import { Providers } from "@/components/providers";
 import { MainContentWrapper } from "@/components/main-content-wrapper";
 import { Toaster } from "sonner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { EmailVerificationBanner } from "@/components/email-verification-banner";
 import { getBaseUrl } from "@/lib/utils";
 import { SEO_CONFIG } from "@/lib/seo";
 
@@ -124,6 +125,11 @@ export default function RootLayout({
           <ImpersonationBanner />
           <Suspense>
             <SiteHeaderClientWrapper />
+          </Suspense>
+          {/* Suspense: reads usePathname, which cacheComponents treats as
+              uncached request data during prerender */}
+          <Suspense>
+            <EmailVerificationBanner />
           </Suspense>
           <main className="min-h-screen">
             <Suspense>

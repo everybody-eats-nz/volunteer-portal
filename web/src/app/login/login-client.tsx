@@ -199,15 +199,9 @@ export default function LoginClient({ providers }: LoginClientProps) {
     setIsLoading(false);
 
     if (res?.error) {
-      // Check for specific error types that indicate email verification issues
-      if (res.error === "EmailNotVerified") {
-        // Redirect to verify-email page with email pre-filled for resending
-        window.location.href = `/verify-email?email=${encodeURIComponent(
-          email || ""
-        )}&from=login`;
-        return;
-      }
-
+      // Note: unverified emails do NOT block login. The credentials provider
+      // signs unverified users in, and EmailVerificationBanner (root layout)
+      // prompts them to verify; shift signup enforces the hard gate.
       if (res.error === "AccountArchived") {
         setShowReactivation(true);
         return;

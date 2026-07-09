@@ -7,6 +7,7 @@ declare module "next-auth" {
       role: "ADMIN" | "VOLUNTEER";
       firstName?: string;
       lastName?: string;
+      emailVerified?: boolean;
     } & DefaultSession["user"];
     impersonating?: {
       adminId: string;
