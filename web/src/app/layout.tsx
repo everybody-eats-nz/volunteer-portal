@@ -126,7 +126,11 @@ export default function RootLayout({
           <Suspense>
             <SiteHeaderClientWrapper />
           </Suspense>
-          <EmailVerificationBanner />
+          {/* Suspense: reads usePathname, which cacheComponents treats as
+              uncached request data during prerender */}
+          <Suspense>
+            <EmailVerificationBanner />
+          </Suspense>
           <main className="min-h-screen">
             <Suspense>
               <MainContentWrapper>{children}</MainContentWrapper>
