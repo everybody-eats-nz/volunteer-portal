@@ -1,3 +1,9 @@
+## [0.143.1] - 2026-07-09
+
+### Changes
+- fix(mobile): unblock shift signups for volunteers with incomplete profiles ([#1107](https://github.com/everybody-eats-nz/volunteer-portal/pull/1107)) by @malinmalliyawadu
+
+
 ## [0.143.0] - 2026-07-08
 
 ### Changes
