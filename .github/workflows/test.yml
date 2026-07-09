@@ -175,8 +175,12 @@ jobs:
           path: web/playwright-report/
           retention-days: 30
 
+      # Best-effort: the HTML report deploy must never fail CI when the tests
+      # themselves passed (e.g. Vercel outages or fair-use blocks). The merged
+      # report is still available as a workflow artifact either way.
       - name: Deploy Playwright report to Vercel
         id: deploy_report
+        continue-on-error: true
         run: |
           cd web/playwright-report
 
@@ -200,7 +204,7 @@ jobs:
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
       - name: Add/Update Playwright Report Comment on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.DEPLOY_URL != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

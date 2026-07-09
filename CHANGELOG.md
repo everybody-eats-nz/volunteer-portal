@@ -1,3 +1,21 @@
+## [0.143.1] - 2026-07-09
+
+### Changes
+- fix(mobile): unblock shift signups for volunteers with incomplete profiles ([#1107](https://github.com/everybody-eats-nz/volunteer-portal/pull/1107)) by @malinmalliyawadu
+
+
+## [0.143.0] - 2026-07-08
+
+### Changes
+- feat(admin): email verification status and actions on volunteer profile ([#1105](https://github.com/everybody-eats-nz/volunteer-portal/pull/1105)) by @malinmalliyawadu
+
+
+## [0.142.4] - 2026-07-08
+
+### Changes
+- chore(deps-dev): bump csv-parse from 6.2.1 to 7.0.1 in /web ([#1093](https://github.com/everybody-eats-nz/volunteer-portal/pull/1093)) by @dependabot[bot]
+
+
 ## [0.142.3] - 2026-07-08
 
 ### Changes

@@ -46,7 +46,7 @@ jobs:
         run: npm run test:run
 
   # Re-emits the repo-wide "Tests passed" required check for mobile-only PRs,
-  # mirroring test.yml (web) and docs-check.yml (docs).
+  # mirroring test.yml (web).
   tests-passed:
     name: Tests passed
     runs-on: ubuntu-latest
@@ -65,7 +65,7 @@ jobs:
           fi
 
   # Re-emits the repo-wide "Ready to Merge" required check for mobile-only PRs,
-  # mirroring ci.yml (web) and docs-check.yml (docs).
+  # mirroring ci.yml (web).
   merge-check:
     name: Ready to Merge
     runs-on: ubuntu-latest

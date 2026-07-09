@@ -6,6 +6,10 @@ import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getNotificationService } from "@/lib/notification-service";
 import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
+import {
+  getMissingProfileFields,
+  isProfileComplete,
+} from "@/lib/profile-completion";
 
 /**
  * POST /api/mobile/shifts/[id]/signup
@@ -43,7 +47,13 @@ export async function POST(
       profileCompleted: true,
       requiresParentalConsent: true,
       parentalConsentReceived: true,
+      firstName: true,
+      phone: true,
       dateOfBirth: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
+      volunteerAgreementAccepted: true,
+      healthSafetyPolicyAccepted: true,
     },
   });
 
@@ -65,14 +75,25 @@ export async function POST(
 
   // Mirror the web gate: a complete profile is required before signing up.
   if (!user.profileCompleted) {
-    return NextResponse.json(
-      {
-        error: "Profile incomplete",
-        message:
-          "Please complete your profile before signing up for shifts. Visit your profile to fill in the remaining required fields.",
-      },
-      { status: 403 }
-    );
+    // Self-heal a stale flag: older mobile clients could fill in every
+    // required field without profileCompleted ever being recomputed. If the
+    // fields are all present, flip the flag and let the signup proceed.
+    if (isProfileComplete(user)) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { profileCompleted: true },
+      });
+    } else {
+      return NextResponse.json(
+        {
+          error: "Profile incomplete",
+          message:
+            "Please complete your profile before signing up for shifts. Visit your profile to fill in the remaining required fields.",
+          missingFields: getMissingProfileFields(user),
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // Check parental consent for minors

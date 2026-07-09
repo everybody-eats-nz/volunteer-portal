@@ -32,6 +32,8 @@ type ShiftDetailResponse = {
 export type ShiftEligibility = {
   emailVerified: boolean;
   profileComplete: boolean;
+  /** Required profile fields still missing (empty when profile is complete). */
+  missingProfileFields?: string[];
   needsParentalConsent: boolean;
 };
 

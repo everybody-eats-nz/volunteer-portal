@@ -48,6 +48,25 @@ export function isProfileComplete<T extends ProfileCompletionInput>(
   );
 }
 
+/**
+ * Human-readable labels for each required field that is still missing,
+ * in display order. Shared by the profile-completion status check and the
+ * shift signup gates so the labels never drift between surfaces.
+ */
+export function getMissingProfileFields(
+  input: ProfileCompletionInput
+): string[] {
+  const missing: string[] = [];
+  if (!input.firstName) missing.push("First name");
+  if (!input.phone) missing.push("Mobile number");
+  if (!input.dateOfBirth) missing.push("Date of birth");
+  if (!input.emergencyContactName) missing.push("Emergency contact name");
+  if (!input.emergencyContactPhone) missing.push("Emergency contact phone");
+  if (!input.volunteerAgreementAccepted) missing.push("Volunteer agreement");
+  if (!input.healthSafetyPolicyAccepted) missing.push("Health & safety policy");
+  return missing;
+}
+
 export async function checkProfileCompletion(userId: string): Promise<ProfileCompletionStatus> {
   const { prisma } = await import("@/lib/prisma");
 
@@ -75,15 +94,7 @@ export async function checkProfileCompletion(userId: string): Promise<ProfileCom
       };
     }
 
-    const missingFields = [];
-
-    if (!user.firstName) missingFields.push("First name");
-    if (!user.phone) missingFields.push("Mobile number");
-    if (!user.dateOfBirth) missingFields.push("Date of birth");
-    if (!user.emergencyContactName) missingFields.push("Emergency contact name");
-    if (!user.emergencyContactPhone) missingFields.push("Emergency contact phone");
-    if (!user.volunteerAgreementAccepted) missingFields.push("Volunteer agreement");
-    if (!user.healthSafetyPolicyAccepted) missingFields.push("Health & safety policy");
+    const missingFields = getMissingProfileFields(user);
 
     const profileComplete = isProfileComplete(user);
     const needsParentalConsent = user.requiresParentalConsent && !user.parentalConsentReceived;
