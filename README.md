@@ -34,9 +34,3 @@ Next.js-based web application providing the admin dashboard, volunteer portal, a
 React Native/Expo companion app for volunteers — browse shifts, track achievements, connect with fellow volunteers, and get shift recaps on the go. Available on iOS and Android.
 
 **[📖 Mobile App Documentation →](./mobile/README.md)**
-
-### 📚 `/docs/` - Admin Documentation
-
-Comprehensive administrator documentation built with Astro Starlight, providing detailed guides for managing volunteers, shifts, and restaurant operations.
-
-**[📖 Admin Documentation →](./docs/README.md)** | **[🌐 Live Documentation Site →](https://docs.everybodyeats.nz)**

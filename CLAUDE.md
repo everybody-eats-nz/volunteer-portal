@@ -4,13 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Everybody Eats Volunteer Portal — a monorepo for managing volunteers at a charitable restaurant (New Zealand-based). Three independent projects share a single repository:
+Everybody Eats Volunteer Portal — a monorepo for managing volunteers at a charitable restaurant (New Zealand-based). Two independent projects share a single repository:
 
 | Directory | Stack | Purpose |
 |-----------|-------|---------|
 | `web/` | Next.js 16, Prisma 7, PostgreSQL | Admin dashboard, volunteer web portal, API backend |
 | `mobile/` | React Native 0.83, Expo 55, expo-router | Mobile companion app for volunteers |
-| `docs/` | Astro 5, Starlight | Public documentation site with embedded widget |
 
 Each project has its own `package.json`, `node_modules`, and toolchain — there is no shared workspace or Turborepo. Run `npm install` inside the relevant directory.
 
@@ -43,15 +42,6 @@ npm install
 npx expo start        # Start Expo dev server
 npx expo run:ios      # Run on iOS simulator
 npx expo run:android  # Run on Android emulator
-```
-
-### Docs Site (`docs/`)
-
-```bash
-cd docs
-npm install
-npm run dev           # Start Astro dev server (builds widget first)
-npm run build         # Production build (builds widget first)
 ```
 
 ### Database (from `web/`)
@@ -133,15 +123,9 @@ npm run test:e2e:ci                                     # CI mode (chromium, lis
 │   ├── lib/                # API client, auth (SecureStore + JWT)
 │   └── STYLE_GUIDE.md      # Complete mobile design system
 │
-├── docs/                   # Astro documentation site
-│   ├── src/content/docs/   # Documentation content
-│   └── widget/             # Embeddable widget (built before docs)
-│
 ├── .github/workflows/      # CI/CD workflows
 │   ├── ci.yml              # Main CI (lint, typecheck, test, build, e2e)
 │   ├── test.yml            # Test runner
-│   ├── docs.yml            # Docs deployment
-│   ├── docs-check.yml      # Docs validation
 │   ├── version-bump.yml    # Automatic version bumping
 │   ├── claude.yml          # Claude automation
 │   └── claude-code-review.yml # Claude code review
@@ -354,7 +338,6 @@ GitHub Actions workflows in `.github/workflows/`:
 
 - **ci.yml** — Runs on PRs and pushes to `main` (paths: `web/**`). Jobs: lint, typecheck, unit tests, build, e2e tests. Uses PostgreSQL service container.
 - **test.yml** — Dedicated test runner
-- **docs.yml** / **docs-check.yml** — Documentation site build and validation
 - **version-bump.yml** — Automatic semantic version bumping via PR labels
 - **claude.yml** / **claude-code-review.yml** — Claude AI automation
 
