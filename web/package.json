@@ -105,7 +105,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/eslintrc": "^3.3.6",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
@@ -115,7 +115,7 @@
     "@types/react-dom": "19.2.3",
     "@vitest/ui": "^4.1.10",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.10.42",
+    "baseline-browser-mapping": "^2.10.43",
     "csv-parse": "^7.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
