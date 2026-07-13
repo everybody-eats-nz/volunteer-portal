@@ -276,7 +276,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     // Should have a move button
-    const moveButton = primaryShiftCard.getByTestId(/-move-button/);
+    const moveButton = primaryShiftCard.getByTestId(/-move-button/).first();
     await expect(moveButton).toBeVisible({ timeout: 10000 });
     await expect(moveButton).toBeEnabled();
   });
@@ -303,7 +303,7 @@ test.describe("Backup Shift Signup Feature", () => {
     ).first();
     await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
-    const moveButton = primaryShiftCard.getByTestId(/-move-button/);
+    const moveButton = primaryShiftCard.getByTestId(/-move-button/).first();
     await expect(moveButton).toBeVisible({ timeout: 10000 });
     await moveButton.click();
 
