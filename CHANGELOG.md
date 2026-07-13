@@ -1,3 +1,9 @@
+## [0.143.5] - 2026-07-13
+
+### Changes
+- fix(flaky): admin can see backup preferences for pending volunteers ([#1115](https://github.com/everybody-eats-nz/volunteer-portal/pull/1115)) by @malinmalliyawadu
+
+
 ## [0.143.4] - 2026-07-13
 
 ### Changes
