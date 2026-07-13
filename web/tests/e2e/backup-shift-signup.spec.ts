@@ -233,9 +233,11 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.waitForLoadState("load");
 
     // Find the primary shift card
+    // .first() avoids strict-mode violation: the shift list can briefly
+    // double-render the same card during client-side navigation
     const primaryShiftCard = page.locator(
       `[data-testid="shift-card-${primaryShiftId}"]`
-    );
+    ).first();
 
     await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
@@ -265,9 +267,11 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.waitForLoadState("load");
 
     // Find the primary shift card with pending volunteer
+    // .first() avoids strict-mode violation: the shift list can briefly
+    // double-render the same card during client-side navigation
     const primaryShiftCard = page.locator(
       `[data-testid="shift-card-${primaryShiftId}"]`
-    );
+    ).first();
 
     await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
@@ -292,9 +296,11 @@ test.describe("Backup Shift Signup Feature", () => {
     await page.waitForLoadState("load");
 
     // Find and click move button
+    // .first() avoids strict-mode violation: the shift list can briefly
+    // double-render the same card during client-side navigation
     const primaryShiftCard = page.locator(
       `[data-testid="shift-card-${primaryShiftId}"]`
-    );
+    ).first();
     await expect(primaryShiftCard).toBeVisible({ timeout: 15000 });
 
     const moveButton = primaryShiftCard.getByTestId(/-move-button/);
