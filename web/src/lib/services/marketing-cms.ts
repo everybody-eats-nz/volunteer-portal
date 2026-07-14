@@ -147,7 +147,9 @@ function resolveLocationName(
 }
 
 function normalizeText(value: string | null | undefined): string | null {
-  const trimmed = value?.trim();
+  // CMS blurbs often contain hard line breaks (pasted from posters); collapse
+  // all whitespace runs so single-line UI surfaces don't render fragments.
+  const trimmed = value?.trim().replace(/\s+/g, " ");
   return trimmed ? trimmed : null;
 }
 

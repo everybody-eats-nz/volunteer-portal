@@ -2604,7 +2604,8 @@ function FeedCard({
         eventDateText,
         item.displayTime,
       ].filter(Boolean);
-      const iconAndBody = (
+      const showThumb = !!item.imageUrl && !heroImageFailed;
+      return (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#ede9fe" }]}>
             <Text style={styles.feedIconEmoji}>🎟️</Text>
@@ -2639,38 +2640,31 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
-        </>
-      );
-
-      const showImage = !!item.imageUrl && !heroImageFailed;
-      return (
-        <>
-          {showImage && (
+          {showThumb && (
             <Pressable
-              onPress={() => onOpenImages([item.imageUrl!], 0)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
-              accessibilityLabel="View event image"
+              onPress={(e) => {
+                e.stopPropagation();
+                onOpenImages([item.imageUrl!], 0);
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              accessibilityLabel="View event poster"
               accessibilityRole="imagebutton"
             >
               <Image
                 source={{ uri: item.imageUrl }}
-                style={styles.announcementImage}
+                style={[styles.feedThumb, { backgroundColor: colors.border }]}
                 resizeMode="cover"
                 onError={() => setHeroImageFailed(true)}
               />
             </Pressable>
-          )}
-          {showImage ? (
-            <View style={styles.feedCard}>{iconAndBody}</View>
-          ) : (
-            iconAndBody
           )}
         </>
       );
     }
 
     if (item.type === "journal_post") {
-      const iconAndBody = (
+      const showThumb = !!item.imageUrl && !heroImageFailed;
+      return (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#e0f2fe" }]}>
             <Text style={styles.feedIconEmoji}>📖</Text>
@@ -2713,31 +2707,23 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
-        </>
-      );
-
-      const showImage = !!item.imageUrl && !heroImageFailed;
-      return (
-        <>
-          {showImage && (
+          {showThumb && (
             <Pressable
-              onPress={() => onOpenImages([item.imageUrl!], 0)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+              onPress={(e) => {
+                e.stopPropagation();
+                onOpenImages([item.imageUrl!], 0);
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
               accessibilityLabel="View journal image"
               accessibilityRole="imagebutton"
             >
               <Image
                 source={{ uri: item.imageUrl }}
-                style={styles.announcementImage}
+                style={[styles.feedThumb, { backgroundColor: colors.border }]}
                 resizeMode="cover"
                 onError={() => setHeroImageFailed(true)}
               />
             </Pressable>
-          )}
-          {showImage ? (
-            <View style={styles.feedCard}>{iconAndBody}</View>
-          ) : (
-            iconAndBody
           )}
         </>
       );
@@ -2747,11 +2733,7 @@ function FeedCard({
   };
 
   const hasHeroImage =
-    (item.type === "announcement" ||
-      item.type === "community_event" ||
-      item.type === "journal_post") &&
-    !!item.imageUrl &&
-    !heroImageFailed;
+    item.type === "announcement" && !!item.imageUrl && !heroImageFailed;
 
   return (
     <Pressable
@@ -3320,8 +3302,11 @@ function FeedItemSheet({
               {/* Title */}
               <Text style={[sheet.title, { color: colors.text }]}>{title}</Text>
 
-              {/* Body text — use Markdown renderer for announcements and menus */}
-              {item.type === "announcement" || item.type === "daily_menu" ? (
+              {/* Body text — use Markdown renderer for announcements and menus.
+                  Skip entirely when empty (e.g. a CMS event without a short
+                  description) so it doesn't reserve a blank line. */}
+              {body.length === 0 ? null : item.type === "announcement" ||
+                item.type === "daily_menu" ? (
                 <Markdown
                   style={{
                     body: {
@@ -3861,6 +3846,32 @@ function FeedItemSheet({
                 </Pressable>
               )}
 
+            {/* ── Hero image (announcements + CMS content) ── */}
+            {(item.type === "announcement" ||
+              item.type === "community_event" ||
+              item.type === "journal_post") &&
+              item.imageUrl && (
+                <Pressable
+                  onPress={() => openSheetViewer([item.imageUrl!], 0)}
+                  accessibilityLabel="View image"
+                  accessibilityRole="imagebutton"
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    // Event images are portrait posters (4:5 / 9:16) — show
+                    // them in a 4:5 frame instead of a shallow strip that
+                    // crops away the poster's content.
+                    style={[
+                      item.type === "community_event"
+                        ? sheet.posterImage
+                        : sheet.photoSingle,
+                      { borderRadius: 12, marginBottom: 12 },
+                    ]}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              )}
+
             {/* ── Community event CTAs: tickets + marketing site ── */}
             {item.type === "community_event" && (
               <View style={sheet.linkCTAGroup}>
@@ -3965,27 +3976,6 @@ function FeedItemSheet({
             )}
 
             {/* ── Photo gallery (for photo_post type) ── */}
-            {/* Hero image (announcements + CMS content) */}
-            {(item.type === "announcement" ||
-              item.type === "community_event" ||
-              item.type === "journal_post") &&
-              item.imageUrl && (
-                <Pressable
-                  onPress={() => openSheetViewer([item.imageUrl!], 0)}
-                  accessibilityLabel="View image"
-                  accessibilityRole="imagebutton"
-                >
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={[
-                      sheet.photoSingle,
-                      { borderRadius: 12, marginBottom: 12 },
-                    ]}
-                    resizeMode="cover"
-                  />
-                </Pressable>
-              )}
-
             {item.type === "photo_post" && item.photos.length > 0 && (
               <View
                 style={[
@@ -4634,6 +4624,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
+  feedThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    marginTop: 2,
+  },
   feedIcon: {
     width: 42,
     height: 42,
@@ -5162,6 +5158,10 @@ const sheet = StyleSheet.create({
   photoSingle: {
     width: "100%",
     height: 220,
+  },
+  posterImage: {
+    width: "100%",
+    aspectRatio: 4 / 5,
   },
   photoScrollContent: {
     gap: 3,
