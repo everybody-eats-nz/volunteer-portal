@@ -6,6 +6,7 @@ import {
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
 import { getMissingProfileFields } from "@/lib/profile-completion";
+import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 
 /**
  * GET /api/mobile/shifts/[id]
@@ -15,6 +16,7 @@ import { getMissingProfileFields } from "@/lib/profile-completion";
  * - signedUp count (CONFIRMED signups)
  * - The current user's signup status for this shift (if any)
  * - List of signups with friend status
+ * - Marketing CMS events at the same restaurant on the same day
  */
 export async function GET(
   request: Request,
@@ -101,6 +103,10 @@ export async function GET(
     }
   }
 
+  // Marketing CMS events at this restaurant on the shift's day, so volunteers
+  // know when a special event runs during their service.
+  const cmsEvents = await getCmsEventsForShift(shift.location, shift.start);
+
   // Find the current user's signup for this shift (any active status)
   const userSignup = shift.signups.find((s) => s.userId === userId);
   const userStatus = userSignup?.status ?? null;
@@ -138,6 +144,17 @@ export async function GET(
     status: userStatus,
     notes: shift.notes,
     signups,
+    events: cmsEvents.map((event) => ({
+      id: event.id,
+      name: event.name,
+      date: event.date,
+      displayTime: event.displayTime,
+      description: event.shortDescription,
+      imageUrl: event.imageUrl,
+      url: event.url,
+      priceLabel: event.priceLabel,
+      ticketUrl: event.ticketUrl,
+    })),
     eligibility: {
       emailVerified: Boolean(userRecord?.emailVerified),
       profileComplete: Boolean(userRecord?.profileCompleted),
