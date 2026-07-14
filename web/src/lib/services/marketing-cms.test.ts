@@ -133,6 +133,24 @@ describe("marketing-cms service", () => {
     expect(events[1].imageUrl).toBeNull();
   });
 
+  it("collapses newlines and whitespace runs in text fields", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        docs: [
+          {
+            ...eventDoc,
+            shortDescription: "5 courses\nLocal artisan drinks\nOnehunga Eats ",
+          },
+        ],
+      })
+    );
+
+    const events = await getUpcomingCmsEvents();
+    expect(events[0].shortDescription).toBe(
+      "5 courses Local artisan drinks Onehunga Eats"
+    );
+  });
+
   it("falls back to the CMS location name when menuLocationName is blank", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
