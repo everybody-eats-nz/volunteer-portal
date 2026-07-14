@@ -18,7 +18,10 @@ import {
   ArrowLeft,
   AlertCircle,
   CalendarPlus,
+  ExternalLink,
+  Ticket,
 } from "lucide-react";
+import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
@@ -143,7 +146,7 @@ export default async function ShiftDetailPage({
   }
 
   // Parallelize all remaining queries
-  const [friendships, userSignup, currentUser, concurrentShifts] =
+  const [friendships, userSignup, currentUser, concurrentShifts, cmsEvents] =
     await Promise.all([
       // Friends
       userId
@@ -189,6 +192,9 @@ export default async function ShiftDetailPage({
 
       // Concurrent shifts for backup options
       getConcurrentShifts(id),
+
+      // Marketing CMS events at this restaurant on the shift's day
+      getCmsEventsForShift(shift.location, shift.start),
     ]);
 
   const userFriendIds = friendships.flatMap((f) =>
@@ -527,6 +533,55 @@ export default async function ShiftDetailPage({
                   )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                 />
               </div>
+            </div>
+          )}
+
+          {cmsEvents.length > 0 && (
+            <div className="space-y-3" data-testid="shift-cms-events">
+              <p className="text-sm text-muted-foreground">
+                Special event at {shift.location} on this day
+              </p>
+              {cmsEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-lg border overflow-hidden sm:flex"
+                >
+                  {event.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={event.imageUrl}
+                      alt={event.name}
+                      className="h-40 w-full object-cover sm:h-auto sm:w-44 sm:shrink-0"
+                    />
+                  )}
+                  <div className="p-4 space-y-1.5">
+                    <p className="font-medium">{event.name}</p>
+                    <p className="text-sm text-muted-foreground inline-flex items-center gap-1.5">
+                      <Ticket className="h-3.5 w-3.5" />
+                      {event.displayTime ??
+                        formatInNZT(new Date(event.date), "h:mma").toLowerCase()}
+                      {event.priceLabel ? ` · ${event.priceLabel}` : ""}
+                    </p>
+                    {event.shortDescription && (
+                      <p className="text-sm text-muted-foreground">
+                        {event.shortDescription}
+                      </p>
+                    )}
+                    <div className="pt-1.5">
+                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                        <a
+                          href={event.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Details & tickets
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

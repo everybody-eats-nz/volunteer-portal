@@ -36,6 +36,7 @@ export async function resolveFeedItemOwner(
       : null;
   }
 
-  // System-generated items (new-shift-*, shift-recap-*, daily-menu-*) have no owner to notify.
+  // System-generated items (new-shift-*, shift-recap-*, daily-menu-*,
+  // cms-event-*, journal-post-*) have no owner to notify.
   return null;
 }

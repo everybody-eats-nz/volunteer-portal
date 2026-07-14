@@ -28,7 +28,12 @@ import { formatNZT } from "@/lib/dates";
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Brand, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useShiftDetail, type PeriodFriend } from "@/hooks/use-shift-detail";
+import {
+  useShiftDetail,
+  type PeriodFriend,
+  type ShiftEvent,
+} from "@/hooks/use-shift-detail";
+import { openCmsLink } from "@/lib/external-links";
 import { useShifts } from "@/hooks/use-shifts";
 import {
   findConflictingShift,
@@ -69,6 +74,7 @@ export default function ShiftDetailScreen() {
   const {
     shift,
     signups: shiftSignups,
+    events,
     periodFriends,
     eligibility,
     isLoading,
@@ -607,6 +613,11 @@ export default function ShiftDetailScreen() {
           </View>
         </View>
 
+        {/* ═══ Marketing event at this restaurant on the shift's day ═══ */}
+        {events.length > 0 && (
+          <EventsSection events={events} colors={colors} isDark={isDark} />
+        )}
+
         {/* ═══ Volunteers on this shift ═══ */}
         {(visibleOnYourShift.length > 0 ||
           friendsInSession.length > 0 ||
@@ -837,6 +848,87 @@ function VolunteersSection({
           </View>
         </View>
       )}
+    </View>
+  );
+}
+
+function EventsSection({
+  events,
+  colors,
+  isDark,
+}: {
+  events: ShiftEvent[];
+  colors: (typeof Colors)["light"];
+  isDark: boolean;
+}) {
+  return (
+    <View style={s.section}>
+      <SectionHeader
+        label="Special event"
+        title="On at the restaurant"
+        caption="Running on the day of this shift"
+        colors={colors}
+      />
+      <View style={s.eventList}>
+        {events.map((event) => (
+          <Pressable
+            key={event.id}
+            onPress={() => {
+              Haptics.selectionAsync();
+              openCmsLink(event.url);
+            }}
+            style={({ pressed }) => [
+              s.eventCard,
+              { backgroundColor: colors.card, opacity: pressed ? 0.85 : 1 },
+            ]}
+            accessibilityRole="link"
+            accessibilityLabel={`View ${event.name} on everybodyeats.nz`}
+          >
+            {event.imageUrl ? (
+              <Image
+                source={{ uri: event.imageUrl }}
+                style={s.eventImage}
+                contentFit="cover"
+                accessibilityLabel={`${event.name} image`}
+              />
+            ) : null}
+            <View style={s.eventCardBody}>
+              <Text style={[s.eventName, { color: colors.text }]}>
+                {event.name}
+              </Text>
+              <Text style={[s.eventMeta, { color: colors.textSecondary }]}>
+                🎟️{" "}
+                {event.displayTime ??
+                  formatNZT(new Date(event.date), "h:mma").toLowerCase()}
+                {event.priceLabel ? ` · ${event.priceLabel}` : ""}
+              </Text>
+              {event.description ? (
+                <Text
+                  style={[s.eventDescription, { color: colors.textSecondary }]}
+                  numberOfLines={3}
+                >
+                  {event.description}
+                </Text>
+              ) : null}
+              <View style={s.eventLinkRow}>
+                <Text
+                  style={[
+                    s.eventLink,
+                    { color: isDark ? Brand.accent : Brand.green },
+                  ]}
+                >
+                  Details & tickets
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={14}
+                  color={isDark ? Brand.accent : Brand.green}
+                />
+              </View>
+            </View>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
@@ -1257,6 +1349,47 @@ const s = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
     gap: 14,
+  },
+
+  /* ── Marketing events ── */
+  eventList: {
+    gap: 12,
+  },
+  eventCard: {
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  eventImage: {
+    width: "100%",
+    height: 150,
+  },
+  eventCardBody: {
+    padding: 16,
+    gap: 6,
+  },
+  eventName: {
+    fontSize: 16,
+    fontFamily: FontFamily.semiBold,
+  },
+  eventMeta: {
+    fontSize: 13,
+    fontFamily: FontFamily.regular,
+  },
+  eventDescription: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    fontFamily: FontFamily.regular,
+  },
+  eventLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    minHeight: 32,
+  },
+  eventLink: {
+    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
   },
   sectionHeaderBlock: {
     gap: 4,

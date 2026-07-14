@@ -751,7 +751,9 @@ export type FeedItem =
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftId: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'shift_recap'; id: string; location: string; date: string; mealsServed: number; volunteerCount: number; timestamp: string } & FeedInteractions)
   | ({ type: 'new_shift'; id: string; location: string; count: number; shiftIds: string[]; shiftTypes: string[]; earliestStart: string; latestStart: string; preview: NewShiftPreview[]; timestamp: string } & FeedInteractions)
-  | ({ type: 'daily_menu'; id: string; menuId: string; location: string; serviceDate: string; chefName?: string; announcement?: string; starter: MenuCourseItem[]; mains: MenuCourseItem[]; drink: MenuCourseItem[]; dessert: MenuCourseItem[]; timestamp: string } & FeedInteractions);
+  | ({ type: 'daily_menu'; id: string; menuId: string; location: string; serviceDate: string; chefName?: string; announcement?: string; starter: MenuCourseItem[]; mains: MenuCourseItem[]; drink: MenuCourseItem[]; dessert: MenuCourseItem[]; timestamp: string } & FeedInteractions)
+  | ({ type: 'community_event'; id: string; title: string; description?: string; location?: string; eventDate: string; displayTime?: string; imageUrl?: string; url: string; priceLabel?: string; ticketUrl?: string; timestamp: string } & FeedInteractions)
+  | ({ type: 'journal_post'; id: string; title: string; summary?: string; category?: string; imageUrl?: string; author?: string; url: string; timestamp: string } & FeedInteractions);
 
 export type MenuCourseItem = { name: string; description?: string };
 
