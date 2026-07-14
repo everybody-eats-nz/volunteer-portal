@@ -1,3 +1,9 @@
+## [0.144.0] - 2026-07-14
+
+### Changes
+- feat: surface marketing CMS events and journal in mobile feed and shift pages ([#1116](https://github.com/everybody-eats-nz/volunteer-portal/pull/1116)) by @malinmalliyawadu
+
+
 ## [0.143.5] - 2026-07-13
 
 ### Changes
