@@ -25,7 +25,24 @@ type ShiftDetailResponse = {
     profilePhotoUrl: string | null;
     isFriend: boolean;
   }[];
+  events?: ShiftEvent[];
   eligibility?: ShiftEligibility;
+};
+
+/** Marketing CMS event at the same restaurant on the shift's day. */
+export type ShiftEvent = {
+  id: number;
+  name: string;
+  /** Event start (ISO). */
+  date: string;
+  /** Human-readable time range, e.g. "6:30pm - 11pm". */
+  displayTime: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  /** Marketing site page for the event. */
+  url: string;
+  priceLabel: string | null;
+  ticketUrl: string | null;
 };
 
 /** Account-level signup gates, mirrored from the web signup checks. */
@@ -67,6 +84,8 @@ export type PeriodFriend = {
 type UseShiftDetailReturn = {
   shift: Shift | null;
   signups: ShiftSignup[];
+  /** Marketing CMS events at this restaurant on the shift's day */
+  events: ShiftEvent[];
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
   periodFriends: PeriodFriend[];
   /** Account-level signup gates (email/profile/parental consent); null until loaded */
@@ -135,6 +154,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
   return {
     shift,
     signups,
+    events: data?.events ?? [],
     periodFriends,
     eligibility: data?.eligibility ?? null,
     isLoading: enabled ? detail.isPending : false,

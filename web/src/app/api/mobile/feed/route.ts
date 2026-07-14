@@ -4,6 +4,10 @@ import { requireMobileUser } from "@/lib/mobile-auth";
 import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
 import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
+import {
+  getRecentCmsJournalPosts,
+  getUpcomingCmsEvents,
+} from "@/lib/services/marketing-cms";
 
 function parseCriteriaShiftTypeId(criteria: string): string | undefined {
   try {
@@ -25,6 +29,7 @@ function parseCriteriaShiftTypeId(criteria: string): string | undefined {
  * - Shift recaps (aggregate stats for completed shifts at user's locations)
  * - New shifts published for the user's default location
  * - Daily menus published for the user's default location
+ * - Community events and journal posts from the marketing CMS
  *
  * Every item includes likeCount, likedByMe, recentLikers, commentCount.
  * Items are sorted by timestamp descending and limited to the last 14 days.
@@ -50,6 +55,12 @@ export async function GET(request: Request) {
     .map((id) => id.trim())
     .filter((id) => id.length > 0 && id.length <= 200)
     .slice(0, 50);
+
+  // Marketing CMS content doesn't depend on the user, so kick those requests
+  // off first and await them alongside the per-user queries below. Both
+  // resolve to [] when the CMS is unconfigured or unreachable.
+  const cmsEventsPromise = getUpcomingCmsEvents();
+  const cmsJournalPostsPromise = getRecentCmsJournalPosts();
 
   // Get the user's profile, friendships, blocks, and active signup shift IDs
   // in parallel. The signup shift IDs are used to match announcements that
@@ -263,6 +274,11 @@ export async function GET(request: Request) {
           take: 20,
         })
       : Promise.resolve([]),
+  ]);
+
+  const [cmsEvents, cmsJournalPosts] = await Promise.all([
+    cmsEventsPromise,
+    cmsJournalPostsPromise,
   ]);
 
   type FeedItem = {
@@ -528,6 +544,72 @@ export async function GET(request: Request) {
       drink,
       dessert,
       timestamp: menu.createdAt.toISOString(),
+      likeCount: 0,
+      likedByMe: false,
+      recentLikers: [],
+      commentCount: 0,
+    });
+  }
+
+  // Community events from the marketing CMS. An event appears in the feed
+  // while its announcement is fresh (published within the feed window) and
+  // resurfaces during the week leading up to it, timestamped so it sorts as
+  // if freshly posted. Events aren't location-targeted: with only a handful
+  // per year, they're relevant to the whole whānau.
+  const startOfTodayNZ = getStartOfDayUTC(now);
+  for (const event of cmsEvents.slice(0, 10)) {
+    const eventDate = new Date(event.date);
+    if (eventDate < startOfTodayNZ) continue;
+
+    const publishedAt = new Date(event.publishedAt);
+    const resurfaceAt = new Date(
+      eventDate.getTime() - 7 * 24 * 60 * 60 * 1000
+    );
+    const isFresh = publishedAt >= since;
+    const isImminent = resurfaceAt <= now;
+    if (!isFresh && !isImminent) continue;
+
+    const timestamp =
+      isImminent && resurfaceAt > publishedAt ? resurfaceAt : publishedAt;
+
+    items.push({
+      type: "community_event",
+      id: `cms-event-${event.id}`,
+      title: event.name,
+      description: event.shortDescription ?? undefined,
+      location: event.location ?? undefined,
+      eventDate: event.date,
+      displayTime: event.displayTime ?? undefined,
+      imageUrl: event.imageUrl ?? undefined,
+      url: event.url,
+      priceLabel: event.priceLabel ?? undefined,
+      ticketUrl: event.ticketUrl ?? undefined,
+      timestamp: timestamp.toISOString(),
+      likeCount: 0,
+      likedByMe: false,
+      recentLikers: [],
+      commentCount: 0,
+    });
+  }
+
+  // Journal posts from the marketing CMS. The journal publishes less often
+  // than the 14-day feed window turns over, so use a wider 30-day window to
+  // keep the latest stories around.
+  const journalSince = new Date(now);
+  journalSince.setDate(journalSince.getDate() - 30);
+  for (const post of cmsJournalPosts
+    .filter((p) => new Date(p.publishedAt) >= journalSince)
+    .slice(0, 5)) {
+    items.push({
+      type: "journal_post",
+      id: `journal-post-${post.id}`,
+      title: post.title,
+      summary: post.summary ?? undefined,
+      category: post.category ?? undefined,
+      imageUrl: post.imageUrl ?? undefined,
+      author: post.author ?? undefined,
+      url: post.url,
+      timestamp: post.publishedAt,
       likeCount: 0,
       likedByMe: false,
       recentLikers: [],

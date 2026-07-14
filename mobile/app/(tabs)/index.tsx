@@ -43,6 +43,7 @@ import {
   useFeedInteractions,
 } from "@/hooks/use-feed-interactions";
 import { useNotifications } from "@/hooks/use-notifications";
+import { openCmsLink } from "@/lib/external-links";
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
@@ -2054,6 +2055,19 @@ function getRecapMessage(
   return RECAP_TEMPLATES[index](meals, volunteers);
 }
 
+/** Human label for a marketing CMS journal category slug. */
+function journalCategoryLabel(category?: string): string {
+  if (!category) return "From the journal";
+  const labels: Record<string, string> = {
+    story: "Story",
+    news: "News",
+    recipe: "Recipe",
+    "behind-the-scenes": "Behind the scenes",
+    impact: "Impact",
+  };
+  return labels[category] ?? category;
+}
+
 const SKELETON_ROWS: { title: number; body: number[] }[] = [
   { title: 55, body: [92, 68] },
   { title: 45, body: [88] },
@@ -2158,13 +2172,13 @@ function FeedCard({
   isReported?: boolean;
 }) {
   // Only human-authored posts are reportable. System-generated items
-  // (achievement, friend_signup, shift_recap, new_shift, daily_menu)
-  // have no author-written content to moderate — but comments on them
-  // are still reportable via the sheet.
+  // (achievement, friend_signup, shift_recap, new_shift, daily_menu,
+  // community_event, journal_post) have no author-written content to
+  // moderate — but comments on them are still reportable via the sheet.
   const canReport = item.type === "photo_post" || item.type === "announcement";
-  // Track announcement image failures so a missing/404 image doesn't leave
-  // the 160px image slot reserved (a tall blank gap above the title).
-  const [announcementImageFailed, setAnnouncementImageFailed] = useState(false);
+  // Track hero image failures so a missing/404 image doesn't leave the
+  // 160px image slot reserved (a tall blank gap above the title).
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
   const timeAgo = formatDistanceToNow(new Date(item.timestamp), {
     addSuffix: true,
   });
@@ -2259,7 +2273,7 @@ function FeedCard({
         </>
       );
 
-      const showImage = !!item.imageUrl && !announcementImageFailed;
+      const showImage = !!item.imageUrl && !heroImageFailed;
       return (
         <>
           {showImage && (
@@ -2273,7 +2287,7 @@ function FeedCard({
                 source={{ uri: item.imageUrl }}
                 style={styles.announcementImage}
                 resizeMode="cover"
-                onError={() => setAnnouncementImageFailed(true)}
+                onError={() => setHeroImageFailed(true)}
               />
             </Pressable>
           )}
@@ -2583,13 +2597,161 @@ function FeedCard({
       );
     }
 
+    if (item.type === "community_event") {
+      const eventDateText = formatNZT(new Date(item.eventDate), "EEEE d MMM");
+      const metaParts = [
+        item.location ? `📍 ${item.location}` : null,
+        eventDateText,
+        item.displayTime,
+      ].filter(Boolean);
+      const iconAndBody = (
+        <>
+          <View style={[styles.feedIcon, { backgroundColor: "#ede9fe" }]}>
+            <Text style={styles.feedIconEmoji}>🎟️</Text>
+          </View>
+          <View style={styles.feedBody}>
+            <Text style={[styles.feedTitle, { color: colors.text }]}>
+              {item.title}
+            </Text>
+            <Text
+              style={[styles.feedDescription, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {metaParts.join(" · ")}
+            </Text>
+            {item.description ? (
+              <Text
+                style={[
+                  styles.feedDescription,
+                  { color: colors.textSecondary },
+                ]}
+                numberOfLines={2}
+              >
+                {item.description}
+              </Text>
+            ) : null}
+            <View style={styles.feedFooter}>
+              <Text
+                style={[styles.feedMetaText, { color: colors.textSecondary }]}
+              >
+                {timeAgo}
+              </Text>
+              {socialButtons}
+            </View>
+          </View>
+        </>
+      );
+
+      const showImage = !!item.imageUrl && !heroImageFailed;
+      return (
+        <>
+          {showImage && (
+            <Pressable
+              onPress={() => onOpenImages([item.imageUrl!], 0)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+              accessibilityLabel="View event image"
+              accessibilityRole="imagebutton"
+            >
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.announcementImage}
+                resizeMode="cover"
+                onError={() => setHeroImageFailed(true)}
+              />
+            </Pressable>
+          )}
+          {showImage ? (
+            <View style={styles.feedCard}>{iconAndBody}</View>
+          ) : (
+            iconAndBody
+          )}
+        </>
+      );
+    }
+
+    if (item.type === "journal_post") {
+      const iconAndBody = (
+        <>
+          <View style={[styles.feedIcon, { backgroundColor: "#e0f2fe" }]}>
+            <Text style={styles.feedIconEmoji}>📖</Text>
+          </View>
+          <View style={styles.feedBody}>
+            <Text style={[styles.feedTitle, { color: colors.text }]}>
+              {item.title}
+            </Text>
+            {item.summary ? (
+              <Text
+                style={[
+                  styles.feedDescription,
+                  { color: colors.textSecondary },
+                ]}
+                numberOfLines={3}
+              >
+                {item.summary}
+              </Text>
+            ) : null}
+            <View style={styles.feedFooter}>
+              <View
+                style={[
+                  styles.feedMeta,
+                  { flexDirection: "column", alignItems: "flex-start", gap: 2 },
+                ]}
+              >
+                <Text
+                  style={[styles.feedMetaText, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  {journalCategoryLabel(item.category)}
+                  {item.author ? ` · ${item.author}` : ""}
+                </Text>
+                <Text
+                  style={[styles.feedMetaText, { color: colors.textSecondary }]}
+                >
+                  {timeAgo}
+                </Text>
+              </View>
+              {socialButtons}
+            </View>
+          </View>
+        </>
+      );
+
+      const showImage = !!item.imageUrl && !heroImageFailed;
+      return (
+        <>
+          {showImage && (
+            <Pressable
+              onPress={() => onOpenImages([item.imageUrl!], 0)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+              accessibilityLabel="View journal image"
+              accessibilityRole="imagebutton"
+            >
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.announcementImage}
+                resizeMode="cover"
+                onError={() => setHeroImageFailed(true)}
+              />
+            </Pressable>
+          )}
+          {showImage ? (
+            <View style={styles.feedCard}>{iconAndBody}</View>
+          ) : (
+            iconAndBody
+          )}
+        </>
+      );
+    }
+
     return null;
   };
 
-  const hasAnnouncementImage =
-    item.type === "announcement" &&
+  const hasHeroImage =
+    (item.type === "announcement" ||
+      item.type === "community_event" ||
+      item.type === "journal_post") &&
     !!item.imageUrl &&
-    !announcementImageFailed;
+    !heroImageFailed;
 
   return (
     <Pressable
@@ -2597,7 +2759,7 @@ function FeedCard({
       style={({ pressed }) => [
         styles.feedCard,
         borderStyle,
-        hasAnnouncementImage && styles.feedCardColumn,
+        hasHeroImage && styles.feedCardColumn,
         { opacity: pressed ? 0.7 : 1 },
       ]}
       accessibilityRole="button"
@@ -2704,6 +2866,26 @@ const SHEET_TYPE_CONFIG = {
     accentDark: "#fcd34d",
     accentSoft: "#fffbeb",
     accentSoftDark: "rgba(245, 158, 11, 0.10)",
+  },
+  community_event: {
+    emoji: "🎟️",
+    label: "Community Event",
+    bg: "#ede9fe",
+    bgDark: "rgba(139, 92, 246, 0.12)",
+    accent: "#6d28d9",
+    accentDark: "#c4b5fd",
+    accentSoft: "#f5f3ff",
+    accentSoftDark: "rgba(139, 92, 246, 0.10)",
+  },
+  journal_post: {
+    emoji: "📖",
+    label: "From the Journal",
+    bg: "#e0f2fe",
+    bgDark: "rgba(14, 165, 233, 0.12)",
+    accent: "#0369a1",
+    accentDark: "#7dd3fc",
+    accentSoft: "#f0f9ff",
+    accentSoftDark: "rgba(14, 165, 233, 0.10)",
   },
 } as const;
 
@@ -2972,6 +3154,12 @@ function FeedItemSheet({
     ].filter((s): s is string => s !== null);
     sections.push(...courses);
     body = sections.join("\n\n");
+  } else if (item.type === "community_event") {
+    title = item.title;
+    body = item.description ?? "";
+  } else if (item.type === "journal_post") {
+    title = item.title;
+    body = item.summary ?? "";
   }
 
   const likeCount = likers.length;
@@ -3235,6 +3423,141 @@ function FeedItemSheet({
                         {item.period}
                       </Text>
                     </View>
+                  </>
+                )}
+                {item.type === "community_event" && (
+                  <>
+                    {item.location ? (
+                      <View
+                        style={[
+                          sheet.metaPill,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : colors.surfaceSoft,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="location"
+                          size={11}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            sheet.metaPillText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {item.location}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <View
+                      style={[
+                        sheet.metaPill,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.05)"
+                            : colors.surfaceSoft,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="calendar"
+                        size={11}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          sheet.metaPillText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {formatNZT(new Date(item.eventDate), "EEE d MMM")}
+                        {item.displayTime ? ` · ${item.displayTime}` : ""}
+                      </Text>
+                    </View>
+                    {item.priceLabel ? (
+                      <View
+                        style={[
+                          sheet.metaPill,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : colors.surfaceSoft,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="pricetag"
+                          size={11}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            sheet.metaPillText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {item.priceLabel}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </>
+                )}
+                {item.type === "journal_post" && (
+                  <>
+                    <View
+                      style={[
+                        sheet.metaPill,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(255,255,255,0.05)"
+                            : colors.surfaceSoft,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name="bookmark"
+                        size={11}
+                        color={colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          sheet.metaPillText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {journalCategoryLabel(item.category)}
+                      </Text>
+                    </View>
+                    {item.author ? (
+                      <View
+                        style={[
+                          sheet.metaPill,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.05)"
+                              : colors.surfaceSoft,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="person"
+                          size={11}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            sheet.metaPillText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {item.author}
+                        </Text>
+                      </View>
+                    ) : null}
                   </>
                 )}
                 <View
@@ -3538,24 +3861,130 @@ function FeedItemSheet({
                 </Pressable>
               )}
 
-            {/* ── Photo gallery (for photo_post type) ── */}
-            {/* Announcement image */}
-            {item.type === "announcement" && item.imageUrl && (
-              <Pressable
-                onPress={() => openSheetViewer([item.imageUrl!], 0)}
-                accessibilityLabel="View announcement image"
-                accessibilityRole="imagebutton"
-              >
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={[
-                    sheet.photoSingle,
-                    { borderRadius: 12, marginBottom: 12 },
+            {/* ── Community event CTAs: tickets + marketing site ── */}
+            {item.type === "community_event" && (
+              <View style={sheet.linkCTAGroup}>
+                {item.ticketUrl ? (
+                  <Pressable
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      openCmsLink(item.ticketUrl!);
+                    }}
+                    style={({ pressed }) => [
+                      sheet.shiftListCTA,
+                      {
+                        backgroundColor: Brand.green,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Get tickets"
+                  >
+                    <Text
+                      style={[
+                        sheet.shiftListCTAText,
+                        { color: Palette.cream50 },
+                      ]}
+                    >
+                      Get tickets
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={Palette.cream50}
+                    />
+                  </Pressable>
+                ) : null}
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    openCmsLink(item.url);
+                  }}
+                  style={({ pressed }) => [
+                    sheet.shiftListCTA,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(134, 239, 172, 0.12)"
+                        : Brand.greenLight,
+                      opacity: pressed ? 0.7 : 1,
+                    },
                   ]}
-                  resizeMode="cover"
-                />
-              </Pressable>
+                  accessibilityRole="button"
+                  accessibilityLabel="View event on everybodyeats.nz"
+                >
+                  <Text
+                    style={[
+                      sheet.shiftListCTAText,
+                      { color: isDark ? colors.tint : Brand.green },
+                    ]}
+                  >
+                    View on everybodyeats.nz
+                  </Text>
+                  <Ionicons
+                    name="open-outline"
+                    size={16}
+                    color={isDark ? colors.tint : Brand.green}
+                  />
+                </Pressable>
+              </View>
             )}
+
+            {/* ── Journal post CTA: read the full story ── */}
+            {item.type === "journal_post" && (
+              <View style={sheet.linkCTAGroup}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    openCmsLink(item.url);
+                  }}
+                  style={({ pressed }) => [
+                    sheet.shiftListCTA,
+                    {
+                      backgroundColor: Brand.green,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Read the full story on everybodyeats.nz"
+                >
+                  <Text
+                    style={[
+                      sheet.shiftListCTAText,
+                      { color: Palette.cream50 },
+                    ]}
+                  >
+                    Read the full story
+                  </Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={Palette.cream50}
+                  />
+                </Pressable>
+              </View>
+            )}
+
+            {/* ── Photo gallery (for photo_post type) ── */}
+            {/* Hero image (announcements + CMS content) */}
+            {(item.type === "announcement" ||
+              item.type === "community_event" ||
+              item.type === "journal_post") &&
+              item.imageUrl && (
+                <Pressable
+                  onPress={() => openSheetViewer([item.imageUrl!], 0)}
+                  accessibilityLabel="View image"
+                  accessibilityRole="imagebutton"
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={[
+                      sheet.photoSingle,
+                      { borderRadius: 12, marginBottom: 12 },
+                    ]}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              )}
 
             {item.type === "photo_post" && item.photos.length > 0 && (
               <View
@@ -4724,6 +5153,11 @@ const sheet = StyleSheet.create({
   shiftListCTAText: {
     fontSize: 14,
     fontFamily: FontFamily.semiBold,
+  },
+  linkCTAGroup: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    gap: 2,
   },
   photoSingle: {
     width: "100%",
