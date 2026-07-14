@@ -95,7 +95,7 @@ jobs:
       - name: Build application
         run: npm run build
 
-  # Shared check that both web and docs PRs can use
+  # Shared check that web PRs can use
   merge-check:
     name: Ready to Merge
     runs-on: ubuntu-latest

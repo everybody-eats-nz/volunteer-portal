@@ -7,7 +7,7 @@ import {
   isYesterday,
 } from "date-fns";
 import * as Haptics from "expo-haptics";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
@@ -160,7 +160,6 @@ export default function NotificationsScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
-  const router = useRouter();
 
   const {
     notifications,

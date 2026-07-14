@@ -1,3 +1,39 @@
+## [0.144.0] - 2026-07-14
+
+### Changes
+- feat: surface marketing CMS events and journal in mobile feed and shift pages ([#1116](https://github.com/everybody-eats-nz/volunteer-portal/pull/1116)) by @malinmalliyawadu
+
+
+## [0.143.5] - 2026-07-13
+
+### Changes
+- fix(flaky): admin can see backup preferences for pending volunteers ([#1115](https://github.com/everybody-eats-nz/volunteer-portal/pull/1115)) by @malinmalliyawadu
+
+
+## [0.143.4] - 2026-07-13
+
+### Changes
+- chore(deps): bump posthog-js from 1.395.0 to 1.399.2 in /web ([#1112](https://github.com/everybody-eats-nz/volunteer-portal/pull/1112)) by @dependabot[bot]
+
+
+## [0.143.3] - 2026-07-12
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 3 updates ([#1110](https://github.com/everybody-eats-nz/volunteer-portal/pull/1110)) by @dependabot[bot]
+
+
+## [0.143.2] - 2026-07-09
+
+### Changes
+- chore(deps): bump @supabase/supabase-js from 2.108.2 to 2.110.1 in /web ([#1092](https://github.com/everybody-eats-nz/volunteer-portal/pull/1092)) by @dependabot[bot]
+
+
+## [0.143.1] - 2026-07-09
+
+### Changes
+- fix(mobile): unblock shift signups for volunteers with incomplete profiles ([#1107](https://github.com/everybody-eats-nz/volunteer-portal/pull/1107)) by @malinmalliyawadu
+
+
 ## [0.143.0] - 2026-07-08
 
 ### Changes

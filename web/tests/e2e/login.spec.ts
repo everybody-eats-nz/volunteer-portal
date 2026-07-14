@@ -306,10 +306,13 @@ test.describe("Login Page", () => {
   test.describe("Navigation and Links", () => {
     test("should navigate to register page", async ({ page }) => {
       const registerLink = page.getByTestId("register-link");
-      await registerLink.click();
 
-      // Should navigate to register page
-      await expect(page).toHaveURL(/\/register/);
+      // Retry the click until navigation happens - under parallel load the
+      // first click can land before React hydration attaches the Link handler.
+      await expect(async () => {
+        await registerLink.click();
+        await expect(page).toHaveURL(/\/register/, { timeout: 2000 });
+      }).toPass({ timeout: 15000 });
 
       // Verify register page loaded
       const registerPage = page.getByTestId("register-page");

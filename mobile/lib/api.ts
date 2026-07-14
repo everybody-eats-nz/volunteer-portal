@@ -37,7 +37,7 @@ export async function api<T = unknown>(
     const error = await response
       .json()
       .catch(() => ({ error: "Request failed" }));
-    throw new ApiError(response.status, error.error ?? "Request failed");
+    throw new ApiError(response.status, error.error ?? "Request failed", error);
   }
 
   return response.json() as Promise<T>;
@@ -76,7 +76,12 @@ export async function apiUpload<T = unknown>(
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    /** Full parsed error body, for endpoints that return extra detail. */
+    public data?: Record<string, unknown>
+  ) {
     super(message);
     this.name = "ApiError";
   }

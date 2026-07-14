@@ -18,7 +18,10 @@ import {
   CalendarPlus,
   CalendarDays,
   Timer,
+  ExternalLink,
+  Ticket,
 } from "lucide-react";
+import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 import Link from "next/link";
 import Image from "next/image";
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
@@ -152,7 +155,7 @@ export default async function ShiftDetailPage({
   }
 
   // Parallelize all remaining queries
-  const [friendships, userSignup, currentUser, concurrentShifts] =
+  const [friendships, userSignup, currentUser, concurrentShifts, cmsEvents] =
     await Promise.all([
       // Friends
       userId
@@ -198,6 +201,9 @@ export default async function ShiftDetailPage({
 
       // Concurrent shifts for backup options
       getConcurrentShifts(id),
+
+      // Marketing CMS events at this restaurant on the shift's day
+      getCmsEventsForShift(shift.location, shift.start),
     ]);
 
   const userFriendIds = friendships.flatMap((f) =>
@@ -438,6 +444,59 @@ export default async function ShiftDetailPage({
                   src={mapsEmbedUrl}
                 />
               </div>
+            </div>
+          )}
+
+          {/* Special events on this day, from the marketing CMS */}
+          {cmsEvents.length > 0 && (
+            <div className="space-y-3" data-testid="shift-cms-events">
+              <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+                <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+                Special event at {shift.location} on this day
+              </p>
+              {cmsEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="grain overflow-hidden rounded-3xl border border-forest-500/10 bg-card sm:flex dark:border-cream-50/10"
+                >
+                  {event.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={event.imageUrl}
+                      alt={event.name}
+                      className="h-40 w-full object-cover sm:h-auto sm:w-44 sm:shrink-0"
+                    />
+                  )}
+                  <div className="space-y-1.5 p-6 sm:p-7">
+                    <p className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                      {event.name}
+                    </p>
+                    <p className="inline-flex items-center gap-1.5 text-sm text-forest-700/65 dark:text-cream-50/60">
+                      <Ticket className="h-3.5 w-3.5 text-forest-500 dark:text-cream-50/70" />
+                      {event.displayTime ??
+                        formatInNZT(new Date(event.date), "h:mma").toLowerCase()}
+                      {event.priceLabel ? ` · ${event.priceLabel}` : ""}
+                    </p>
+                    {event.shortDescription && (
+                      <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/65">
+                        {event.shortDescription}
+                      </p>
+                    )}
+                    <div className="pt-1.5">
+                      <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                        <a
+                          href={event.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Details &amp; tickets
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
