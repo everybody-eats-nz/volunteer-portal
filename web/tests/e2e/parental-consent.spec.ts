@@ -63,14 +63,17 @@ test.describe("Parental Consent System", () => {
       await page.getByTestId("next-submit-button").click();
       await waitForPageLoad(page);
 
-      // Step 2: Enter birth date that makes user 16 years old
+      // Step 2: Enter a birth date that keeps the user under 16 year-round.
+      // selectDateOfBirth pins the DOB to July 15, so `year - 16` flips to
+      // exactly 16 (no consent notice) once July 15 passes; `year - 15` is
+      // 14 or 15 on every calendar day.
       await page.getByRole("textbox", { name: /first name/i }).fill("Test");
       await page.getByRole("textbox", { name: /last name/i }).fill("Minor");
       await page
         .getByRole("textbox", { name: /mobile number/i })
         .fill("(555) 123-4567");
 
-      const birthYear = new Date().getFullYear() - 16;
+      const birthYear = new Date().getFullYear() - 15;
       await selectDateOfBirth(page, birthYear);
 
       // Should show parental consent notice
