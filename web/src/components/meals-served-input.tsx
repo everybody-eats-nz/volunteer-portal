@@ -56,6 +56,7 @@ type StatKey =
   | "cash"
   | "eftpos"
   | "stripe"
+  | "suggestedValue"
   | "protein";
 
 type FormState = Record<StatKey, string>; // all held as strings; "" === empty
@@ -72,6 +73,7 @@ const EMPTY_FORM: FormState = {
   cash: "",
   eftpos: "",
   stripe: "",
+  suggestedValue: "",
   protein: "",
 };
 
@@ -585,6 +587,12 @@ export function MealsServedInput({ date, location }: MealsServedInputProps) {
                 </button>
               )
             }
+          />
+          <MoneyField
+            id="suggestedValue"
+            label="Suggested value"
+            value={form.suggestedValue}
+            onChange={(v) => set("suggestedValue", v)}
           />
           <CountField
             id="eftposTransactions"
