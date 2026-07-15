@@ -924,6 +924,22 @@ npm run test:run && npm run test:e2e:ci
 9. **Test responsive design** on different devices
 10. **Run tests in Chromium only** for faster feedback (use `--project=chromium`)
 
+#### Hydration duplicates and strict mode violations
+
+You may hit `strict mode violation: resolved to 2 elements` even when a
+testid or text is unique in source. A hidden duplicate of the
+server-rendered tree can linger in the DOM alongside the hydrated one (the
+two matches carry different React `useId` prefixes, and only one instance
+is visible). Scope the locator to visible elements:
+
+```typescript
+const card = page.getByTestId("admin-notes-card").filter({ visible: true });
+await expect(card).toBeVisible();
+```
+
+Plain `.first()` is not a safe substitute — depending on DOM order it can
+select the hidden copy and then fail `toBeVisible()`.
+
 ### General Testing Best Practices
 
 1. **Choose the right testing tool** - Vitest for units, Playwright for workflows

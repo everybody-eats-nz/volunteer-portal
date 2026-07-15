@@ -94,12 +94,19 @@ test.describe("Admin Notes Management", () => {
     // Navigate to volunteer profile
     await navigateToVolunteerProfile(page, testVolunteerId!);
 
-    // Check that the admin notes card is visible
-    const adminNotesCard = page.getByTestId("admin-notes-card");
+    // Check that the admin notes card is visible. The testid is unique in
+    // source, but a hidden duplicate of the server-rendered tree can linger
+    // in the DOM alongside the hydrated one — scope to visible elements to
+    // avoid strict-mode violations.
+    const adminNotesCard = page
+      .getByTestId("admin-notes-card")
+      .filter({ visible: true });
     await expect(adminNotesCard).toBeVisible();
 
     // Check that the admin notes manager is present
-    const adminNotesManager = page.getByTestId("admin-notes-manager");
+    const adminNotesManager = page
+      .getByTestId("admin-notes-manager")
+      .filter({ visible: true });
     await expect(adminNotesManager).toBeVisible();
   });
 
