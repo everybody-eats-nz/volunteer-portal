@@ -2598,7 +2598,10 @@ function FeedCard({
     }
 
     if (item.type === "community_event") {
-      const eventDateText = formatNZT(new Date(item.eventDate), "EEEE d MMM");
+      const isToday = item.pinned === true;
+      const eventDateText = isToday
+        ? "Today"
+        : formatNZT(new Date(item.eventDate), "EEEE d MMM");
       const metaParts = [
         item.location ? `📍 ${item.location}` : null,
         eventDateText,
@@ -2611,6 +2614,13 @@ function FeedCard({
             <Text style={styles.feedIconEmoji}>🎟️</Text>
           </View>
           <View style={styles.feedBody}>
+            {isToday && (
+              <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
+                <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
+                  Happening today
+                </Text>
+              </View>
+            )}
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               {item.title}
             </Text>
@@ -3459,7 +3469,9 @@ function FeedItemSheet({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {formatNZT(new Date(item.eventDate), "EEE d MMM")}
+                        {item.pinned
+                          ? "Today"
+                          : formatNZT(new Date(item.eventDate), "EEE d MMM")}
                         {item.displayTime ? ` · ${item.displayTime}` : ""}
                       </Text>
                     </View>
@@ -4629,6 +4641,19 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 10,
     marginTop: 2,
+  },
+  feedTodayPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    marginBottom: 4,
+  },
+  feedTodayPillText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   feedIcon: {
     width: 42,

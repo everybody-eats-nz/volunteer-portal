@@ -72,14 +72,27 @@ export function useFeed(): UseFeedReturn {
     [queryClient, queryKey]
   );
 
-  const items = useMemo(
-    () =>
-      [...(query.data?.items ?? [])].sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ),
-    [query.data?.items]
-  );
+  const items = useMemo(() => {
+    // Pinned items (events happening today) lead the feed — soonest event
+    // first. Everything else sorts by timestamp descending.
+    const isPinned = (item: FeedItem) =>
+      item.type === "community_event" && item.pinned === true;
+    return [...(query.data?.items ?? [])].sort((a, b) => {
+      const pinnedA = isPinned(a);
+      const pinnedB = isPinned(b);
+      if (pinnedA !== pinnedB) return pinnedA ? -1 : 1;
+      if (
+        pinnedA &&
+        a.type === "community_event" &&
+        b.type === "community_event"
+      ) {
+        return (
+          new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+        );
+      }
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [query.data?.items]);
 
   return {
     items,
