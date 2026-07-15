@@ -1,3 +1,9 @@
+## [0.145.0] - 2026-07-15
+
+### Changes
+- feat(mobile): pin events happening today to the top of the feed ([#1118](https://github.com/everybody-eats-nz/volunteer-portal/pull/1118)) by @malinmalliyawadu
+
+
 ## [0.144.0] - 2026-07-14
 
 ### Changes
