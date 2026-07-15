@@ -26,6 +26,7 @@ function serializeStats(record: MealsServedRecord) {
     cash: toNumber(record.cash),
     eftpos: toNumber(record.eftpos),
     stripe: toNumber(record.stripe),
+    suggestedValue: toNumber(record.suggestedValue),
     protein: record.protein,
   };
 }

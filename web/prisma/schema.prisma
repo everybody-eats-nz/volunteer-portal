@@ -789,6 +789,7 @@ model MealsServed {
   cash               Decimal? @db.Decimal(10, 2) // Cash koha ($)
   eftpos             Decimal? @db.Decimal(10, 2) // Eftpos koha ($)
   stripe             Decimal? @db.Decimal(10, 2) // Stripe koha ($)
+  suggestedValue     Decimal? @db.Decimal(10, 2) // Suggested koha value on the night ($)
   protein            String? // Protein served (e.g. "Beef")
 
   createdAt DateTime @default(now())
