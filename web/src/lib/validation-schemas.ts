@@ -55,6 +55,7 @@ export const restaurantNightStatsSchema = z.object({
   cash: optionalMoney,
   eftpos: optionalMoney,
   stripe: optionalMoney,
+  suggestedValue: optionalMoney,
   protein: optionalString,
 });
 
