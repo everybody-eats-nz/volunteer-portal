@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
+import {
+  getStartOfDayUTC,
+  formatInNZT,
+  isSameDayInNZT,
+} from "@/lib/timezone";
 import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import {
@@ -572,9 +576,14 @@ export async function GET(request: Request) {
     const timestamp =
       isImminent && resurfaceAt > publishedAt ? resurfaceAt : publishedAt;
 
+    // Events happening today (NZ) are pinned — the app sorts them to the
+    // top of the feed regardless of when they were posted.
+    const isToday = isSameDayInNZT(eventDate, now);
+
     items.push({
       type: "community_event",
       id: `cms-event-${event.id}`,
+      pinned: isToday || undefined,
       title: event.name,
       description: event.shortDescription ?? undefined,
       location: event.location ?? undefined,
