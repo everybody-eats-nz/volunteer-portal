@@ -1,3 +1,9 @@
+## [0.146.2] - 2026-07-16
+
+### Changes
+- fix(login): remove delayed duplicate post-login navigation that aborts in-flight navigations ([#1123](https://github.com/everybody-eats-nz/volunteer-portal/pull/1123)) by @malinmalliyawadu
+
+
 ## [0.146.1] - 2026-07-16
 
 ### Changes
