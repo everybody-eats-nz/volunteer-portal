@@ -555,29 +555,30 @@ export async function GET(request: Request) {
     });
   }
 
-  // Community events from the marketing CMS. An event appears in the feed
-  // while its announcement is fresh (published within the feed window) and
-  // resurfaces during the week leading up to it, timestamped so it sorts as
-  // if freshly posted. Events aren't location-targeted: with only a handful
-  // per year, they're relevant to the whole whānau.
+  // Community events from the marketing CMS. Upcoming events stay in the
+  // feed from the moment they're announced until they happen — the app ranks
+  // them higher the closer they get (see mobile/lib/feed-ranking.ts) to
+  // build hype. For older app versions that sort purely by timestamp, an
+  // event still "resurfaces" during the week leading up to it, timestamped
+  // so it sorts as if freshly posted. Events aren't location-targeted: with
+  // only a handful per year, they're relevant to the whole whānau.
   const startOfTodayNZ = getStartOfDayUTC(now);
-  for (const event of cmsEvents.slice(0, 10)) {
+  const upcomingEvents = cmsEvents
+    .filter((event) => new Date(event.date) >= startOfTodayNZ)
+    .slice(0, 10);
+  for (const event of upcomingEvents) {
     const eventDate = new Date(event.date);
-    if (eventDate < startOfTodayNZ) continue;
-
     const publishedAt = new Date(event.publishedAt);
     const resurfaceAt = new Date(
       eventDate.getTime() - 7 * 24 * 60 * 60 * 1000
     );
-    const isFresh = publishedAt >= since;
-    const isImminent = resurfaceAt <= now;
-    if (!isFresh && !isImminent) continue;
-
     const timestamp =
-      isImminent && resurfaceAt > publishedAt ? resurfaceAt : publishedAt;
+      resurfaceAt <= now && resurfaceAt > publishedAt
+        ? resurfaceAt
+        : publishedAt;
 
-    // Events happening today (NZ) are pinned — the app sorts them to the
-    // top of the feed regardless of when they were posted.
+    // Events happening today (NZ) are flagged — the app shows a
+    // "Happening today" pill for them.
     const isToday = isSameDayInNZT(eventDate, now);
 
     items.push({
