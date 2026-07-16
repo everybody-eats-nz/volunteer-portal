@@ -738,6 +738,7 @@ export default function ShiftDetailScreen() {
           formatDate={formatNZT}
           profileIncomplete={eligibility ? !eligibility.profileComplete : false}
           missingProfileFields={eligibility?.missingProfileFields}
+          guardianRequired={eligibility?.guardianRequired ?? false}
         />
       )}
     </View>
