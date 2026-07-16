@@ -25,6 +25,10 @@ import type { FeedItem } from "@/lib/dummy-data";
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The tuning knob for how hard proximity pulls an item up the feed: each day
+// closer to its date, it sorts 6h fresher. Revisit once feed impressions and
+// taps are instrumented.
 const HYPE_RAMP_MS_PER_DAY = 6 * 60 * 60 * 1000;
 
 /** Parse a "yyyy-MM-dd" day key to a comparable UTC-midnight epoch. */
@@ -88,21 +92,23 @@ function effectiveTime(item: FeedItem, now: Date): number {
  * then everything else by hype-adjusted recency (see module comment).
  */
 export function rankFeedItems(items: FeedItem[], now: Date = new Date()): FeedItem[] {
-  const byEffectiveTime = new Map<FeedItem, number>();
-  for (const item of items) {
-    byEffectiveTime.set(item, effectiveTime(item, now));
-  }
-  return [...items].sort((a, b) => {
-    const pinnedA = a.type === "community_event" && a.pinned === true;
-    const pinnedB = b.type === "community_event" && b.pinned === true;
-    if (pinnedA !== pinnedB) return pinnedA ? -1 : 1;
-    if (
-      pinnedA &&
-      a.type === "community_event" &&
-      b.type === "community_event"
-    ) {
-      return new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
-    }
-    return byEffectiveTime.get(b)! - byEffectiveTime.get(a)!;
-  });
+  return items
+    .map((item) => ({ item, time: effectiveTime(item, now) }))
+    .sort((a, b) => {
+      const pinnedA = a.item.type === "community_event" && a.item.pinned === true;
+      const pinnedB = b.item.type === "community_event" && b.item.pinned === true;
+      if (pinnedA !== pinnedB) return pinnedA ? -1 : 1;
+      if (
+        pinnedA &&
+        a.item.type === "community_event" &&
+        b.item.type === "community_event"
+      ) {
+        return (
+          new Date(a.item.eventDate).getTime() -
+          new Date(b.item.eventDate).getTime()
+        );
+      }
+      return b.time - a.time;
+    })
+    .map(({ item }) => item);
 }

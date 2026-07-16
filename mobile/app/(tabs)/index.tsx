@@ -2581,7 +2581,10 @@ function FeedCard({
           <View style={styles.feedBody}>
             {isTonight && (
               <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
-                <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
+                <Text
+                  accessibilityLabel="Tonight's menu"
+                  style={[styles.feedTodayPillText, { color: "#6d28d9" }]}
+                >
                   Tonight
                 </Text>
               </View>
@@ -2644,7 +2647,10 @@ function FeedCard({
             )}
             {countdown && (
               <View style={[styles.feedTodayPill, { backgroundColor: "#fef3c7" }]}>
-                <Text style={[styles.feedTodayPillText, { color: "#b45309" }]}>
+                <Text
+                  accessibilityLabel={`Happening ${countdown.toLowerCase()}`}
+                  style={[styles.feedTodayPillText, { color: "#b45309" }]}
+                >
                   {countdown}
                 </Text>
               </View>
