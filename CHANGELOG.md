@@ -1,3 +1,9 @@
+## [0.146.0] - 2026-07-16
+
+### Changes
+- feat(mobile): rank upcoming events and menus higher as their date approaches ([#1121](https://github.com/everybody-eats-nz/volunteer-portal/pull/1121)) by @malinmalliyawadu
+
+
 ## [0.145.0] - 2026-07-15
 
 ### Changes
