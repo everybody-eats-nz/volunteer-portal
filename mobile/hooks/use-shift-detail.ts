@@ -52,6 +52,12 @@ export type ShiftEligibility = {
   /** Required profile fields still missing (empty when profile is complete). */
   missingProfileFields?: string[];
   needsParentalConsent: boolean;
+  /**
+   * True for volunteers aged 14 and under, who must name a parent/guardian
+   * when signing up. Computed server-side; the signup sheet collects the
+   * name and the signup routes reject submissions without it.
+   */
+  guardianRequired?: boolean;
 };
 
 /** Raw shape returned by GET /api/mobile/shifts/[id]/concurrent */

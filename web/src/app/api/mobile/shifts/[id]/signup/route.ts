@@ -6,6 +6,7 @@ import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getNotificationService } from "@/lib/notification-service";
 import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
+import { validateGuardianRequirement } from "@/lib/guardian-validation";
 import {
   getMissingProfileFields,
   isProfileComplete,
@@ -141,6 +142,13 @@ export async function POST(
     }
   } catch {
     // No body or invalid JSON — defaults are fine
+  }
+
+  // Volunteers aged 14 and under must name a guardian in the signup note
+  // (the app sends "Guardian: <name>"). Mirrors the web signup route.
+  const guardianError = validateGuardianRequirement(user.dateOfBirth, note);
+  if (guardianError) {
+    return NextResponse.json(guardianError, { status: 400 });
   }
 
   // Count confirmed signups + unregistered volunteers

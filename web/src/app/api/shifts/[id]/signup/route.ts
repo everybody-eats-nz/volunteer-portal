@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/auth-options";
 import { getNotificationService } from "@/lib/notification-service";
 import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { processAutoApproval } from "@/lib/auto-accept-rules";
-import { MAX_NOTE_LENGTH, GUARDIAN_REQUIRED_AGE, calculateAge } from "@/lib/utils";
+import { MAX_NOTE_LENGTH } from "@/lib/utils";
+import { validateGuardianRequirement } from "@/lib/guardian-validation";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import sanitizeHtml from "sanitize-html";
@@ -144,23 +145,17 @@ export async function POST(
       } else {
         note = null;
       }
-
-      // Add server-side age validation for guardian requirement
-      if (user.dateOfBirth) {
-        const userAge = calculateAge(user.dateOfBirth);
-        if (userAge <= GUARDIAN_REQUIRED_AGE && note && !note.toLowerCase().includes('guardian')) {
-          return NextResponse.json(
-            {
-              error: "Guardian name required",
-              message: "Since you are under 15, please include your guardian's name in the note."
-            },
-            { status: 400 }
-          );
-        }
-      }
     }
   } catch {
     // ignore body parse errors for non-form requests
+  }
+
+  // Volunteers aged 14 and under must name a guardian in the signup note.
+  // Runs after body parsing (outside the try/catch) so a request with no
+  // note, or no body at all, is rejected too.
+  const guardianError = validateGuardianRequirement(user.dateOfBirth, note);
+  if (guardianError) {
+    return NextResponse.json(guardianError, { status: 400 });
   }
 
   // Check if user already has a signup for this shift
