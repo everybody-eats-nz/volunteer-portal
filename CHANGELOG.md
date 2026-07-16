@@ -1,3 +1,9 @@
+## [0.146.1] - 2026-07-16
+
+### Changes
+- fix(shifts): enforce guardian requirement server-side for web and mobile signups ([#1122](https://github.com/everybody-eats-nz/volunteer-portal/pull/1122)) by @malinmalliyawadu
+
+
 ## [0.146.0] - 2026-07-16
 
 ### Changes
