@@ -9,6 +9,11 @@ import {
   startOfDay,
 } from "date-fns";
 import { formatNZT, formatNZDateOnly } from "@/lib/dates";
+import {
+  nzDaysUntil,
+  nzDaysUntilDateOnly,
+  upcomingLabel,
+} from "@/lib/feed-ranking";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
@@ -2554,6 +2559,10 @@ function FeedCard({
 
     if (item.type === "daily_menu") {
       const dateText = formatNZDateOnly(item.serviceDate, "EEEE d MMM");
+      // Menus resurface at the top of the feed on service day (see
+      // lib/feed-ranking.ts) — the pill explains why this one is up here.
+      const isTonight =
+        nzDaysUntilDateOnly(item.serviceDate, new Date()) === 0;
       const previewNames = [
         ...(item.mains ?? []),
         ...(item.starter ?? []),
@@ -2570,6 +2579,13 @@ function FeedCard({
             <Text style={styles.feedIconEmoji}>🍲</Text>
           </View>
           <View style={styles.feedBody}>
+            {isTonight && (
+              <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
+                <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
+                  Tonight
+                </Text>
+              </View>
+            )}
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               Menu for {dateText} · {item.location}
             </Text>
@@ -2599,6 +2615,11 @@ function FeedCard({
 
     if (item.type === "community_event") {
       const isToday = item.pinned === true;
+      // Countdown pill for the lead-in week — the visible reason this card
+      // sits above older posts, and a little hype while it's at it.
+      const countdown = isToday
+        ? null
+        : upcomingLabel(nzDaysUntil(item.eventDate, new Date()));
       const eventDateText = isToday
         ? "Today"
         : formatNZT(new Date(item.eventDate), "EEEE d MMM");
@@ -2618,6 +2639,13 @@ function FeedCard({
               <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
                 <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
                   Happening today
+                </Text>
+              </View>
+            )}
+            {countdown && (
+              <View style={[styles.feedTodayPill, { backgroundColor: "#fef3c7" }]}>
+                <Text style={[styles.feedTodayPillText, { color: "#b45309" }]}>
+                  {countdown}
                 </Text>
               </View>
             )}

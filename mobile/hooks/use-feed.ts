@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 
 import { api } from "@/lib/api";
 import type { FeedItem } from "@/lib/dummy-data";
+import { rankFeedItems } from "@/lib/feed-ranking";
 import { queryKeys } from "@/lib/query-keys";
 
 type FeedResponse = {
@@ -72,27 +73,12 @@ export function useFeed(): UseFeedReturn {
     [queryClient, queryKey]
   );
 
-  const items = useMemo(() => {
-    // Pinned items (events happening today) lead the feed — soonest event
-    // first. Everything else sorts by timestamp descending.
-    const isPinned = (item: FeedItem) =>
-      item.type === "community_event" && item.pinned === true;
-    return [...(query.data?.items ?? [])].sort((a, b) => {
-      const pinnedA = isPinned(a);
-      const pinnedB = isPinned(b);
-      if (pinnedA !== pinnedB) return pinnedA ? -1 : 1;
-      if (
-        pinnedA &&
-        a.type === "community_event" &&
-        b.type === "community_event"
-      ) {
-        return (
-          new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
-        );
-      }
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
-  }, [query.data?.items]);
+  // Ordering: hype-adjusted recency — upcoming events and menus climb the
+  // feed as their date approaches. See lib/feed-ranking.ts for the rationale.
+  const items = useMemo(
+    () => rankFeedItems(query.data?.items ?? []),
+    [query.data?.items]
+  );
 
   return {
     items,
