@@ -53,15 +53,23 @@ export function navigateToNotificationTarget(actionUrl: unknown) {
     return;
   }
 
-  // /shifts/details?date=YYYY-MM-DD -> shifts tab focused on that day.
-  // Shortage notifications deep-link here; the shifts tab honours ?date=.
-  // (location isn't forwarded — the tab applies the user's own filter.)
+  // /shifts/details?date=YYYY-MM-DD&location=X -> shifts tab focused on that
+  // day. Shortage notifications deep-link here; the shifts tab honours ?date=
+  // and switches its location filter to ?location= — without that, a push for
+  // a restaurant other than the user's current filter landed on a tab that
+  // hid the very shifts the notification was about.
   // Must run before the generic /shifts/:id match below, otherwise
   // "details" is treated as a shift id and 404s ("Shift not found").
   if (pathname === "/shifts/details") {
     const date = query.get("date");
+    const location = query.get("location");
+    const params: Record<string, string> = {};
+    if (date) params.date = date;
+    if (location) params.location = location;
     router.push(
-      date ? { pathname: "/(tabs)/shifts", params: { date } } : "/(tabs)/shifts"
+      Object.keys(params).length > 0
+        ? { pathname: "/(tabs)/shifts", params }
+        : "/(tabs)/shifts"
     );
     return;
   }

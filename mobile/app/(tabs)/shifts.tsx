@@ -286,7 +286,7 @@ export default function ShiftsScreen() {
 
   /* Selected date — respects ?date=YYYY-MM-DD deep links (e.g. from the
      "volunteers needed" home card), falling back to today. */
-  const params = useLocalSearchParams<{ date?: string }>();
+  const params = useLocalSearchParams<{ date?: string; location?: string }>();
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const parsed = parseDateKey(params.date);
     return parsed ?? startOfDay(new Date());
@@ -301,6 +301,19 @@ export default function ShiftsScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.date]);
+
+  /* A deep link can carry a location too (a shortage push for a specific
+     restaurant). Switch the filter to that venue so the shifts the
+     notification is about are actually visible — otherwise a push for
+     Hopper Cafe lands on a tab still filtered to e.g. Wellington. */
+  useEffect(() => {
+    const location =
+      typeof params.location === "string" ? params.location : undefined;
+    if (location && location !== locationFilter) {
+      setLocationFilter(location);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.location]);
 
   const selectedDateKey = formatDateKey(selectedDate);
 

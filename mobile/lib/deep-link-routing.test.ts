@@ -19,6 +19,20 @@ describe("mapDeepLinkToRoute", () => {
     it("treats /shifts/details as the shifts tab, not a shift id", () => {
       expect(mapDeepLinkToRoute("/shifts/details")).toBe("/(tabs)/shifts");
     });
+
+    it("forwards date and location from /shifts/details links", () => {
+      expect(
+        mapDeepLinkToRoute(
+          "https://volunteers.everybodyeats.nz/shifts/details?date=2026-06-30&location=Hopper%20Cafe"
+        )
+      ).toBe("/(tabs)/shifts?date=2026-06-30&location=Hopper%20Cafe");
+    });
+
+    it("forwards just the date when /shifts/details has no location", () => {
+      expect(mapDeepLinkToRoute("/shifts/details?date=2026-06-30")).toBe(
+        "/(tabs)/shifts?date=2026-06-30"
+      );
+    });
   });
 
   describe("dashboard", () => {
