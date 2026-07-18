@@ -33,7 +33,10 @@ import {
 import { cn } from "@/lib/utils";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
-import { safeParseAvailability } from "@/lib/parse-availability";
+import {
+  safeParseAvailability,
+  safeParseLocations,
+} from "@/lib/parse-availability";
 import { WeekAvailability } from "@/components/week-availability";
 import { VolunteerGradeToggle } from "@/components/volunteer-grade-toggle";
 import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
@@ -231,7 +234,7 @@ export default async function AdminVolunteerPage({
     : "V";
 
   const availableDays = safeParseAvailability(volunteer.availableDays);
-  const availableLocations = safeParseAvailability(
+  const availableLocations = safeParseLocations(
     volunteer.availableLocations
   );
 

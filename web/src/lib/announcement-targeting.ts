@@ -45,8 +45,23 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
   const conditions: Prisma.Sql[] = [Prisma.sql`TRUE`];
 
   if (t.targetLocations.length > 0) {
+    const targetLocations = Prisma.sql`ARRAY[${Prisma.join(t.targetLocations)}]::text[]`;
+    // A volunteer belongs to a location when it's their default OR in their
+    // availableLocations list. That column is a JSON-stringified array in a
+    // text column (with legacy plain-text values like "Glen Innes" in old
+    // rows), so no ::jsonb cast — one malformed row would abort the whole
+    // query. Matching the element with its JSON quotes ('"Wellington"') keeps
+    // the substring check exact for names that are prefixes of other names;
+    // the trimmed equality branch covers the legacy plain-text rows.
     conditions.push(
-      Prisma.sql`"defaultLocation" = ANY(ARRAY[${Prisma.join(t.targetLocations)}]::text[])`
+      Prisma.sql`(
+        "defaultLocation" = ANY(${targetLocations})
+        OR EXISTS (
+          SELECT 1 FROM unnest(${targetLocations}) AS target(loc)
+          WHERE POSITION('"' || target.loc || '"' IN "availableLocations") > 0
+             OR btrim("availableLocations") = target.loc
+        )
+      )`
     );
   }
 

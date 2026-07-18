@@ -45,6 +45,7 @@ export interface Volunteer {
   firstName: string | null;
   lastName: string | null;
   defaultLocation: string | null;
+  availableLocations: string[];
   availableDays: string[];
   receiveShortageNotifications: boolean;
   excludedShortageNotificationTypes: string[];
@@ -129,16 +130,36 @@ export const columns: ColumnDef<Volunteer>[] = [
   },
   {
     accessorKey: "defaultLocation",
-    header: "Default Location",
+    header: "Locations",
     cell: ({ row }) => {
-      const location = row.getValue("defaultLocation") as string | null;
-      if (!location) {
+      const defaultLocation = row.getValue("defaultLocation") as string | null;
+      // Other locations the volunteer marked themselves available at — they
+      // receive location-targeted notifications for these too, so surface
+      // them alongside the default (shown first, outlined).
+      const otherLocations = (row.original.availableLocations ?? []).filter(
+        (location) => location !== defaultLocation
+      );
+      if (!defaultLocation && otherLocations.length === 0) {
         return <span className="text-xs text-muted-foreground">—</span>;
       }
       return (
-        <Badge variant="outline" className="text-xs">
-          {location}
-        </Badge>
+        <div className="flex gap-1 flex-wrap">
+          {defaultLocation && (
+            <Badge variant="outline" className="text-xs">
+              {defaultLocation}
+            </Badge>
+          )}
+          {otherLocations.slice(0, 2).map((location) => (
+            <Badge key={location} variant="secondary" className="text-xs">
+              {location}
+            </Badge>
+          ))}
+          {otherLocations.length > 2 && (
+            <Badge variant="secondary" className="text-xs">
+              +{otherLocations.length - 2}
+            </Badge>
+          )}
+        </div>
       );
     },
   },
