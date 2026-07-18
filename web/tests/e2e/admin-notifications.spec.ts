@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import {
   login,
   ensureAdmin,
@@ -6,7 +6,18 @@ import {
   deleteTestUsers,
   createShift,
   deleteTestShifts,
+  createSignup,
+  getUserByEmail,
 } from "./helpers/test-helpers";
+
+/**
+ * Streaming can transiently render the admin tab panel twice, making plain
+ * getByTestId lookups fail with strict-mode "resolved to 2 elements" flakes.
+ * Scope every testid lookup on this page to the visible instance.
+ */
+function byTestId(page: Page, id: string) {
+  return page.locator(`[data-testid="${id}"]:visible`).first();
+}
 
 test.describe.serial("Admin Shift Shortage Notifications", () => {
   let adminEmail: string;
@@ -74,15 +85,15 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     ).toBeVisible();
 
     // Check filter sections exist
-    await expect(page.getByTestId("shift-filter-section")).toBeVisible();
-    await expect(page.getByTestId("volunteer-filter-section")).toBeVisible();
+    await expect(byTestId(page, "shift-filter-section")).toBeVisible();
+    await expect(byTestId(page, "volunteer-filter-section")).toBeVisible();
 
     // Check shift location filter dropdown (new UI uses date + location instead of single shift select)
-    await expect(page.getByTestId("shift-location-filter")).toBeVisible();
+    await expect(byTestId(page, "shift-location-filter")).toBeVisible();
 
     // Check basic volunteer filters
-    await expect(page.getByTestId("location-filter")).toBeVisible();
-    await expect(page.getByTestId("shift-type-filter")).toBeVisible();
+    await expect(byTestId(page, "location-filter")).toBeVisible();
+    await expect(byTestId(page, "shift-type-filter")).toBeVisible();
   });
 
   test("should show volunteer count when filters are applied", async ({
@@ -90,9 +101,10 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
   }) => {
     await page.goto("/admin/notifications");
 
-    // Volunteer count is always visible (filters apply to volunteers, not dependent on shift selection)
-    await expect(page.getByTestId("volunteer-count")).toBeVisible();
-    await expect(page.getByTestId("volunteer-count")).toContainText(
+    // Volunteer count is always visible (filters apply to volunteers, not
+    // dependent on shift selection)
+    await expect(byTestId(page, "volunteer-count")).toBeVisible();
+    await expect(byTestId(page, "volunteer-count")).toContainText(
       "volunteers match filters"
     );
   });
@@ -101,10 +113,81 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     await page.goto("/admin/notifications");
 
     // Notification filter toggle is always visible (not dependent on shift selection)
-    await expect(page.getByTestId("notification-filter-toggle")).toBeVisible();
+    await expect(byTestId(page, "notification-filter-toggle")).toBeVisible();
 
     // Toggle it
-    await page.getByTestId("notification-filter-toggle").click();
+    await byTestId(page, "notification-filter-toggle").click();
+  });
+
+  test("location filter includes volunteers available at a non-default location", async ({
+    page,
+  }) => {
+    const baseTime = Date.now();
+
+    // Defaults to Wellington but is also available at Glen Innes — must still
+    // be reachable when notifying Glen Innes shortages (issue #1125).
+    const multiLocEmail = `volunteer-multiloc-${baseTime}@test.com`;
+    volunteerEmails.push(multiLocEmail);
+    await createTestUser(page, multiLocEmail, "VOLUNTEER", {
+      firstName: "Multiloc",
+      lastName: `Tester${baseTime}`,
+      defaultLocation: "Wellington",
+      availableLocations: JSON.stringify(["Wellington", "Glen Innes"]),
+      receiveShortageNotifications: true,
+      excludedShortageNotificationTypes: [],
+    });
+
+    // Control: Wellington only — must NOT appear under the Glen Innes filter.
+    const singleLocEmail = `volunteer-singleloc-${baseTime}@test.com`;
+    volunteerEmails.push(singleLocEmail);
+    await createTestUser(page, singleLocEmail, "VOLUNTEER", {
+      firstName: "Singleloc",
+      lastName: `Tester${baseTime}`,
+      defaultLocation: "Wellington",
+      availableLocations: JSON.stringify(["Wellington"]),
+      receiveShortageNotifications: true,
+      excludedShortageNotificationTypes: [],
+    });
+
+    // Volunteers only appear in the picker once they have a confirmed signup.
+    const multiLoc = await getUserByEmail(page, multiLocEmail);
+    const singleLoc = await getUserByEmail(page, singleLocEmail);
+    await createSignup(page, {
+      userId: multiLoc!.id,
+      shiftId,
+      status: "CONFIRMED",
+    });
+    await createSignup(page, {
+      userId: singleLoc!.id,
+      shiftId,
+      status: "CONFIRMED",
+    });
+
+    await page.goto("/admin/notifications");
+
+    // Narrow the table to just this test's volunteers, then filter by a
+    // location that is only in the multi-location volunteer's availability.
+    // .first() everywhere for the same transient-duplicate reason as byTestId.
+    await page
+      .getByPlaceholder("Filter by name or email...")
+      .first()
+      .fill(`Tester${baseTime}`);
+    await expect(
+      page.getByText(`Multiloc Tester${baseTime}`).first()
+    ).toBeVisible();
+    await expect(
+      page.getByText(`Singleloc Tester${baseTime}`).first()
+    ).toBeVisible();
+
+    await byTestId(page, "location-filter").click();
+    await page.getByRole("option", { name: "Glen Innes" }).click();
+
+    await expect(
+      page.getByText(`Multiloc Tester${baseTime}`).first()
+    ).toBeVisible();
+    await expect(
+      page.getByText(`Singleloc Tester${baseTime}`).first()
+    ).not.toBeVisible();
   });
 
   test("should show availability filter for selected shift", async ({
@@ -127,21 +210,21 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     });
 
     // Availability filter should be disabled initially (no shifts selected yet)
-    await expect(page.getByTestId("availability-filter")).toBeDisabled();
+    await expect(byTestId(page, "availability-filter")).toBeDisabled();
 
     // Select a shift
     await page.locator('[data-testid^="shift-checkbox-"]').first().click();
 
     // Availability filter should now be enabled
-    await expect(page.getByTestId("availability-filter")).toBeEnabled();
+    await expect(byTestId(page, "availability-filter")).toBeEnabled();
   });
 
   test("should display email preview button", async ({ page }) => {
     await page.goto("/admin/notifications");
 
     // Check that preview button is visible
-    await expect(page.getByTestId("preview-email-button")).toBeVisible();
-    await expect(page.getByTestId("preview-email-button")).toContainText(
+    await expect(byTestId(page, "preview-email-button")).toBeVisible();
+    await expect(byTestId(page, "preview-email-button")).toContainText(
       "Preview Email"
     );
   });
@@ -152,7 +235,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     await page.goto("/admin/notifications");
 
     // Click the preview button
-    await page.getByTestId("preview-email-button").click();
+    await byTestId(page, "preview-email-button").click();
 
     // Dialog should open
     await expect(
@@ -172,7 +255,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     await page.goto("/admin/notifications");
 
     // Click the preview button
-    await page.getByTestId("preview-email-button").click();
+    await byTestId(page, "preview-email-button").click();
 
     // Wait for dialog to open
     await expect(
@@ -204,7 +287,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     await page.goto("/admin/notifications");
 
     // Click the preview button
-    await page.getByTestId("preview-email-button").click();
+    await byTestId(page, "preview-email-button").click();
 
     // Wait for dialog to open
     await expect(
@@ -224,7 +307,7 @@ test.describe.serial("Admin Shift Shortage Notifications", () => {
     await page.goto("/admin/notifications");
 
     // Click the preview button
-    await page.getByTestId("preview-email-button").click();
+    await byTestId(page, "preview-email-button").click();
 
     // Dialog should open
     await expect(

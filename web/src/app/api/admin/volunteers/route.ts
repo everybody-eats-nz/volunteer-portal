@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { safeParseAvailability } from "@/lib/parse-availability";
+import {
+  safeParseAvailability,
+  safeParseLocations,
+} from "@/lib/parse-availability";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -35,6 +38,7 @@ export async function GET(request: Request) {
         lastName: true,
         volunteerGrade: true,
         defaultLocation: true,
+        availableLocations: true,
         availableDays: true,
         receiveShortageNotifications: true,
         excludedShortageNotificationTypes: true,
@@ -84,6 +88,7 @@ export async function GET(request: Request) {
       return {
         ...volunteerWithoutSignups,
         availableDays: safeParseAvailability(volunteer.availableDays),
+        availableLocations: safeParseLocations(volunteer.availableLocations),
         ...(includeStats && { completedShifts }),
       };
     });

@@ -7,6 +7,7 @@ import {
   isSameDayInNZT,
 } from "@/lib/timezone";
 import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
+import { userMatchesTargetLocations } from "@/lib/user-locations";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import {
   getRecentCmsJournalPosts,
@@ -76,6 +77,7 @@ export async function GET(request: Request) {
         select: {
           volunteerGrade: true,
           defaultLocation: true,
+          availableLocations: true,
           customLabels: { select: { labelId: true } },
         },
       }),
@@ -298,11 +300,16 @@ export async function GET(request: Request) {
   const friendIdSet = new Set(friendIds);
 
   for (const ann of announcements) {
-    // Location targeting: empty = all locations
-    const locationMatch =
-      ann.targetLocations.length === 0 ||
-      (userDefaultLocation !== null &&
-        ann.targetLocations.includes(userDefaultLocation));
+    // Location targeting: empty = all locations. Matches the recipient
+    // conditions in announcement-targeting.ts (default OR available
+    // locations) so a pushed announcement is visible in the feed it links to.
+    const locationMatch = userMatchesTargetLocations(
+      {
+        defaultLocation: userDefaultLocation,
+        availableLocations: userProfile?.availableLocations ?? null,
+      },
+      ann.targetLocations
+    );
 
     // Grade targeting: empty = all grades
     const gradeMatch =
