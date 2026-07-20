@@ -181,7 +181,11 @@ test.describe("Home Page", () => {
       await joinVolunteerButton.click();
       await page.waitForLoadState("load");
 
-      await expect(page).toHaveURL("/register");
+      // /register is client-rendered via next/link (no "load" event on
+      // navigation), and in CI the Next.js dev server JIT-compiles the route
+      // on its first hit in a shard, which can exceed the default 5s
+      // assertion timeout. Give this specific assertion more headroom.
+      await expect(page).toHaveURL("/register", { timeout: 15000 });
     });
 
     test("should navigate to registration page from final get started button", async ({
