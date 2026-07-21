@@ -1,3 +1,9 @@
+## [0.146.3] - 2026-07-21
+
+### Changes
+- fix(flaky): should navigate to registration page from hero join button ([#1133](https://github.com/everybody-eats-nz/volunteer-portal/pull/1133)) by @malinmalliyawadu
+
+
 ## [0.146.2] - 2026-07-16
 
 ### Changes
