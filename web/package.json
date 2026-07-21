@@ -89,7 +89,7 @@
     "react-apexcharts": "^2.1.1",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.7",
-    "react-hook-form": "^7.74.0",
+    "react-hook-form": "^7.82.0",
     "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
