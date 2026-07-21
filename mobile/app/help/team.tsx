@@ -251,19 +251,23 @@ export default function TeamThreadScreen() {
   );
 
   const floatingBottom = insets.bottom + 8;
-  /* iOS: lift the absolute composer above the keyboard (padding-based
-     KeyboardAvoidingView can't move an absolute child; Android resizes the
-     window so it rides up on its own). */
+  /* Lift the absolute composer above the keyboard on both platforms —
+     padding-based KeyboardAvoidingView can't move an absolute child, and on
+     Android the edge-to-edge window (Expo SDK 55+) no longer resizes for the
+     keyboard, so nothing rides up on its own. */
   const keyboard = useAnimatedKeyboard();
   const keyboardLift = useAnimatedStyle(() => ({
     transform: [
-      {
-        translateY:
-          Platform.OS === "ios"
-            ? -Math.max(keyboard.height.value - insets.bottom, 0)
-            : 0,
-      },
+      { translateY: -Math.max(keyboard.height.value - insets.bottom, 0) },
     ],
+  }));
+  /* KeyboardAvoidingView pads only on iOS; on Android an animated spacer
+     shrinks the message list in step with the IME instead. */
+  const listKeyboardSpacer = useAnimatedStyle(() => ({
+    height:
+      Platform.OS === "android"
+        ? Math.max(keyboard.height.value - insets.bottom, 0)
+        : 0,
   }));
 
   const useNativeGlass = isLiquidGlassAvailable();
@@ -319,7 +323,7 @@ export default function TeamThreadScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={0}
       style={[styles.container, { backgroundColor: paperTint.paper }]}
     >
@@ -395,6 +399,9 @@ export default function TeamThreadScreen() {
           }}
         />
       )}
+
+      {/* Android: keeps the list clear of the keyboard (KAV is iOS-only) */}
+      <ReAnimated.View style={listKeyboardSpacer} pointerEvents="none" />
 
       {/* Off-hours hint */}
       {hours && !hours.isOpenNow && (
