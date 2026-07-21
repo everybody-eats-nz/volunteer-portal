@@ -14,6 +14,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Brand, Colors, FontFamily } from "@/constants/theme";
@@ -157,6 +161,20 @@ export default function AdminConversationScreen() {
     [messages, colors]
   );
 
+  /* Android is edge-to-edge (Expo SDK 55+), so the window no longer resizes
+     for the keyboard and the iOS-only KeyboardAvoidingView padding never runs
+     there. Grow the composer's bottom padding with the live IME inset instead;
+     the flex layout shrinks the message list in step. */
+  const keyboard = useAnimatedKeyboard();
+  const composerLift = useAnimatedStyle(() => ({
+    paddingBottom:
+      insets.bottom +
+      8 +
+      (Platform.OS === "android"
+        ? Math.max(keyboard.height.value - insets.bottom, 0)
+        : 0),
+  }));
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -260,18 +278,21 @@ export default function AdminConversationScreen() {
           onContentSizeChange={() =>
             requestAnimationFrame(() => flatListRef.current?.scrollToEnd({ animated: false }))
           }
+          // Also pin on layout changes — the list resizes when the keyboard
+          // opens (composer padding grows), which would otherwise leave the
+          // newest messages hidden behind it.
+          onLayout={() =>
+            requestAnimationFrame(() => flatListRef.current?.scrollToEnd({ animated: false }))
+          }
         />
       )}
 
       {/* Composer */}
-      <View
+      <Animated.View
         style={[
           styles.composer,
-          {
-            backgroundColor: colors.card,
-            borderTopColor: rule,
-            paddingBottom: insets.bottom + 8,
-          },
+          { backgroundColor: colors.card, borderTopColor: rule },
+          composerLift,
         ]}
       >
         <View style={[styles.inputField, { backgroundColor: colors.surfaceSunk }]}>
@@ -315,7 +336,7 @@ export default function AdminConversationScreen() {
             />
           )}
         </Pressable>
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
