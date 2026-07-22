@@ -1,3 +1,9 @@
+## [0.146.7] - 2026-07-22
+
+### Changes
+- fix(mobile): show in-progress shifts in the app's shift list ([#1141](https://github.com/everybody-eats-nz/volunteer-portal/pull/1141)) by @malinmalliyawadu
+
+
 ## [0.146.6] - 2026-07-22
 
 ### Changes
