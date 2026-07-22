@@ -1,3 +1,9 @@
+## [0.146.6] - 2026-07-22
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 16 updates ([#1137](https://github.com/everybody-eats-nz/volunteer-portal/pull/1137)) by @dependabot[bot]
+
+
 ## [0.146.5] - 2026-07-21
 
 ### Changes
