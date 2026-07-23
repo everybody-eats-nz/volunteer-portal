@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
+import { renameLocationInStoredList } from "@/lib/parse-availability";
 
 // Koha target per night — "" / null / undefined clear it; otherwise parse to 2dp.
 function parseTarget(value: unknown): number | null {
@@ -164,13 +165,48 @@ export async function PATCH(request: NextRequest) {
             where: { defaultLocation: oldName },
             data: { defaultLocation: newName },
           }),
-          // RestaurantManager.locations is a string[] — replace in place.
+          // RestaurantManager.locations is a string[] — replace in place,
+          // deduping in case the manager already covered the new name.
           tx.$executeRaw`
             UPDATE "RestaurantManager"
-            SET "locations" = array_replace("locations", ${oldName}, ${newName})
+            SET "locations" = (
+              SELECT COALESCE(array_agg(DISTINCT loc), '{}')
+              FROM unnest(array_replace("locations", ${oldName}, ${newName})) AS loc
+            )
             WHERE ${oldName} = ANY("locations")
           `,
+          // Announcement.targetLocations is a string[] of location names.
+          tx.$executeRaw`
+            UPDATE "Announcement"
+            SET "targetLocations" = (
+              SELECT COALESCE(array_agg(DISTINCT loc), '{}')
+              FROM unnest(array_replace("targetLocations", ${oldName}, ${newName})) AS loc
+            )
+            WHERE ${oldName} = ANY("targetLocations")
+          `,
         ]);
+
+        // User.availableLocations is a free-text field (JSON array or legacy
+        // comma-separated names), so it can't be rewritten with updateMany.
+        // The contains filter over-matches substrings; the helper only
+        // rewrites rows whose parsed entries actually include the old name.
+        const usersWithOldLocation = await tx.user.findMany({
+          where: { availableLocations: { contains: oldName } },
+          select: { id: true, availableLocations: true },
+        });
+        for (const user of usersWithOldLocation) {
+          const rewritten = renameLocationInStoredList(
+            user.availableLocations,
+            oldName,
+            newName
+          );
+          if (rewritten !== null) {
+            await tx.user.update({
+              where: { id: user.id },
+              data: { availableLocations: rewritten },
+            });
+          }
+        }
       }
 
       return updated;
