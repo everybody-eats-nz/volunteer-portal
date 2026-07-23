@@ -117,12 +117,15 @@ test.describe("Admin Location Disable/Enable", () => {
       .getByTestId("active-locations-section")
       .filter({ visible: true });
     await expect(activeSection).toBeVisible();
-    await expect(activeSection).toContainText("Active Locations");
+    await expect(activeSection).toContainText("Active locations");
 
-    // Check location appears in active section
-    await expect(
-      page.getByText(location.name).filter({ visible: true })
-    ).toBeVisible();
+    // Check location appears as a venue row. The venue name can also appear
+    // in the "awaiting shifts" banner, so scope to the row testid.
+    const venueRow = page
+      .getByTestId(`venue-row-${location.id}`)
+      .filter({ visible: true });
+    await expect(venueRow).toBeVisible();
+    await expect(venueRow).toContainText(location.name);
   });
 
   test("should disable a location without upcoming shifts", async ({
@@ -140,7 +143,8 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.goto("/admin/locations");
     await page.waitForLoadState("load");
 
-    // Click disable button
+    // Disable lives in the row's actions menu
+    await page.getByTestId(`location-actions-${location.id}`).click();
     const disableButton = page.getByTestId(
       `disable-location-button-${location.id}`
     );
@@ -150,7 +154,7 @@ test.describe("Admin Location Disable/Enable", () => {
     // Check dialog appears
     const dialog = page.getByTestId("disable-location-dialog");
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("Disable Location");
+    await expect(dialog).toContainText("Disable location");
     await expect(dialog).toContainText(location.name);
 
     // Confirm disable
@@ -168,7 +172,7 @@ test.describe("Admin Location Disable/Enable", () => {
     // Check disabled locations section appears
     const inactiveSection = page.getByTestId("inactive-locations-section");
     await expect(inactiveSection).toBeVisible();
-    await expect(inactiveSection).toContainText("Disabled Locations");
+    await expect(inactiveSection).toContainText("Disabled locations");
   });
 
   test("should re-enable a disabled location", async ({ page }) => {
@@ -205,12 +209,14 @@ test.describe("Admin Location Disable/Enable", () => {
     ).toBeVisible({ timeout: 5000 });
 
     // Verify location appears in active section
-    const activeSection = page.getByTestId("active-locations-section");
+    const activeSection = page
+      .getByTestId("active-locations-section")
+      .filter({ visible: true });
     await expect(activeSection).toBeVisible();
     // Location should now be in active section (page may need reload)
     await page.reload();
     await expect(
-      page.getByTestId(`disable-location-button-${location.id}`)
+      page.getByTestId(`venue-row-${location.id}`).filter({ visible: true })
     ).toBeVisible();
   });
 
@@ -241,7 +247,8 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.goto("/admin/locations");
     await page.waitForLoadState("load");
 
-    // Click disable button
+    // Disable lives in the row's actions menu
+    await page.getByTestId(`location-actions-${location.id}`).click();
     const disableButton = page.getByTestId(
       `disable-location-button-${location.id}`
     );
@@ -353,15 +360,19 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.goto("/admin/locations");
     await page.waitForLoadState("load");
 
-    // Active section should be open by default
-    const activeSection = page.getByTestId("active-locations-section");
+    // Active section should be visible with the venue row
+    const activeSection = page
+      .getByTestId("active-locations-section")
+      .filter({ visible: true });
     await expect(activeSection).toBeVisible();
-    await expect(page.getByText(activeLocation.name)).toBeVisible();
+    await expect(
+      page.getByTestId(`venue-row-${activeLocation.id}`).filter({ visible: true })
+    ).toContainText(activeLocation.name);
 
     // Disabled section should exist
     const inactiveSection = page.getByTestId("inactive-locations-section");
     await expect(inactiveSection).toBeVisible();
-    await expect(inactiveSection).toContainText(/Disabled Locations \(\d+\)/);
+    await expect(inactiveSection).toContainText(/Disabled locations \(\d+\)/);
 
     // Click to expand disabled section
     await inactiveSection.click();
@@ -370,7 +381,9 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.waitForTimeout(500);
 
     // Disabled location should be visible after expanding
-    await expect(page.getByText(disabledLocation.name)).toBeVisible();
+    await expect(
+      page.getByText(disabledLocation.name).filter({ visible: true })
+    ).toBeVisible();
 
     // Should have re-enable button
     const enableButton = page.getByTestId(
@@ -400,10 +413,13 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.waitForLoadState("load");
 
     // Active section should show count of 2 (plus existing locations)
-    const activeSection = page.getByTestId("active-locations-section");
-    await expect(activeSection).toContainText(/Active Locations \(\d+\)/);
+    const activeSection = page
+      .getByTestId("active-locations-section")
+      .filter({ visible: true });
+    await expect(activeSection).toContainText(/Active locations \(\d+\)/);
 
-    // Disable one location
+    // Disable one location via the row's actions menu
+    await page.getByTestId(`location-actions-${location1.id}`).click();
     const disableButton = page.getByTestId(
       `disable-location-button-${location1.id}`
     );
@@ -423,6 +439,6 @@ test.describe("Admin Location Disable/Enable", () => {
     // Disabled section should now appear
     const inactiveSection = page.getByTestId("inactive-locations-section");
     await expect(inactiveSection).toBeVisible();
-    await expect(inactiveSection).toContainText(/Disabled Locations \(\d+\)/);
+    await expect(inactiveSection).toContainText(/Disabled locations \(\d+\)/);
   });
 });

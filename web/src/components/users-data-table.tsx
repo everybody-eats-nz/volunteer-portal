@@ -306,7 +306,10 @@ export const columns: ColumnDef<User>[] = [
       return (
         <div className="flex items-center gap-1 text-sm">
           <Calendar className="h-3 w-3 text-muted-foreground" />
-          <span className="font-medium">
+          {/* Relative time can tick over between SSR and hydration ("less
+              than a minute ago" → "1 minute ago"), which is a hydration
+              mismatch — keep whichever text the server rendered. */}
+          <span className="font-medium" suppressHydrationWarning>
             {formatDistanceToNow(createdAt, { addSuffix: true })}
           </span>
         </div>
