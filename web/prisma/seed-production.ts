@@ -70,47 +70,59 @@ async function main() {
     );
   }
 
-  // Create restaurant locations
-  console.log("Creating restaurant locations...");
+  // Location names are the join key across the whole schema and admins can
+  // rename locations after launch, so these name-keyed upserts must only run
+  // on first boot. Re-running them against a live database would resurrect
+  // any renamed-away name as a brand-new location (plus its starter shift
+  // templates below).
+  const isFirstBoot = (await prisma.location.count()) === 0;
 
-  await prisma.location.upsert({
-    where: { name: "Wellington" },
-    update: {},
-    create: {
-      name: "Wellington",
-      address: "60 Dixon Street, Te Aro, Wellington, New Zealand",
-      defaultMealsServed: 60,
-      isActive: true,
-      // Long-established restaurant - launched well outside the "New" badge window
-      launchedAt: new Date("2020-01-01T00:00:00Z"),
-    },
-  });
+  if (isFirstBoot) {
+    console.log("Creating restaurant locations...");
 
-  await prisma.location.upsert({
-    where: { name: "Glen Innes" },
-    update: {},
-    create: {
-      name: "Glen Innes",
-      address: "133 Line Road, Glen Innes, Auckland, New Zealand",
-      defaultMealsServed: 60,
-      isActive: true,
-      launchedAt: new Date("2020-01-01T00:00:00Z"),
-    },
-  });
+    await prisma.location.upsert({
+      where: { name: "Wellington" },
+      update: {},
+      create: {
+        name: "Wellington",
+        address: "60 Dixon Street, Te Aro, Wellington, New Zealand",
+        defaultMealsServed: 60,
+        isActive: true,
+        // Long-established restaurant - launched well outside the "New" badge window
+        launchedAt: new Date("2020-01-01T00:00:00Z"),
+      },
+    });
 
-  await prisma.location.upsert({
-    where: { name: "Onehunga" },
-    update: {},
-    create: {
-      name: "Onehunga",
-      address: "306 Onehunga Mall, Auckland, New Zealand",
-      defaultMealsServed: 60,
-      isActive: true,
-      launchedAt: new Date("2020-01-01T00:00:00Z"),
-    },
-  });
+    await prisma.location.upsert({
+      where: { name: "Glen Innes" },
+      update: {},
+      create: {
+        name: "Glen Innes",
+        address: "133 Line Road, Glen Innes, Auckland, New Zealand",
+        defaultMealsServed: 60,
+        isActive: true,
+        launchedAt: new Date("2020-01-01T00:00:00Z"),
+      },
+    });
 
-  console.log("✅ Restaurant locations created");
+    await prisma.location.upsert({
+      where: { name: "Onehunga" },
+      update: {},
+      create: {
+        name: "Onehunga",
+        address: "306 Onehunga Mall, Auckland, New Zealand",
+        defaultMealsServed: 60,
+        isActive: true,
+        launchedAt: new Date("2020-01-01T00:00:00Z"),
+      },
+    });
+
+    console.log("✅ Restaurant locations created");
+  } else {
+    console.log(
+      "⏭️  Locations already exist - skipping location and shift template seeding"
+    );
+  }
 
   // Create site settings
   console.log("Creating site settings...");
@@ -188,9 +200,8 @@ async function main() {
 
   console.log("✅ Shift types created");
 
-  // Create shift templates for each location
-  console.log("Creating shift templates...");
-
+  // Create shift templates for each location (first boot only - see the
+  // location seeding guard above; these are keyed by the same location names)
   const templateConfigs = [
     // Wellington templates
     {
@@ -364,29 +375,33 @@ async function main() {
     },
   ];
 
-  for (const config of templateConfigs) {
-    await prisma.shiftTemplate.upsert({
-      where: {
-        name_location: {
+  if (isFirstBoot) {
+    console.log("Creating shift templates...");
+
+    for (const config of templateConfigs) {
+      await prisma.shiftTemplate.upsert({
+        where: {
+          name_location: {
+            name: config.name,
+            location: config.location,
+          },
+        },
+        update: {},
+        create: {
           name: config.name,
           location: config.location,
+          shiftTypeId: config.shiftType.id,
+          startTime: config.startTime,
+          endTime: config.endTime,
+          capacity: config.capacity,
+          notes: config.notes,
+          createdBy: adminUser.id,
         },
-      },
-      update: {},
-      create: {
-        name: config.name,
-        location: config.location,
-        shiftTypeId: config.shiftType.id,
-        startTime: config.startTime,
-        endTime: config.endTime,
-        capacity: config.capacity,
-        notes: config.notes,
-        createdBy: adminUser.id,
-      },
-    });
-  }
+      });
+    }
 
-  console.log("✅ Shift templates created");
+    console.log("✅ Shift templates created");
+  }
 
   // Create newsletter lists
   console.log("Creating newsletter lists...");

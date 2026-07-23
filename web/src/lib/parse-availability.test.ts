@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { safeParseLocations } from "./parse-availability";
+import {
+  renameLocationInStoredList,
+  safeParseLocations,
+} from "./parse-availability";
 
 describe("safeParseLocations", () => {
   it("parses a JSON array of locations", () => {
@@ -32,5 +35,58 @@ describe("safeParseLocations", () => {
       "Wellington",
       "Onehunga",
     ]);
+  });
+});
+
+describe("renameLocationInStoredList", () => {
+  it("renames an entry in a JSON array list", () => {
+    expect(
+      renameLocationInStoredList(
+        '["Wellington","Glen Innes"]',
+        "Wellington",
+        "Te Aro"
+      )
+    ).toBe('["Te Aro","Glen Innes"]');
+  });
+
+  it("normalizes legacy comma-separated lists to JSON while renaming", () => {
+    expect(
+      renameLocationInStoredList(
+        "Wellington, Glen Innes",
+        "Glen Innes",
+        "Tāmaki"
+      )
+    ).toBe('["Wellington","Tāmaki"]');
+  });
+
+  it("returns null when the list doesn't reference the old name", () => {
+    expect(
+      renameLocationInStoredList(
+        '["Glen Innes"]',
+        "Wellington",
+        "Te Aro"
+      )
+    ).toBeNull();
+    expect(renameLocationInStoredList(null, "Wellington", "Te Aro")).toBeNull();
+  });
+
+  it("only matches whole entries, not substrings of other locations", () => {
+    expect(
+      renameLocationInStoredList(
+        '["Wellington City"]',
+        "Wellington",
+        "Te Aro"
+      )
+    ).toBeNull();
+  });
+
+  it("dedupes when the new name was already in the list", () => {
+    expect(
+      renameLocationInStoredList(
+        '["Wellington","Te Aro"]',
+        "Wellington",
+        "Te Aro"
+      )
+    ).toBe('["Te Aro"]');
   });
 });
