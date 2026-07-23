@@ -1,3 +1,9 @@
+## [0.147.3] - 2026-07-23
+
+### Changes
+- fix(admin): render 404s inside the admin dashboard chrome ([#1144](https://github.com/everybody-eats-nz/volunteer-portal/pull/1144)) by @malinmalliyawadu
+
+
 ## [0.147.2] - 2026-07-23
 
 ### Changes
