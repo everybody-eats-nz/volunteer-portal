@@ -18,7 +18,11 @@ import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { ShiftLocationSelector } from "@/components/shift-location-selector";
 import { ShiftCalendarWrapper } from "@/components/shift-calendar-wrapper";
 import { ShiftsByTimeOfDay } from "@/components/shifts-by-time-of-day";
-import { LocationOption, DEFAULT_LOCATION, LOCATIONS } from "@/lib/locations";
+import {
+  LocationOption,
+  DEFAULT_LOCATION,
+  getActiveLocationNames,
+} from "@/lib/locations";
 import { MealsServedInput } from "@/components/meals-served-input";
 import { DeleteShiftsMenu } from "@/components/delete-shifts-menu";
 
@@ -36,6 +40,8 @@ export default async function AdminShiftsPage({
   }
 
   const params = await searchParams;
+
+  const LOCATIONS = await getActiveLocationNames();
 
   // Parse search parameters (handle dates consistently in NZ timezone)
   const today = formatInNZT(new Date(), "yyyy-MM-dd");

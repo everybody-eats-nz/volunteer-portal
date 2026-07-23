@@ -1,4 +1,5 @@
 import { generateGoogleMapsLink, generateCalendarData } from "./calendar-utils";
+import { getLocationAddresses } from "./locations";
 import { getBaseUrl } from "./utils";
 import { getShiftTheme } from "./shift-themes";
 
@@ -903,8 +904,13 @@ class EmailService {
     const firstName =
       params.volunteerName.split(" ")[0] || params.volunteerName;
 
-    // Generate calendar and maps links
-    const locationMapLink = generateGoogleMapsLink(params.location);
+    // Generate calendar and maps links (addresses fetched fresh so newly
+    // created locations resolve without a server restart)
+    const locationAddresses = await getLocationAddresses();
+    const locationMapLink = generateGoogleMapsLink(
+      params.location,
+      locationAddresses
+    );
 
     // Generate calendar data and ICS attachment if we have the start/end dates
     let calendarData = { google: "", outlook: "", icsContent: "" };
@@ -922,7 +928,7 @@ class EmailService {
           description: null,
         },
       };
-      calendarData = generateCalendarData(shiftData);
+      calendarData = generateCalendarData(shiftData, locationAddresses);
 
       // Generate public ICS download link
       icsDownloadLink = `${getBaseUrl()}/api/shifts/${params.shiftId}/calendar`;

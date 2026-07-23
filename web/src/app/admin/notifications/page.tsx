@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { NotificationsContent } from "./notifications-content";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 
 export const metadata: Metadata = {
   title: "Shift Shortage Notifications | Admin",
@@ -24,13 +24,15 @@ export default async function NotificationsPage() {
     },
   });
 
+  const locations = await getActiveLocationNames();
+
   return (
     <AdminPageWrapper
       title="Shift Shortage Notifications"
       description="Send shift shortage notifications to volunteers"
     >
       <div className="container mx-auto py-8 px-4">
-        <NotificationsContent shiftTypes={shiftTypes} locations={LOCATIONS} />
+        <NotificationsContent shiftTypes={shiftTypes} locations={locations} />
       </div>
     </AdminPageWrapper>
   );

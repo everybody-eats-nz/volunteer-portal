@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { RecruitmentAnalyticsClient } from "./recruitment-analytics-client";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 import { getRecruitmentData } from "@/lib/recruitment";
 
 export default async function RecruitmentAnalyticsPage({
@@ -28,7 +28,7 @@ export default async function RecruitmentAnalyticsPage({
 
   const data = await getRecruitmentData(parseInt(months, 10), location);
 
-  const locationOptions = LOCATIONS.map((loc) => ({
+  const locationOptions = (await getActiveLocationNames()).map((loc) => ({
     value: loc,
     label: loc,
   }));

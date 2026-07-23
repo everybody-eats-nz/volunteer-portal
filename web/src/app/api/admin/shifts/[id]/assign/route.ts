@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
-import { LOCATION_ADDRESSES } from "@/lib/locations";
+import { getLocationAddresses } from "@/lib/locations";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
 
@@ -204,9 +204,9 @@ export async function POST(
         shift.end,
         "h:mm a"
       )}`;
+      const locationAddresses = await getLocationAddresses();
       const fullAddress = shift.location
-        ? LOCATION_ADDRESSES[shift.location as keyof typeof LOCATION_ADDRESSES] ||
-          shift.location
+        ? locationAddresses[shift.location] || shift.location
         : "TBD";
 
       Promise.race([
