@@ -1,3 +1,9 @@
+## [0.147.4] - 2026-07-23
+
+### Changes
+- fix(admin): include selected locations in users page location filter ([#1145](https://github.com/everybody-eats-nz/volunteer-portal/pull/1145)) by @malinmalliyawadu
+
+
 ## [0.147.3] - 2026-07-23
 
 ### Changes
