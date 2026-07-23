@@ -727,6 +727,8 @@ test.describe("Admin Users Management", () => {
       const availableOnlyEmail = `${searchPrefix}-avail@example.com`;
       // Glen Innes is this user's default location
       const defaultEmail = `${searchPrefix}-default@example.com`;
+      // Glen Innes stored in the legacy plain-text format instead of JSON
+      const legacyEmail = `${searchPrefix}-legacy@example.com`;
 
       await createTestUser(page, availableOnlyEmail, "ADMIN", {
         defaultLocation: "Wellington",
@@ -734,6 +736,10 @@ test.describe("Admin Users Management", () => {
       });
       await createTestUser(page, defaultEmail, "VOLUNTEER", {
         defaultLocation: "Glen Innes",
+      });
+      await createTestUser(page, legacyEmail, "VOLUNTEER", {
+        defaultLocation: "Wellington",
+        availableLocations: "Glen Innes",
       });
 
       try {
@@ -743,11 +749,12 @@ test.describe("Admin Users Management", () => {
 
         const usersSection = page.getByTestId("users-section");
 
-        // Default scope matches default OR selected locations, so both show
+        // Default scope matches default OR selected locations, so all show
         await expect(
           usersSection.getByText(availableOnlyEmail).first()
         ).toBeVisible();
         await expect(usersSection.getByText(defaultEmail).first()).toBeVisible();
+        await expect(usersSection.getByText(legacyEmail).first()).toBeVisible();
 
         // Narrow to default location only
         const scopeCheckbox = page
@@ -758,6 +765,7 @@ test.describe("Admin Users Management", () => {
 
         await expect(usersSection.getByText(defaultEmail).first()).toBeVisible();
         await expect(usersSection.getByText(availableOnlyEmail)).toHaveCount(0);
+        await expect(usersSection.getByText(legacyEmail)).toHaveCount(0);
 
         // Unchecking widens the match again
         await page
@@ -768,8 +776,30 @@ test.describe("Admin Users Management", () => {
         await expect(
           usersSection.getByText(availableOnlyEmail).first()
         ).toBeVisible();
+
+        // Sorting by shifts switches to the raw SQL query path, which must
+        // apply the same scope rules
+        await page.goto(
+          `/admin/users?search=${searchPrefix}&location=Glen%20Innes&sortBy=signups&sortOrder=desc`
+        );
+        await expect(
+          usersSection.getByText(availableOnlyEmail).first()
+        ).toBeVisible();
+        await expect(usersSection.getByText(defaultEmail).first()).toBeVisible();
+        await expect(usersSection.getByText(legacyEmail).first()).toBeVisible();
+
+        await page.goto(
+          `/admin/users?search=${searchPrefix}&location=Glen%20Innes&sortBy=signups&sortOrder=desc&locationScope=default`
+        );
+        await expect(usersSection.getByText(defaultEmail).first()).toBeVisible();
+        await expect(usersSection.getByText(availableOnlyEmail)).toHaveCount(0);
+        await expect(usersSection.getByText(legacyEmail)).toHaveCount(0);
       } finally {
-        await deleteTestUsers(page, [availableOnlyEmail, defaultEmail]);
+        await deleteTestUsers(page, [
+          availableOnlyEmail,
+          defaultEmail,
+          legacyEmail,
+        ]);
       }
     });
   });
