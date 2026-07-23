@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { RestaurantManagersContent } from "./restaurant-managers-content";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { prisma } from "@/lib/prisma";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 
 export default async function RestaurantManagersPage() {
   const session = await getServerSession(authOptions);
@@ -36,7 +36,7 @@ export default async function RestaurantManagersPage() {
   });
 
   // Get available locations
-  const locations = LOCATIONS.map(location => ({
+  const locations = (await getActiveLocationNames()).map(location => ({
     value: location,
     label: location,
   }));

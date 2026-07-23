@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateICSContent } from "@/lib/calendar-utils";
+import { getLocationAddresses } from "@/lib/locations";
 
 /**
  * Public API endpoint to download ICS calendar file for a shift
@@ -25,18 +26,22 @@ export async function GET(
       return NextResponse.json({ error: "Shift not found" }, { status: 404 });
     }
 
-    // Generate ICS content
-    const icsContent = generateICSContent({
-      id: shift.id,
-      start: shift.start,
-      end: shift.end,
-      location: shift.location,
-      notes: shift.notes,
-      shiftType: {
-        name: shift.shiftType.name,
-        description: shift.shiftType.description,
+    // Generate ICS content (addresses fetched fresh so newly created
+    // locations resolve without a server restart)
+    const icsContent = generateICSContent(
+      {
+        id: shift.id,
+        start: shift.start,
+        end: shift.end,
+        location: shift.location,
+        notes: shift.notes,
+        shiftType: {
+          name: shift.shiftType.name,
+          description: shift.shiftType.description,
+        },
       },
-    });
+      await getLocationAddresses()
+    );
 
     // Return ICS file with proper headers
     return new NextResponse(icsContent, {
