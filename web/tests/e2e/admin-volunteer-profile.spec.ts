@@ -640,9 +640,14 @@ test.describe("Admin Volunteer Profile View", () => {
       const pageContent = page.getByTestId("admin-volunteer-profile-page");
       await expect(pageContent).toBeVisible({ timeout: 10000 });
 
-      // Check that no error messages are displayed
-      const errorMessage = page.getByText(/error|failed|something went wrong/i);
-      await expect(errorMessage).not.toBeVisible();
+      // Check that no error messages are displayed. Scope to the page
+      // content: a page-wide getByText also matches the Next.js dev-overlay
+      // ("Console Error") whenever any unrelated console error fires, and
+      // multiple matches trip strict mode.
+      const errorMessages = pageContent
+        .getByText(/error|failed|something went wrong/i)
+        .filter({ visible: true });
+      await expect(errorMessages).toHaveCount(0);
     });
 
     test("should display appropriate fallback text for missing data", async ({
