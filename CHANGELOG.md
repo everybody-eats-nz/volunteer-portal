@@ -1,3 +1,9 @@
+## [0.147.7] - 2026-07-23
+
+### Changes
+- test(admin): 404 e2e coverage + motion and back-button fallback ([#1146](https://github.com/everybody-eats-nz/volunteer-portal/pull/1146)) by @malinmalliyawadu
+
+
 ## [0.147.6] - 2026-07-23
 
 ### Changes
