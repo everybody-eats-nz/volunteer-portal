@@ -1,3 +1,9 @@
+## [0.147.6] - 2026-07-23
+
+### Changes
+- fix(shifts): show full shift notes on browse cards ([#1147](https://github.com/everybody-eats-nz/volunteer-portal/pull/1147)) by @malinmalliyawadu
+
+
 ## [0.147.5] - 2026-07-23
 
 ### Changes
