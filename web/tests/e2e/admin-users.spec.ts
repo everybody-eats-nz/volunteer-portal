@@ -716,4 +716,61 @@ test.describe("Admin Users Management", () => {
       // 3. Test that the API returns an appropriate error message
     });
   });
+
+  test.describe("Location Filtering", () => {
+    test("location filter matches selected locations and can narrow to default only", async ({
+      page,
+    }) => {
+      const uniqueId = randomUUID().slice(0, 8);
+      const searchPrefix = `locscope-${uniqueId}`;
+      // Glen Innes is only in this user's selected (available) locations
+      const availableOnlyEmail = `${searchPrefix}-avail@example.com`;
+      // Glen Innes is this user's default location
+      const defaultEmail = `${searchPrefix}-default@example.com`;
+
+      await createTestUser(page, availableOnlyEmail, "ADMIN", {
+        defaultLocation: "Wellington",
+        availableLocations: '["Wellington","Glen Innes"]',
+      });
+      await createTestUser(page, defaultEmail, "VOLUNTEER", {
+        defaultLocation: "Glen Innes",
+      });
+
+      try {
+        await page.goto(
+          `/admin/users?search=${searchPrefix}&location=Glen%20Innes`
+        );
+
+        const usersSection = page.getByTestId("users-section");
+
+        // Default scope matches default OR selected locations, so both show
+        await expect(
+          usersSection.getByText(availableOnlyEmail).first()
+        ).toBeVisible();
+        await expect(usersSection.getByText(defaultEmail).first()).toBeVisible();
+
+        // Narrow to default location only
+        const scopeCheckbox = page
+          .locator('[data-testid="location-scope-checkbox"]:visible')
+          .first();
+        await scopeCheckbox.click();
+        await expect(page).toHaveURL(/locationScope=default/);
+
+        await expect(usersSection.getByText(defaultEmail).first()).toBeVisible();
+        await expect(usersSection.getByText(availableOnlyEmail)).toHaveCount(0);
+
+        // Unchecking widens the match again
+        await page
+          .locator('[data-testid="location-scope-checkbox"]:visible')
+          .first()
+          .click();
+        await expect(page).not.toHaveURL(/locationScope/);
+        await expect(
+          usersSection.getByText(availableOnlyEmail).first()
+        ).toBeVisible();
+      } finally {
+        await deleteTestUsers(page, [availableOnlyEmail, defaultEmail]);
+      }
+    });
+  });
 });
