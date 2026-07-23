@@ -1,3 +1,9 @@
+## [0.148.2] - 2026-07-23
+
+### Changes
+- fix(resources): gate hub visibility on isPublished, not includeInChat ([#1153](https://github.com/everybody-eats-nz/volunteer-portal/pull/1153)) by @malinmalliyawadu
+
+
 ## [0.148.1] - 2026-07-23
 
 ### Changes
