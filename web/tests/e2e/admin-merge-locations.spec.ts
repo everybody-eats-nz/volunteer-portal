@@ -99,6 +99,70 @@ test.describe("Admin merge locations", () => {
     }
   });
 
+  test("merges an orphaned shift venue with no Location row", async ({
+    page,
+  }) => {
+    const into = await createTestLocation(page, "MergeKeepOrphan");
+    // Shifts can reference a venue name with no Location record (e.g. debris
+    // from a pre-cascade rename) - the merge page offers those as sources.
+    const orphanName = `OrphanVenue-${Date.now()}`;
+    const shiftIds: string[] = [];
+
+    try {
+      const start = new Date();
+      start.setDate(start.getDate() + 14);
+      start.setHours(17, 0, 0, 0);
+      const shift = await createShift(page, {
+        location: orphanName,
+        start,
+        capacity: 4,
+      });
+      shiftIds.push(shift.id);
+
+      await page.goto("/admin/locations/merge");
+
+      await page.getByTestId("merge-from-select").click();
+      await page
+        .getByRole("option", {
+          name: `${orphanName} (shifts only, no location record)`,
+        })
+        .click();
+      await page.getByTestId("merge-into-select").click();
+      await page.getByRole("option", { name: into.name }).click();
+
+      await page.getByTestId("merge-preview-button").click();
+
+      const plan = page.getByTestId("merge-plan");
+      await expect(plan).toBeVisible();
+      await expect(plan).toContainText("has no location record");
+      await expect(plan).toContainText("1 will move");
+
+      await page.getByTestId("merge-apply-button").click();
+      await page.getByTestId("merge-confirm-button").click();
+
+      await expect(page.getByTestId("merge-success")).toBeVisible();
+
+      // The shift no longer references the orphan name
+      const recheck = await page.request.post("/api/admin/locations/merge", {
+        data: { from: orphanName, into: into.name },
+      });
+      expect(recheck.ok()).toBe(true);
+      const { plan: emptyPlan } = await recheck.json();
+      expect(emptyPlan.shifts.total).toBe(0);
+      expect(emptyPlan.fromLocationExists).toBe(false);
+    } finally {
+      await deleteTestShifts(page, shiftIds);
+      const locations = await (
+        await page.request.get("/api/admin/locations")
+      ).json();
+      for (const loc of locations as { id: string; name: string }[]) {
+        if (loc.name === into.name) {
+          await page.request.delete(`/api/admin/locations/${loc.id}`);
+        }
+      }
+    }
+  });
+
   test("preview requires two different locations", async ({ page }) => {
     await page.goto("/admin/locations/merge");
     await expect(page.getByTestId("merge-preview-button")).toBeDisabled();

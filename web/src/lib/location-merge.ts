@@ -394,10 +394,18 @@ export async function applyLocationMerge(
     // MealsServed collisions: back-fill blank fields on the surviving row,
     // then drop the duplicate so the repoint below can't violate the
     // (date, location) unique constraint.
+    const intoMealsByDate = new Map(
+      (
+        await tx.mealsServed.findMany({
+          where: {
+            location: into,
+            date: { in: work.mealCollisions.map((m) => m.date) },
+          },
+        })
+      ).map((m) => [m.date.toISOString(), m])
+    );
     for (const fromMeal of work.mealCollisions) {
-      const intoMeal = await tx.mealsServed.findUnique({
-        where: { date_location: { date: fromMeal.date, location: into } },
-      });
+      const intoMeal = intoMealsByDate.get(fromMeal.date.toISOString());
       if (intoMeal) {
         const backfill: Record<string, unknown> = {};
         for (const field of MEAL_BACKFILL_FIELDS) {
