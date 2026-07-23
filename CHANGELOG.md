@@ -1,3 +1,9 @@
+## [0.147.8] - 2026-07-23
+
+### Changes
+- fix(shifts): stop truncating shift title on browse cards ([#1148](https://github.com/everybody-eats-nz/volunteer-portal/pull/1148)) by @malinmalliyawadu
+
+
 ## [0.147.7] - 2026-07-23
 
 ### Changes
