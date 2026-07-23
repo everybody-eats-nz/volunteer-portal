@@ -30,6 +30,8 @@ import {
 
 import { formatKoha, type Venue } from "./types";
 
+// Beyond this the cluster collapses to "+N" so the identity block never
+// wraps at mobile widths.
 const MAX_MANAGER_AVATARS = 4;
 
 interface VenueRowProps {

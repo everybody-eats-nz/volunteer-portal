@@ -42,9 +42,7 @@ function initialValues(venue: Venue | null): VenueFormValues {
     address: venue?.address ?? "",
     defaultMealsServed: venue?.defaultMealsServed ?? 60,
     targetPerNight:
-      venue?.targetPerNight === null || venue === undefined || venue === null
-        ? ""
-        : String(venue.targetPerNight),
+      venue?.targetPerNight != null ? String(venue.targetPerNight) : "",
     isPopup: venue?.isPopup ?? false,
   };
 }

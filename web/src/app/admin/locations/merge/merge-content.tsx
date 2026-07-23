@@ -109,6 +109,7 @@ export function MergeContent({
     });
     const data = await response.json();
     if (!response.ok) {
+      console.error("Merge API error:", data);
       throw new Error(data.error || "Failed to merge locations");
     }
     return data.plan as LocationMergePlan;
@@ -624,7 +625,8 @@ function MergeManifest({
   const removed = applied ? "removed" : "will be removed";
   const count = (n: number, noun: string) =>
     `${n} ${noun}${n === 1 ? "" : "s"}`;
-  // Long-lived venues can collide on hundreds of dates — keep the row readable.
+  // Long-lived venues can collide on hundreds of dates — keep the row
+  // readable; 6 dates is roughly one manifest line at desktop width.
   const listDates = (dates: string[], max = 6) =>
     dates.length <= max
       ? dates.join(", ")
