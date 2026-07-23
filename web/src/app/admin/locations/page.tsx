@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -5,6 +6,7 @@ import { redirect } from "next/navigation";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { LocationSettingsForm } from "@/components/location-settings-form";
+import { Button } from "@/components/ui/button";
 
 export default async function LocationsPage() {
   const session = await getServerSession(authOptions);
@@ -46,6 +48,13 @@ export default async function LocationsPage() {
     <AdminPageWrapper
       title="Restaurant Locations"
       description="Manage restaurant location settings including default meals served"
+      actions={
+        <Button asChild variant="outline" size="sm">
+          <Link href="/admin/locations/merge" data-testid="merge-locations-link">
+            Merge duplicates
+          </Link>
+        </Button>
+      }
     >
       <PageContainer>
         <div className="space-y-6">
