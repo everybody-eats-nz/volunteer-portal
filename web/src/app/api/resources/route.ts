@@ -13,6 +13,9 @@ export async function GET(request: Request) {
   try {
     const whereClause: Prisma.ResourceWhereInput = {
       isPublished: true,
+      // Exclude chat-only guides (managed on the admin Chat Guides page as AI
+      // context); they should not surface in the public resources list.
+      includeInChat: false,
     };
 
     // Search by title and description
