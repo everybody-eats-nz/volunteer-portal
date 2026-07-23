@@ -1,3 +1,9 @@
+## [0.148.1] - 2026-07-23
+
+### Changes
+- fix(resources): hide chat-only guides from the public Resource Hub ([#1150](https://github.com/everybody-eats-nz/volunteer-portal/pull/1150)) by @malinmalliyawadu
+
+
 ## [0.148.0] - 2026-07-23
 
 ### Changes
