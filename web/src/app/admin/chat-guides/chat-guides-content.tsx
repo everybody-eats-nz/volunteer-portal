@@ -450,7 +450,10 @@ export function ChatGuidesContent({
           type: "LINK",
           category: importCategory,
           url: importUrl.trim(),
-          isPublished: true,
+          // Chat-only guide: kept out of the public Resource Hub. Hub
+          // visibility is a separate action (publish it from the admin
+          // Resources page).
+          isPublished: false,
           includeInChat: true,
           chatContent: importContent.trim(),
           lastScrapedContent: importRawScrape.trim() || undefined,
@@ -556,7 +559,8 @@ export function ChatGuidesContent({
           title: newTitle.trim(),
           type: "DOCUMENT",
           category: newCategory,
-          isPublished: true,
+          // Chat-only guide: kept out of the public Resource Hub.
+          isPublished: false,
           includeInChat: true,
           chatContent: newContent.trim(),
         }),
