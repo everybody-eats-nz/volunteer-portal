@@ -12,6 +12,24 @@ export const LOCATIONS = dbLocations.map((loc) => loc.name);
 
 export type Location = (typeof LOCATIONS)[number];
 
+/**
+ * Fetch active location names fresh from the database.
+ *
+ * Unlike the module-level `LOCATIONS` constant - which is evaluated once when
+ * this module is first imported and then cached for the lifetime of the server
+ * process - this reads current data on every call. Use it anywhere newly
+ * created locations must appear immediately (e.g. the shift-creation forms)
+ * rather than only after a server restart.
+ */
+export async function getActiveLocationNames(): Promise<string[]> {
+  const rows = await prisma.location.findMany({
+    where: { isActive: true },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+  return rows.map((loc) => loc.name);
+}
+
 export type LocationOption = Location;
 
 // Restaurant addresses for Google Maps
