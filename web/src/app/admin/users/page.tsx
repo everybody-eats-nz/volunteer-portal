@@ -40,6 +40,13 @@ export default async function AdminUsersPage({
   const locationFilter = Array.isArray(params.location)
     ? params.location[0]
     : params.location;
+  const locationScopeRaw = Array.isArray(params.locationScope)
+    ? params.locationScope[0]
+    : params.locationScope;
+  // "all" matches a user's default location OR any of their selected
+  // (available) locations; "default" restricts to the default location only.
+  const locationScope: "all" | "default" =
+    locationScopeRaw === "default" ? "default" : "all";
   const archivedFilterRaw = Array.isArray(params.archived)
     ? params.archived[0]
     : params.archived;
@@ -82,7 +89,22 @@ export default async function AdminUsersPage({
   }
 
   if (locationFilter) {
-    whereClause.defaultLocation = locationFilter;
+    if (locationScope === "default") {
+      whereClause.defaultLocation = locationFilter;
+    } else {
+      // availableLocations is a JSON-stringified array ('["Wellington"]'),
+      // with some legacy rows holding plain text ("Wellington"), so match the
+      // quoted JSON entry or the exact legacy value (see announcement-targeting).
+      whereClause.AND = [
+        {
+          OR: [
+            { defaultLocation: locationFilter },
+            { availableLocations: { contains: `"${locationFilter}"` } },
+            { availableLocations: locationFilter },
+          ],
+        },
+      ];
+    }
   }
 
   if (archivedFilter === "active") {
@@ -161,7 +183,16 @@ export default async function AdminUsersPage({
     }
 
     if (locationFilter) {
-      conditions.push(Prisma.sql`u."defaultLocation" = ${locationFilter}`);
+      if (locationScope === "default") {
+        conditions.push(Prisma.sql`u."defaultLocation" = ${locationFilter}`);
+      } else {
+        // Same default-or-available matching as the Prisma path above
+        conditions.push(Prisma.sql`(
+          u."defaultLocation" = ${locationFilter}
+          OR POSITION(${`"${locationFilter}"`} IN u."availableLocations") > 0
+          OR btrim(u."availableLocations") = ${locationFilter}
+        )`);
+      }
     }
 
     if (archivedFilter === "active") {
@@ -450,6 +481,7 @@ export default async function AdminUsersPage({
           initialSearch={searchQuery}
           roleFilter={roleFilter}
           locationFilter={locationFilter}
+          locationScope={locationScope}
           archivedFilter={archivedFilter}
           archivedCount={totalArchived}
           locations={locations.map((l) => l.name)}

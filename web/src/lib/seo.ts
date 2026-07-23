@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { getBaseUrl } from "@/lib/utils";
-import { LOCATION_ADDRESSES } from "./locations";
 
 // SEO Configuration
 export const SEO_CONFIG = {
@@ -177,6 +176,9 @@ interface ShiftEventData {
   startDate: Date;
   endDate: Date;
   location: string | null;
+  // Street address for `location`, resolved fresh by the caller (via
+  // `getLocationAddresses()`) so newly created locations resolve immediately.
+  locationAddress?: string;
   capacity: number;
   spotsAvailable: number;
 }
@@ -185,9 +187,7 @@ interface ShiftEventData {
 export function buildShiftEventSchema(shift: ShiftEventData) {
   const baseUrl = getBaseUrl();
 
-  const locationAddress = shift.location
-    ? LOCATION_ADDRESSES[shift.location]
-    : undefined;
+  const locationAddress = shift.location ? shift.locationAddress : undefined;
 
   return {
     "@context": "https://schema.org",

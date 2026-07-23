@@ -462,6 +462,9 @@ export default async function ShiftsCalendarPage({
       startDate: shift.start,
       endDate: shift.end,
       location: shift.location,
+      locationAddress: shift.location
+        ? addressByName.get(shift.location) ?? undefined
+        : undefined,
       capacity: shift.capacity,
       spotsAvailable:
         shift.capacity -

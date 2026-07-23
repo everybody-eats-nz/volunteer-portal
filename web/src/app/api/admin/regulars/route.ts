@@ -3,15 +3,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { LocationSchema } from "@/lib/validation-schemas";
+import { createLocationEnum } from "@/lib/validation-schemas";
 import { formatInNZT } from "@/lib/timezone";
 import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 
-// Validation schema for creating a regular volunteer
-const createRegularVolunteerSchema = z.object({
+// Validation schema for creating a regular volunteer. Built per-request via a
+// factory so the location enum reflects the currently active locations.
+const buildCreateRegularVolunteerSchema = (location: z.ZodType<string>) =>
+  z.object({
   userId: z.string(),
   shiftTypeId: z.string(),
-  location: LocationSchema,
+  location,
   frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]),
   availableDays: z.array(
     z.enum([
@@ -129,6 +131,9 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     console.log("Creating regular volunteer with data:", body);
+    const createRegularVolunteerSchema = buildCreateRegularVolunteerSchema(
+      await createLocationEnum()
+    );
     const validated = createRegularVolunteerSchema.parse(body);
 
     // Check if user already has a regular volunteer record for this shift type
