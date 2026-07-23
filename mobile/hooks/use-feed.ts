@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 
 import { api } from "@/lib/api";
 import type { FeedItem } from "@/lib/dummy-data";
+import { rankFeedItems } from "@/lib/feed-ranking";
 import { queryKeys } from "@/lib/query-keys";
 
 type FeedResponse = {
@@ -72,12 +73,10 @@ export function useFeed(): UseFeedReturn {
     [queryClient, queryKey]
   );
 
+  // Ordering: hype-adjusted recency — upcoming events and menus climb the
+  // feed as their date approaches. See lib/feed-ranking.ts for the rationale.
   const items = useMemo(
-    () =>
-      [...(query.data?.items ?? [])].sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ),
+    () => rankFeedItems(query.data?.items ?? []),
     [query.data?.items]
   );
 

@@ -109,13 +109,20 @@ test.describe("Admin Location Disable/Enable", () => {
     await page.goto("/admin/locations");
     await page.waitForLoadState("load");
 
-    // Check active locations section is visible
-    const activeSection = page.getByTestId("active-locations-section");
+    // Check active locations section is visible. The testid is unique in
+    // source, but a hidden duplicate of the server-rendered tree can linger
+    // in the DOM alongside the hydrated one — scope to visible elements to
+    // avoid strict-mode violations.
+    const activeSection = page
+      .getByTestId("active-locations-section")
+      .filter({ visible: true });
     await expect(activeSection).toBeVisible();
     await expect(activeSection).toContainText("Active Locations");
 
     // Check location appears in active section
-    await expect(page.getByText(location.name)).toBeVisible();
+    await expect(
+      page.getByText(location.name).filter({ visible: true })
+    ).toBeVisible();
   });
 
   test("should disable a location without upcoming shifts", async ({

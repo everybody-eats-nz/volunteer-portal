@@ -593,22 +593,25 @@ export default function ChatScreen() {
   );
 
   /* ── Floating bar vertical position ──
-     KeyboardAvoidingView (behavior="padding") lifts the message list, but it
+     KeyboardAvoidingView (iOS-only padding) lifts the message list, but it
      CANNOT move the absolutely-positioned composer (padding doesn't shift an
-     absolute bottom-anchored child). On Android the window resizes so the
-     composer rides up on its own; on iOS we lift it manually with the keyboard
-     height via reanimated. */
+     absolute bottom-anchored child) — so the composer is lifted manually with
+     the keyboard height via reanimated. That now applies on Android too: the
+     edge-to-edge window (Expo SDK 55+) no longer resizes for the keyboard. */
   const floatingBottom = insets.bottom + 8;
   const keyboard = useAnimatedKeyboard();
   const keyboardLift = useAnimatedStyle(() => ({
     transform: [
-      {
-        translateY:
-          Platform.OS === "ios"
-            ? -Math.max(keyboard.height.value - insets.bottom, 0)
-            : 0,
-      },
+      { translateY: -Math.max(keyboard.height.value - insets.bottom, 0) },
     ],
+  }));
+  /* KeyboardAvoidingView pads only on iOS; on Android an animated spacer
+     shrinks the content area in step with the IME instead. */
+  const listKeyboardSpacer = useAnimatedStyle(() => ({
+    height:
+      Platform.OS === "android"
+        ? Math.max(keyboard.height.value - insets.bottom, 0)
+        : 0,
   }));
 
   /* ── Scroll tracking: show button when not at bottom and list is scrollable ── */
@@ -744,7 +747,7 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={0}
       style={[styles.container, { backgroundColor: paperTint.paper }]}
     >
@@ -861,6 +864,9 @@ export default function ChatScreen() {
           ListFooterComponentStyle={styles.listFooter}
         />
       )}
+
+      {/* Android: keeps the content clear of the keyboard (KAV is iOS-only) */}
+      <ReAnimated.View style={listKeyboardSpacer} pointerEvents="none" />
 
       {/* ── Floating scroll-to-bottom button ── */}
       {!showWelcome && showScrollToBottom && (

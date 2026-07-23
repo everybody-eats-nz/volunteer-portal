@@ -1,11 +1,18 @@
 import { formatInNZT } from "./timezone";
-import { LOCATION_ADDRESSES } from "./locations";
 import { getBaseUrl } from "./utils";
 import { getShiftDescription } from "./shift-description";
 
 /**
  * Calendar utilities for generating calendar links for shifts
  */
+
+/**
+ * Map of location name -> street address. Passed in by callers (from
+ * `getLocationAddresses()`) rather than read from a module-level snapshot, so
+ * newly created locations resolve immediately. Unknown locations fall back to
+ * their raw name.
+ */
+export type LocationAddressMap = Record<string, string>;
 
 interface ShiftCalendarData {
   id: string;
@@ -36,13 +43,13 @@ function escapeICSText(text: string): string {
  */
 function getFullAddress(
   location: string | null,
+  addresses: LocationAddressMap,
   escapeForICS: boolean = false
 ): string {
   if (!location || location === "TBD") {
     return "TBD";
   }
-  const address =
-    LOCATION_ADDRESSES[location as keyof typeof LOCATION_ADDRESSES] || location;
+  const address = addresses[location] || location;
   const fullAddress = `Everybody Eats, ${address}`;
   return escapeForICS ? escapeICSText(fullAddress) : fullAddress;
 }
@@ -54,10 +61,11 @@ function getFullAddress(
  */
 function buildCalendarDescription(
   shift: ShiftCalendarData,
+  addresses: LocationAddressMap,
   format: "ics" | "url" = "url"
 ): string {
   const shiftDetailsLink = `${getBaseUrl()}/shifts/${shift.id}`;
-  const fullAddress = getFullAddress(shift.location, false); // Don't escape yet
+  const fullAddress = getFullAddress(shift.location, addresses, false); // Don't escape yet
   const shiftDescription =
     getShiftDescription(shift.notes, shift.shiftType.description) || "";
 
@@ -88,7 +96,10 @@ export interface CalendarData {
  * Generate calendar URLs for Google Calendar, Outlook, and ICS file download
  * Times are formatted in NZ timezone (Pacific/Auckland)
  */
-export function generateCalendarUrls(shift: ShiftCalendarData): CalendarUrls {
+export function generateCalendarUrls(
+  shift: ShiftCalendarData,
+  addresses: LocationAddressMap = {}
+): CalendarUrls {
   // Format dates in NZ timezone for calendar exports
   const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
   const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
@@ -98,11 +109,13 @@ export function generateCalendarUrls(shift: ShiftCalendarData): CalendarUrls {
   const outlookEndDate = formatInNZT(shift.end, "yyyy-MM-dd'T'HH:mm:ss");
 
   const title = encodeURIComponent(`Everybody Eats - ${shift.shiftType.name}`);
-  const description = encodeURIComponent(buildCalendarDescription(shift));
-  const location = encodeURIComponent(getFullAddress(shift.location));
+  const description = encodeURIComponent(
+    buildCalendarDescription(shift, addresses)
+  );
+  const location = encodeURIComponent(getFullAddress(shift.location, addresses));
 
   // Generate ICS content using the shared function
-  const icsContent = generateICSContent(shift);
+  const icsContent = generateICSContent(shift, addresses);
   const icsDataUrl = `data:text/calendar;charset=utf8,${encodeURIComponent(
     icsContent
   )}`;
@@ -118,12 +131,15 @@ export function generateCalendarUrls(shift: ShiftCalendarData): CalendarUrls {
  * Generate raw ICS file content (not a data URL) for email attachments
  * Times are formatted in NZ timezone (Pacific/Auckland)
  */
-export function generateICSContent(shift: ShiftCalendarData): string {
+export function generateICSContent(
+  shift: ShiftCalendarData,
+  addresses: LocationAddressMap = {}
+): string {
   const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
   const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
   const title = `Everybody Eats - ${shift.shiftType.name}`;
-  const description = buildCalendarDescription(shift, "ics");
-  const location = getFullAddress(shift.location, true); // Escape for ICS format
+  const description = buildCalendarDescription(shift, addresses, "ics");
+  const location = getFullAddress(shift.location, addresses, true); // Escape for ICS format
 
   return `BEGIN:VCALENDAR
 VERSION:2.0
@@ -161,7 +177,10 @@ END:VCALENDAR`;
  * Generate calendar data with ICS content for email attachments
  * Times are formatted in NZ timezone (Pacific/Auckland)
  */
-export function generateCalendarData(shift: ShiftCalendarData): CalendarData {
+export function generateCalendarData(
+  shift: ShiftCalendarData,
+  addresses: LocationAddressMap = {}
+): CalendarData {
   const startDate = formatInNZT(shift.start, "yyyyMMdd'T'HHmmss");
   const endDate = formatInNZT(shift.end, "yyyyMMdd'T'HHmmss");
 
@@ -170,33 +189,40 @@ export function generateCalendarData(shift: ShiftCalendarData): CalendarData {
   const outlookEndDate = formatInNZT(shift.end, "yyyy-MM-dd'T'HH:mm:ss");
 
   const title = encodeURIComponent(`Everybody Eats - ${shift.shiftType.name}`);
-  const description = encodeURIComponent(buildCalendarDescription(shift));
-  const location = encodeURIComponent(getFullAddress(shift.location));
+  const description = encodeURIComponent(
+    buildCalendarDescription(shift, addresses)
+  );
+  const location = encodeURIComponent(getFullAddress(shift.location, addresses));
 
   return {
     google: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&details=${description}&location=${location}&ctz=Pacific/Auckland`,
     outlook: `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${outlookStartDate}&enddt=${outlookEndDate}&body=${description}&location=${location}`,
-    icsContent: generateICSContent(shift),
+    icsContent: generateICSContent(shift, addresses),
   };
 }
 
 /**
  * Generate a Google Calendar link for email templates
  */
-export function generateGoogleCalendarLink(shift: ShiftCalendarData): string {
-  return generateCalendarUrls(shift).google;
+export function generateGoogleCalendarLink(
+  shift: ShiftCalendarData,
+  addresses: LocationAddressMap = {}
+): string {
+  return generateCalendarUrls(shift, addresses).google;
 }
 
 /**
  * Generate a Google Maps link for a location
  */
-export function generateGoogleMapsLink(location: string | null): string {
+export function generateGoogleMapsLink(
+  location: string | null,
+  addresses: LocationAddressMap = {}
+): string {
   if (!location || location === "TBD") {
     return "";
   }
 
-  const address =
-    LOCATION_ADDRESSES[location as keyof typeof LOCATION_ADDRESSES] || location;
+  const address = addresses[location] || location;
   return `https://maps.google.com/maps?q=${encodeURIComponent(
     `Everybody Eats ${address}`
   )}`;

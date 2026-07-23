@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { CoverageAnalyticsClient } from "./coverage-analytics-client";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 import { getShiftCoverage } from "@/lib/shift-coverage";
 import { parseDaysParam } from "@/lib/parse-days-param";
 
@@ -32,7 +32,7 @@ export default async function CoverageAnalyticsPage({
 
   const data = await getShiftCoverage(parseInt(months, 10), location, daysFilter);
 
-  const locationOptions = LOCATIONS.map((loc) => ({
+  const locationOptions = (await getActiveLocationNames()).map((loc) => ({
     value: loc,
     label: loc,
   }));

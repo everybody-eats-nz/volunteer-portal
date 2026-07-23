@@ -9,6 +9,11 @@ import {
   startOfDay,
 } from "date-fns";
 import { formatNZT, formatNZDateOnly } from "@/lib/dates";
+import {
+  nzDaysUntil,
+  nzDaysUntilDateOnly,
+  upcomingLabel,
+} from "@/lib/feed-ranking";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
@@ -2554,6 +2559,10 @@ function FeedCard({
 
     if (item.type === "daily_menu") {
       const dateText = formatNZDateOnly(item.serviceDate, "EEEE d MMM");
+      // Menus resurface at the top of the feed on service day (see
+      // lib/feed-ranking.ts) — the pill explains why this one is up here.
+      const isTonight =
+        nzDaysUntilDateOnly(item.serviceDate, new Date()) === 0;
       const previewNames = [
         ...(item.mains ?? []),
         ...(item.starter ?? []),
@@ -2570,6 +2579,16 @@ function FeedCard({
             <Text style={styles.feedIconEmoji}>🍲</Text>
           </View>
           <View style={styles.feedBody}>
+            {isTonight && (
+              <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
+                <Text
+                  accessibilityLabel="Tonight's menu"
+                  style={[styles.feedTodayPillText, { color: "#6d28d9" }]}
+                >
+                  Tonight
+                </Text>
+              </View>
+            )}
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               Menu for {dateText} · {item.location}
             </Text>
@@ -2598,18 +2617,44 @@ function FeedCard({
     }
 
     if (item.type === "community_event") {
-      const eventDateText = formatNZT(new Date(item.eventDate), "EEEE d MMM");
+      const isToday = item.pinned === true;
+      // Countdown pill for the lead-in week — the visible reason this card
+      // sits above older posts, and a little hype while it's at it.
+      const countdown = isToday
+        ? null
+        : upcomingLabel(nzDaysUntil(item.eventDate, new Date()));
+      const eventDateText = isToday
+        ? "Today"
+        : formatNZT(new Date(item.eventDate), "EEEE d MMM");
       const metaParts = [
         item.location ? `📍 ${item.location}` : null,
         eventDateText,
         item.displayTime,
       ].filter(Boolean);
-      const iconAndBody = (
+      const showThumb = !!item.imageUrl && !heroImageFailed;
+      return (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#ede9fe" }]}>
             <Text style={styles.feedIconEmoji}>🎟️</Text>
           </View>
           <View style={styles.feedBody}>
+            {isToday && (
+              <View style={[styles.feedTodayPill, { backgroundColor: "#ede9fe" }]}>
+                <Text style={[styles.feedTodayPillText, { color: "#6d28d9" }]}>
+                  Happening today
+                </Text>
+              </View>
+            )}
+            {countdown && (
+              <View style={[styles.feedTodayPill, { backgroundColor: "#fef3c7" }]}>
+                <Text
+                  accessibilityLabel={`Happening ${countdown.toLowerCase()}`}
+                  style={[styles.feedTodayPillText, { color: "#b45309" }]}
+                >
+                  {countdown}
+                </Text>
+              </View>
+            )}
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               {item.title}
             </Text>
@@ -2639,38 +2684,31 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
-        </>
-      );
-
-      const showImage = !!item.imageUrl && !heroImageFailed;
-      return (
-        <>
-          {showImage && (
+          {showThumb && (
             <Pressable
-              onPress={() => onOpenImages([item.imageUrl!], 0)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
-              accessibilityLabel="View event image"
+              onPress={(e) => {
+                e.stopPropagation();
+                onOpenImages([item.imageUrl!], 0);
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              accessibilityLabel="View event poster"
               accessibilityRole="imagebutton"
             >
               <Image
                 source={{ uri: item.imageUrl }}
-                style={styles.announcementImage}
+                style={[styles.feedThumb, { backgroundColor: colors.border }]}
                 resizeMode="cover"
                 onError={() => setHeroImageFailed(true)}
               />
             </Pressable>
-          )}
-          {showImage ? (
-            <View style={styles.feedCard}>{iconAndBody}</View>
-          ) : (
-            iconAndBody
           )}
         </>
       );
     }
 
     if (item.type === "journal_post") {
-      const iconAndBody = (
+      const showThumb = !!item.imageUrl && !heroImageFailed;
+      return (
         <>
           <View style={[styles.feedIcon, { backgroundColor: "#e0f2fe" }]}>
             <Text style={styles.feedIconEmoji}>📖</Text>
@@ -2713,31 +2751,23 @@ function FeedCard({
               {socialButtons}
             </View>
           </View>
-        </>
-      );
-
-      const showImage = !!item.imageUrl && !heroImageFailed;
-      return (
-        <>
-          {showImage && (
+          {showThumb && (
             <Pressable
-              onPress={() => onOpenImages([item.imageUrl!], 0)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+              onPress={(e) => {
+                e.stopPropagation();
+                onOpenImages([item.imageUrl!], 0);
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
               accessibilityLabel="View journal image"
               accessibilityRole="imagebutton"
             >
               <Image
                 source={{ uri: item.imageUrl }}
-                style={styles.announcementImage}
+                style={[styles.feedThumb, { backgroundColor: colors.border }]}
                 resizeMode="cover"
                 onError={() => setHeroImageFailed(true)}
               />
             </Pressable>
-          )}
-          {showImage ? (
-            <View style={styles.feedCard}>{iconAndBody}</View>
-          ) : (
-            iconAndBody
           )}
         </>
       );
@@ -2747,11 +2777,7 @@ function FeedCard({
   };
 
   const hasHeroImage =
-    (item.type === "announcement" ||
-      item.type === "community_event" ||
-      item.type === "journal_post") &&
-    !!item.imageUrl &&
-    !heroImageFailed;
+    item.type === "announcement" && !!item.imageUrl && !heroImageFailed;
 
   return (
     <Pressable
@@ -3320,8 +3346,11 @@ function FeedItemSheet({
               {/* Title */}
               <Text style={[sheet.title, { color: colors.text }]}>{title}</Text>
 
-              {/* Body text — use Markdown renderer for announcements and menus */}
-              {item.type === "announcement" || item.type === "daily_menu" ? (
+              {/* Body text — use Markdown renderer for announcements and menus.
+                  Skip entirely when empty (e.g. a CMS event without a short
+                  description) so it doesn't reserve a blank line. */}
+              {body.length === 0 ? null : item.type === "announcement" ||
+                item.type === "daily_menu" ? (
                 <Markdown
                   style={{
                     body: {
@@ -3474,7 +3503,9 @@ function FeedItemSheet({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {formatNZT(new Date(item.eventDate), "EEE d MMM")}
+                        {item.pinned
+                          ? "Today"
+                          : formatNZT(new Date(item.eventDate), "EEE d MMM")}
                         {item.displayTime ? ` · ${item.displayTime}` : ""}
                       </Text>
                     </View>
@@ -3861,6 +3892,32 @@ function FeedItemSheet({
                 </Pressable>
               )}
 
+            {/* ── Hero image (announcements + CMS content) ── */}
+            {(item.type === "announcement" ||
+              item.type === "community_event" ||
+              item.type === "journal_post") &&
+              item.imageUrl && (
+                <Pressable
+                  onPress={() => openSheetViewer([item.imageUrl!], 0)}
+                  accessibilityLabel="View image"
+                  accessibilityRole="imagebutton"
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    // Event images are portrait posters (4:5 / 9:16) — show
+                    // them in a 4:5 frame instead of a shallow strip that
+                    // crops away the poster's content.
+                    style={[
+                      item.type === "community_event"
+                        ? sheet.posterImage
+                        : sheet.photoSingle,
+                      { borderRadius: 12, marginBottom: 12 },
+                    ]}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              )}
+
             {/* ── Community event CTAs: tickets + marketing site ── */}
             {item.type === "community_event" && (
               <View style={sheet.linkCTAGroup}>
@@ -3965,27 +4022,6 @@ function FeedItemSheet({
             )}
 
             {/* ── Photo gallery (for photo_post type) ── */}
-            {/* Hero image (announcements + CMS content) */}
-            {(item.type === "announcement" ||
-              item.type === "community_event" ||
-              item.type === "journal_post") &&
-              item.imageUrl && (
-                <Pressable
-                  onPress={() => openSheetViewer([item.imageUrl!], 0)}
-                  accessibilityLabel="View image"
-                  accessibilityRole="imagebutton"
-                >
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={[
-                      sheet.photoSingle,
-                      { borderRadius: 12, marginBottom: 12 },
-                    ]}
-                    resizeMode="cover"
-                  />
-                </Pressable>
-              )}
-
             {item.type === "photo_post" && item.photos.length > 0 && (
               <View
                 style={[
@@ -4634,6 +4670,25 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
+  feedThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    marginTop: 2,
+  },
+  feedTodayPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    marginBottom: 4,
+  },
+  feedTodayPillText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   feedIcon: {
     width: 42,
     height: 42,
@@ -5162,6 +5217,10 @@ const sheet = StyleSheet.create({
   photoSingle: {
     width: "100%",
     height: 220,
+  },
+  posterImage: {
+    width: "100%",
+    aspectRatio: 4 / 5,
   },
   photoScrollContent: {
     gap: 3,

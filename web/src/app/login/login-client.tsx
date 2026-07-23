@@ -239,20 +239,17 @@ export default function LoginClient({ providers }: LoginClientProps) {
       callbackUrl,
     });
 
-    setReactivateLoading(false);
-
-    if (res?.error) {
-      setError(
-        "We couldn't reactivate your account. Please double-check your password and try again."
-      );
+    if (res?.ok) {
+      // The authenticated-session effect above performs the redirect once the
+      // refreshed session lands; navigating here as well would race it.
+      setShowReactivation(false);
       return;
     }
 
-    if (res?.ok) {
-      setShowReactivation(false);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      window.location.href = callbackUrl;
-    }
+    setReactivateLoading(false);
+    setError(
+      "We couldn't reactivate your account. Please double-check your password and try again."
+    );
   }
 
   async function handleOAuthSignIn(providerId: string) {
@@ -366,15 +363,17 @@ export default function LoginClient({ providers }: LoginClientProps) {
       callbackUrl,
     });
 
-    setIsLoading(false);
-
-    if (res?.error) {
-      setError("Login failed");
-    } else if (res?.ok) {
-      // Add a small delay to ensure session is established
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      window.location.href = callbackUrl;
+    if (res?.ok) {
+      // signIn (redirect: false) refreshes the session before resolving, so
+      // the authenticated-session effect above performs the redirect.
+      // Navigating here as well would fire a second, delayed navigation that
+      // aborts whatever navigation is in flight by then. Keep the loading
+      // state active until the redirect unmounts this page.
+      return;
     }
+
+    setIsLoading(false);
+    setError("Login failed");
   }
 
   // OAuth providers are already filtered server-side

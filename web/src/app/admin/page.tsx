@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
-import { LOCATIONS, LocationOption } from "@/lib/locations";
+import { getActiveLocationNames, LocationOption } from "@/lib/locations";
 import { AdminDashboardContent } from "./admin-dashboard-content";
 import { AdminDashboardContentSkeleton } from "./loading";
 import type { Metadata } from "next";
@@ -33,6 +33,8 @@ export default async function AdminDashboardPage({
   }
 
   const params = await searchParams;
+
+  const LOCATIONS = await getActiveLocationNames();
 
   // Normalize and validate selected location
   const rawLocation = Array.isArray(params.location)

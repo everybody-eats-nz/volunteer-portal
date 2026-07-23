@@ -27,7 +27,7 @@ import Image from "next/image";
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { getShiftDescription } from "@/lib/shift-description";
-import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
+import { getLocationAddresses, type Location } from "@/lib/locations";
 import { ShiftSignupButton } from "@/components/shift-signup-button";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -153,6 +153,8 @@ export default async function ShiftDetailPage({
   if (!shift) {
     notFound();
   }
+
+  const locationAddresses = await getLocationAddresses();
 
   // Parallelize all remaining queries
   const [friendships, userSignup, currentUser, concurrentShifts, cmsEvents] =
@@ -294,7 +296,7 @@ export default async function ShiftDetailPage({
 
   const mapsQuery = shift.location
     ? `Everybody Eats ${
-        LOCATION_ADDRESSES[shift.location as Location] || shift.location
+        locationAddresses[shift.location as Location] || shift.location
       }`
     : "";
   const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -315,7 +317,7 @@ export default async function ShiftDetailPage({
       ? "border-amber-200/30 bg-amber-300/15 text-amber-100"
       : "border-transparent bg-sun-200 text-forest-700";
 
-  const calendarUrls = generateCalendarUrls(shift);
+  const calendarUrls = generateCalendarUrls(shift, locationAddresses);
 
   return (
     <PageContainer className="space-y-6">
@@ -419,7 +421,7 @@ export default async function ShiftDetailPage({
                     className="inline-flex items-center gap-1.5 text-sm text-forest-700/65 underline-offset-4 transition-colors hover:text-forest-500 hover:underline dark:text-cream-50/60 dark:hover:text-cream-50"
                   >
                     <MapPin className="h-3.5 w-3.5" />
-                    {LOCATION_ADDRESSES[shift.location as Location] ||
+                    {locationAddresses[shift.location as Location] ||
                       shift.location}
                   </a>
                 </div>
@@ -758,6 +760,9 @@ export default async function ShiftDetailPage({
               startDate: new Date(shift.start),
               endDate: new Date(shift.end),
               location: shift.location,
+              locationAddress: shift.location
+                ? locationAddresses[shift.location]
+                : undefined,
               capacity: shift.capacity,
               spotsAvailable: spotsRemaining,
             })

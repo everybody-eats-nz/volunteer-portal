@@ -738,6 +738,7 @@ export default function ShiftDetailScreen() {
           formatDate={formatNZT}
           profileIncomplete={eligibility ? !eligibility.profileComplete : false}
           missingProfileFields={eligibility?.missingProfileFields}
+          guardianRequired={eligibility?.guardianRequired ?? false}
         />
       )}
     </View>
@@ -1359,9 +1360,11 @@ const s = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
   },
+  // Event images are portrait posters (4:5 / 9:16) — a 4:5 frame shows the
+  // poster content instead of a shallow cover-cropped strip.
   eventImage: {
     width: "100%",
-    height: 150,
+    aspectRatio: 4 / 5,
   },
   eventCardBody: {
     padding: 16,

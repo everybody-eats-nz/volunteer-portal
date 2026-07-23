@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { getStartOfDayUTC, formatInNZT } from "@/lib/timezone";
+import {
+  getStartOfDayUTC,
+  formatInNZT,
+  isSameDayInNZT,
+} from "@/lib/timezone";
 import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
+import { userMatchesTargetLocations } from "@/lib/user-locations";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import {
   getRecentCmsJournalPosts,
@@ -72,6 +77,7 @@ export async function GET(request: Request) {
         select: {
           volunteerGrade: true,
           defaultLocation: true,
+          availableLocations: true,
           customLabels: { select: { labelId: true } },
         },
       }),
@@ -294,11 +300,16 @@ export async function GET(request: Request) {
   const friendIdSet = new Set(friendIds);
 
   for (const ann of announcements) {
-    // Location targeting: empty = all locations
-    const locationMatch =
-      ann.targetLocations.length === 0 ||
-      (userDefaultLocation !== null &&
-        ann.targetLocations.includes(userDefaultLocation));
+    // Location targeting: empty = all locations. Matches the recipient
+    // conditions in announcement-targeting.ts (default OR available
+    // locations) so a pushed announcement is visible in the feed it links to.
+    const locationMatch = userMatchesTargetLocations(
+      {
+        defaultLocation: userDefaultLocation,
+        availableLocations: userProfile?.availableLocations ?? null,
+      },
+      ann.targetLocations
+    );
 
     // Grade targeting: empty = all grades
     const gradeMatch =
@@ -551,30 +562,36 @@ export async function GET(request: Request) {
     });
   }
 
-  // Community events from the marketing CMS. An event appears in the feed
-  // while its announcement is fresh (published within the feed window) and
-  // resurfaces during the week leading up to it, timestamped so it sorts as
-  // if freshly posted. Events aren't location-targeted: with only a handful
-  // per year, they're relevant to the whole whānau.
+  // Community events from the marketing CMS. Upcoming events stay in the
+  // feed from the moment they're announced until they happen — the app ranks
+  // them higher the closer they get (see mobile/lib/feed-ranking.ts) to
+  // build hype. For older app versions that sort purely by timestamp, an
+  // event still "resurfaces" during the week leading up to it, timestamped
+  // so it sorts as if freshly posted. Events aren't location-targeted: with
+  // only a handful per year, they're relevant to the whole whānau.
   const startOfTodayNZ = getStartOfDayUTC(now);
-  for (const event of cmsEvents.slice(0, 10)) {
+  const upcomingEvents = cmsEvents
+    .filter((event) => new Date(event.date) >= startOfTodayNZ)
+    .slice(0, 10);
+  for (const event of upcomingEvents) {
     const eventDate = new Date(event.date);
-    if (eventDate < startOfTodayNZ) continue;
-
     const publishedAt = new Date(event.publishedAt);
     const resurfaceAt = new Date(
       eventDate.getTime() - 7 * 24 * 60 * 60 * 1000
     );
-    const isFresh = publishedAt >= since;
-    const isImminent = resurfaceAt <= now;
-    if (!isFresh && !isImminent) continue;
-
     const timestamp =
-      isImminent && resurfaceAt > publishedAt ? resurfaceAt : publishedAt;
+      resurfaceAt <= now && resurfaceAt > publishedAt
+        ? resurfaceAt
+        : publishedAt;
+
+    // Events happening today (NZ) are flagged — the app shows a
+    // "Happening today" pill for them.
+    const isToday = isSameDayInNZT(eventDate, now);
 
     items.push({
       type: "community_event",
       id: `cms-event-${event.id}`,
+      pinned: isToday || undefined,
       title: event.name,
       description: event.shortDescription ?? undefined,
       location: event.location ?? undefined,

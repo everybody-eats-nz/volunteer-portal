@@ -15,11 +15,7 @@ import { ShiftDetailsContent } from "./shift-details-content";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  LOCATION_ADDRESSES,
-  Location,
-  getLocationMapsUrl,
-} from "@/lib/locations";
+import { getLocationAddresses, getGoogleMapsUrl } from "@/lib/locations";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/utils";
@@ -151,6 +147,15 @@ export default async function ShiftDetailsPage({
     ? decodeURIComponent(locationParam)
     : undefined;
 
+  // Resolve the address fresh so a newly created location shows immediately.
+  const locationAddresses = await getLocationAddresses();
+  const selectedLocationAddress = selectedLocation
+    ? locationAddresses[selectedLocation]
+    : undefined;
+  const selectedLocationMapsUrl = selectedLocationAddress
+    ? getGoogleMapsUrl(selectedLocationAddress)
+    : undefined;
+
   const previousDate = subDays(selectedDate, 1);
   const nextDate = addDays(selectedDate, 1);
   const previousDateParam = formatInNZT(previousDate, "yyyy-MM-dd");
@@ -243,16 +248,16 @@ export default async function ShiftDetailsPage({
                 {selectedLocation}
               </span>
             </div>
-            {LOCATION_ADDRESSES[selectedLocation as unknown as Location] && (
+            {selectedLocationAddress && (
               <div className="flex items-start gap-2 text-sm text-forest-700/65 pl-6 dark:text-cream-50/60">
                 <a
-                  href={getLocationMapsUrl(selectedLocation as Location)}
+                  href={selectedLocationMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="restaurant-address"
                   className="text-left underline-offset-4 hover:text-forest-500 hover:underline dark:hover:text-cream-50"
                 >
-                  {LOCATION_ADDRESSES[selectedLocation as Location]}
+                  {selectedLocationAddress}
                 </a>
               </div>
             )}

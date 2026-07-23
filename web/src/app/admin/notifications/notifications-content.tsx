@@ -324,9 +324,16 @@ export function NotificationsContent({
       );
     }
 
-    // Filter by location
+    // Filter by location — a volunteer belongs to a location when it's their
+    // default OR one they marked themselves available at, so shortage
+    // notifications reach everyone who can actually work there.
     if (filterLocation !== "all") {
-      filtered = filtered.filter((v) => v.defaultLocation === filterLocation);
+      filtered = filtered.filter(
+        (v) =>
+          v.defaultLocation === filterLocation ||
+          (Array.isArray(v.availableLocations) &&
+            v.availableLocations.includes(filterLocation))
+      );
     }
 
     // Filter by shift type preference

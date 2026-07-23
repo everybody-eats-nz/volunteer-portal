@@ -33,7 +33,10 @@ import {
 import { cn } from "@/lib/utils";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
-import { safeParseAvailability } from "@/lib/parse-availability";
+import {
+  safeParseAvailability,
+  safeParseLocations,
+} from "@/lib/parse-availability";
 import { WeekAvailability } from "@/components/week-availability";
 import { VolunteerGradeToggle } from "@/components/volunteer-grade-toggle";
 import { VolunteerGradeBadge } from "@/components/volunteer-grade-badge";
@@ -42,7 +45,7 @@ import { UserRoleToggle } from "@/components/user-role-toggle";
 import { AdminNotesManager } from "@/components/admin-notes-manager";
 import { UserCustomLabelsManager } from "@/components/user-custom-labels-manager";
 import { type VolunteerGrade } from "@/generated/client";
-import { LOCATIONS, LocationOption } from "@/lib/locations";
+import { getActiveLocationNames, LocationOption } from "@/lib/locations";
 import { ImpersonateUserButton } from "@/components/impersonate-user-button";
 import { MessageVolunteerButton } from "@/components/admin/messages/message-volunteer-button";
 import { AdminContactInfoSection } from "@/components/admin-contact-info-section";
@@ -83,6 +86,8 @@ export default async function AdminVolunteerPage({
 
   const { id } = await params;
   const searchParamsResolved = await searchParams;
+
+  const LOCATIONS = await getActiveLocationNames();
 
   // Get location filter from search params
   const rawLocation = Array.isArray(searchParamsResolved.location)
@@ -231,7 +236,7 @@ export default async function AdminVolunteerPage({
     : "V";
 
   const availableDays = safeParseAvailability(volunteer.availableDays);
-  const availableLocations = safeParseAvailability(
+  const availableLocations = safeParseLocations(
     volunteer.availableLocations
   );
 

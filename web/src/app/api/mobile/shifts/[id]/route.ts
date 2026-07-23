@@ -6,6 +6,7 @@ import {
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
 import { getMissingProfileFields } from "@/lib/profile-completion";
+import { requiresGuardianName } from "@/lib/guardian-validation";
 import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 
 /**
@@ -168,6 +169,10 @@ export async function GET(
         userRecord?.requiresParentalConsent &&
           !userRecord?.parentalConsentReceived
       ),
+      // Volunteers aged 14 and under must name a parent/guardian on signup,
+      // so the sheet can collect it up front. Computed server-side to keep
+      // the age rule in one place (the signup routes enforce it).
+      guardianRequired: requiresGuardianName(userRecord?.dateOfBirth),
     },
   });
 }

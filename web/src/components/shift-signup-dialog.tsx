@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { calculateAge } from "@/lib/utils";
+import { calculateAge, GUARDIAN_REQUIRED_AGE } from "@/lib/utils";
 import { getShiftDescription } from "@/lib/shift-description";
 import {
   MessageSquareDot,
@@ -197,7 +197,7 @@ export function ShiftSignupDialog({
             // Check age
             if (userData.dateOfBirth) {
               const age = calculateAge(new Date(userData.dateOfBirth));
-              setIsUnderage(age <= 14);
+              setIsUnderage(age <= GUARDIAN_REQUIRED_AGE);
             }
           } else {
             console.warn("Profile fetch failed:", response.status);

@@ -1,12 +1,21 @@
 import { z } from "zod";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 
-// Location validation schema
-export const LocationSchema = z.enum(LOCATIONS);
-
-// Reusable location validation for Zod schemas
-export function createLocationEnum() {
-  return z.enum(LOCATIONS);
+/**
+ * Build a Zod schema that validates a value is one of the currently active
+ * location names. Queries the database on each call, so locations created at
+ * runtime validate immediately (a module-level enum would be frozen at import
+ * time and reject new locations until the server restarted).
+ *
+ * Falls back to a non-empty string check when no active locations exist, since
+ * `z.enum` requires a non-empty set.
+ */
+export async function createLocationEnum() {
+  const names = await getActiveLocationNames();
+  if (names.length === 0) {
+    return z.string().min(1);
+  }
+  return z.enum(names as [string, ...string[]]);
 }
 
 // --- Restaurant service-night stats ---
@@ -55,6 +64,7 @@ export const restaurantNightStatsSchema = z.object({
   cash: optionalMoney,
   eftpos: optionalMoney,
   stripe: optionalMoney,
+  suggestedValue: optionalMoney,
   protein: optionalString,
 });
 

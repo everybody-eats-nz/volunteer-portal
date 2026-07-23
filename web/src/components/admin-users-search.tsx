@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X, Archive } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -15,11 +17,13 @@ import {
 import Link from "next/link";
 
 type ArchivedFilter = "active" | "archived" | "all";
+type LocationScope = "all" | "default";
 
 interface AdminUsersSearchProps {
   initialSearch?: string;
   roleFilter?: string;
   locationFilter?: string;
+  locationScope?: LocationScope;
   archivedFilter?: ArchivedFilter;
   archivedCount?: number;
   locations?: string[];
@@ -29,6 +33,7 @@ export function AdminUsersSearch({
   initialSearch,
   roleFilter,
   locationFilter,
+  locationScope = "all",
   archivedFilter = "active",
   archivedCount = 0,
   locations = [],
@@ -51,7 +56,8 @@ export function AdminUsersSearch({
       (
         role?: string,
         location?: string,
-        archived: ArchivedFilter = archivedFilter
+        archived: ArchivedFilter = archivedFilter,
+        scope: LocationScope = locationScope
       ) => {
         const params = new URLSearchParams();
 
@@ -67,8 +73,12 @@ export function AdminUsersSearch({
         // Add role if specified
         if (role) params.set("role", role);
 
-        // Add location if specified
-        if (location) params.set("location", location);
+        // Add location if specified — omit the default scope ("all") to keep
+        // URLs clean
+        if (location) {
+          params.set("location", location);
+          if (scope === "default") params.set("locationScope", "default");
+        }
 
         // Archived filter — omit the default ("active") to keep URLs clean
         if (archived === "archived") params.set("archived", "only");
@@ -77,7 +87,7 @@ export function AdminUsersSearch({
         const queryString = params.toString();
         return queryString ? `/admin/users?${queryString}` : "/admin/users";
       },
-    [searchParams, searchValue, archivedFilter]
+    [searchParams, searchValue, archivedFilter, locationScope]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -97,9 +107,11 @@ export function AdminUsersSearch({
       params.set("role", roleFilter);
     }
 
-    // Preserve location filter if it exists
+    // Preserve location filter (and its scope) if it exists
     if (locationFilter) {
       params.set("location", locationFilter);
+    } else {
+      params.delete("locationScope");
     }
 
     // Preserve archived filter if it's not the default
@@ -118,6 +130,16 @@ export function AdminUsersSearch({
   const handleLocationChange = (value: string) => {
     const location = value === "all" ? undefined : value;
     const url = buildFilterUrl(roleFilter, location);
+    router.push(url);
+  };
+
+  const handleLocationScopeChange = (defaultOnly: boolean) => {
+    const url = buildFilterUrl(
+      roleFilter,
+      locationFilter,
+      archivedFilter,
+      defaultOnly ? "default" : "all"
+    );
     router.push(url);
   };
 
@@ -160,6 +182,28 @@ export function AdminUsersSearch({
               ))}
             </SelectContent>
           </Select>
+        )}
+        {locationFilter && (
+          <div
+            className="flex items-center gap-2"
+            data-testid="location-scope-toggle"
+          >
+            <Checkbox
+              id="location-scope-default-only"
+              checked={locationScope === "default"}
+              onCheckedChange={(checked) =>
+                handleLocationScopeChange(checked === true)
+              }
+              data-testid="location-scope-checkbox"
+            />
+            <Label
+              htmlFor="location-scope-default-only"
+              className="text-sm font-normal text-muted-foreground cursor-pointer whitespace-nowrap"
+              title="When unchecked, users whose selected locations include this location are shown too"
+            >
+              Default location only
+            </Label>
+          </div>
         )}
         <Button
           type="submit"

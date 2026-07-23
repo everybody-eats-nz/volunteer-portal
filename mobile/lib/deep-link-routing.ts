@@ -56,7 +56,23 @@ export function mapDeepLinkToRoute(rawPath: string): string {
     return `/shift/${shiftDetail[1]}`;
   }
 
-  // /shifts, /shifts/mine, /shifts/details -> shifts tab
+  // /shifts/details?date=YYYY-MM-DD&location=X -> shifts tab. Forward the
+  // date and location so the tab can jump to that day and switch its filter
+  // to the linked restaurant (mirrors notification-routing.ts). Encoded with
+  // %20 rather than URLSearchParams' "+" — expo-router percent-decodes params
+  // but doesn't apply the form-encoding plus-as-space rule.
+  if (pathname === "/shifts/details") {
+    const parts: string[] = [];
+    const date = query.get("date");
+    const location = query.get("location");
+    if (date) parts.push(`date=${encodeURIComponent(date)}`);
+    if (location) parts.push(`location=${encodeURIComponent(location)}`);
+    return parts.length > 0
+      ? `/(tabs)/shifts?${parts.join("&")}`
+      : "/(tabs)/shifts";
+  }
+
+  // /shifts, /shifts/mine -> shifts tab
   if (pathname === "/shifts" || pathname.startsWith("/shifts/")) {
     return "/(tabs)/shifts";
   }

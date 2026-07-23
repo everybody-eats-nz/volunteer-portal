@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
 import { differenceInHours } from "date-fns";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
+import { getLocationAddresses } from "@/lib/locations";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
 import {
@@ -48,6 +49,7 @@ export async function ShiftDetailsDialog({
 }) {
   const theme = getShiftTheme(shift.shift.shiftType.name);
   const isPastShift = shift.shift.end < now;
+  const locationAddresses = await getLocationAddresses();
 
   // Fetch meals served for this shift's date and location
   let mealsServedData = null;
@@ -192,7 +194,10 @@ export async function ShiftDetailsDialog({
                 <div className={`${detailLabel} mb-2`}>Add to calendar</div>
                 <div className="flex flex-wrap gap-2">
                   {(() => {
-                    const urls = generateCalendarUrls(shift.shift);
+                    const urls = generateCalendarUrls(
+                      shift.shift,
+                      locationAddresses
+                    );
                     return (
                       <>
                         <Button variant="outline" size="sm" className="gap-2" asChild>

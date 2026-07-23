@@ -8,7 +8,7 @@ import { MotionContentCard } from "@/components/motion-content-card";
 import { AvatarList } from "@/components/ui/avatar-list";
 import { Clock, Calendar, MapPin, CalendarPlus } from "lucide-react";
 import Link from "next/link";
-import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
+import { getLocationAddresses, type Location } from "@/lib/locations";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 
 interface DashboardNextShiftProps {
@@ -17,6 +17,7 @@ interface DashboardNextShiftProps {
 
 export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
   const now = new Date();
+  const locationAddresses = await getLocationAddresses();
 
   // Get user's friend IDs
   const friendships = await prisma.friendship.findMany({
@@ -117,7 +118,7 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
                 {nextShift.shift.location && (
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `Everybody Eats ${LOCATION_ADDRESSES[nextShift.shift.location as Location] || nextShift.shift.location}`
+                      `Everybody Eats ${locationAddresses[nextShift.shift.location as Location] || nextShift.shift.location}`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -125,7 +126,7 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
                     data-testid="shift-location-link"
                   >
                     <MapPin className="h-4 w-4 shrink-0 text-forest-500 dark:text-cream-50/70" />
-                    {LOCATION_ADDRESSES[
+                    {locationAddresses[
                       nextShift.shift.location as Location
                     ]?.replace(", New Zealand", "") || nextShift.shift.location}
                   </a>
@@ -190,7 +191,10 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
               </div>
               <div className="flex gap-2 flex-wrap">
                 {(() => {
-                  const urls = generateCalendarUrls(nextShift.shift);
+                  const urls = generateCalendarUrls(
+                    nextShift.shift,
+                    locationAddresses
+                  );
                   return (
                     <>
                       <Button

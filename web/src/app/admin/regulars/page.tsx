@@ -9,7 +9,7 @@ import Link from "next/link";
 import { StarIcon, PauseIcon, CalendarIcon } from "lucide-react";
 import { RegularsTable } from "./regulars-table";
 import { RegularVolunteerForm } from "./regular-volunteer-form";
-import { LOCATIONS, LocationOption } from "@/lib/locations";
+import { getActiveLocationNames, LocationOption } from "@/lib/locations";
 
 interface RegularVolunteersPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -25,6 +25,8 @@ export default async function RegularVolunteersPage({
   if (role !== "ADMIN") redirect("/dashboard");
 
   const params = await searchParams;
+
+  const LOCATIONS = await getActiveLocationNames();
 
   // Normalize and validate selected location
   const rawLocation = Array.isArray(params.location)

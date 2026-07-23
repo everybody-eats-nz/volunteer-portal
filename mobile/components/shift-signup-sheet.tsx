@@ -80,6 +80,12 @@ type ShiftSignupSheetProps = {
   profileIncomplete?: boolean;
   /** Required profile fields still missing, e.g. ["Date of birth"]. */
   missingProfileFields?: string[];
+  /**
+   * True for volunteers aged 14 and under (from the shift eligibility
+   * payload). Shows a required guardian-name field; the server rejects
+   * underage signups whose note doesn't name a guardian.
+   */
+  guardianRequired?: boolean;
 };
 
 export function ShiftSignupSheet({
@@ -91,6 +97,7 @@ export function ShiftSignupSheet({
   formatDate,
   profileIncomplete: knownProfileIncomplete,
   missingProfileFields: knownMissingFields,
+  guardianRequired = false,
 }: ShiftSignupSheetProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
@@ -99,6 +106,7 @@ export function ShiftSignupSheet({
 
   const [note, setNote] = useState('');
   const [showNoteField, setShowNoteField] = useState(false);
+  const [guardianName, setGuardianName] = useState('');
   const [backupShiftIds, setBackupShiftIds] = useState<string[]>([]);
   const [concurrentShifts, setConcurrentShifts] = useState<ConcurrentShift[]>([]);
   const [periodFriends, setPeriodFriends] = useState<FriendOnPeriod[]>([]);
@@ -121,6 +129,7 @@ export function ShiftSignupSheet({
     if (visible) {
       setNote('');
       setShowNoteField(false);
+      setGuardianName('');
       setBackupShiftIds([]);
       setError(null);
       setProfileIncomplete(Boolean(knownProfileIncomplete));
@@ -168,11 +177,28 @@ export function ShiftSignupSheet({
   const handleSubmit = useCallback(async () => {
     setError(null);
     setProfileIncomplete(false);
+
+    if (guardianRequired && !guardianName.trim()) {
+      setError(
+        "Please enter your parent or guardian's name. It's required for volunteers aged 14 and under.",
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const body: Record<string, unknown> = {};
       if (isWaitlist) body.waitlist = true;
-      if (note.trim()) body.note = note.trim();
+
+      // The guardian name travels in the signup note (same convention as
+      // the web dialog), which the server validates for underage volunteers.
+      let finalNote = note.trim();
+      if (guardianRequired && guardianName.trim()) {
+        finalNote = finalNote
+          ? `${finalNote}\n\nGuardian: ${guardianName.trim()}`
+          : `Guardian: ${guardianName.trim()}`;
+      }
+      if (finalNote) body.note = finalNote;
       if (backupShiftIds.length > 0) body.backupShiftIds = backupShiftIds;
 
       const result = await api<SignupResult>(
@@ -202,7 +228,16 @@ export function ShiftSignupSheet({
     } finally {
       setIsSubmitting(false);
     }
-  }, [shift.id, isWaitlist, note, backupShiftIds, onSuccess, onClose]);
+  }, [
+    shift.id,
+    isWaitlist,
+    note,
+    guardianRequired,
+    guardianName,
+    backupShiftIds,
+    onSuccess,
+    onClose,
+  ]);
 
   const handleGoToProfile = useCallback(() => {
     onClose();
@@ -424,6 +459,37 @@ export function ShiftSignupSheet({
               <Text style={[ss.charCount, { color: colors.textSecondary }]}>
                 {note.length}/500
               </Text>
+            </View>
+          )}
+
+          {/* Guardian name, required for volunteers aged 14 and under */}
+          {guardianRequired && (
+            <View style={ss.noteSection}>
+              <Text style={[ss.fieldLabel, { color: colors.text }]}>
+                Guardian name{' '}
+                <Text style={{ color: isDark ? '#fca5a5' : '#dc2626' }}>*</Text>
+              </Text>
+              <Text style={[ss.fieldHint, { color: colors.textSecondary }]}>
+                Required for volunteers aged 14 and under.
+              </Text>
+              <TextInput
+                style={[
+                  ss.guardianInput,
+                  {
+                    backgroundColor: isDark ? 'rgba(253,248,239,0.05)' : colors.surfaceSunk,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                value={guardianName}
+                onChangeText={setGuardianName}
+                placeholder="Your parent or guardian's full name"
+                placeholderTextColor={colors.textSecondary}
+                maxLength={100}
+                autoComplete="name"
+                textContentType="name"
+                accessibilityLabel="Guardian name, required"
+              />
             </View>
           )}
 
@@ -825,6 +891,15 @@ const ss = StyleSheet.create({
     fontSize: 11,
     fontFamily: FontFamily.regular,
     textAlign: 'right',
+  },
+  guardianInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontFamily: FontFamily.regular,
+    minHeight: 48,
   },
 
   // Backup shifts

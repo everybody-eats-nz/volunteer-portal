@@ -1,3 +1,93 @@
+## [0.147.5] - 2026-07-23
+
+### Changes
+- fix: load newly created locations immediately on create-shift page ([#1143](https://github.com/everybody-eats-nz/volunteer-portal/pull/1143)) by @malinmalliyawadu
+
+
+## [0.147.4] - 2026-07-23
+
+### Changes
+- fix(admin): include selected locations in users page location filter ([#1145](https://github.com/everybody-eats-nz/volunteer-portal/pull/1145)) by @malinmalliyawadu
+
+
+## [0.147.3] - 2026-07-23
+
+### Changes
+- fix(admin): render 404s inside the admin dashboard chrome ([#1144](https://github.com/everybody-eats-nz/volunteer-portal/pull/1144)) by @malinmalliyawadu
+
+
+## [0.147.2] - 2026-07-23
+
+### Changes
+- chore(deps): bump fast-uri from 3.1.2 to 3.1.4 in /web ([#1138](https://github.com/everybody-eats-nz/volunteer-portal/pull/1138)) by @dependabot[bot]
+
+
+## [0.147.1] - 2026-07-23
+
+### Changes
+- chore(deps): bump dompurify from 3.4.11 to 3.4.12 in /web ([#1139](https://github.com/everybody-eats-nz/volunteer-portal/pull/1139)) by @dependabot[bot]
+
+
+## [0.147.0] - 2026-07-23
+
+### Changes
+- fix(locations): stop renamed locations resurrecting as duplicates ([#1142](https://github.com/everybody-eats-nz/volunteer-portal/pull/1142)) by @malinmalliyawadu
+
+
+## [0.146.7] - 2026-07-22
+
+### Changes
+- fix(mobile): show in-progress shifts in the app's shift list ([#1141](https://github.com/everybody-eats-nz/volunteer-portal/pull/1141)) by @malinmalliyawadu
+
+
+## [0.146.6] - 2026-07-22
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 16 updates ([#1137](https://github.com/everybody-eats-nz/volunteer-portal/pull/1137)) by @dependabot[bot]
+
+
+## [0.146.5] - 2026-07-21
+
+### Changes
+- chore(deps): bump react-hook-form from 7.74.0 to 7.82.0 in /web ([#1132](https://github.com/everybody-eats-nz/volunteer-portal/pull/1132)) by @dependabot[bot]
+
+
+## [0.146.4] - 2026-07-21
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 5 updates ([#1136](https://github.com/everybody-eats-nz/volunteer-portal/pull/1136)) by @dependabot[bot]
+
+
+## [0.146.3] - 2026-07-21
+
+### Changes
+- fix(flaky): should navigate to registration page from hero join button ([#1133](https://github.com/everybody-eats-nz/volunteer-portal/pull/1133)) by @malinmalliyawadu
+
+
+## [0.146.2] - 2026-07-16
+
+### Changes
+- fix(login): remove delayed duplicate post-login navigation that aborts in-flight navigations ([#1123](https://github.com/everybody-eats-nz/volunteer-portal/pull/1123)) by @malinmalliyawadu
+
+
+## [0.146.1] - 2026-07-16
+
+### Changes
+- fix(shifts): enforce guardian requirement server-side for web and mobile signups ([#1122](https://github.com/everybody-eats-nz/volunteer-portal/pull/1122)) by @malinmalliyawadu
+
+
+## [0.146.0] - 2026-07-16
+
+### Changes
+- feat(mobile): rank upcoming events and menus higher as their date approaches ([#1121](https://github.com/everybody-eats-nz/volunteer-portal/pull/1121)) by @malinmalliyawadu
+
+
+## [0.145.0] - 2026-07-15
+
+### Changes
+- feat(mobile): pin events happening today to the top of the feed ([#1118](https://github.com/everybody-eats-nz/volunteer-portal/pull/1118)) by @malinmalliyawadu
+
+
 ## [0.144.0] - 2026-07-14
 
 ### Changes

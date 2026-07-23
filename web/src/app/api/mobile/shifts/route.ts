@@ -51,12 +51,16 @@ export async function GET(request: Request) {
   // Active signup statuses (not canceled/no-show/etc)
   const activeStatuses = ["CONFIRMED", "PENDING", "WAITLISTED", "REGULAR_PENDING"] as const;
 
-  // Fetch upcoming shifts the user is signed up for (always all — typically small)
+  // Fetch upcoming shifts the user is signed up for (always all — typically small).
+  // Bucket by `end >= now` (not `start`) so a shift that is currently in progress
+  // (started but not yet ended) still appears in the user's shifts. This mirrors the
+  // `past` query below (`end < now`), so every signup falls into exactly one bucket
+  // with no gap — otherwise an in-progress confirmed shift vanishes from the app.
   const mySignups = await prisma.signup.findMany({
     where: {
       userId,
       status: { in: [...activeStatuses] },
-      shift: { start: { gte: now } },
+      shift: { end: { gte: now } },
     },
     include: {
       shift: {

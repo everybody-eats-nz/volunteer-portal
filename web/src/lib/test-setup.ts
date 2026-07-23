@@ -14,14 +14,15 @@ vi.mock('./prisma', () => ({
   },
 }));
 
-// Mock locations module that uses top-level await
+// Mock locations module (fresh DB-backed helpers)
+const MOCK_LOCATION_ADDRESSES: Record<string, string> = {
+  'Auckland': '123 Auckland St, Auckland',
+  'Wellington': '456 Wellington St, Wellington',
+};
 vi.mock('./locations', () => ({
-  LOCATIONS: ['Auckland', 'Wellington'],
-  LOCATION_ADDRESSES: {
-    'Auckland': '123 Auckland St, Auckland',
-    'Wellington': '456 Wellington St, Wellington',
-  },
   DEFAULT_LOCATION: 'Wellington',
+  getActiveLocationNames: vi.fn().mockResolvedValue(['Auckland', 'Wellington']),
+  getLocationAddresses: vi.fn().mockResolvedValue(MOCK_LOCATION_ADDRESSES),
+  getShiftLocationOptions: vi.fn().mockResolvedValue([]),
   getGoogleMapsUrl: (address: string) => `https://www.google.com/maps/search/?api=1&query=Everybody+Eats+${encodeURIComponent(address)}`,
-  getLocationMapsUrl: (location: string) => `https://www.google.com/maps/search/?api=1&query=Everybody+Eats+${location}`,
 }));
