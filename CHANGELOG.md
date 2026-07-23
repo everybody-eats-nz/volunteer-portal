@@ -1,3 +1,9 @@
+## [0.147.5] - 2026-07-23
+
+### Changes
+- fix: load newly created locations immediately on create-shift page ([#1143](https://github.com/everybody-eats-nz/volunteer-portal/pull/1143)) by @malinmalliyawadu
+
+
 ## [0.147.4] - 2026-07-23
 
 ### Changes
