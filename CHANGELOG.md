@@ -1,3 +1,9 @@
+## [0.148.0] - 2026-07-23
+
+### Changes
+- feat(admin): redesign locations and merge-duplicates pages ([#1149](https://github.com/everybody-eats-nz/volunteer-portal/pull/1149)) by @malinmalliyawadu
+
+
 ## [0.147.8] - 2026-07-23
 
 ### Changes
