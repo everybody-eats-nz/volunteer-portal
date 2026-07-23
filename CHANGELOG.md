@@ -1,3 +1,9 @@
+## [0.147.0] - 2026-07-23
+
+### Changes
+- fix(locations): stop renamed locations resurrecting as duplicates ([#1142](https://github.com/everybody-eats-nz/volunteer-portal/pull/1142)) by @malinmalliyawadu
+
+
 ## [0.146.7] - 2026-07-22
 
 ### Changes
