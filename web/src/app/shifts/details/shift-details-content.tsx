@@ -215,7 +215,7 @@ function ShiftCard({
             </div>
 
             {getShiftDescription(shift.notes, shift.shiftType.description) && (
-              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed line-clamp-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                 {getShiftDescription(shift.notes, shift.shiftType.description)}
               </p>
             )}
