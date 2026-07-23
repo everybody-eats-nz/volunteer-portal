@@ -182,7 +182,7 @@ function ShiftCard({
                       className="inline-flex items-baseline gap-1 hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:underline rounded-sm"
                       data-testid={`shift-card-title-link-${shift.id}`}
                     >
-                      <span className="truncate">{shift.shiftType.name}</span>
+                      <span>{shift.shiftType.name}</span>
                       <ArrowUpRight className="h-4 w-4 shrink-0 self-center opacity-60 group-hover:opacity-100 transition-opacity" />
                     </Link>
                   </h3>
