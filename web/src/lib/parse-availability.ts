@@ -30,6 +30,30 @@ export function safeParseLocations(data: string | null | undefined): string[] {
 }
 
 /**
+ * Rewrite a stored locations list (JSON array or legacy comma-separated text)
+ * after a location rename. Matches whole entries only, so renaming
+ * "Wellington" leaves an entry like "Wellington City" alone. Returns the
+ * updated list serialized as JSON, or null when the list doesn't reference
+ * oldName. Merging into a name already present dedupes rather than
+ * duplicating the entry.
+ */
+export function renameLocationInStoredList(
+  stored: string | null | undefined,
+  oldName: string,
+  newName: string
+): string | null {
+  const entries = safeParseLocations(stored);
+  if (!entries.includes(oldName)) return null;
+
+  const renamed: string[] = [];
+  for (const entry of entries) {
+    const value = entry === oldName ? newName : entry;
+    if (!renamed.includes(value)) renamed.push(value);
+  }
+  return JSON.stringify(renamed);
+}
+
+/**
  * Safely parse availability data that might be in JSON format or plain text
  * Migration data might be stored as "weekdays" or "Monday, Tuesday" instead of JSON arrays
  */
