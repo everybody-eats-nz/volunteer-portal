@@ -1,12 +1,31 @@
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
 import { redirect } from "next/navigation";
-import { AdminPageWrapper } from "@/components/admin-page-wrapper";
-import { PageContainer } from "@/components/page-container";
-import { LocationSettingsForm } from "@/components/location-settings-form";
-import { Button } from "@/components/ui/button";
+
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+
+import { LocationsContent } from "./locations-content";
+import type { Venue, VenueManager } from "./types";
+
+function managerDisplayName(user: {
+  firstName: string | null;
+  lastName: string | null;
+  name: string | null;
+  email: string;
+}): string {
+  if (user.name) return user.name;
+  const joined = [user.firstName, user.lastName].filter(Boolean).join(" ");
+  return joined || user.email.split("@")[0];
+}
+
+function initialsOf(displayName: string): string {
+  return displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join("");
+}
 
 export default async function LocationsPage() {
   const session = await getServerSession(authOptions);
@@ -15,55 +34,76 @@ export default async function LocationsPage() {
     redirect("/dashboard");
   }
 
-  // Fetch all locations (both active and inactive)
-  const [allLocations, upcomingShiftGroups] = await Promise.all([
-    prisma.location.findMany({
-      orderBy: { name: "asc" },
-    }),
-    prisma.shift.groupBy({
-      by: ["location"],
-      where: { start: { gte: new Date() }, location: { not: null } },
-      _count: { _all: true },
-    }),
-  ]);
+  const [locations, upcomingShiftGroups, restaurantManagers] =
+    await Promise.all([
+      prisma.location.findMany({ orderBy: { name: "asc" } }),
+      // Shift.location is a free-text reference to Location.name, so shift
+      // stats are grouped by name rather than joined by id.
+      prisma.shift.groupBy({
+        by: ["location"],
+        where: { start: { gte: new Date() }, location: { not: null } },
+        _count: { _all: true },
+        _min: { start: true },
+      }),
+      prisma.restaurantManager.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+    ]);
 
-  const upcomingCountByLocation = new Map(
-    upcomingShiftGroups.map((group) => [group.location, group._count._all])
+  const shiftStatsByLocation = new Map(
+    upcomingShiftGroups.map((group) => [
+      group.location,
+      { count: group._count._all, next: group._min.start },
+    ])
   );
 
-  // Serialize Decimal targetPerNight to a plain number for the client component
-  const serialized = allLocations.map((loc) => ({
-    ...loc,
-    targetPerNight:
-      loc.targetPerNight === null ? null : Number(loc.targetPerNight),
-    // Locations without upcoming shifts are hidden from volunteer-facing
-    // location lists - surface that so admins know why after creating one.
-    hasUpcomingShifts: (upcomingCountByLocation.get(loc.name) ?? 0) > 0,
-  }));
-
-  const activeLocations = serialized.filter((loc) => loc.isActive);
-  const inactiveLocations = serialized.filter((loc) => !loc.isActive);
-
-  return (
-    <AdminPageWrapper
-      title="Restaurant Locations"
-      description="Manage restaurant location settings including default meals served"
-      actions={
-        <Button asChild variant="outline" size="sm">
-          <Link href="/admin/locations/merge" data-testid="merge-locations-link">
-            Merge duplicates
-          </Link>
-        </Button>
+  const managersByLocation = new Map<string, VenueManager[]>();
+  for (const manager of restaurantManagers) {
+    const displayName = managerDisplayName(manager.user);
+    for (const locationName of manager.locations) {
+      const entry: VenueManager = {
+        id: manager.id,
+        name: displayName,
+        initials: initialsOf(displayName),
+        muted: !manager.receiveNotifications,
+      };
+      const existing = managersByLocation.get(locationName);
+      if (existing) {
+        existing.push(entry);
+      } else {
+        managersByLocation.set(locationName, [entry]);
       }
-    >
-      <PageContainer>
-        <div className="space-y-6">
-          <LocationSettingsForm
-            activeLocations={activeLocations}
-            inactiveLocations={inactiveLocations}
-          />
-        </div>
-      </PageContainer>
-    </AdminPageWrapper>
-  );
+    }
+  }
+
+  const venues: Venue[] = locations.map((location) => {
+    const shiftStats = shiftStatsByLocation.get(location.name);
+    return {
+      id: location.id,
+      name: location.name,
+      address: location.address,
+      defaultMealsServed: location.defaultMealsServed,
+      targetPerNight:
+        location.targetPerNight === null
+          ? null
+          : Number(location.targetPerNight),
+      isActive: location.isActive,
+      isPopup: location.isPopup,
+      upcomingShifts: shiftStats?.count ?? 0,
+      nextServiceAt: shiftStats?.next?.toISOString() ?? null,
+      managers: managersByLocation.get(location.name) ?? [],
+    };
+  });
+
+  return <LocationsContent initialVenues={venues} />;
 }
