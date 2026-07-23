@@ -13,6 +13,8 @@ export async function GET(
       where: {
         id,
         isPublished: true,
+        // Chat-only guides are not part of the public resource catalogue.
+        includeInChat: false,
       },
       include: {
         uploader: {

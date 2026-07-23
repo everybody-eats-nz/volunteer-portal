@@ -16,8 +16,12 @@ export async function ResourcesContent({
   tagsFilter,
 }: ResourcesContentProps) {
   // Build where clause
+  // Exclude chat-only guides: resources flagged `includeInChat` are managed on
+  // the admin Chat Guides page as AI context and should not surface in the
+  // public Resource Hub, even though they're stored in the same table.
   const whereClause: Prisma.ResourceWhereInput = {
     isPublished: true,
+    includeInChat: false,
   };
 
   if (searchQuery) {
