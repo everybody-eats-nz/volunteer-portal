@@ -24,7 +24,7 @@ import {
   nowInNZT,
   toUTC,
 } from "@/lib/timezone";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 import { createShiftRecord } from "@/lib/services/shift-service";
 import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 
@@ -43,9 +43,10 @@ export default async function NewShiftPage({
     : "bulk";
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
-  const sortedLocations = LOCATIONS;
   if (!session?.user) redirect("/login?callbackUrl=/admin/shifts/new");
   if (role !== "ADMIN") redirect("/shifts");
+
+  const sortedLocations = await getActiveLocationNames();
 
   async function createShift(formData: FormData) {
     "use server";

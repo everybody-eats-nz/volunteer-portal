@@ -6,7 +6,7 @@ import {
 } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
-import { LOCATION_ADDRESSES } from "@/lib/locations";
+import { getLocationAddresses } from "@/lib/locations";
 import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
@@ -140,10 +140,9 @@ export async function applySignupAction({
   const volunteerName =
     signup.user.name ||
     `${signup.user.firstName || ""} ${signup.user.lastName || ""}`.trim();
+  const locationAddresses = await getLocationAddresses();
   const fullAddress = signup.shift.location
-    ? LOCATION_ADDRESSES[
-        signup.shift.location as keyof typeof LOCATION_ADDRESSES
-      ] || signup.shift.location
+    ? locationAddresses[signup.shift.location] || signup.shift.location
     : "TBD";
   const shiftTime = `${formatInNZT(signup.shift.start, "h:mm a")} - ${formatInNZT(
     signup.shift.end,

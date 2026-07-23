@@ -27,7 +27,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProfileCompletionBannerServer } from "@/components/profile-completion-banner-server";
 import { generateCalendarUrls } from "@/lib/calendar-utils";
 import { getShiftDescription } from "@/lib/shift-description";
-import { LOCATION_ADDRESSES, type Location } from "@/lib/locations";
+import { getLocationAddresses, type Location } from "@/lib/locations";
 import { ShiftSignupButton } from "@/components/shift-signup-button";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getShiftTheme } from "@/lib/shift-themes";
@@ -144,6 +144,8 @@ export default async function ShiftDetailPage({
   if (!shift) {
     notFound();
   }
+
+  const locationAddresses = await getLocationAddresses();
 
   // Parallelize all remaining queries
   const [friendships, userSignup, currentUser, concurrentShifts, cmsEvents] =
@@ -489,7 +491,7 @@ export default async function ShiftDetailPage({
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                       `Everybody Eats ${
-                        LOCATION_ADDRESSES[shift.location as Location] ||
+                        locationAddresses[shift.location as Location] ||
                         shift.location
                       }`
                     )}`}
@@ -498,7 +500,7 @@ export default async function ShiftDetailPage({
                     className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
                   >
                     <MapPin className="h-3.5 w-3.5" />
-                    {LOCATION_ADDRESSES[shift.location as Location] ||
+                    {locationAddresses[shift.location as Location] ||
                       shift.location}
                   </a>
                 </div>
@@ -506,7 +508,7 @@ export default async function ShiftDetailPage({
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                       `Everybody Eats ${
-                        LOCATION_ADDRESSES[shift.location as Location] ||
+                        locationAddresses[shift.location as Location] ||
                         shift.location
                       }`
                     )}`}
@@ -527,7 +529,7 @@ export default async function ShiftDetailPage({
                   referrerPolicy="no-referrer-when-downgrade"
                   src={`https://maps.google.com/maps?q=${encodeURIComponent(
                     `Everybody Eats ${
-                      LOCATION_ADDRESSES[shift.location as Location] ||
+                      locationAddresses[shift.location as Location] ||
                       shift.location
                     }`
                   )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
@@ -620,7 +622,7 @@ export default async function ShiftDetailPage({
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {(() => {
-                    const urls = generateCalendarUrls(shift);
+                    const urls = generateCalendarUrls(shift, locationAddresses);
                     return (
                       <>
                         <Button variant="outline" size="sm" className="gap-1.5" asChild>
@@ -676,6 +678,9 @@ export default async function ShiftDetailPage({
                   startDate: new Date(shift.start),
                   endDate: new Date(shift.end),
                   location: shift.location,
+                  locationAddress: shift.location
+                    ? locationAddresses[shift.location]
+                    : undefined,
                   capacity: shift.capacity,
                   spotsAvailable: spotsRemaining,
                 })

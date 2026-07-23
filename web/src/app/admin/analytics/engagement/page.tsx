@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { EngagementAnalyticsClient } from "./engagement-analytics-client";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 import { getEngagementSummary, getEngagementVolunteers, getEngagementByShiftType, getRetentionHeatmap } from "@/lib/engagement";
 import { parseDaysParam } from "@/lib/parse-days-param";
 
@@ -57,7 +57,7 @@ export default async function EngagementAnalyticsPage({
     getRetentionHeatmap(location, daysFilter),
   ]);
 
-  const locationOptions = LOCATIONS.map((loc) => ({
+  const locationOptions = (await getActiveLocationNames()).map((loc) => ({
     value: loc,
     label: loc,
   }));

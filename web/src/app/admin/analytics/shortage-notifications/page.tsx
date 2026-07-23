@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { ShortageNotificationsAnalyticsClient } from "./shortage-notifications-analytics-client";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 import {
   getShortageNotificationAnalytics,
   getShortageConverters,
@@ -38,7 +38,7 @@ export default async function ShortageNotificationsAnalyticsPage({
     getShortageConverters(monthsNum, location),
   ]);
 
-  const locationOptions = LOCATIONS.map((loc) => ({
+  const locationOptions = (await getActiveLocationNames()).map((loc) => ({
     value: loc,
     label: loc,
   }));

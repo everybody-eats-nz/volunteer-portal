@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { PageContainer } from "@/components/page-container";
 import { AnalyticsDashboard } from "./_components/analytics-dashboard";
-import { LOCATIONS } from "@/lib/locations";
+import { getActiveLocationNames } from "@/lib/locations";
 import { prisma } from "@/lib/prisma";
 import { getRestaurantAnalytics } from "@/lib/restaurant-analytics";
 import { getRestaurantReports } from "@/lib/restaurant-reports";
@@ -65,7 +65,10 @@ export default async function AnalyticsPage({
       select: { location: true },
     })
   ).map((l) => l.location);
-  const locationOptions = Array.from(new Set([...LOCATIONS, ...dataLocations]))
+  const activeLocationNames = await getActiveLocationNames();
+  const locationOptions = Array.from(
+    new Set([...activeLocationNames, ...dataLocations])
+  )
     .sort((a, b) => a.localeCompare(b))
     .map((loc) => ({ value: loc, label: loc }));
 
