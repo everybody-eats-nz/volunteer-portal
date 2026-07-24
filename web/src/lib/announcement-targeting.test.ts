@@ -62,6 +62,28 @@ describe("announcement-targeting", () => {
       expect(t.targetActivityTo).toBeNull();
     });
 
+    it("rejects well-formed but impossible dates instead of rolling them over", () => {
+      // The date constructor happily turns these into real dates in a later
+      // month. Accepting that would silently shift a window bound.
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2026-13-99",
+        targetActivityTo: "2026-02-31",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).toBeNull();
+      expect(t.targetActivityTo).toBeNull();
+    });
+
+    it("keeps a real leap day", () => {
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2028-02-29",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).not.toBeNull();
+    });
+
     it("clamps the minimum shift count into a sane range", () => {
       expect(
         parseTargetingFromRequest({ targetActivityMinShifts: 0 })
