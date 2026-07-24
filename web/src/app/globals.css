@@ -507,3 +507,64 @@ h6 em,
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Admin announcements: compact markdown inside the phone-feed preview ── */
+.preview-markdown p {
+  margin: 0 0 0.35em;
+}
+.preview-markdown p:last-child {
+  margin-bottom: 0;
+}
+.preview-markdown strong {
+  color: inherit;
+  font-weight: 700;
+}
+.preview-markdown a {
+  color: #1d5337;
+  text-decoration: underline;
+}
+.dark .preview-markdown a {
+  color: #86d99b;
+}
+.preview-markdown ul,
+.preview-markdown ol {
+  margin: 0.2em 0 0.35em;
+  padding-left: 1.1em;
+}
+.preview-markdown ul {
+  list-style: disc;
+}
+.preview-markdown ol {
+  list-style: decimal;
+}
+.preview-markdown li {
+  margin: 0.1em 0;
+}
+.preview-markdown h1,
+.preview-markdown h2,
+.preview-markdown h3,
+.preview-markdown h4 {
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: 700;
+  margin: 0.4em 0 0.15em;
+  letter-spacing: 0;
+}
+.preview-markdown blockquote {
+  border-left: 2px solid rgb(29 83 55 / 0.3);
+  margin: 0.3em 0;
+  padding-left: 0.6em;
+}
+.preview-markdown code {
+  font-size: 0.9em;
+  background: rgb(20 24 28 / 0.06);
+  border-radius: 3px;
+  padding: 0 0.25em;
+}
+.dark .preview-markdown code {
+  background: rgb(255 255 255 / 0.08);
+}
+.preview-markdown img {
+  border-radius: 6px;
+  max-width: 100%;
+}

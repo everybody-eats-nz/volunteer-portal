@@ -39,6 +39,9 @@ export interface AnnouncementTargeting {
   targetActivityTo: Date | null;
   /** Minimum matching shifts. Null switches the whole dimension off. */
   targetActivityMinShifts: number | null;
+  /** Maximum matching shifts, e.g. 1 to reach first-shift volunteers only.
+   *  Null = no upper bound. Ignored while the dimension is off. */
+  targetActivityMaxShifts: number | null;
 }
 
 /** Pluck the targeting fields out of an Announcement row. */
@@ -55,6 +58,7 @@ export function targetingFromAnnouncement(
     targetActivityFrom: ann.targetActivityFrom,
     targetActivityTo: ann.targetActivityTo,
     targetActivityMinShifts: ann.targetActivityMinShifts,
+    targetActivityMaxShifts: ann.targetActivityMaxShifts,
   };
 }
 
@@ -65,6 +69,7 @@ export type ActivityTargeting = Pick<
   | "targetActivityFrom"
   | "targetActivityTo"
   | "targetActivityMinShifts"
+  | "targetActivityMaxShifts"
 >;
 
 /** Is the shift-history dimension switched on for this targeting? */
@@ -109,7 +114,14 @@ export function userMatchesActivityTargeting(
     return true;
   });
 
-  return matching.length >= (t.targetActivityMinShifts ?? 1);
+  if (matching.length < (t.targetActivityMinShifts ?? 1)) return false;
+  if (
+    t.targetActivityMaxShifts !== null &&
+    matching.length > t.targetActivityMaxShifts
+  ) {
+    return false;
+  }
+  return true;
 }
 
 const MAX_ACTIVITY_MIN_SHIFTS = 999;
@@ -129,11 +141,20 @@ export function parseTargetingFromRequest(
   const stringArray = (value: unknown): string[] =>
     Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 
-  const rawMinShifts = body.targetActivityMinShifts;
-  const minShifts =
-    typeof rawMinShifts === "number" && Number.isFinite(rawMinShifts)
-      ? Math.min(Math.max(Math.trunc(rawMinShifts), 1), MAX_ACTIVITY_MIN_SHIFTS)
+  const clampShiftCount = (value: unknown): number | null =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.min(Math.max(Math.trunc(value), 1), MAX_ACTIVITY_MIN_SHIFTS)
       : null;
+
+  const minShifts = clampShiftCount(body.targetActivityMinShifts);
+  // The max only exists while the dimension is on (min set), and can never
+  // sit below the min — a crossed range would silently match no one.
+  const rawMaxShifts =
+    minShifts !== null
+      ? clampShiftCount(body.targetActivityMaxShifts)
+      : null;
+  const maxShifts =
+    rawMaxShifts !== null ? Math.max(rawMaxShifts, minShifts!) : null;
 
   return {
     targetLocations: stringArray(body.targetLocations),
@@ -145,6 +166,7 @@ export function parseTargetingFromRequest(
     targetActivityFrom: parseActivityDate(body.targetActivityFrom, "start"),
     targetActivityTo: parseActivityDate(body.targetActivityTo, "end"),
     targetActivityMinShifts: minShifts,
+    targetActivityMaxShifts: maxShifts,
   };
 }
 
@@ -290,25 +312,31 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
       activityFilters.push(Prisma.sql`"Shift"."end" <= ${t.targetActivityTo}`);
     }
 
-    // Both branches are correlated subqueries evaluated per candidate user, so
-    // they lean on Signup(userId, …) to keep the per-user set small. The "at
-    // least one shift" case is by far the common one, and EXISTS lets Postgres
-    // stop at the first matching row instead of counting every shift the
-    // volunteer ever worked.
+    const workedShiftCount = Prisma.sql`(
+            SELECT COUNT(DISTINCT "Signup"."shiftId")
+            FROM "Signup"
+            JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
+            WHERE ${Prisma.join(activityFilters, " AND ")}
+          )`;
+
+    // All three branches are correlated subqueries evaluated per candidate
+    // user, so they lean on Signup(userId, …) to keep the per-user set small.
+    // "At least one shift, no upper bound" is by far the common case, and
+    // EXISTS lets Postgres stop at the first matching row instead of counting
+    // every shift the volunteer ever worked. An upper bound rules EXISTS out:
+    // "worked exactly 1 shift" has to reject someone with two, which means
+    // actually counting them.
     conditions.push(
-      t.targetActivityMinShifts === 1
-        ? Prisma.sql`EXISTS (
+      t.targetActivityMaxShifts !== null
+        ? Prisma.sql`${workedShiftCount} BETWEEN ${t.targetActivityMinShifts} AND ${t.targetActivityMaxShifts}`
+        : t.targetActivityMinShifts === 1
+          ? Prisma.sql`EXISTS (
             SELECT 1
             FROM "Signup"
             JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
             WHERE ${Prisma.join(activityFilters, " AND ")}
           )`
-        : Prisma.sql`(
-            SELECT COUNT(DISTINCT "Signup"."shiftId")
-            FROM "Signup"
-            JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
-            WHERE ${Prisma.join(activityFilters, " AND ")}
-          ) >= ${t.targetActivityMinShifts}`
+          : Prisma.sql`${workedShiftCount} >= ${t.targetActivityMinShifts}`
     );
   }
 

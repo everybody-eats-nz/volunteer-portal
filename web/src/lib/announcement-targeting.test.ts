@@ -31,6 +31,7 @@ const emptyTargeting: AnnouncementTargeting = {
   targetActivityFrom: null,
   targetActivityTo: null,
   targetActivityMinShifts: null,
+  targetActivityMaxShifts: null,
 };
 
 /** Shorthand for building activity targeting in the tests below. */
@@ -40,6 +41,7 @@ function activity(overrides: Partial<ActivityTargeting> = {}): ActivityTargeting
     targetActivityFrom: null,
     targetActivityTo: null,
     targetActivityMinShifts: 1,
+    targetActivityMaxShifts: null,
     ...overrides,
   };
 }
@@ -173,6 +175,35 @@ describe("announcement-targeting", () => {
       ).toBe(2);
     });
 
+    it("drops the maximum when the dimension is off", () => {
+      const t = parseTargetingFromRequest({ targetActivityMaxShifts: 3 });
+
+      expect(t.targetActivityMinShifts).toBeNull();
+      expect(t.targetActivityMaxShifts).toBeNull();
+    });
+
+    it("clamps the maximum shift count and never lets it cross the minimum", () => {
+      expect(
+        parseTargetingFromRequest({
+          targetActivityMinShifts: 1,
+          targetActivityMaxShifts: 10_000,
+        }).targetActivityMaxShifts
+      ).toBe(999);
+      // A max below the min would silently match no one — raise it instead.
+      expect(
+        parseTargetingFromRequest({
+          targetActivityMinShifts: 5,
+          targetActivityMaxShifts: 2,
+        }).targetActivityMaxShifts
+      ).toBe(5);
+      expect(
+        parseTargetingFromRequest({
+          targetActivityMinShifts: 1,
+          targetActivityMaxShifts: "loads",
+        }).targetActivityMaxShifts
+      ).toBeNull();
+    });
+
     it("ignores non-string entries in the targeting arrays", () => {
       const t = parseTargetingFromRequest({
         targetLocations: ["Onehunga", 42, null],
@@ -259,6 +290,38 @@ describe("announcement-targeting", () => {
         userMatchesActivityTargeting([onehungaJune, onehungaApril], target)
       ).toBe(true);
     });
+
+    it("excludes volunteers over the maximum", () => {
+      const firstShiftOnly = activity({
+        targetActivityMinShifts: 1,
+        targetActivityMaxShifts: 1,
+      });
+
+      expect(userMatchesActivityTargeting([], firstShiftOnly)).toBe(false);
+      expect(
+        userMatchesActivityTargeting([onehungaJune], firstShiftOnly)
+      ).toBe(true);
+      expect(
+        userMatchesActivityTargeting(
+          [onehungaJune, onehungaApril],
+          firstShiftOnly
+        )
+      ).toBe(false);
+    });
+
+    it("counts only matching shifts against the maximum", () => {
+      // Two shifts overall, but only one at the targeted location — still
+      // inside a max of 1.
+      expect(
+        userMatchesActivityTargeting(
+          [onehungaJune, wellingtonJune],
+          activity({
+            targetActivityLocations: ["Onehunga"],
+            targetActivityMaxShifts: 1,
+          })
+        )
+      ).toBe(true);
+    });
   });
 
   describe("archived volunteers", () => {
@@ -307,6 +370,52 @@ describe("announcement-targeting", () => {
       // is still filtered out.
       expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
       expect(sql).toContain(`"volunteerGrade"::text = ANY(`);
+    });
+  });
+
+  describe("shift-history shift-count SQL", () => {
+    it("uses EXISTS for the common at-least-one-shift case", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 1,
+      });
+      expect(lastSql()).toContain("EXISTS (");
+      expect(lastSql()).not.toContain("COUNT(DISTINCT");
+    });
+
+    it("counts when the minimum is above one", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 3,
+      });
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).toContain("COUNT(DISTINCT");
+      expect(lastValues()).toContain(3);
+    });
+
+    it("counts rather than short-circuiting once a maximum is set", async () => {
+      // EXISTS would be wrong here: "worked exactly 1 shift" has to reject a
+      // volunteer with two, and EXISTS stops at the first match.
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 1,
+        targetActivityMaxShifts: 1,
+      });
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).not.toContain("EXISTS ( SELECT 1 FROM \"Signup\" JOIN \"Shift\"");
+      expect(sql).toContain("COUNT(DISTINCT");
+      expect(sql).toContain("BETWEEN");
+      expect(lastValues()).toEqual(expect.arrayContaining([1, 1]));
+    });
+
+    it("bounds the count from both ends for a range", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 2,
+        targetActivityMaxShifts: 5,
+      });
+      expect(lastSql().replace(/\s+/g, " ")).toContain("BETWEEN");
+      expect(lastValues()).toEqual(expect.arrayContaining([2, 5]));
     });
   });
 });
