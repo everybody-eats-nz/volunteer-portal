@@ -1,3 +1,9 @@
+## [0.150.0] - 2026-07-24
+
+### Changes
+- feat(announcements): redesign admin console with live feed preview ([#1157](https://github.com/everybody-eats-nz/volunteer-portal/pull/1157)) by @malinmalliyawadu
+
+
 ## [0.149.2] - 2026-07-24
 
 ### Changes
