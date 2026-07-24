@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { format } from "date-fns";
+import { format, subMonths } from "date-fns";
 import {
   Plus,
   Trash2,
@@ -79,6 +79,10 @@ type Announcement = {
   targetLabelIds: string[];
   targetUserIds: string[];
   targetShiftIds: string[];
+  targetActivityLocations: string[];
+  targetActivityFrom: string | null;
+  targetActivityTo: string | null;
+  targetActivityMinShifts: number | null;
   sendEmail: boolean;
   emailSentAt: string | null;
   sendNotification: boolean;
@@ -119,6 +123,48 @@ interface AnnouncementsContentProps {
   initialAnnouncements: Announcement[];
   labels: Label[];
   locations: string[];
+}
+
+/** Quick date ranges for shift-history targeting, newest window first. */
+const ACTIVITY_RANGE_PRESETS = [
+  { months: 3, label: "Last 3 months" },
+  { months: 6, label: "Last 6 months" },
+  { months: 12, label: "Last 12 months" },
+];
+
+/**
+ * Plain-English summary of an announcement's shift-history targeting, e.g.
+ * "worked 1+ shift at Onehunga since 24 Apr 2026". Returns null when the
+ * dimension is off.
+ */
+function describeActivityTargeting(ann: {
+  targetActivityLocations: string[];
+  targetActivityFrom: string | null;
+  targetActivityTo: string | null;
+  targetActivityMinShifts: number | null;
+}): string | null {
+  const min = ann.targetActivityMinShifts;
+  if (min === null) return null;
+
+  const where =
+    ann.targetActivityLocations.length > 0
+      ? ` at ${ann.targetActivityLocations.join(", ")}`
+      : "";
+  const from = ann.targetActivityFrom
+    ? format(new Date(ann.targetActivityFrom), "d MMM yyyy")
+    : null;
+  const to = ann.targetActivityTo
+    ? format(new Date(ann.targetActivityTo), "d MMM yyyy")
+    : null;
+  const when = from
+    ? to
+      ? ` between ${from} and ${to}`
+      : ` since ${from}`
+    : to
+      ? ` up to ${to}`
+      : "";
+
+  return `worked ${min}+ shift${min === 1 ? "" : "s"}${where}${when}`;
 }
 
 function parseCsv(value: string | null): string[] {
@@ -173,6 +219,13 @@ export function AnnouncementsContent({
   const [targetLabelIds, setTargetLabelIds] = useState<string[]>([]);
   const [targetUsers, setTargetUsers] = useState<UserOption[]>([]);
   const [targetShifts, setTargetShifts] = useState<ShiftOption[]>([]);
+  // Shift-history targeting. Off until the admin opts in, so the form keeps
+  // behaving exactly as before for everyone who doesn't need it.
+  const [activityEnabled, setActivityEnabled] = useState(false);
+  const [activityLocations, setActivityLocations] = useState<string[]>([]);
+  const [activityFrom, setActivityFrom] = useState(""); // yyyy-MM-dd
+  const [activityTo, setActivityTo] = useState("");
+  const [activityMinShifts, setActivityMinShifts] = useState(1);
   const [sendEmail, setSendEmail] = useState(false);
   const [sendNotification, setSendNotification] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -190,6 +243,35 @@ export function AnnouncementsContent({
   const targetShiftIds = useMemo(() => targetShifts.map((s) => s.id), [
     targetShifts,
   ]);
+
+  // Every targeting dimension in one object — the same shape the recipient
+  // count preview and the create request both send, so the number the admin
+  // sees always describes the audience they're about to publish to.
+  const targeting = useMemo(
+    () => ({
+      targetLocations,
+      targetGrades,
+      targetLabelIds,
+      targetUserIds,
+      targetShiftIds,
+      targetActivityLocations: activityEnabled ? activityLocations : [],
+      targetActivityFrom: activityEnabled ? activityFrom || null : null,
+      targetActivityTo: activityEnabled ? activityTo || null : null,
+      targetActivityMinShifts: activityEnabled ? activityMinShifts : null,
+    }),
+    [
+      targetLocations,
+      targetGrades,
+      targetLabelIds,
+      targetUserIds,
+      targetShiftIds,
+      activityEnabled,
+      activityLocations,
+      activityFrom,
+      activityTo,
+      activityMinShifts,
+    ]
+  );
 
   // Sync form state from the query string whenever it changes. The effect
   // re-runs only when `prefillSignature` changes, which means subsequent
@@ -272,6 +354,11 @@ export function AnnouncementsContent({
     setTargetLabelIds([]);
     setTargetUsers([]);
     setTargetShifts([]);
+    setActivityEnabled(false);
+    setActivityLocations([]);
+    setActivityFrom("");
+    setActivityTo("");
+    setActivityMinShifts(1);
     setSendEmail(false);
     setSendNotification(false);
     setPreviewMode(false);
@@ -285,13 +372,7 @@ export function AnnouncementsContent({
 
   // Debounced recipient count preview
   const updateRecipientPreview = useCallback(
-    (
-      locs: string[],
-      grades: string[],
-      labelIds: string[],
-      userIds: string[],
-      shiftIds: string[]
-    ) => {
+    (currentTargeting: typeof targeting) => {
       if (recipientDebounceRef.current) {
         clearTimeout(recipientDebounceRef.current);
       }
@@ -303,13 +384,7 @@ export function AnnouncementsContent({
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                targetLocations: locs,
-                targetGrades: grades,
-                targetLabelIds: labelIds,
-                targetUserIds: userIds,
-                targetShiftIds: shiftIds,
-              }),
+              body: JSON.stringify(currentTargeting),
             }
           );
           if (response.ok) {
@@ -326,24 +401,10 @@ export function AnnouncementsContent({
     []
   );
 
-  // Recompute the preview whenever any targeting dimension changes, including
-  // user/shift selections (which are object lists, not just id arrays).
+  // Recompute the preview whenever any targeting dimension changes.
   useEffect(() => {
-    updateRecipientPreview(
-      targetLocations,
-      targetGrades,
-      targetLabelIds,
-      targetUserIds,
-      targetShiftIds
-    );
-  }, [
-    targetLocations,
-    targetGrades,
-    targetLabelIds,
-    targetUserIds,
-    targetShiftIds,
-    updateRecipientPreview,
-  ]);
+    updateRecipientPreview(targeting);
+  }, [targeting, updateRecipientPreview]);
 
   const handleLocationToggle = (loc: string) => {
     setTargetLocations((prev) =>
@@ -354,6 +415,12 @@ export function AnnouncementsContent({
   const handleGradeToggle = (grade: string) => {
     setTargetGrades((prev) =>
       prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]
+    );
+  };
+
+  const handleActivityLocationToggle = (loc: string) => {
+    setActivityLocations((prev) =>
+      prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc]
     );
   };
 
@@ -410,11 +477,7 @@ export function AnnouncementsContent({
           body: body.trim(),
           imageUrl,
           expiresAt: expiresAt || null,
-          targetLocations,
-          targetGrades,
-          targetLabelIds,
-          targetUserIds,
-          targetShiftIds,
+          ...targeting,
           sendEmail,
           sendNotification,
         }),
@@ -503,6 +566,10 @@ export function AnnouncementsContent({
       parts.push(
         `${ann.targetShiftIds.length} specific shift${ann.targetShiftIds.length === 1 ? "" : "s"}`
       );
+    }
+    const activity = describeActivityTargeting(ann);
+    if (activity) {
+      parts.push(activity);
     }
     return parts.length > 0 ? parts.join(" · ") : "All volunteers";
   };
@@ -708,8 +775,187 @@ export function AnnouncementsContent({
                         </label>
                       ))}
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Matches the locations on a volunteer&apos;s profile,
+                      including people who have never worked a shift there. To
+                      reach volunteers who actually turned up, use Shift
+                      History.
+                    </p>
                   </div>
                 )}
+
+                {/* Shift history */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Shift History
+                  </Label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={activityEnabled}
+                      onCheckedChange={(checked) =>
+                        setActivityEnabled(checked === true)
+                      }
+                      className="mt-0.5"
+                      data-testid="announcement-activity-toggle"
+                    />
+                    <div>
+                      <span className="text-sm">
+                        Only volunteers who have worked a shift
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        Counts shifts they were confirmed on that have already
+                        finished.
+                      </p>
+                    </div>
+                  </label>
+
+                  {activityEnabled && (
+                    <div
+                      className="space-y-4 rounded-md border bg-background p-3"
+                      data-testid="announcement-activity-filters"
+                    >
+                      {locations.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">
+                            Worked at
+                          </Label>
+                          <div className="flex flex-wrap gap-2">
+                            {locations.map((loc) => (
+                              <label
+                                key={loc}
+                                className="flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Checkbox
+                                  checked={activityLocations.includes(loc)}
+                                  onCheckedChange={() =>
+                                    handleActivityLocationToggle(loc)
+                                  }
+                                  data-testid={`announcement-activity-location-${loc}`}
+                                />
+                                <span className="text-sm">{loc}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Leave empty to count shifts at any location.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">
+                          Shift finished between
+                        </Label>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="activity-from"
+                              className="text-xs text-muted-foreground"
+                            >
+                              From
+                            </Label>
+                            <Input
+                              id="activity-from"
+                              type="date"
+                              value={activityFrom}
+                              max={activityTo || undefined}
+                              onChange={(e) => setActivityFrom(e.target.value)}
+                              className="h-9 w-[10.5rem]"
+                              data-testid="announcement-activity-from"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label
+                              htmlFor="activity-to"
+                              className="text-xs text-muted-foreground"
+                            >
+                              To
+                            </Label>
+                            <Input
+                              id="activity-to"
+                              type="date"
+                              value={activityTo}
+                              min={activityFrom || undefined}
+                              onChange={(e) => setActivityTo(e.target.value)}
+                              className="h-9 w-[10.5rem]"
+                              data-testid="announcement-activity-to"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {ACTIVITY_RANGE_PRESETS.map((preset) => {
+                            const presetFrom = format(
+                              subMonths(new Date(), preset.months),
+                              "yyyy-MM-dd"
+                            );
+                            const isActive =
+                              activityFrom === presetFrom && activityTo === "";
+                            return (
+                              <Button
+                                key={preset.months}
+                                type="button"
+                                variant={isActive ? "default" : "outline"}
+                                size="sm"
+                                aria-pressed={isActive}
+                                className="h-7 text-xs"
+                                onClick={() => {
+                                  setActivityFrom(presetFrom);
+                                  setActivityTo("");
+                                }}
+                                data-testid={`announcement-activity-preset-${preset.months}`}
+                              >
+                                {preset.label}
+                              </Button>
+                            );
+                          })}
+                          {(activityFrom || activityTo) && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                setActivityFrom("");
+                                setActivityTo("");
+                              }}
+                            >
+                              Clear dates
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Leave both empty to count shifts from any time.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="activity-min-shifts"
+                          className="text-xs font-medium"
+                        >
+                          Minimum shifts
+                        </Label>
+                        <Input
+                          id="activity-min-shifts"
+                          type="number"
+                          min={1}
+                          max={999}
+                          value={activityMinShifts}
+                          onChange={(e) => {
+                            const next = parseInt(e.target.value, 10);
+                            setActivityMinShifts(
+                              Number.isNaN(next)
+                                ? 1
+                                : Math.min(Math.max(next, 1), 999)
+                            );
+                          }}
+                          className="h-9 w-24"
+                          data-testid="announcement-activity-min-shifts"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Grades */}
                 <div className="space-y-2">

@@ -1,5 +1,6 @@
 import { Prisma, SignupStatus } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
+import { createNZDate } from "@/lib/timezone";
 
 /**
  * Statuses that count as "currently signed up to a shift" for announcement
@@ -14,12 +15,30 @@ export const ANNOUNCEMENT_SHIFT_TARGET_STATUSES: readonly SignupStatus[] = [
   "NO_SHOW",
 ] as const;
 
+/**
+ * Statuses that count as "actually worked this shift" for shift-history
+ * targeting. Deliberately narrower than the set above: a waitlisted or
+ * no-show volunteer never worked the shift, so they don't belong in a
+ * "volunteers who worked at Onehunga recently" audience.
+ */
+export const ANNOUNCEMENT_ACTIVITY_STATUSES: readonly SignupStatus[] = [
+  "CONFIRMED",
+] as const;
+
 export interface AnnouncementTargeting {
   targetLocations: string[];
   targetGrades: string[];
   targetLabelIds: string[];
   targetUserIds: string[];
   targetShiftIds: string[];
+  /** Shift locations to count activity at. Empty = any location. */
+  targetActivityLocations: string[];
+  /** Only count shifts that ended on/after this. Null = no lower bound. */
+  targetActivityFrom: Date | null;
+  /** Only count shifts that ended on/before this. Null = no upper bound. */
+  targetActivityTo: Date | null;
+  /** Minimum matching shifts. Null switches the whole dimension off. */
+  targetActivityMinShifts: number | null;
 }
 
 /** Pluck the targeting fields out of an Announcement row. */
@@ -32,7 +51,117 @@ export function targetingFromAnnouncement(
     targetLabelIds: ann.targetLabelIds,
     targetUserIds: ann.targetUserIds,
     targetShiftIds: ann.targetShiftIds,
+    targetActivityLocations: ann.targetActivityLocations,
+    targetActivityFrom: ann.targetActivityFrom,
+    targetActivityTo: ann.targetActivityTo,
+    targetActivityMinShifts: ann.targetActivityMinShifts,
   };
+}
+
+/** Just the shift-history dimension, for callers that don't have the rest. */
+export type ActivityTargeting = Pick<
+  AnnouncementTargeting,
+  | "targetActivityLocations"
+  | "targetActivityFrom"
+  | "targetActivityTo"
+  | "targetActivityMinShifts"
+>;
+
+/** Is the shift-history dimension switched on for this targeting? */
+export function hasActivityTargeting(t: {
+  targetActivityMinShifts: number | null;
+}): boolean {
+  return t.targetActivityMinShifts !== null && t.targetActivityMinShifts >= 1;
+}
+
+/** A shift the volunteer worked — a confirmed signup on a finished shift. */
+export interface WorkedShift {
+  location: string | null;
+  end: Date;
+}
+
+/**
+ * In-memory twin of the shift-history SQL condition, for the mobile feed —
+ * which loads announcements for one known user and filters them in app code.
+ * Keep this in step with the `hasActivityTargeting` branch of
+ * `buildRecipientConditions`, or the feed will show a volunteer an
+ * announcement they were never emailed (or hide one they were).
+ *
+ * `workedShifts` must already be limited to shifts the user actually worked;
+ * this only applies the announcement's own location and date narrowing.
+ */
+export function userMatchesActivityTargeting(
+  workedShifts: WorkedShift[],
+  t: ActivityTargeting
+): boolean {
+  if (!hasActivityTargeting(t)) return true;
+
+  const matching = workedShifts.filter((shift) => {
+    if (
+      t.targetActivityLocations.length > 0 &&
+      (shift.location === null ||
+        !t.targetActivityLocations.includes(shift.location))
+    ) {
+      return false;
+    }
+    if (t.targetActivityFrom && shift.end < t.targetActivityFrom) return false;
+    if (t.targetActivityTo && shift.end > t.targetActivityTo) return false;
+    return true;
+  });
+
+  return matching.length >= (t.targetActivityMinShifts ?? 1);
+}
+
+const MAX_ACTIVITY_MIN_SHIFTS = 999;
+
+/**
+ * Coerce an untrusted request body into targeting. Shared by the create and
+ * recipient-count routes so the preview count can't drift from what actually
+ * gets sent.
+ *
+ * Activity dates arrive as `YYYY-MM-DD` from the admin form and are anchored
+ * to NZ calendar days — "from" at midnight, "to" at the end of that day — so
+ * a range reads inclusively the way an admin picked it.
+ */
+export function parseTargetingFromRequest(
+  body: Record<string, unknown>
+): AnnouncementTargeting {
+  const stringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+
+  const rawMinShifts = body.targetActivityMinShifts;
+  const minShifts =
+    typeof rawMinShifts === "number" && Number.isFinite(rawMinShifts)
+      ? Math.min(Math.max(Math.trunc(rawMinShifts), 1), MAX_ACTIVITY_MIN_SHIFTS)
+      : null;
+
+  return {
+    targetLocations: stringArray(body.targetLocations),
+    targetGrades: stringArray(body.targetGrades),
+    targetLabelIds: stringArray(body.targetLabelIds),
+    targetUserIds: stringArray(body.targetUserIds),
+    targetShiftIds: stringArray(body.targetShiftIds),
+    targetActivityLocations: stringArray(body.targetActivityLocations),
+    targetActivityFrom: parseActivityDate(body.targetActivityFrom, "start"),
+    targetActivityTo: parseActivityDate(body.targetActivityTo, "end"),
+    targetActivityMinShifts: minShifts,
+  };
+}
+
+/**
+ * Turn a `YYYY-MM-DD` string from the date inputs into the UTC instant for the
+ * start or end of that NZ calendar day. Anything unparseable becomes null so a
+ * malformed date widens the window rather than throwing mid-send.
+ */
+function parseActivityDate(value: unknown, edge: "start" | "end"): Date | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+  const date =
+    edge === "start"
+      ? createNZDate(value, 0, 0, 0)
+      : createNZDate(value, 23, 59, 59);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /**
@@ -114,6 +243,39 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
         AND "shiftId" = ANY(ARRAY[${Prisma.join(t.targetShiftIds)}]::text[])
         AND "status"::text = ANY(ARRAY[${Prisma.join(ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s))}]::text[])
       )`
+    );
+  }
+
+  if (hasActivityTargeting(t)) {
+    // Shifts the volunteer actually worked: a confirmed signup on a shift that
+    // has already finished. The optional narrowing clauses all key off the
+    // shift's end time, so "between April and July" means shifts that finished
+    // in that window rather than ones that merely started in it.
+    const activityFilters: Prisma.Sql[] = [
+      Prisma.sql`"Signup"."userId" = "User".id`,
+      Prisma.sql`"Signup"."status"::text = ANY(ARRAY[${Prisma.join(ANNOUNCEMENT_ACTIVITY_STATUSES.map((s) => s))}]::text[])`,
+      Prisma.sql`"Shift"."end" < NOW()`,
+    ];
+
+    if (t.targetActivityLocations.length > 0) {
+      activityFilters.push(
+        Prisma.sql`"Shift"."location" = ANY(ARRAY[${Prisma.join(t.targetActivityLocations)}]::text[])`
+      );
+    }
+    if (t.targetActivityFrom) {
+      activityFilters.push(Prisma.sql`"Shift"."end" >= ${t.targetActivityFrom}`);
+    }
+    if (t.targetActivityTo) {
+      activityFilters.push(Prisma.sql`"Shift"."end" <= ${t.targetActivityTo}`);
+    }
+
+    conditions.push(
+      Prisma.sql`(
+        SELECT COUNT(DISTINCT "Signup"."shiftId")
+        FROM "Signup"
+        JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
+        WHERE ${Prisma.join(activityFilters, " AND ")}
+      ) >= ${t.targetActivityMinShifts}`
     );
   }
 

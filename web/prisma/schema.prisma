@@ -1023,6 +1023,14 @@ model Announcement {
   targetUserIds   String[] @default([]) // Specific User IDs
   targetShiftIds  String[] @default([]) // Users with non-cancelled signups on these shifts
 
+  // Shift-history targeting — volunteers who actually worked shifts matching
+  // these criteria. Dormant unless targetActivityMinShifts is set; the other
+  // three fields narrow the window (all optional, empty/null = no narrowing).
+  targetActivityLocations String[]  @default([]) // Shift locations worked at
+  targetActivityFrom      DateTime? // Shift must have ended on/after this
+  targetActivityTo        DateTime? // Shift must have ended on/before this
+  targetActivityMinShifts Int? // Minimum matching shifts; null = dimension off
+
   // Email
   sendEmail   Boolean   @default(false)
   emailSentAt DateTime?
