@@ -1,6 +1,6 @@
 import { Prisma, SignupStatus } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
-import { createNZDate } from "@/lib/timezone";
+import { createNZDate, formatInNZT } from "@/lib/timezone";
 
 /**
  * Statuses that count as "currently signed up to a shift" for announcement
@@ -152,6 +152,13 @@ export function parseTargetingFromRequest(
  * Turn a `YYYY-MM-DD` string from the date inputs into the UTC instant for the
  * start or end of that NZ calendar day. Anything unparseable becomes null so a
  * malformed date widens the window rather than throwing mid-send.
+ *
+ * An impossible-but-well-formed date (`2026-13-99`, `2026-02-31`) does not
+ * produce an invalid Date — the underlying constructor rolls the components
+ * over into a real date in a later month. Silently accepting that would move a
+ * window bound to a day nobody asked for and email the wrong audience, so the
+ * result is checked back against the string it came from. The date inputs
+ * can't produce these; a direct API call can.
  */
 function parseActivityDate(value: unknown, edge: "start" | "end"): Date | null {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -161,7 +168,17 @@ function parseActivityDate(value: unknown, edge: "start" | "end"): Date | null {
     edge === "start"
       ? createNZDate(value, 0, 0, 0)
       : createNZDate(value, 23, 59, 59);
-  return Number.isNaN(date.getTime()) ? null : date;
+
+  const roundTrips =
+    !Number.isNaN(date.getTime()) &&
+    formatInNZT(date, "yyyy-MM-dd") === value;
+  if (!roundTrips) {
+    console.warn(
+      `[announcement-targeting] ignoring unparseable activity ${edge} date: ${value}`
+    );
+    return null;
+  }
+  return date;
 }
 
 /**
@@ -258,6 +275,10 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
     ];
 
     if (t.targetActivityLocations.length > 0) {
+      // Shifts with no location drop out here without an explicit IS NOT NULL:
+      // `NULL = ANY(array)` evaluates to NULL, not true, so the row fails the
+      // WHERE. That matches userMatchesActivityTargeting, which excludes them
+      // outright.
       activityFilters.push(
         Prisma.sql`"Shift"."location" = ANY(ARRAY[${Prisma.join(t.targetActivityLocations)}]::text[])`
       );
@@ -269,13 +290,25 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
       activityFilters.push(Prisma.sql`"Shift"."end" <= ${t.targetActivityTo}`);
     }
 
+    // Both branches are correlated subqueries evaluated per candidate user, so
+    // they lean on Signup(userId, …) to keep the per-user set small. The "at
+    // least one shift" case is by far the common one, and EXISTS lets Postgres
+    // stop at the first matching row instead of counting every shift the
+    // volunteer ever worked.
     conditions.push(
-      Prisma.sql`(
-        SELECT COUNT(DISTINCT "Signup"."shiftId")
-        FROM "Signup"
-        JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
-        WHERE ${Prisma.join(activityFilters, " AND ")}
-      ) >= ${t.targetActivityMinShifts}`
+      t.targetActivityMinShifts === 1
+        ? Prisma.sql`EXISTS (
+            SELECT 1
+            FROM "Signup"
+            JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
+            WHERE ${Prisma.join(activityFilters, " AND ")}
+          )`
+        : Prisma.sql`(
+            SELECT COUNT(DISTINCT "Signup"."shiftId")
+            FROM "Signup"
+            JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
+            WHERE ${Prisma.join(activityFilters, " AND ")}
+          ) >= ${t.targetActivityMinShifts}`
     );
   }
 

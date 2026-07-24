@@ -106,6 +106,54 @@ describe("announcement-targeting", () => {
       expect(t.targetActivityTo).toBeNull();
     });
 
+    it("rejects well-formed but impossible dates instead of rolling them over", () => {
+      // The date constructor happily turns these into real dates in a later
+      // month. Accepting that would silently shift a window bound.
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2026-13-99",
+        targetActivityTo: "2026-02-31",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).toBeNull();
+      expect(t.targetActivityTo).toBeNull();
+    });
+
+    it("keeps a real leap day", () => {
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2028-02-29",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).not.toBeNull();
+    });
+
+    it("rejects a leap day in a non-leap year", () => {
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2027-02-29",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).toBeNull();
+    });
+
+    it("rejects a zero month or day", () => {
+      // The shape regex allows these; they roll backwards into the previous
+      // year rather than failing, so only the round-trip check catches them.
+      expect(
+        parseTargetingFromRequest({
+          targetActivityFrom: "2026-00-01",
+          targetActivityMinShifts: 1,
+        }).targetActivityFrom
+      ).toBeNull();
+      expect(
+        parseTargetingFromRequest({
+          targetActivityFrom: "2026-01-00",
+          targetActivityMinShifts: 1,
+        }).targetActivityFrom
+      ).toBeNull();
+    });
+
     it("clamps the minimum shift count into a sane range", () => {
       expect(
         parseTargetingFromRequest({ targetActivityMinShifts: 0 })
