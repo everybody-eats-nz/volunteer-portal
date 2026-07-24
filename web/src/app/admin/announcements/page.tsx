@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import { connection } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import { AnnouncementsContent } from "./announcements-content";
@@ -12,7 +14,8 @@ export const metadata: Metadata = {
 export default async function AnnouncementsPage() {
   await connection();
 
-  const [announcements, labels, locations] = await Promise.all([
+  const [session, announcements, labels, locations] = await Promise.all([
+    getServerSession(authOptions),
     prisma.announcement.findMany({
       include: {
         author: {
@@ -33,6 +36,17 @@ export default async function AnnouncementsPage() {
     }),
   ]);
 
+  // Shown as the author line in the live feed preview — same fallback chain
+  // the mobile feed API uses for real announcements.
+  const currentAdmin = session?.user?.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { firstName: true, name: true },
+      })
+    : null;
+  const authorName =
+    currentAdmin?.firstName ?? currentAdmin?.name ?? "Admin";
+
   return (
     <AdminPageWrapper
       title="Announcements"
@@ -50,6 +64,7 @@ export default async function AnnouncementsPage() {
         }))}
         labels={labels}
         locations={locations.map((l) => l.name)}
+        authorName={authorName}
       />
     </AdminPageWrapper>
   );

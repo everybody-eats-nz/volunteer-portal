@@ -66,7 +66,7 @@ export async function GET() {
  *   targetLocations?, targetGrades?, targetLabelIds?,
  *   targetUserIds?, targetShiftIds?,
  *   targetActivityLocations?, targetActivityFrom?, targetActivityTo?,
- *   targetActivityMinShifts?,
+ *   targetActivityMinShifts?, targetActivityMaxShifts?,
  *   sendEmail?, sendNotification?
  * }
  */

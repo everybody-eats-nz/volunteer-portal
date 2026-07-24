@@ -1030,6 +1030,7 @@ model Announcement {
   targetActivityFrom      DateTime? // Shift must have ended on/after this
   targetActivityTo        DateTime? // Shift must have ended on/before this
   targetActivityMinShifts Int? // Minimum matching shifts; null = dimension off
+  targetActivityMaxShifts Int? // Maximum matching shifts; null = no upper bound
 
   // Email
   sendEmail   Boolean   @default(false)

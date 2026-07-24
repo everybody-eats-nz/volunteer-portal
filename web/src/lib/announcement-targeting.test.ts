@@ -13,6 +13,7 @@ function activity(overrides: Partial<ActivityTargeting> = {}): ActivityTargeting
     targetActivityFrom: null,
     targetActivityTo: null,
     targetActivityMinShifts: 1,
+    targetActivityMaxShifts: null,
     ...overrides,
   };
 }
@@ -79,6 +80,35 @@ describe("announcement-targeting", () => {
         parseTargetingFromRequest({ targetActivityMinShifts: 2.7 })
           .targetActivityMinShifts
       ).toBe(2);
+    });
+
+    it("drops the maximum when the dimension is off", () => {
+      const t = parseTargetingFromRequest({ targetActivityMaxShifts: 3 });
+
+      expect(t.targetActivityMinShifts).toBeNull();
+      expect(t.targetActivityMaxShifts).toBeNull();
+    });
+
+    it("clamps the maximum shift count and never lets it cross the minimum", () => {
+      expect(
+        parseTargetingFromRequest({
+          targetActivityMinShifts: 1,
+          targetActivityMaxShifts: 10_000,
+        }).targetActivityMaxShifts
+      ).toBe(999);
+      // A max below the min would silently match no one — raise it instead.
+      expect(
+        parseTargetingFromRequest({
+          targetActivityMinShifts: 5,
+          targetActivityMaxShifts: 2,
+        }).targetActivityMaxShifts
+      ).toBe(5);
+      expect(
+        parseTargetingFromRequest({
+          targetActivityMinShifts: 1,
+          targetActivityMaxShifts: "loads",
+        }).targetActivityMaxShifts
+      ).toBeNull();
     });
 
     it("ignores non-string entries in the targeting arrays", () => {
@@ -165,6 +195,38 @@ describe("announcement-targeting", () => {
       ).toBe(false);
       expect(
         userMatchesActivityTargeting([onehungaJune, onehungaApril], target)
+      ).toBe(true);
+    });
+
+    it("excludes volunteers over the maximum", () => {
+      const firstShiftOnly = activity({
+        targetActivityMinShifts: 1,
+        targetActivityMaxShifts: 1,
+      });
+
+      expect(userMatchesActivityTargeting([], firstShiftOnly)).toBe(false);
+      expect(
+        userMatchesActivityTargeting([onehungaJune], firstShiftOnly)
+      ).toBe(true);
+      expect(
+        userMatchesActivityTargeting(
+          [onehungaJune, onehungaApril],
+          firstShiftOnly
+        )
+      ).toBe(false);
+    });
+
+    it("counts only matching shifts against the maximum", () => {
+      // Two shifts overall, but only one at the targeted location — still
+      // inside a max of 1.
+      expect(
+        userMatchesActivityTargeting(
+          [onehungaJune, wellingtonJune],
+          activity({
+            targetActivityLocations: ["Onehunga"],
+            targetActivityMaxShifts: 1,
+          })
+        )
       ).toBe(true);
     });
   });
