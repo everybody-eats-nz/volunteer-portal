@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { addDays, format } from "date-fns";
+import { addDays, format, startOfDay } from "date-fns";
 import { motion } from "motion/react";
 import {
   Bell,
@@ -55,6 +55,7 @@ import {
 import { FeedPreview } from "./feed-preview";
 import {
   audienceConditions,
+  isExpiryInPast,
   type Announcement,
   type LabelOption,
   type ShiftOption,
@@ -80,6 +81,15 @@ interface ComposerProps {
   onPublished: (announcement: Announcement) => void;
   onClose: () => void;
 }
+
+/** Mirrors the limits enforced by /api/admin/announcements/upload-image. */
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
 
 const EXPIRY_PRESETS = [
   { days: 7, label: "1 week" },
@@ -205,7 +215,11 @@ export function Composer({
 
   const isDirty =
     title.trim() !== "" || body.trim() !== "" || imageUrl !== null;
-  const canPublish = title.trim() !== "" && body.trim() !== "";
+  // The calendar rules out past days, but the time input can still land
+  // earlier today — an expiry in the past publishes straight into the archive.
+  const expiryInPast = isExpiryInPast(expiresAt);
+  const canPublish =
+    title.trim() !== "" && body.trim() !== "" && !expiryInPast;
 
   const requestClose = () => {
     if (isDirty) setConfirmDiscard(true);
@@ -213,6 +227,17 @@ export function Composer({
   };
 
   const handleImageUpload = async (file: File) => {
+    // The upload route enforces these too, but checking here means a 50MB
+    // drop fails instantly instead of after uploading the whole thing. The
+    // file input's `accept` doesn't cover drag-and-drop.
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Image must be a JPEG, PNG, WebP or GIF");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
     setIsUploadingImage(true);
     try {
       const fd = new FormData();
@@ -237,6 +262,10 @@ export function Composer({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isExpiryInPast(expiresAt)) {
+      toast.error("Expiry must be in the future");
+      return;
+    }
     if (!canPublish) {
       toast.error("Title and message are required");
       return;
@@ -404,6 +433,15 @@ export function Composer({
               hint="How long it stays in the feed."
             >
               <ExpiryPicker value={expiresAt} onChange={setExpiresAt} />
+              {expiryInPast && (
+                <p
+                  className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400"
+                  data-testid="announcement-expiry-past-warning"
+                >
+                  That expiry has already passed — the announcement would never
+                  appear in the feed. Pick a later time.
+                </p>
+              )}
             </Section>
 
             <Section
@@ -531,7 +569,9 @@ export function Composer({
               </Button>
               {!canPublish && (
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                  Add a title and a message to publish.
+                  {expiryInPast
+                    ? "Pick an expiry in the future to publish."
+                    : "Add a title and a message to publish."}
                 </p>
               )}
               <Button
@@ -781,6 +821,10 @@ function ExpiryDateTimePicker({
             mode="single"
             selected={dateValue}
             onSelect={setDate}
+            // An expiry in the past would publish an announcement that is
+            // already hidden from the feed. Today stays selectable — the time
+            // input can still put it later this evening.
+            disabled={{ before: startOfDay(new Date()) }}
             autoFocus
           />
         </PopoverContent>
@@ -805,8 +849,8 @@ function ExpiryDateTimePicker({
 
 type RecipientPreview = {
   id: string;
-  name: string | null;
-  firstName: string | null;
+  /** Resolved server-side so the list's sort order matches what's rendered. */
+  displayName: string;
   email: string;
 };
 
@@ -916,7 +960,7 @@ function RecipientListToggle({
                     className="block px-3 py-1.5 transition-colors hover:bg-cream-50/70 dark:hover:bg-white/[0.03]"
                   >
                     <span className="block truncate text-xs font-medium">
-                      {r.name ?? r.firstName ?? r.email}
+                      {r.displayName}
                     </span>
                     <span className="block truncate text-[11px] text-muted-foreground">
                       {r.email}

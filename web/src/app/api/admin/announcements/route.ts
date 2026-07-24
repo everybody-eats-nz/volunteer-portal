@@ -111,6 +111,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
+  // An unparseable expiry would reach Prisma as an Invalid Date and fail the
+  // insert with an opaque error; a past one would publish an announcement that
+  // is already hidden from the feed. Reject both with something an admin can
+  // act on.
+  let expiresAtDate: Date | null = null;
+  if (expiresAt) {
+    const parsed = new Date(expiresAt);
+    if (Number.isNaN(parsed.getTime())) {
+      return NextResponse.json(
+        { error: "Expiry date is not a valid date" },
+        { status: 400 }
+      );
+    }
+    if (parsed.getTime() <= Date.now()) {
+      return NextResponse.json(
+        { error: "Expiry date must be in the future" },
+        { status: 400 }
+      );
+    }
+    expiresAtDate = parsed;
+  }
+
   const targeting = parseTargetingFromRequest(body);
 
   const announcement = await prisma.announcement.create({
@@ -118,7 +140,7 @@ export async function POST(request: Request) {
       title: title.trim(),
       body: announcementBody.trim(),
       imageUrl: imageUrl?.trim() || null,
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      expiresAt: expiresAtDate,
       createdBy: adminUser.id,
       sendEmail: Boolean(sendEmail),
       sendNotification: Boolean(sendNotification),

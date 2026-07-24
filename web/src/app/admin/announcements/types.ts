@@ -207,6 +207,17 @@ export function isExpired(ann: Announcement): boolean {
   return ann.expiresAt ? new Date(ann.expiresAt) < new Date() : false;
 }
 
+/**
+ * True when a composer expiry value ("YYYY-MM-DDTHH:mm", or "" for none) is
+ * already in the past. Publishing one would drop the announcement straight
+ * into the archive without ever showing in the feed.
+ */
+export function isExpiryInPast(value: string): boolean {
+  if (value === "") return false;
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed <= new Date();
+}
+
 /** True when the announcement leaves the feed within the next `hours`. */
 export function expiresWithin(ann: Announcement, hours: number): boolean {
   if (!ann.expiresAt) return false;

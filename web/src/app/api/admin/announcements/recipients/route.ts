@@ -28,19 +28,21 @@ export async function POST(request: Request) {
     parseTargetingFromRequest(body)
   );
 
-  const displayName = (r: (typeof recipients)[number]) =>
-    r.firstName ?? r.name ?? r.email;
-  const sorted = [...recipients].sort((a, b) =>
-    displayName(a).localeCompare(displayName(b), "en", { sensitivity: "base" })
+  // One display name, resolved server-side and used for both the sort and the
+  // rendered label. Deriving them separately lets the two fall out of step —
+  // a volunteer whose `name` and `firstName` disagree then sorts under one
+  // and renders as the other, and the list reads as unsorted.
+  const rows = recipients.map((r) => ({
+    id: r.id,
+    displayName: r.name ?? r.firstName ?? r.email,
+    email: r.email,
+  }));
+  rows.sort((a, b) =>
+    a.displayName.localeCompare(b.displayName, "en", { sensitivity: "base" })
   );
 
   return NextResponse.json({
-    total: sorted.length,
-    recipients: sorted.slice(0, MAX_PREVIEW_RECIPIENTS).map((r) => ({
-      id: r.id,
-      name: r.name,
-      firstName: r.firstName,
-      email: r.email,
-    })),
+    total: rows.length,
+    recipients: rows.slice(0, MAX_PREVIEW_RECIPIENTS),
   });
 }
