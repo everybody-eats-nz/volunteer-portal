@@ -1,3 +1,15 @@
+## [0.149.2] - 2026-07-24
+
+### Changes
+- fix(announcements): reject impossible activity dates in shift-history targeting ([#1156](https://github.com/everybody-eats-nz/volunteer-portal/pull/1156)) by @malinmalliyawadu
+
+
+## [0.149.1] - 2026-07-24
+
+### Changes
+- fix(announcements): exclude archived volunteers from targeting ([#1155](https://github.com/everybody-eats-nz/volunteer-portal/pull/1155)) by @malinmalliyawadu
+
+
 ## [0.149.0] - 2026-07-24
 
 ### Changes

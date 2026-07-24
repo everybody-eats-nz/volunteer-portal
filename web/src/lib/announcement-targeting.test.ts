@@ -1,10 +1,38 @@
-import { describe, it, expect } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $queryRaw: vi.fn().mockResolvedValue([{ count: BigInt(0) }]),
+  },
+}));
+
+import type { Prisma } from "@/generated/client";
 import {
+  AnnouncementTargeting,
+  countAnnouncementRecipients,
+  findAnnouncementRecipients,
   hasActivityTargeting,
   parseTargetingFromRequest,
   userMatchesActivityTargeting,
   type ActivityTargeting,
 } from "./announcement-targeting";
+import { prisma } from "@/lib/prisma";
+
+type Mock = ReturnType<typeof vi.fn>;
+const queryRaw = prisma.$queryRaw as unknown as Mock;
+
+const emptyTargeting: AnnouncementTargeting = {
+  targetLocations: [],
+  targetGrades: [],
+  targetLabelIds: [],
+  targetUserIds: [],
+  targetShiftIds: [],
+  targetActivityLocations: [],
+  targetActivityFrom: null,
+  targetActivityTo: null,
+  targetActivityMinShifts: null,
+  targetActivityMaxShifts: null,
+};
 
 /** Shorthand for building activity targeting in the tests below. */
 function activity(overrides: Partial<ActivityTargeting> = {}): ActivityTargeting {
@@ -17,6 +45,23 @@ function activity(overrides: Partial<ActivityTargeting> = {}): ActivityTargeting
     ...overrides,
   };
 }
+
+/** The SQL text (placeholders, not values) of the last $queryRaw call. */
+function lastSql(): string {
+  const arg = queryRaw.mock.calls.at(-1)?.[0] as Prisma.Sql;
+  return arg.sql;
+}
+
+/** The bound parameter values of the last $queryRaw call. */
+function lastValues(): unknown[] {
+  const arg = queryRaw.mock.calls.at(-1)?.[0] as Prisma.Sql;
+  return arg.values;
+}
+
+beforeEach(() => {
+  queryRaw.mockClear();
+  queryRaw.mockResolvedValue([{ count: BigInt(0) }]);
+});
 
 describe("announcement-targeting", () => {
   describe("parseTargetingFromRequest", () => {
@@ -61,6 +106,54 @@ describe("announcement-targeting", () => {
 
       expect(t.targetActivityFrom).toBeNull();
       expect(t.targetActivityTo).toBeNull();
+    });
+
+    it("rejects well-formed but impossible dates instead of rolling them over", () => {
+      // The date constructor happily turns these into real dates in a later
+      // month. Accepting that would silently shift a window bound.
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2026-13-99",
+        targetActivityTo: "2026-02-31",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).toBeNull();
+      expect(t.targetActivityTo).toBeNull();
+    });
+
+    it("keeps a real leap day", () => {
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2028-02-29",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).not.toBeNull();
+    });
+
+    it("rejects a leap day in a non-leap year", () => {
+      const t = parseTargetingFromRequest({
+        targetActivityFrom: "2027-02-29",
+        targetActivityMinShifts: 1,
+      });
+
+      expect(t.targetActivityFrom).toBeNull();
+    });
+
+    it("rejects a zero month or day", () => {
+      // The shape regex allows these; they roll backwards into the previous
+      // year rather than failing, so only the round-trip check catches them.
+      expect(
+        parseTargetingFromRequest({
+          targetActivityFrom: "2026-00-01",
+          targetActivityMinShifts: 1,
+        }).targetActivityFrom
+      ).toBeNull();
+      expect(
+        parseTargetingFromRequest({
+          targetActivityFrom: "2026-01-00",
+          targetActivityMinShifts: 1,
+        }).targetActivityFrom
+      ).toBeNull();
     });
 
     it("clamps the minimum shift count into a sane range", () => {
@@ -228,6 +321,101 @@ describe("announcement-targeting", () => {
           })
         )
       ).toBe(true);
+    });
+  });
+
+  describe("archived volunteers", () => {
+    it("excludes archived volunteers when targeting everyone", async () => {
+      queryRaw.mockResolvedValueOnce([{ count: BigInt(42) }]);
+      const count = await countAnnouncementRecipients(emptyTargeting);
+      expect(count).toBe(42);
+      expect(lastSql()).toContain(`"archivedAt" IS NULL`);
+    });
+
+    it("excludes archived volunteers from every broad dimension", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetLocations: ["Wellington"],
+        targetGrades: ["GREEN"],
+        targetLabelIds: ["label-1"],
+        targetShiftIds: ["shift-1"],
+        targetActivityLocations: ["Wellington"],
+        targetActivityMinShifts: 2,
+      });
+      expect(lastSql()).toContain(`"archivedAt" IS NULL`);
+      // No explicit user IDs, so no escape hatch on the archive filter.
+      expect(lastSql()).not.toContain(`OR "User".id = ANY(`);
+    });
+
+    it("still reaches archived volunteers named explicitly by id", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetUserIds: ["user-1", "user-2"],
+      });
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
+      // The exemption reuses the same ids as the targeting condition itself.
+      expect(lastValues()).toEqual(["user-1", "user-2", "user-1", "user-2"]);
+    });
+
+    it("keeps cross-dimension AND semantics when ids are combined with a filter", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetUserIds: ["user-1"],
+        targetGrades: ["GREEN"],
+      });
+      const sql = lastSql().replace(/\s+/g, " ");
+      // The archive exemption widens who the id list may reach — it never
+      // relaxes the other dimensions, so a named volunteer of the wrong grade
+      // is still filtered out.
+      expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
+      expect(sql).toContain(`"volunteerGrade"::text = ANY(`);
+    });
+  });
+
+  describe("shift-history shift-count SQL", () => {
+    it("uses EXISTS for the common at-least-one-shift case", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 1,
+      });
+      expect(lastSql()).toContain("EXISTS (");
+      expect(lastSql()).not.toContain("COUNT(DISTINCT");
+    });
+
+    it("counts when the minimum is above one", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 3,
+      });
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).toContain("COUNT(DISTINCT");
+      expect(lastValues()).toContain(3);
+    });
+
+    it("counts rather than short-circuiting once a maximum is set", async () => {
+      // EXISTS would be wrong here: "worked exactly 1 shift" has to reject a
+      // volunteer with two, and EXISTS stops at the first match.
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 1,
+        targetActivityMaxShifts: 1,
+      });
+      const sql = lastSql().replace(/\s+/g, " ");
+      expect(sql).not.toContain("EXISTS ( SELECT 1 FROM \"Signup\" JOIN \"Shift\"");
+      expect(sql).toContain("COUNT(DISTINCT");
+      expect(sql).toContain("BETWEEN");
+      expect(lastValues()).toEqual(expect.arrayContaining([1, 1]));
+    });
+
+    it("bounds the count from both ends for a range", async () => {
+      await findAnnouncementRecipients({
+        ...emptyTargeting,
+        targetActivityMinShifts: 2,
+        targetActivityMaxShifts: 5,
+      });
+      expect(lastSql().replace(/\s+/g, " ")).toContain("BETWEEN");
+      expect(lastValues()).toEqual(expect.arrayContaining([2, 5]));
     });
   });
 });
