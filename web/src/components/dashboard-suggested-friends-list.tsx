@@ -128,28 +128,36 @@ export function DashboardSuggestedFriendsList({
   const hasMore = visibleFriends.length > 3;
 
   return (
-    <Card className="border-primary/20 bg-linear-to-br from-primary/5 via-background to-background">
+    <Card className="grain relative overflow-hidden rounded-3xl border-forest-500/10 bg-card dark:border-cream-50/10">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Suggested Friends
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sun-200 text-forest-700 ring-1 ring-forest-500/10 dark:bg-sun-200/20 dark:text-sun-200 dark:ring-cream-50/10">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <span className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+              Suggested Friends
+            </span>
           </CardTitle>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/friends" className="text-xs text-muted-foreground">
+            <Link
+              href="/friends"
+              className="text-xs text-forest-700/70 hover:text-forest-700 dark:text-cream-50/65 dark:hover:text-cream-50"
+            >
               View all
-              <ArrowRight className="h-3 w-3 ml-1" />
+              <ArrowRight className="ml-1 h-3 w-3" />
             </Link>
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-forest-700/65 dark:text-cream-50/60">
           Volunteers you&apos;ve recently worked with
         </p>
       </CardHeader>
       <CardContent>
         {displayFriends.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground mb-3">
+          <div className="py-8 text-center">
+            <p className="mb-3 text-sm text-forest-700/70 dark:text-cream-50/65">
               No new suggestions right now
             </p>
             <Button variant="outline" size="sm" asChild>
@@ -171,40 +179,40 @@ export function DashboardSuggestedFriendsList({
 
               return (
                 <motion.div key={friend.id} variants={staggerItem}>
-                  <div className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:border-primary/50 transition-colors">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-forest-500/10 bg-card p-3 transition-colors hover:border-forest-500/25 dark:border-cream-50/10 dark:hover:border-cream-50/25">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                      <Avatar className="h-10 w-10 ring-2 ring-forest-500/15 dark:ring-cream-50/15">
                         <AvatarImage
                           src={friend.profilePhotoUrl || undefined}
                           alt={displayName}
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+                        <AvatarFallback className="bg-forest-500/10 text-forest-700 font-semibold text-sm dark:bg-cream-50/10 dark:text-cream-50/85">
                           {initials}
                         </AvatarFallback>
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm truncate">
+                        <h3 className="truncate text-sm font-semibold text-forest-700 dark:text-cream-50">
                           {displayName}
                         </h3>
                         <div className="flex items-center gap-2">
                           {friend.isPendingRequest ? (
                             <Badge
                               variant="secondary"
-                              className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs"
+                              className="border-amber-300/60 bg-amber-50 text-xs text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300"
                             >
                               Friend request
                             </Badge>
                           ) : (
                             <Badge
                               variant="secondary"
-                              className="bg-primary/10 text-primary border-primary/20 text-xs"
+                              className="border border-forest-500/15 bg-forest-500/8 text-xs text-forest-700 dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50/85"
                             >
                               {friend.sharedShiftsCount} shared shifts
                             </Badge>
                           )}
                           {!friend.isPendingRequest && friend.recentSharedShifts[0] && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <span className="flex items-center gap-1 text-xs text-forest-700/60 dark:text-cream-50/55">
                               <Calendar className="h-3 w-3" />
                               {friend.recentSharedShifts[0].shiftTypeName} &bull;{" "}
                               {formatInNZT(

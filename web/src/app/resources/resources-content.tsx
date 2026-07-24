@@ -71,14 +71,18 @@ export async function ResourcesContent({
   });
 
   return (
-    <>
-      {/* Results Count */}
-      <div className="text-sm text-muted-foreground">
+    <div className="space-y-5">
+      {/* Results Count — editorial kicker with hairline rule */}
+      <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-forest-500/80 dark:text-cream-50/60">
+        <span
+          className="inline-block h-px w-8 bg-forest-500/40 dark:bg-cream-50/40"
+          aria-hidden
+        />
         Showing {resources.length} resource{resources.length !== 1 ? "s" : ""}
       </div>
 
       {/* Resources Grid */}
       <ResourcesGrid resources={resources} />
-    </>
+    </div>
   );
 }

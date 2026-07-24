@@ -18,6 +18,26 @@ import { getShiftTheme } from "@/lib/shift-themes";
 import { CalendarPlus } from "lucide-react";
 import type { ShiftSignup } from "./my-shifts-content";
 
+const detailLabel =
+  "text-[0.65rem] font-medium uppercase tracking-[0.18em] text-forest-500/70 dark:text-cream-50/55";
+
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <span className={detailLabel}>{label}</span>
+      <div className="text-right text-sm text-forest-700 dark:text-cream-50">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export async function ShiftDetailsDialog({
   shift,
   now,
@@ -63,86 +83,80 @@ export async function ShiftDetailsDialog({
     }
   }
 
+  const mealsServed = mealsServedData?.mealsServed || defaultMealsServed;
+
   return (
     <ResponsiveDialog>
       <ResponsiveDialogTrigger asChild>{children}</ResponsiveDialogTrigger>
       <ResponsiveDialogContent className="max-w-md">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle className="flex items-center gap-3">
-            <div
-              className={`p-2 rounded-xl bg-gradient-to-br ${theme.fullGradient} shadow-lg flex items-center justify-center text-white text-lg`}
+          <ResponsiveDialogTitle className="flex items-center gap-3 text-left">
+            <span
+              aria-hidden
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sun-100 text-xl ring-1 ring-forest-500/10 dark:bg-sun-200/15 dark:ring-cream-50/10"
             >
               {theme.emoji}
-            </div>
-            <div>
-              <div className="font-semibold">
+            </span>
+            <span className="min-w-0">
+              <span className="display display-medium block truncate text-xl tracking-tight text-forest-700 dark:text-cream-50">
                 {shift.shift.shiftType.name}
-              </div>
-              <div className="text-sm font-normal text-muted-foreground">
+              </span>
+              <span className="block text-sm font-normal text-forest-700/65 dark:text-cream-50/65">
                 {formatInNZT(shift.shift.start, "EEEE, MMMM d, yyyy")}
-              </div>
-            </div>
+              </span>
+            </span>
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
 
         <div className="space-y-4">
-          {/* Status */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Status</span>
-            <StatusBadge status={shift.status} isPast={isPastShift} />
-          </div>
+          {/* Key facts */}
+          <div className="divide-y divide-forest-500/10 dark:divide-cream-50/10">
+            <DetailRow label="Status">
+              <StatusBadge status={shift.status} isPast={isPastShift} />
+            </DetailRow>
 
-          {/* Time */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Time</span>
-            <div className="text-sm text-right">
+            <DetailRow label="Time">
               <div>
-                {formatInNZT(shift.shift.start, "h:mm a")} -{" "}
+                {formatInNZT(shift.shift.start, "h:mm a")} –{" "}
                 {formatInNZT(shift.shift.end, "h:mm a")}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-forest-700/60 dark:text-cream-50/55">
                 {differenceInHours(shift.shift.end, shift.shift.start)} hours
               </div>
-            </div>
-          </div>
+            </DetailRow>
 
-          {/* Location */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Location</span>
-            <span className="text-sm">
+            <DetailRow label="Location">
               {shift.shift.location || "To be confirmed"}
-            </span>
+            </DetailRow>
           </div>
 
-          {/* Meals Served (for past shifts) */}
-          {isPastShift && (mealsServedData || defaultMealsServed) && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Meals Served</span>
-              <div className="text-sm text-right">
-                <div
-                  className={
-                    isEstimated
-                      ? "text-muted-foreground"
-                      : "font-semibold text-primary"
-                  }
-                >
+          {/* Meals served (for past shifts) — the pay-off moment */}
+          {isPastShift && mealsServed && (
+            <div className="grain relative overflow-hidden rounded-2xl bg-sun-100/70 p-4 ring-1 ring-forest-500/10 dark:bg-sun-200/10 dark:ring-cream-50/10">
+              <p className="eyebrow text-forest-600/80 dark:text-sun-200/80">
+                Ka pai — kai on the table
+              </p>
+              <p className="mt-1.5 text-sm text-forest-700/85 dark:text-cream-50/85">
+                <span className="display text-2xl tracking-tight text-forest-700 tabular-nums dark:text-cream-50">
                   {isEstimated ? "~" : ""}
-                  {mealsServedData?.mealsServed || defaultMealsServed} people
-                </div>
+                  {mealsServed}
+                </span>{" "}
+                people fed that day
                 {isEstimated && (
-                  <div className="text-xs text-muted-foreground">
-                    estimated
-                  </div>
+                  <span className="text-forest-700/60 dark:text-cream-50/55">
+                    {" "}
+                    (estimated)
+                  </span>
                 )}
-              </div>
+              </p>
             </div>
           )}
 
           {/* Description */}
           {shift.shift.shiftType.description && (
             <div>
-              <div className="text-sm font-medium mb-2">Description</div>
-              <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+              <div className={`${detailLabel} mb-2`}>Description</div>
+              <div className="rounded-2xl bg-forest-500/5 p-3 text-sm leading-relaxed text-forest-700/80 dark:bg-cream-50/5 dark:text-cream-50/80">
                 {shift.shift.shiftType.description}
               </div>
             </div>
@@ -151,8 +165,8 @@ export async function ShiftDetailsDialog({
           {/* Notes */}
           {shift.shift.notes && (
             <div>
-              <div className="text-sm font-medium mb-2">Notes</div>
-              <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+              <div className={`${detailLabel} mb-2`}>Notes</div>
+              <div className="rounded-2xl bg-forest-500/5 p-3 text-sm leading-relaxed text-forest-700/80 dark:bg-cream-50/5 dark:text-cream-50/80">
                 {shift.shift.notes}
               </div>
             </div>
@@ -161,7 +175,9 @@ export async function ShiftDetailsDialog({
           {/* Friends joining */}
           {shift.shift.signups.length > 0 && (
             <div>
-              <div className="text-sm font-medium mb-3">Friends Joining</div>
+              <div className={`${detailLabel} mb-3`}>
+                {isPastShift ? "Whānau who joined" : "Whānau joining"}
+              </div>
               <AvatarList
                 users={shift.shift.signups.map((signup) => signup.user)}
                 size="md"
@@ -172,13 +188,11 @@ export async function ShiftDetailsDialog({
 
           {/* Actions */}
           {!isPastShift && (
-            <div className="pt-4 border-t space-y-3">
+            <div className="space-y-4 border-t border-forest-500/10 pt-4 dark:border-cream-50/10">
               {/* Add to Calendar */}
               <div>
-                <div className="text-sm font-medium mb-2">
-                  Add to Calendar
-                </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className={`${detailLabel} mb-2`}>Add to calendar</div>
+                <div className="flex flex-wrap gap-2">
                   {(() => {
                     const urls = generateCalendarUrls(
                       shift.shift,
@@ -186,12 +200,7 @@ export async function ShiftDetailsDialog({
                     );
                     return (
                       <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          asChild
-                        >
+                        <Button variant="outline" size="sm" className="gap-2" asChild>
                           <a
                             href={urls.google}
                             target="_blank"
@@ -201,12 +210,7 @@ export async function ShiftDetailsDialog({
                             Google
                           </a>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          asChild
-                        >
+                        <Button variant="outline" size="sm" className="gap-2" asChild>
                           <a
                             href={urls.outlook}
                             target="_blank"
@@ -216,12 +220,7 @@ export async function ShiftDetailsDialog({
                             Outlook
                           </a>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          asChild
-                        >
+                        <Button variant="outline" size="sm" className="gap-2" asChild>
                           <a
                             href={urls.ics}
                             download={`shift-${shift.shift.id}.ics`}
@@ -240,6 +239,7 @@ export async function ShiftDetailsDialog({
               <CancelSignupButton
                 shiftId={shift.shift.id}
                 shiftName={shift.shift.shiftType.name}
+                className="w-full"
               />
             </div>
           )}

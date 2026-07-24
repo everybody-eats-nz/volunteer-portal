@@ -49,6 +49,30 @@ import {
 
 export { daysOfWeek, pronounOptions, notificationOptions, hearAboutUsOptions };
 
+/* Brand form styling — matches the login page's treatment of inputs and
+   labels (rounded inputs with forest hairlines, quiet forest labels).
+   Shared across registration and profile editing. */
+const inputStyles =
+  "h-11 rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15";
+const labelStyles =
+  "text-sm font-medium text-forest-700/80 dark:text-cream-50/80";
+const helperTextStyles = "text-xs text-forest-700/60 dark:text-cream-50/60";
+/* Quiet checkbox panel */
+const panelStyles =
+  "p-4 rounded-2xl border border-forest-500/15 bg-forest-500/[0.04] dark:border-cream-50/15 dark:bg-cream-50/[0.04]";
+/* Sun-yellow notice panel — the brand's highlight surface */
+const noticePanelStyles = "grain rounded-2xl bg-sun-100 p-4 dark:bg-sun-200/10";
+/* Selectable toggle cards (days, locations, default location) */
+const toggleCardBase =
+  "p-3.5 rounded-2xl border cursor-pointer transition-colors";
+const toggleCardOn =
+  "border-forest-500 bg-forest-500/10 dark:border-sun-200/60 dark:bg-sun-200/10";
+const toggleCardOff =
+  "border-forest-500/15 bg-transparent hover:bg-forest-500/5 dark:border-cream-50/15 dark:hover:bg-cream-50/5";
+/* Uppercase kicker used for in-form group headings */
+const groupHeadingStyles =
+  "eyebrow flex items-center gap-2 text-forest-500/80 dark:text-cream-50/60";
+
 export interface UserProfileFormData {
   // Basic account info (for registration only)
   email?: string;
@@ -128,7 +152,7 @@ export function AccountStep({
     <div className="space-y-6" data-testid="account-step">
       {!hideEmail && (
         <div className="space-y-2" data-testid="email-field">
-          <Label htmlFor="email" className="text-sm font-medium">
+          <Label htmlFor="email" className={labelStyles}>
             Email Address *
           </Label>
           <Input
@@ -138,7 +162,7 @@ export function AccountStep({
             onChange={(e) => onInputChange("email", e.target.value)}
             placeholder="your.email@example.com"
             disabled={loading}
-            className="h-11"
+            className={inputStyles}
             required
             data-testid="email-input"
           />
@@ -146,7 +170,7 @@ export function AccountStep({
       )}
 
       <div className="space-y-2" data-testid="password-field">
-        <Label htmlFor="password" className="text-sm font-medium">
+        <Label htmlFor="password" className={labelStyles}>
           Password *
         </Label>
         <div className="relative">
@@ -157,7 +181,7 @@ export function AccountStep({
             onChange={(e) => onInputChange("password", e.target.value)}
             placeholder="Create a secure password"
             disabled={loading}
-            className="h-11 pr-10"
+            className={cn(inputStyles, "pr-10")}
             required
             data-testid="password-input"
           />
@@ -178,7 +202,7 @@ export function AccountStep({
       </div>
 
       <div className="space-y-2" data-testid="confirm-password-field">
-        <Label htmlFor="confirmPassword" className="text-sm font-medium">
+        <Label htmlFor="confirmPassword" className={labelStyles}>
           Confirm Password *
         </Label>
         <div className="relative">
@@ -189,7 +213,7 @@ export function AccountStep({
             onChange={(e) => onInputChange("confirmPassword", e.target.value)}
             placeholder="Confirm your password"
             disabled={loading}
-            className="h-11 pr-10"
+            className={cn(inputStyles, "pr-10")}
             required
             data-testid="confirm-password-input"
           />
@@ -307,7 +331,7 @@ export function PersonalInfoStep({
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="firstName" className="text-sm font-medium">
+          <Label htmlFor="firstName" className={labelStyles}>
             First Name *
           </Label>
           <Input
@@ -317,11 +341,12 @@ export function PersonalInfoStep({
             onChange={(e) => onInputChange("firstName", e.target.value)}
             placeholder="Your first name"
             disabled={loading}
+            className={inputStyles}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lastName" className="text-sm font-medium">
+          <Label htmlFor="lastName" className={labelStyles}>
             Last Name *
           </Label>
           <Input
@@ -331,6 +356,7 @@ export function PersonalInfoStep({
             onChange={(e) => onInputChange("lastName", e.target.value)}
             placeholder="Your last name"
             disabled={loading}
+            className={inputStyles}
             required
           />
         </div>
@@ -338,7 +364,7 @@ export function PersonalInfoStep({
 
       {!isRegistration && (
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium">
+          <Label htmlFor="email" className={labelStyles}>
             Email Address *
           </Label>
           <Input
@@ -348,10 +374,11 @@ export function PersonalInfoStep({
             onChange={(e) => onInputChange("email", e.target.value)}
             placeholder="your.email@example.com"
             disabled={loading || isEmailLocked}
+            className={inputStyles}
             data-testid="email-input"
           />
           {isEmailLocked && (
-            <p className="text-xs text-muted-foreground">
+            <p className={helperTextStyles}>
               Email address cannot be changed. Contact an administrator if you
               need to update it.
             </p>
@@ -360,7 +387,7 @@ export function PersonalInfoStep({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="phone" className="text-sm font-medium">
+        <Label htmlFor="phone" className={labelStyles}>
           Mobile Number *
         </Label>
         <Input
@@ -371,13 +398,13 @@ export function PersonalInfoStep({
           onChange={(e) => onInputChange("phone", e.target.value)}
           placeholder="0211234567"
           disabled={loading}
-          className="h-11"
+          className={inputStyles}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="dateOfBirth" className="text-sm font-medium">
+          <Label htmlFor="dateOfBirth" className={labelStyles}>
             Date of Birth *
           </Label>
           {/* Hidden input for test purposes - using absolute positioning to keep it fillable */}
@@ -396,7 +423,8 @@ export function PersonalInfoStep({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal h-11",
+                  inputStyles,
+                  "w-full justify-start bg-transparent px-3 text-left font-normal shadow-xs hover:bg-forest-500/5 hover:text-current dark:bg-transparent dark:hover:bg-cream-50/5",
                   !dateOfBirth && "text-muted-foreground"
                 )}
                 disabled={loading || isDateOfBirthLocked}
@@ -434,14 +462,14 @@ export function PersonalInfoStep({
             </PopoverContent>
           </Popover>
           {isDateOfBirthLocked && (
-            <p className="text-xs text-muted-foreground">
+            <p className={helperTextStyles}>
               Date of birth cannot be changed. Contact an administrator if you
               need to update it.
             </p>
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="pronouns" className="text-sm font-medium">
+          <Label htmlFor="pronouns" className={labelStyles}>
             Pronouns
           </Label>
           <SelectField
@@ -450,6 +478,7 @@ export function PersonalInfoStep({
             options={pronounOptions}
             defaultValue={formData.pronouns}
             disabled={loading}
+            className={cn(inputStyles, "w-full")}
             data-testid="pronouns-select"
           />
           {formData.pronouns === "other" && (
@@ -462,6 +491,7 @@ export function PersonalInfoStep({
                 }
                 placeholder="Please specify your pronouns"
                 disabled={loading}
+                className={inputStyles}
                 data-testid="custom-pronouns-input"
               />
             </div>
@@ -478,16 +508,16 @@ export function PersonalInfoStep({
           if (actualAge < 16) {
             return (
               <div
-                className="space-y-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4"
+                className={cn(noticePanelStyles, "space-y-4")}
                 data-testid="parental-consent-notice"
               >
                 <div className="flex items-start space-x-3">
-                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
+                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-forest-500 dark:text-sun-200" />
                   <div>
-                    <h4 className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    <h4 className="text-sm font-semibold text-forest-700 dark:text-sun-100">
                       Parental Consent Required
                     </h4>
-                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                    <p className="mt-1 text-sm leading-relaxed text-forest-700/75 dark:text-cream-50/70">
                       Since you are under 16, we require a signed parental
                       consent form before you can volunteer.
                     </p>
@@ -499,7 +529,7 @@ export function PersonalInfoStep({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                      className="border-forest-500/30 bg-transparent px-4 text-forest-700 hover:bg-forest-500 hover:text-cream-50 dark:border-cream-50/30 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                       onClick={() => {
                         window.open(consentFormUrl, "_blank");
                       }}
@@ -509,7 +539,7 @@ export function PersonalInfoStep({
                       Download Consent Form
                     </Button>
                   </div>
-                  <div className="text-sm text-orange-700 dark:text-orange-300">
+                  <div className="text-sm text-forest-700/80 dark:text-cream-50/75">
                     <p className="font-medium mb-2">
                       You can continue registering now - parental consent can be
                       submitted separately:
@@ -539,7 +569,7 @@ export function PersonalInfoStep({
         })()}
 
       <div className="space-y-2">
-        <Label htmlFor="profilePhoto" className="text-sm font-medium">
+        <Label htmlFor="profilePhoto" className={labelStyles}>
           Profile Photo
         </Label>
         <ProfileImageUpload
@@ -577,14 +607,14 @@ export function EmergencyContactStep({
 }) {
   return (
     <div className="space-y-6">
-      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-lg p-4 mb-6">
+      <div className={cn(noticePanelStyles, "mb-6")}>
         <div className="flex items-start space-x-3">
-          <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+          <Shield className="mt-0.5 h-5 w-5 shrink-0 text-forest-500 dark:text-sun-200" />
           <div>
-            <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            <h4 className="text-sm font-semibold text-forest-700 dark:text-sun-100">
               Important
             </h4>
-            <p className="text-sm text-amber-700 dark:text-amber-300">
+            <p className="mt-1 text-sm leading-relaxed text-forest-700/75 dark:text-cream-50/70">
               This information is kept confidential and used only in case of
               emergencies during volunteer activities.
             </p>
@@ -593,7 +623,7 @@ export function EmergencyContactStep({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="emergencyContactName" className="text-sm font-medium">
+        <Label htmlFor="emergencyContactName" className={labelStyles}>
           Emergency Contact Name
         </Label>
         <Input
@@ -605,14 +635,14 @@ export function EmergencyContactStep({
           }
           placeholder="Full name of emergency contact"
           disabled={loading}
-          className="h-11"
+          className={inputStyles}
         />
       </div>
 
       <div className="space-y-2">
         <Label
           htmlFor="emergencyContactRelationship"
-          className="text-sm font-medium"
+          className={labelStyles}
         >
           Relationship
         </Label>
@@ -625,12 +655,12 @@ export function EmergencyContactStep({
           }
           placeholder="e.g., Parent, Spouse, Sibling, Friend"
           disabled={loading}
-          className="h-11"
+          className={inputStyles}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="emergencyContactPhone" className="text-sm font-medium">
+        <Label htmlFor="emergencyContactPhone" className={labelStyles}>
           Emergency Contact Phone
         </Label>
         <Input
@@ -643,7 +673,7 @@ export function EmergencyContactStep({
           }
           placeholder="0211234567"
           disabled={loading}
-          className="h-11"
+          className={inputStyles}
         />
       </div>
     </div>
@@ -665,7 +695,7 @@ export function MedicalInfoStep({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="medicalConditions" className="text-sm font-medium">
+        <Label htmlFor="medicalConditions" className={labelStyles}>
           Medical Conditions & Allergies
         </Label>
         <Textarea
@@ -676,16 +706,16 @@ export function MedicalInfoStep({
           placeholder="Please list any medical conditions, allergies, or dietary restrictions that may be relevant to your volunteer work. Leave blank if none."
           disabled={loading}
           rows={4}
-          className="resize-none"
+          className="resize-none rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className={helperTextStyles}>
           This information helps us ensure your safety and accommodate any
           special needs.
         </p>
       </div>
 
       <div className="space-y-4">
-        <div className="p-4 rounded-lg border border-border bg-muted/20">
+        <div className={panelStyles}>
           <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
             <Checkbox
               checked={formData.willingToProvideReference}
@@ -697,7 +727,7 @@ export function MedicalInfoStep({
             />
             <div>
               <span>I am willing to provide references if requested</span>
-              <p className="text-xs text-muted-foreground mt-1 font-normal">
+              <p className={cn(helperTextStyles, "mt-1 font-normal")}>
                 References may be requested for certain volunteer positions or
                 activities.
               </p>
@@ -707,7 +737,7 @@ export function MedicalInfoStep({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="howDidYouHearAboutUs" className="text-sm font-medium">
+        <Label htmlFor="howDidYouHearAboutUs" className={labelStyles}>
           How did you hear about us? *
         </Label>
         <SelectField
@@ -716,7 +746,7 @@ export function MedicalInfoStep({
           options={hearAboutUsOptions}
           defaultValue={formData.howDidYouHearAboutUs}
           disabled={loading}
-          className="h-11"
+          className={cn(inputStyles, "w-full")}
           data-testid="how-did-you-hear-select"
         />
 
@@ -731,7 +761,7 @@ export function MedicalInfoStep({
               }
               placeholder="Please specify how you heard about us"
               disabled={loading}
-              className="h-11"
+              className={inputStyles}
             />
           </div>
         )}
@@ -769,10 +799,10 @@ export function AvailabilityStep({
     <div className="space-y-8">
       <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium mb-3 block">
+          <Label className={cn(labelStyles, "mb-3 block")}>
             Days you&apos;re typically available
           </Label>
-          <p className="text-xs text-muted-foreground mb-4">
+          <p className={cn(helperTextStyles, "mb-4")}>
             Select the days you&apos;re available to volunteer. This helps us
             match you with suitable shifts.
           </p>
@@ -781,11 +811,12 @@ export function AvailabilityStep({
           {daysOfWeek.map((day) => (
             <div
               key={day.value}
-              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+              className={cn(
+                toggleCardBase,
                 formData.availableDays.includes(day.value)
-                  ? "bg-primary/10 border-primary"
-                  : "bg-background border-border hover:bg-muted/50"
-              }`}
+                  ? toggleCardOn
+                  : toggleCardOff
+              )}
             >
               <Label
                 data-testid={`available-day-${day.value}-label`}
@@ -806,10 +837,10 @@ export function AvailabilityStep({
 
       <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium mb-3 block">
+          <Label className={cn(labelStyles, "mb-3 block")}>
             Locations where you can volunteer
           </Label>
-          <p className="text-xs text-muted-foreground mb-4">
+          <p className={cn(helperTextStyles, "mb-4")}>
             Choose the locations where you can volunteer. You can select
             multiple options.
           </p>
@@ -818,11 +849,12 @@ export function AvailabilityStep({
           {locationOptions.map((location) => (
             <div
               key={location.value}
-              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+              className={cn(
+                toggleCardBase,
                 formData.availableLocations.includes(location.value)
-                  ? "bg-primary/10 border-primary"
-                  : "bg-background border-border hover:bg-muted/50"
-              }`}
+                  ? toggleCardOn
+                  : toggleCardOff
+              )}
             >
               <Label
                 data-testid={`available-location-${location.value.toLowerCase()}-label`}
@@ -844,10 +876,10 @@ export function AvailabilityStep({
       {defaultLocationCandidates.length > 0 && (
         <div className="space-y-4">
           <div>
-            <Label className="text-sm font-medium mb-3 block">
+            <Label className={cn(labelStyles, "mb-3 block")}>
               Default location
             </Label>
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className={cn(helperTextStyles, "mb-4")}>
               Which location should we show you first when browsing shifts?
             </p>
           </div>
@@ -857,11 +889,10 @@ export function AvailabilityStep({
               return (
                 <div
                   key={location}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    isSelected
-                      ? "bg-primary/10 border-primary"
-                      : "bg-background border-border hover:bg-muted/50"
-                  }`}
+                  className={cn(
+                    toggleCardBase,
+                    isSelected ? toggleCardOn : toggleCardOff
+                  )}
                 >
                   <Label
                     data-testid={`default-location-${location.toLowerCase().replace(/\s+/g, "-")}-label`}
@@ -928,12 +959,12 @@ export function CommunicationStep({
   return (
     <div className="space-y-6" data-testid="notification-preferences-form">
       <div className="space-y-4">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Bell className="h-4 w-4" />
+        <h3 className={groupHeadingStyles}>
+          <Bell className="h-3.5 w-3.5" />
           Shortage Notifications
         </h3>
 
-        <div className="p-4 rounded-lg border border-border bg-muted/20">
+        <div className={panelStyles}>
           <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
             <Checkbox
               checked={formData.receiveShortageNotifications}
@@ -946,7 +977,7 @@ export function CommunicationStep({
             />
             <div>
               <span>Receive shift shortage notifications</span>
-              <p className="text-xs text-muted-foreground mt-1 font-normal">
+              <p className={cn(helperTextStyles, "mt-1 font-normal")}>
                 Get notified when shifts need more volunteers. You can customize
                 which types of shifts you&apos;d like to hear about.
               </p>
@@ -957,7 +988,7 @@ export function CommunicationStep({
         {formData.receiveShortageNotifications && (
           <>
             <div className="space-y-2 ml-6">
-              <Label className="text-sm font-medium">
+              <Label className={labelStyles}>
                 Shift types you&apos;d like notifications for
               </Label>
               <div className="space-y-2">
@@ -1014,13 +1045,13 @@ export function CommunicationStep({
       </div>
 
       {/* Newsletter Subscription Section */}
-      <div className="space-y-4 pt-6 border-t border-border">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Mail className="h-4 w-4" />
+      <div className="space-y-4 border-t border-forest-500/10 pt-6 dark:border-cream-50/10">
+        <h3 className={groupHeadingStyles}>
+          <Mail className="h-3.5 w-3.5" />
           Newsletter Subscription
         </h3>
 
-        <div className="p-4 rounded-lg border border-border bg-muted/20">
+        <div className={panelStyles}>
           <Label className="flex items-start space-x-3 text-sm font-medium cursor-pointer">
             <Checkbox
               checked={formData.emailNewsletterSubscription}
@@ -1037,7 +1068,7 @@ export function CommunicationStep({
             />
             <div>
               <span>Subscribe to our newsletter</span>
-              <p className="text-xs text-muted-foreground mt-1 font-normal">
+              <p className={cn(helperTextStyles, "mt-1 font-normal")}>
                 Receive updates about events, volunteer opportunities, and
                 organization news.
               </p>
@@ -1047,7 +1078,7 @@ export function CommunicationStep({
 
         {formData.emailNewsletterSubscription && newsletterLists.length > 0 && (
           <div className="space-y-2 ml-6">
-            <Label className="text-sm font-medium">Select newsletters</Label>
+            <Label className={labelStyles}>Select newsletters</Label>
             <div className="space-y-2">
               {newsletterLists.map((list) => (
                 <Label
@@ -1079,7 +1110,7 @@ export function CommunicationStep({
                   <div>
                     <span>{list.name}</span>
                     {list.description && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className={helperTextStyles}>
                         {list.description}
                       </p>
                     )}
@@ -1091,9 +1122,9 @@ export function CommunicationStep({
         )}
       </div>
 
-      <div className="space-y-4 pt-6 border-t border-border">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <FileText className="h-4 w-4" />
+      <div className="space-y-4 border-t border-forest-500/10 pt-6 dark:border-cream-50/10">
+        <h3 className={groupHeadingStyles}>
+          <FileText className="h-3.5 w-3.5" />
           Required Agreements
         </h3>
         <div className="space-y-4">
@@ -1102,7 +1133,14 @@ export function CommunicationStep({
             onOpenChange={setVolunteerAgreementOpen}
           >
             <ResponsiveDialogTrigger asChild>
-              <div className="p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 cursor-pointer transition-colors">
+              <div
+                className={cn(
+                  "cursor-pointer rounded-2xl border p-4 transition-colors",
+                  formData.volunteerAgreementAccepted
+                    ? "border-forest-500/40 bg-forest-500/5 dark:border-sun-200/40 dark:bg-sun-200/5"
+                    : "border-forest-500/15 hover:bg-forest-500/5 dark:border-cream-50/15 dark:hover:bg-cream-50/5"
+                )}
+              >
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     data-testid="volunteer-agreement-checkbox"
@@ -1112,12 +1150,12 @@ export function CommunicationStep({
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium">
+                      <span className={labelStyles}>
                         I have read and agree with the Volunteer Agreement *
                       </span>
                       <ExternalLink className="h-3 w-3" />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={cn(helperTextStyles, "mt-1")}>
                       {formData.volunteerAgreementAccepted
                         ? "You have read and agreed to this agreement"
                         : "Click here to read and agree to the agreement"}
@@ -1146,7 +1184,14 @@ export function CommunicationStep({
             onOpenChange={setHealthSafetyPolicyOpen}
           >
             <ResponsiveDialogTrigger asChild>
-              <div className="p-4 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 cursor-pointer transition-colors">
+              <div
+                className={cn(
+                  "cursor-pointer rounded-2xl border p-4 transition-colors",
+                  formData.healthSafetyPolicyAccepted
+                    ? "border-forest-500/40 bg-forest-500/5 dark:border-sun-200/40 dark:bg-sun-200/5"
+                    : "border-forest-500/15 hover:bg-forest-500/5 dark:border-cream-50/15 dark:hover:bg-cream-50/5"
+                )}
+              >
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     data-testid="health-safety-policy-checkbox"
@@ -1156,13 +1201,13 @@ export function CommunicationStep({
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium">
+                      <span className={labelStyles}>
                         I have read and agree with the Health and Safety Policy
                         *
                       </span>
                       <ExternalLink className="h-3 w-3" />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={cn(helperTextStyles, "mt-1")}>
                       {formData.healthSafetyPolicyAccepted
                         ? "You have read and agreed to this policy"
                         : "Click here to read and agree to the policy"}

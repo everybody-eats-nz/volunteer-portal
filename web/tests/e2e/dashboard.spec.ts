@@ -48,35 +48,19 @@ test.describe("Dashboard Page", () => {
     );
     await expect(description).toBeVisible();
 
-    // Check all stat cards are visible
-    const shiftsCompletedCard = page
-      .getByText("Shifts Completed")
-      .locator("..")
-      .locator("..");
-    await expect(shiftsCompletedCard).toBeVisible();
-
-    const hoursContributedCard = page
-      .getByText("Hours Contributed")
-      .locator("..")
-      .locator("..");
-    await expect(hoursContributedCard).toBeVisible();
-
-    const confirmedShiftsCard = page
-      .getByText("Confirmed Shifts")
-      .locator("..")
-      .locator("..");
-    await expect(confirmedShiftsCard).toBeVisible();
-
-    const thisMonthCard = page
-      .getByText("This Month")
-      .locator("..")
-      .locator("..");
-    await expect(thisMonthCard).toBeVisible();
+    // Check all stat cells of the editorial stat band are visible
+    await expect(page.getByTestId("dashboard-completed-card")).toBeVisible();
+    await expect(page.getByTestId("dashboard-hours-card")).toBeVisible();
+    await expect(page.getByTestId("dashboard-confirmed-card")).toBeVisible();
+    await expect(page.getByTestId("dashboard-month-card")).toBeVisible();
   });
 
   test("should display stat numbers correctly", async ({ page }) => {
-    // Wait for stats to stream in via Suspense — stat values use font-accent class
-    const statNumbers = page.locator(".font-accent.text-3xl");
+    // Wait for stats to stream in via Suspense — stat values use the
+    // stat-band-value class on the StatBand display numerals
+    const statNumbers = page.locator(
+      '[data-testid="dashboard-stats"] .stat-band-value'
+    );
     await statNumbers.first().waitFor({ state: "visible", timeout: 15000 });
     const count = await statNumbers.count();
 
@@ -237,10 +221,8 @@ test.describe("Dashboard Page", () => {
     const welcomeHeading = page.getByRole("heading", { name: /mōrena|kia ora/i });
     await expect(welcomeHeading).toBeVisible();
 
-    // Check that stat cards are stacked vertically
-    const statCards = page.locator(
-      '[class*="grid-cols-1"][class*="md:grid-cols-2"][class*="lg:grid-cols-4"]'
-    );
+    // Check that the stat band is still visible on mobile
+    const statCards = page.getByTestId("dashboard-stats");
     await expect(statCards).toBeVisible();
 
   });
