@@ -1,3 +1,9 @@
+## [0.149.0] - 2026-07-24
+
+### Changes
+- feat(announcements): target volunteers by shift history ([#1154](https://github.com/everybody-eats-nz/volunteer-portal/pull/1154)) by @malinmalliyawadu
+
+
 ## [0.148.3] - 2026-07-23
 
 ### Changes
