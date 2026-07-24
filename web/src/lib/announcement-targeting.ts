@@ -44,6 +44,25 @@ export function targetingFromAnnouncement(
 function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
   const conditions: Prisma.Sql[] = [Prisma.sql`TRUE`];
 
+  // Archived volunteers (inactive 12 months, never activated, never migrated)
+  // are people the org has deliberately stopped engaging — and they can't sign
+  // in, so an announcement email would point them at a dashboard they can't
+  // reach. Keep them out of every broad targeting dimension.
+  //
+  // Exception: user IDs named explicitly. The "Announce" button on an archived
+  // volunteer's profile links straight here with `?userIds=<id>`, so an admin
+  // hand-picking an archived volunteer means it.
+  if (t.targetUserIds.length > 0) {
+    conditions.push(
+      Prisma.sql`(
+        "archivedAt" IS NULL
+        OR "User".id = ANY(ARRAY[${Prisma.join(t.targetUserIds)}]::text[])
+      )`
+    );
+  } else {
+    conditions.push(Prisma.sql`"archivedAt" IS NULL`);
+  }
+
   if (t.targetLocations.length > 0) {
     const targetLocations = Prisma.sql`ARRAY[${Prisma.join(t.targetLocations)}]::text[]`;
     // A volunteer belongs to a location when it's their default OR in their
