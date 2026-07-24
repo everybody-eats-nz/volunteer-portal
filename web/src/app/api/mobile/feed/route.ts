@@ -6,7 +6,11 @@ import {
   formatInNZT,
   isSameDayInNZT,
 } from "@/lib/timezone";
-import { ANNOUNCEMENT_SHIFT_TARGET_STATUSES } from "@/lib/announcement-targeting";
+import {
+  ANNOUNCEMENT_ACTIVITY_STATUSES,
+  ANNOUNCEMENT_SHIFT_TARGET_STATUSES,
+  userMatchesActivityTargeting,
+} from "@/lib/announcement-targeting";
 import { userMatchesTargetLocations } from "@/lib/user-locations";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import {
@@ -70,7 +74,7 @@ export async function GET(request: Request) {
   // Get the user's profile, friendships, blocks, and active signup shift IDs
   // in parallel. The signup shift IDs are used to match announcements that
   // target specific shifts.
-  const [userProfile, friendships, blocks, userSignupShiftRows] =
+  const [userProfile, friendships, blocks, userSignupShiftRows, workedShiftRows] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -102,6 +106,17 @@ export async function GET(request: Request) {
         },
         select: { shiftId: true },
       }),
+      // Shifts this user actually worked, for announcements that target by
+      // shift history. Unbounded on purpose — an announcement can look back
+      // as far as it likes, and the row is two columns wide.
+      prisma.signup.findMany({
+        where: {
+          userId,
+          status: { in: ANNOUNCEMENT_ACTIVITY_STATUSES.map((s) => s) },
+          shift: { end: { lt: now } },
+        },
+        select: { shift: { select: { location: true, end: true } } },
+      }),
     ]);
 
   const blockedUserIds = new Set(blocks.map((b) => b.blockedId));
@@ -120,6 +135,7 @@ export async function GET(request: Request) {
   const userSignupShiftIds = new Set(
     userSignupShiftRows.map((s) => s.shiftId)
   );
+  const workedShifts = workedShiftRows.map((row) => row.shift);
 
   // Run all data queries in parallel
   const [
@@ -331,7 +347,19 @@ export async function GET(request: Request) {
       ann.targetShiftIds.length === 0 ||
       ann.targetShiftIds.some((sid) => userSignupShiftIds.has(sid));
 
-    if (!locationMatch || !gradeMatch || !labelMatch || !userMatch || !shiftMatch)
+    // Shift-history targeting: off unless the announcement sets a minimum
+    // shift count, in which case the user needs that many matching worked
+    // shifts.
+    const activityMatch = userMatchesActivityTargeting(workedShifts, ann);
+
+    if (
+      !locationMatch ||
+      !gradeMatch ||
+      !labelMatch ||
+      !userMatch ||
+      !shiftMatch ||
+      !activityMatch
+    )
       continue;
 
     const authorName =
