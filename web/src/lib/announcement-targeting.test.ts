@@ -44,7 +44,9 @@ beforeEach(() => {
 
 describe("announcement recipient targeting", () => {
   it("excludes archived volunteers when targeting everyone", async () => {
-    await countAnnouncementRecipients(emptyTargeting);
+    queryRaw.mockResolvedValueOnce([{ count: BigInt(42) }]);
+    const count = await countAnnouncementRecipients(emptyTargeting);
+    expect(count).toBe(42);
     expect(lastSql()).toContain(`"archivedAt" IS NULL`);
   });
 
@@ -70,5 +72,19 @@ describe("announcement recipient targeting", () => {
     expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
     // The exemption reuses the same ids as the targeting condition itself.
     expect(lastValues()).toEqual(["user-1", "user-2", "user-1", "user-2"]);
+  });
+
+  it("keeps cross-dimension AND semantics when ids are combined with a filter", async () => {
+    await findAnnouncementRecipients({
+      ...emptyTargeting,
+      targetUserIds: ["user-1"],
+      targetGrades: ["GREEN"],
+    });
+    const sql = lastSql().replace(/\s+/g, " ");
+    // The archive exemption widens who the id list may reach — it never
+    // relaxes the other dimensions, so a named volunteer of the wrong grade
+    // is still filtered out.
+    expect(sql).toContain(`( "archivedAt" IS NULL OR "User".id = ANY(`);
+    expect(sql).toContain(`"volunteerGrade"::text = ANY(`);
   });
 });
