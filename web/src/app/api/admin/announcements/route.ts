@@ -7,9 +7,9 @@ import { getEmailService } from "@/lib/email-service";
 import { createNotificationsForUsers } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/utils";
 import {
-  AnnouncementTargeting,
   countAnnouncementRecipients,
   findAnnouncementRecipients,
+  parseTargetingFromRequest,
   targetingFromAnnouncement,
 } from "@/lib/announcement-targeting";
 
@@ -65,6 +65,8 @@ export async function GET() {
  *   imageUrl?, expiresAt?,
  *   targetLocations?, targetGrades?, targetLabelIds?,
  *   targetUserIds?, targetShiftIds?,
+ *   targetActivityLocations?, targetActivityFrom?, targetActivityTo?,
+ *   targetActivityMinShifts?,
  *   sendEmail?, sendNotification?
  * }
  */
@@ -98,11 +100,6 @@ export async function POST(request: Request) {
     body: announcementBody,
     imageUrl,
     expiresAt,
-    targetLocations,
-    targetGrades,
-    targetLabelIds,
-    targetUserIds,
-    targetShiftIds,
     sendEmail,
     sendNotification,
   } = body;
@@ -114,13 +111,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
-  const targeting: AnnouncementTargeting = {
-    targetLocations: Array.isArray(targetLocations) ? targetLocations : [],
-    targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
-    targetLabelIds: Array.isArray(targetLabelIds) ? targetLabelIds : [],
-    targetUserIds: Array.isArray(targetUserIds) ? targetUserIds : [],
-    targetShiftIds: Array.isArray(targetShiftIds) ? targetShiftIds : [],
-  };
+  const targeting = parseTargetingFromRequest(body);
 
   const announcement = await prisma.announcement.create({
     data: {
