@@ -162,6 +162,77 @@ test.describe("General Volunteer Movement System", () => {
       );
     });
 
+    /**
+     * Regression: moving a volunteer used to be one-way.
+     *
+     * The target dropdown filtered down to the volunteer's own backup shift
+     * preferences, and the shift they came from is never in that list. Once a
+     * volunteer with backup preferences had been moved, admins could not move
+     * them back - the dropdown came up empty. Backup preferences are now a
+     * hint (sorted first, badged), never a restriction.
+     */
+    test("admin can move a volunteer whose only backup preference is their current shift", async ({
+      page,
+    }) => {
+      // Volunteer sits on the source shift and nominated only that shift as a backup
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: sourceShiftId,
+        status: "CONFIRMED",
+        backupForShiftIds: [sourceShiftId],
+      });
+
+      await loginAsAdmin(page);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible({ timeout: 10000 });
+      await moveButton.click();
+
+      await expect(page.getByText("to Different Shift")).toBeVisible({
+        timeout: 10000,
+      });
+
+      await page.getByRole("combobox").click();
+
+      // The target shift is not a backup preference, but must still be offered
+      const targetOption = page.locator(
+        `[data-testid="move-target-option-${targetShiftId}"]`
+      );
+      await expect(targetOption).toBeVisible({ timeout: 10000 });
+      await targetOption.click();
+
+      const moveVolunteerButton = page.getByRole("button", {
+        name: "Move Volunteer",
+      });
+      await expect(moveVolunteerButton).toBeEnabled();
+      await moveVolunteerButton.click();
+
+      await page.waitForTimeout(3000);
+
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const movedToCard = visibleShiftCard(page, targetShiftId);
+      await expect(movedToCard).toBeVisible({ timeout: 15000 });
+      await expect(movedToCard.getByText("Test User")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
     test("admin can move volunteer to different shift", async ({
       page,
     }) => {

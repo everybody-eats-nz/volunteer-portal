@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, UserCheck, UserX } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -41,24 +42,69 @@ interface VolunteerActionsProps {
     };
   };
   volunteerName?: string;
-  backupShiftIds?: string[]; // Optional: filter available shifts to only backup options
+  backupShiftIds?: string[]; // Optional: shifts the volunteer nominated as backups - highlighted, not enforced
+}
+
+type MoveTargetShift = {
+  id: string;
+  start: string;
+  end: string;
+  location: string | null;
+  capacity: number;
+  confirmedCount: number;
+  shiftType: {
+    id: string;
+    name: string;
+  };
+  // True when the volunteer nominated this shift as a backup at signup time
+  isPreferred: boolean;
+};
+
+/**
+ * Options for the "move volunteer" target picker. Backup preferences are sorted
+ * to the top and badged, but every shift with a free spot stays selectable so a
+ * volunteer can always be moved back to where they came from.
+ */
+function MoveTargetOptions({ shifts }: { shifts: MoveTargetShift[] }) {
+  return (
+    <>
+      {shifts.map((shift) => {
+        const spotsLeft = shift.capacity - shift.confirmedCount;
+        return (
+          <SelectItem
+            key={shift.id}
+            value={shift.id}
+            textValue={shift.shiftType.name}
+            data-testid={`move-target-option-${shift.id}`}
+          >
+            <span className="flex min-w-0 flex-col! items-start! gap-0.5">
+              <span className="flex items-center gap-2">
+                <span className="truncate font-medium">{shift.shiftType.name}</span>
+                {shift.isPreferred && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200"
+                  >
+                    <ArrowRightLeft aria-hidden="true" />
+                    Backup choice
+                  </Badge>
+                )}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {spotsLeft} {spotsLeft === 1 ? "spot" : "spots"} available
+              </span>
+            </span>
+          </SelectItem>
+        );
+      })}
+    </>
+  );
 }
 
 export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPrefix, currentShift, volunteerName, backupShiftIds }: VolunteerActionsProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState<string | null>(null);
-  const [availableShifts, setAvailableShifts] = useState<{
-    id: string;
-    start: string;
-    end: string;
-    location: string | null;
-    capacity: number;
-    confirmedCount: number;
-    shiftType: {
-      id: string;
-      name: string;
-    };
-  }[]>([]);
+  const [availableShifts, setAvailableShifts] = useState<MoveTargetShift[]>([]);
   const [selectedTargetShift, setSelectedTargetShift] = useState<string>("");
   const [movementNotes, setMovementNotes] = useState("");
   const [sendEmailOnReject, setSendEmailOnReject] = useState(true); // Default to checked
@@ -71,18 +117,22 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       const shiftDate = formatInNZT(currentShift.start, "yyyy-MM-dd");
       const response = await fetch(`/api/admin/shifts/available?date=${shiftDate}&location=${currentShift.location}`);
       if (response.ok) {
-        const data = await response.json();
-        // Filter out the current shift
-        let filtered = data.filter((shift: typeof availableShifts[0]) => shift.id !== currentShift.id);
+        const data: Omit<MoveTargetShift, "isPreferred">[] = await response.json();
 
-        // If backup shift IDs provided, only show those shifts
-        if (backupShiftIds && backupShiftIds.length > 0) {
-          filtered = filtered.filter((shift: typeof availableShifts[0]) =>
-            backupShiftIds.includes(shift.id)
-          );
-        }
+        // Every shift with a free spot stays selectable. The volunteer's backup
+        // preferences are only a hint - restricting the list to them made moves
+        // one-way, since the shift they came from is never in that list.
+        const targets: MoveTargetShift[] = data
+          .filter((shift) => shift.id !== currentShift.id)
+          .map((shift) => ({
+            ...shift,
+            isPreferred: backupShiftIds?.includes(shift.id) ?? false,
+          }));
 
-        setAvailableShifts(filtered);
+        // Surface the volunteer's own preferences first, then keep start-time order
+        targets.sort((a, b) => Number(b.isPreferred) - Number(a.isPreferred));
+
+        setAvailableShifts(targets);
       }
     } catch (error) {
       console.error("Error fetching available shifts:", error);
@@ -391,35 +441,35 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="targetShift">Select Target Shift</Label>
-                  <Select value={selectedTargetShift} onValueChange={setSelectedTargetShift}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a shift..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableShifts.map(shift => (
-                        <SelectItem
-                          key={shift.id}
-                          value={shift.id}
-                          data-testid={`move-target-option-${shift.id}`}
-                        >
-                          {shift.shiftType.name} • {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {shift.capacity - shift.confirmedCount} {shift.capacity - shift.confirmedCount === 1 ? "spot" : "spots"} available
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="movementNotes">Movement Notes (optional)</Label>
-                  <Textarea
-                    id="movementNotes"
-                    value={movementNotes}
-                    onChange={(e) => setMovementNotes(e.target.value)}
-                    placeholder="Add any notes about this movement..."
-                    rows={3}
-                  />
-                </div>
+                {availableShifts.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400" data-testid="move-no-targets">
+                    No other shifts with a free spot on this day at {currentShift.location}.
+                  </p>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="targetShift">Select Target Shift</Label>
+                      <Select value={selectedTargetShift} onValueChange={setSelectedTargetShift}>
+                        <SelectTrigger id="targetShift">
+                          <SelectValue placeholder="Choose a shift..." />
+                        </SelectTrigger>
+                        <SelectContent className="w-(--radix-select-trigger-width)">
+                          <MoveTargetOptions shifts={availableShifts} />
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="movementNotes">Movement Notes (optional)</Label>
+                      <Textarea
+                        id="movementNotes"
+                        value={movementNotes}
+                        onChange={(e) => setMovementNotes(e.target.value)}
+                        placeholder="Add any notes about this movement..."
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter>
                 <Button
@@ -707,7 +757,9 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
             </DialogHeader>
             <div className="py-4 space-y-4">
               {availableShifts.length === 0 ? (
-                <p className="text-sm text-slate-500">No other shifts available on this day</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400" data-testid="move-no-targets">
+                  No other shifts with a free spot on this day at {currentShift.location}.
+                </p>
               ) : (
                 <>
                   <div>
@@ -716,13 +768,8 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                       <SelectTrigger id="target-shift" data-testid={testIdPrefix ? `${testIdPrefix}-move-shift-select` : `volunteer-move-shift-select-${signupId}`}>
                         <SelectValue placeholder="Choose a shift" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {availableShifts.map((shift) => (
-                          <SelectItem key={shift.id} value={shift.id}>
-                            {shift.shiftType.name} ({formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")})
-                            {shift.confirmedCount >= shift.capacity && " - Full"}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="w-(--radix-select-trigger-width)">
+                        <MoveTargetOptions shifts={availableShifts} />
                       </SelectContent>
                     </Select>
                   </div>

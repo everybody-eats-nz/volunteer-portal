@@ -163,7 +163,12 @@ export async function getUserByEmail(
  */
 export async function createSignup(
   page: Page,
-  data: { userId: string; shiftId: string; status?: string }
+  data: {
+    userId: string;
+    shiftId: string;
+    status?: string;
+    backupForShiftIds?: string[];
+  }
 ): Promise<{ id: string }> {
   const response = await page.request.post("/api/test/signups", {
     data,
