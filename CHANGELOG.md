@@ -1,3 +1,9 @@
+## [0.150.2] - 2026-07-29
+
+### Changes
+- fix(admin): make shift transfers reversible ([#1165](https://github.com/everybody-eats-nz/volunteer-portal/pull/1165)) by @malinmalliyawadu
+
+
 ## [0.150.1] - 2026-07-29
 
 ### Changes
