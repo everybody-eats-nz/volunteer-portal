@@ -386,7 +386,9 @@ function HeroHeader({ unreadCount, total, colors, isDark }: HeroProps) {
           style={[
             styles.heroPill,
             {
-              backgroundColor: isDark ? colors.accent : Brand.accent,
+              // Dark: a soft sun glow well so the sun-yellow label stays legible.
+              // Light: solid sun with near-black ink on top.
+              backgroundColor: isDark ? colors.accentGlow : Brand.accent,
             },
           ]}
         >
