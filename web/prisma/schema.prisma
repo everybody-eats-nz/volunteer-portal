@@ -314,6 +314,9 @@ model Signup {
   placementNotes      String?
 
   // Backup shift preferences - alternative shift IDs volunteer is willing to fill
+  // NOTE: set at signup time and NOT updated when an admin moves the volunteer,
+  // so it can name shifts they are no longer on. Treat it as a UI hint only
+  // (sorting/badging in the admin move dialog) - never as a set of allowed targets.
   backupForShiftIds String[] @default([]) // Array of shift IDs they're willing to backup for (same time slots)
 
   // Volunteer-provided note
