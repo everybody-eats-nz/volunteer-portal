@@ -1,3 +1,9 @@
+## [0.150.4] - 2026-07-31
+
+### Changes
+- chore(deps): bump sharp from 0.34.5 to 0.35.3 in /web ([#1161](https://github.com/everybody-eats-nz/volunteer-portal/pull/1161)) by @dependabot[bot]
+
+
 ## [0.150.3] - 2026-07-29
 
 ### Changes
