@@ -1,3 +1,9 @@
+## [0.150.5] - 2026-08-01
+
+### Changes
+- fix(shifts): open the browse calendar on the next month that has shifts ([#1169](https://github.com/everybody-eats-nz/volunteer-portal/pull/1169)) by @malinmalliyawadu
+
+
 ## [0.150.4] - 2026-07-31
 
 ### Changes
