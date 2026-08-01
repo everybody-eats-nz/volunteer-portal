@@ -1,3 +1,9 @@
+## [0.150.6] - 2026-08-01
+
+### Changes
+- refactor(api): replace raw SQL friends list query with Prisma query builder ([#1170](https://github.com/everybody-eats-nz/volunteer-portal/pull/1170)) by @malinmalliyawadu
+
+
 ## [0.150.5] - 2026-08-01
 
 ### Changes
