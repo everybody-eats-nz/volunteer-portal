@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { resolveInitialCalendarMonth } from "@/lib/shift-calendar-month";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { MapPin } from "lucide-react";
@@ -298,6 +299,13 @@ export default async function ShiftsCalendarPage({
     friendSignups: friendSignupsMap[shift.id] || [],
   }));
 
+  // Resolved server-side so SSR and hydration agree regardless of the viewer's
+  // timezone (see the helper for why it can differ from the current month).
+  const initialMonth = resolveInitialCalendarMonth(
+    shiftSummaries.map((shift) => shift.start),
+    now
+  );
+
   // If no explicit location choice has been made, show location selection screen
   if (!hasExplicitLocationChoice) {
     return (
@@ -529,6 +537,7 @@ export default async function ShiftsCalendarPage({
         shifts={shiftSummaries}
         selectedLocation={selectedLocation}
         serverNow={now.getTime()}
+        initialMonth={initialMonth}
       />
     </PageContainer>
     </>
