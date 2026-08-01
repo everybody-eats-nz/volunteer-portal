@@ -58,6 +58,15 @@ interface ShiftsCalendarProps {
    * when the server's clock and the client's clock straddle a day/month boundary.
    */
   serverNow: number;
+  /**
+   * Month the calendar opens on, as "yyyy-MM". Usually the current month, but
+   * the server falls through to the month of the next shift when the current
+   * one has none left, so volunteers never land on an empty grid. Passed as a
+   * plain year-month string rather than a timestamp because a start-of-month
+   * instant would resolve to the previous month for viewers behind NZ time,
+   * desyncing hydration from the SSR output.
+   */
+  initialMonth: string;
 }
 
 interface DayShifts {
@@ -84,10 +93,14 @@ export function ShiftsCalendar({
   shifts,
   selectedLocation,
   serverNow,
+  initialMonth,
 }: ShiftsCalendarProps) {
   // All "now"-derived values come from the server timestamp so the initial
   // client render matches the SSR output exactly (prevents hydration errors).
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(serverNow));
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const [year, month] = initialMonth.split("-").map(Number);
+    return new Date(year, month - 1, 1);
+  });
 
   // Stable references to "now" for the initial render.
   const nowDate = new Date(serverNow);
