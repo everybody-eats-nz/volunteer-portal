@@ -1,7 +1,20 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { DAY_EVENING_CUTOFF_HOUR, shiftStartNZ } from "@/lib/concurrent-shifts";
+
+/** Fields needed to render a friend row in the mobile friends list. */
+const friendSelect = {
+  id: true,
+  name: true,
+  firstName: true,
+  lastName: true,
+  profilePhotoUrl: true,
+  volunteerGrade: true,
+} as const;
+
+type FriendRow = Prisma.UserGetPayload<{ select: typeof friendSelect }>;
 
 /**
  * GET /api/mobile/friends
@@ -19,45 +32,39 @@ export async function GET(request: Request) {
   const { userId } = auth;
 
   try {
-    // 1. Get all accepted friendships for the current user, newest first
-    const friendsRaw = await prisma.$queryRaw<
-      Array<{
-        friendId: string;
-        name: string | null;
-        firstName: string | null;
-        lastName: string | null;
-        profilePhotoUrl: string | null;
-        volunteerGrade: string;
-        friendedAt: Date;
-      }>
-    >`
-      SELECT DISTINCT ON (u.id)
-        u.id as "friendId",
-        u.name,
-        u."firstName",
-        u."lastName",
-        u."profilePhotoUrl",
-        u."volunteerGrade",
-        f."createdAt" as "friendedAt"
-      FROM "Friendship" f
-      JOIN "User" u ON (
-        (f."userId" = ${userId} AND u.id = f."friendId") OR
-        (f."friendId" = ${userId} AND u.id = f."userId")
-      )
-      WHERE f.status = 'ACCEPTED' AND u.id != ${userId}
-      ORDER BY u.id, f."createdAt" DESC
-    `;
+    // 1. Get all accepted friendships for the current user, newest first.
+    // Friendships are stored in a single direction, so the friend is whichever
+    // side of the row isn't the current user.
+    const friendships = await prisma.friendship.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: [{ userId }, { friendId: userId }],
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        createdAt: true,
+        user: { select: friendSelect },
+        friend: { select: friendSelect },
+      },
+    });
 
-    // Re-sort in JS because DISTINCT ON requires ordering by the distinct key first.
-    friendsRaw.sort(
-      (a, b) => b.friendedAt.getTime() - a.friendedAt.getTime()
-    );
+    // De-duplicate by user id, keeping the most recent friendship (rows are
+    // already newest first) and skipping any self-friendship rows.
+    const friendsById = new Map<string, FriendRow>();
+    for (const friendship of friendships) {
+      const friend =
+        friendship.user.id === userId ? friendship.friend : friendship.user;
+      if (friend.id === userId || friendsById.has(friend.id)) continue;
+      friendsById.set(friend.id, friend);
+    }
 
-    if (friendsRaw.length === 0) {
+    const friendRows = [...friendsById.values()];
+
+    if (friendRows.length === 0) {
       return NextResponse.json({ friends: [] });
     }
 
-    const friendIds = friendsRaw.map((f) => f.friendId);
+    const friendIds = friendRows.map((f) => f.id);
 
     // 2. Get custom labels for grade overrides (GREEN/YELLOW/PINK label names)
     const gradeLabels = await prisma.userCustomLabel.findMany({
@@ -81,7 +88,7 @@ export async function GET(request: Request) {
     }
 
     // 3. Count shifts together — matched by day + AM/PM + location, past shifts only.
-    // Matches the definition used by /api/mobile/friends/[id] so counts are consistent.
+    // Matches the definition used by /api/mobile/users/[id] so counts are consistent.
     const shiftTogetherCounts = await prisma.$queryRaw<
       Array<{ friendId: string; count: bigint }>
     >`
@@ -182,25 +189,25 @@ export async function GET(request: Request) {
     }
 
     // 6. Build the response
-    const friends = friendsRaw.map((friend) => {
+    const friends = friendRows.map((friend) => {
       const displayName =
         friend.name ??
         [friend.firstName, friend.lastName].filter(Boolean).join(" ") ??
         "Volunteer";
 
       // Use custom label grade if available, otherwise fall back to volunteerGrade
-      const grade = (customGradeMap.get(friend.friendId) ??
+      const grade = (customGradeMap.get(friend.id) ??
         friend.volunteerGrade ??
         "GREEN") as "GREEN" | "YELLOW" | "PINK";
 
       return {
-        id: friend.friendId,
+        id: friend.id,
         name: displayName,
         profilePhotoUrl: friend.profilePhotoUrl ?? undefined,
         grade,
-        shiftsTogether: shiftsTogetherMap.get(friend.friendId) ?? 0,
-        mutualFriends: mutualFriendsMap.get(friend.friendId) ?? 0,
-        lastActive: formatLastActive(lastActiveMap.get(friend.friendId)),
+        shiftsTogether: shiftsTogetherMap.get(friend.id) ?? 0,
+        mutualFriends: mutualFriendsMap.get(friend.id) ?? 0,
+        lastActive: formatLastActive(lastActiveMap.get(friend.id)),
       };
     });
 
