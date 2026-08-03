@@ -109,11 +109,38 @@ export default async function ShiftsCalendarPage({
   // Get current user — a single small lookup that drives the branch decision
   // (preferred / default locations).
   let currentUser = null;
+  let userFriendIds: string[] = [];
   if (user?.email) {
     currentUser = await prisma.user.findUnique({
       where: { email: user.email },
       select: { id: true, availableLocations: true, defaultLocation: true },
     });
+
+    // Friend IDs drive which volunteers show as friends on the calendar
+    if (currentUser?.id) {
+      userFriendIds = await prisma.friendship
+        .findMany({
+          where: {
+            AND: [
+              {
+                OR: [{ userId: currentUser.id }, { friendId: currentUser.id }],
+              },
+              { status: "ACCEPTED" },
+            ],
+          },
+          select: {
+            userId: true,
+            friendId: true,
+          },
+        })
+        .then((friendships) =>
+          friendships.map((friendship) =>
+            friendship.userId === currentUser!.id
+              ? friendship.friendId
+              : friendship.userId
+          )
+        );
+    }
   }
 
   // Parse user's preferred locations (still used for admin targeting and other features)
