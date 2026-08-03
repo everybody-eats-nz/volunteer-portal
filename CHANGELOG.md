@@ -1,3 +1,9 @@
+## [0.150.8] - 2026-08-03
+
+### Changes
+- chore(deps): bump jose from 6.2.4 to 6.2.5 in /web in the production-dependencies group across 1 directory ([#1173](https://github.com/everybody-eats-nz/volunteer-portal/pull/1173)) by @dependabot[bot]
+
+
 ## [0.150.7] - 2026-08-03
 
 ### Changes
