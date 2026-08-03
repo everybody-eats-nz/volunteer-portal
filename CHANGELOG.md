@@ -1,3 +1,21 @@
+## [0.150.7] - 2026-08-03
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 2 updates ([#1172](https://github.com/everybody-eats-nz/volunteer-portal/pull/1172)) by @dependabot[bot]
+
+
+## [0.150.6] - 2026-08-01
+
+### Changes
+- refactor(api): replace raw SQL friends list query with Prisma query builder ([#1170](https://github.com/everybody-eats-nz/volunteer-portal/pull/1170)) by @malinmalliyawadu
+
+
+## [0.150.5] - 2026-08-01
+
+### Changes
+- fix(shifts): open the browse calendar on the next month that has shifts ([#1169](https://github.com/everybody-eats-nz/volunteer-portal/pull/1169)) by @malinmalliyawadu
+
+
 ## [0.150.4] - 2026-07-31
 
 ### Changes
