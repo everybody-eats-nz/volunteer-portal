@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { resolveInitialCalendarMonth } from "@/lib/shift-calendar-month";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
 import { safeParseAvailability } from "@/lib/parse-availability";
-import { ShiftsCalendarSection } from "@/components/shifts-calendar-section";
-import { ShiftsCalendarSkeleton } from "@/components/shifts-calendar-skeleton";
+import { ShiftsCalendar } from "@/components/shifts-calendar";
 import { LocationSwitcher } from "@/components/location-switcher";
 import { getGoogleMapsUrl } from "@/lib/locations";
 import { getLiveLocations } from "@/lib/live-locations";
@@ -67,6 +67,31 @@ function Sparkle({ className }: { className?: string }) {
 const eyebrowLight =
   "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
 
+interface ShiftSummary {
+  id: string;
+  start: Date;
+  end: Date;
+  location: string | null;
+  capacity: number;
+  confirmedCount: number;
+  pendingCount: number;
+  shiftType: {
+    name: string;
+    description: string | null;
+  };
+  friendSignups?: Array<{
+    user: {
+      id: string;
+      name: string | null;
+      firstName: string | null;
+      lastName: string | null;
+      email: string;
+      profilePhotoUrl: string | null;
+    };
+    isFriend: boolean;
+  }>;
+}
+
 export default async function ShiftsCalendarPage({
   searchParams,
 }: {
@@ -82,9 +107,7 @@ export default async function ShiftsCalendarPage({
   });
 
   // Get current user — a single small lookup that drives the branch decision
-  // (preferred / default locations). The heavy shift + signup queries live in
-  // <ShiftsCalendarSection>, behind a Suspense boundary, so this page shell
-  // streams immediately.
+  // (preferred / default locations).
   let currentUser = null;
   if (user?.email) {
     currentUser = await prisma.user.findUnique({
@@ -142,6 +165,130 @@ export default async function ShiftsCalendarPage({
     selectedLocation = userDefaultLocation;
     hasExplicitLocationChoice = true;
   }
+
+  // Single server-side timestamp, reused for the shift query and seeded into
+  // the calendar so SSR and client hydration agree on "now" (see ShiftsCalendar).
+  const now = new Date();
+
+  // Fetch shifts for calendar view - simplified data structure
+  const shifts = await prisma.shift.findMany({
+    where: {
+      start: { gte: now },
+      ...(filterLocations.length > 0
+        ? { location: { in: filterLocations } }
+        : {}),
+    },
+    orderBy: { start: "asc" },
+    include: {
+      shiftType: {
+        select: {
+          name: true,
+          description: true,
+        },
+      },
+      _count: {
+        select: {
+          signups: {
+            where: {
+              status: {
+                in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
+              },
+            },
+          },
+          placeholders: true,
+        },
+      },
+    },
+  });
+
+  // Fetch all signups and filter by privacy settings
+  type FriendSignup = {
+    user: {
+      id: string;
+      name: string | null;
+      firstName: string | null;
+      lastName: string | null;
+      email: string;
+      profilePhotoUrl: string | null;
+    };
+    isFriend: boolean;
+  };
+  let friendSignupsMap: Record<string, FriendSignup[]> = {};
+
+  // Only fetch signups if user is logged in
+  if (currentUser?.id) {
+    const allSignups = await prisma.signup.findMany({
+      where: {
+        shiftId: { in: shifts.map((s) => s.id) },
+        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        // Exclude the current user from the list
+        userId: { not: currentUser.id },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profilePhotoUrl: true,
+            friendVisibility: true,
+          },
+        },
+      },
+    });
+
+    // Filter by privacy settings and group by shift ID
+    friendSignupsMap = allSignups
+      .filter((signup) => {
+        const { friendVisibility } = signup.user;
+
+        // PUBLIC: Show to everyone who is logged in
+        if (friendVisibility === "PUBLIC") {
+          return true;
+        }
+
+        // FRIENDS_ONLY: Only show to friends
+        if (friendVisibility === "FRIENDS_ONLY") {
+          return userFriendIds.includes(signup.user.id);
+        }
+
+        // PRIVATE: Don't show to anyone
+        return false;
+      })
+      .reduce<Record<string, FriendSignup[]>>((acc, signup) => {
+        if (!acc[signup.shiftId]) acc[signup.shiftId] = [];
+        acc[signup.shiftId].push({
+          user: signup.user,
+          isFriend: userFriendIds.includes(signup.user.id),
+        });
+        return acc;
+      }, {});
+  }
+
+  // Transform to ShiftSummary format for calendar
+  const shiftSummaries: ShiftSummary[] = shifts.map((shift) => ({
+    id: shift.id,
+    start: shift.start,
+    end: shift.end,
+    location: shift.location,
+    capacity: shift.capacity,
+    confirmedCount: shift._count.signups + shift._count.placeholders, // Includes CONFIRMED, PENDING, REGULAR_PENDING + unregistered volunteers
+    pendingCount: 0, // For calendar view, we simplify by putting all counts in confirmedCount
+    shiftType: {
+      name: shift.shiftType.name,
+      description: shift.shiftType.description,
+    },
+    friendSignups: friendSignupsMap[shift.id] || [],
+  }));
+
+  // Resolved server-side so SSR and hydration agree regardless of the viewer's
+  // timezone (see the helper for why it can differ from the current month).
+  const initialMonth = resolveInitialCalendarMonth(
+    shiftSummaries.map((shift) => shift.start),
+    now
+  );
 
   // If no explicit location choice has been made, show location selection screen
   if (!hasExplicitLocationChoice) {
@@ -367,15 +514,13 @@ export default async function ShiftsCalendarPage({
           <ShiftsProfileCompletionBanner />
         </Suspense>
 
-        {/* Calendar view — heavy shift/signup queries stream in behind a
-            Suspense boundary so the header above renders immediately. */}
-        <Suspense fallback={<ShiftsCalendarSkeleton />}>
-          <ShiftsCalendarSection
-            filterLocations={filterLocations}
-            selectedLocation={selectedLocation}
-            currentUserId={currentUser?.id}
-          />
-        </Suspense>
+        {/* Calendar View */}
+        <ShiftsCalendar
+          shifts={shiftSummaries}
+          selectedLocation={selectedLocation}
+          serverNow={now.getTime()}
+          initialMonth={initialMonth}
+        />
       </PageContainer>
     </>
   );

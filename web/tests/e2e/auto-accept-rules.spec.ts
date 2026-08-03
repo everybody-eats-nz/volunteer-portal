@@ -86,8 +86,13 @@ test.describe("Auto-Accept Rules Admin Interface", () => {
     await page.getByText("Create Rule").click();
 
     // Should see validation errors (exact messages may vary)
-    // At minimum, rule name should be required
-    const dialog = page.locator('[role="dialog"]');
+    // At minimum, rule name should be required. Scope to the dialog's own
+    // accessible name: a bare [role="dialog"] locator is a strict-mode trap
+    // here, because the background notification SSE connection (mounted
+    // admin-wide) intermittently fires a benign onerror that Next.js dev
+    // mode renders as its own role="dialog" console-error overlay, and the
+    // two dialogs being simultaneously present made this test flaky.
+    const dialog = page.getByRole("dialog", { name: "Create Auto-Accept Rule" });
     await expect(dialog).toBeVisible();
   });
 

@@ -1,5 +1,6 @@
 import { Prisma, SignupStatus } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
+import { createNZDate, formatInNZT } from "@/lib/timezone";
 
 /**
  * Statuses that count as "currently signed up to a shift" for announcement
@@ -14,12 +15,33 @@ export const ANNOUNCEMENT_SHIFT_TARGET_STATUSES: readonly SignupStatus[] = [
   "NO_SHOW",
 ] as const;
 
+/**
+ * Statuses that count as "actually worked this shift" for shift-history
+ * targeting. Deliberately narrower than the set above: a waitlisted or
+ * no-show volunteer never worked the shift, so they don't belong in a
+ * "volunteers who worked at Onehunga recently" audience.
+ */
+export const ANNOUNCEMENT_ACTIVITY_STATUSES: readonly SignupStatus[] = [
+  "CONFIRMED",
+] as const;
+
 export interface AnnouncementTargeting {
   targetLocations: string[];
   targetGrades: string[];
   targetLabelIds: string[];
   targetUserIds: string[];
   targetShiftIds: string[];
+  /** Shift locations to count activity at. Empty = any location. */
+  targetActivityLocations: string[];
+  /** Only count shifts that ended on/after this. Null = no lower bound. */
+  targetActivityFrom: Date | null;
+  /** Only count shifts that ended on/before this. Null = no upper bound. */
+  targetActivityTo: Date | null;
+  /** Minimum matching shifts. Null switches the whole dimension off. */
+  targetActivityMinShifts: number | null;
+  /** Maximum matching shifts, e.g. 1 to reach first-shift volunteers only.
+   *  Null = no upper bound. Ignored while the dimension is off. */
+  targetActivityMaxShifts: number | null;
 }
 
 /** Pluck the targeting fields out of an Announcement row. */
@@ -32,7 +54,153 @@ export function targetingFromAnnouncement(
     targetLabelIds: ann.targetLabelIds,
     targetUserIds: ann.targetUserIds,
     targetShiftIds: ann.targetShiftIds,
+    targetActivityLocations: ann.targetActivityLocations,
+    targetActivityFrom: ann.targetActivityFrom,
+    targetActivityTo: ann.targetActivityTo,
+    targetActivityMinShifts: ann.targetActivityMinShifts,
+    targetActivityMaxShifts: ann.targetActivityMaxShifts,
   };
+}
+
+/** Just the shift-history dimension, for callers that don't have the rest. */
+export type ActivityTargeting = Pick<
+  AnnouncementTargeting,
+  | "targetActivityLocations"
+  | "targetActivityFrom"
+  | "targetActivityTo"
+  | "targetActivityMinShifts"
+  | "targetActivityMaxShifts"
+>;
+
+/** Is the shift-history dimension switched on for this targeting? */
+export function hasActivityTargeting(t: {
+  targetActivityMinShifts: number | null;
+}): boolean {
+  return t.targetActivityMinShifts !== null && t.targetActivityMinShifts >= 1;
+}
+
+/** A shift the volunteer worked — a confirmed signup on a finished shift. */
+export interface WorkedShift {
+  location: string | null;
+  end: Date;
+}
+
+/**
+ * In-memory twin of the shift-history SQL condition, for the mobile feed —
+ * which loads announcements for one known user and filters them in app code.
+ * Keep this in step with the `hasActivityTargeting` branch of
+ * `buildRecipientConditions`, or the feed will show a volunteer an
+ * announcement they were never emailed (or hide one they were).
+ *
+ * `workedShifts` must already be limited to shifts the user actually worked;
+ * this only applies the announcement's own location and date narrowing.
+ */
+export function userMatchesActivityTargeting(
+  workedShifts: WorkedShift[],
+  t: ActivityTargeting
+): boolean {
+  if (!hasActivityTargeting(t)) return true;
+
+  const matching = workedShifts.filter((shift) => {
+    if (
+      t.targetActivityLocations.length > 0 &&
+      (shift.location === null ||
+        !t.targetActivityLocations.includes(shift.location))
+    ) {
+      return false;
+    }
+    if (t.targetActivityFrom && shift.end < t.targetActivityFrom) return false;
+    if (t.targetActivityTo && shift.end > t.targetActivityTo) return false;
+    return true;
+  });
+
+  if (matching.length < (t.targetActivityMinShifts ?? 1)) return false;
+  if (
+    t.targetActivityMaxShifts !== null &&
+    matching.length > t.targetActivityMaxShifts
+  ) {
+    return false;
+  }
+  return true;
+}
+
+const MAX_ACTIVITY_MIN_SHIFTS = 999;
+
+/**
+ * Coerce an untrusted request body into targeting. Shared by the create and
+ * recipient-count routes so the preview count can't drift from what actually
+ * gets sent.
+ *
+ * Activity dates arrive as `YYYY-MM-DD` from the admin form and are anchored
+ * to NZ calendar days — "from" at midnight, "to" at the end of that day — so
+ * a range reads inclusively the way an admin picked it.
+ */
+export function parseTargetingFromRequest(
+  body: Record<string, unknown>
+): AnnouncementTargeting {
+  const stringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+
+  const clampShiftCount = (value: unknown): number | null =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.min(Math.max(Math.trunc(value), 1), MAX_ACTIVITY_MIN_SHIFTS)
+      : null;
+
+  const minShifts = clampShiftCount(body.targetActivityMinShifts);
+  // The max only exists while the dimension is on (min set), and can never
+  // sit below the min — a crossed range would silently match no one.
+  const rawMaxShifts =
+    minShifts !== null
+      ? clampShiftCount(body.targetActivityMaxShifts)
+      : null;
+  const maxShifts =
+    rawMaxShifts !== null ? Math.max(rawMaxShifts, minShifts!) : null;
+
+  return {
+    targetLocations: stringArray(body.targetLocations),
+    targetGrades: stringArray(body.targetGrades),
+    targetLabelIds: stringArray(body.targetLabelIds),
+    targetUserIds: stringArray(body.targetUserIds),
+    targetShiftIds: stringArray(body.targetShiftIds),
+    targetActivityLocations: stringArray(body.targetActivityLocations),
+    targetActivityFrom: parseActivityDate(body.targetActivityFrom, "start"),
+    targetActivityTo: parseActivityDate(body.targetActivityTo, "end"),
+    targetActivityMinShifts: minShifts,
+    targetActivityMaxShifts: maxShifts,
+  };
+}
+
+/**
+ * Turn a `YYYY-MM-DD` string from the date inputs into the UTC instant for the
+ * start or end of that NZ calendar day. Anything unparseable becomes null so a
+ * malformed date widens the window rather than throwing mid-send.
+ *
+ * An impossible-but-well-formed date (`2026-13-99`, `2026-02-31`) does not
+ * produce an invalid Date — the underlying constructor rolls the components
+ * over into a real date in a later month. Silently accepting that would move a
+ * window bound to a day nobody asked for and email the wrong audience, so the
+ * result is checked back against the string it came from. The date inputs
+ * can't produce these; a direct API call can.
+ */
+function parseActivityDate(value: unknown, edge: "start" | "end"): Date | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+  const date =
+    edge === "start"
+      ? createNZDate(value, 0, 0, 0)
+      : createNZDate(value, 23, 59, 59);
+
+  const roundTrips =
+    !Number.isNaN(date.getTime()) &&
+    formatInNZT(date, "yyyy-MM-dd") === value;
+  if (!roundTrips) {
+    console.warn(
+      `[announcement-targeting] ignoring unparseable activity ${edge} date: ${value}`
+    );
+    return null;
+  }
+  return date;
 }
 
 /**
@@ -43,6 +211,25 @@ export function targetingFromAnnouncement(
  */
 function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
   const conditions: Prisma.Sql[] = [Prisma.sql`TRUE`];
+
+  // Archived volunteers (inactive 12 months, never activated, never migrated)
+  // are people the org has deliberately stopped engaging — and they can't sign
+  // in, so an announcement email would point them at a dashboard they can't
+  // reach. Keep them out of every broad targeting dimension.
+  //
+  // Exception: user IDs named explicitly. The "Announce" button on an archived
+  // volunteer's profile links straight here with `?userIds=<id>`, so an admin
+  // hand-picking an archived volunteer means it.
+  if (t.targetUserIds.length > 0) {
+    conditions.push(
+      Prisma.sql`(
+        "archivedAt" IS NULL
+        OR "User".id = ANY(ARRAY[${Prisma.join(t.targetUserIds)}]::text[])
+      )`
+    );
+  } else {
+    conditions.push(Prisma.sql`"archivedAt" IS NULL`);
+  }
 
   if (t.targetLocations.length > 0) {
     const targetLocations = Prisma.sql`ARRAY[${Prisma.join(t.targetLocations)}]::text[]`;
@@ -95,6 +282,61 @@ function buildRecipientConditions(t: AnnouncementTargeting): Prisma.Sql {
         AND "shiftId" = ANY(ARRAY[${Prisma.join(t.targetShiftIds)}]::text[])
         AND "status"::text = ANY(ARRAY[${Prisma.join(ANNOUNCEMENT_SHIFT_TARGET_STATUSES.map((s) => s))}]::text[])
       )`
+    );
+  }
+
+  if (hasActivityTargeting(t)) {
+    // Shifts the volunteer actually worked: a confirmed signup on a shift that
+    // has already finished. The optional narrowing clauses all key off the
+    // shift's end time, so "between April and July" means shifts that finished
+    // in that window rather than ones that merely started in it.
+    const activityFilters: Prisma.Sql[] = [
+      Prisma.sql`"Signup"."userId" = "User".id`,
+      Prisma.sql`"Signup"."status"::text = ANY(ARRAY[${Prisma.join(ANNOUNCEMENT_ACTIVITY_STATUSES.map((s) => s))}]::text[])`,
+      Prisma.sql`"Shift"."end" < NOW()`,
+    ];
+
+    if (t.targetActivityLocations.length > 0) {
+      // Shifts with no location drop out here without an explicit IS NOT NULL:
+      // `NULL = ANY(array)` evaluates to NULL, not true, so the row fails the
+      // WHERE. That matches userMatchesActivityTargeting, which excludes them
+      // outright.
+      activityFilters.push(
+        Prisma.sql`"Shift"."location" = ANY(ARRAY[${Prisma.join(t.targetActivityLocations)}]::text[])`
+      );
+    }
+    if (t.targetActivityFrom) {
+      activityFilters.push(Prisma.sql`"Shift"."end" >= ${t.targetActivityFrom}`);
+    }
+    if (t.targetActivityTo) {
+      activityFilters.push(Prisma.sql`"Shift"."end" <= ${t.targetActivityTo}`);
+    }
+
+    const workedShiftCount = Prisma.sql`(
+            SELECT COUNT(DISTINCT "Signup"."shiftId")
+            FROM "Signup"
+            JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
+            WHERE ${Prisma.join(activityFilters, " AND ")}
+          )`;
+
+    // All three branches are correlated subqueries evaluated per candidate
+    // user, so they lean on Signup(userId, …) to keep the per-user set small.
+    // "At least one shift, no upper bound" is by far the common case, and
+    // EXISTS lets Postgres stop at the first matching row instead of counting
+    // every shift the volunteer ever worked. An upper bound rules EXISTS out:
+    // "worked exactly 1 shift" has to reject someone with two, which means
+    // actually counting them.
+    conditions.push(
+      t.targetActivityMaxShifts !== null
+        ? Prisma.sql`${workedShiftCount} BETWEEN ${t.targetActivityMinShifts} AND ${t.targetActivityMaxShifts}`
+        : t.targetActivityMinShifts === 1
+          ? Prisma.sql`EXISTS (
+            SELECT 1
+            FROM "Signup"
+            JOIN "Shift" ON "Shift".id = "Signup"."shiftId"
+            WHERE ${Prisma.join(activityFilters, " AND ")}
+          )`
+          : Prisma.sql`${workedShiftCount} >= ${t.targetActivityMinShifts}`
     );
   }
 

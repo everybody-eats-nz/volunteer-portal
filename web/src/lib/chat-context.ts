@@ -50,7 +50,10 @@ export async function getStaticChatContext(
   const [resources, promptSetting, modelSetting, locations, shiftTypes, totalVolunteers, recentMeals, totalMeals, recentShifts] =
     await Promise.all([
       prisma.resource.findMany({
-        where: { includeInChat: true, isPublished: true, chatContent: { not: null } },
+        // Chat inclusion is controlled solely by `includeInChat`; it is
+        // independent of hub publication so chat-only guides (which are
+        // unpublished) still feed the assistant.
+        where: { includeInChat: true, chatContent: { not: null } },
         select: { title: true, category: true, chatContent: true },
         orderBy: { category: "asc" },
       }),

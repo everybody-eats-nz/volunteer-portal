@@ -7,9 +7,9 @@ import { getEmailService } from "@/lib/email-service";
 import { createNotificationsForUsers } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/utils";
 import {
-  AnnouncementTargeting,
   countAnnouncementRecipients,
   findAnnouncementRecipients,
+  parseTargetingFromRequest,
   targetingFromAnnouncement,
 } from "@/lib/announcement-targeting";
 
@@ -65,6 +65,8 @@ export async function GET() {
  *   imageUrl?, expiresAt?,
  *   targetLocations?, targetGrades?, targetLabelIds?,
  *   targetUserIds?, targetShiftIds?,
+ *   targetActivityLocations?, targetActivityFrom?, targetActivityTo?,
+ *   targetActivityMinShifts?, targetActivityMaxShifts?,
  *   sendEmail?, sendNotification?
  * }
  */
@@ -98,11 +100,6 @@ export async function POST(request: Request) {
     body: announcementBody,
     imageUrl,
     expiresAt,
-    targetLocations,
-    targetGrades,
-    targetLabelIds,
-    targetUserIds,
-    targetShiftIds,
     sendEmail,
     sendNotification,
   } = body;
@@ -114,20 +111,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
-  const targeting: AnnouncementTargeting = {
-    targetLocations: Array.isArray(targetLocations) ? targetLocations : [],
-    targetGrades: Array.isArray(targetGrades) ? targetGrades : [],
-    targetLabelIds: Array.isArray(targetLabelIds) ? targetLabelIds : [],
-    targetUserIds: Array.isArray(targetUserIds) ? targetUserIds : [],
-    targetShiftIds: Array.isArray(targetShiftIds) ? targetShiftIds : [],
-  };
+  // An unparseable expiry would reach Prisma as an Invalid Date and fail the
+  // insert with an opaque error; a past one would publish an announcement that
+  // is already hidden from the feed. Reject both with something an admin can
+  // act on.
+  let expiresAtDate: Date | null = null;
+  if (expiresAt) {
+    const parsed = new Date(expiresAt);
+    if (Number.isNaN(parsed.getTime())) {
+      return NextResponse.json(
+        { error: "Expiry date is not a valid date" },
+        { status: 400 }
+      );
+    }
+    if (parsed.getTime() <= Date.now()) {
+      return NextResponse.json(
+        { error: "Expiry date must be in the future" },
+        { status: 400 }
+      );
+    }
+    expiresAtDate = parsed;
+  }
+
+  const targeting = parseTargetingFromRequest(body);
 
   const announcement = await prisma.announcement.create({
     data: {
       title: title.trim(),
       body: announcementBody.trim(),
       imageUrl: imageUrl?.trim() || null,
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      expiresAt: expiresAtDate,
       createdBy: adminUser.id,
       sendEmail: Boolean(sendEmail),
       sendNotification: Boolean(sendNotification),

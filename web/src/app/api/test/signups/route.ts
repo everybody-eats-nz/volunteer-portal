@@ -48,13 +48,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { userId, shiftId, status = "CONFIRMED" } = body;
+    const { userId, shiftId, status = "CONFIRMED", backupForShiftIds = [] } = body;
 
     const signup = await prisma.signup.create({
       data: {
         userId,
         shiftId,
         status,
+        backupForShiftIds,
       },
     });
 

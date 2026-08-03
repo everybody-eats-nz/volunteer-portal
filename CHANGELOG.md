@@ -1,3 +1,81 @@
+## [0.150.5] - 2026-08-01
+
+### Changes
+- fix(shifts): open the browse calendar on the next month that has shifts ([#1169](https://github.com/everybody-eats-nz/volunteer-portal/pull/1169)) by @malinmalliyawadu
+
+
+## [0.150.4] - 2026-07-31
+
+### Changes
+- chore(deps): bump sharp from 0.34.5 to 0.35.3 in /web ([#1161](https://github.com/everybody-eats-nz/volunteer-portal/pull/1161)) by @dependabot[bot]
+
+
+## [0.150.3] - 2026-07-29
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group across 1 directory with 5 updates ([#1164](https://github.com/everybody-eats-nz/volunteer-portal/pull/1164)) by @dependabot[bot]
+
+
+## [0.150.2] - 2026-07-29
+
+### Changes
+- fix(admin): make shift transfers reversible ([#1165](https://github.com/everybody-eats-nz/volunteer-portal/pull/1165)) by @malinmalliyawadu
+
+
+## [0.150.1] - 2026-07-29
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 18 updates ([#1159](https://github.com/everybody-eats-nz/volunteer-portal/pull/1159)) by @dependabot[bot]
+
+
+## [0.150.0] - 2026-07-24
+
+### Changes
+- feat(announcements): redesign admin console with live feed preview ([#1157](https://github.com/everybody-eats-nz/volunteer-portal/pull/1157)) by @malinmalliyawadu
+
+
+## [0.149.2] - 2026-07-24
+
+### Changes
+- fix(announcements): reject impossible activity dates in shift-history targeting ([#1156](https://github.com/everybody-eats-nz/volunteer-portal/pull/1156)) by @malinmalliyawadu
+
+
+## [0.149.1] - 2026-07-24
+
+### Changes
+- fix(announcements): exclude archived volunteers from targeting ([#1155](https://github.com/everybody-eats-nz/volunteer-portal/pull/1155)) by @malinmalliyawadu
+
+
+## [0.149.0] - 2026-07-24
+
+### Changes
+- feat(announcements): target volunteers by shift history ([#1154](https://github.com/everybody-eats-nz/volunteer-portal/pull/1154)) by @malinmalliyawadu
+
+
+## [0.148.3] - 2026-07-23
+
+### Changes
+- chore(deps): bump next from 16.2.10 to 16.2.11 in /web ([#1151](https://github.com/everybody-eats-nz/volunteer-portal/pull/1151)) by @dependabot[bot]
+
+
+## [0.148.2] - 2026-07-23
+
+### Changes
+- fix(resources): gate hub visibility on isPublished, not includeInChat ([#1153](https://github.com/everybody-eats-nz/volunteer-portal/pull/1153)) by @malinmalliyawadu
+
+
+## [0.148.1] - 2026-07-23
+
+### Changes
+- fix(resources): hide chat-only guides from the public Resource Hub ([#1150](https://github.com/everybody-eats-nz/volunteer-portal/pull/1150)) by @malinmalliyawadu
+
+
+## [0.148.0] - 2026-07-23
+
+### Changes
+- feat(admin): redesign locations and merge-duplicates pages ([#1149](https://github.com/everybody-eats-nz/volunteer-portal/pull/1149)) by @malinmalliyawadu
+
+
 ## [0.147.8] - 2026-07-23
 
 ### Changes

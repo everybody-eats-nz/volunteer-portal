@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import {
-  AnnouncementTargeting,
   countAnnouncementRecipients,
+  parseTargetingFromRequest,
 } from "@/lib/announcement-targeting";
 
 /**
@@ -19,20 +19,8 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const targeting: AnnouncementTargeting = {
-    targetLocations: Array.isArray(body.targetLocations)
-      ? body.targetLocations
-      : [],
-    targetGrades: Array.isArray(body.targetGrades) ? body.targetGrades : [],
-    targetLabelIds: Array.isArray(body.targetLabelIds)
-      ? body.targetLabelIds
-      : [],
-    targetUserIds: Array.isArray(body.targetUserIds) ? body.targetUserIds : [],
-    targetShiftIds: Array.isArray(body.targetShiftIds)
-      ? body.targetShiftIds
-      : [],
-  };
-
-  const count = await countAnnouncementRecipients(targeting);
+  const count = await countAnnouncementRecipients(
+    parseTargetingFromRequest(body)
+  );
   return NextResponse.json({ count });
 }
