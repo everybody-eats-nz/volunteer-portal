@@ -1,3 +1,9 @@
+## [0.150.9] - 2026-08-03
+
+### Changes
+- chore(deps): bump lucide-react from 0.577.0 to 1.27.0 in /web ([#1160](https://github.com/everybody-eats-nz/volunteer-portal/pull/1160)) by @dependabot[bot]
+
+
 ## [0.150.8] - 2026-08-03
 
 ### Changes
