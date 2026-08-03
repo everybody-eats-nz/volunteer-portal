@@ -1,3 +1,9 @@
+## [0.150.10] - 2026-08-03
+
+### Changes
+- chore(deps-dev): bump brace-expansion from 1.1.13 to 1.1.18 in /web ([#1176](https://github.com/everybody-eats-nz/volunteer-portal/pull/1176)) by @dependabot[bot]
+
+
 ## [0.150.9] - 2026-08-03
 
 ### Changes
