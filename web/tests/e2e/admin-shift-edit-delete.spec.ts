@@ -35,8 +35,11 @@ test.describe("Admin Shift Edit and Delete", () => {
     // 30s timeout even though nothing is broken (see flaky-test report,
     // 2026-08-03: this hook flaked all 12 tests in this file on one shard).
     // Give it headroom, and create the two independent users concurrently
-    // instead of sequentially since neither depends on the other.
-    testInfo.setTimeout(testInfo.timeout + 20_000);
+    // instead of sequentially since neither depends on the other. Scoped to
+    // CI so local runs (reuseExistingServer, no shard contention) stay snappy.
+    if (process.env.CI) {
+      testInfo.setTimeout(testInfo.timeout + 20_000);
+    }
 
     await Promise.all([
       createTestUser(page, testEmails[0], "ADMIN"),
