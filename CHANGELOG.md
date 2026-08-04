@@ -1,3 +1,9 @@
+## [0.150.12] - 2026-08-04
+
+### Changes
+- fix(flaky): Admin Shift Edit and Delete beforeEach timeout ([#1175](https://github.com/everybody-eats-nz/volunteer-portal/pull/1175)) by @malinmalliyawadu
+
+
 ## [0.150.11] - 2026-08-04
 
 ### Changes
