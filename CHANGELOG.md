@@ -1,3 +1,9 @@
+## [0.150.11] - 2026-08-04
+
+### Changes
+- chore(deps): bump fast-uri from 3.1.4 to 3.1.5 in /web ([#1178](https://github.com/everybody-eats-nz/volunteer-portal/pull/1178)) by @dependabot[bot]
+
+
 ## [0.150.10] - 2026-08-03
 
 ### Changes
