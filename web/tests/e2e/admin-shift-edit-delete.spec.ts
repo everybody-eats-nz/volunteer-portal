@@ -29,10 +29,22 @@ test.describe("Admin Shift Edit and Delete", () => {
   ];
   const testShiftIds: string[] = [];
 
-  test.beforeEach(async ({ page }) => {
-    // Create test users with unique emails
-    await createTestUser(page, testEmails[0], "ADMIN");
-    await createTestUser(page, testEmails[1], "VOLUNTEER");
+  test.beforeEach(async ({ page }, testInfo) => {
+    // Under CI's 20-shard parallel load, two sequential bcrypt-hashed user
+    // creations plus login can occasionally push this hook past the default
+    // 30s timeout even though nothing is broken (see flaky-test report,
+    // 2026-08-03: this hook flaked all 12 tests in this file on one shard).
+    // Give it headroom, and create the two independent users concurrently
+    // instead of sequentially since neither depends on the other. Scoped to
+    // CI so local runs (reuseExistingServer, no shard contention) stay snappy.
+    if (process.env.CI) {
+      testInfo.setTimeout(testInfo.timeout + 20_000);
+    }
+
+    await Promise.all([
+      createTestUser(page, testEmails[0], "ADMIN"),
+      createTestUser(page, testEmails[1], "VOLUNTEER"),
+    ]);
     await loginAsAdmin(page);
   });
 
