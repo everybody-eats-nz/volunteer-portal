@@ -21,6 +21,17 @@ async function openSurveyActions(page: Page, surveyId: string) {
   await page.getByTestId(`survey-actions-${surveyId}`).click();
 }
 
+/**
+ * Survey titles must be unique per test, not per file. The surveys list is
+ * shared state: tests run across parallel workers against one database, so two
+ * tests seeding the same hardcoded title put two cards on the page at once and
+ * every `getByText(title)` blows up with a strict mode violation. A retry after
+ * a failed cleanup leaves the same footprint.
+ */
+function uniqueTitle(label: string) {
+  return `${label} ${randomUUID().slice(0, 8)}`;
+}
+
 test.describe("Admin Surveys Management", () => {
   test.describe("Page Access and Authentication", () => {
     test("should allow admin users to access the surveys page", async ({
@@ -98,7 +109,8 @@ test.describe("Admin Surveys Management", () => {
       await expect(dialog).toBeVisible();
 
       // Fill in title and description
-      await page.getByLabel(/title/i).fill("Test Text Survey");
+      const title = uniqueTitle("Test Text Survey");
+      await page.getByLabel(/title/i).fill(title);
       await page.locator("#description").fill("A test survey with text question");
 
       // The dialog auto-creates one question. Fill the question text.
@@ -112,7 +124,7 @@ test.describe("Admin Surveys Management", () => {
       await expect(dialog).not.toBeVisible({ timeout: 10000 });
 
       // Verify survey appears in list
-      await expect(page.getByText("Test Text Survey").first()).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
     });
 
     test("should create survey with rating scale question", async ({
@@ -125,7 +137,8 @@ test.describe("Admin Surveys Management", () => {
       await expect(dialog).toBeVisible();
 
       // Fill in title
-      await page.getByLabel(/title/i).fill("Rating Test Survey");
+      const title = uniqueTitle("Rating Test Survey");
+      await page.getByLabel(/title/i).fill(title);
 
       // Fill question text
       await page.getByPlaceholder("Enter your question").first().fill("How would you rate your experience?");
@@ -139,7 +152,7 @@ test.describe("Admin Surveys Management", () => {
       await page.getByRole("button", { name: /create survey/i }).click();
       await expect(dialog).not.toBeVisible({ timeout: 10000 });
 
-      await expect(page.getByText("Rating Test Survey").first()).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
     });
 
     test("should create survey with multiple choice question", async ({
@@ -152,7 +165,8 @@ test.describe("Admin Surveys Management", () => {
       await expect(dialog).toBeVisible();
 
       // Fill in title
-      await page.getByLabel(/title/i).fill("Multiple Choice Survey");
+      const title = uniqueTitle("Multiple Choice Survey");
+      await page.getByLabel(/title/i).fill(title);
 
       // Fill question text
       await page.getByPlaceholder("Enter your question").first().fill("Which role do you prefer?");
@@ -171,7 +185,7 @@ test.describe("Admin Surveys Management", () => {
       await page.getByRole("button", { name: /create survey/i }).click();
       await expect(dialog).not.toBeVisible({ timeout: 10000 });
 
-      await expect(page.getByText("Multiple Choice Survey").first()).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
     });
 
     test("should validate required fields on creation", async ({ page }) => {
@@ -224,6 +238,8 @@ test.describe("Admin Surveys Management", () => {
     const adminEmail = `admin-survlist-${testId}@example.com`;
     const surveyIds: string[] = [];
     let adminUserId: string;
+    let activeTitle: string;
+    let inactiveTitle: string;
 
     test.beforeEach(async ({ page }) => {
       surveyIds.length = 0;
@@ -232,8 +248,10 @@ test.describe("Admin Surveys Management", () => {
       adminUserId = admin!.id;
 
       // Create test surveys
+      activeTitle = uniqueTitle("Active Feedback Survey");
+      inactiveTitle = uniqueTitle("Inactive Survey");
       const survey1 = await createTestSurvey(page, {
-        title: "Active Feedback Survey",
+        title: activeTitle,
         description: "An active survey for testing",
         questions: [
           { id: "q1", type: "text_short", text: "How was your experience?", required: true },
@@ -245,7 +263,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey1.id);
 
       const survey2 = await createTestSurvey(page, {
-        title: "Inactive Survey",
+        title: inactiveTitle,
         description: "A deactivated survey",
         questions: [
           { id: "q1", type: "rating_scale", text: "Rate us", required: true, minValue: 1, maxValue: 5 },
@@ -285,8 +303,8 @@ test.describe("Admin Surveys Management", () => {
     test("should display survey cards with title and description", async ({
       page,
     }) => {
-      await expect(page.getByText("Active Feedback Survey").first()).toBeVisible();
-      await expect(page.getByText("Inactive Survey").first()).toBeVisible();
+      await expect(page.getByText(activeTitle)).toBeVisible();
+      await expect(page.getByText(inactiveTitle)).toBeVisible();
     });
 
     test("should display survey stats (assigned, completed, pending)", async ({
@@ -315,6 +333,7 @@ test.describe("Admin Surveys Management", () => {
     const adminEmail = `admin-survedit-${testId}@example.com`;
     const surveyIds: string[] = [];
     let adminUserId: string;
+    let surveyTitle: string;
 
     test.beforeEach(async ({ page }) => {
       surveyIds.length = 0;
@@ -322,8 +341,9 @@ test.describe("Admin Surveys Management", () => {
       const admin = await getUserByEmail(page, adminEmail);
       adminUserId = admin!.id;
 
+      surveyTitle = uniqueTitle("Edit Test Survey");
       const survey = await createTestSurvey(page, {
-        title: "Edit Test Survey",
+        title: surveyTitle,
         description: "Survey to test editing",
         questions: [
           { id: "q1", type: "text_short", text: "Original question?", required: true },
@@ -356,7 +376,7 @@ test.describe("Admin Surveys Management", () => {
 
       // Title should be pre-populated
       const titleInput = page.getByLabel(/title/i);
-      await expect(titleInput).toHaveValue("Edit Test Survey");
+      await expect(titleInput).toHaveValue(surveyTitle);
     });
 
     test("should allow updating survey title", async ({ page }) => {
@@ -368,16 +388,17 @@ test.describe("Admin Surveys Management", () => {
       await expect(dialog).toBeVisible();
 
       // Update title
+      const updatedTitle = uniqueTitle("Updated Survey Title");
       const titleInput = page.getByLabel(/title/i);
       await titleInput.clear();
-      await titleInput.fill("Updated Survey Title");
+      await titleInput.fill(updatedTitle);
 
       // Save
       await page.getByRole("button", { name: /update survey/i }).click();
       await expect(dialog).not.toBeVisible({ timeout: 10000 });
 
       // Verify updated title appears
-      await expect(page.getByText("Updated Survey Title").first()).toBeVisible();
+      await expect(page.getByText(updatedTitle)).toBeVisible();
     });
 
     test("should allow adding new questions to existing survey", async ({
@@ -440,6 +461,7 @@ test.describe("Admin Surveys Management", () => {
     const adminEmail = `admin-survtoggle-${testId}@example.com`;
     const surveyIds: string[] = [];
     let adminUserId: string;
+    let surveyTitle: string;
 
     test.beforeEach(async ({ page }) => {
       surveyIds.length = 0;
@@ -447,8 +469,9 @@ test.describe("Admin Surveys Management", () => {
       const admin = await getUserByEmail(page, adminEmail);
       adminUserId = admin!.id;
 
+      surveyTitle = uniqueTitle("Toggle Active Survey");
       const survey = await createTestSurvey(page, {
-        title: "Toggle Active Survey",
+        title: surveyTitle,
         questions: [
           { id: "q1", type: "text_short", text: "Question?", required: true },
         ],
@@ -469,7 +492,7 @@ test.describe("Admin Surveys Management", () => {
 
     test("should toggle survey active status", async ({ page }) => {
       // Find the toggle button (ToggleRight/ToggleLeft icon)
-      await expect(page.getByText("Toggle Active Survey")).toBeVisible();
+      await expect(page.getByText(surveyTitle)).toBeVisible();
 
       // Click deactivate button
       await openSurveyActions(page, surveyIds[0]);
@@ -518,8 +541,9 @@ test.describe("Admin Surveys Management", () => {
       page,
     }) => {
       // Create survey for this test
+      const title = uniqueTitle("Delete Confirm Survey");
       const survey = await createTestSurvey(page, {
-        title: "Delete Confirm Survey",
+        title,
         questions: [
           { id: "q1", type: "text_short", text: "Q?", required: true },
         ],
@@ -529,7 +553,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await reloadSettled(page);
-      await expect(page.getByText("Delete Confirm Survey")).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
 
       // Click delete button
       await openSurveyActions(page, survey.id);
@@ -542,8 +566,9 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should delete survey with no assignments", async ({ page }) => {
+      const title = uniqueTitle("Delete No Assign Survey");
       const survey = await createTestSurvey(page, {
-        title: "Delete No Assign Survey",
+        title,
         questions: [
           { id: "q1", type: "text_short", text: "Q?", required: true },
         ],
@@ -553,7 +578,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await reloadSettled(page);
-      await expect(page.getByText("Delete No Assign Survey")).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
 
       // Click delete
       await openSurveyActions(page, survey.id);
@@ -565,7 +590,7 @@ test.describe("Admin Surveys Management", () => {
       await confirmButton.click();
 
       // Survey should be removed
-      await expect(page.getByText("Delete No Assign Survey")).not.toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(title)).not.toBeVisible({ timeout: 10000 });
       // Remove from cleanup since it's been deleted
       surveyIds.pop();
     });
@@ -575,8 +600,9 @@ test.describe("Admin Surveys Management", () => {
     }) => {
       const volunteer = await getUserByEmail(page, volunteerEmail);
 
+      const title = uniqueTitle("Delete With Assign Survey");
       const survey = await createTestSurvey(page, {
-        title: "Delete With Assign Survey",
+        title,
         questions: [
           { id: "q1", type: "text_short", text: "Q?", required: true },
         ],
@@ -592,7 +618,7 @@ test.describe("Admin Surveys Management", () => {
       });
 
       await reloadSettled(page);
-      await expect(page.getByText("Delete With Assign Survey")).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
 
       // Click delete
       await openSurveyActions(page, survey.id);
@@ -604,8 +630,9 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should allow cancelling delete operation", async ({ page }) => {
+      const title = uniqueTitle("Cancel Delete Survey");
       const survey = await createTestSurvey(page, {
-        title: "Cancel Delete Survey",
+        title,
         questions: [
           { id: "q1", type: "text_short", text: "Q?", required: true },
         ],
@@ -615,7 +642,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await reloadSettled(page);
-      await expect(page.getByText("Cancel Delete Survey")).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
 
       // Click delete
       await openSurveyActions(page, survey.id);
@@ -626,7 +653,7 @@ test.describe("Admin Surveys Management", () => {
       await page.getByRole("button", { name: /cancel/i }).click();
 
       // Survey should still be there
-      await expect(page.getByText("Cancel Delete Survey")).toBeVisible();
+      await expect(page.getByText(title)).toBeVisible();
     });
   });
 
@@ -645,7 +672,7 @@ test.describe("Admin Surveys Management", () => {
       adminUserId = admin!.id;
 
       const survey = await createTestSurvey(page, {
-        title: "Assignment Test Survey",
+        title: uniqueTitle("Assignment Test Survey"),
         questions: [
           { id: "q1", type: "text_short", text: "Feedback?", required: true },
         ],
@@ -791,6 +818,7 @@ test.describe("Admin Surveys Management", () => {
     const adminEmail = `admin-survresp-${testId}@example.com`;
     const surveyIds: string[] = [];
     let adminUserId: string;
+    let surveyTitle: string;
 
     test.beforeEach(async ({ page }) => {
       surveyIds.length = 0;
@@ -798,8 +826,9 @@ test.describe("Admin Surveys Management", () => {
       const admin = await getUserByEmail(page, adminEmail);
       adminUserId = admin!.id;
 
+      surveyTitle = uniqueTitle("Responses Test Survey");
       const survey = await createTestSurvey(page, {
-        title: "Responses Test Survey",
+        title: surveyTitle,
         questions: [
           { id: "q1", type: "text_short", text: "Feedback?", required: true },
         ],
@@ -833,7 +862,7 @@ test.describe("Admin Surveys Management", () => {
       await page.waitForLoadState("load");
 
       // Should show the survey title in the hero
-      await expect(page.getByText("Responses Test Survey").first()).toBeVisible();
+      await expect(page.getByText(surveyTitle).first()).toBeVisible();
 
       // Should show the two-lens view switcher (Insights / Respondents)
       await expect(page.getByRole("tab", { name: /respondents/i })).toBeVisible();

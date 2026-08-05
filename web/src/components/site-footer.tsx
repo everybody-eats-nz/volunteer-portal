@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Session } from "next-auth";
-import { Facebook, Instagram, Globe, Mail } from "lucide-react";
+import { Globe, Mail } from "lucide-react";
+import { FacebookIcon, InstagramIcon } from "@/components/brand-icons";
 import packageJson from "../../package.json";
 import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
 
@@ -75,7 +76,7 @@ export function SiteFooter({ session }: SiteFooterProps) {
                 rel="noopener noreferrer"
                 className={`flex items-center gap-3 ${footerLink}`}
               >
-                <Facebook size={16} className="shrink-0 opacity-70" />
+                <FacebookIcon size={16} className="shrink-0 opacity-70" />
                 Follow us on Facebook
               </a>
               <a
@@ -84,7 +85,7 @@ export function SiteFooter({ session }: SiteFooterProps) {
                 rel="noopener noreferrer"
                 className={`flex items-center gap-3 ${footerLink}`}
               >
-                <Instagram size={16} className="shrink-0 opacity-70" />
+                <InstagramIcon size={16} className="shrink-0 opacity-70" />
                 Follow us on Instagram
               </a>
               <a
@@ -212,7 +213,7 @@ export function SiteFooter({ session }: SiteFooterProps) {
               aria-label="Everybody Eats on Facebook"
               className="grid h-9 w-9 place-items-center rounded-full border border-cream-50/20 text-cream-50/80 transition-all hover:border-sun-200 hover:bg-sun-200 hover:text-forest-700"
             >
-              <Facebook size={15} />
+              <FacebookIcon size={15} />
             </a>
             <a
               href="https://www.instagram.com/everybodyeatsnz"
@@ -221,7 +222,7 @@ export function SiteFooter({ session }: SiteFooterProps) {
               aria-label="Everybody Eats on Instagram"
               className="grid h-9 w-9 place-items-center rounded-full border border-cream-50/20 text-cream-50/80 transition-all hover:border-sun-200 hover:bg-sun-200 hover:text-forest-700"
             >
-              <Instagram size={15} />
+              <InstagramIcon size={15} />
             </a>
           </div>
         </div>

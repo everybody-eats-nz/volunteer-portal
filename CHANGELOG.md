@@ -1,3 +1,51 @@
+## [0.150.12] - 2026-08-04
+
+### Changes
+- fix(flaky): Admin Shift Edit and Delete beforeEach timeout ([#1175](https://github.com/everybody-eats-nz/volunteer-portal/pull/1175)) by @malinmalliyawadu
+
+
+## [0.150.11] - 2026-08-04
+
+### Changes
+- chore(deps): bump fast-uri from 3.1.4 to 3.1.5 in /web ([#1178](https://github.com/everybody-eats-nz/volunteer-portal/pull/1178)) by @dependabot[bot]
+
+
+## [0.150.10] - 2026-08-03
+
+### Changes
+- chore(deps-dev): bump brace-expansion from 1.1.13 to 1.1.18 in /web ([#1176](https://github.com/everybody-eats-nz/volunteer-portal/pull/1176)) by @dependabot[bot]
+
+
+## [0.150.9] - 2026-08-03
+
+### Changes
+- chore(deps): bump lucide-react from 0.577.0 to 1.27.0 in /web ([#1160](https://github.com/everybody-eats-nz/volunteer-portal/pull/1160)) by @dependabot[bot]
+
+
+## [0.150.8] - 2026-08-03
+
+### Changes
+- chore(deps): bump jose from 6.2.4 to 6.2.5 in /web in the production-dependencies group across 1 directory ([#1173](https://github.com/everybody-eats-nz/volunteer-portal/pull/1173)) by @dependabot[bot]
+
+
+## [0.150.7] - 2026-08-03
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 2 updates ([#1172](https://github.com/everybody-eats-nz/volunteer-portal/pull/1172)) by @dependabot[bot]
+
+
+## [0.150.6] - 2026-08-01
+
+### Changes
+- refactor(api): replace raw SQL friends list query with Prisma query builder ([#1170](https://github.com/everybody-eats-nz/volunteer-portal/pull/1170)) by @malinmalliyawadu
+
+
+## [0.150.5] - 2026-08-01
+
+### Changes
+- fix(shifts): open the browse calendar on the next month that has shifts ([#1169](https://github.com/everybody-eats-nz/volunteer-portal/pull/1169)) by @malinmalliyawadu
+
+
 ## [0.150.4] - 2026-07-31
 
 ### Changes
