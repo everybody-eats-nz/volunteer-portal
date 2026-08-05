@@ -4,6 +4,12 @@ import type { Page } from "@playwright/test";
  * Wait until React has finished flushing its streaming SSR output, so that
  * every `data-testid` in the document resolves to exactly one element.
  *
+ * **When to use**: call `gotoSettled` / `reloadSettled` instead of plain
+ * `page.goto` / `page.reload` when navigating to a page whose layout is an
+ * async server component — every `/admin/*` page, in practice — and the test
+ * then queries the DOM. Navigations that only assert on the resulting URL
+ * (redirect checks) do not need it.
+ *
  * ## Why this is needed
  *
  * `cacheComponents` is enabled (see `next.config.ts`), so anything that reads
