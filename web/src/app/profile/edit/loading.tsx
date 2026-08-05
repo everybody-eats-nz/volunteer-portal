@@ -1,47 +1,44 @@
 import { PageContainer } from "@/components/page-container";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ProfileEditPageHeader } from "@/components/profile-edit-page-header";
 
 export default function ProfileEditLoading() {
   return (
     <div className="min-h-screen">
       <PageContainer className="space-y-8">
-        {/* Page header: title, description, back button */}
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-56" />
-          <Skeleton className="h-4 w-full max-w-xl" />
-          <Skeleton className="h-4 w-72" />
-          <Skeleton className="h-9 w-36 mt-2" />
-        </div>
+        {/* Real header (static content) so the page doesn't jump when data lands */}
+        <ProfileEditPageHeader />
 
-        {/* Progress indicator section */}
-        <div className="rounded-xl border border-border p-6 space-y-4">
+        {/* Progress indicator panel */}
+        <div className="grain space-y-5 rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
           <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-6 w-24 rounded-full" />
           </div>
 
           {/* Step circles with connecting lines (hidden on mobile) */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden items-center space-x-2 md:flex">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
                 className={`flex items-center ${i === 6 ? "grow-0" : "flex-1"}`}
               >
-                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                {i < 6 && <Skeleton className="flex-1 h-1 mx-2 rounded-full" />}
+                <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+                {i < 6 && (
+                  <Skeleton className="mx-2 h-[3px] flex-1 rounded-full" />
+                )}
               </div>
             ))}
           </div>
 
           {/* Current section title + description */}
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-1.5">
             <Skeleton className="h-5 w-44" />
             <Skeleton className="h-4 w-64" />
           </div>
 
           {/* Tab buttons */}
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap justify-center gap-2">
             {[28, 36, 40, 44, 52, 24].map((w, i) => (
               <Skeleton
                 key={i}
@@ -53,44 +50,46 @@ export default function ProfileEditLoading() {
         </div>
 
         {/* Form content card */}
-        <Card className="shadow-lg border-0">
-          <CardHeader className="pb-6">
+        <div className="rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+          <div className="mb-8 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Skeleton className="h-10 w-10 rounded-full" />
-              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-7 w-48" />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
+            <Skeleton className="h-8 w-20 rounded-full" />
+          </div>
+
+          <div className="space-y-6">
             {/* Form fields */}
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="space-y-2">
                 <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-11 w-full rounded-xl" />
               </div>
             ))}
 
             {/* Two-column row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-11 w-full rounded-xl" />
               </div>
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-10 w-full rounded-md" />
+                <Skeleton className="h-11 w-full rounded-xl" />
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center justify-between pt-6 border-t">
-              <Skeleton className="h-10 w-24 rounded-md" />
+            <div className="flex items-center justify-between border-t border-forest-500/10 pt-6 dark:border-cream-50/10">
+              <Skeleton className="h-9 w-28 rounded-full" />
               <div className="flex gap-3">
-                <Skeleton className="h-10 w-20 rounded-md" />
-                <Skeleton className="h-10 w-28 rounded-md" />
+                <Skeleton className="h-9 w-24 rounded-full" />
+                <Skeleton className="h-9 w-32 rounded-full" />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </PageContainer>
     </div>
   );

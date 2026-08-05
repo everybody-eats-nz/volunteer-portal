@@ -8,11 +8,8 @@ import React, {
   useRef,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { GradientButton } from "@/components/ui/gradient-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -24,7 +21,7 @@ import {
   Bell,
   Key,
 } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { ProfileEditPageHeader } from "@/components/profile-edit-page-header";
 import {
   PersonalInfoStep,
   EmergencyContactStep,
@@ -236,42 +233,36 @@ export default function ProfileEditClient({
         title: "Personal Information",
         description: "Basic personal details and contact information",
         icon: User,
-        color: "bg-blue-500",
       },
       {
         id: "emergency",
         title: "Emergency Contact",
         description: "Emergency contact information for safety",
         icon: Phone,
-        color: "bg-red-500",
       },
       {
         id: "medical",
         title: "Medical & References",
         description: "Medical conditions and reference willingness",
         icon: Shield,
-        color: "bg-green-500",
       },
       {
         id: "availability",
         title: "Availability & Location",
         description: "When and where you can volunteer",
         icon: MapPin,
-        color: "bg-purple-500",
       },
       {
         id: "communication",
         title: "Communication & Agreements",
         description: "Notification preferences and policy agreements",
         icon: Bell,
-        color: "bg-orange-500",
       },
       {
         id: "security",
         title: "Security",
         description: "Manage passkeys and account security",
         icon: Key,
-        color: "bg-indigo-500",
       },
     ],
     []
@@ -519,53 +510,38 @@ export default function ProfileEditClient({
   return (
     <div className="min-h-screen">
       <MotionPageContainer className="space-y-8">
-        <PageHeader
-          title="Edit Your Profile"
-          description="Update your volunteer profile to help us provide you with the best possible experience. Your information is kept secure and confidential."
-        >
-          <div className="flex justify-start mt-6">
-            <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href="/profile" data-testid="back-to-profile-link">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Profile
-              </Link>
-            </Button>
-          </div>
-        </PageHeader>
+        <ProfileEditPageHeader />
 
         {initialLoading ? (
-          <Card className="shadow-lg border-0 bg-card/80 dark:bg-card/90 backdrop-blur-sm">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-muted-foreground">
-                    Loading your profile...
-                  </p>
-                </div>
+          <div className="grain rounded-[2rem] border border-forest-500/10 bg-card dark:border-cream-50/10">
+            <div className="flex items-center justify-center py-20">
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-forest-500 border-t-transparent dark:border-cream-50 dark:border-t-transparent"></div>
+                <p className="text-forest-700/70 dark:text-cream-50/70">
+                  Loading your profile...
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <>
             {/* Progress Indicator */}
-            <div className="bg-card dark:bg-card rounded-xl shadow-sm border border-border p-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="grain rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+              <div className="mb-6 flex items-center justify-between gap-4">
                 <h2
-                  className="text-lg font-semibold"
+                  className="display display-medium text-xl tracking-tight text-forest-700 sm:text-2xl dark:text-cream-50"
                   data-testid="profile-setup-progress-heading"
                 >
                   Profile Setup Progress
                 </h2>
-                <Badge
-                  variant="outline"
-                  className="text-xs"
+                <span
+                  className="shrink-0 rounded-full border border-forest-500/20 px-3 py-1 text-xs font-medium text-forest-700/70 dark:border-cream-50/20 dark:text-cream-50/70"
                   data-testid="step-indicator"
                 >
                   Step {currentSection + 1} of {sections.length}
-                </Badge>
+                </span>
               </div>
-              <div className="hidden md:flex items-center space-x-2 mb-4">
+              <div className="hidden md:flex items-center space-x-2 mb-5">
                 {sections.map((section, index) => {
                   const Icon = section.icon;
                   return (
@@ -578,10 +554,10 @@ export default function ProfileEditClient({
                       <div
                         className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 cursor-pointer hover:scale-105 ${
                           index === currentSection
-                            ? `${section.color} text-white dark:text-white shadow-lg`
+                            ? "bg-forest-500 text-cream-50 shadow-lg"
                             : index < currentSection
-                            ? "bg-green-500 text-white dark:text-white hover:bg-green-600 dark:hover:bg-green-600"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                            ? "bg-sun-200 text-forest-700 hover:bg-sun-300"
+                            : "bg-forest-500/10 text-forest-500/60 hover:bg-forest-500/20 dark:bg-cream-50/10 dark:text-cream-50/50 dark:hover:bg-cream-50/20"
                         }`}
                         onClick={() => setCurrentSection(index)}
                         title={`Go to ${section.title}`}
@@ -590,10 +566,10 @@ export default function ProfileEditClient({
                       </div>
                       {index < sections.length - 1 && (
                         <div
-                          className={`flex-1 h-1 mx-2 rounded-full transition-all duration-200 ${
+                          className={`flex-1 h-[3px] mx-2 rounded-full transition-all duration-200 ${
                             index < currentSection
-                              ? "bg-green-500 dark:bg-green-600"
-                              : "bg-muted dark:bg-muted"
+                              ? "bg-sun-300/80 dark:bg-sun-200/60"
+                              : "bg-forest-500/10 dark:bg-cream-50/10"
                           }`}
                         />
                       )}
@@ -601,11 +577,11 @@ export default function ProfileEditClient({
                   );
                 })}
               </div>
-              <div className="text-center mb-4">
-                <h3 className="font-medium text-foreground">
+              <div className="text-center mb-5">
+                <h3 className="font-accent text-lg font-medium text-forest-700 dark:text-cream-50">
                   {sections[currentSection].title}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="mt-0.5 text-sm text-forest-700/60 dark:text-cream-50/60">
                   {sections[currentSection].description}
                 </p>
               </div>
@@ -616,10 +592,10 @@ export default function ProfileEditClient({
                   <button
                     key={section.id}
                     onClick={() => setCurrentSection(index)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
+                    className={`px-3.5 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
                       index === currentSection
-                        ? "bg-primary text-white dark:text-white shadow-sm"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-forest-500 text-cream-50 shadow-sm"
+                        : "border border-forest-500/15 text-forest-700/70 hover:bg-forest-500/10 hover:text-forest-700 dark:border-cream-50/15 dark:text-cream-50/70 dark:hover:bg-cream-50/10 dark:hover:text-cream-50"
                     }`}
                     role="button"
                     data-testid={`${section.id}-tab-button`}
@@ -631,43 +607,47 @@ export default function ProfileEditClient({
             </div>
 
             {/* Form Content */}
-            <Card className="shadow-lg border-0 bg-card/80 dark:bg-card/90 backdrop-blur-sm">
-              <CardHeader className="pb-6">
-                <div className="flex items-center justify-between">
+            <Card className="rounded-[2rem] border-forest-500/10 bg-card py-8 shadow-none dark:border-cream-50/10">
+              <CardHeader className="pb-6 px-6 sm:px-8">
+                <div className="flex items-center justify-between gap-4">
                   <CardTitle
-                    className="flex items-center gap-3 text-xl"
+                    className="flex items-center gap-3"
                     data-testid="current-section-title"
                   >
-                    {React.createElement(sections[currentSection].icon, {
-                      className: "h-6 w-6",
-                    })}
-                    {sections[currentSection].title}
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest-500/10 text-forest-500 dark:bg-cream-50/10 dark:text-cream-50">
+                      {React.createElement(sections[currentSection].icon, {
+                        className: "h-5 w-5",
+                      })}
+                    </span>
+                    <span className="display display-medium text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+                      {sections[currentSection].title}
+                    </span>
                   </CardTitle>
                   {/* Always visible save button */}
-                  <GradientButton
+                  <Button
                     onClick={handleSubmit}
                     disabled={loading}
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 px-4"
                     data-testid="header-save-button"
                   >
                     <Save className="h-4 w-4" />
                     {loading ? "Saving..." : "Save"}
-                  </GradientButton>
+                  </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-6 sm:px-8">
                 <form onSubmit={handleSubmit} className="space-y-8">
                   <div className="min-h-[400px]">{renderCurrentSection()}</div>
 
                   {/* Navigation Buttons */}
-                  <div className="flex items-center justify-between pt-6 border-t border-border">
+                  <div className="flex items-center justify-between border-t border-forest-500/10 pt-6 dark:border-cream-50/10">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={prevSection}
                       disabled={currentSection === 0 || loading}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 border-forest-500/20 px-5 text-forest-700 hover:bg-forest-500/10 hover:text-forest-700 dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50/10 dark:hover:text-cream-50"
                       data-testid="previous-section-button"
                     >
                       <ArrowLeft className="h-4 w-4" />
@@ -680,22 +660,22 @@ export default function ProfileEditClient({
                           type="button"
                           onClick={nextSection}
                           disabled={loading}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 px-5"
                           data-testid="next-section-button"
                         >
                           Next
                           <ArrowLeft className="h-4 w-4 rotate-180" />
                         </Button>
                       ) : (
-                        <GradientButton
+                        <Button
                           type="submit"
                           disabled={loading}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 px-5"
                           data-testid="save-notification-preferences"
                         >
                           <Save className="h-4 w-4" />
                           {loading ? "Saving..." : "Save Profile"}
-                        </GradientButton>
+                        </Button>
                       )}
                     </div>
                   </div>

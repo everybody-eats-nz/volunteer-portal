@@ -128,21 +128,57 @@ export default function VerifyEmailPage() {
   const getIcon = () => {
     switch (state) {
       case "loading":
-        return <Loader2 className="h-12 w-12 text-blue-500 animate-spin" data-testid="loading-spinner" />;
+        return (
+          <Loader2
+            className="h-9 w-9 text-forest-500 animate-spin dark:text-forest-300"
+            data-testid="loading-spinner"
+          />
+        );
       case "success":
       case "already_verified":
-        return <CheckCircle2 className="h-12 w-12 text-green-500" data-testid="success-icon" />;
+        return (
+          <CheckCircle2
+            className="h-9 w-9 text-forest-500 dark:text-forest-300"
+            data-testid="success-icon"
+          />
+        );
       case "error":
         if (fromLogin && message === "Email verification required") {
-          return <Mail className="h-12 w-12 text-blue-500" data-testid="email-required-icon" />;
+          return (
+            <Mail
+              className="h-9 w-9 text-forest-500 dark:text-forest-300"
+              data-testid="email-required-icon"
+            />
+          );
         }
-        return <XCircle className="h-12 w-12 text-red-500" data-testid="error-icon" />;
+        return (
+          <XCircle
+            className="h-9 w-9 text-red-500 dark:text-red-400"
+            data-testid="error-icon"
+          />
+        );
       case "expired":
-        return <XCircle className="h-12 w-12 text-red-500" data-testid="expired-icon" />;
+        return (
+          <XCircle
+            className="h-9 w-9 text-red-500 dark:text-red-400"
+            data-testid="expired-icon"
+          />
+        );
       default:
-        return <Mail className="h-12 w-12 text-blue-500" data-testid="default-icon" />;
+        return (
+          <Mail
+            className="h-9 w-9 text-forest-500 dark:text-forest-300"
+            data-testid="default-icon"
+          />
+        );
     }
   };
+
+  // Error / expired states use a warm red wash; everything else uses forest.
+  const isErrorTone =
+    (state === "error" &&
+      !(fromLogin && message === "Email verification required")) ||
+    state === "expired";
 
   const getTitle = () => {
     switch (state) {
@@ -200,72 +236,110 @@ export default function VerifyEmailPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="min-h-screen flex items-center justify-center bg-background p-4" data-testid="verify-email-page">
-        <Card className="w-full max-w-md" data-testid="verify-email-card">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4" data-testid="verification-icon">
-            {getIcon()}
-          </div>
-          <CardTitle className="text-2xl" data-testid="verification-title">{getTitle()}</CardTitle>
-          <CardDescription className="text-base" data-testid="verification-description">
-            {getDescription()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(state === "expired" || state === "error") && (
-            <div className="space-y-4" data-testid="resend-section">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter your email to resend verification
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={resendEmail}
-                  onChange={(e) => setResendEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  data-testid="resend-email-input"
-                />
+      <div
+        className="flex min-h-[80vh] items-center justify-center px-4 py-10"
+        data-testid="verify-email-page"
+      >
+        <Card
+          className="grain relative w-full max-w-md overflow-hidden rounded-3xl border-forest-500/10 bg-card shadow-[0_24px_70px_-30px_rgb(14_42_28/0.45)] dark:border-cream-50/10"
+          data-testid="verify-email-card"
+        >
+          <CardHeader className="text-center">
+            <p className="eyebrow mx-auto mb-2 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+              Kia ora
+              <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            </p>
+            <div
+              className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl"
+              data-testid="verification-icon"
+              style={{
+                background: isErrorTone
+                  ? "rgb(239 68 68 / 0.1)"
+                  : "rgb(29 83 55 / 0.1)",
+              }}
+            >
+              {getIcon()}
+            </div>
+            <CardTitle
+              className="display text-3xl tracking-tight text-forest-700 dark:text-cream-50"
+              data-testid="verification-title"
+            >
+              {getTitle()}
+            </CardTitle>
+            <CardDescription
+              className="text-base text-forest-700/70 dark:text-cream-50/70"
+              data-testid="verification-description"
+            >
+              {getDescription()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(state === "expired" || state === "error") && (
+              <div className="space-y-4" data-testid="resend-section">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-forest-700/80 dark:text-cream-50/80"
+                  >
+                    Enter your email to resend verification
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={resendEmail}
+                    onChange={(e) => setResendEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="h-11 w-full rounded-xl border border-forest-500/20 bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-forest-500 focus-visible:ring-[3px] focus-visible:ring-forest-500/20 dark:border-cream-50/15 md:text-sm"
+                    data-testid="resend-email-input"
+                  />
+                </div>
+                <Turnstile ref={turnstileRef} />
+                <Button
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  className="w-full h-11"
+                  data-testid="resend-button"
+                >
+                  {isResending ? (
+                    <>
+                      <Loader2
+                        className="w-4 h-4 mr-2 animate-spin"
+                        data-testid="resend-loading-spinner"
+                      />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Resend verification email
+                    </>
+                  )}
+                </Button>
               </div>
-              <Turnstile ref={turnstileRef} />
+            )}
+
+            <div className="space-y-2.5" data-testid="navigation-buttons">
+              {(state === "success" || state === "already_verified") && (
+                <Button
+                  asChild
+                  className="w-full h-11"
+                  data-testid="dashboard-button"
+                >
+                  <Link href="/dashboard">Go to Dashboard</Link>
+                </Button>
+              )}
+
               <Button
-                onClick={handleResendVerification}
-                disabled={isResending}
-                className="w-full"
-                data-testid="resend-button"
+                asChild
+                variant="outline"
+                className="w-full h-11"
+                data-testid="login-button"
               >
-                {isResending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" data-testid="resend-loading-spinner" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Resend verification email
-                  </>
-                )}
+                <Link href="/login">Go to Login</Link>
               </Button>
             </div>
-          )}
-
-          <div className="space-y-2" data-testid="navigation-buttons">
-            <Button asChild variant="outline" className="w-full" data-testid="login-button">
-              <Link href="/login">
-                Go to Login
-              </Link>
-            </Button>
-            
-            {(state === "success" || state === "already_verified") && (
-              <Button asChild className="w-full" data-testid="dashboard-button">
-                <Link href="/dashboard">
-                  Go to Dashboard
-                </Link>
-              </Button>
-            )}
-          </div>
-        </CardContent>
+          </CardContent>
         </Card>
       </div>
     </>

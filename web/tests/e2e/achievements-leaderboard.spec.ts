@@ -83,8 +83,8 @@ test.describe("Achievements Leaderboard", () => {
       await expect(youBadge).toBeVisible();
 
       // Check that the current user's card has special highlighting
-      // Look for the card that contains the "You" badge
-      const currentUserCard = page.locator('[class*="from-yellow-50"][class*="to-orange-50"]').filter({
+      // Look for the card that contains the "You" badge (brand sun-toned gradient)
+      const currentUserCard = page.locator('[class*="from-sun-200"][class*="to-sun-100"]').filter({
         has: page.getByText("You", { exact: true })
       });
       await expect(currentUserCard.first()).toBeVisible();

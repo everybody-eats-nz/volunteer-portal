@@ -2,13 +2,150 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
+import Image from "next/image";
 import { MotionCard } from "@/components/motion-card";
 import { ContentGrid } from "@/components/dashboard-animated";
 import { safeParseAvailability } from "@/lib/parse-availability";
+
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
+
+/* Shared styling for the detail cards — paper card with forest hairline,
+   matching the marketing-site card system. */
+const detailCard =
+  "rounded-3xl border-forest-500/10 bg-card shadow-none py-0 dark:border-cream-50/10";
+
+/** Round forest icon tile that leads each card heading. */
+function IconTile({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-forest-500/10 text-forest-500 dark:bg-cream-50/10 dark:text-cream-50">
+      {children}
+    </div>
+  );
+}
+
+/** Editorial card heading — icon tile + Fraunces title + quiet subtitle. */
+function CardHeading({
+  icon,
+  title,
+  subtitle,
+  testId,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  testId?: string;
+}) {
+  return (
+    <div className="mb-6 flex items-center gap-4">
+      <IconTile>{icon}</IconTile>
+      <div>
+        <h2
+          className="display display-medium text-2xl tracking-tight text-forest-700 dark:text-cream-50"
+          data-testid={testId}
+        >
+          {title}
+        </h2>
+        <p className="mt-0.5 text-sm text-forest-700/60 dark:text-cream-50/60">
+          {subtitle}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** A label/value row with a hairline divider. */
+function DetailRow({
+  label,
+  value,
+  labelTestId,
+  last = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  labelTestId?: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-4 py-3 ${
+        last ? "" : "border-b border-forest-500/10 dark:border-cream-50/10"
+      }`}
+    >
+      <span
+        className="eyebrow shrink-0 text-forest-500/70 dark:text-cream-50/55"
+        data-testid={labelTestId}
+      >
+        {label}
+      </span>
+      <span className="text-right text-sm font-medium text-forest-700 dark:text-cream-50">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** Small brand chip for days, locations, shift types and newsletters. */
+function Chip({
+  children,
+  muted = false,
+}: {
+  children: React.ReactNode;
+  muted?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${
+        muted
+          ? "border-forest-500/10 bg-transparent text-forest-700/50 dark:border-cream-50/10 dark:text-cream-50/50"
+          : "border-forest-500/15 bg-forest-500/5 text-forest-700 dark:border-cream-50/15 dark:bg-cream-50/5 dark:text-cream-50"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** On/off status pill (Enabled / Subscribed, etc.) with a state dot. */
+function StatusPill({
+  on,
+  onLabel,
+  offLabel,
+  testId,
+}: {
+  on: boolean;
+  onLabel: string;
+  offLabel: string;
+  testId?: string;
+}) {
+  return (
+    <span
+      data-testid={testId}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+        on
+          ? "border-forest-500/20 bg-forest-500/10 text-forest-600 dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50"
+          : "border-forest-500/15 text-forest-700/50 dark:border-cream-50/15 dark:text-cream-50/50"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`h-1.5 w-1.5 rounded-full ${
+          on ? "bg-forest-500 dark:bg-sun-200" : "bg-forest-500/30 dark:bg-cream-50/30"
+        }`}
+      />
+      {on ? onLabel : offLabel}
+    </span>
+  );
+}
 
 export async function ProfileContent() {
   const session = await getServerSession(authOptions);
@@ -103,126 +240,162 @@ export async function ProfileContent() {
 
   if (!session?.user) {
     return (
-      <MotionCard>
-        <CardContent className="p-8 text-center">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-primary/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold mb-2">Sign in required</h3>
-          <p className="text-muted-foreground mb-4">
+      <section className="grain relative overflow-hidden rounded-[2rem] bg-forest-700 px-6 py-14 text-center text-cream-50 sm:rounded-[2.5rem] sm:px-12">
+        {/* Warm sun glow — radial gradient rather than a blur filter, which
+            escapes the rounded-corner clip on composited layers in Chromium */}
+        <div
+          aria-hidden
+          className="absolute -bottom-28 -right-24 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.18),transparent)]"
+        />
+        <div className="relative mx-auto max-w-md">
+          <p className="eyebrow mb-5 flex items-center justify-center gap-3 text-sun-200/90">
+            <span className="inline-block h-px w-8 bg-sun-200/50" />
+            Kia ora
+            <span className="inline-block h-px w-8 bg-sun-200/50" />
+          </p>
+          <h3 className="display text-3xl tracking-tight sm:text-4xl">
+            Sign in required
+          </h3>
+          <p className="mt-4 leading-relaxed text-cream-50/80">
             Please sign in to view and manage your profile.
           </p>
-          <Button asChild>
+          <Button
+            asChild
+            className="mt-8 h-11 bg-cream-50 px-7 text-forest-700 hover:bg-cream-100 hover:text-forest-700"
+          >
             <Link href="/login">Sign in to your account</Link>
           </Button>
-        </CardContent>
-      </MotionCard>
+        </div>
+      </section>
     );
   }
 
   return (
     <div className="space-y-8">
-      {/* Profile Header */}
-      <MotionCard>
-        <CardContent className="p-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-            <div className="relative">
-              <Avatar className="w-36 h-36 shadow-lg">
-                <AvatarImage
-                  src={userProfile?.profilePhotoUrl || undefined}
-                  alt="Profile"
-                  className="object-cover"
-                />
-                <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary to-primary-700 text-white">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+      {/* ============ Identity panel ============ */}
+      <section className="grain relative overflow-hidden rounded-[2rem] bg-forest-700 text-cream-50 sm:rounded-[2.5rem]">
+        {/* Warm sun glow — radial gradient rather than a blur filter, which
+            escapes the rounded-corner clip on composited layers in Chromium */}
+        <div
+          aria-hidden
+          className="absolute -bottom-32 -right-28 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.16),transparent)]"
+        />
+        <Image
+          src="/patterns/kawakawa.avif"
+          alt=""
+          width={416}
+          height={416}
+          aria-hidden
+          className="pointer-events-none absolute -right-12 -top-10 w-64 opacity-15 sm:w-80"
+        />
 
-            <div className="flex-1 text-center md:text-left">
-              <h2 className="text-2xl font-bold mb-2">
-                {userProfile?.name || session.user.name || "Volunteer"}
-              </h2>
-              <p className="text-muted-foreground mb-4">
-                {userProfile?.email || session.user.email}
+        <div className="relative flex flex-col items-center gap-8 px-6 py-10 text-center sm:px-10 sm:py-12 md:flex-row md:text-left">
+          <div className="relative shrink-0">
+            <Avatar className="h-28 w-28 ring-4 ring-sun-200/90 sm:h-36 sm:w-36">
+              <AvatarImage
+                src={userProfile?.profilePhotoUrl || undefined}
+                alt="Profile"
+                className="object-cover"
+              />
+              <AvatarFallback className="display display-medium bg-cream-50 text-3xl text-forest-700 sm:text-4xl">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            <Sparkle className="absolute -right-1 -top-1 h-6 w-6 text-sun-200" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="eyebrow mb-3 flex items-center justify-center gap-3 text-sun-200/90 md:justify-start">
+              <span className="hidden h-px w-8 bg-sun-200/50 md:inline-block" />
+              Kia ora
+            </p>
+            <h2 className="display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
+              {userProfile?.name || session.user.name || "Volunteer"}
+            </h2>
+            <p className="mt-2 break-words text-cream-50/75">
+              {userProfile?.email || session.user.email}
+            </p>
+            {userProfile?.pronouns && (
+              <p className="mt-1 text-sm text-cream-50/60">
+                Pronouns: {userProfile.pronouns}
               </p>
-              {userProfile?.pronouns && (
-                <p className="text-sm text-muted-foreground mb-4">
-                  Pronouns: {userProfile.pronouns}
-                </p>
-              )}
+            )}
 
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                <Badge className="badge-primary" data-testid="user-role">
-                  {userProfile?.role === "ADMIN"
-                    ? "Administrator"
-                    : "Volunteer"}
-                </Badge>
-                <Badge variant="outline" className="badge-accent">
-                  Active Member
-                </Badge>
-                {userProfile?.volunteerAgreementAccepted && (
-                  <Badge
-                    variant="outline"
-                    className="text-green-600 border-green-200 dark:text-green-400 dark:border-green-800"
-                  >
-                    Agreement Signed
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link
-                  href="/profile/edit"
-                  className="flex items-center gap-2"
-                >
+            <div className="mt-5 flex flex-wrap justify-center gap-2 md:justify-start">
+              <span
+                className="inline-flex items-center rounded-full bg-sun-200 px-3.5 py-1 text-xs font-semibold text-forest-700"
+                data-testid="user-role"
+              >
+                {userProfile?.role === "ADMIN" ? "Administrator" : "Volunteer"}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-cream-50/30 px-3.5 py-1 text-xs font-medium text-cream-50/90">
+                Active Member
+              </span>
+              {userProfile?.volunteerAgreementAccepted && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-cream-50/30 px-3.5 py-1 text-xs font-medium text-cream-50/90">
                   <svg
-                    className="w-4 h-4"
+                    className="h-3 w-3 text-sun-200"
                     fill="none"
                     stroke="currentColor"
+                    strokeWidth={2.5}
                     viewBox="0 0 24 24"
+                    aria-hidden
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      d="M5 13l4 4L19 7"
                     />
                   </svg>
-                  Edit Profile
-                </Link>
-              </Button>
+                  Agreement Signed
+                </span>
+              )}
             </div>
           </div>
-        </CardContent>
-      </MotionCard>
 
-      {/* Profile Details Grid */}
-      <ContentGrid>
-        {/* Personal Information */}
-        <MotionCard>
-          <CardContent className="px-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center">
+          <div className="shrink-0">
+            <Button
+              asChild
+              className="h-11 bg-cream-50 px-6 text-forest-700 hover:bg-cream-100 hover:text-forest-700"
+            >
+              <Link href="/profile/edit" className="flex items-center gap-2">
                 <svg
-                  className="w-6 h-6 text-blue-600 dark:text-blue-400"
+                  className="h-4 w-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit Profile
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ Profile details grid ============ */}
+      <ContentGrid>
+        {/* Personal Information */}
+        <MotionCard className={detailCard}>
+          <CardContent className="p-6 sm:p-8">
+            <CardHeading
+              testId="personal-info-heading"
+              title="Personal Information"
+              subtitle="Your account details"
+              icon={
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
                 >
                   <path
                     strokeLinecap="round"
@@ -231,90 +404,57 @@ export async function ProfileContent() {
                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
                 </svg>
-              </div>
-              <div>
-                <h2
-                  className="text-xl font-semibold"
-                  data-testid="personal-info-heading"
-                >
-                  Personal Information
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Your account details
-                </p>
-              </div>
-            </div>
+              }
+            />
 
-            <div className="space-y-4" data-testid="personal-info-section">
-              <div className="flex justify-between items-center py-3 border-b border-border">
-                <span
-                  className="text-sm font-medium text-muted-foreground"
-                  data-testid="personal-info-name-label"
-                >
-                  Name
-                </span>
-                <span className="font-medium">
-                  {userProfile?.name || "\u2014"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-3 border-b border-border">
-                <span
-                  className="text-sm font-medium text-muted-foreground"
-                  data-testid="personal-info-email-label"
-                >
-                  Email
-                </span>
-                <span className="font-medium">
-                  {userProfile?.email || "\u2014"}
-                </span>
-              </div>
+            <div data-testid="personal-info-section">
+              <DetailRow
+                label="Name"
+                labelTestId="personal-info-name-label"
+                value={userProfile?.name || "—"}
+              />
+              <DetailRow
+                label="Email"
+                labelTestId="personal-info-email-label"
+                value={userProfile?.email || "—"}
+              />
               {userProfile?.phone && (
-                <div className="flex justify-between items-center py-3 border-b border-border">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Phone
-                  </span>
-                  <span className="font-medium">{userProfile.phone}</span>
-                </div>
+                <DetailRow label="Phone" value={userProfile.phone} />
               )}
               {userProfile?.dateOfBirth && (
-                <div className="flex justify-between items-center py-3 border-b border-border">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Date of Birth
-                  </span>
-                  <span className="font-medium">
-                    {new Date(userProfile.dateOfBirth).toLocaleDateString(
-                      "en-NZ"
-                    )}
-                  </span>
-                </div>
+                <DetailRow
+                  label="Date of Birth"
+                  value={new Date(userProfile.dateOfBirth).toLocaleDateString(
+                    "en-NZ"
+                  )}
+                />
               )}
-              <div className="flex justify-between items-center py-3">
-                <span
-                  className="text-sm font-medium text-muted-foreground"
-                  data-testid="personal-info-account-type-label"
-                >
-                  Account Type
-                </span>
-                <span className="font-medium">
-                  {userProfile?.role === "ADMIN"
-                    ? "Administrator"
-                    : "Volunteer"}
-                </span>
-              </div>
+              <DetailRow
+                label="Account Type"
+                labelTestId="personal-info-account-type-label"
+                value={
+                  userProfile?.role === "ADMIN" ? "Administrator" : "Volunteer"
+                }
+                last
+              />
             </div>
           </CardContent>
         </MotionCard>
 
-        {/* Emergency Contact & Availability */}
-        <MotionCard>
-          <CardContent className="px-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
+        {/* Emergency Contact */}
+        <MotionCard className={detailCard}>
+          <CardContent className="p-6 sm:p-8">
+            <CardHeading
+              testId="emergency-contact-heading"
+              title="Emergency Contact"
+              subtitle="Emergency contact information"
+              icon={
                 <svg
-                  className="w-6 h-6 text-green-600 dark:text-green-400"
+                  className="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden
                 >
                   <path
                     strokeLinecap="round"
@@ -323,60 +463,38 @@ export async function ProfileContent() {
                     d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
                   />
                 </svg>
-              </div>
-              <div>
-                <h2
-                  className="text-xl font-semibold"
-                  data-testid="emergency-contact-heading"
-                >
-                  Emergency Contact
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Emergency contact information
-                </p>
-              </div>
-            </div>
+              }
+            />
 
-            <div
-              className="space-y-4"
-              data-testid="emergency-contact-section"
-            >
+            <div data-testid="emergency-contact-section">
               {userProfile?.emergencyContactName ? (
                 <>
-                  <div className="flex justify-between items-center py-3 border-b border-border">
-                    <span
-                      className="text-sm font-medium text-muted-foreground"
-                      data-testid="emergency-contact-name-label"
-                    >
-                      Name
-                    </span>
-                    <span className="font-medium">
-                      {userProfile.emergencyContactName}
-                    </span>
-                  </div>
+                  <DetailRow
+                    label="Name"
+                    labelTestId="emergency-contact-name-label"
+                    value={userProfile.emergencyContactName}
+                    last={
+                      !userProfile.emergencyContactRelationship &&
+                      !userProfile.emergencyContactPhone
+                    }
+                  />
                   {userProfile.emergencyContactRelationship && (
-                    <div className="flex justify-between items-center py-3 border-b border-border">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Relationship
-                      </span>
-                      <span className="font-medium">
-                        {userProfile.emergencyContactRelationship}
-                      </span>
-                    </div>
+                    <DetailRow
+                      label="Relationship"
+                      value={userProfile.emergencyContactRelationship}
+                      last={!userProfile.emergencyContactPhone}
+                    />
                   )}
                   {userProfile.emergencyContactPhone && (
-                    <div className="flex justify-between items-center py-3">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Phone
-                      </span>
-                      <span className="font-medium">
-                        {userProfile.emergencyContactPhone}
-                      </span>
-                    </div>
+                    <DetailRow
+                      label="Phone"
+                      value={userProfile.emergencyContactPhone}
+                      last
+                    />
                   )}
                 </>
               ) : (
-                <p className="text-muted-foreground text-center py-4">
+                <p className="py-4 text-center text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
                   No emergency contact information provided
                 </p>
               )}
@@ -384,16 +502,20 @@ export async function ProfileContent() {
           </CardContent>
         </MotionCard>
 
-        {/* Availability Information */}
-        <MotionCard>
-          <CardContent className="px-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+        {/* Availability */}
+        <MotionCard className={detailCard}>
+          <CardContent className="p-6 sm:p-8">
+            <CardHeading
+              testId="availability-heading"
+              title="Availability"
+              subtitle="When and where you can volunteer"
+              icon={
                 <svg
-                  className="w-6 h-6 text-purple-600 dark:text-purple-400"
+                  className="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden
                 >
                   <path
                     strokeLinecap="round"
@@ -402,72 +524,51 @@ export async function ProfileContent() {
                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-              </div>
-              <div>
-                <h2
-                  className="text-xl font-semibold"
-                  data-testid="availability-heading"
-                >
-                  Availability
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  When and where you can volunteer
-                </p>
-              </div>
-            </div>
+              }
+            />
 
-            <div className="space-y-4" data-testid="availability-section">
+            <div className="space-y-5" data-testid="availability-section">
               {availableDays.length > 0 && (
                 <div>
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                     Available Days:
                   </span>
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {availableDays.map((day: string) => (
-                      <Badge
-                        key={day}
-                        variant="outline"
-                        className="text-xs"
-                      >
+                      <Chip key={day}>
                         {day.charAt(0).toUpperCase() + day.slice(1)}
-                      </Badge>
+                      </Chip>
                     ))}
                   </div>
                 </div>
               )}
               {availableLocations.length > 0 && (
                 <div>
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                     Available Locations:
                   </span>
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {availableLocations.map((location: string) => (
-                      <Badge
-                        key={location}
-                        variant="outline"
-                        className="text-xs"
-                      >
+                      <Chip key={location}>
                         {location.charAt(0).toUpperCase() + location.slice(1)}
-                      </Badge>
+                      </Chip>
                     ))}
                   </div>
                 </div>
               )}
               {userProfile?.defaultLocation && (
                 <div>
-                  <span className="text-sm font-medium text-muted-foreground">
+                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                     Default Location:
                   </span>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <Badge variant="outline" className="text-xs">
-                      {userProfile.defaultLocation}
-                    </Badge>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    <Chip>{userProfile.defaultLocation}</Chip>
                   </div>
                 </div>
               )}
               {availableDays.length === 0 &&
                 availableLocations.length === 0 && (
-                  <p className="text-muted-foreground text-center py-4">
+                  <p className="py-4 text-center text-sm leading-relaxed text-forest-700/60 dark:text-cream-50/60">
                     No availability preferences set
                   </p>
                 )}
@@ -476,15 +577,18 @@ export async function ProfileContent() {
         </MotionCard>
 
         {/* Notification Preferences */}
-        <MotionCard>
-          <CardContent className="px-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
+        <MotionCard className={detailCard}>
+          <CardContent className="p-6 sm:p-8">
+            <CardHeading
+              title="Shift Shortage Notifications"
+              subtitle="Control your notification preferences"
+              icon={
                 <svg
-                  className="w-6 h-6 text-orange-600 dark:text-orange-400"
+                  className="h-5 w-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden
                 >
                   <path
                     strokeLinecap="round"
@@ -493,47 +597,32 @@ export async function ProfileContent() {
                     d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
                   />
                 </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">
-                  Shift Shortage Notifications
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Control your notification preferences
-                </p>
-              </div>
-            </div>
+              }
+            />
 
             <div
-              className="space-y-4"
+              className="space-y-5"
               data-testid="notification-preferences-section"
             >
-              <div className="flex justify-between items-center py-3 border-b border-border">
-                <span className="text-sm font-medium text-muted-foreground">
+              <div className="flex items-center justify-between gap-4 border-b border-forest-500/10 py-3 dark:border-cream-50/10">
+                <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                   Receive Notifications
                 </span>
-                <Badge
-                  variant="outline"
-                  data-testid="receive-notifications-toggle"
-                  className={
-                    userProfile?.receiveShortageNotifications
-                      ? "text-green-600 border-green-200 dark:text-green-400 dark:border-green-800"
-                      : "text-muted-foreground border-border"
-                  }
-                >
-                  {userProfile?.receiveShortageNotifications
-                    ? "Enabled"
-                    : "Disabled"}
-                </Badge>
+                <StatusPill
+                  testId="receive-notifications-toggle"
+                  on={!!userProfile?.receiveShortageNotifications}
+                  onLabel="Enabled"
+                  offLabel="Disabled"
+                />
               </div>
 
               {userProfile?.receiveShortageNotifications && (
                 <>
                   <div>
-                    <span className="text-sm font-medium text-muted-foreground">
+                    <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                       Shift types you&apos;d like notifications for:
                     </span>
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {shiftTypes
                         .filter(
                           (type) =>
@@ -542,13 +631,7 @@ export async function ProfileContent() {
                             )
                         )
                         .map((type) => (
-                          <Badge
-                            key={type.id}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {type.name}
-                          </Badge>
+                          <Chip key={type.id}>{type.name}</Chip>
                         ))}
                     </div>
                   </div>
@@ -556,10 +639,10 @@ export async function ProfileContent() {
                   {userProfile?.excludedShortageNotificationTypes?.length >
                     0 && (
                     <div>
-                      <span className="text-sm font-medium text-muted-foreground">
+                      <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                         Excluded shift types:
                       </span>
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
                         {shiftTypes
                           .filter((type) =>
                             userProfile?.excludedShortageNotificationTypes?.includes(
@@ -567,13 +650,9 @@ export async function ProfileContent() {
                             )
                           )
                           .map((type) => (
-                            <Badge
-                              key={type.id}
-                              variant="secondary"
-                              className="text-xs"
-                            >
+                            <Chip key={type.id} muted>
                               {type.name}
-                            </Badge>
+                            </Chip>
                           ))}
                       </div>
                     </div>
@@ -581,58 +660,42 @@ export async function ProfileContent() {
                 </>
               )}
 
-              <div className="mt-6 pt-4 border-t border-border">
-                <div className="flex justify-between items-center py-3">
-                  <span className="text-sm font-medium text-muted-foreground">
+              <div className="border-t border-forest-500/10 pt-2 dark:border-cream-50/10">
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                     Newsletter Subscription
                   </span>
-                  <Badge
-                    variant="outline"
-                    className={
-                      userProfile?.emailNewsletterSubscription
-                        ? "text-green-600 border-green-200 dark:text-green-400 dark:border-green-800"
-                        : "text-muted-foreground border-border"
-                    }
-                  >
-                    {userProfile?.emailNewsletterSubscription
-                      ? "Subscribed"
-                      : "Not subscribed"}
-                  </Badge>
+                  <StatusPill
+                    on={!!userProfile?.emailNewsletterSubscription}
+                    onLabel="Subscribed"
+                    offLabel="Not subscribed"
+                  />
                 </div>
 
                 {userProfile?.emailNewsletterSubscription &&
                   userProfile?.newsletterLists &&
                   userProfile.newsletterLists.length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-sm font-medium text-muted-foreground">
+                    <div className="mt-1">
+                      <span className="eyebrow text-forest-500/70 dark:text-cream-50/55">
                         Subscribed to:
                       </span>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {userProfile.newsletterLists.map(
-                          (listId: string) => {
-                            const list = newsletterLists.find(
-                              (l) => l.campaignMonitorId === listId
-                            );
-                            return (
-                              <Badge
-                                key={listId}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {list?.name || listId}
-                              </Badge>
-                            );
-                          }
-                        )}
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {userProfile.newsletterLists.map((listId: string) => {
+                          const list = newsletterLists.find(
+                            (l) => l.campaignMonitorId === listId
+                          );
+                          return <Chip key={listId}>{list?.name || listId}</Chip>;
+                        })}
                       </div>
                     </div>
                   )}
               </div>
 
-              <div className="pt-4 border-t border-border">
+              <div className="border-t border-forest-500/10 pt-5 dark:border-cream-50/10">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="border-forest-500/20 px-4 text-forest-700 hover:bg-forest-500 hover:text-cream-50 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                   data-testid="edit-notification-preferences"
                   asChild
                 >
@@ -646,56 +709,29 @@ export async function ProfileContent() {
         </MotionCard>
 
         {/* Quick Actions */}
-        <MotionCard>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-amber-600 dark:text-amber-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2
-                  className="text-xl font-semibold"
-                  data-testid="quick-actions-heading"
-                >
-                  Quick Actions
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Manage your volunteer experience
-                </p>
-              </div>
-            </div>
+        <MotionCard className={detailCard}>
+          <CardContent className="p-6 sm:p-8">
+            <CardHeading
+              testId="quick-actions-heading"
+              title="Quick Actions"
+              subtitle="Manage your volunteer experience"
+              icon={<Sparkle className="h-4 w-4" />}
+            />
 
             <div className="space-y-3" data-testid="quick-actions-section">
               <Button
                 asChild
                 variant="outline"
-                className="w-full justify-start"
+                className="h-11 w-full justify-start border-forest-500/20 bg-transparent px-5 text-forest-700 hover:bg-forest-500 hover:text-cream-50 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                 data-testid="browse-shifts-button"
               >
                 <Link href="/shifts" className="flex items-center gap-3">
                   <svg
-                    className="w-4 h-4"
+                    className="h-4 w-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden
                   >
                     <path
                       strokeLinecap="round"
@@ -711,18 +747,16 @@ export async function ProfileContent() {
               <Button
                 asChild
                 variant="outline"
-                className="w-full justify-start"
+                className="h-11 w-full justify-start border-forest-500/20 bg-transparent px-5 text-forest-700 hover:bg-forest-500 hover:text-cream-50 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/20 dark:bg-transparent dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
                 data-testid="view-schedule-button"
               >
-                <Link
-                  href="/shifts/mine"
-                  className="flex items-center gap-3"
-                >
+                <Link href="/shifts/mine" className="flex items-center gap-3">
                   <svg
-                    className="w-4 h-4"
+                    className="h-4 w-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden
                   >
                     <path
                       strokeLinecap="round"
@@ -736,27 +770,15 @@ export async function ProfileContent() {
               </Button>
 
               {isProfileIncomplete && (
-                <div className="pt-4 border-t border-border">
-                  <div className="bg-primary/5 dark:bg-primary/10 rounded-lg p-4 border border-primary/20 dark:border-primary/30">
+                <div className="pt-3">
+                  <div className="grain rounded-2xl bg-sun-100 p-5 dark:bg-sun-200/10">
                     <div className="flex items-start gap-3">
-                      <svg
-                        className="w-5 h-5 text-primary mt-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
+                      <Sparkle className="mt-0.5 h-4 w-4 shrink-0 text-forest-500 dark:text-sun-200" />
                       <div>
-                        <p className="font-medium text-primary">
+                        <p className="font-accent font-medium text-forest-700 dark:text-sun-100">
                           Complete your profile!
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="mt-1 text-sm leading-relaxed text-forest-700/75 dark:text-cream-50/70">
                           Add your emergency contact, availability, and
                           preferences to get the most out of your volunteer
                           experience.

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn, getProviders } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { GradientButton } from "@/components/ui/gradient-button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +19,6 @@ import {
   FileText,
   Check,
 } from "lucide-react";
-import { PageHeader } from "@/components/page-header";
 import {
   AccountStep,
   PersonalInfoStep,
@@ -158,42 +156,42 @@ export default function RegisterClient({
       title: "Create Account",
       description: "Set up your login credentials",
       icon: UserPlus,
-      color: "bg-blue-500",
+      color: "bg-forest-500",
     },
     {
       id: "personal",
       title: "Personal Information",
       description: "Tell us about yourself",
       icon: User,
-      color: "bg-green-500",
+      color: "bg-forest-500",
     },
     {
       id: "emergency",
       title: "Emergency Contact",
       description: "Safety contact information",
       icon: Phone,
-      color: "bg-red-500",
+      color: "bg-forest-500",
     },
     {
       id: "medical",
       title: "Medical & Background",
       description: "Health information and references",
       icon: Shield,
-      color: "bg-orange-500",
+      color: "bg-forest-500",
     },
     {
       id: "availability",
       title: "Availability",
       description: "When and where you can volunteer",
       icon: MapPin,
-      color: "bg-purple-500",
+      color: "bg-forest-500",
     },
     {
       id: "agreements",
       title: "Final Steps",
       description: "Review and accept policies",
       icon: FileText,
-      color: "bg-indigo-500",
+      color: "bg-forest-500",
     },
   ];
 
@@ -358,7 +356,7 @@ export default function RegisterClient({
   const getProviderButtonStyle = (providerId: string) => {
     switch (providerId) {
       case "google":
-        return "bg-background hover:bg-accent/50 text-foreground border border-border";
+        return "bg-background hover:bg-accent/50 text-foreground border border-forest-500/20 dark:border-cream-50/15";
       case "facebook":
         return "bg-[#1877F2] hover:bg-[#1565C0] text-white hover:text-white border border-[#1877F2]";
       case "apple":
@@ -524,16 +522,16 @@ export default function RegisterClient({
           <div className="space-y-6">
             {/* Welcome Message */}
             <div
-              className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+              className="grain rounded-2xl border border-forest-500/15 bg-forest-500/5 p-4 dark:border-cream-50/10 dark:bg-cream-50/5"
               data-testid="welcome-message"
             >
-              <div className="flex items-start space-x-3">
-                <UserPlus className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <div className="flex items-start gap-3">
+                <UserPlus className="mt-0.5 h-5 w-5 shrink-0 text-forest-500 dark:text-forest-300" />
                 <div>
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  <h4 className="text-sm font-semibold text-forest-700 dark:text-cream-50">
                     Welcome to Everybody Eats!
                   </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <p className="text-sm text-forest-700/75 dark:text-cream-50/70">
                     Create your volunteer account to start making a difference in
                     your community.
                   </p>
@@ -584,10 +582,10 @@ export default function RegisterClient({
 
               <div className="relative my-6" data-testid="oauth-divider">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
+                  <span className="w-full border-t border-forest-500/15 dark:border-cream-50/15" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                <div className="relative flex justify-center text-xs uppercase tracking-[0.18em]">
+                  <span className="bg-card px-3 text-forest-700/55 dark:text-cream-50/55">
                     Or create account with email
                   </span>
                 </div>
@@ -682,25 +680,56 @@ export default function RegisterClient({
   return (
     <MotionPageContainer className="min-h-screen" data-testid="register-page">
       <div className="max-w-4xl mx-auto space-y-8">
-        <PageHeader
-          title={<>Join <em>Everybody Eats</em></>}
-          description="Create your volunteer account and start making a difference in your community. The registration process takes about 5-10 minutes to complete."
-        >
-          <div className="flex justify-start mt-6">
-            <Button asChild variant="outline" size="sm" className="gap-2" data-testid="login-link">
+        {/* Branded header */}
+        <div>
+          <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            Nau mai, haere mai
+          </p>
+          <h1
+            className="display text-4xl tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
+            data-testid="register-heading"
+          >
+            Join <em>Everybody Eats</em>
+          </h1>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-forest-700/70 sm:text-lg dark:text-cream-50/70">
+            Create your volunteer account and start making a difference in your
+            community. The registration process takes about 5–10 minutes to
+            complete.
+          </p>
+          <div className="mt-6">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              data-testid="login-link"
+            >
               <Link href="/login">
                 <ArrowLeft className="h-4 w-4" />
                 Already have an account? Sign in
               </Link>
             </Button>
           </div>
-        </PageHeader>
+        </div>
 
         {/* Progress Indicator */}
-        <div className="hidden md:block bg-card dark:bg-card rounded-xl shadow-sm border border-border p-6" data-testid="progress-indicator">
+        <div
+          className="grain relative hidden overflow-hidden rounded-3xl border border-forest-500/10 bg-card p-6 shadow-sm dark:border-cream-50/10 md:block"
+          data-testid="progress-indicator"
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold" data-testid="progress-title">Registration Progress</h2>
-            <Badge variant="outline" className="text-xs" data-testid="step-counter">
+            <h2
+              className="display text-xl tracking-tight text-forest-700 dark:text-cream-50"
+              data-testid="progress-title"
+            >
+              Registration Progress
+            </h2>
+            <Badge
+              variant="outline"
+              className="text-xs border-forest-500/25 text-forest-700/80 dark:border-cream-50/20 dark:text-cream-50/80"
+              data-testid="step-counter"
+            >
               Step {currentStep + 1} of {steps.length}
             </Badge>
           </div>
@@ -719,10 +748,10 @@ export default function RegisterClient({
                   <div
                     className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 ${
                       index === currentStep
-                        ? `${step.color} text-white dark:text-white shadow-lg`
+                        ? `${step.color} text-cream-50 shadow-lg`
                         : index < currentStep
-                        ? "bg-green-500 text-white dark:text-white hover:bg-green-600 dark:hover:bg-green-600"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-forest-700 text-cream-50"
+                        : "bg-forest-500/10 text-forest-700/50 dark:bg-cream-50/10 dark:text-cream-50/50"
                     }`}
                     data-testid={`step-${index + 1}-icon`}
                   >
@@ -735,7 +764,9 @@ export default function RegisterClient({
                   {index < steps.length - 1 && (
                     <div
                       className={`flex-1 h-1 mx-2 rounded-full transition-all duration-200 ${
-                        index < currentStep ? "bg-green-500 dark:bg-green-600" : "bg-muted dark:bg-muted"
+                        index < currentStep
+                          ? "bg-forest-500"
+                          : "bg-forest-500/10 dark:bg-cream-50/10"
                       }`}
                     />
                   )}
@@ -745,22 +776,36 @@ export default function RegisterClient({
           </div>
 
           <div className="text-center" data-testid="current-step-info">
-            <h3 className="font-medium text-foreground" data-testid="current-step-title">
+            <h3
+              className="font-semibold text-forest-700 dark:text-cream-50"
+              data-testid="current-step-title"
+            >
               {steps[currentStep].title}
             </h3>
-            <p className="text-sm text-muted-foreground" data-testid="current-step-description">
+            <p
+              className="text-sm text-forest-700/65 dark:text-cream-50/60"
+              data-testid="current-step-description"
+            >
               {steps[currentStep].description}
             </p>
           </div>
         </div>
 
         {/* Form Content */}
-        <MotionCard className="shadow-lg border-0 bg-card/80 dark:bg-card/90 backdrop-blur-sm" data-testid="registration-form-card">
+        <MotionCard
+          className="grain relative overflow-hidden rounded-3xl border border-forest-500/10 bg-card shadow-[0_24px_70px_-30px_rgb(14_42_28/0.45)] dark:border-cream-50/10"
+          data-testid="registration-form-card"
+        >
           <CardHeader className="pb-6">
-            <CardTitle className="flex items-center gap-3 text-xl" data-testid="form-step-title">
-              {React.createElement(steps[currentStep].icon, {
-                className: "h-6 w-6",
-              })}
+            <CardTitle
+              className="flex items-center gap-3 text-xl text-forest-700 dark:text-cream-50"
+              data-testid="form-step-title"
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-forest-500/10 text-forest-500 dark:bg-cream-50/10 dark:text-forest-300">
+                {React.createElement(steps[currentStep].icon, {
+                  className: "h-5 w-5",
+                })}
+              </span>
               {steps[currentStep].title}
             </CardTitle>
           </CardHeader>
@@ -771,7 +816,7 @@ export default function RegisterClient({
               <Turnstile ref={turnstileRef} />
 
               {/* Navigation Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t border-border" data-testid="form-navigation">
+              <div className="flex items-center justify-between pt-6 border-t border-forest-500/10 dark:border-cream-50/10" data-testid="form-navigation">
                 <Button
                   type="button"
                   variant="outline"
@@ -784,8 +829,9 @@ export default function RegisterClient({
                   Previous
                 </Button>
 
-                <GradientButton
+                <Button
                   type="submit"
+                  size="lg"
                   disabled={loading}
                   className="flex items-center gap-2"
                   data-testid="next-submit-button"
@@ -808,7 +854,7 @@ export default function RegisterClient({
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
-                </GradientButton>
+                </Button>
               </div>
             </form>
           </CardContent>

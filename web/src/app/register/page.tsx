@@ -5,6 +5,7 @@ import { cacheLife } from "next/cache";
 import type { Metadata } from "next";
 import { buildPageMetadata } from "@/lib/seo";
 import { RegisterForm } from "./register-form";
+import { RegisterSkeleton } from "./register-skeleton";
 import {
   captureFunnelEvent,
   FunnelEvent,
@@ -76,7 +77,7 @@ export default async function RegisterPage() {
   });
 
   return (
-    <Suspense fallback={<div>Loading registration form...</div>}>
+    <Suspense fallback={<RegisterSkeleton />}>
       <RegisterForm
         locationOptions={locationOptions}
         shiftTypes={shiftTypes}

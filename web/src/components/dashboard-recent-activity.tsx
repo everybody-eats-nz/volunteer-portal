@@ -4,7 +4,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MotionContentCard } from "@/components/motion-content-card";
-import { CheckCircle, Clock, Utensils } from "lucide-react";
+import { CheckCircle, Clock, Utensils, History } from "lucide-react";
 import Link from "next/link";
 
 interface DashboardRecentActivityProps {
@@ -65,29 +65,37 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
   }));
 
   return (
-    <MotionContentCard className="h-fit flex-1 min-w-80" delay={0.3}>
+    <MotionContentCard
+      className="grain relative h-fit flex-1 min-w-80 overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10"
+      delay={0.3}
+    >
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-primary dark:text-emerald-400" />
-          Recent Activity
+        <CardTitle className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+            <History className="h-5 w-5" />
+          </span>
+          <span className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+            Recent Activity
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {shiftsWithMeals.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {shiftsWithMeals.map((signup) => (
               <div
                 key={signup.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-forest-500/5 dark:hover:bg-cream-50/5"
               >
-                <div className="w-10 h-10 bg-primary/10 dark:bg-emerald-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-primary dark:text-emerald-400" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+                  <CheckCircle className="h-5 w-5" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-forest-700 dark:text-cream-50">
                     {signup.shift.shiftType.name}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-forest-700/60 dark:text-cream-50/55">
                     <span>
                       {formatInNZT(signup.shift.start, "MMM d")} •{" "}
                       {signup.shift.location}
@@ -95,15 +103,18 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
                     {(signup.mealsServed || signup.defaultMealsServed) && (
                       <>
                         <span>•</span>
-                        <span className={`flex items-center gap-1 font-medium ${signup.mealsServed ? "text-primary" : "text-muted-foreground"}`}>
-                          <Utensils className="w-3 h-3" />
+                        <span className={`flex items-center gap-1 font-medium ${signup.mealsServed ? "text-forest-600 dark:text-cream-50/80" : "text-forest-700/55 dark:text-cream-50/50"}`}>
+                          <Utensils className="h-3 w-3" />
                           {signup.mealsServed ? "" : "~"}{signup.mealsServed?.mealsServed || signup.defaultMealsServed}
                         </span>
                       </>
                     )}
                   </div>
                 </div>
-                <Badge variant="outline" className="text-xs">
+                <Badge
+                  variant="outline"
+                  className="border-forest-500/20 text-xs text-forest-700 dark:border-cream-50/20 dark:text-cream-50/85"
+                >
                   Completed
                 </Badge>
               </div>
@@ -113,12 +124,14 @@ export async function DashboardRecentActivity({ userId }: DashboardRecentActivit
             </Button>
           </div>
         ) : (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-muted dark:bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-8 h-8 text-muted-foreground dark:text-gray-500" />
+          <div className="py-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+              <Clock className="h-8 w-8" />
             </div>
-            <h3 className="font-semibold mb-2">No completed shifts yet</h3>
-            <p className="text-muted-foreground text-sm">
+            <h3 className="display text-lg tracking-tight text-forest-700 dark:text-cream-50">
+              No completed shifts yet
+            </h3>
+            <p className="mx-auto mt-2 max-w-xs text-sm text-forest-700/70 dark:text-cream-50/65">
               Your completed shifts will appear here after you volunteer.
             </p>
           </div>

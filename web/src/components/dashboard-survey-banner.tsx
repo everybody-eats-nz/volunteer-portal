@@ -91,29 +91,27 @@ export function DashboardSurveyBanner({ initialSurveys }: DashboardSurveyBannerP
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, height: 0, marginBottom: 0 }}
           transition={{ duration: 0.2, delay: index * 0.1 }}
-          className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg p-4 mb-4"
+          className="grain relative mb-4 overflow-hidden rounded-2xl border border-forest-500/15 bg-forest-500/5 p-4 dark:border-cream-50/12 dark:bg-cream-50/5"
           data-testid="survey-banner"
         >
           <div className="flex items-start gap-3">
-            <ClipboardList className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+              <ClipboardList className="h-4 w-4" />
+            </span>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              <h3 className="text-sm font-semibold text-forest-700 dark:text-cream-50">
                 {survey.survey.title}
               </h3>
               {survey.survey.description && (
-                <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                <p className="mt-1 text-sm text-forest-700/80 dark:text-cream-50/75">
                   {survey.survey.description}
                 </p>
               )}
-              <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              <p className="mt-1 text-xs text-forest-700/65 dark:text-cream-50/60">
                 We&apos;d love to hear your feedback!
               </p>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3 sm:hidden">
-                <Button
-                  asChild
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
+                <Button asChild size="sm">
                   <Link
                     href={`/surveys/${survey.token}`}
                     className="flex items-center justify-center gap-1"
@@ -125,7 +123,7 @@ export function DashboardSurveyBanner({ initialSurveys }: DashboardSurveyBannerP
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                  className="text-forest-700/80 hover:bg-forest-500/10 hover:text-forest-700 dark:text-cream-50/70 dark:hover:bg-cream-50/10 dark:hover:text-cream-50"
                   onClick={() => handleDismiss(survey.id)}
                   disabled={dismissing === survey.id}
                 >
@@ -137,17 +135,13 @@ export function DashboardSurveyBanner({ initialSurveys }: DashboardSurveyBannerP
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                className="text-forest-700/80 hover:bg-forest-500/10 hover:text-forest-700 dark:text-cream-50/70 dark:hover:bg-cream-50/10 dark:hover:text-cream-50"
                 onClick={() => handleDismiss(survey.id)}
                 disabled={dismissing === survey.id}
               >
                 Don&apos;t ask again
               </Button>
-              <Button
-                asChild
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
+              <Button asChild size="sm">
                 <Link
                   href={`/surveys/${survey.token}`}
                   className="flex items-center gap-1"
