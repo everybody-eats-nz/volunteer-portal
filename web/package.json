@@ -111,23 +111,23 @@
     "@types/bcrypt": "^6.0.0",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^26",
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "@vitest/ui": "^4.1.10",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.11.8",
-    "csv-parse": "^7.0.1",
+    "baseline-browser-mapping": "^2.11.12",
+    "csv-parse": "^7.0.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.0",
     "exceljs": "^4.4.0",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.9",
     "typescript": "^6",
     "vitest": "^4.0.15"
   },
   "overrides": {
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3"
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4"
   }
 }
