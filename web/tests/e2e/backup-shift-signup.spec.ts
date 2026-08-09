@@ -308,7 +308,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await moveButton.click();
 
     // Dialog should open - wait for available shifts to load
-    await expect(page.getByText("Select Target Shift")).toBeVisible({
+    await expect(page.getByText("Move to", { exact: true })).toBeVisible({
       timeout: 10000,
     });
 
@@ -363,7 +363,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await moveButton.click();
 
     // Wait for dialog and available shifts to load
-    await expect(page.getByText("Select Target Shift")).toBeVisible({
+    await expect(page.getByText("Move to", { exact: true })).toBeVisible({
       timeout: 10000,
     });
     await page.waitForTimeout(1000);

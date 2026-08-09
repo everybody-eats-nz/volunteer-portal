@@ -202,9 +202,7 @@ test.describe("General Volunteer Movement System", () => {
       await expect(moveButton).toBeVisible({ timeout: 10000 });
       await moveButton.click();
 
-      await expect(page.getByText("to Different Shift")).toBeVisible({
-        timeout: 10000,
-      });
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
 
       await page.getByRole("combobox").click();
 
@@ -268,10 +266,8 @@ test.describe("General Volunteer Movement System", () => {
       await moveButton.click();
 
       // Dialog should open
-      await expect(page.getByText("to Different Shift")).toBeVisible({
-        timeout: 10000,
-      });
-      await expect(page.getByText("Move this volunteer from")).toBeVisible();
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText("Currently on")).toBeVisible();
 
       // Open the target-shift dropdown
       const dropdown = page.getByRole("combobox");
