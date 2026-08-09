@@ -8,7 +8,10 @@ import {
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
 
-// GET /api/admin/shifts/available - Get available shifts with capacity for a specific date/location
+// GET /api/admin/shifts/available - Get shifts for a specific date/location.
+// Full shifts are returned too, with their counts, so admins can move a volunteer
+// into an over-capacity shift when they judge that the right call. Callers are
+// expected to label capacity rather than hide the option.
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -39,8 +42,8 @@ export async function GET(request: Request) {
 
   try {
     const selectedDate = new Date(date);
-    
-    // Fetch shifts for the selected date and location that have available capacity
+
+    // Fetch every shift for the selected date and location
     const shifts = await prisma.shift.findMany({
       where: {
         location,
@@ -58,21 +61,19 @@ export async function GET(request: Request) {
       },
     });
 
-    // Transform to include confirmed count and filter for available capacity
-    const availableShifts = shifts
-      .map(shift => ({
-        id: shift.id,
-        start: shift.start.toISOString(),
-        end: shift.end.toISOString(),
-        location: shift.location,
-        capacity: shift.capacity,
-        confirmedCount: getShiftEffectiveCount(shift),
-        shiftType: {
-          id: shift.shiftType.id,
-          name: shift.shiftType.name,
-        },
-      }))
-      .filter(shift => shift.confirmedCount < shift.capacity); // Only return shifts with available spots
+    // Transform to include confirmed count so callers can show remaining capacity
+    const availableShifts = shifts.map((shift) => ({
+      id: shift.id,
+      start: shift.start.toISOString(),
+      end: shift.end.toISOString(),
+      location: shift.location,
+      capacity: shift.capacity,
+      confirmedCount: getShiftEffectiveCount(shift),
+      shiftType: {
+        id: shift.shiftType.id,
+        name: shift.shiftType.name,
+      },
+    }));
 
     return NextResponse.json(availableShifts);
   } catch (error) {

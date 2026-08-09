@@ -69,16 +69,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify target shift exists and has capacity
+    // Verify target shift exists. Capacity is deliberately not enforced here -
+    // admins can move a volunteer into a full shift and take it over capacity,
+    // the same way they can confirm a waitlisted volunteer beyond capacity.
     const targetShift = await prisma.shift.findUnique({
       where: { id: targetShiftId },
       include: {
         shiftType: true,
-        signups: {
-          where: {
-            status: "CONFIRMED",
-          },
-        },
       },
     });
 
@@ -86,14 +83,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Target shift not found" },
         { status: 404 }
-      );
-    }
-
-    // Check if target shift has capacity
-    if (targetShift.signups.length >= targetShift.capacity) {
-      return NextResponse.json(
-        { error: "Target shift is at full capacity" },
-        { status: 400 }
       );
     }
 
