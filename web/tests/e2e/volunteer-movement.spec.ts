@@ -308,6 +308,90 @@ test.describe("General Volunteer Movement System", () => {
       });
     });
 
+    test("admin can move volunteer into a full shift", async ({ page }) => {
+      // Ensure volunteer is on source shift
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: sourceShiftId,
+        status: "CONFIRMED",
+      });
+
+      // Fill the target shift (capacity 2) so it has no spots left
+      const fillerEmails = [
+        `filler-a-movement-${testId}@example.com`,
+        `filler-b-movement-${testId}@example.com`,
+      ];
+      testEmails.push(...fillerEmails);
+      for (const [index, fillerEmail] of fillerEmails.entries()) {
+        await createTestUser(page, fillerEmail, "VOLUNTEER", {
+          firstName: "Filler",
+          lastName: `Volunteer${index}`,
+        });
+        const filler = await getUserByEmail(page, fillerEmail);
+        await createSignup(page, {
+          userId: filler!.id,
+          shiftId: targetShiftId,
+          status: "CONFIRMED",
+        });
+      }
+
+      await loginAsAdmin(page);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible({ timeout: 10000 });
+      await moveButton.click();
+
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      await page.getByRole("combobox").click();
+
+      // The full shift is still offered, flagged rather than hidden
+      const fullOption = page.locator(
+        `[data-testid="move-target-option-${targetShiftId}"]`
+      );
+      await expect(fullOption).toBeVisible({ timeout: 10000 });
+      await expect(fullOption).toContainText("Full");
+      await expect(fullOption).toContainText("No spots left");
+      await fullOption.click();
+
+      // Picking it warns that the move takes the shift over capacity
+      await expect(page.getByTestId("move-over-capacity-notice")).toBeVisible();
+
+      const moveVolunteerButton = page.getByRole("button", {
+        name: "Move Volunteer",
+      });
+      await expect(moveVolunteerButton).toBeEnabled();
+      await moveVolunteerButton.click();
+
+      await page.waitForTimeout(3000);
+
+      // The move goes through and the shift is now over capacity
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const movedToCard = visibleShiftCard(page, targetShiftId);
+      await expect(movedToCard).toBeVisible({ timeout: 15000 });
+      await expect(movedToCard.getByText("Test User")).toBeVisible({
+        timeout: 10000,
+      });
+      await expect(movedToCard.getByText("3/2")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
     test("volunteer now appears in target shift", async ({ page }) => {
       // Move volunteer to target shift for this test
       await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);

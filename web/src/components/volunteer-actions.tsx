@@ -329,14 +329,19 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
             isPreferred: backupShiftIds?.includes(shift.id) ?? false,
           }));
 
-        // Preferences first, then shifts with room, then keep start-time order
         targets.sort((a, b) => {
+          // 1. The volunteer's own backup preferences first
           if (a.isPreferred !== b.isPreferred) {
-            return Number(b.isPreferred) - Number(a.isPreferred);
+            return a.isPreferred ? -1 : 1;
           }
+          // 2. Then shifts that still have room
           const aHasRoom = a.confirmedCount < a.capacity;
           const bHasRoom = b.confirmedCount < b.capacity;
-          return Number(bHasRoom) - Number(aHasRoom);
+          if (aHasRoom !== bHasRoom) {
+            return aHasRoom ? -1 : 1;
+          }
+          // 3. Otherwise keep the start-time order the API returned
+          return 0;
         });
 
         setAvailableShifts(targets);
