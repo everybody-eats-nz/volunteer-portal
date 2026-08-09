@@ -1,3 +1,9 @@
+## [0.151.0] - 2026-08-09
+
+### Changes
+- feat(admin): allow moving volunteers into full shifts ([#1183](https://github.com/everybody-eats-nz/volunteer-portal/pull/1183)) by @malinmalliyawadu
+
+
 ## [0.150.12] - 2026-08-04
 
 ### Changes
