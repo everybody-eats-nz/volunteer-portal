@@ -1,3 +1,9 @@
+## [0.151.4] - 2026-08-10
+
+### Changes
+- chore(deps): bump nanoid from 3.3.12 to 3.3.18 in /web ([#1190](https://github.com/everybody-eats-nz/volunteer-portal/pull/1190)) by @dependabot[bot]
+
+
 ## [0.151.3] - 2026-08-10
 
 ### Changes
