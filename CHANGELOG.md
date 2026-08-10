@@ -1,3 +1,9 @@
+## [0.151.6] - 2026-08-10
+
+### Changes
+- chore(deps-dev): bump js-yaml from 4.3.0 to 4.3.1 in /web ([#1191](https://github.com/everybody-eats-nz/volunteer-portal/pull/1191)) by @dependabot[bot]
+
+
 ## [0.151.5] - 2026-08-10
 
 ### Changes
