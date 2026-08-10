@@ -5,11 +5,11 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  isSameDay,
   isSameMonth,
   startOfWeek,
   endOfWeek,
 } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -102,10 +102,16 @@ export function ShiftsCalendar({
     return new Date(year, month - 1, 1);
   });
 
-  // Stable references to "now" for the initial render.
-  const nowDate = new Date(serverNow);
-  const todayMidnight = new Date(serverNow);
-  todayMidnight.setHours(0, 0, 0, 0);
+  // Every day comparison below is done on "yyyy-MM-dd" keys resolved in
+  // Pacific/Auckland, never on the viewer's local calendar. A shift instant maps
+  // to a different local day for anyone off NZ time (a 5:30pm NZ shift is the
+  // previous day in UTC), which used to move it into a different grid cell on the
+  // client than on the server — and since a cell with shifts renders a <Link>
+  // while an empty or past one renders a plain <div>, that produced an
+  // element-level React #418 hydration mismatch. NZ keys are identical in every
+  // timezone, so server and client always agree.
+  const todayKey = formatInNZT(new Date(serverNow), "yyyy-MM-dd");
+  const thisMonthKey = todayKey.slice(0, 7);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -132,10 +138,21 @@ export function ShiftsCalendar({
   const getLocationDayShifts = (location: string): DayShifts[] => {
     const locationShifts = shiftsByLocation[location] || [];
 
+    // Bucket each shift by the NZ calendar day it starts on, once, so the grid
+    // lookup below is a key match rather than a per-cell scan.
+    const shiftsByDayKey = new Map<string, ShiftSummary[]>();
+    for (const shift of locationShifts) {
+      const key = formatInNZT(shift.start, "yyyy-MM-dd");
+      const bucket = shiftsByDayKey.get(key);
+      if (bucket) bucket.push(shift);
+      else shiftsByDayKey.set(key, [shift]);
+    }
+
     return calendarDays.map((date) => {
-      const dayShifts = locationShifts.filter((shift) =>
-        isSameDay(shift.start, date)
-      );
+      // Grid cells are built from plain year/month/day components, so their
+      // "yyyy-MM-dd" label is the same in every timezone.
+      const dayKey = format(date, "yyyy-MM-dd");
+      const dayShifts = shiftsByDayKey.get(dayKey) ?? [];
 
       const totalCapacity = dayShifts.reduce((sum, s) => sum + s.capacity, 0);
       const totalConfirmed = dayShifts.reduce(
@@ -254,9 +271,7 @@ export function ShiftsCalendar({
             variant="outline"
             size="sm"
             onClick={previousMonth}
-            disabled={
-              format(currentMonth, "yyyy-MM") <= format(nowDate, "yyyy-MM")
-            }
+            disabled={format(currentMonth, "yyyy-MM") <= thisMonthKey}
             data-testid="calendar-prev-month"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -349,11 +364,11 @@ export function ShiftsCalendar({
                       dayShifts.date,
                       currentMonth
                     );
-                    const today = todayMidnight;
-                    const dayStart = new Date(dayShifts.date);
-                    dayStart.setHours(0, 0, 0, 0);
-                    const isPastDate = dayStart < today;
-                    const isToday = isSameDay(dayShifts.date, today);
+                    // ISO day keys sort lexicographically, so string comparison
+                    // is the same as date comparison — and stays in NZ days.
+                    const dayKey = format(dayShifts.date, "yyyy-MM-dd");
+                    const isPastDate = dayKey < todayKey;
+                    const isToday = dayKey === todayKey;
 
                     const dayContent = (
                       <div
@@ -375,10 +390,7 @@ export function ShiftsCalendar({
                             !isPastDate &&
                             "hover:border-primary/60 shadow-md"
                         )}
-                        data-testid={`calendar-day-${format(
-                          dayShifts.date,
-                          "yyyy-MM-dd"
-                        )}`}
+                        data-testid={`calendar-day-${dayKey}`}
                       >
                         {/* Header with date and today indicator */}
                         <div className="absolute inset-0 sm:top-0 sm:bottom-auto sm:left-0 sm:right-0 sm:relative p-3 sm:h-auto flex items-center justify-center sm:block">
@@ -476,10 +488,9 @@ export function ShiftsCalendar({
                         isCurrentMonth &&
                         !isPastDate ? (
                           <Link
-                            href={`/shifts/details?date=${format(
-                              dayShifts.date,
-                              "yyyy-MM-dd"
-                            )}&location=${encodeURIComponent(location)}`}
+                            href={`/shifts/details?date=${dayKey}&location=${encodeURIComponent(
+                              location
+                            )}`}
                             className="block"
                           >
                             {dayContent}
@@ -524,10 +535,9 @@ export function ShiftsCalendar({
                   )}.`}
             </p>
             <p className="text-sm text-muted-foreground">
-              {format(currentMonth, "yyyy-MM") > format(nowDate, "yyyy-MM")
+              {format(currentMonth, "yyyy-MM") > thisMonthKey
                 ? "Shifts are usually published closer to the date."
-                : format(currentMonth, "yyyy-MM") <
-                  format(nowDate, "yyyy-MM")
+                : format(currentMonth, "yyyy-MM") < thisMonthKey
                 ? "This month has passed. Try viewing current or future months."
                 : "Check back soon for upcoming shifts, or try a different location."}
             </p>
