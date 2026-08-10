@@ -15,8 +15,8 @@ export async function loginAsAdmin(page: Page) {
     await page.goto("/login");
     await page.waitForLoadState("load");
 
-    // Use .first() because Next.js streaming can briefly render both
-    // loading.tsx and page.tsx simultaneously, producing two buttons.
+    // Use .first(): the subtree briefly exists in React's hidden streaming
+    // staging container too. See helpers/streaming.ts for the full explanation.
     const adminLoginButton = page
       .getByTestId("quick-login-admin-button")
       .first();
@@ -26,10 +26,9 @@ export async function loginAsAdmin(page: Page) {
     await page.waitForURL("/admin");
     await page.waitForLoadState("load");
     // Wait for admin dashboard content — confirms the session is fully active.
-    // Use .first() because admin-dashboard-page appears in both page.tsx and
-    // loading.tsx; during Next.js streaming both can be in the DOM simultaneously,
-    // which triggers strict mode. Any match is sufficient: if the session were
-    // invalid we'd be at /login instead of /admin, so this element wouldn't appear.
+    // .first() for the same streaming reason as above. Any match is sufficient:
+    // if the session were invalid we'd be at /login instead of /admin, so this
+    // element wouldn't appear at all.
     await page
       .getByTestId("admin-dashboard-page")
       .first()

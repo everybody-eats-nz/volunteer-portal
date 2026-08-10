@@ -133,8 +133,12 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
                 )}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
+                {/* Relative time can tick over between SSR and hydration ("in
+                    about 2 hours" → "in 1 hour"), which is a hydration
+                    mismatch — keep whichever text the server rendered. */}
                 <Badge
                   variant="secondary"
+                  suppressHydrationWarning
                   className="border border-forest-500/15 bg-forest-500/8 text-forest-700 dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50/85"
                 >
                   {formatDistanceToNow(nextShift.shift.start, {

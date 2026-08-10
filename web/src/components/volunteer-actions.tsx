@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, UserCheck, UserX } from "lucide-react";
+import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, CalendarOff, UserCheck, UserX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -60,16 +60,30 @@ type MoveTargetShift = {
   isPreferred: boolean;
 };
 
+/** How much room is left on a move target, phrased for the option's meta line. */
+function describeCapacity(shift: MoveTargetShift) {
+  const spotsLeft = shift.capacity - shift.confirmedCount;
+  if (spotsLeft > 0) {
+    return `${spotsLeft} ${spotsLeft === 1 ? "spot" : "spots"} available`;
+  }
+  if (spotsLeft === 0) {
+    return "No spots left";
+  }
+  return `${-spotsLeft} over capacity`;
+}
+
 /**
- * Options for the "move volunteer" target picker. Backup preferences are sorted
- * to the top and badged, but every shift with a free spot stays selectable so a
- * volunteer can always be moved back to where they came from.
+ * Options for the "move volunteer" target picker. Every shift on the day stays
+ * selectable - backup preferences are sorted to the top and badged, and full
+ * shifts are badged so the admin knows they are going over capacity, but nothing
+ * is hidden. Hiding full shifts made moves one-way, since the shift a volunteer
+ * came from is often full once someone else takes their spot.
  */
 function MoveTargetOptions({ shifts }: { shifts: MoveTargetShift[] }) {
   return (
     <>
       {shifts.map((shift) => {
-        const spotsLeft = shift.capacity - shift.confirmedCount;
+        const isFull = shift.confirmedCount >= shift.capacity;
         return (
           <SelectItem
             key={shift.id}
@@ -89,15 +103,200 @@ function MoveTargetOptions({ shifts }: { shifts: MoveTargetShift[] }) {
                     Backup choice
                   </Badge>
                 )}
+                {isFull && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-200"
+                  >
+                    <AlertTriangle aria-hidden="true" />
+                    Full
+                  </Badge>
+                )}
               </span>
               <span className="text-xs text-muted-foreground">
-                {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {spotsLeft} {spotsLeft === 1 ? "spot" : "spots"} available
+                {formatInNZT(new Date(shift.start), "h:mm a")} - {formatInNZT(new Date(shift.end), "h:mm a")} • {describeCapacity(shift)}
               </span>
             </span>
           </SelectItem>
         );
       })}
     </>
+  );
+}
+
+/** Warns the admin that the shift they picked is already at or over capacity. */
+function MoveOverCapacityNotice({
+  shift,
+  volunteerName,
+}: {
+  shift: MoveTargetShift;
+  volunteerName?: string;
+}) {
+  return (
+    <p
+      className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300"
+      data-testid="move-over-capacity-notice"
+    >
+      <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span>
+        {shift.shiftType.name} is already full. Moving {volunteerName || "this volunteer"} here takes it over capacity.
+      </span>
+    </p>
+  );
+}
+
+type MoveVolunteerDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tid: (suffix: string) => string;
+  currentShift: NonNullable<VolunteerActionsProps["currentShift"]>;
+  volunteerName?: string;
+  shifts: MoveTargetShift[];
+  selectedShiftId: string;
+  onSelectShift: (shiftId: string) => void;
+  notes: string;
+  onNotesChange: (notes: string) => void;
+  onConfirm: () => void;
+  loading: boolean;
+  fieldIdPrefix: string;
+};
+
+/**
+ * The "move volunteer to another shift" dialog, shared by the confirmed and
+ * pending action rows. One name in the title, the context in the description,
+ * and a single decision in the body - it has to stay readable on a phone, which
+ * is where admins run service.
+ */
+function MoveVolunteerDialog({
+  open,
+  onOpenChange,
+  tid,
+  currentShift,
+  volunteerName,
+  shifts,
+  selectedShiftId,
+  onSelectShift,
+  notes,
+  onNotesChange,
+  onConfirm,
+  loading,
+  fieldIdPrefix,
+}: MoveVolunteerDialogProps) {
+  const selectedShift = shifts.find((shift) => shift.id === selectedShiftId);
+  const selectedIsFull = selectedShift
+    ? selectedShift.confirmedCount >= selectedShift.capacity
+    : false;
+  const hasTargets = shifts.length > 0;
+  const shiftDay = formatInNZT(currentShift.start, "EEEE d MMMM");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
+              disabled={loading}
+              title="Move to different shift"
+              data-testid={tid("move-button")}
+            >
+              {loading ? (
+                <Clock className="h-3 w-3 animate-spin" />
+              ) : (
+                <ArrowRightLeft className="h-3 w-3" />
+              )}
+            </Button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Move to different shift</TooltipContent>
+      </Tooltip>
+      <DialogContent className="sm:max-w-md" data-testid={tid("move-dialog")}>
+        <DialogHeader className="text-left">
+          <DialogTitle data-testid={tid("move-dialog-title")}>
+            Move {volunteerName || "volunteer"}
+          </DialogTitle>
+          <DialogDescription data-testid={tid("move-dialog-description")}>
+            Currently on {currentShift.shiftType.name}, {shiftDay}.
+            {hasTargets && " Pick another shift on the same day."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {hasTargets ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor={`${fieldIdPrefix}-target-shift`}>Move to</Label>
+              <Select value={selectedShiftId} onValueChange={onSelectShift}>
+                <SelectTrigger
+                  id={`${fieldIdPrefix}-target-shift`}
+                  className="w-full"
+                  data-testid={tid("move-shift-select")}
+                >
+                  <SelectValue placeholder="Choose a shift" />
+                </SelectTrigger>
+                <SelectContent className="w-(--radix-select-trigger-width)">
+                  <MoveTargetOptions shifts={shifts} />
+                </SelectContent>
+              </Select>
+              {selectedIsFull && selectedShift && (
+                <MoveOverCapacityNotice
+                  shift={selectedShift}
+                  volunteerName={volunteerName}
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${fieldIdPrefix}-movement-notes`}>
+                Notes (optional)
+              </Label>
+              <Textarea
+                id={`${fieldIdPrefix}-movement-notes`}
+                value={notes}
+                onChange={(e) => onNotesChange(e.target.value)}
+                placeholder="Add any notes about this movement..."
+                rows={3}
+              />
+            </div>
+          </div>
+        ) : (
+          <div
+            className="rounded-lg border border-dashed p-6 text-center"
+            data-testid="move-no-targets"
+          >
+            <CalendarOff
+              className="mx-auto h-5 w-5 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <p className="mt-2 text-sm font-medium">No other shifts that day</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {currentShift.location} has nothing else scheduled on {shiftDay}.
+            </p>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+            data-testid={tid("move-dialog-cancel")}
+          >
+            {hasTargets ? "Cancel" : "Close"}
+          </Button>
+          {hasTargets && (
+            <Button
+              onClick={onConfirm}
+              disabled={!selectedShiftId || loading}
+              data-testid={tid("move-dialog-confirm")}
+            >
+              {loading ? <Clock className="h-3 w-3 animate-spin mr-2" /> : null}
+              Move Volunteer
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -119,9 +318,10 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       if (response.ok) {
         const data: Omit<MoveTargetShift, "isPreferred">[] = await response.json();
 
-        // Every shift with a free spot stays selectable. The volunteer's backup
-        // preferences are only a hint - restricting the list to them made moves
-        // one-way, since the shift they came from is never in that list.
+        // Every other shift on the day stays selectable, full or not. Backup
+        // preferences and free spots only affect ordering - restricting the list
+        // made moves one-way, since the shift a volunteer came from is often
+        // full or not among their nominated backups.
         const targets: MoveTargetShift[] = data
           .filter((shift) => shift.id !== currentShift.id)
           .map((shift) => ({
@@ -129,8 +329,20 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
             isPreferred: backupShiftIds?.includes(shift.id) ?? false,
           }));
 
-        // Surface the volunteer's own preferences first, then keep start-time order
-        targets.sort((a, b) => Number(b.isPreferred) - Number(a.isPreferred));
+        targets.sort((a, b) => {
+          // 1. The volunteer's own backup preferences first
+          if (a.isPreferred !== b.isPreferred) {
+            return a.isPreferred ? -1 : 1;
+          }
+          // 2. Then shifts that still have room
+          const aHasRoom = a.confirmedCount < a.capacity;
+          const bHasRoom = b.confirmedCount < b.capacity;
+          if (aHasRoom !== bHasRoom) {
+            return aHasRoom ? -1 : 1;
+          }
+          // 3. Otherwise keep the start-time order the API returned
+          return 0;
+        });
 
         setAvailableShifts(targets);
       }
@@ -279,6 +491,35 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
   // Helper to check if shift has ended (use end time, not start time)
   const shiftCompleted = currentShift ? isShiftCompleted(currentShift.end) : false;
 
+  const tid = (suffix: string) =>
+    testIdPrefix ? `${testIdPrefix}-${suffix}` : `volunteer-${suffix}-${signupId}`;
+
+  const handleMoveDialogChange = (open: boolean) => {
+    setDialogOpen(open ? "move" : null);
+    if (!open) {
+      setSelectedTargetShift("");
+      setMovementNotes("");
+    }
+  };
+
+  const moveDialog = currentShift ? (
+    <MoveVolunteerDialog
+      open={dialogOpen === "move"}
+      onOpenChange={handleMoveDialogChange}
+      tid={tid}
+      currentShift={currentShift}
+      volunteerName={volunteerName}
+      shifts={availableShifts}
+      selectedShiftId={selectedTargetShift}
+      onSelectShift={setSelectedTargetShift}
+      notes={movementNotes}
+      onNotesChange={setMovementNotes}
+      onConfirm={handleVolunteerMove}
+      loading={loading === "move"}
+      fieldIdPrefix={`move-${signupId}`}
+    />
+  ) : null;
+
   if (currentStatus === "CONFIRMED") {
     const cancelDialogContent = getDialogContent("cancel");
     const cancelPastDialogContent = getDialogContent("cancel_past");
@@ -408,92 +649,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
     return (
       <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-confirmed-actions` : `volunteer-actions-${signupId}-confirmed`}>
         {/* Move Button */}
-        {currentShift && !shiftCompleted && (
-          <Dialog open={dialogOpen === "move"} onOpenChange={(open) => setDialogOpen(open ? "move" : null)}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
-                    disabled={loading === "move"}
-                    title="Move to different shift"
-                    data-testid={testIdPrefix ? `${testIdPrefix}-move-button` : `volunteer-move-${signupId}`}
-                  >
-                    {loading === "move" ? (
-                      <Clock className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <ArrowRightLeft className="h-3 w-3" />
-                    )}
-                  </Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Move to different shift</TooltipContent>
-            </Tooltip>
-            <DialogContent className="sm:max-w-md" data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog` : `volunteer-move-dialog-${signupId}`}>
-              <DialogHeader>
-                <DialogTitle data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog-title` : `volunteer-move-dialog-title-${signupId}`}>
-                  Move {volunteerName || 'Volunteer'} to Different Shift
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog-description` : `volunteer-move-dialog-description-${signupId}`}>
-                  Move this volunteer from {currentShift.shiftType.name} to a different shift on the same day.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                {availableShifts.length === 0 ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400" data-testid="move-no-targets">
-                    No other shifts with a free spot on this day at {currentShift.location}.
-                  </p>
-                ) : (
-                  <>
-                    <div>
-                      <Label htmlFor="targetShift">Select Target Shift</Label>
-                      <Select value={selectedTargetShift} onValueChange={setSelectedTargetShift}>
-                        <SelectTrigger id="targetShift">
-                          <SelectValue placeholder="Choose a shift..." />
-                        </SelectTrigger>
-                        <SelectContent className="w-(--radix-select-trigger-width)">
-                          <MoveTargetOptions shifts={availableShifts} />
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="movementNotes">Movement Notes (optional)</Label>
-                      <Textarea
-                        id="movementNotes"
-                        value={movementNotes}
-                        onChange={(e) => setMovementNotes(e.target.value)}
-                        placeholder="Add any notes about this movement..."
-                        rows={3}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setDialogOpen(null)}
-                  disabled={loading === "move"}
-                  data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog-cancel` : `volunteer-move-dialog-cancel-${signupId}`}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleVolunteerMove}
-                  disabled={!selectedTargetShift || loading === "move"}
-                  data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog-confirm` : `volunteer-move-dialog-confirm-${signupId}`}
-                >
-                  {loading === "move" ? (
-                    <Clock className="h-3 w-3 animate-spin mr-2" />
-                  ) : null}
-                  Move Volunteer
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+        {!shiftCompleted && moveDialog}
 
         {/* Cancel Button - only for future shifts */}
         {!shiftCompleted && (
@@ -723,81 +879,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       </Tooltip>
 
       {/* Move Button for Pending */}
-      {currentShift && (
-        <Dialog open={dialogOpen === "move"} onOpenChange={(open) => setDialogOpen(open ? "move" : null)}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DialogTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
-                  disabled={loading === "move"}
-                  title="Move to different shift"
-                  data-testid={testIdPrefix ? `${testIdPrefix}-move-button` : `volunteer-move-${signupId}`}
-                >
-                  {loading === "move" ? (
-                    <Clock className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <ArrowRightLeft className="h-3 w-3" />
-                  )}
-                </Button>
-              </DialogTrigger>
-            </TooltipTrigger>
-            <TooltipContent>Move to different shift</TooltipContent>
-          </Tooltip>
-          <DialogContent className="sm:max-w-md" data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog` : `volunteer-move-dialog-${signupId}`}>
-            <DialogHeader>
-              <DialogTitle data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog-title` : `volunteer-move-dialog-title-${signupId}`}>
-                Move {volunteerName || 'Volunteer'} to Different Shift
-              </DialogTitle>
-              <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-move-dialog-description` : `volunteer-move-dialog-description-${signupId}`}>
-                Move this volunteer from {currentShift.shiftType.name} to a different shift on the same day.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4">
-              {availableShifts.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400" data-testid="move-no-targets">
-                  No other shifts with a free spot on this day at {currentShift.location}.
-                </p>
-              ) : (
-                <>
-                  <div>
-                    <Label htmlFor="target-shift">Select Target Shift</Label>
-                    <Select value={selectedTargetShift} onValueChange={setSelectedTargetShift}>
-                      <SelectTrigger id="target-shift" data-testid={testIdPrefix ? `${testIdPrefix}-move-shift-select` : `volunteer-move-shift-select-${signupId}`}>
-                        <SelectValue placeholder="Choose a shift" />
-                      </SelectTrigger>
-                      <SelectContent className="w-(--radix-select-trigger-width)">
-                        <MoveTargetOptions shifts={availableShifts} />
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="movement-notes">Notes (Optional)</Label>
-                    <Textarea
-                      id="movement-notes"
-                      placeholder="Add any notes about this movement..."
-                      value={movementNotes}
-                      onChange={(e) => setMovementNotes(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(null)} disabled={loading === "move"}>
-                Cancel
-              </Button>
-              <Button onClick={handleVolunteerMove} disabled={loading === "move" || !selectedTargetShift}>
-                {loading === "move" && <Clock className="h-3 w-3 animate-spin mr-2" />}
-                Move Volunteer
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {moveDialog}
 
       <Dialog open={dialogOpen === "reject"} onOpenChange={(open) => setDialogOpen(open ? "reject" : null)}>
         <Tooltip>

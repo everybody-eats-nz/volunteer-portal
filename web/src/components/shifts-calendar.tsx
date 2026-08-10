@@ -5,11 +5,11 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  isSameDay,
   isSameMonth,
   startOfWeek,
   endOfWeek,
 } from "date-fns";
+import { formatInNZT } from "@/lib/timezone";
 import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,10 +111,16 @@ export function ShiftsCalendar({
     return new Date(year, month - 1, 1);
   });
 
-  // Stable references to "now" for the initial render.
-  const nowDate = new Date(serverNow);
-  const todayMidnight = new Date(serverNow);
-  todayMidnight.setHours(0, 0, 0, 0);
+  // Every day comparison below is done on "yyyy-MM-dd" keys resolved in
+  // Pacific/Auckland, never on the viewer's local calendar. A shift instant maps
+  // to a different local day for anyone off NZ time (a 5:30pm NZ shift is the
+  // previous day in UTC), which used to move it into a different grid cell on the
+  // client than on the server — and since a cell with shifts renders a <Link>
+  // while an empty or past one renders a plain <div>, that produced an
+  // element-level React #418 hydration mismatch. NZ keys are identical in every
+  // timezone, so server and client always agree.
+  const todayKey = formatInNZT(new Date(serverNow), "yyyy-MM-dd");
+  const thisMonthKey = todayKey.slice(0, 7);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -141,10 +147,21 @@ export function ShiftsCalendar({
   const getLocationDayShifts = (location: string): DayShifts[] => {
     const locationShifts = shiftsByLocation[location] || [];
 
+    // Bucket each shift by the NZ calendar day it starts on, once, so the grid
+    // lookup below is a key match rather than a per-cell scan.
+    const shiftsByDayKey = new Map<string, ShiftSummary[]>();
+    for (const shift of locationShifts) {
+      const key = formatInNZT(shift.start, "yyyy-MM-dd");
+      const bucket = shiftsByDayKey.get(key);
+      if (bucket) bucket.push(shift);
+      else shiftsByDayKey.set(key, [shift]);
+    }
+
     return calendarDays.map((date) => {
-      const dayShifts = locationShifts.filter((shift) =>
-        isSameDay(shift.start, date)
-      );
+      // Grid cells are built from plain year/month/day components, so their
+      // "yyyy-MM-dd" label is the same in every timezone.
+      const dayKey = format(date, "yyyy-MM-dd");
+      const dayShifts = shiftsByDayKey.get(dayKey) ?? [];
 
       const totalCapacity = dayShifts.reduce((sum, s) => sum + s.capacity, 0);
       const totalConfirmed = dayShifts.reduce(
@@ -281,9 +298,7 @@ export function ShiftsCalendar({
             variant="outline"
             size="icon"
             onClick={previousMonth}
-            disabled={
-              format(currentMonth, "yyyy-MM") <= format(nowDate, "yyyy-MM")
-            }
+            disabled={format(currentMonth, "yyyy-MM") <= thisMonthKey}
             data-testid="calendar-prev-month"
             aria-label="Previous month"
             className="h-9 w-9 rounded-full border-forest-500/25 text-forest-700 transition-colors hover:border-forest-500 hover:bg-forest-500 hover:text-cream-50 disabled:opacity-40 dark:border-cream-50/20 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700"
@@ -359,11 +374,11 @@ export function ShiftsCalendar({
                       dayShifts.date,
                       currentMonth
                     );
-                    const today = todayMidnight;
-                    const dayStart = new Date(dayShifts.date);
-                    dayStart.setHours(0, 0, 0, 0);
-                    const isPastDate = dayStart < today;
-                    const isToday = isSameDay(dayShifts.date, today);
+                    // ISO day keys sort lexicographically, so string comparison
+                    // is the same as date comparison — and stays in NZ days.
+                    const dayKey = format(dayShifts.date, "yyyy-MM-dd");
+                    const isPastDate = dayKey < todayKey;
+                    const isToday = dayKey === todayKey;
 
                     const meta = statusMeta(status, dayShifts.spotsAvailable);
                     const isInteractive =
@@ -395,10 +410,7 @@ export function ShiftsCalendar({
                             !isToday &&
                             "cursor-pointer border border-forest-500/15 bg-card shadow-sm hover:-translate-y-0.5 hover:border-forest-500/50 hover:shadow-lg dark:border-cream-50/10 dark:bg-forest-800/50 dark:hover:border-forest-400/50"
                         )}
-                        data-testid={`calendar-day-${format(
-                          dayShifts.date,
-                          "yyyy-MM-dd"
-                        )}`}
+                        data-testid={`calendar-day-${dayKey}`}
                       >
                         {/* Date number — centered at the top of the tile */}
                         <span
@@ -491,10 +503,9 @@ export function ShiftsCalendar({
                         isCurrentMonth &&
                         !isPastDate ? (
                           <Link
-                            href={`/shifts/details?date=${format(
-                              dayShifts.date,
-                              "yyyy-MM-dd"
-                            )}&location=${encodeURIComponent(location)}`}
+                            href={`/shifts/details?date=${dayKey}&location=${encodeURIComponent(
+                              location
+                            )}`}
                             className="block"
                           >
                             {dayContent}
@@ -542,10 +553,9 @@ export function ShiftsCalendar({
                   )}.`}
             </p>
             <p className="text-sm text-forest-700/55 dark:text-cream-50/55">
-              {format(currentMonth, "yyyy-MM") > format(nowDate, "yyyy-MM")
+              {format(currentMonth, "yyyy-MM") > thisMonthKey
                 ? "Shifts are usually published closer to the date."
-                : format(currentMonth, "yyyy-MM") <
-                  format(nowDate, "yyyy-MM")
+                : format(currentMonth, "yyyy-MM") < thisMonthKey
                 ? "This month has passed. Try viewing current or future months."
                 : "Check back soon for upcoming shifts, or try a different location."}
             </p>

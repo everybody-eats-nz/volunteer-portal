@@ -8,6 +8,7 @@ import {
   assignSurveyToUser,
   deleteTestSurveys,
 } from "./helpers/test-helpers";
+import { gotoSettled, reloadSettled } from "./helpers/streaming";
 import { randomUUID } from "crypto";
 import type { Page } from "@playwright/test";
 
@@ -37,7 +38,7 @@ test.describe("Admin Surveys Management", () => {
       page,
     }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
 
       await expect(page).toHaveURL("/admin/surveys");
       // Use testid to avoid matching multiple headings
@@ -78,7 +79,7 @@ test.describe("Admin Surveys Management", () => {
   test.describe("Survey Creation", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test("should display create survey button", async ({ page }) => {
@@ -275,7 +276,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey2.id);
 
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test.afterEach(async ({ page }) => {
@@ -354,7 +355,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test.afterEach(async ({ page }) => {
@@ -481,7 +482,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test.afterEach(async ({ page }) => {
@@ -528,7 +529,7 @@ test.describe("Admin Surveys Management", () => {
       adminUserId = admin!.id;
 
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test.afterEach(async ({ page }) => {
@@ -551,7 +552,7 @@ test.describe("Admin Surveys Management", () => {
       });
       surveyIds.push(survey.id);
 
-      await page.reload();
+      await reloadSettled(page);
       await expect(page.getByText(title)).toBeVisible();
 
       // Click delete button
@@ -576,7 +577,7 @@ test.describe("Admin Surveys Management", () => {
       });
       surveyIds.push(survey.id);
 
-      await page.reload();
+      await reloadSettled(page);
       await expect(page.getByText(title)).toBeVisible();
 
       // Click delete
@@ -616,7 +617,7 @@ test.describe("Admin Surveys Management", () => {
         userId: volunteer!.id,
       });
 
-      await page.reload();
+      await reloadSettled(page);
       await expect(page.getByText(title)).toBeVisible();
 
       // Click delete
@@ -640,7 +641,7 @@ test.describe("Admin Surveys Management", () => {
       });
       surveyIds.push(survey.id);
 
-      await page.reload();
+      await reloadSettled(page);
       await expect(page.getByText(title)).toBeVisible();
 
       // Click delete
@@ -682,7 +683,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test.afterEach(async ({ page }) => {
@@ -757,7 +758,7 @@ test.describe("Admin Surveys Management", () => {
         userId: volunteer!.id,
       });
 
-      await page.reload();
+      await reloadSettled(page);
 
       await openSurveyActions(page, surveyIds[0]);
       const assignButton = page.getByTestId(new RegExp(`assign-survey-${surveyIds[0]}`));
@@ -838,7 +839,7 @@ test.describe("Admin Surveys Management", () => {
       surveyIds.push(survey.id);
 
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test.afterEach(async ({ page }) => {
@@ -857,7 +858,7 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should display list of responses", async ({ page }) => {
-      await page.goto(`/admin/surveys/${surveyIds[0]}/responses`);
+      await gotoSettled(page, `/admin/surveys/${surveyIds[0]}/responses`);
       await page.waitForLoadState("load");
 
       // Should show the survey title in the hero
@@ -870,7 +871,7 @@ test.describe("Admin Surveys Management", () => {
     test("should show response details when clicking a response", async ({
       page,
     }) => {
-      await page.goto(`/admin/surveys/${surveyIds[0]}/responses`);
+      await gotoSettled(page, `/admin/surveys/${surveyIds[0]}/responses`);
       await page.waitForLoadState("load");
 
       // Verify the view switcher tabs are present
@@ -879,7 +880,7 @@ test.describe("Admin Surveys Management", () => {
     });
 
     test("should allow filtering respondents by status", async ({ page }) => {
-      await page.goto(`/admin/surveys/${surveyIds[0]}/responses`);
+      await gotoSettled(page, `/admin/surveys/${surveyIds[0]}/responses`);
       await page.waitForLoadState("load");
 
       // Open the Respondents lens (default when there are no responses)
@@ -898,7 +899,7 @@ test.describe("Admin Surveys Management", () => {
   test.describe("Email Preview", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test("should show preview email button in create dialog", async ({
@@ -976,7 +977,7 @@ test.describe("Admin Surveys Management", () => {
   test.describe("Question Types", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test("should allow creating text_short question", async ({ page }) => {
@@ -1090,7 +1091,7 @@ test.describe("Admin Surveys Management", () => {
   test.describe("Trigger Types", () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page);
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
     });
 
     test("should allow creating MANUAL trigger survey", async ({ page }) => {
@@ -1189,7 +1190,7 @@ test.describe("Admin Surveys Management", () => {
 
     test("should be responsive on mobile viewport", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
 
       // Check main elements are visible
       await expect(page.getByTestId("admin-page-header")).toHaveText("Surveys");
@@ -1198,7 +1199,7 @@ test.describe("Admin Surveys Management", () => {
 
     test("should use responsive dialog on mobile", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/admin/surveys");
+      await gotoSettled(page, "/admin/surveys");
 
       const createButton = page.getByTestId("create-survey-button");
       await createButton.click();

@@ -1,3 +1,75 @@
+## [0.151.7] - 2026-08-10
+
+### Changes
+- fix: stop React hydration mismatches and recover from global errors ([#1193](https://github.com/everybody-eats-nz/volunteer-portal/pull/1193)) by @malinmalliyawadu
+
+
+## [0.151.6] - 2026-08-10
+
+### Changes
+- chore(deps-dev): bump js-yaml from 4.3.0 to 4.3.1 in /web ([#1191](https://github.com/everybody-eats-nz/volunteer-portal/pull/1191)) by @dependabot[bot]
+
+
+## [0.151.5] - 2026-08-10
+
+### Changes
+- chore(deps): bump motion from 12.29.0 to 13.0.0 in /web ([#1187](https://github.com/everybody-eats-nz/volunteer-portal/pull/1187)) by @dependabot[bot]
+
+
+## [0.151.4] - 2026-08-10
+
+### Changes
+- chore(deps): bump nanoid from 3.3.12 to 3.3.18 in /web ([#1190](https://github.com/everybody-eats-nz/volunteer-portal/pull/1190)) by @dependabot[bot]
+
+
+## [0.151.3] - 2026-08-10
+
+### Changes
+- chore(deps): bump dompurify from 3.4.12 to 3.4.13 in /web ([#1189](https://github.com/everybody-eats-nz/volunteer-portal/pull/1189)) by @dependabot[bot]
+
+
+## [0.151.2] - 2026-08-09
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 2 updates ([#1186](https://github.com/everybody-eats-nz/volunteer-portal/pull/1186)) by @dependabot[bot]
+
+
+## [0.151.1] - 2026-08-09
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 6 updates ([#1185](https://github.com/everybody-eats-nz/volunteer-portal/pull/1185)) by @dependabot[bot]
+
+
+## [0.151.0] - 2026-08-09
+
+### Changes
+- feat(admin): allow moving volunteers into full shifts ([#1183](https://github.com/everybody-eats-nz/volunteer-portal/pull/1183)) by @malinmalliyawadu
+
+
+## [0.150.12] - 2026-08-04
+
+### Changes
+- fix(flaky): Admin Shift Edit and Delete beforeEach timeout ([#1175](https://github.com/everybody-eats-nz/volunteer-portal/pull/1175)) by @malinmalliyawadu
+
+
+## [0.150.11] - 2026-08-04
+
+### Changes
+- chore(deps): bump fast-uri from 3.1.4 to 3.1.5 in /web ([#1178](https://github.com/everybody-eats-nz/volunteer-portal/pull/1178)) by @dependabot[bot]
+
+
+## [0.150.10] - 2026-08-03
+
+### Changes
+- chore(deps-dev): bump brace-expansion from 1.1.13 to 1.1.18 in /web ([#1176](https://github.com/everybody-eats-nz/volunteer-portal/pull/1176)) by @dependabot[bot]
+
+
+## [0.150.9] - 2026-08-03
+
+### Changes
+- chore(deps): bump lucide-react from 0.577.0 to 1.27.0 in /web ([#1160](https://github.com/everybody-eats-nz/volunteer-portal/pull/1160)) by @dependabot[bot]
+
+
 ## [0.150.8] - 2026-08-03
 
 ### Changes
