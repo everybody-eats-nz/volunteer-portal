@@ -124,35 +124,39 @@ export function ShiftsCalendar({
     end: calendarEnd,
   });
 
-  // Group shifts by restaurant location
-  const shiftsByLocation = shifts.reduce((acc, shift) => {
+  // Group shifts by restaurant location, and within each location by the NZ
+  // calendar day they start on. One pass does both, so formatInNZT runs exactly
+  // once per shift per render however many times getLocationDayShifts is called
+  // below (once for hasAnyShiftsInMonth, then once per rendered location).
+  const shiftsByLocation = new Map<string, Map<string, ShiftSummary[]>>();
+  for (const shift of shifts) {
     const location = shift.location || "TBD";
-    if (!acc[location]) acc[location] = [];
-    acc[location].push(shift);
-    return acc;
-  }, {} as Record<string, ShiftSummary[]>);
-
-  const locations = Object.keys(shiftsByLocation).sort();
-
-  // Group shifts by date for each location
-  const getLocationDayShifts = (location: string): DayShifts[] => {
-    const locationShifts = shiftsByLocation[location] || [];
-
-    // Bucket each shift by the NZ calendar day it starts on, once, so the grid
-    // lookup below is a key match rather than a per-cell scan.
-    const shiftsByDayKey = new Map<string, ShiftSummary[]>();
-    for (const shift of locationShifts) {
-      const key = formatInNZT(shift.start, "yyyy-MM-dd");
-      const bucket = shiftsByDayKey.get(key);
-      if (bucket) bucket.push(shift);
-      else shiftsByDayKey.set(key, [shift]);
+    let byDayKey = shiftsByLocation.get(location);
+    if (!byDayKey) {
+      byDayKey = new Map();
+      shiftsByLocation.set(location, byDayKey);
     }
+    const dayKey = formatInNZT(shift.start, "yyyy-MM-dd");
+    const bucket = byDayKey.get(dayKey);
+    if (bucket) bucket.push(shift);
+    else byDayKey.set(dayKey, [shift]);
+  }
+
+  const locations = [...shiftsByLocation.keys()].sort();
+
+  // Map the calendar grid onto those day buckets
+  const getLocationDayShifts = (location: string): DayShifts[] => {
+    const shiftsByDayKey = shiftsByLocation.get(location);
 
     return calendarDays.map((date) => {
-      // Grid cells are built from plain year/month/day components, so their
-      // "yyyy-MM-dd" label is the same in every timezone.
+      // Grid cells are constructed from plain year/month/day integers, so
+      // `format` yields the same "yyyy-MM-dd" label in every timezone even
+      // though the underlying instants differ — which is what makes it a valid
+      // key into the NZ-resolved buckets above. Do NOT "fix" this to
+      // formatInNZT for symmetry: that converts the cell's *instant*, which
+      // shifts the label by a day for viewers ahead of NZ, and the lookup misses.
       const dayKey = format(date, "yyyy-MM-dd");
-      const dayShifts = shiftsByDayKey.get(dayKey) ?? [];
+      const dayShifts = shiftsByDayKey?.get(dayKey) ?? [];
 
       const totalCapacity = dayShifts.reduce((sum, s) => sum + s.capacity, 0);
       const totalConfirmed = dayShifts.reduce(

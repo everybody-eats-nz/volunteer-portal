@@ -46,7 +46,7 @@ describe("claimGlobalErrorAutoReload", () => {
     expect(claimGlobalErrorAutoReload(blocked)).toBe(false);
   });
 
-  it("refuses when a write silently fails, rather than reloading every crash", () => {
+  it("refuses when storage throws on write (quota exceeded)", () => {
     const readOnly = {
       getItem: () => null,
       setItem: () => {
