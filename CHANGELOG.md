@@ -1,3 +1,9 @@
+## [0.151.5] - 2026-08-10
+
+### Changes
+- chore(deps): bump motion from 12.29.0 to 13.0.0 in /web ([#1187](https://github.com/everybody-eats-nz/volunteer-portal/pull/1187)) by @dependabot[bot]
+
+
 ## [0.151.4] - 2026-08-10
 
 ### Changes
