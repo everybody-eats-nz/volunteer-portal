@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { getStartOfDayUTC } from "@/lib/timezone";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,11 +12,14 @@ export async function GET() {
   }
 
   try {
-    // Get upcoming shifts with signup counts
+    // Get shifts with signup counts from the start of today (NZ time) onwards.
+    // Anchoring to midnight rather than "now" keeps today's already-started
+    // shifts available - a shift that is short-staffed mid-service is exactly
+    // when an admin needs to send a call-out.
     const upcomingShifts = await prisma.shift.findMany({
       where: {
         start: {
-          gte: new Date(),
+          gte: getStartOfDayUTC(new Date()),
         },
       },
       include: {

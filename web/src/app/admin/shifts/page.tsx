@@ -173,13 +173,6 @@ export default async function AdminShiftsPage({
 
   const shifts = allShifts;
 
-  // Check if any shifts are understaffed (less than 50% confirmed)
-  const hasUnderstaffedShifts = shifts.some((shift) => {
-    const confirmed = shift.signups.filter((s) => s.status === "CONFIRMED").length + shift.placeholders.length;
-    const percentage = (confirmed / shift.capacity) * 100;
-    return percentage < 50;
-  });
-
   // Get shift data for the calendar with location, capacity, and confirmed counts
   // Include past shifts for attendance tracking - show last 30 days + future shifts
   const thirtyDaysAgo = new Date();
@@ -352,12 +345,12 @@ export default async function AdminShiftsPage({
                 Today
               </Link>
             </Button>
-            {hasUnderstaffedShifts && (
+            {shifts.length > 0 && (
               <Button
                 asChild
                 variant="outline"
                 size="sm"
-                className="h-11 border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                className="h-11 bg-background"
                 data-testid="send-shortage-email-button"
               >
                 <Link
