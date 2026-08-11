@@ -1,3 +1,9 @@
+## [0.151.8] - 2026-08-11
+
+### Changes
+- fix(admin): show shortage email button on the current day ([#1194](https://github.com/everybody-eats-nz/volunteer-portal/pull/1194)) by @malinmalliyawadu
+
+
 ## [0.151.7] - 2026-08-10
 
 ### Changes
