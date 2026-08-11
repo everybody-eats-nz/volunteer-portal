@@ -57,9 +57,17 @@ export const metadata: Metadata = {
   authors: [{ name: "Everybody Eats" }],
   creator: "Everybody Eats",
   publisher: "Everybody Eats",
+  // iOS/WebKit Data Detectors rewrite the DOM before React hydrates, wrapping
+  // anything that looks like a date, time or address in its own <a>. Every shift
+  // page is dense with "Tuesday 25 August 2026" and "5:30 PM to 9:00 PM", so this
+  // injects elements React never rendered — an element-level React #418
+  // hydration mismatch, which is why iOS fails several times more often than
+  // Chrome on desktop. Volunteers get dates via the calendar export instead.
   formatDetection: {
     email: false,
     telephone: false,
+    date: false,
+    address: false,
   },
   icons: {
     icon: [{ url: "/favicon.png", type: "image/png" }],

@@ -1,3 +1,9 @@
+## [0.151.7] - 2026-08-10
+
+### Changes
+- fix: stop React hydration mismatches and recover from global errors ([#1193](https://github.com/everybody-eats-nz/volunteer-portal/pull/1193)) by @malinmalliyawadu
+
+
 ## [0.151.6] - 2026-08-10
 
 ### Changes
