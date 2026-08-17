@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 import {
   createTestUser,
   deleteTestUsers,
@@ -27,7 +28,7 @@ test.describe("Admin Users Management", () => {
     test("should allow admin users to access the users management page", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // Verify we're on the admin users page
       const adminUsersPage = page.getByTestId("admin-users-page");
@@ -47,7 +48,7 @@ test.describe("Admin Users Management", () => {
       await loginAsVolunteer(page);
 
       // Try to access admin users page
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // Should be redirected away from admin page
       const currentUrl = page.url();
@@ -65,7 +66,7 @@ test.describe("Admin Users Management", () => {
       await context.clearCookies();
 
       // Try to access admin users page
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       // Check final URL - should be redirected to login or access denied
       const currentUrl = page.url();
@@ -87,7 +88,7 @@ test.describe("Admin Users Management", () => {
 
   test.describe("Page Structure and Statistics", () => {
     test("should display user statistics correctly", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // Check that stats grid is visible
       const statsGrid = page.getByTestId("user-stats-grid");
@@ -130,7 +131,7 @@ test.describe("Admin Users Management", () => {
     test("should display users table with proper structure", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // Check users table
       const usersTable = page.getByTestId("users-table");
@@ -142,7 +143,7 @@ test.describe("Admin Users Management", () => {
     test("should display list of users with proper information", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // Check if users list exists
       const usersList = visibleUsersList(page);
@@ -206,7 +207,7 @@ test.describe("Admin Users Management", () => {
 
     test("should handle empty user list state", async ({ page }) => {
       // This test simulates a scenario where no users match filters
-      await page.goto("/admin/users?search=nonexistentuserxyz123");
+      await gotoSettled(page, "/admin/users?search=nonexistentuserxyz123");
 
       // Should show no users message
       const noUsersMessage = page.getByTestId("no-users-message");
@@ -226,7 +227,7 @@ test.describe("Admin Users Management", () => {
 
   test.describe("User Invitation", () => {
     test("should open invite user dialog", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -271,7 +272,7 @@ test.describe("Admin Users Management", () => {
     });
 
     test("should validate required fields in invite form", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -292,7 +293,7 @@ test.describe("Admin Users Management", () => {
     });
 
     test("should fill out invite form correctly", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -326,7 +327,7 @@ test.describe("Admin Users Management", () => {
     test("should successfully invite a new user", async ({ page }) => {
       const inviteEmail = `invite-test-${randomUUID().slice(0, 8)}@example.com`;
 
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const inviteButton = page.getByTestId("invite-user-button");
       await inviteButton.click();
@@ -361,7 +362,7 @@ test.describe("Admin Users Management", () => {
 
   test.describe("User Navigation and Details", () => {
     test("should navigate to user details page", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const usersList = visibleUsersList(page);
 
@@ -404,7 +405,7 @@ test.describe("Admin Users Management", () => {
     test("should display user actions dropdown with delete option", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const usersList = visibleUsersList(page);
 
@@ -440,7 +441,7 @@ test.describe("Admin Users Management", () => {
     });
 
     test("should open delete confirmation dialog", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const usersList = visibleUsersList(page);
 
@@ -503,7 +504,7 @@ test.describe("Admin Users Management", () => {
     });
 
     test("should validate email confirmation requirement", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const usersList = visibleUsersList(page);
 
@@ -559,7 +560,7 @@ test.describe("Admin Users Management", () => {
     });
 
     test("should handle delete API errors gracefully", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const usersList = visibleUsersList(page);
 
@@ -637,7 +638,7 @@ test.describe("Admin Users Management", () => {
         lastName: "TestUser",
       });
 
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
       await page.waitForLoadState("load");
 
       // Search for the test user
@@ -700,7 +701,7 @@ test.describe("Admin Users Management", () => {
     });
 
     test("should prevent self-deletion", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // This test would need to identify the current admin user
       // and verify they cannot delete themselves

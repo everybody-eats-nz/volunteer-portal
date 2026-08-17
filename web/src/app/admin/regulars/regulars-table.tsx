@@ -37,6 +37,7 @@ import {
   UserIcon,
   CalendarIcon,
   MapPinIcon,
+  StarIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -208,15 +209,16 @@ export function RegularsTable({
   return (
     <>
       <div className="bg-card dark:bg-card/50 backdrop-blur-sm rounded-lg shadow-sm border dark:border-zinc-800">
-        <div className="p-6 border-b">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Regular Volunteers</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage volunteers with recurring shift assignments
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
+        {/* The page header already names this section — repeating the title
+            here just pushed the table further down the page. */}
+        <div className="p-4 sm:px-6 border-b">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* The location filter sits alongside, so it names the location —
+                no need to repeat it here. */}
+            <h2 className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              {regulars.length} {regulars.length === 1 ? "regular" : "regulars"}
+            </h2>
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -235,31 +237,41 @@ export function RegularsTable({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Volunteer</TableHead>
-                <TableHead>Shift Type</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Schedule</TableHead>
-                <TableHead>Days</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Auto-Signups</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {regulars.length === 0 ? (
+        {/* Rendered outside the table: inside it the cell inherits the table's
+            min-width, so centred empty-state text scrolls out of view. */}
+        {regulars.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+            <StarIcon
+              className="h-8 w-8 text-muted-foreground/40"
+              aria-hidden="true"
+            />
+            <p className="font-medium">
+              {selectedLocation
+                ? `No regulars in ${selectedLocation} yet`
+                : "No regular volunteers yet"}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-sm text-balance">
+              Use “Add Regular” above to give someone a recurring shift.
+              They&apos;ll be signed up automatically each time it comes around.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <p className="text-muted-foreground">
-                      No regular volunteers yet
-                    </p>
-                  </TableCell>
+                  <TableHead>Volunteer</TableHead>
+                  <TableHead>Shift Type</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Days</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Auto-Signups</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ) : (
-                regulars.map((regular) => (
+              </TableHeader>
+              <TableBody>
+                {regulars.map((regular) => (
                   <TableRow key={regular.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -378,11 +390,11 @@ export function RegularsTable({
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {/* Toggle Confirmation Dialog */}

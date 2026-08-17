@@ -114,12 +114,29 @@ export default async function AdminUsersPage({
   }
   // "all" -> no filter
 
-  // Fetch active locations for the filter dropdown
-  const locations = await prisma.location.findMany({
-    where: { isActive: true },
-    select: { name: true },
-    orderBy: { name: "asc" },
-  });
+  // The location list and the header stat cards don't depend on the search or
+  // filter state. Wrapping them in Promise.all here subscribes to each query
+  // immediately (a bare PrismaPromise is lazy and wouldn't start until awaited),
+  // so all six run concurrently with the heavier filtered list query below.
+  const headerDataPromise = Promise.all([
+    prisma.location.findMany({
+      where: { isActive: true },
+      select: { name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.count({ where: { archivedAt: null } }),
+    prisma.user.count({ where: { role: "ADMIN", archivedAt: null } }),
+    prisma.user.count({ where: { role: "VOLUNTEER", archivedAt: null } }),
+    prisma.user.count({
+      where: {
+        archivedAt: null,
+        createdAt: {
+          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        },
+      },
+    }),
+    prisma.user.count({ where: { archivedAt: { not: null } } }),
+  ]);
 
   // Fetch users with completed signup counts (confirmed signups for past shifts)
   const now = new Date();
@@ -309,7 +326,7 @@ export default async function AdminUsersPage({
         break;
     }
 
-    const result = await prisma.user.findMany({
+    const listPromise = prisma.user.findMany({
       where: whereClause,
       select: {
         id: true,
@@ -345,30 +362,25 @@ export default async function AdminUsersPage({
       take: pageSize,
     });
 
+    // The list and its total both scan the same filtered set — run them together
+    // rather than paying for two serial round-trips.
+    const [result, count] = await Promise.all([
+      listPromise,
+      prisma.user.count({ where: whereClause }),
+    ]);
+
     users = result;
-    filteredCount = await prisma.user.count({ where: whereClause });
+    filteredCount = count;
   }
 
   const [
+    locations,
     totalUsers,
     totalAdmins,
     totalVolunteers,
     newUsersThisMonth,
     totalArchived,
-  ] = await Promise.all([
-    prisma.user.count({ where: { archivedAt: null } }),
-    prisma.user.count({ where: { role: "ADMIN", archivedAt: null } }),
-    prisma.user.count({ where: { role: "VOLUNTEER", archivedAt: null } }),
-    prisma.user.count({
-      where: {
-        archivedAt: null,
-        createdAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-      },
-    }),
-    prisma.user.count({ where: { archivedAt: { not: null } } }),
-  ]);
+  ] = await headerDataPromise;
 
   const totalPages = Math.ceil(filteredCount / pageSize);
 

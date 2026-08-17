@@ -63,7 +63,9 @@ export function Combobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      {/* Tailwind v4 needs w-(--var) here — the bare w-[--var] form is v3 syntax
+          and silently produces no width, letting the popover shrink to fit. */}
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
