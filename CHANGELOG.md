@@ -1,3 +1,9 @@
+## [0.152.0] - 2026-08-17
+
+### Changes
+- feat(admin): support admins as regular volunteers, make user search index-backed ([#1203](https://github.com/everybody-eats-nz/volunteer-portal/pull/1203)) by @malinmalliyawadu
+
+
 ## [0.151.9] - 2026-08-17
 
 ### Changes
