@@ -174,7 +174,16 @@ test.describe("Profile Page", () => {
     const editButton = page.getByRole("link", { name: /edit profile/i });
     await editButton.click();
 
-    await expect(page).toHaveURL("/profile/edit");
+    // No other test in this shard is guaranteed to have visited /profile/edit
+    // before this one, so Next's dev server often compiles that route
+    // on-demand right here. Under CI's 20-shard parallel load that compile can
+    // push the navigation past the default 5s assertion timeout even though
+    // nothing is broken (see flaky-test report, 2026-08-17: flaked in 10/10
+    // runs over the past week, always on the first attempt). Give it CI-only
+    // headroom, matching the existing pattern in admin-shift-edit-delete.spec.ts.
+    await expect(page).toHaveURL("/profile/edit", {
+      timeout: process.env.CI ? 20_000 : 5_000,
+    });
   });
 
   test("should navigate to browse shifts from quick actions", async ({
