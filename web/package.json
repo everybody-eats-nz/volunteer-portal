@@ -59,7 +59,7 @@
     "@simplewebauthn/server": "^13.2.3",
     "@supabase/supabase-js": "^2.110.8",
     "@tanstack/react-table": "^8.21.3",
-    "@types/jsdom": "^28.0.3",
+    "@types/jsdom": "^30.0.0",
     "@types/node-fetch": "^2.6.13",
     "@types/sanitize-html": "^2.16.1",
     "ai": "^6.0.208",
