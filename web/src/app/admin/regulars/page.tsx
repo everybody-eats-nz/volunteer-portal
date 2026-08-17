@@ -6,7 +6,12 @@ import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { AdminPageWrapper } from "@/components/admin-page-wrapper";
 import Link from "next/link";
-import { StarIcon, PauseIcon, CalendarIcon } from "lucide-react";
+import {
+  StarIcon,
+  PauseIcon,
+  CalendarIcon,
+  CircleSlashIcon,
+} from "lucide-react";
 import { RegularsTable } from "./regulars-table";
 import { RegularVolunteerForm } from "./regular-volunteer-form";
 import { getActiveLocationNames, LocationOption } from "@/lib/locations";
@@ -77,25 +82,15 @@ export default async function RegularVolunteersPage({
     },
   });
 
-  // Get all active volunteers for the form (now allows multiple regulars per volunteer)
-  const volunteers = await prisma.user.findMany({
-    where: {
-      role: "VOLUNTEER",
-      archivedAt: null,
-    },
+  // Every existing regular, so the form can hide shift types a person is
+  // already a regular for. Deliberately not filtered by the selected location —
+  // the uniqueness constraint is on (userId, shiftTypeId) regardless of where.
+  // This is one small row per regular, not the whole user table.
+  const existingRegularPairs = await prisma.regularVolunteer.findMany({
     select: {
-      id: true,
-      name: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      regularVolunteers: {
-        select: {
-          shiftTypeId: true,
-        },
-      },
+      userId: true,
+      shiftTypeId: true,
     },
-    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
 
   // Get shift types for the form
@@ -111,6 +106,37 @@ export default async function RegularVolunteersPage({
     inactive: regulars.filter((r) => !r.isActive).length,
   };
 
+  const statCards = [
+    {
+      label: "Total Regulars",
+      value: stats.total,
+      icon: StarIcon,
+      iconClass:
+        "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-400",
+    },
+    {
+      label: "Active",
+      value: stats.active,
+      icon: CalendarIcon,
+      iconClass:
+        "bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400",
+    },
+    {
+      label: "Paused",
+      value: stats.paused,
+      icon: PauseIcon,
+      iconClass:
+        "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
+    },
+    {
+      label: "Inactive",
+      value: stats.inactive,
+      icon: CircleSlashIcon,
+      iconClass:
+        "bg-zinc-100 text-zinc-500 dark:bg-zinc-500/15 dark:text-zinc-400",
+    },
+  ];
+
   return (
     <AdminPageWrapper
       title="Regular Volunteers"
@@ -123,68 +149,36 @@ export default async function RegularVolunteersPage({
     >
       <PageContainer testid="regular-volunteers-page">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Regulars
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.total}
-                </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {statCards.map(({ label, value, icon: Icon, iconClass }) => (
+            <div
+              key={label}
+              className="bg-card dark:bg-card/50 backdrop-blur-sm p-5 rounded-lg shadow-sm border dark:border-zinc-800"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-muted-foreground truncate">
+                    {label}
+                  </p>
+                  <p className="text-2xl font-bold text-foreground tabular-nums">
+                    {value}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full p-2 ${iconClass}`}
+                  aria-hidden="true"
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
               </div>
-              <StarIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
             </div>
-          </div>
-
-          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Active
-                </p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {stats.active}
-                </p>
-              </div>
-              <CalendarIcon className="h-8 w-8 text-green-500 dark:text-green-400" />
-            </div>
-          </div>
-
-          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Paused
-                </p>
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {stats.paused}
-                </p>
-              </div>
-              <PauseIcon className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
-            </div>
-          </div>
-
-          <div className="bg-card dark:bg-card/50 backdrop-blur-sm p-6 rounded-lg shadow-sm border dark:border-zinc-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Inactive
-                </p>
-                <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">
-                  {stats.inactive}
-                </p>
-              </div>
-              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700" />
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Add Regular Form */}
         <div className="mb-8">
           <RegularVolunteerForm
-            volunteers={volunteers}
+            existingRegularPairs={existingRegularPairs}
             shiftTypes={shiftTypes}
             locations={LOCATIONS}
           />
