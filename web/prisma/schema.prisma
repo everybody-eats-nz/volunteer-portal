@@ -173,6 +173,13 @@ model User {
   @@index([role, createdAt])
   // Archive filters and scheduled job queries
   @@index([archivedAt])
+  // Admin search does `contains` (ILIKE '%q%') across these four columns. A
+  // leading wildcard can't use a btree index, so back them with pg_trgm GIN
+  // indexes instead — without these every keystroke is a full table scan.
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "User_name_gin_trgm_idx", type: Gin)
+  @@index([firstName(ops: raw("gin_trgm_ops"))], map: "User_firstName_gin_trgm_idx", type: Gin)
+  @@index([lastName(ops: raw("gin_trgm_ops"))], map: "User_lastName_gin_trgm_idx", type: Gin)
+  @@index([email(ops: raw("gin_trgm_ops"))], map: "User_email_gin_trgm_idx", type: Gin)
 }
 
 model Passkey {

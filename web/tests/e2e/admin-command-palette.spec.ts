@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 
 test.describe("Admin Command Palette", () => {
   test.beforeEach(async ({ page }) => {
@@ -13,7 +14,7 @@ test.describe("Admin Command Palette", () => {
       const adminPages = ["/admin", "/admin/users", "/admin/shifts"];
 
       for (const adminPath of adminPages) {
-        await page.goto(adminPath, { timeout: 15000 });
+        await gotoSettled(page, adminPath);
         await expect(
           page.getByTestId("admin-command-palette-trigger")
         ).toBeVisible();
@@ -32,7 +33,7 @@ test.describe("Admin Command Palette", () => {
 
   test.describe("Keyboard Shortcuts", () => {
     test("Cmd+K opens command palette on Mac", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
       // Wait for the trigger to be visible before pressing keyboard shortcuts —
       // this ensures the React keyboard listener is registered after hydration.
       await page
@@ -47,7 +48,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("Ctrl+K opens command palette", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
       // Wait for the trigger to be visible before pressing keyboard shortcuts —
       // this ensures the React keyboard listener is registered after hydration.
       await page
@@ -61,7 +62,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("Escape closes command palette", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
       // Wait for the trigger to be visible before pressing keyboard shortcuts —
       // this ensures the React keyboard listener is registered after hydration.
       await page
@@ -80,7 +81,7 @@ test.describe("Admin Command Palette", () => {
 
   test.describe("User Search Functionality", () => {
     test("searching for users shows search results", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       // Open command palette
       await page.getByTestId("admin-command-palette-trigger").click();
@@ -101,7 +102,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("empty search shows navigation items only", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await expect(page.getByTestId("admin-command-input")).toBeVisible();
@@ -124,7 +125,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("user search results show profile information", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await page.getByTestId("admin-command-input").fill("admin");
@@ -149,7 +150,7 @@ test.describe("Admin Command Palette", () => {
 
   test.describe("Navigation Features", () => {
     test("navigation items are visible and searchable", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
 
@@ -180,7 +181,7 @@ test.describe("Admin Command Palette", () => {
     test("searching for navigation items filters correctly", async ({
       page,
     }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await page.getByTestId("admin-command-input").fill("dashboard");
@@ -194,7 +195,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("navigation items have descriptive subtitles", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
 
@@ -212,7 +213,7 @@ test.describe("Admin Command Palette", () => {
     test("clicking navigation item navigates to correct page", async ({
       page,
     }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
 
@@ -231,7 +232,7 @@ test.describe("Admin Command Palette", () => {
 
   test.describe("Smart Filtering", () => {
     test("person names show users only, not navigation", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await page.getByTestId("admin-command-input").fill("john");
@@ -253,7 +254,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("navigation keywords show navigation items", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await page.getByTestId("admin-command-input").fill("shift");
@@ -274,7 +275,7 @@ test.describe("Admin Command Palette", () => {
     test("command palette has fixed height to prevent jumping", async ({
       page,
     }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
 
@@ -284,7 +285,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("search shows loading state while typing", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
 
@@ -311,7 +312,7 @@ test.describe("Admin Command Palette", () => {
     });
 
     test("clicking outside closes command palette", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       await page.getByTestId("admin-command-palette-trigger").click();
       await expect(page.getByTestId("admin-command-input")).toBeVisible();
@@ -326,7 +327,7 @@ test.describe("Admin Command Palette", () => {
 
   test.describe("Error Handling", () => {
     test("gracefully handles search API errors", async ({ page }) => {
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       // Mock API to return error for testing error handling
       await page.route("/api/admin/users*", (route) => {

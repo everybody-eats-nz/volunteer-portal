@@ -9,11 +9,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-
-  if (!user || user.role !== "ADMIN") {
+  // The role is already on the session — loading the full user row on every
+  // keystroke just to re-read it doubles the queries on a hot search path.
+  if (session.user.role !== "ADMIN") {
     return NextResponse.json(
       { error: "Admin access required" },
       { status: 403 }
@@ -67,6 +65,7 @@ export async function GET(req: Request) {
         lastName: true,
         email: true,
         profilePhotoUrl: true,
+        role: true,
       },
       take: 10, // Limit results
       orderBy: {

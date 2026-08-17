@@ -11,7 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Combobox } from "@/components/ui/combobox";
+import {
+  UserSearchSelect,
+  type SearchableUser,
+} from "@/components/admin/user-search-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -30,15 +33,9 @@ import {
 import { toast } from "sonner";
 import { PlusIcon, ChevronDownIcon } from "lucide-react";
 
-type Volunteer = {
-  id: string;
-  name: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  email: string;
-  regularVolunteers: {
-    shiftTypeId: string;
-  }[];
+type ExistingRegularPair = {
+  userId: string;
+  shiftTypeId: string;
 };
 
 type ShiftType = {
@@ -61,31 +58,19 @@ const DAYS = [
 ];
 
 export function RegularVolunteerForm({
-  volunteers,
+  existingRegularPairs,
   shiftTypes,
   locations,
 }: {
-  volunteers: Volunteer[];
+  existingRegularPairs: ExistingRegularPair[];
   shiftTypes: ShiftType[];
   locations: readonly string[];
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Transform volunteers into combobox options
-  const volunteerOptions = volunteers.map((v) => {
-    const displayName =
-      v.firstName && v.lastName
-        ? `${v.firstName} ${v.lastName}`
-        : v.name
-        ? v.name
-        : v.email;
-    return {
-      value: v.id,
-      label: `${displayName} (${v.email})`,
-    };
-  });
+  const [selectedVolunteer, setSelectedVolunteer] =
+    useState<SearchableUser | null>(null);
 
   const [formData, setFormData] = useState({
     userId: "",
@@ -98,13 +83,15 @@ export function RegularVolunteerForm({
     autoApprove: false,
   });
 
-  // Get the selected volunteer's existing regular shift types
-  const selectedVolunteer = volunteers.find((v) => v.id === formData.userId);
+  // Shift types the selected person is already a regular for — the API rejects
+  // duplicates on (userId, shiftTypeId), so hide them rather than let the admin
+  // pick one and hit an error.
   const existingShiftTypeIds = new Set(
-    selectedVolunteer?.regularVolunteers.map((r) => r.shiftTypeId) || []
+    existingRegularPairs
+      .filter((pair) => pair.userId === formData.userId)
+      .map((pair) => pair.shiftTypeId)
   );
 
-  // Filter available shift types for the selected volunteer
   const availableShiftTypes = shiftTypes.filter(
     (st) => !existingShiftTypeIds.has(st.id)
   );
@@ -166,6 +153,7 @@ export function RegularVolunteerForm({
       }
 
       // Reset form
+      setSelectedVolunteer(null);
       setFormData({
         userId: "",
         shiftTypeId: "",
@@ -233,16 +221,20 @@ export function RegularVolunteerForm({
                 {/* Volunteer Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="userId">Volunteer *</Label>
-                  <Combobox
-                    options={volunteerOptions}
-                    value={formData.userId}
-                    onValueChange={(value) => {
-                      // Reset shiftTypeId when volunteer changes to avoid invalid selections
-                      setFormData((prev) => ({ ...prev, userId: value, shiftTypeId: "" }));
+                  <UserSearchSelect
+                    value={selectedVolunteer}
+                    onValueChange={(user) => {
+                      setSelectedVolunteer(user);
+                      // Reset shiftTypeId when the person changes to avoid invalid selections
+                      setFormData((prev) => ({
+                        ...prev,
+                        userId: user?.id ?? "",
+                        shiftTypeId: "",
+                      }));
                     }}
-                    placeholder="Select a volunteer..."
-                    searchPlaceholder="Search volunteers..."
-                    emptyText="No volunteers found."
+                    placeholder="Search for a volunteer or admin..."
+                    searchPlaceholder="Search by name or email..."
+                    data-testid="regular-volunteer-select"
                   />
                 </div>
 
