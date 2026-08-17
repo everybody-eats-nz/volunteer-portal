@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 import {
   createTestUser,
   deleteTestUsers,
@@ -16,7 +17,7 @@ test.describe("Admin User Merge", () => {
     test("should display merge option in user actions dropdown", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const usersList = page.getByTestId("users-list");
 
@@ -51,7 +52,7 @@ test.describe("Admin User Merge", () => {
     test("should open merge dialog when clicking merge option", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       const userCount = await userRows.count();
@@ -105,7 +106,7 @@ test.describe("Admin User Merge", () => {
     test("should search and display results for source user", async ({
       page,
     }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       const userCount = await userRows.count();
@@ -142,7 +143,7 @@ test.describe("Admin User Merge", () => {
     });
 
     test("should exclude target user from search results", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       const userCount = await userRows.count();
@@ -183,7 +184,7 @@ test.describe("Admin User Merge", () => {
     });
 
     test("should allow selecting a source user", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       const userCount = await userRows.count();
@@ -298,7 +299,7 @@ test.describe("Admin User Merge", () => {
         });
       });
 
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       if ((await userRows.count()) > 0) {
@@ -329,7 +330,7 @@ test.describe("Admin User Merge", () => {
 
   test.describe("Merge Confirmation", () => {
     test("should require email confirmation before merge", async ({ page }) => {
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       if ((await userRows.count()) > 0) {
@@ -368,7 +369,7 @@ test.describe("Admin User Merge", () => {
         });
       });
 
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       const userRows = page.locator("[data-testid^='user-row-']");
       if ((await userRows.count()) > 0) {
@@ -411,7 +412,7 @@ test.describe("Admin User Merge", () => {
         }
       });
 
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
 
       // Test just verifies dialog opens correctly
       const userRows = page.locator("[data-testid^='user-row-']");
@@ -462,7 +463,7 @@ test.describe("Admin User Merge", () => {
         return;
       }
 
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
       await page.waitForLoadState("load");
 
       // Find the target user row and open merge dialog

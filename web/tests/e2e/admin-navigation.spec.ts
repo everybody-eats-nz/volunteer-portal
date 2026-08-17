@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 
 test.describe("Admin Navigation", () => {
   test.describe("Admin Sidebar Navigation", () => {
@@ -90,7 +91,7 @@ test.describe("Admin Navigation", () => {
       await expect(page.getByTestId("admin-sidebar")).not.toBeVisible();
 
       // Verify volunteers cannot access admin pages by trying to navigate directly
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       // Should be redirected away from admin or not see the sidebar
       const currentUrl = page.url();
@@ -110,20 +111,20 @@ test.describe("Admin Navigation", () => {
       await loginAsAdmin(page);
 
       // Test navigation from admin dashboard
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
       await page.getByTestId("sidebar-archiving").click();
       await page.waitForURL("/admin/archiving");
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
 
       // Test navigation from admin users page
-      await page.goto("/admin/users");
+      await gotoSettled(page, "/admin/users");
       const sidebar = page.getByTestId("admin-sidebar");
       await sidebar.getByTestId("manage-shifts-button").click();
       await page.waitForURL("/admin/shifts");
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
 
       // Test navigation from admin shifts page
-      await page.goto("/admin/shifts");
+      await gotoSettled(page, "/admin/shifts");
       await sidebar.getByTestId("manage-users-button").click();
       await page.waitForURL("/admin/users");
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
@@ -136,7 +137,7 @@ test.describe("Admin Navigation", () => {
       await loginAsAdmin(page);
 
       // Navigate to archiving page
-      await page.goto("/admin/archiving");
+      await gotoSettled(page, "/admin/archiving");
 
       // Verify sidebar is visible
       await expect(page.getByTestId("admin-sidebar")).toBeVisible();
@@ -156,7 +157,7 @@ test.describe("Admin Navigation", () => {
       await loginAsAdmin(page);
 
       // Navigate to admin dashboard
-      await page.goto("/admin");
+      await gotoSettled(page, "/admin");
 
       // Verify sidebar is accessible via keyboard navigation
       await page.keyboard.press("Tab");
