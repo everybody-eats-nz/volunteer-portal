@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { evaluateRule, UserWithStats } from "./auto-accept-rules";
+import {
+  evaluateRule,
+  ruleAppliesToShift,
+  UserWithStats,
+} from "./auto-accept-rules";
 import type { AutoAcceptRule, Shift, ShiftType } from "@/generated/client";
 
 // Helper to create a base user with stats
@@ -250,6 +254,72 @@ describe("auto-accept-rules", () => {
 
         expect(result).toBe(false);
       });
+    });
+  });
+
+  describe("ruleAppliesToShift", () => {
+    const prepShift = createShift({
+      shiftTypeId: "prep-type",
+      location: "Glen Innes",
+    });
+    const fohShift = createShift({
+      shiftTypeId: "foh-type",
+      location: "Glen Innes",
+    });
+
+    it("should not apply a shift-type-scoped rule to a different shift type at the same location", () => {
+      const rule = createRule({
+        name: "Glen Innes Prep team",
+        global: false,
+        shiftTypeId: "prep-type",
+        location: "Glen Innes",
+      });
+
+      expect(ruleAppliesToShift(rule, prepShift)).toBe(true);
+      expect(ruleAppliesToShift(rule, fohShift)).toBe(false);
+    });
+
+    it("should not apply a shift-type-scoped rule to a different location", () => {
+      const rule = createRule({
+        global: false,
+        shiftTypeId: "prep-type",
+        location: "Wellington",
+      });
+
+      expect(ruleAppliesToShift(rule, prepShift)).toBe(false);
+    });
+
+    it("should apply a shift-type-scoped rule with no location at every location", () => {
+      const rule = createRule({
+        global: false,
+        shiftTypeId: "prep-type",
+        location: null,
+      });
+
+      expect(ruleAppliesToShift(rule, prepShift)).toBe(true);
+      expect(
+        ruleAppliesToShift(rule, createShift({ shiftTypeId: "prep-type", location: "Wellington" }))
+      ).toBe(true);
+    });
+
+    it("should apply a global rule to every shift type", () => {
+      const rule = createRule({ global: true, shiftTypeId: null, location: null });
+
+      expect(ruleAppliesToShift(rule, prepShift)).toBe(true);
+      expect(ruleAppliesToShift(rule, fohShift)).toBe(true);
+    });
+
+    it("should limit a location-scoped global rule to that location", () => {
+      const rule = createRule({
+        global: true,
+        shiftTypeId: null,
+        location: "Glen Innes",
+      });
+
+      expect(ruleAppliesToShift(rule, fohShift)).toBe(true);
+      expect(
+        ruleAppliesToShift(rule, createShift({ location: "Wellington" }))
+      ).toBe(false);
     });
   });
 });

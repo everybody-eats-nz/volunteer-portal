@@ -175,6 +175,21 @@ export function evaluateRule(
   }
 }
 
+// Does a rule apply to this shift at all, before any volunteer criteria are checked?
+// - global rules cover every shift type; otherwise the rule's shift type must match
+// - a rule with no location covers every location; otherwise the location must match
+export function ruleAppliesToShift(
+  rule: Pick<AutoAcceptRule, "global" | "shiftTypeId" | "location">,
+  shift: Pick<Shift, "shiftTypeId" | "location">
+): boolean {
+  const shiftTypeMatches =
+    rule.global || rule.shiftTypeId === shift.shiftTypeId;
+  const locationMatches =
+    rule.location === null || rule.location === shift.location;
+
+  return shiftTypeMatches && locationMatches;
+}
+
 // Main function to evaluate auto-accept rules for a signup
 export async function evaluateAutoAcceptRules(
   userId: string,
@@ -190,22 +205,19 @@ export async function evaluateAutoAcceptRules(
     // Get user statistics
     const userStats = await getUserWithStats(userId, shift.shiftTypeId);
 
-    // Get applicable rules (global + shift type specific + location specific)
+    // Rules are admin-created and few, so fetch the enabled ones and narrow
+    // them with ruleAppliesToShift - one source of truth for rule scoping.
     const rules = await prisma.autoAcceptRule.findMany({
-      where: {
-        enabled: true,
-        OR: [
-          { global: true, location: null }, // Global rules that apply to all locations
-          { shiftTypeId: shift.shiftTypeId, location: null }, // Shift type specific, all locations
-          { location: shift.location }, // Location specific (any shift type)
-          { shiftTypeId: shift.shiftTypeId, location: shift.location }, // Both shift type and location specific
-        ],
-      },
+      where: { enabled: true },
       orderBy: { priority: "desc" }, // Higher priority first
     });
 
     // Evaluate each rule
     for (const rule of rules) {
+      if (!ruleAppliesToShift(rule, shift)) {
+        continue;
+      }
+
       if (evaluateRule(rule, userStats, shift)) {
         return {
           approved: true,
