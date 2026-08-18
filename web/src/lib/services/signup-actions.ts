@@ -3,6 +3,7 @@ import {
   createShiftConfirmedNotification,
   createShiftWaitlistedNotification,
   createShiftCanceledNotification,
+  createWaitlistRemovedNotification,
 } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
@@ -122,10 +123,12 @@ export async function applySignupAction({
       );
     }
   } else if (action === "cancel") {
-    if (signup.status !== "CONFIRMED") {
+    // Waitlisted signups cancel too: admins need a way to take someone off a
+    // waitlist without first confirming them into a full shift.
+    if (signup.status !== "CONFIRMED" && signup.status !== "WAITLISTED") {
       throw new SignupActionError(
         400,
-        "Only confirmed signups can be cancelled"
+        "Only confirmed or waitlisted signups can be cancelled"
       );
     }
   } else if (action === "confirm") {
@@ -282,6 +285,11 @@ export async function applySignupAction({
   }
 
   if (action === "cancel") {
+    // A waitlisted volunteer never held a spot, so both channels change wording:
+    // the "not needed" email instead of the cancellation one, and a
+    // waitlist-removal notification instead of "your shift was canceled".
+    const wasWaitlisted = signup.status === "WAITLISTED";
+
     const updatedSignup = await prisma.signup.update({
       where: { id: signupId },
       data: { status: "CANCELED" },
@@ -290,15 +298,18 @@ export async function applySignupAction({
     if (!skipNotification) {
       if (signup.user.email) {
         const emailService = getEmailService();
+        const emailParams = {
+          to: signup.user.email,
+          volunteerName,
+          shiftName: signup.shift.shiftType.name,
+          shiftDate: formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy"),
+          shiftTime,
+          location: fullAddress,
+        };
         Promise.race([
-          emailService.sendVolunteerCancellationNotification({
-            to: signup.user.email,
-            volunteerName,
-            shiftName: signup.shift.shiftType.name,
-            shiftDate: formatInNZT(signup.shift.start, "EEEE, MMMM d, yyyy"),
-            shiftTime,
-            location: fullAddress,
-          }),
+          wasWaitlisted
+            ? emailService.sendVolunteerNotNeededNotification(emailParams)
+            : emailService.sendVolunteerCancellationNotification(emailParams),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error("Email send timeout")), 10000)
           ),
@@ -308,15 +319,31 @@ export async function applySignupAction({
       }
 
       try {
-        await createShiftCanceledNotification(
-          signup.user.id,
-          signup.shift.shiftType.name,
-          formatNZLongDate(signup.shift.start),
-          signup.shift.id
-        );
+        await (wasWaitlisted
+          ? createWaitlistRemovedNotification(
+              signup.user.id,
+              signup.shift.shiftType.name,
+              formatNZLongDate(signup.shift.start),
+              signup.shift.id
+            )
+          : createShiftCanceledNotification(
+              signup.user.id,
+              signup.shift.shiftType.name,
+              formatNZLongDate(signup.shift.start),
+              signup.shift.id
+            ));
       } catch (notificationError) {
         console.error("Error creating cancellation notification:", notificationError);
       }
+    }
+
+    if (wasWaitlisted) {
+      return {
+        signup: updatedSignup,
+        message: skipNotification
+          ? "Removed from waitlist (no notification sent for past shift)"
+          : "Removed from waitlist and volunteer notified",
+      };
     }
 
     return {

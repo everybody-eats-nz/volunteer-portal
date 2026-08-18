@@ -10,6 +10,7 @@ import {
   deleteSignupsByShiftIds,
   getShiftTypeByName,
 } from "./helpers/test-helpers";
+import { gotoSettled } from "./helpers/streaming";
 import { format } from "date-fns";
 import { tz } from "@date-fns/tz";
 import { randomUUID } from "crypto";
@@ -43,8 +44,7 @@ test.describe("Admin Attendance Tracking", () => {
     test("should allow navigation to past dates in calendar", async ({
       page,
     }) => {
-      await page.goto("/admin/shifts");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts");
 
       // Open calendar
       const calendarButton = page
@@ -81,8 +81,7 @@ test.describe("Admin Attendance Tracking", () => {
       const oneWeekAgo = addDaysInNZT(nowInNZT(), -7);
       const weekAgoStr = formatInNZT(oneWeekAgo, "yyyy-MM-dd");
 
-      await page.goto(`/admin/shifts?date=${weekAgoStr}&location=Wellington`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${weekAgoStr}&location=Wellington`);
 
       // Should either show shift cards OR no shifts message
       const shiftCards = page.locator('[data-testid^="shift-card-"]');
@@ -101,8 +100,7 @@ test.describe("Admin Attendance Tracking", () => {
       page,
     }) => {
       // Navigate to today's shifts which should have volunteers from seed data
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Look for volunteer actions with testids
       const volunteerActions = page.locator(
@@ -132,8 +130,7 @@ test.describe("Admin Attendance Tracking", () => {
     test("should display volunteer grade badges with testids", async ({
       page,
     }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Look for volunteer grade badges
       const gradeBadges = page.locator('[data-testid*="volunteer-grade-"]');
@@ -150,8 +147,7 @@ test.describe("Admin Attendance Tracking", () => {
     test("should show cancel buttons with proper testids for confirmed volunteers", async ({
       page,
     }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Look for cancel buttons
       const cancelButtons = page.locator('[data-testid*="cancel-button"]');
@@ -168,8 +164,7 @@ test.describe("Admin Attendance Tracking", () => {
     test("should show move buttons with proper testids for confirmed volunteers", async ({
       page,
     }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Look for move buttons
       const moveButtons = page.locator('[data-testid*="move-button"]');
@@ -231,10 +226,10 @@ test.describe("Admin Attendance Tracking", () => {
     test("should render the No Show status group for past no-show signups", async ({
       page,
     }) => {
-      await page.goto(
+      await gotoSettled(
+        page,
         `/admin/shifts?date=${testShiftDateStr}&location=Wellington`
       );
-      await page.waitForLoadState("load");
 
       // Scope to this test's specific shift card to stay parallel-safe
       const shiftCard = page.locator(
@@ -258,8 +253,7 @@ test.describe("Admin Attendance Tracking", () => {
 
   test.describe("Staffing Status Display", () => {
     test("should show staffing badges with proper colors", async ({ page }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Look for staffing status badges
       const staffingBadges = page.locator(
@@ -280,8 +274,7 @@ test.describe("Admin Attendance Tracking", () => {
     test("should show volunteer profile links with testids", async ({
       page,
     }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Look for volunteer name links
       const volunteerNameLinks = page.locator(
@@ -303,8 +296,7 @@ test.describe("Admin Attendance Tracking", () => {
     test("should have proper button titles and attributes", async ({
       page,
     }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Check that action buttons have proper titles
       const cancelButtons = page.locator('[data-testid*="cancel-button"]');
@@ -321,8 +313,7 @@ test.describe("Admin Attendance Tracking", () => {
     });
 
     test("should support keyboard navigation", async ({ page }) => {
-      await page.goto("/admin/shifts?location=Wellington");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts?location=Wellington");
 
       // Tab through interactive elements
       await page.keyboard.press("Tab");
@@ -336,8 +327,7 @@ test.describe("Admin Attendance Tracking", () => {
 
   test.describe("Location and Date Navigation", () => {
     test("should change location using location selector", async ({ page }) => {
-      await page.goto("/admin/shifts");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts");
 
       // Check current location
       const locationSelector = page.getByTestId("location-selector");
@@ -358,8 +348,7 @@ test.describe("Admin Attendance Tracking", () => {
       const pastDate = addDaysInNZT(nowInNZT(), -5);
       const pastDateStr = formatInNZT(pastDate, "yyyy-MM-dd");
 
-      await page.goto(`/admin/shifts?date=${pastDateStr}`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${pastDateStr}`);
 
       // Click today button
       await page.getByTestId("today-button").click();
