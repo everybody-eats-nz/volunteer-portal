@@ -148,8 +148,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Track if the volunteer was pending before the move
-    const wasPending = signup.status === "PENDING" || signup.status === "REGULAR_PENDING";
+    // The move always lands the volunteer on CONFIRMED. Anyone who wasn't
+    // already confirmed - pending, or sitting on a waitlist - is finding out
+    // they have a spot for the first time, so they get the confirmation email.
+    const wasWaitlisted = signup.status === "WAITLISTED";
+    const wasUnconfirmed =
+      wasWaitlisted ||
+      signup.status === "PENDING" ||
+      signup.status === "REGULAR_PENDING";
 
     // Use transaction to handle the movement
     const result = await prisma.$transaction(async (tx) => {
@@ -175,9 +181,15 @@ export async function POST(request: Request) {
         },
       });
 
-      // Create notification for the volunteer about their movement
-      const notificationTitle = "You've been moved to a different shift";
-      const notificationMessage = `You've been moved from ${signup.shift.shiftType.name} to ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString('en-NZ')} at ${targetShift.location}`;
+      // Create notification for the volunteer about their movement. Coming off
+      // a waitlist is good news rather than a reshuffle, so it gets its own
+      // wording - "moved" would bury the part they care about.
+      const notificationTitle = wasWaitlisted
+        ? "You're off the waitlist and confirmed"
+        : "You've been moved to a different shift";
+      const notificationMessage = wasWaitlisted
+        ? `You've been taken off the waitlist for ${signup.shift.shiftType.name} and confirmed for ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString('en-NZ')} at ${targetShift.location}`
+        : `You've been moved from ${signup.shift.shiftType.name} to ${targetShift.shiftType.name} on ${targetShift.start.toLocaleDateString('en-NZ')} at ${targetShift.location}`;
 
       await tx.notification.create({
         data: {
@@ -194,8 +206,8 @@ export async function POST(request: Request) {
       return updatedSignup;
     });
 
-    // If volunteer was pending, send them a confirmation email
-    if (wasPending && result.user.email) {
+    // Newly confirmed volunteers get the standard shift confirmation email
+    if (wasUnconfirmed && result.user.email) {
       try {
         // Check if this is the volunteer's first confirmed shift
         const isFirstShift = await isFirstConfirmedShift(

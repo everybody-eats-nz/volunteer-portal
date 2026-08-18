@@ -508,6 +508,80 @@ test.describe("Admin Shifts Page", () => {
       }
     });
 
+    test("should offer confirm, move and remove actions for waitlisted volunteers", async ({
+      page,
+    }) => {
+      // A second volunteer waitlisted on the same shift, so the waitlist row is
+      // rendered alongside the existing confirmed one.
+      const waitlistEmail = `waitlist-test-${randomUUID().slice(0, 8)}@example.com`;
+      await createTestUser(page, waitlistEmail, "VOLUNTEER");
+      testEmails.push(waitlistEmail);
+
+      const waitlisted = await getUserByEmail(page, waitlistEmail);
+      if (!waitlisted) {
+        throw new Error("Waitlisted user not found");
+      }
+      const waitlistSignup = await createSignup(page, {
+        userId: waitlisted.id,
+        shiftId,
+        status: "WAITLISTED",
+      });
+
+      const tomorrow = nowInNZT();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
+      await gotoSettled(page, `/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+
+      const prefix = `shift-${shiftId}-volunteer-${waitlistSignup.id}`;
+      await expect(page.getByTestId(`${prefix}-waitlisted-actions`)).toBeVisible();
+      await expect(page.getByTestId(`${prefix}-confirm-button`)).toBeVisible();
+      await expect(page.getByTestId(`${prefix}-move-button`)).toBeVisible();
+      await expect(
+        page.getByTestId(`${prefix}-remove-waitlist-button`)
+      ).toBeVisible();
+    });
+
+    test("should show remove dialog for waitlisted volunteers", async ({
+      page,
+    }) => {
+      const waitlistEmail = `waitlist-remove-${randomUUID().slice(0, 8)}@example.com`;
+      await createTestUser(page, waitlistEmail, "VOLUNTEER");
+      testEmails.push(waitlistEmail);
+
+      const waitlisted = await getUserByEmail(page, waitlistEmail);
+      if (!waitlisted) {
+        throw new Error("Waitlisted user not found");
+      }
+      const waitlistSignup = await createSignup(page, {
+        userId: waitlisted.id,
+        shiftId,
+        status: "WAITLISTED",
+      });
+
+      const tomorrow = nowInNZT();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = formatInNZT(tomorrow, "yyyy-MM-dd");
+      await gotoSettled(page, `/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+
+      const prefix = `shift-${shiftId}-volunteer-${waitlistSignup.id}`;
+      await page.getByTestId(`${prefix}-remove-waitlist-button`).click();
+
+      await expect(
+        page.getByTestId(`${prefix}-remove-waitlist-dialog-title`)
+      ).toContainText("Remove from Waitlist");
+      await expect(
+        page.getByTestId(`${prefix}-remove-waitlist-dialog-description`)
+      ).toContainText("not needed for this shift");
+
+      // Confirming takes them off the waitlist rather than leaving them queued
+      await page
+        .getByTestId(`${prefix}-remove-waitlist-dialog-confirm`)
+        .click();
+      await expect(
+        page.getByTestId(`${prefix}-waitlisted-actions`)
+      ).toBeHidden();
+    });
+
     test("should show reject dialog for pending volunteers", async ({
       page,
     }) => {

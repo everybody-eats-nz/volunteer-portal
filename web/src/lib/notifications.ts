@@ -641,6 +641,30 @@ export async function createShiftCanceledNotification(
 }
 
 /**
+ * Create a waitlist-removal notification.
+ *
+ * Separate from {@link createShiftCanceledNotification} because a waitlisted
+ * volunteer never held a spot - telling them their shift was canceled implies
+ * they had one, which reads as a demotion rather than "we didn't need the extra
+ * hands this time".
+ */
+export async function createWaitlistRemovedNotification(
+  userId: string,
+  shiftName: string,
+  shiftDate: string,
+  shiftId: string
+) {
+  return createNotification({
+    userId,
+    type: "SHIFT_CANCELED",
+    title: "Removed from waitlist",
+    message: `You've been taken off the waitlist for ${shiftName} on ${shiftDate}`,
+    actionUrl: `/shifts/${shiftId}`,
+    relatedId: shiftId,
+  });
+}
+
+/**
  * Deep-link action URLs that point at a single shift. Notifications store these
  * in `actionUrl`, but the Notification model has no FK/cascade to Shift, so when
  * a shift is deleted these links survive and render "Shift not found" when
