@@ -159,11 +159,13 @@ type MoveVolunteerDialogProps = {
   onConfirm: () => void;
   loading: boolean;
   fieldIdPrefix: string;
+  /** Waitlisted volunteers are confirmed by the move, so the copy says so. */
+  fromWaitlist?: boolean;
 };
 
 /**
- * The "move volunteer to another shift" dialog, shared by the confirmed and
- * pending action rows. One name in the title, the context in the description,
+ * The "move volunteer to another shift" dialog, shared by the confirmed,
+ * waitlisted and pending action rows. One name in the title, the context in the description,
  * and a single decision in the body - it has to stay readable on a phone, which
  * is where admins run service.
  */
@@ -181,6 +183,7 @@ function MoveVolunteerDialog({
   onConfirm,
   loading,
   fieldIdPrefix,
+  fromWaitlist = false,
 }: MoveVolunteerDialogProps) {
   const selectedShift = shifts.find((shift) => shift.id === selectedShiftId);
   const selectedIsFull = selectedShift
@@ -188,6 +191,9 @@ function MoveVolunteerDialog({
     : false;
   const hasTargets = shifts.length > 0;
   const shiftDay = formatInNZT(currentShift.start, "EEEE d MMMM");
+  const moveLabel = fromWaitlist
+    ? "Move off waitlist to another shift"
+    : "Move to different shift";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -199,7 +205,8 @@ function MoveVolunteerDialog({
               variant="outline"
               className="h-6 px-2 text-xs bg-blue-100 dark:bg-blue-900/60 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/60"
               disabled={loading}
-              title="Move to different shift"
+              title={moveLabel}
+              aria-label={moveLabel}
               data-testid={tid("move-button")}
             >
               {loading ? (
@@ -210,7 +217,7 @@ function MoveVolunteerDialog({
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
-        <TooltipContent>Move to different shift</TooltipContent>
+        <TooltipContent>{moveLabel}</TooltipContent>
       </Tooltip>
       <DialogContent className="sm:max-w-md" data-testid={tid("move-dialog")}>
         <DialogHeader className="text-left">
@@ -218,8 +225,13 @@ function MoveVolunteerDialog({
             Move {volunteerName || "volunteer"}
           </DialogTitle>
           <DialogDescription data-testid={tid("move-dialog-description")}>
-            Currently on {currentShift.shiftType.name}, {shiftDay}.
-            {hasTargets && " Pick another shift on the same day."}
+            {fromWaitlist
+              ? `Waitlisted for ${currentShift.shiftType.name}, ${shiftDay}.`
+              : `Currently on ${currentShift.shiftType.name}, ${shiftDay}.`}
+            {hasTargets &&
+              (fromWaitlist
+                ? " Pick another shift on the same day - they'll be confirmed for it."
+                : " Pick another shift on the same day.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -291,7 +303,7 @@ function MoveVolunteerDialog({
               data-testid={tid("move-dialog-confirm")}
             >
               {loading ? <Clock className="h-3 w-3 animate-spin mr-2" /> : null}
-              Move Volunteer
+              {fromWaitlist ? "Move and Confirm" : "Move Volunteer"}
             </Button>
           )}
         </DialogFooter>
@@ -450,6 +462,20 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
           actionText: "Cancel Shift",
           variant: "destructive" as const,
         };
+      case "remove_waitlist":
+        return {
+          title: "Remove from Waitlist",
+          description: "Are you sure you want to remove this volunteer from the waitlist? They will be emailed to let them know they are not needed for this shift.",
+          actionText: "Remove from Waitlist",
+          variant: "destructive" as const,
+        };
+      case "remove_waitlist_past":
+        return {
+          title: "Remove from Waitlist",
+          description: "Are you sure you want to remove this volunteer from the waitlist? Since this shift has already ended, no notification will be sent.",
+          actionText: "Remove from Waitlist",
+          variant: "destructive" as const,
+        };
       case "confirm":
         return {
           title: "Confirm Waitlisted Volunteer", 
@@ -517,6 +543,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       onConfirm={handleVolunteerMove}
       loading={loading === "move"}
       fieldIdPrefix={`move-${signupId}`}
+      fromWaitlist={currentStatus === "WAITLISTED"}
     />
   ) : null;
 
@@ -539,6 +566,8 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     variant="outline"
                     className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
                     disabled={loading === "mark_absent"}
+                    title="Mark as no show"
+                    aria-label="Mark as no show"
                     data-testid={testIdPrefix ? `${testIdPrefix}-mark-absent-button` : `volunteer-mark-absent-${signupId}`}
                   >
                     {loading === "mark_absent" ? (
@@ -596,6 +625,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     className="h-6 px-2 text-xs bg-amber-100 dark:bg-amber-900/60 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/60"
                     disabled={loading === "cancel"}
                     title="Cancel this shift"
+                    aria-label="Cancel this shift"
                     data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
                   >
                     {loading === "cancel" ? (
@@ -663,6 +693,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                     className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
                     disabled={loading === "cancel"}
                     title="Cancel this shift"
+                    aria-label="Cancel this shift"
                     data-testid={testIdPrefix ? `${testIdPrefix}-cancel-button` : `volunteer-cancel-${signupId}`}
                   >
                     {loading === "cancel" ? (
@@ -724,6 +755,11 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   if (currentStatus === "WAITLISTED") {
     const dialogContent = getDialogContent("confirm");
+    // Once the shift has ended there is nobody left to notify, so removal is
+    // silent - same rule the confirmed row applies to cancellation.
+    const removeDialogContent = getDialogContent(
+      shiftCompleted ? "remove_waitlist_past" : "remove_waitlist"
+    );
 
     return (
       <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-waitlisted-actions` : `volunteer-actions-${signupId}-waitlisted`}>
@@ -736,6 +772,8 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                   variant="outline"
                   className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
                   disabled={loading === "confirm"}
+                  title="Confirm this volunteer"
+                  aria-label="Confirm this volunteer"
                   data-testid={testIdPrefix ? `${testIdPrefix}-confirm-button` : `volunteer-confirm-${signupId}`}
                 >
                   {loading === "confirm" ? (
@@ -781,6 +819,80 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Move Button - lands them CONFIRMED on the shift that has room */}
+        {!shiftCompleted && moveDialog}
+
+        {/* Remove from Waitlist Button */}
+        <Dialog open={dialogOpen === "remove_waitlist"} onOpenChange={(open) => setDialogOpen(open ? "remove_waitlist" : null)}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
+                  disabled={loading === "cancel"}
+                  title="Remove from waitlist"
+                  aria-label="Remove from waitlist"
+                  data-testid={testIdPrefix ? `${testIdPrefix}-remove-waitlist-button` : `volunteer-remove-waitlist-${signupId}`}
+                >
+                  {loading === "cancel" ? (
+                    <Clock className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <UserMinus className="h-3 w-3" />
+                  )}
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Remove from waitlist</TooltipContent>
+          </Tooltip>
+          <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-remove-waitlist-dialog` : `volunteer-remove-waitlist-dialog-${signupId}`}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-remove-waitlist-dialog-title` : `volunteer-remove-waitlist-dialog-title-${signupId}`}>
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                {removeDialogContent.title}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-remove-waitlist-dialog-description` : `volunteer-remove-waitlist-dialog-description-${signupId}`}>
+                {removeDialogContent.description}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {!shiftCompleted && (
+                <div className="flex-1">
+                  <EmailPreviewDialog
+                    emailType="volunteerNotNeeded"
+                    triggerLabel="Preview Email"
+                    triggerVariant="outline"
+                  />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setDialogOpen(null)}
+                  disabled={loading === "cancel"}
+                  data-testid={testIdPrefix ? `${testIdPrefix}-remove-waitlist-dialog-cancel` : `volunteer-remove-waitlist-dialog-cancel-${signupId}`}
+                >
+                  Go Back
+                </Button>
+                <Button
+                  variant={removeDialogContent.variant}
+                  onClick={() =>
+                    handleAction("cancel", shiftCompleted ? { skipNotification: true } : undefined)
+                  }
+                  disabled={loading === "cancel"}
+                  data-testid={testIdPrefix ? `${testIdPrefix}-remove-waitlist-dialog-confirm` : `volunteer-remove-waitlist-dialog-confirm-${signupId}`}
+                >
+                  {loading === "cancel" ? (
+                    <Clock className="h-3 w-3 animate-spin mr-2" />
+                  ) : null}
+                  {removeDialogContent.actionText}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -800,6 +912,8 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                   variant="outline"
                   className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
                   disabled={loading === "mark_present"}
+                  title="Mark as present"
+                  aria-label="Mark as present"
                   data-testid={testIdPrefix ? `${testIdPrefix}-mark-present-button` : `volunteer-mark-present-${signupId}`}
                 >
                   {loading === "mark_present" ? (
@@ -866,6 +980,8 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
             className="h-6 px-2 text-xs bg-green-100 dark:bg-green-900/60 border-green-300 dark:border-green-700 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800/60"
             onClick={() => handleAction("approve")}
             disabled={loading === "approve"}
+            title="Approve this volunteer"
+            aria-label="Approve this volunteer"
             data-testid={testIdPrefix ? `${testIdPrefix}-approve-button` : `volunteer-approve-${signupId}`}
           >
             {loading === "approve" ? (
@@ -890,6 +1006,8 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
                 variant="outline"
                 className="h-6 px-2 text-xs bg-red-100 dark:bg-red-900/60 border-red-300 dark:border-red-700 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800/60"
                 disabled={loading === "reject"}
+                title="Reject this signup"
+                aria-label="Reject this signup"
                 data-testid={testIdPrefix ? `${testIdPrefix}-reject-button` : `volunteer-reject-${signupId}`}
               >
                 {loading === "reject" ? (

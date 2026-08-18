@@ -1,3 +1,15 @@
+## [0.153.1] - 2026-08-18
+
+### Changes
+- fix(auto-accept): stop location-scoped rules matching every shift type ([#1207](https://github.com/everybody-eats-nz/volunteer-portal/pull/1207)) by @malinmalliyawadu
+
+
+## [0.153.0] - 2026-08-18
+
+### Changes
+- feat(admin): add cancel and move actions to waitlisted volunteers ([#1206](https://github.com/everybody-eats-nz/volunteer-portal/pull/1206)) by @malinmalliyawadu
+
+
 ## [0.152.1] - 2026-08-17
 
 ### Changes
