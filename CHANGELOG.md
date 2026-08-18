@@ -1,3 +1,9 @@
+## [0.153.1] - 2026-08-18
+
+### Changes
+- fix(auto-accept): stop location-scoped rules matching every shift type ([#1207](https://github.com/everybody-eats-nz/volunteer-portal/pull/1207)) by @malinmalliyawadu
+
+
 ## [0.153.0] - 2026-08-18
 
 ### Changes
