@@ -1,3 +1,9 @@
+## [0.153.2] - 2026-08-18
+
+### Changes
+- fix(flaky): should navigate to edit profile page ([#1204](https://github.com/everybody-eats-nz/volunteer-portal/pull/1204)) by @malinmalliyawadu
+
+
 ## [0.153.1] - 2026-08-18
 
 ### Changes
