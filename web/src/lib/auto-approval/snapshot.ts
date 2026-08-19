@@ -21,6 +21,27 @@ interface SnapshotRow {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Resolving the whole roster means aggregating every signup, which costs real
+ * time on a 10k-volunteer database. Paging, filtering and typing in the rule
+ * editor all re-ask the same question, so the full-roster result is held
+ * briefly. Volunteer totals don't move second to second, and this is a
+ * "what would happen" preview - a slightly stale roster is the right trade.
+ *
+ * The single-volunteer path is never cached: it runs on the signup hot path
+ * and has to see the volunteer exactly as they are.
+ */
+const ROSTER_CACHE_TTL_MS = 30_000;
+
+const rosterCache = new Map<
+  string,
+  { expires: number; snapshots: VolunteerSnapshot[] }
+>();
+
+export function clearVolunteerSnapshotCache() {
+  rosterCache.clear();
+}
+
+/**
  * Resolves volunteer stats in a single aggregate query rather than pulling
  * every signup into memory. The same query backs both the one-volunteer path
  * at signup time and the whole-roster coverage preview, so the numbers an
@@ -34,6 +55,11 @@ export async function getVolunteerSnapshots(
 ): Promise<VolunteerSnapshot[]> {
   const { userIds } = options;
   if (userIds && userIds.length === 0) return [];
+
+  if (!userIds) {
+    const cached = rosterCache.get(shiftTypeId);
+    if (cached && cached.expires > Date.now()) return cached.snapshots;
+  }
 
   // The user filter has to reach inside the CTEs, not just the outer query -
   // otherwise the single-volunteer path taken on every signup would aggregate
@@ -98,7 +124,7 @@ export async function getVolunteerSnapshots(
 
   const now = Date.now();
 
-  return rows.map((row) => {
+  const snapshots = rows.map((row) => {
     const completedShifts =
       Number(row.completedShifts) + (row.completedShiftAdjustment ?? 0);
     const canceledShifts = Number(row.canceledShifts);
@@ -125,6 +151,15 @@ export async function getVolunteerSnapshots(
       hasShiftTypeExperience: row.hasShiftTypeExperience ?? false,
     } satisfies VolunteerSnapshot;
   });
+
+  if (!userIds) {
+    rosterCache.set(shiftTypeId, {
+      expires: now + ROSTER_CACHE_TTL_MS,
+      snapshots,
+    });
+  }
+
+  return snapshots;
 }
 
 export async function getVolunteerSnapshot(

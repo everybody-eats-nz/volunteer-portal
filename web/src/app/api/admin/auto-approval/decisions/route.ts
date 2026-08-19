@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/admin-api";
+import { listSafePhotoUrl, requireAdmin } from "@/lib/admin-api";
 
 const PAGE_SIZE = 25;
 const OUTCOMES = ["APPROVED", "HELD", "BLOCKED", "ERROR"] as const;
@@ -70,7 +70,15 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: {
+      // `trace` and `stats` are deliberately not selected: each is a couple of
+      // KB and a page of 25 would be mostly reasoning nobody has asked to see
+      // yet. The receipt is fetched per row when it's expanded.
+      select: {
+        id: true,
+        createdAt: true,
+        outcome: true,
+        ruleName: true,
+        summary: true,
         user: {
           select: {
             id: true,
@@ -104,7 +112,10 @@ export async function GET(req: Request) {
   ]);
 
   return NextResponse.json({
-    decisions,
+    decisions: decisions.map((d) => ({
+      ...d,
+      user: { ...d.user, profilePhotoUrl: listSafePhotoUrl(d.user.profilePhotoUrl) },
+    })),
     page,
     pageSize: PAGE_SIZE,
     total,
