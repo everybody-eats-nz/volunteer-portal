@@ -1,3 +1,9 @@
+## [0.154.1] - 2026-08-19
+
+### Changes
+- perf(auto-approval): stop shipping work nobody asked for ([#1209](https://github.com/everybody-eats-nz/volunteer-portal/pull/1209)) by @malinmalliyawadu
+
+
 ## [0.154.0] - 2026-08-19
 
 ### Changes
