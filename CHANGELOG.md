@@ -1,3 +1,9 @@
+## [0.154.0] - 2026-08-19
+
+### Changes
+- feat(auto-approval): rebuild the admin experience around visibility ([#1208](https://github.com/everybody-eats-nz/volunteer-portal/pull/1208)) by @malinmalliyawadu
+
+
 ## [0.153.2] - 2026-08-18
 
 ### Changes
