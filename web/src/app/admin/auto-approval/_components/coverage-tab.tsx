@@ -53,7 +53,6 @@ export interface CoverageVolunteer {
   ruleId: string | null;
   ruleName: string | null;
   summary: string;
-  trace: RuleTrace[];
 }
 
 export interface CoverageResult {
@@ -116,6 +115,21 @@ export async function fetchCoverage(
     throw new Error(body.error ?? "Couldn't run the preview");
   }
   return res.json();
+}
+
+/** One volunteer's full receipt, fetched only when their row is expanded. */
+export async function fetchReceipt(
+  request: CoverageRequest,
+  userId: string
+): Promise<RuleTrace[]> {
+  const res = await fetch("/api/admin/auto-approval/coverage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...request, explainUserId: userId }),
+  });
+  if (!res.ok) throw new Error("Couldn't load the reasoning");
+  const body = await res.json();
+  return body.decision.trace as RuleTrace[];
 }
 
 const ANY_LOCATION = "ANY";
@@ -264,6 +278,7 @@ export function CoverageTab({ options }: { options: AdminOptions }) {
           query={query}
           onQueryChange={setQuery}
           options={options}
+          request={request}
         />
       ) : (
         <Card>
@@ -283,10 +298,13 @@ export function CoverageResults({
   query,
   onQueryChange,
   options,
+  request,
   emphasis = "APPROVED",
 }: {
   result: CoverageResult | null;
   loading: boolean;
+  /** Needed to fetch a row's receipt on demand. */
+  request: CoverageRequest | null;
   query: CoverageQuery;
   onQueryChange: (query: CoverageQuery) => void;
   options: AdminOptions;
@@ -298,8 +316,26 @@ export function CoverageResults({
   emphasis?: "APPROVED" | "BLOCKED";
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [receipts, setReceipts] = useState<Record<string, RuleTrace[]>>({});
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(query.search);
   const firstRender = useRef(true);
+
+  const toggleRow = async (userId: string) => {
+    if (expanded === userId) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(userId);
+    setReceiptError(null);
+    if (receipts[userId] || !request) return;
+    try {
+      const trace = await fetchReceipt(request, userId);
+      setReceipts((current) => ({ ...current, [userId]: trace }));
+    } catch {
+      setReceiptError("Couldn't load the reasoning for this volunteer.");
+    }
+  };
 
   // Debounced so typing doesn't re-evaluate the roster per keystroke.
   useEffect(() => {
@@ -489,7 +525,7 @@ export function CoverageResults({
                   <li key={v.userId}>
                     <button
                       type="button"
-                      onClick={() => setExpanded(isOpen ? null : v.userId)}
+                      onClick={() => toggleRow(v.userId)}
                       aria-expanded={isOpen}
                       aria-label={`${isOpen ? "Hide" : "Show"} why ${v.name ?? v.email} was ${OUTCOME_META[v.outcome].label.toLowerCase()}`}
                       className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:-outline-offset-2"
@@ -538,7 +574,22 @@ export function CoverageResults({
                         <VolunteerProfileLink userId={v.userId}>
                           View volunteer
                         </VolunteerProfileLink>
-                        <DecisionReceipt trace={v.trace} />
+                        {receipts[v.userId] ? (
+                          <DecisionReceipt trace={receipts[v.userId]} />
+                        ) : receiptError ? (
+                          <p className="text-sm text-destructive" role="alert">
+                            {receiptError}
+                          </p>
+                        ) : (
+                          <div
+                            className="space-y-2"
+                            aria-busy="true"
+                            aria-label="Loading reasoning"
+                          >
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </li>

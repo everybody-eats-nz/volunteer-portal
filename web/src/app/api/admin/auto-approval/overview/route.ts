@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/admin-api";
+import { listSafePhotoUrl, requireAdmin } from "@/lib/admin-api";
 import { activeCriteria } from "@/lib/auto-approval/criteria";
 import { toRuleConfig } from "@/lib/auto-approval/service";
 
@@ -140,7 +140,10 @@ export async function GET(req: Request) {
       blocking: rules.filter((r) => r.kind === "BLOCK" && r.enabled).length,
       inert: inertRules,
     },
-    recent,
+    recent: recent.map((d) => ({
+      ...d,
+      user: { ...d.user, profilePhotoUrl: listSafePhotoUrl(d.user.profilePhotoUrl) },
+    })),
   });
 }
 

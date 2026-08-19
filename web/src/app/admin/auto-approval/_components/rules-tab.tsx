@@ -414,6 +414,7 @@ function RulePreviewDialog({
           query={query}
           onQueryChange={setQuery}
           options={options}
+          request={preview?.request ?? null}
           emphasis={preview?.rule.kind === "BLOCK" ? "BLOCKED" : "APPROVED"}
         />
       </DialogContent>

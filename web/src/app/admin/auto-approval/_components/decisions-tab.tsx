@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -43,7 +44,6 @@ interface Decision {
   outcome: Outcome;
   ruleName: string | null;
   summary: string;
-  trace: RuleTrace[];
   user: {
     id: string;
     name: string | null;
@@ -91,6 +91,30 @@ export function DecisionsTab({
   const [data, setData] = useState<Response | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [receipts, setReceipts] = useState<Record<string, RuleTrace[]>>({});
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+
+  /**
+   * Receipts are fetched per row. Each is a couple of KB and most rows are
+   * never opened, so a page of 25 doesn't carry them up front.
+   */
+  const toggleRow = async (id: string) => {
+    if (expanded === id) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(id);
+    setReceiptError(null);
+    if (receipts[id]) return;
+    try {
+      const res = await fetch(`/api/admin/auto-approval/decisions/${id}`);
+      if (!res.ok) throw new Error("failed");
+      const body = await res.json();
+      setReceipts((current) => ({ ...current, [id]: body.decision.trace }));
+    } catch {
+      setReceiptError("Couldn't load the reasoning for this decision.");
+    }
+  };
 
   // Debounce the search box so typing doesn't fire a request per keystroke.
   useEffect(() => {
@@ -233,7 +257,7 @@ export function DecisionsTab({
                   <li key={decision.id}>
                     <button
                       type="button"
-                      onClick={() => setExpanded(isOpen ? null : decision.id)}
+                      onClick={() => toggleRow(decision.id)}
                       aria-expanded={isOpen}
                       aria-label={`${isOpen ? "Hide" : "Show"} why ${volunteerName(decision.user)} was ${OUTCOME_META[decision.outcome].label.toLowerCase()}`}
                       className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:-outline-offset-2"
@@ -294,7 +318,22 @@ export function DecisionsTab({
                             </Badge>
                           )}
                         </div>
-                        <DecisionReceipt trace={decision.trace} />
+                        {receipts[decision.id] ? (
+                          <DecisionReceipt trace={receipts[decision.id]} />
+                        ) : receiptError ? (
+                          <p className="text-sm text-destructive" role="alert">
+                            {receiptError}
+                          </p>
+                        ) : (
+                          <div
+                            className="space-y-2"
+                            aria-busy="true"
+                            aria-label="Loading reasoning"
+                          >
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </li>

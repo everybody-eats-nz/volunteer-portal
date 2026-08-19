@@ -85,6 +85,12 @@ export interface CoverageOptions {
   search?: string;
   page?: number;
   pageSize?: number;
+  /**
+   * Per-criterion traces are large - every rule against every listed
+   * volunteer. Lists leave them out and fetch one on demand when a row is
+   * expanded; see `explainCoverage`.
+   */
+  includeTraces?: boolean;
 }
 
 export interface CoverageSummary {
@@ -114,10 +120,7 @@ export async function previewCoverage(options: CoverageOptions): Promise<{
   const pageSize = options.pageSize ?? 25;
   const page = Math.max(1, options.page ?? 1);
 
-  const [snapshots, ctx] = await Promise.all([
-    getVolunteerSnapshots(options.shift.shiftTypeId),
-    getDescribeContext(),
-  ]);
+  const snapshots = await getVolunteerSnapshots(options.shift.shiftTypeId);
 
   const summary: CoverageSummary = {
     total: snapshots.length,
@@ -167,8 +170,12 @@ export async function previewCoverage(options: CoverageOptions): Promise<{
     matching.push(snapshot);
   }
 
-  // Only the page being shown pays for a full trace.
+  // Only the page being shown is decided in detail, and only when the caller
+  // actually wants traces.
   const pageSnapshots = matching.slice((page - 1) * pageSize, page * pageSize);
+  const ctx = options.includeTraces
+    ? await getDescribeContext()
+    : { labelNames: new Map() };
 
   return {
     summary,
@@ -177,11 +184,51 @@ export async function previewCoverage(options: CoverageOptions): Promise<{
     page,
     pageSize,
     totalPages: Math.max(1, Math.ceil(matching.length / pageSize)),
-    volunteers: pageSnapshots.map((snapshot) => ({
-      snapshot,
-      decision: evaluate(options.rules, snapshot, options.shift, ctx),
-    })),
+    volunteers: pageSnapshots.map((snapshot) => {
+      if (options.includeTraces) {
+        return { snapshot, decision: evaluate(options.rules, snapshot, options.shift, ctx) };
+      }
+      // Outcome and deciding rule only - enough to render the row.
+      const { outcome, rule } = evaluateOutcome(
+        options.rules,
+        snapshot,
+        options.shift
+      );
+      return {
+        snapshot,
+        decision: {
+          outcome,
+          rule: rule ? { id: rule.id, name: rule.name, kind: rule.kind } : null,
+          summary: rule
+            ? outcome === "BLOCKED"
+              ? `Held for review by "${rule.name}"`
+              : `Approved by "${rule.name}"`
+            : "No rule matched",
+          trace: [],
+          snapshot,
+          shift: options.shift,
+        } satisfies Decision,
+      };
+    }),
   };
+}
+
+/**
+ * The full receipt for one volunteer, fetched when an admin expands a row.
+ * Reuses the cached roster, so this is in-memory work.
+ */
+export async function explainCoverage(options: {
+  rules: RuleConfig[];
+  shift: ShiftContext;
+  userId: string;
+}): Promise<Decision | null> {
+  const [snapshots, ctx] = await Promise.all([
+    getVolunteerSnapshots(options.shift.shiftTypeId),
+    getDescribeContext(),
+  ]);
+  const snapshot = snapshots.find((s) => s.userId === options.userId);
+  if (!snapshot) return null;
+  return evaluate(options.rules, snapshot, options.shift, ctx);
 }
 
 /** Writes the decision to the audit log. Never throws - logging must not break signup. */

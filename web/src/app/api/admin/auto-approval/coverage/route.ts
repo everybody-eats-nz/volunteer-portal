@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/admin-api";
-import { previewCoverage, getLiveRules, toRuleConfig } from "@/lib/auto-approval/service";
+import { listSafePhotoUrl, requireAdmin } from "@/lib/admin-api";
+import {
+  explainCoverage,
+  getLiveRules,
+  previewCoverage,
+  toRuleConfig,
+} from "@/lib/auto-approval/service";
 import type { RuleConfig, ShiftContext } from "@/lib/auto-approval/types";
 import {
   draftToRuleConfig,
@@ -18,6 +23,12 @@ const bodySchema = z.object({
   search: z.string().max(120).nullish(),
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
+  /**
+   * Ask for one volunteer's full receipt instead of a page of rows. Traces are
+   * far too big to ship for every listed volunteer, so the UI fetches one when
+   * a row is expanded.
+   */
+  explainUserId: z.string().nullish(),
   /**
    * Which rules to run:
    *  - "live"  : every enabled rule, i.e. what would really happen
@@ -84,6 +95,18 @@ export async function POST(req: Request) {
     daysInAdvance: body.daysInAdvance,
   };
 
+  if (body.explainUserId) {
+    const decision = await explainCoverage({
+      rules,
+      shift,
+      userId: body.explainUserId,
+    });
+    if (!decision) {
+      return NextResponse.json({ error: "Volunteer not found" }, { status: 404 });
+    }
+    return NextResponse.json({ decision });
+  }
+
   const result = await previewCoverage({
     rules,
     shift,
@@ -105,7 +128,7 @@ export async function POST(req: Request) {
       userId: snapshot.userId,
       name: snapshot.name,
       email: snapshot.email,
-      profilePhotoUrl: snapshot.profilePhotoUrl,
+      profilePhotoUrl: listSafePhotoUrl(snapshot.profilePhotoUrl),
       volunteerGrade: snapshot.volunteerGrade,
       completedShifts: snapshot.completedShifts,
       attendanceRate: Math.round(snapshot.attendanceRate),
