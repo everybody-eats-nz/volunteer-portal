@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { getNotificationService } from "@/lib/notification-service";
 import { notifyManagersOfPendingSignup } from "@/lib/notifications";
-import { processAutoApproval } from "@/lib/auto-accept-rules";
+import { processAutoApproval } from "@/lib/auto-approval";
 import { MAX_NOTE_LENGTH } from "@/lib/utils";
 import { validateGuardianRequirement } from "@/lib/guardian-validation";
 import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";

@@ -52,11 +52,12 @@ test.describe("Auto-Approval Signup Flow", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for shifts to load - use a more general selector
-    await page.waitForTimeout(3000);
-
-    // Look for any signup button
+    // Wait for the signup buttons themselves rather than a fixed sleep.
     const signupButtons = page.getByText("Sign Up Now");
+    await signupButtons
+      .first()
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
 
     if (await signupButtons.first().isVisible()) {
       await signupButtons.first().click();
@@ -85,11 +86,13 @@ test.describe("Auto-Approval Signup Flow", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -128,11 +131,13 @@ test.describe("Auto-Approval Signup Flow", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -190,11 +195,13 @@ test.describe("Auto-Approval Signup Flow", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -239,11 +246,13 @@ test.describe("Auto-Approval Signup Flow", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -277,11 +286,13 @@ test.describe("Auto-Approval Signup Flow", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -349,11 +360,13 @@ test.describe("Auto-Approval API Integration", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -378,11 +391,10 @@ test.describe("Auto-Approval API Integration", () => {
       const dialog = page.getByTestId("shift-signup-dialog");
       await expect(dialog).toBeVisible();
 
-      // Wait for API call to complete
-      await page.waitForTimeout(3000);
-
-      // Should have made an auto-approval check request
-      expect(apiRequests.length).toBeGreaterThan(0);
+      // Poll for the request instead of sleeping a fixed amount.
+      await expect
+        .poll(() => apiRequests.length, { timeout: 5000 })
+        .toBeGreaterThan(0);
       expect(apiRequests[0]).toContain("auto-approval-check");
     }
   });
@@ -404,11 +416,13 @@ test.describe("Auto-Approval API Integration", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");
@@ -446,11 +460,13 @@ test.describe("Individual Shift Page Auto-Approval", () => {
     await page.goto("/shifts");
     await page.waitForLoadState("load");
 
-    // Wait for calendar to load
-    await page.waitForTimeout(2000);
-
-    // Look for a clickable calendar day with shifts
+    // Wait for the calendar itself rather than a fixed sleep. Kept well under
+    // the 15s test budget: these tests are written defensively and carry on
+    // when the element never appears.
     const calendarDay = page.locator('[data-testid^="calendar-day-"]').first();
+    await calendarDay
+      .waitFor({ state: "visible", timeout: 5000 })
+      .catch(() => {});
     if (await calendarDay.isVisible()) {
       await calendarDay.click();
       await page.waitForLoadState("load");

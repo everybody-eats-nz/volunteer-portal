@@ -195,10 +195,11 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(fohCheckbox).toBeChecked();
     await expect(dishwasherCheckbox).toBeChecked();
 
-    // Submit the signup
-    const submitButton = page.getByRole("button", {
-      name: /Confirm signup/i,
-    });
+    // Submit the signup. Target the test id, not the label: the confirm button
+    // reads "Sign Up (Auto-Approved)" for volunteers the rules will confirm on
+    // the spot and "Confirm Signup" for everyone else, and this helper only
+    // cares about submitting.
+    const submitButton = page.getByTestId("shift-signup-confirm-button");
     await expect(submitButton).toBeVisible();
     await submitButton.click();
 
@@ -209,6 +210,22 @@ test.describe("Backup Shift Signup Feature", () => {
     await expect(
       page.getByText("Flexible with shift changes?")
     ).not.toBeVisible();
+  }
+
+  /**
+   * Forces the volunteer's signup on the primary shift back to PENDING.
+   * Auto-approval rules differ between environments, so tests that need a
+   * volunteer awaiting review pin the state instead of assuming it.
+   */
+  async function forceSignupPending(page: Page) {
+    const response = await page.request.patch("/api/test/signups", {
+      data: {
+        userId: volunteerUserId,
+        shiftId: primaryShiftId,
+        status: "PENDING",
+      },
+    });
+    expect(response.ok(), await response.text()).toBeTruthy();
   }
 
   test("volunteer can select multiple backup shift preferences", async ({
@@ -223,6 +240,12 @@ test.describe("Backup Shift Signup Feature", () => {
     await signupVolunteer(page);
 
     await loginAsAdmin(page);
+
+    // This test is about how backup preferences are surfaced to an admin, not
+    // about the approval engine. Whether the signup lands PENDING or CONFIRMED
+    // depends on the auto-approval rules configured in the environment, so pin
+    // it rather than letting ambient config decide.
+    await forceSignupPending(page);
 
     // Navigate to tomorrow's shifts
     const tomorrow = nowInNZT();
@@ -258,6 +281,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await signupVolunteer(page);
 
     await loginAsAdmin(page);
+    await forceSignupPending(page);
 
     const tomorrow = nowInNZT();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -287,6 +311,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await signupVolunteer(page);
 
     await loginAsAdmin(page);
+    await forceSignupPending(page);
 
     const tomorrow = nowInNZT();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -343,6 +368,7 @@ test.describe("Backup Shift Signup Feature", () => {
     await signupVolunteer(page);
 
     await loginAsAdmin(page);
+    await forceSignupPending(page);
 
     const tomorrow = nowInNZT();
     tomorrow.setDate(tomorrow.getDate() + 1);

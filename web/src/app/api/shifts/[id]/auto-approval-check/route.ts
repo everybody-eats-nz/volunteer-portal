@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { checkAutoApprovalEligibility } from "@/lib/auto-accept-rules";
+import { checkAutoApprovalEligibility } from "@/lib/auto-approval";
 
 // GET /api/shifts/[id]/auto-approval-check - Check if user is eligible for auto-approval
 export async function GET(
