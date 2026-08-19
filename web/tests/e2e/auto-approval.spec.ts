@@ -1,11 +1,12 @@
 import { test, expect } from "./base";
-import { loginAsAdmin } from "./helpers/auth";
+import { loginAsAdmin, loginAsVolunteer } from "./helpers/auth";
+import { createShift, deleteTestShifts } from "./helpers/test-helpers";
+import { gotoSettled } from "./helpers/streaming";
 
 test.describe("Auto-approval admin", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/admin/auto-approval");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/auto-approval");
   });
 
   test("lands on the overview with the four surfaces available", async ({
@@ -89,22 +90,6 @@ test.describe("Auto-approval admin", () => {
     await expect(approvedChip).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("explains a decision with a per-condition receipt", async ({ page }) => {
-    await page.getByTestId("tab-decisions").click();
-
-    const list = page.getByTestId("decisions-list");
-    await expect(list).toBeVisible();
-
-    const firstRow = list.locator("li > button").first();
-    await firstRow.click();
-
-    // The receipt is the answer to "why?" - every rule considered, and for
-    // each one what it asked for versus what was true.
-    const receipt = page.getByTestId("decision-receipt");
-    await expect(receipt).toBeVisible();
-    await expect(receipt.getByText(/met · needs (all|any)/).first()).toBeVisible();
-  });
-
   test("previews one rule on its own in a dialog", async ({ page }) => {
     await page.getByTestId("tab-rules").click();
 
@@ -125,8 +110,99 @@ test.describe("Auto-approval admin", () => {
   });
 
   test("redirects the old auto-accept-rules URL", async ({ page }) => {
-    await page.goto("/admin/auto-accept-rules");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/auto-accept-rules");
     await expect(page).toHaveURL(/\/admin\/auto-approval/);
+  });
+});
+
+/**
+ * The decision log only has rows once somebody has actually signed up, so this
+ * block creates the decision it then goes looking for rather than relying on
+ * whatever the seed happens to contain.
+ */
+test.describe("Auto-approval decision log", () => {
+  // Three logins plus shift/user setup - well past the default 15s budget
+  // once this runs alongside the other specs.
+  test.describe.configure({ timeout: 60_000 });
+
+
+  const createdShiftIds: string[] = [];
+  // Unique per run so parallel shards don't fight over the same volunteer.
+  const volunteerEmail = `auto-approval-decision-${Date.now()}@example.com`;
+
+  test.afterAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    await loginAsAdmin(page);
+    await deleteTestShifts(page, createdShiftIds);
+    await page.request.delete(
+      `/api/test/users?email=${encodeURIComponent(volunteerEmail)}`
+    );
+    await page.close();
+  });
+
+  test("records a decision and explains it with a per-condition receipt", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+
+    // Take whatever shift type and location this environment has rather than
+    // naming one - seed data differs between local and CI.
+    const optionsResponse = await page.request.get(
+      "/api/admin/auto-approval/options"
+    );
+    expect(optionsResponse.ok()).toBeTruthy();
+    const options = await optionsResponse.json();
+    const shiftType = options.shiftTypes[0];
+    expect(shiftType, "at least one shift type must exist").toBeTruthy();
+
+    // The shared quick-login volunteer has an incomplete profile, which the
+    // signup route rejects. Make one that can actually sign up.
+    const createUser = await page.request.post("/api/test/users", {
+      data: {
+        email: volunteerEmail,
+        password: "Test123456",
+        role: "VOLUNTEER",
+        firstName: "Decision",
+        lastName: "Log",
+      },
+    });
+    expect(createUser.ok()).toBeTruthy();
+
+    const start = new Date();
+    start.setDate(start.getDate() + 2);
+    start.setHours(10, 0, 0, 0);
+
+    const shift = await createShift(page, {
+      location: options.locations[0] ?? "Wellington",
+      start,
+      capacity: 5,
+      shiftTypeId: shiftType.id,
+      notes: "Auto-approval decision log test",
+    });
+    createdShiftIds.push(shift.id);
+
+    // Signing up is what writes the decision.
+    await loginAsVolunteer(page, volunteerEmail);
+    const signup = await page.request.post(`/api/shifts/${shift.id}/signup`, {
+      data: {},
+    });
+    expect(signup.ok(), await signup.text()).toBeTruthy();
+
+    await loginAsAdmin(page);
+    await gotoSettled(page, "/admin/auto-approval");
+    await page.getByTestId("tab-decisions").click();
+
+    const list = page.getByTestId("decisions-list");
+    await expect(list).toBeVisible({ timeout: 20000 });
+
+    await list.locator("li > button").first().click();
+
+    // The receipt is the answer to "why?" - every rule considered, and for
+    // each one what it asked for versus what was actually true.
+    const receipt = page.getByTestId("decision-receipt");
+    await expect(receipt).toBeVisible();
+    await expect(
+      receipt.getByText(/met · needs (all|any)/).first()
+    ).toBeVisible();
   });
 });
