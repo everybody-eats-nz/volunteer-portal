@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Shift, ShiftSignup } from "@/lib/dummy-data";
 import { queryKeys } from "@/lib/query-keys";
+import {
+  normalizeSignupStatus,
+  type SignupStatus,
+} from "@/lib/signup-status";
 
 /** Raw shape returned by GET /api/mobile/shifts/[id] */
 type ShiftDetailResponse = {
@@ -24,6 +28,8 @@ type ShiftDetailResponse = {
     name: string;
     profilePhotoUrl: string | null;
     isFriend: boolean;
+    /** That volunteer's signup status on this shift. */
+    status?: "CONFIRMED" | "PENDING" | "WAITLISTED" | "REGULAR_PENDING";
   }[];
   events?: ShiftEvent[];
   eligibility?: ShiftEligibility;
@@ -74,6 +80,7 @@ type ConcurrentResponse = {
     profilePhotoUrl: string | null;
     shiftTypeName: string | null;
     isFriend: boolean;
+    status?: "CONFIRMED" | "PENDING" | "REGULAR_PENDING";
   }[];
 };
 
@@ -85,6 +92,8 @@ export type PeriodFriend = {
   shiftTypeName: string | null;
   /** True for actual friends; false for users with PUBLIC profile visibility. */
   isFriend: boolean;
+  /** Whether that volunteer is confirmed or still waiting on an admin. */
+  status: SignupStatus;
 };
 
 type UseShiftDetailReturn = {
@@ -145,6 +154,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
     name: s.name,
     profilePhotoUrl: s.profilePhotoUrl ?? undefined,
     isFriend: s.isFriend,
+    status: normalizeSignupStatus(s.status),
   }));
 
   const periodFriends: PeriodFriend[] = (concurrent.data?.friends ?? []).map(
@@ -154,6 +164,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
       profilePhotoUrl: f.profilePhotoUrl,
       shiftTypeName: f.shiftTypeName,
       isFriend: f.isFriend ?? true,
+      status: normalizeSignupStatus(f.status),
     })
   );
 

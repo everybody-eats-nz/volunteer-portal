@@ -33,6 +33,11 @@ import {
   type PeriodFriend,
   type ShiftEvent,
 } from "@/hooks/use-shift-detail";
+import {
+  countUnnamedVolunteers,
+  normalizeSignupStatus,
+  type SignupStatus,
+} from "@/lib/signup-status";
 import { openCmsLink } from "@/lib/external-links";
 import { useShifts } from "@/hooks/use-shifts";
 import {
@@ -61,6 +66,70 @@ function getDuration(start: string, end: string): string {
   return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
 }
 
+/* ── Your signup status ──
+   One place for how each signup state reads and looks, so the hero, the status
+   strip and the cancel action never disagree about what the volunteer's spot
+   actually is. Tones match the shift list and home hero (forest = confirmed,
+   amber = awaiting an admin, slate = waitlist). */
+
+const MY_STATUS: Record<
+  SignupStatus,
+  {
+    eyebrow: string;
+    title: string;
+    /** What happens next, in the volunteer's terms. */
+    meta: string | null;
+    icon: keyof typeof Ionicons.glyphMap;
+    badgeBg: string;
+    badgeBgDark: string;
+    iconColor: string;
+    iconColorDark: string;
+    cancelLabel: string;
+    cancelPrompt: string;
+    cancelBody: string;
+  }
+> = {
+  CONFIRMED: {
+    eyebrow: "You're in the whānau",
+    title: "You're signed up",
+    meta: null,
+    icon: "checkmark",
+    badgeBg: Brand.accent,
+    badgeBgDark: Brand.accent,
+    iconColor: Brand.green,
+    iconColorDark: Brand.green,
+    cancelLabel: "Cancel this signup",
+    cancelPrompt: "Cancel signup?",
+    cancelBody: "Are you sure you want to cancel your signup for this shift?",
+  },
+  PENDING: {
+    eyebrow: "Request sent",
+    title: "Waiting on approval",
+    meta: "We'll let you know as soon as your spot is confirmed.",
+    icon: "time",
+    badgeBg: "#fef3c7",
+    badgeBgDark: "rgba(245, 158, 11, 0.18)",
+    iconColor: "#92400e",
+    iconColorDark: "#fbbf24",
+    cancelLabel: "Withdraw this request",
+    cancelPrompt: "Withdraw request?",
+    cancelBody: "Are you sure you want to withdraw your request for this shift?",
+  },
+  WAITLISTED: {
+    eyebrow: "You're on the waitlist",
+    title: "Waitlisted for this shift",
+    meta: "We'll be in touch if a spot opens up.",
+    icon: "list",
+    badgeBg: "#f1f5f9",
+    badgeBgDark: "rgba(100, 116, 139, 0.25)",
+    iconColor: "#475569",
+    iconColorDark: "#cbd5e1",
+    cancelLabel: "Leave the waitlist",
+    cancelPrompt: "Leave the waitlist?",
+    cancelBody: "Are you sure you want to leave the waitlist for this shift?",
+  },
+};
+
 /* ── Main Screen ── */
 
 export default function ShiftDetailScreen() {
@@ -85,6 +154,12 @@ export default function ShiftDetailScreen() {
   // pre-emptive "one Day + one Evening shift per day" conflict gate.
   const { myShifts } = useShifts();
   const isMyShift = shift?.status != null;
+  // What the volunteer actually holds: a confirmed spot, a request an admin
+  // hasn't approved yet, or a waitlist place. Only CONFIRMED is a spot.
+  const myStatus: SignupStatus | null = shift?.status
+    ? normalizeSignupStatus(shift.status)
+    : null;
+  const statusUi = myStatus ? MY_STATUS[myStatus] : null;
   const conflictingShift = useMemo(
     () => (shift && !isMyShift ? findConflictingShift(shift, myShifts) : null),
     [shift, isMyShift, myShifts]
@@ -163,9 +238,10 @@ export default function ShiftDetailScreen() {
 
   const handleCancel = useCallback(async () => {
     if (!shift) return;
+    const copy = statusUi ?? MY_STATUS.CONFIRMED;
     Alert.alert(
-      "Cancel signup?",
-      "Are you sure you want to cancel your signup for this shift?",
+      copy.cancelPrompt,
+      copy.cancelBody,
       [
         { text: "Keep it", style: "cancel" },
         {
@@ -183,7 +259,14 @@ export default function ShiftDetailScreen() {
               removeShiftFromCalendar(shift.id).catch(() => {
                 // Best-effort: the next reconcile will clean up anyway.
               });
-              Alert.alert("Canceled", "Your signup has been canceled.");
+              Alert.alert(
+                "Canceled",
+                myStatus === "PENDING"
+                  ? "Your request has been withdrawn."
+                  : myStatus === "WAITLISTED"
+                  ? "You've been taken off the waitlist."
+                  : "Your signup has been canceled."
+              );
               posthog?.capture("shift_signup_cancelled", {
                 shift_id: shift.id,
                 shift_type: shift.shiftType.name,
@@ -200,7 +283,7 @@ export default function ShiftDetailScreen() {
         },
       ]
     );
-  }, [shift, refresh]);
+  }, [shift, refresh, statusUi, myStatus]);
 
   // Split period friends into "on your shift" vs "same session, different role".
   // The shift detail signups list contains every active signup (friends, public,
@@ -226,14 +309,36 @@ export default function ShiftDetailScreen() {
       ),
     [periodFriends, thisShiftSignupIds, thisShiftName]
   );
-  // Count of volunteers on this shift who aren't visible to the current user
-  // (i.e. PRIVATE / FRIENDS_ONLY non-friends). shiftSignups includes "You" if
-  // the current user is signed up, so subtract that too.
-  const selfInList = isMyShift ? 1 : 0;
-  const otherVolunteersCount = Math.max(
-    0,
-    shiftSignups.length - selfInList - visibleOnYourShift.length
+  // Only confirmed volunteers are on the shift; the rest are still waiting on
+  // an admin, so the two groups are counted and listed separately.
+  const onShiftConfirmed = useMemo(
+    () => visibleOnYourShift.filter((f) => f.status === "CONFIRMED"),
+    [visibleOnYourShift]
   );
+  const onShiftPending = useMemo(
+    () => visibleOnYourShift.filter((f) => f.status === "PENDING"),
+    [visibleOnYourShift]
+  );
+  // Counts of volunteers on this shift who aren't visible to the current user
+  // (i.e. PRIVATE / FRIENDS_ONLY non-friends). shiftSignups includes "You" if
+  // the current user is signed up, so subtract that too. Waitlisted signups
+  // are left out of both counts - they don't have a place on the shift.
+  const signupStatuses = useMemo(
+    () => shiftSignups.map((su) => normalizeSignupStatus(su.status)),
+    [shiftSignups]
+  );
+  const otherVolunteersCount = countUnnamedVolunteers({
+    status: "CONFIRMED",
+    signupStatuses,
+    myStatus,
+    namedCount: onShiftConfirmed.length,
+  });
+  const otherPendingCount = countUnnamedVolunteers({
+    status: "PENDING",
+    signupStatuses,
+    myStatus,
+    namedCount: onShiftPending.length,
+  });
 
   if (isLoading) {
     return (
@@ -396,8 +501,8 @@ export default function ShiftDetailScreen() {
             <Eyebrow color={Palette.sun200}>
               {isCompleted
                 ? "Completed · Ngā mihi"
-                : isMyShift
-                ? "You're in the whānau"
+                : statusUi
+                ? statusUi.eyebrow
                 : "Ngā mahi · A shift"}
             </Eyebrow>
 
@@ -518,16 +623,29 @@ export default function ShiftDetailScreen() {
                   </Text>
                 </View>
               </View>
-            ) : isMyShift ? (
+            ) : statusUi ? (
               <View style={s.statusConfirmed}>
-                <View style={s.statusConfirmedBadge}>
-                  <Ionicons name="checkmark" size={12} color={Brand.green} />
+                <View
+                  style={[
+                    s.statusConfirmedBadge,
+                    {
+                      backgroundColor: isDark
+                        ? statusUi.badgeBgDark
+                        : statusUi.badgeBg,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={statusUi.icon}
+                    size={14}
+                    color={isDark ? statusUi.iconColorDark : statusUi.iconColor}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
                     style={[s.statusConfirmedTitle, { color: colors.text }]}
                   >
-                    You&apos;re signed up
+                    {statusUi.title}
                   </Text>
                   <Text
                     style={[
@@ -535,8 +653,13 @@ export default function ShiftDetailScreen() {
                       { color: colors.textSecondary },
                     ]}
                   >
-                    {formatNZT(date, "EEE h:mma")} —{" "}
-                    {formatNZT(endDate, "h:mma").toLowerCase()} · {duration}
+                    {isPast
+                      ? "This shift has already passed."
+                      : statusUi.meta ??
+                        `${formatNZT(date, "EEE h:mma")} — ${formatNZT(
+                          endDate,
+                          "h:mma"
+                        ).toLowerCase()} · ${duration}`}
                   </Text>
                 </View>
               </View>
@@ -621,11 +744,14 @@ export default function ShiftDetailScreen() {
         {/* ═══ Volunteers on this shift ═══ */}
         {(visibleOnYourShift.length > 0 ||
           friendsInSession.length > 0 ||
-          otherVolunteersCount > 0) && (
+          otherVolunteersCount > 0 ||
+          otherPendingCount > 0) && (
           <VolunteersSection
-            onYourShift={visibleOnYourShift}
+            onYourShift={onShiftConfirmed}
+            pendingOnYourShift={onShiftPending}
             sameSession={friendsInSession}
             otherCount={otherVolunteersCount}
+            otherPendingCount={otherPendingCount}
             colors={colors}
             isDark={isDark}
           />
@@ -640,13 +766,13 @@ export default function ShiftDetailScreen() {
               s.cancelButton,
               { opacity: pressed ? 0.6 : 1 },
             ]}
-            accessibilityLabel="Cancel shift signup"
+            accessibilityLabel={statusUi?.cancelLabel ?? "Cancel this signup"}
           >
             {cancelLoading ? (
               <RNActivityIndicator size="small" color={colors.destructive} />
             ) : (
               <Text style={[s.cancelText, { color: colors.destructive }]}>
-                Cancel this signup
+                {statusUi?.cancelLabel ?? "Cancel this signup"}
               </Text>
             )}
           </Pressable>
@@ -751,18 +877,25 @@ export default function ShiftDetailScreen() {
 
 function VolunteersSection({
   onYourShift,
+  pendingOnYourShift,
   sameSession,
   otherCount,
+  otherPendingCount,
   colors,
   isDark,
 }: {
+  /** Confirmed volunteers on this shift, visible to the current user. */
   onYourShift: PeriodFriend[];
+  /** Visible volunteers on this shift still waiting on an admin. */
+  pendingOnYourShift: PeriodFriend[];
   sameSession: PeriodFriend[];
   otherCount: number;
+  otherPendingCount: number;
   colors: (typeof Colors)["light"];
   isDark: boolean;
 }) {
   const totalOnShift = onYourShift.length + otherCount;
+  const totalPending = pendingOnYourShift.length + otherPendingCount;
   const title =
     totalOnShift > 0
       ? `${totalOnShift} ${totalOnShift === 1 ? "volunteer" : "volunteers"} going`
@@ -820,6 +953,49 @@ function VolunteersSection({
             {onYourShift.length > 0 ? "and " : ""}
             {otherCount} other {otherCount === 1 ? "volunteer" : "volunteers"}
           </Text>
+        </View>
+      )}
+
+      {/* Requests an admin hasn't approved yet - held apart from the count
+          above so nobody reads a pending signup as a confirmed spot. */}
+      {totalPending > 0 && (
+        <View style={s.friendsGroup}>
+          <View style={s.friendsGroupHead}>
+            <Text
+              style={[s.friendsGroupLabel, { color: colors.textSecondary }]}
+            >
+              AWAITING APPROVAL
+            </Text>
+            <Text
+              style={[s.friendsGroupCount, { color: colors.textSecondary }]}
+            >
+              {String(totalPending).padStart(2, "0")}
+            </Text>
+          </View>
+          {pendingOnYourShift.length > 0 && (
+            <View style={s.friendsList}>
+              {pendingOnYourShift.map((f) => (
+                <FriendRow
+                  key={f.id}
+                  friend={f}
+                  isDark={isDark}
+                  colors={colors}
+                  showFriendBadge={f.isFriend}
+                  hideRole
+                />
+              ))}
+            </View>
+          )}
+          {otherPendingCount > 0 && (
+            <Text
+              style={[s.friendsGroupNote, { color: colors.textSecondary }]}
+            >
+              {pendingOnYourShift.length > 0 ? "and " : ""}
+              {otherPendingCount} other{" "}
+              {otherPendingCount === 1 ? "volunteer" : "volunteers"} waiting on
+              approval
+            </Text>
+          )}
         </View>
       )}
 
@@ -975,7 +1151,9 @@ function FriendRow({
   return (
     <Pressable
       onPress={openProfile}
-      accessibilityLabel={`View ${friend.name}'s profile`}
+      accessibilityLabel={`View ${friend.name}'s profile${
+        friend.status === "PENDING" ? ", awaiting approval" : ""
+      }`}
       accessibilityRole="button"
       style={({ pressed }) => [s.friendRow, { opacity: pressed ? 0.7 : 1 }]}
     >
@@ -1017,6 +1195,34 @@ function FriendRow({
             >
               {friend.shiftTypeName}
             </Text>
+            {/* A pending signup is a request, not a spot - say so on the row
+                rather than letting it read as another volunteer going. */}
+            {friend.status === "PENDING" && (
+              <View
+                style={[
+                  s.friendRowPendingChip,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(245, 158, 11, 0.18)"
+                      : "#fef3c7",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="time"
+                  size={10}
+                  color={isDark ? "#fbbf24" : "#92400e"}
+                />
+                <Text
+                  style={[
+                    s.friendRowPendingChipText,
+                    { color: isDark ? "#fbbf24" : "#92400e" },
+                  ]}
+                >
+                  Pending
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -1498,6 +1704,13 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.heading,
     letterSpacing: -0.3,
   },
+  friendsGroupNote: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: FontFamily.medium,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
   friendsList: {
     gap: 2,
   },
@@ -1552,6 +1765,19 @@ const s = StyleSheet.create({
     fontSize: 13,
     lineHeight: 17,
     fontFamily: FontFamily.medium,
+  },
+  friendRowPendingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  friendRowPendingChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.4,
   },
   friendRowMarker: {
     width: 24,
