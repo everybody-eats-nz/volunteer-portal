@@ -1,72 +1,65 @@
 import { PageContainer } from "@/components/page-container";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function ShiftDetailLoading() {
   return (
-    <PageContainer>
-      {/* Back button */}
-      <div className="mb-6">
-        <Skeleton className="h-9 w-32" />
-      </div>
+    <PageContainer className="space-y-6">
+      {/* Back link */}
+      <Skeleton className="h-5 w-28" />
 
-      {/* Shift title */}
-      <div className="flex items-center gap-4 mb-6">
-        <Skeleton className="w-12 h-12 rounded-xl" />
-        <div>
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-      </div>
+      {/* Hero panel */}
+      <Skeleton className="h-72 w-full rounded-[2.5rem]" />
 
-      {/* Main card */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="space-y-3">
-              <Skeleton className="h-7 w-64" />
-              <div className="flex gap-2">
-                <Skeleton className="h-6 w-36" />
-                <Skeleton className="h-6 w-28" />
+      {/* Body grid */}
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        {/* Main column */}
+        <div className="space-y-6 lg:col-span-7">
+          {/* Where card */}
+          <div className="overflow-hidden rounded-3xl border border-forest-500/10 dark:border-cream-50/10">
+            <div className="flex items-start justify-between gap-4 p-6 sm:p-7">
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-56 max-w-full" />
+              </div>
+              <Skeleton className="h-8 w-28 rounded-full" />
+            </div>
+            <div className="border-t border-forest-500/10 dark:border-cream-50/10">
+              <Skeleton className="h-56 w-full rounded-none" />
+            </div>
+          </div>
+
+          {/* Calendar + share card */}
+          <div className="rounded-3xl border border-forest-500/10 p-6 sm:p-7 dark:border-cream-50/10">
+            <Skeleton className="mb-5 h-3 w-24" />
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-8 w-20 rounded-full" />
+                  <Skeleton className="h-8 w-20 rounded-full" />
+                  <Skeleton className="h-8 w-16 rounded-full" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-8 w-24 rounded-full" />
               </div>
             </div>
-            <Skeleton className="h-6 w-24" />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Action button */}
-          <Skeleton className="h-10 w-full sm:w-48" />
+        </div>
 
-          {/* Details grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-5 w-20" />
-            </div>
-            <div className="space-y-1">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-5 w-32" />
-            </div>
+        {/* Signup sidebar */}
+        <aside className="lg:col-span-5">
+          <div className="rounded-3xl border border-forest-500/10 p-6 sm:p-8 dark:border-cream-50/10">
+            <Skeleton className="mb-4 h-3 w-20" />
+            <Skeleton className="mb-4 h-12 w-24" />
+            <Skeleton className="mb-2 h-2 w-full rounded-full" />
+            <Skeleton className="mb-6 h-4 w-48" />
+            <Skeleton className="h-11 w-full rounded-full" />
           </div>
-
-          {/* Location */}
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-48 w-full rounded-lg" />
-          </div>
-
-          {/* Volunteers */}
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <div className="flex -space-x-2">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-10 w-10 rounded-full border-2 border-background" />
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </aside>
+      </div>
     </PageContainer>
   );
 }

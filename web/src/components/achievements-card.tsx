@@ -15,7 +15,7 @@ import { motion } from "motion/react";
 import { slideUpVariants, staggerContainer, staggerItem } from "@/lib/motion";
 import { formatAchievementCriteria } from "@/lib/achievement-utils";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Trophy, Target } from "lucide-react";
 
 interface Achievement {
   id: string;
@@ -56,12 +56,19 @@ interface AchievementsData {
   shiftTypes: ShiftType[];
 }
 
+/* Category chips — kept brand-cohesive (forest + sun family) rather than the
+   old rainbow, so the achievements card reads as one piece with the dashboard. */
 const CATEGORY_COLORS = {
-  MILESTONE: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  DEDICATION: "bg-blue-100 text-blue-800 border-blue-200",
-  SPECIALIZATION: "bg-green-100 text-green-800 border-green-200",
-  COMMUNITY: "bg-purple-100 text-purple-800 border-purple-200",
-  IMPACT: "bg-red-100 text-red-800 border-red-200",
+  MILESTONE:
+    "bg-sun-200/60 text-forest-700 border-forest-500/15 dark:bg-sun-200/15 dark:text-sun-200 dark:border-cream-50/15",
+  DEDICATION:
+    "bg-forest-500/10 text-forest-700 border-forest-500/20 dark:bg-cream-50/10 dark:text-cream-50/85 dark:border-cream-50/15",
+  SPECIALIZATION:
+    "bg-forest-500/8 text-forest-700 border-forest-500/15 dark:bg-cream-50/8 dark:text-cream-50/80 dark:border-cream-50/12",
+  COMMUNITY:
+    "bg-cream-200/70 text-forest-700 border-forest-500/15 dark:bg-cream-50/10 dark:text-cream-50/80 dark:border-cream-50/15",
+  IMPACT:
+    "bg-forest-700/10 text-forest-700 border-forest-700/20 dark:bg-cream-50/10 dark:text-cream-50/85 dark:border-cream-50/15",
 };
 
 interface AchievementCriteria {
@@ -192,11 +199,16 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
   if (loading) {
     return (
       <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
-        <Card>
+        <Card className="grain relative overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span className="text-2xl">🏆</span>
-              Achievements
+            <CardTitle className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+                <Trophy className="h-5 w-5" />
+              </span>
+              <span className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                Achievements
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -207,7 +219,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="rounded-full h-8 w-8 border-b-2 border-primary"
+                className="rounded-full h-8 w-8 border-b-2 border-forest-500 dark:border-cream-50/70"
               />
             </div>
           </CardContent>
@@ -242,23 +254,28 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
 
   return (
     <motion.div variants={slideUpVariants} initial="hidden" animate="visible">
-      <Card>
+      <Card className="grain relative overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
         <CardHeader>
           <CardTitle className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🏆</span>
-              Achievements
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+                <Trophy className="h-5 w-5" />
+              </span>
+              <span className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+                Achievements
+              </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="secondary"
-                className="text-xs sm:text-sm whitespace-nowrap"
+                className="whitespace-nowrap border border-forest-500/15 bg-forest-500/8 text-xs text-forest-700 sm:text-sm dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50/85"
               >
                 {totalPoints} points
               </Badge>
               <Badge
                 variant="outline"
-                className="hidden sm:inline-flex text-xs sm:text-sm whitespace-nowrap"
+                className="hidden whitespace-nowrap border-forest-500/20 text-xs text-forest-700 sm:inline-flex sm:text-sm dark:border-cream-50/20 dark:text-cream-50/85"
               >
                 {userAchievements.length} unlocked
               </Badge>
@@ -270,7 +287,8 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
             {/* Recent Achievements */}
             {recentAchievements.length > 0 && (
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-forest-700/70 dark:text-cream-50/65">
+                  <span className="inline-block h-px w-6 bg-forest-500/40 dark:bg-cream-50/30" />
                   Recent Achievements
                 </h4>
                 <motion.div
@@ -284,14 +302,14 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                       <TooltipTrigger asChild>
                         <motion.div
                           variants={staggerItem}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border border-yellow-200 dark:border-yellow-700 transition-all hover:shadow-md hover:border-yellow-300 dark:hover:border-yellow-600 hover:scale-[1.01] cursor-pointer"
+                          className="grain flex cursor-pointer items-center gap-3 rounded-2xl border border-forest-500/15 bg-gradient-to-r from-sun-200/40 to-sun-100/30 p-3 transition-all hover:scale-[1.01] hover:border-forest-500/25 hover:shadow-md dark:border-cream-50/15 dark:from-sun-200/10 dark:to-sun-200/5 dark:hover:border-cream-50/25"
                         >
                           <div className="text-2xl flex-shrink-0">
                             {userAchievement.achievement.icon}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h5 className="font-medium text-sm">
+                              <h5 className="font-medium text-sm text-forest-700 dark:text-cream-50">
                                 {userAchievement.achievement.name}
                               </h5>
                               <Badge
@@ -306,11 +324,11 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                                 {userAchievement.achievement.category}
                               </Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-forest-700/65 dark:text-cream-50/60 mt-1">
                               {userAchievement.achievement.description}
                             </p>
                           </div>
-                          <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-forest-700 dark:text-cream-50/85 whitespace-nowrap">
                             +{userAchievement.achievement.points}
                           </div>
                         </motion.div>
@@ -332,7 +350,8 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
           {/* Next Achievements */}
           {nextAchievements.length > 0 && (
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-3">
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-forest-700/70 dark:text-cream-50/65">
+                <span className="inline-block h-px w-6 bg-forest-500/40 dark:bg-cream-50/30" />
                 Next Goals
               </h4>
               <motion.div
@@ -352,7 +371,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                       <TooltipTrigger asChild>
                         <motion.div
                           variants={staggerItem}
-                          className="flex flex-col gap-3 p-3 rounded-lg border border-muted/10 transition-all hover:border-primary/20 hover:bg-muted/30 hover:shadow-sm cursor-pointer"
+                          className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-forest-500/10 p-3 transition-all hover:border-forest-500/25 hover:bg-forest-500/5 hover:shadow-sm dark:border-cream-50/10 dark:hover:border-cream-50/20 dark:hover:bg-cream-50/5"
                         >
                           <div className="flex items-center gap-3">
                             <div className="text-2xl shrink-0 opacity-60">
@@ -360,7 +379,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <h5 className="font-medium text-sm">
+                                <h5 className="font-medium text-sm text-forest-700 dark:text-cream-50">
                                   {achievement.name}
                                 </h5>
                                 <Badge
@@ -423,7 +442,7 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
               >
                 <span className="hidden sm:inline">View All Achievements</span>
                 <span className="sm:hidden">View All</span>
-                <span className="text-muted-foreground">
+                <span className="text-forest-700/60 dark:text-cream-50/55">
                   ({userAchievements.length + availableAchievements.length})
                 </span>
                 <ArrowRight className="h-4 w-4 flex-shrink-0" />
@@ -433,10 +452,14 @@ export default function AchievementsCard({ initialData }: AchievementsCardProps 
 
           {/* Empty State */}
           {userAchievements.length === 0 && (
-            <div className="text-center py-6">
-              <div className="text-4xl mb-2">🎯</div>
-              <h4 className="font-medium mb-1">Start Your Journey!</h4>
-              <p className="text-sm text-muted-foreground">
+            <div className="py-6 text-center">
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+                <Target className="h-8 w-8" />
+              </div>
+              <h4 className="display text-lg tracking-tight text-forest-700 dark:text-cream-50">
+                Start Your Journey!
+              </h4>
+              <p className="mt-1 text-sm text-forest-700/70 dark:text-cream-50/65">
                 Complete your first shift to unlock achievements
               </p>
             </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,51 +72,65 @@ export function LeaderboardCard() {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 p-0 hover:bg-transparent -ml-1"
-              >
-                <Trophy className="h-5 w-5" />
-                <CardTitle className="text-lg">Leaderboard</CardTitle>
+      {/* Editorial cream panel (the home page's feature-card surface) with the
+          page's single warm sun moment on the trophy tile. */}
+      <section
+        className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-cream-100 dark:border-cream-50/10 dark:bg-forest-800/60"
+        data-testid="leaderboard-panel"
+      >
+        <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="group flex flex-1 cursor-pointer items-center gap-4 text-left"
+            >
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sun-200 text-forest-700 shadow-sm dark:bg-sun-200/20 dark:text-sun-200">
+                <Trophy className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="display block text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+                  Leaderboard
+                </span>
+                <span className="mt-0.5 block text-sm text-forest-700/65 dark:text-cream-50/60">
+                  See how your mahi stacks up across the whānau
+                </span>
+              </span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-forest-500/20 text-forest-500 transition-colors group-hover:border-forest-500/40 group-hover:bg-forest-500/5 dark:border-cream-50/20 dark:text-cream-50/70 dark:group-hover:border-cream-50/40 dark:group-hover:bg-cream-50/5">
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    isOpen ? "transform rotate-180" : ""
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    isOpen ? "rotate-180" : ""
                   }`}
                 />
-              </Button>
-            </CollapsibleTrigger>
-            {isOpen && data?.locations?.length && data.locations.length > 0 && (
-              <Select
-                value={selectedLocation}
-                onValueChange={setSelectedLocation}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {data?.locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </CardHeader>
+              </span>
+            </button>
+          </CollapsibleTrigger>
+          {isOpen && data?.locations?.length && data.locations.length > 0 && (
+            <Select
+              value={selectedLocation}
+              onValueChange={setSelectedLocation}
+            >
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {data?.locations.map((location) => (
+                  <SelectItem key={location} value={location}>
+                    {location}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <CollapsibleContent>
-          <CardContent>
+          <div className="px-6 pb-6 sm:px-8 sm:pb-8">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="rounded-full h-8 w-8 border-b-2 border-primary"
+                  className="rounded-full h-8 w-8 border-b-2 border-forest-500 dark:border-cream-50/70"
                 />
               </div>
             ) : (
@@ -148,7 +161,7 @@ export function LeaderboardCard() {
                     </div>
                   )}
                   <motion.div
-                    className="space-y-2"
+                    className="space-y-3"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -157,10 +170,10 @@ export function LeaderboardCard() {
                     <motion.div
                       key={user.rank}
                       variants={staggerItem}
-                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                      className={`grain relative overflow-hidden flex items-center justify-between p-4 rounded-lg border transition-colors ${
                         user.isCurrentUser
-                          ? "bg-linear-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-200 dark:border-yellow-700"
-                          : "bg-muted/30"
+                          ? "border-forest-500/20 bg-gradient-to-r from-sun-200/50 to-sun-100/40 dark:border-cream-50/15 dark:from-sun-200/15 dark:to-sun-200/5"
+                          : "border-forest-500/10 bg-card dark:border-cream-50/10 dark:bg-cream-50/5"
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -172,28 +185,33 @@ export function LeaderboardCard() {
                               ? "bg-gray-300 text-gray-900"
                               : user.rank === 3
                               ? "bg-orange-400 text-orange-900"
-                              : "bg-muted text-muted-foreground"
+                              : "bg-forest-500/10 text-forest-700 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10"
                           } font-bold text-sm`}
                         >
                           {user.rank}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium flex items-center gap-2">
+                          <div className="font-medium flex items-center gap-2 text-forest-700 dark:text-cream-50">
                             <span className="truncate">{user.name}</span>
                             {user.isCurrentUser && (
-                              <Badge variant="secondary" className="text-xs flex-shrink-0">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs flex-shrink-0 border border-forest-500/15 bg-forest-500/10 text-forest-700 dark:border-cream-50/15 dark:bg-cream-50/10 dark:text-cream-50/85"
+                              >
                                 You
                               </Badge>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-forest-700/60 dark:text-cream-50/55">
                             {user.achievementCount} achievements
                           </div>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="font-bold text-lg">{user.points}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="font-accent text-lg font-bold tabular-nums text-forest-700 dark:text-cream-50">
+                          {user.points}
+                        </div>
+                        <div className="text-xs text-forest-700/55 dark:text-cream-50/50">
                           points
                         </div>
                       </div>
@@ -203,9 +221,9 @@ export function LeaderboardCard() {
                 </div>
               )
             )}
-          </CardContent>
+          </div>
         </CollapsibleContent>
-      </Card>
+      </section>
     </Collapsible>
   );
 }

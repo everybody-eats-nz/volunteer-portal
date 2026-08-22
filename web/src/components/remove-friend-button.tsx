@@ -11,8 +11,7 @@ import {
   ResponsiveDialogTrigger,
 } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangleIcon, UserMinusIcon } from "lucide-react";
+import { UserMinusIcon } from "lucide-react";
 import { MotionSpinner } from "@/components/motion-spinner";
 import { removeFriend } from "@/lib/friends-actions";
 
@@ -42,55 +41,66 @@ export function RemoveFriendButton({ friendId }: RemoveFriendButtonProps) {
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+        <button
+          type="button"
           data-testid="remove-friend-trigger"
+          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium text-red-700/80 transition-colors hover:bg-red-50 hover:text-red-700 dark:text-red-400/80 dark:hover:bg-red-950/30 dark:hover:text-red-400"
         >
           Remove
-        </Button>
+        </button>
       </ResponsiveDialogTrigger>
-      <ResponsiveDialogContent className="sm:max-w-lg" data-testid="remove-friend-dialog">
+      <ResponsiveDialogContent
+        className="sm:max-w-lg"
+        data-testid="remove-friend-dialog"
+      >
         <ResponsiveDialogHeader className="text-center sm:text-left">
-          <ResponsiveDialogTitle className="flex items-center justify-center sm:justify-start gap-2 text-red-600" data-testid="remove-friend-dialog-title">
-            <UserMinusIcon className="h-5 w-5" />
+          <ResponsiveDialogTitle
+            className="display display-medium flex items-center justify-center gap-2 text-2xl tracking-tight text-red-700 sm:justify-start dark:text-red-400"
+            data-testid="remove-friend-dialog-title"
+          >
+            <UserMinusIcon className="h-5 w-5" aria-hidden />
             Remove Friend
           </ResponsiveDialogTitle>
-          <ResponsiveDialogDescription className="mt-2">
-            Are you sure you want to remove this person from your friends list? This action cannot be undone.
+          <ResponsiveDialogDescription className="mt-2 leading-relaxed">
+            Are you sure you want to remove this person from your friends list?
+            This action cannot be undone.
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <div className="py-4">
-          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/50">
-            <AlertTriangleIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-amber-800 dark:text-amber-200">
-              <div className="space-y-3">
-                <p className="font-medium text-sm">Removing this friend will:</p>
-                <ul className="text-sm space-y-1.5 ml-1">
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                    Remove them from your friends list
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                    Remove you from their friends list
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 dark:text-amber-400 mt-0.5">•</span>
-                    Hide your volunteer activity from each other (based on privacy settings)
-                  </li>
-                </ul>
-                <p className="text-sm mt-3 pt-2 border-t border-amber-200 dark:border-amber-800">
-                  <strong>Note:</strong> You can send them a new friend request later if you change your mind.
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <div className="grain relative overflow-hidden rounded-2xl border border-forest-500/10 bg-cream-100 p-5 dark:border-cream-50/10 dark:bg-forest-800/60">
+            <p className="text-sm font-medium text-forest-700 dark:text-cream-50">
+              Removing this friend will:
+            </p>
+            <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-forest-700/80 dark:text-cream-50/75">
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-forest-500 dark:text-cream-50/60">
+                  •
+                </span>
+                Remove them from your friends list
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-forest-500 dark:text-cream-50/60">
+                  •
+                </span>
+                Remove you from their friends list
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-0.5 text-forest-500 dark:text-cream-50/60">
+                  •
+                </span>
+                Hide your volunteer activity from each other (based on privacy
+                settings)
+              </li>
+            </ul>
+            <p className="mt-4 border-t border-forest-500/10 pt-3 text-sm text-forest-700/80 dark:border-cream-50/10 dark:text-cream-50/75">
+              <strong>Note:</strong> You can send them a new friend request
+              later if you change your mind.
+            </p>
+          </div>
         </div>
 
-        <ResponsiveDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-4">
+        <ResponsiveDialogFooter className="flex flex-col-reverse gap-2 pt-4 sm:flex-row">
           <Button
             variant="outline"
             onClick={() => setOpen(false)}
@@ -114,7 +124,7 @@ export function RemoveFriendButton({ friendId }: RemoveFriendButtonProps) {
               </>
             ) : (
               <>
-                <UserMinusIcon className="h-4 w-4 mr-2" />
+                <UserMinusIcon className="h-4 w-4" aria-hidden />
                 Remove Friend
               </>
             )}

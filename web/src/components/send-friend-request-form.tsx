@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, Mail, MessageSquare, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { sendFriendRequest } from "@/lib/friends-actions";
 import { MotionSpinner } from "@/components/motion-spinner";
+
+/* Form inputs — soft-rounded with forest focus ring, matching the login page. */
+const inputStyles =
+  "rounded-xl border-forest-500/20 focus-visible:border-forest-500 focus-visible:ring-forest-500/20 dark:border-cream-50/15";
 
 interface SendFriendRequestFormProps {
   open: boolean;
@@ -50,7 +54,7 @@ export function SendFriendRequestForm({
     } catch (error) {
       console.error(error);
       setError("An error occurred while sending the friend request");
-      setRetryCount(prev => prev + 1);
+      setRetryCount((prev) => prev + 1);
     } finally {
       setIsSubmitting(false);
     }
@@ -83,9 +87,12 @@ export function SendFriendRequestForm({
         data-testid="send-friend-request-dialog"
       >
         <ResponsiveDialogHeader className="pb-4">
-          <ResponsiveDialogTitle className="flex items-center space-x-2">
-            <UserPlus className="h-5 w-5" />
-            <span>Send Friend Request</span>
+          <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            Grow the whānau
+          </p>
+          <ResponsiveDialogTitle className="display display-medium mt-2 text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+            Send Friend Request
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
 
@@ -95,9 +102,11 @@ export function SendFriendRequestForm({
           className="space-y-6"
         >
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center space-x-2">
-              <Mail className="h-4 w-4" />
-              <span>Email Address</span>
+            <Label
+              htmlFor="email"
+              className="font-medium text-forest-700 dark:text-cream-50"
+            >
+              Email Address
             </Label>
             <Input
               id="email"
@@ -106,28 +115,32 @@ export function SendFriendRequestForm({
               placeholder="friend@example.com"
               defaultValue={prefillEmail}
               required
+              className={`h-11 ${inputStyles}`}
               data-testid="friend-request-email-input"
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
               Enter the email address of the person you&apos;d like to add as a
               friend.
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="message" className="flex items-center space-x-2">
-              <MessageSquare className="h-4 w-4" />
-              <span>Personal Message (Optional)</span>
+            <Label
+              htmlFor="message"
+              className="font-medium text-forest-700 dark:text-cream-50"
+            >
+              Personal Message (Optional)
             </Label>
             <Textarea
               id="message"
               name="message"
-              placeholder="Hey! Would love to volunteer together sometime. Let's be friends on the portal!"
+              placeholder="Kia ora! Would love to volunteer together sometime. Let's be friends on the portal!"
               rows={3}
               maxLength={500}
+              className={inputStyles}
               data-testid="friend-request-message-input"
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
               Add a personal message to your friend request (max 500
               characters).
             </p>
@@ -135,10 +148,10 @@ export function SendFriendRequestForm({
 
           {error && (
             <div
-              className="bg-destructive/10 border border-destructive/20 rounded-md p-3 space-y-3"
+              className="space-y-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40"
               data-testid="friend-request-error"
             >
-              <p className="text-destructive text-sm">{error}</p>
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
               {retryCount > 0 && retryCount < 3 && (
                 <Button
                   type="button"
@@ -148,19 +161,20 @@ export function SendFriendRequestForm({
                   disabled={isSubmitting}
                   className="flex items-center gap-2"
                 >
-                  <RefreshCw className="h-3 w-3" />
+                  <RefreshCw className="h-3 w-3" aria-hidden />
                   Try Again
                 </Button>
               )}
               {retryCount >= 3 && (
-                <p className="text-destructive/80 text-xs">
-                  Multiple attempts failed. Please check your connection and try again later.
+                <p className="text-xs text-red-700/80 dark:text-red-300/80">
+                  Multiple attempts failed. Please check your connection and
+                  try again later.
                 </p>
               )}
             </div>
           )}
 
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-6">
+          <div className="flex flex-col-reverse gap-2 pt-6 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"

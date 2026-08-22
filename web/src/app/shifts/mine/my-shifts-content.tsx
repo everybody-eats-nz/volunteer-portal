@@ -1,34 +1,45 @@
 import { prisma } from "@/lib/prisma";
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  differenceInHours,
-  startOfWeek,
-  endOfWeek,
-  isSameMonth,
-} from "date-fns";
-import { formatInNZT, getStartOfDayUTC, isSameDayInNZT } from "@/lib/timezone";
+import { format, startOfMonth, endOfMonth, differenceInHours } from "date-fns";
+import { formatInNZT, isSameDayInNZT } from "@/lib/timezone";
 import { safeParseAvailability } from "@/lib/parse-availability";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnimatedStatsGrid } from "@/components/animated-stats-grid";
 import { Button } from "@/components/ui/button";
+import { StatBand } from "@/components/ui/stat-band";
+import { AvatarList } from "@/components/ui/avatar-list";
 import { ShiftDetailsDialog } from "./shift-details-dialog";
 import { StatusBadge } from "./status-badge";
 import { getShiftTheme } from "@/lib/shift-themes";
 import {
-  Calendar,
-  Timer,
-  UserCheck,
+  CalendarPlus,
   ChevronLeft,
   ChevronRight,
-  CalendarPlus,
+  Clock,
+  MapPin,
 } from "lucide-react";
 
 // Export the shift signup type for use by ShiftDetailsDialog
 export type ShiftSignup = Awaited<ReturnType<typeof fetchMonthShifts>>[number];
+
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
+
+/* Pill links — shared brand system with the marketing site
+   (marketing-cms STYLEGUIDE.md: btn-primary / btn-ghost). */
+const pill =
+  "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition-all duration-200";
+const pillPrimary = `${pill} bg-forest-500 text-cream-50 hover:bg-forest-600 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0`;
+const pillGhost = `${pill} border border-forest-500/30 text-forest-700 hover:bg-forest-700 hover:text-cream-50 hover:border-forest-700 dark:border-cream-50/30 dark:text-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700`;
+
+const eyebrowLight =
+  "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
+const eyebrowRule =
+  "inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40";
 
 async function fetchMonthShifts(
   userId: string,
@@ -95,13 +106,10 @@ export async function MyShiftsContent({
   monthParam,
 }: MyShiftsContentProps) {
   const now = new Date();
-  const startOfTodayNZ = getStartOfDayUTC(now);
 
-  // Parse month/year for calendar navigation
+  // Parse month/year for schedule navigation
   const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const viewMonth = monthParam
-    ? new Date(parseInt(monthParam))
-    : currentMonth;
+  const viewMonth = monthParam ? new Date(parseInt(monthParam)) : currentMonth;
 
   const monthStart = startOfMonth(viewMonth);
   const monthEnd = endOfMonth(viewMonth);
@@ -152,40 +160,9 @@ export async function MyShiftsContent({
         },
         select: {
           id: true,
-          userId: true,
-          shiftId: true,
           status: true,
-          createdAt: true,
-          updatedAt: true,
           shift: {
-            include: {
-              shiftType: true,
-              signups: {
-                where:
-                  userFriendIds.length > 0
-                    ? {
-                        userId: { in: userFriendIds },
-                        status: {
-                          in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
-                        },
-                      }
-                    : {
-                        id: { equals: "never-match" },
-                      },
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      firstName: true,
-                      lastName: true,
-                      email: true,
-                      profilePhotoUrl: true,
-                    },
-                  },
-                },
-              },
-            },
+            select: { start: true, end: true },
           },
         },
         orderBy: { shift: { start: "asc" } },
@@ -239,47 +216,67 @@ export async function MyShiftsContent({
 
   const [completedShifts, upcomingShifts] = totalStats;
 
-  // Generate calendar days with proper week alignment
-  const calendarStart = startOfWeek(monthStart);
-  const calendarEnd = endOfWeek(monthEnd);
-  const calendarDays = eachDayOfInterval({
-    start: calendarStart,
-    end: calendarEnd,
-  });
+  const totalHours = Math.round(
+    allShifts
+      .filter((s) => s.shift.end < now && s.status === "CONFIRMED")
+      .reduce(
+        (total, s) => total + differenceInHours(s.shift.end, s.shift.start),
+        0
+      )
+  );
 
-  // Group shifts by date
-  const shiftsByDate = new Map<string, typeof monthShifts>();
-  for (const shift of monthShifts) {
-    const dateKey = formatInNZT(shift.shift.start, "yyyy-MM-dd");
-    if (!shiftsByDate.has(dateKey)) {
-      shiftsByDate.set(dateKey, []);
-    }
-    shiftsByDate.get(dateKey)!.push(shift);
-  }
+  // Split the month's shifts into upcoming and past
+  const sortedMonthShifts = [...monthShifts].sort(
+    (a, b) => a.shift.start.getTime() - b.shift.start.getTime()
+  );
+  const upcoming = sortedMonthShifts.filter((s) => s.shift.end >= now);
+  const past = sortedMonthShifts
+    .filter((s) => s.shift.end < now)
+    .reverse(); // most recent first
 
-  // Group available shifts by date
-  type AvailableShift = typeof availableShifts extends readonly (infer T)[]
-    ? T
-    : never;
-  const availableShiftsByDate = new Map<string, AvailableShift[]>();
+  // Group open shifts (spots available, preferred locations) by day for the
+  // "more mahi" strip — one chip per day, deep-linking to that day's page.
+  const openDays = new Map<
+    string,
+    { date: Date; count: number; locations: Set<string> }
+  >();
   for (const shift of availableShifts) {
-    const dateKey = formatInNZT(shift.start, "yyyy-MM-dd");
-    if (!availableShiftsByDate.has(dateKey)) {
-      availableShiftsByDate.set(dateKey, []);
-    }
     const confirmedSignups = shift.signups.filter(
       (s) => s.status === "CONFIRMED"
     ).length;
     const pendingSignups = shift.signups.filter(
       (s) => s.status === "PENDING" || s.status === "REGULAR_PENDING"
     ).length;
-    const hasAvailableSpots =
-      confirmedSignups + pendingSignups < shift.capacity;
+    if (confirmedSignups + pendingSignups >= shift.capacity) continue;
 
-    if (hasAvailableSpots) {
-      availableShiftsByDate.get(dateKey)!.push(shift);
+    const dateKey = formatInNZT(shift.start, "yyyy-MM-dd");
+    const existing = openDays.get(dateKey);
+    if (existing) {
+      existing.count++;
+      if (shift.location) existing.locations.add(shift.location);
+    } else {
+      openDays.set(dateKey, {
+        date: shift.start,
+        count: 1,
+        locations: new Set(shift.location ? [shift.location] : []),
+      });
     }
   }
+  const openDayChips = Array.from(openDays.entries())
+    .map(([dateKey, { date, count, locations }]) => ({
+      dateKey,
+      date,
+      count,
+      // When every open shift that day is at one location, link straight to
+      // that location's day view; otherwise the day view shows all locations.
+      href:
+        locations.size === 1
+          ? `/shifts/details?date=${dateKey}&location=${encodeURIComponent(
+              [...locations][0]
+            )}`
+          : `/shifts/details?date=${dateKey}`,
+    }))
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
 
   const prevMonth = new Date(
     viewMonth.getFullYear(),
@@ -291,612 +288,359 @@ export async function MyShiftsContent({
     viewMonth.getMonth() + 1,
     1
   );
+  const isViewingCurrentMonth =
+    viewMonth.getMonth() === currentMonth.getMonth() &&
+    viewMonth.getFullYear() === currentMonth.getFullYear();
+  const isPastMonth = monthEnd < now;
+
+  const stats = [
+    {
+      label: "Shifts completed",
+      value: completedShifts,
+      testId: "completed-shifts-card",
+    },
+    {
+      label: "Coming up",
+      value: upcomingShifts,
+      testId: "upcoming-shifts-card",
+    },
+    {
+      label: "This month",
+      value: monthShifts.length,
+      testId: "this-month-shifts-card",
+    },
+    {
+      label: "Hours of mahi",
+      value: totalHours,
+      testId: "total-hours-card",
+    },
+  ];
 
   return (
     <>
-      {/* Stats Overview */}
-      <div data-testid="stats-overview">
-        <AnimatedStatsGrid
-          useStatsGrid={false}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-          stats={[
-            {
-              title: "Completed",
-              value: completedShifts,
-              iconType: "checkCircle",
-              variant: "green",
-              testId: "completed-shifts-card",
-            },
-            {
-              title: "Upcoming",
-              value: upcomingShifts,
-              iconType: "calendar",
-              variant: "blue",
-              testId: "upcoming-shifts-card",
-            },
-            {
-              title: "Shifts This Month",
-              value: monthShifts.length,
-              iconType: "timer",
-              variant: "purple",
-              testId: "this-month-shifts-card",
-            },
-            {
-              title: "Total Hours",
-              value: Math.round(
-                allShifts
-                  .filter((s) => s.shift.end < now && s.status === "CONFIRMED")
-                  .reduce(
-                    (total, s) =>
-                      total + differenceInHours(s.shift.end, s.shift.start),
-                    0
-                  )
-              ),
-              iconType: "timer",
-              variant: "amber",
-              testId: "total-hours-card",
-            },
-          ]}
-        />
-      </div>
+      {/* Stats overview — editorial hairline band, matching the landing
+          page's "mahi in numbers" treatment. */}
+      <StatBand testId="stats-overview" className="mb-8" stats={stats} />
 
-      {/* Schedule View */}
-      <Card data-testid="calendar-view">
-        <CardHeader className="pb-4">
-          {/* Mobile Header Layout */}
-          <div className="sm:hidden">
-            <CardTitle className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <div
-                  className="text-xl font-bold"
-                  data-testid="mobile-calendar-title"
-                >
-                  {format(viewMonth, "MMMM yyyy")}
-                </div>
-                <div
-                  className="text-sm text-muted-foreground font-normal"
-                  data-testid="mobile-calendar-description"
-                >
-                  Your volunteer schedule
-                </div>
-              </div>
-            </CardTitle>
-            <div
-              className="flex items-center justify-center gap-1.5"
-              data-testid="mobile-calendar-navigation"
+      {/* Schedule panel */}
+      <section
+        data-testid="schedule-panel"
+        className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-5 sm:p-8 dark:border-cream-50/10"
+      >
+        {/* Month header + navigation */}
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p data-testid="month-description" className={`${eyebrowLight} mb-3`}>
+              <span className={eyebrowRule} />
+              Your volunteer schedule
+            </p>
+            <h2
+              data-testid="month-title"
+              className="display text-3xl tracking-tight text-forest-700 sm:text-4xl dark:text-cream-50"
             >
+              {format(viewMonth, "MMMM")} <em>{format(viewMonth, "yyyy")}</em>
+            </h2>
+          </div>
+          <div
+            className="flex items-center gap-2"
+            data-testid="month-navigation"
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              data-testid="prev-month-button"
+            >
+              <Link
+                href={{
+                  pathname: "/shifts/mine",
+                  query: { month: prevMonth.getTime().toString() },
+                }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Prev</span>
+              </Link>
+            </Button>
+
+            {!isViewingCurrentMonth && (
               <Button
                 variant="outline"
                 size="sm"
                 asChild
-                className="hover:bg-blue-50 hover:border-blue-300 transition-colors flex-1 h-8 px-2 text-xs"
-                data-testid="mobile-prev-month-button"
+                data-testid="today-button"
+                className="border-sun-300/70 bg-sun-100 text-forest-700 hover:bg-sun-200 dark:border-sun-200/30 dark:bg-sun-200/15 dark:text-sun-100 dark:hover:bg-sun-200/25"
               >
-                <Link
-                  href={{
-                    pathname: "/shifts/mine",
-                    query: { month: prevMonth.getTime().toString() },
-                  }}
-                  className="flex items-center justify-center"
-                >
-                  <ChevronLeft className="h-3 w-3 mr-1" />
-                  Previous
-                </Link>
+                <Link href="/shifts/mine">Today</Link>
               </Button>
+            )}
 
-              {viewMonth.getMonth() !== currentMonth.getMonth() ||
-              viewMonth.getFullYear() !== currentMonth.getFullYear() ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 h-8 px-2 text-xs"
-                  data-testid="mobile-today-button"
-                >
-                  <Link href="/shifts/mine">Today</Link>
-                </Button>
-              ) : null}
-
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="hover:bg-blue-50 hover:border-blue-300 transition-colors flex-1 h-8 px-2 text-xs"
-                data-testid="mobile-next-month-button"
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              data-testid="next-month-button"
+            >
+              <Link
+                href={{
+                  pathname: "/shifts/mine",
+                  query: { month: nextMonth.getTime().toString() },
+                }}
               >
+                <span>Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {monthShifts.length === 0 ? (
+          <EmptyMonth viewMonth={viewMonth} isPastMonth={isPastMonth} />
+        ) : (
+          <div data-testid="shift-list" className="space-y-8">
+            {/* Upcoming shifts */}
+            {!isPastMonth && (
+              <div className="space-y-3" data-testid="upcoming-section">
+                <p className={eyebrowLight}>
+                  <span className={eyebrowRule} />
+                  Coming up
+                  {upcoming.length > 0 && (
+                    <span className="text-forest-500/60 dark:text-cream-50/45">
+                      · {upcoming.length}
+                    </span>
+                  )}
+                </p>
+                {upcoming.length > 0 ? (
+                  upcoming.map((shift) => (
+                    <ShiftRow
+                      key={shift.id}
+                      shift={shift}
+                      now={now}
+                      isPast={false}
+                    />
+                  ))
+                ) : (
+                  <div
+                    data-testid="no-upcoming"
+                    className="rounded-2xl border border-dashed border-forest-500/20 px-6 py-8 text-center dark:border-cream-50/20"
+                  >
+                    <p className="text-sm leading-relaxed text-forest-700/70 dark:text-cream-50/70">
+                      Nothing else booked this month — there&apos;s always room
+                      for more helping hands.
+                    </p>
+                    <Link href="/shifts" className={`${pillGhost} mt-4`}>
+                      Browse shifts
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Past shifts */}
+            {past.length > 0 && (
+              <div className="space-y-3" data-testid="past-section">
+                <p className={eyebrowLight}>
+                  <span className={eyebrowRule} />
+                  {isPastMonth ? "Completed shifts" : "Earlier this month"}
+                  <span className="text-forest-500/60 dark:text-cream-50/45">
+                    · {past.length}
+                  </span>
+                </p>
+                {past.map((shift) => (
+                  <ShiftRow
+                    key={shift.id}
+                    shift={shift}
+                    now={now}
+                    isPast={true}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Open days — more mahi available this month */}
+        {openDayChips.length > 0 && (
+          <div
+            data-testid="open-days"
+            className="grain relative mt-8 overflow-hidden rounded-2xl bg-sun-100/70 p-5 ring-1 ring-forest-500/10 sm:p-6 dark:bg-sun-200/10 dark:ring-cream-50/10"
+          >
+            <p className="eyebrow flex items-center gap-3 text-forest-600/80 dark:text-sun-200/80">
+              <span className="inline-block h-px w-8 bg-forest-500/40 dark:bg-sun-200/40" />
+              More mahi this month
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-forest-700/80 dark:text-cream-50/75">
+              There&apos;s still room on{" "}
+              {openDayChips.length === 1
+                ? "one day"
+                : `${openDayChips.length} days`}{" "}
+              at your preferred locations — the whānau would love a hand.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {openDayChips.map((day) => (
                 <Link
-                  href={{
-                    pathname: "/shifts/mine",
-                    query: { month: nextMonth.getTime().toString() },
-                  }}
-                  className="flex items-center justify-center"
+                  key={day.dateKey}
+                  href={day.href}
+                  data-testid="open-day-chip"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-forest-500/15 bg-background px-3.5 py-1.5 text-xs font-medium text-forest-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-forest-500/40 hover:shadow-md dark:border-cream-50/15 dark:text-cream-50"
                 >
-                  Next
-                  <ChevronRight className="h-3 w-3 ml-1" />
+                  <CalendarPlus className="h-3 w-3" />
+                  {formatInNZT(day.date, "EEE d")} · {day.count} available
                 </Link>
-              </Button>
+              ))}
             </div>
           </div>
-
-          {/* Desktop Header Layout */}
-          <div className="hidden sm:flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-xl font-bold" data-testid="calendar-title">
-                  {format(viewMonth, "MMMM yyyy")}
-                </div>
-                <div
-                  className="text-sm text-muted-foreground font-normal"
-                  data-testid="calendar-description"
-                >
-                  Your volunteer schedule
-                </div>
-              </div>
-            </CardTitle>
-            <div
-              className="flex items-center gap-2"
-              data-testid="calendar-navigation"
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                data-testid="prev-month-button"
-              >
-                <Link
-                  href={{
-                    pathname: "/shifts/mine",
-                    query: { month: prevMonth.getTime().toString() },
-                  }}
-                  className="flex items-center"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="ml-1">Prev</span>
-                </Link>
-              </Button>
-
-              {viewMonth.getMonth() !== currentMonth.getMonth() ||
-              viewMonth.getFullYear() !== currentMonth.getFullYear() ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
-                  data-testid="today-button"
-                >
-                  <Link href="/shifts/mine">Today</Link>
-                </Button>
-              ) : null}
-
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                data-testid="next-month-button"
-              >
-                <Link
-                  href={{
-                    pathname: "/shifts/mine",
-                    query: { month: nextMonth.getTime().toString() },
-                  }}
-                  className="flex items-center"
-                >
-                  <span className="mr-1">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          {/* Desktop Calendar Grid */}
-          <DesktopCalendarGrid
-            calendarDays={calendarDays}
-            shiftsByDate={shiftsByDate}
-            availableShiftsByDate={availableShiftsByDate}
-            viewMonth={viewMonth}
-            now={now}
-            startOfTodayNZ={startOfTodayNZ}
-          />
-
-          {/* Mobile List View */}
-          <MobileListView
-            calendarDays={calendarDays}
-            shiftsByDate={shiftsByDate}
-            availableShiftsByDate={availableShiftsByDate}
-            viewMonth={viewMonth}
-            now={now}
-            startOfTodayNZ={startOfTodayNZ}
-          />
-        </CardContent>
-      </Card>
+        )}
+      </section>
     </>
   );
 }
 
-// --- Desktop Calendar Grid ---
+// --- Shift row ---
 
-function DesktopCalendarGrid({
-  calendarDays,
-  shiftsByDate,
-  availableShiftsByDate,
-  viewMonth,
+function ShiftRow({
+  shift,
   now,
-  startOfTodayNZ,
+  isPast,
 }: {
-  calendarDays: Date[];
-  shiftsByDate: Map<string, ShiftSignup[]>;
-  availableShiftsByDate: Map<string, unknown[]>;
-  viewMonth: Date;
+  shift: ShiftSignup;
   now: Date;
-  startOfTodayNZ: Date;
+  isPast: boolean;
 }) {
+  const theme = getShiftTheme(shift.shift.shiftType.name);
+  const isToday = isSameDayInNZT(shift.shift.start, now);
+  const friendCount = shift.shift.signups.length;
+
   return (
-    <div
-      className="hidden sm:grid grid-cols-7 gap-3"
-      data-testid="calendar-grid"
-    >
-      {/* Day headers */}
-      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-        <div
-          key={day}
-          className={`py-3 px-2 text-center text-sm font-semibold tracking-wide ${
-            index === 0 || index === 6
-              ? "text-muted-foreground"
-              : "text-foreground"
-          }`}
-        >
-          {day}
-        </div>
-      ))}
-
-      {/* Calendar days */}
-      {calendarDays.map((day) => {
-        const dateKey = format(day, "yyyy-MM-dd");
-        const dayShifts = shiftsByDate.get(dateKey) || [];
-        const dayAvailable = (availableShiftsByDate.get(dateKey) || []) as unknown[];
-        const isCurrentMonth = isSameMonth(day, viewMonth);
-        const isToday = isSameDayInNZT(day, now);
-        const isPast = day < startOfTodayNZ;
-        const shift = dayShifts[0];
-        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-
-        return (
+    <ShiftDetailsDialog shift={shift} now={now}>
+      <button
+        type="button"
+        data-testid="shift-row"
+        className={`group block w-full rounded-2xl border p-4 text-left transition-all duration-200 sm:p-5 ${
+          isPast
+            ? "border-forest-500/10 bg-cream-100/60 opacity-75 hover:opacity-100 dark:border-cream-50/10 dark:bg-forest-800/40"
+            : "border-forest-500/10 bg-background shadow-sm hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/10"
+        }`}
+      >
+        <div className="flex items-center gap-3 sm:gap-5">
+          {/* Date block */}
           <div
-            key={dateKey}
-            className={`
-              min-h-[140px] p-3 rounded-xl relative flex flex-col
-              transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-lg
-              ${
-                !isCurrentMonth
-                  ? "bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/40 dark:border-gray-700/40 opacity-50"
-                  : isPast
-                  ? "bg-gray-50/70 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/60 shadow-sm"
-                  : isToday
-                  ? "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border-2 border-blue-300 dark:border-blue-700 shadow-md ring-2 ring-blue-200/40 dark:ring-blue-800/40"
-                  : isWeekend
-                  ? "bg-gray-50/50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                  : "bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-              }
-            `}
+            className="w-11 shrink-0 text-center sm:w-12"
+            data-testid="shift-row-date"
           >
-            {/* Date number */}
-            <div className="flex items-center justify-between mb-2">
-              <div
-                data-testid="calendar-day-number"
-                className={`
-                  text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center
-                  ${
-                    !isCurrentMonth
-                      ? "text-gray-400 dark:text-gray-600"
-                      : isPast
-                      ? "text-gray-400 dark:text-gray-600"
-                      : isToday
-                      ? "text-white bg-blue-500 shadow-md"
-                      : "text-gray-700 dark:text-gray-300"
-                  }
-                `}
-              >
-                {format(day, "d")}
-              </div>
-              {isToday && (
-                <div className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-full">
-                  Today
-                </div>
-              )}
+            <div className="eyebrow text-forest-500/70 dark:text-cream-50/55">
+              {formatInNZT(shift.shift.start, "EEE")}
             </div>
-
-            {/* Shift content */}
-            <div className="flex-1 flex flex-col justify-center">
-              {shift ? (
-                <ShiftDetailsDialog shift={shift} now={now}>
-                  <div className="w-full group cursor-pointer">
-                    {(() => {
-                      const theme = getShiftTheme(shift.shift.shiftType.name);
-                      return (
-                        <div
-                          className={`
-                            relative p-3 rounded-lg text-white shadow-md
-                            transition-all duration-200 ease-in-out
-                            group-hover:shadow-lg group-hover:scale-105
-                            ${
-                              isPast
-                                ? `bg-gradient-to-br ${theme.fullGradient} opacity-50`
-                                : `bg-gradient-to-br ${theme.fullGradient} hover:shadow-xl`
-                            }
-                          `}
-                        >
-                          <div className="text-center space-y-1">
-                            <div className="text-xl">{theme.emoji}</div>
-                            <div className="font-bold text-sm">
-                              {formatInNZT(shift.shift.start, "HH:mm")}
-                            </div>
-                            <div className="text-xs opacity-90 font-medium line-clamp-2">
-                              {shift.shift.shiftType.name}
-                            </div>
-                            {shift.shift.signups.length > 0 && (
-                              <div className="flex justify-center mt-1">
-                                <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5">
-                                  <UserCheck className="h-3 w-3" />
-                                  <span className="text-xs font-medium">
-                                    +{shift.shift.signups.length}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-lg pointer-events-none" />
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </ShiftDetailsDialog>
-              ) : (
-                <div className="text-center">
-                  {isPast ? (
-                    <div className="text-gray-400 dark:text-gray-600 text-xs font-medium">
-                      No shifts
-                    </div>
-                  ) : dayAvailable.length > 0 ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="h-7 px-3 text-xs font-medium border-dashed border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-400 dark:hover:border-blue-600 transition-all duration-200"
-                    >
-                      <Link
-                        href={`/shifts?date=${dateKey}`}
-                        className="flex items-center gap-1"
-                      >
-                        <CalendarPlus className="h-3 w-3" />
-                        {dayAvailable.length} available
-                      </Link>
-                    </Button>
-                  ) : (
-                    <div className="text-gray-400 dark:text-gray-600 text-xs font-medium">
-                      No shifts
-                    </div>
-                  )}
-                </div>
-              )}
+            <div className="display mt-0.5 text-2xl leading-none text-forest-700 tabular-nums sm:text-3xl dark:text-cream-50">
+              {formatInNZT(shift.shift.start, "d")}
             </div>
           </div>
-        );
-      })}
-    </div>
+
+          <div className="h-12 w-px shrink-0 bg-forest-500/10 dark:bg-cream-50/15" />
+
+          {/* Shift info */}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="display display-medium text-lg leading-tight tracking-tight text-forest-700 sm:text-xl dark:text-cream-50">
+                {shift.shift.shiftType.name}
+              </span>
+              <span aria-hidden className="text-sm">
+                {theme.emoji}
+              </span>
+              {isToday && !isPast && (
+                <span
+                  data-testid="today-pill"
+                  className="rounded-full bg-sun-200 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-forest-700"
+                >
+                  Today
+                </span>
+              )}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-forest-700/70 dark:text-cream-50/65">
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" aria-hidden />
+                {formatInNZT(shift.shift.start, "h:mm a")} –{" "}
+                {formatInNZT(shift.shift.end, "h:mm a")}
+              </span>
+              {shift.shift.location && (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden />
+                  {shift.shift.location}
+                </span>
+              )}
+              {friendCount > 0 && (
+                <span
+                  data-testid="friend-chip"
+                  className="inline-flex items-center gap-2"
+                >
+                  {/* Links stay off — the whole row is already a button */}
+                  <AvatarList
+                    users={shift.shift.signups.map((signup) => signup.user)}
+                    size="sm"
+                    maxDisplay={3}
+                    enableLinks={false}
+                  />
+                  <span className="text-xs font-medium text-forest-700/70 dark:text-cream-50/65">
+                    {isPast ? "joined" : "joining"}
+                  </span>
+                </span>
+              )}
+              {/* On narrow screens the status joins the meta line so the
+                  title keeps room to breathe */}
+              <span className="sm:hidden">
+                <StatusBadge status={shift.status} isPast={isPast} />
+              </span>
+            </div>
+          </div>
+
+          {/* Status + affordance */}
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <span className="hidden sm:block">
+              <StatusBadge status={shift.status} isPast={isPast} />
+            </span>
+            <ChevronRight
+              className="h-4 w-4 text-forest-500/40 transition-transform group-hover:translate-x-0.5 dark:text-cream-50/40"
+              aria-hidden
+            />
+          </div>
+        </div>
+      </button>
+    </ShiftDetailsDialog>
   );
 }
 
-// --- Mobile List View ---
+// --- Empty month state ---
 
-function MobileListView({
-  calendarDays,
-  shiftsByDate,
-  availableShiftsByDate,
+function EmptyMonth({
   viewMonth,
-  now,
-  startOfTodayNZ,
+  isPastMonth,
 }: {
-  calendarDays: Date[];
-  shiftsByDate: Map<string, ShiftSignup[]>;
-  availableShiftsByDate: Map<string, unknown[]>;
   viewMonth: Date;
-  now: Date;
-  startOfTodayNZ: Date;
+  isPastMonth: boolean;
 }) {
   return (
-    <div className="sm:hidden space-y-3" data-testid="mobile-list-view">
-      {calendarDays.map((day) => {
-        const dateKey = format(day, "yyyy-MM-dd");
-        const dayShifts = shiftsByDate.get(dateKey) || [];
-        const dayAvailable = (availableShiftsByDate.get(dateKey) || []) as unknown[];
-        const isCurrentMonth = isSameMonth(day, viewMonth);
-        const isToday = isSameDayInNZT(day, now);
-        const isPast = day < startOfTodayNZ;
-        const shift = dayShifts[0];
-
-        if (
-          (!shift && dayAvailable.length === 0 && !isToday) ||
-          !isCurrentMonth
-        ) {
-          return null;
-        }
-
-        return (
-          <div
-            key={dateKey}
-            className={`
-              p-4 rounded-xl border transition-all duration-200
-              ${
-                isPast
-                  ? "bg-gray-50/70 dark:bg-gray-900/30 border-gray-200/60 dark:border-gray-700/60"
-                  : isToday
-                  ? "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border-blue-300 dark:border-blue-700 shadow-md ring-1 ring-blue-200/40 dark:ring-blue-800/40"
-                  : "bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:shadow-md"
-              }
-            `}
-          >
-            {/* Date Header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div
-                  data-testid="calendar-day-number"
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center font-bold
-                    ${
-                      isPast
-                        ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600"
-                        : isToday
-                        ? "bg-blue-500 text-white shadow-md"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-                    }
-                  `}
-                >
-                  {format(day, "d")}
-                </div>
-                <div>
-                  <div className="font-semibold text-sm">
-                    {format(day, "EEEE")}
-                    {isToday && (
-                      <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                        Today
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {format(day, "MMMM d, yyyy")}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Shift Content */}
-            {shift ? (
-              <ShiftDetailsDialog shift={shift} now={now}>
-                <div className="cursor-pointer">
-                  {(() => {
-                    const theme = getShiftTheme(shift.shift.shiftType.name);
-                    return (
-                      <div
-                        className={`
-                          relative p-4 rounded-lg text-white shadow-md
-                          transition-all duration-200 ease-in-out hover:shadow-lg
-                          ${
-                            isPast
-                              ? `bg-gradient-to-br ${theme.fullGradient} opacity-50`
-                              : `bg-gradient-to-br ${theme.fullGradient} hover:shadow-xl`
-                          }
-                        `}
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-4">
-                            <div className="text-3xl">{theme.emoji}</div>
-                            <div className="flex-1">
-                              <div className="font-bold text-lg">
-                                {shift.shift.shiftType.name}
-                              </div>
-                              <div className="text-sm opacity-90 flex items-center gap-2 mt-1">
-                                <Timer className="h-4 w-4" />
-                                {formatInNZT(shift.shift.start, "h:mm a")} -{" "}
-                                {formatInNZT(shift.shift.end, "h:mm a")}
-                              </div>
-                              {shift.shift.location && (
-                                <div className="text-sm opacity-75 mt-1">
-                                  📍 {shift.shift.location}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <StatusBadge
-                                status={shift.status}
-                                isPast={isPast}
-                              />
-                            </div>
-                            {shift.shift.signups.length > 0 && (
-                              <div className="flex items-center gap-1">
-                                <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-1">
-                                  <UserCheck className="h-3 w-3" />
-                                  <span className="text-xs font-medium">
-                                    {shift.shift.signups.length} friend
-                                    {shift.shift.signups.length !== 1
-                                      ? "s"
-                                      : ""}{" "}
-                                    joining
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-lg pointer-events-none" />
-                      </div>
-                    );
-                  })()}
-                </div>
-              </ShiftDetailsDialog>
-            ) : dayAvailable.length > 0 ? (
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-muted-foreground">
-                  {dayAvailable.length} shift
-                  {dayAvailable.length !== 1 ? "s" : ""} available
-                </div>
-                <Button
-                  asChild
-                  className="w-full justify-start gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
-                >
-                  <Link href={`/shifts?date=${dateKey}`}>
-                    <CalendarPlus className="h-4 w-4" />
-                    Browse Available Shifts
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <div className="text-2xl mb-2">📅</div>
-                <div className="text-sm font-medium">
-                  No shifts scheduled
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Show message if no shifts in the month */}
-      {calendarDays.every((day) => {
-        const dateKey = format(day, "yyyy-MM-dd");
-        const dayShifts = shiftsByDate.get(dateKey) || [];
-        const dayAvailable = availableShiftsByDate.get(dateKey) || [];
-        const isToday = isSameDayInNZT(day, now);
-        return dayShifts.length === 0 && dayAvailable.length === 0 && !isToday;
-      }) && (
-        <div className="text-center py-8 text-muted-foreground">
-          <div className="text-4xl mb-3">📅</div>
-          <div className="text-lg font-medium mb-2">
-            No shifts in {format(viewMonth, "MMMM yyyy")}
-          </div>
-          <div className="text-sm mb-4">
-            Check out other months or browse available shifts
-          </div>
-          <Button asChild className="gap-2">
-            <Link href="/shifts">
-              <CalendarPlus className="h-4 w-4" />
-              Browse Shifts
-            </Link>
-          </Button>
-        </div>
-      )}
+    <div data-testid="empty-month" className="px-4 py-12 text-center sm:py-16">
+      <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-forest-500/10 dark:bg-cream-50/10">
+        <CalendarPlus
+          className="h-8 w-8 text-forest-500 dark:text-cream-50/70"
+          aria-hidden
+        />
+        <Sparkle className="absolute -right-2 -top-2 h-5 w-5 text-sun-300" />
+      </div>
+      <h3 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
+        No mahi booked for <em>{format(viewMonth, "MMMM")}</em>
+      </h3>
+      <p className="mx-auto mt-3 max-w-md leading-relaxed text-forest-700/70 dark:text-cream-50/70">
+        {isPastMonth
+          ? "You didn't have any shifts this month. Browse what's coming up and join us for the next service."
+          : "Your plate is clear — find a shift that suits and join the whānau in the kitchen."}
+      </p>
+      <Link
+        href="/shifts"
+        data-testid="browse-shifts-button"
+        className={`${pillPrimary} mt-8`}
+      >
+        Browse shifts
+      </Link>
     </div>
   );
 }

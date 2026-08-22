@@ -41,8 +41,16 @@ function MotionCard({
     );
   }
 
+  // cardHoverVariants animate a boxShadow on this wrapper. Mirror the card's
+  // border-radius onto the wrapper so that shadow follows the rounded corners —
+  // without it, a square shadow pokes out behind a rounded card.
+  const roundingClasses = (className?.match(/(?:^|\s)\S*?rounded-\S+/g) || [])
+    .map((c) => c.trim())
+    .join(" ");
+
   return (
     <motion.div
+      className={roundingClasses || undefined}
       variants={cardHoverVariants}
       initial="rest"
       animate="rest"

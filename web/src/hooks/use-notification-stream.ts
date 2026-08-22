@@ -138,7 +138,11 @@ export function useNotificationStream({
       };
 
       eventSource.onerror = (error) => {
-        console.error("[SSE] Connection error:", error);
+        // EventSource fires onerror on every transient drop and auto-reconnects
+        // (handled below), so this is a warning, not an error — logging it at
+        // error level pops the Next.js dev error overlay on every reconnect and
+        // breaks e2e tests that assert on dialogs.
+        console.warn("[SSE] Connection error:", error);
         setIsConnected(false);
         onConnectionStatusChangeRef.current?.(false);
 

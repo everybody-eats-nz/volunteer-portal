@@ -5,12 +5,27 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { differenceInDays } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { AnimatedStatsGrid } from "@/components/animated-stats-grid";
-import { Users, Calendar, TrendingUp, Heart } from "lucide-react";
+import { StatBand } from "@/components/ui/stat-band";
+import { Calendar, Users } from "lucide-react";
+
+/** Four-point sparkle — the marketing site's signature accent mark. */
+function Sparkle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+      <path d="M12 0c.6 6.5 5.5 11.4 12 12-6.5.6-11.4 5.5-12 12-.6-6.5-5.5-11.4-12-12C6.5 11.4 11.4 6.5 12 0z" />
+    </svg>
+  );
+}
+
+const eyebrowLight =
+  "eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60";
+const eyebrowRule =
+  "inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40";
+
+/* Pill links — shared brand system with the marketing site. */
+const pillGhost =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-forest-500/30 px-6 py-3 text-sm font-medium text-forest-700 transition-all duration-200 hover:border-forest-700 hover:bg-forest-700 hover:text-cream-50 dark:border-cream-50/30 dark:text-cream-50 dark:hover:border-cream-50 dark:hover:bg-cream-50 dark:hover:text-forest-700";
 
 export async function FriendsStatsContent() {
   const session = await getServerSession(authOptions);
@@ -161,54 +176,49 @@ export async function FriendsStatsContent() {
   )[0];
 
   return (
-    <>
-      {/* Stats Overview */}
-      <AnimatedStatsGrid
-        data-testid="friends-stats-grid"
+    <div className="space-y-8">
+      {/* Stats overview — editorial hairline band, matching the landing
+          page's "mahi in numbers" treatment. */}
+      <StatBand
+        testId="friends-stats-grid"
         stats={[
           {
-            title: "Total Friends",
+            label: "Total Friends",
             value: totalFriends,
-            iconType: "checkCircle",
-            variant: "amber",
             testId: "total-friends",
           },
           {
-            title: "Active This Month",
+            label: "Active This Month",
             value: activeFriends,
-            iconType: "calendar",
-            variant: "green",
             testId: "active-friends",
           },
           {
-            title: "New This Month",
+            label: "New This Month",
             value: recentFriends,
-            iconType: "trendingUp",
-            variant: "blue",
             testId: "recent-friends",
           },
           {
-            title: "Avg. Days Connected",
+            label: "Avg. Days Connected",
             value: averageFriendshipDays,
-            iconType: "clock",
-            variant: "purple",
             testId: "avg-days-connected",
           },
         ]}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Friends */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-primary" />
-              Recent Friendships
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {friends.slice(0, 5).length > 0 ? (
-              <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Recent friendships */}
+        <section className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+          <p className={`${eyebrowLight} mb-3`}>
+            <span className={eyebrowRule} />
+            Newest connections
+          </p>
+          <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
+            Recent <em>friendships</em>
+          </h2>
+
+          {friends.slice(0, 5).length > 0 ? (
+            <div className="mt-6">
+              <ul className="divide-y divide-forest-500/10 dark:divide-cream-50/10">
                 {friends.slice(0, 5).map((friend) => {
                   const displayName =
                     friend.name ||
@@ -223,67 +233,89 @@ export async function FriendsStatsContent() {
                   ).toUpperCase();
 
                   return (
-                    <Link key={friend.id} href={`/friends/${friend.id}`}>
-                      <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                        <Avatar className="h-10 w-10">
+                    <li key={friend.id}>
+                      <Link
+                        href={`/friends/${friend.id}`}
+                        className="group flex items-center gap-3 py-3 transition-colors hover:bg-forest-500/5 sm:px-2 dark:hover:bg-cream-50/5"
+                      >
+                        <Avatar className="h-10 w-10 ring-2 ring-forest-500/15 dark:ring-cream-50/15">
                           <AvatarImage
                             src={friend.profilePhotoUrl || undefined}
                             alt={displayName}
                           />
-                          <AvatarFallback className="bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary">
+                          <AvatarFallback className="bg-forest-500/10 font-semibold text-forest-700 dark:bg-cream-50/10 dark:text-cream-50">
                             {initials}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <p className="font-medium">{displayName}</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="min-w-0 flex-1">
+                          <p className="display display-medium truncate leading-tight tracking-tight text-forest-700 dark:text-cream-50">
+                            {displayName}
+                          </p>
+                          <p className="text-xs text-forest-700/65 dark:text-cream-50/60">
                             Friends for {friend.daysSinceFriendship} days
                           </p>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {friend.daysSinceFriendship <= 7
-                            ? "New"
-                            : "Connected"}
-                        </Badge>
-                      </div>
-                    </Link>
+                        {friend.daysSinceFriendship <= 7 ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-sun-200 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-forest-700">
+                            New
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full border border-forest-500/20 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-forest-700/70 dark:border-cream-50/20 dark:text-cream-50/65">
+                            Connected
+                          </span>
+                        )}
+                      </Link>
+                    </li>
                   );
                 })}
-                {friends.length > 5 && (
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <Link href="/friends">View All Friends</Link>
-                  </Button>
-                )}
+              </ul>
+              {friends.length > 5 && (
+                <Link href="/friends" className={`${pillGhost} mt-6 w-full`}>
+                  View All Friends
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="px-4 py-12 text-center">
+              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-500/10 dark:bg-cream-50/10">
+                <Users
+                  className="h-7 w-7 text-forest-500 dark:text-cream-50/70"
+                  aria-hidden
+                />
+                <Sparkle className="absolute -right-2 -top-2 h-4 w-4 text-sun-300" />
               </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No friends yet</p>
-                <Button asChild size="sm" className="mt-2">
-                  <Link href="/friends">Find Friends</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              <p className="leading-relaxed text-forest-700/70 dark:text-cream-50/70">
+                No friends yet — your whānau starts here.
+              </p>
+              <Link href="/friends" className={`${pillGhost} mt-6`}>
+                Find Friends
+              </Link>
+            </div>
+          )}
+        </section>
 
-        {/* Most Active Friend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Most Active Friend
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Most active friend — dark spotlight panel with sun glow (radial
+            gradient, NOT blur-3xl, which escapes the corner clip in Chromium). */}
+        <section className="grain relative overflow-hidden rounded-[2rem] bg-forest-700 p-6 text-cream-50 sm:p-8">
+          <div
+            className="absolute -bottom-28 -right-28 h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(closest-side,rgb(248_251_105/0.16),transparent)]"
+            aria-hidden
+          />
+          <div className="relative">
+            <p className="eyebrow mb-3 flex items-center gap-3 text-sun-200/90">
+              <span className="inline-block h-px w-8 bg-sun-200/50" />
+              Busy in the kitchen
+            </p>
+            <h2 className="display text-2xl tracking-tight sm:text-3xl">
+              Most active <em>friend</em>
+            </h2>
+
             {mostActiveFriend ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
+              <div className="mt-6 space-y-6">
+                <Link
+                  href={`/friends/${mostActiveFriend.friend.id}`}
+                  className="group flex items-center gap-4"
+                >
                   {(() => {
                     const friend = mostActiveFriend.friend;
                     const displayName =
@@ -300,140 +332,148 @@ export async function FriendsStatsContent() {
 
                     return (
                       <>
-                        <Avatar className="h-16 w-16">
+                        <Avatar className="h-16 w-16 ring-2 ring-sun-200/40">
                           <AvatarImage
                             src={friend.profilePhotoUrl || undefined}
                             alt={displayName}
                           />
-                          <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                          <AvatarFallback className="bg-cream-50/15 text-lg font-semibold text-cream-50">
                             {initials}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-semibold text-lg">
+                          <p className="display display-medium text-xl leading-tight tracking-tight group-hover:underline group-hover:underline-offset-4">
                             {displayName}
                           </p>
-                          <p className="text-muted-foreground">
+                          <p className="text-sm text-cream-50/75">
                             {mostActiveFriend.shifts.length} upcoming shifts
                           </p>
                         </div>
                       </>
                     );
                   })()}
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Upcoming Shifts:</p>
-                  {mostActiveFriend.shifts
-                    .slice(0, 3)
-                    .map((signup, index) => (
-                      <div
+                </Link>
+                <div>
+                  <p className="eyebrow mb-3 text-cream-50/60">
+                    Upcoming shifts
+                  </p>
+                  <ul className="space-y-2">
+                    {mostActiveFriend.shifts.slice(0, 3).map((signup, index) => (
+                      <li
                         key={index}
-                        className="text-sm p-2 bg-muted/50 rounded"
+                        className="flex items-center gap-3 rounded-2xl bg-cream-50/[0.07] px-4 py-3 text-sm ring-1 ring-cream-50/10"
                       >
+                        <Sparkle className="h-3.5 w-3.5 shrink-0 text-sun-200" />
                         <span className="font-medium">
                           {signup.shift.shiftType.name}
                         </span>
-                        <span className="text-muted-foreground ml-2">
+                        <span className="ml-auto shrink-0 text-cream-50/70">
                           {formatInNZT(signup.shift.start, "MMM d, h:mm a")}
                         </span>
-                      </div>
+                      </li>
                     ))}
+                  </ul>
                   {mostActiveFriend.shifts.length > 3 && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="mt-3 text-sm text-cream-50/65">
                       +{mostActiveFriend.shifts.length - 3} more shifts
                     </p>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No active friends this month</p>
+              <div className="px-4 py-12 text-center">
+                <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cream-50/10">
+                  <Calendar className="h-7 w-7 text-cream-50/70" aria-hidden />
+                  <Sparkle className="absolute -right-2 -top-2 h-4 w-4 text-sun-200" />
+                </div>
+                <p className="leading-relaxed text-cream-50/75">
+                  No active friends this month — nudge the whānau toward a
+                  shift!
+                </p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
-      {/* Friends' Upcoming Activity */}
+      {/* Friends' upcoming activity */}
       {Object.keys(friendsUpcomingShifts).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Friends&apos; Upcoming Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.values(friendsUpcomingShifts)
-                .slice(0, 6)
-                .map(({ friend, shifts }) => {
-                  const displayName =
-                    friend.name ||
-                    `${friend.firstName || ""} ${
-                      friend.lastName || ""
-                    }`.trim() ||
-                    friend.email;
-                  const initials = (
-                    friend.firstName?.[0] ||
-                    friend.name?.[0] ||
-                    friend.email[0]
-                  ).toUpperCase();
+        <section className="grain relative overflow-hidden rounded-[2rem] border border-forest-500/10 bg-card p-6 sm:p-8 dark:border-cream-50/10">
+          <p className={`${eyebrowLight} mb-3`}>
+            <span className={eyebrowRule} />
+            Out on the floor soon
+          </p>
+          <h2 className="display text-2xl tracking-tight text-forest-700 sm:text-3xl dark:text-cream-50">
+            Friends&apos; upcoming <em>activity</em>
+          </h2>
 
-                  return (
-                    <Link
-                      key={friend.id}
-                      href={`/friends/${friend.id}`}
-                      className="block"
-                    >
-                      <div className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={friend.profilePhotoUrl || undefined}
-                            alt={displayName}
-                          />
-                          <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{displayName}</p>
-                          <div className="mt-1 space-y-1">
-                            {shifts.slice(0, 2).map((signup, index) => (
-                              <p
-                                key={index}
-                                className="text-xs text-muted-foreground"
-                              >
-                                {signup.shift.shiftType.name} •{" "}
-                                {formatInNZT(
-                                  signup.shift.start,
-                                  "MMM d, h:mm a"
-                                )}
-                              </p>
-                            ))}
-                            {shifts.length > 2 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{shifts.length - 2} more shifts
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {shifts.length} shift
-                          {shifts.length !== 1 ? "s" : ""}
-                        </Badge>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {Object.values(friendsUpcomingShifts)
+              .slice(0, 6)
+              .map(({ friend, shifts }) => {
+                const displayName =
+                  friend.name ||
+                  `${friend.firstName || ""} ${friend.lastName || ""}`.trim() ||
+                  friend.email;
+                const initials = (
+                  friend.firstName?.[0] ||
+                  friend.name?.[0] ||
+                  friend.email[0]
+                ).toUpperCase();
+
+                return (
+                  <Link
+                    key={friend.id}
+                    href={`/friends/${friend.id}`}
+                    className="group flex items-start gap-3 rounded-2xl border border-forest-500/10 bg-background p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-cream-50/10"
+                  >
+                    <Avatar className="h-10 w-10 shrink-0 ring-2 ring-forest-500/15 dark:ring-cream-50/15">
+                      <AvatarImage
+                        src={friend.profilePhotoUrl || undefined}
+                        alt={displayName}
+                      />
+                      <AvatarFallback className="bg-forest-500/10 font-semibold text-forest-700 dark:bg-cream-50/10 dark:text-cream-50">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="display display-medium truncate leading-tight tracking-tight text-forest-700 dark:text-cream-50">
+                        {displayName}
+                      </p>
+                      <div className="mt-1.5 space-y-1">
+                        {shifts.slice(0, 2).map((signup, index) => (
+                          <p
+                            key={index}
+                            className="flex items-center gap-1.5 text-xs text-forest-700/65 dark:text-cream-50/60"
+                          >
+                            <Calendar className="h-3 w-3 shrink-0" aria-hidden />
+                            <span className="truncate">
+                              {signup.shift.shiftType.name} ·{" "}
+                              {formatInNZT(signup.shift.start, "MMM d, h:mm a")}
+                            </span>
+                          </p>
+                        ))}
+                        {shifts.length > 2 && (
+                          <p className="text-xs text-forest-700/55 dark:text-cream-50/50">
+                            +{shifts.length - 2} more shifts
+                          </p>
+                        )}
                       </div>
-                    </Link>
-                  );
-                })}
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href="/shifts">View All Shifts</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-sun-100 px-2.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-forest-700 dark:bg-sun-200/15 dark:text-sun-100">
+                      {shifts.length} shift{shifts.length !== 1 ? "s" : ""}
+                    </span>
+                  </Link>
+                );
+              })}
+          </div>
+          <div className="mt-6">
+            <Link href="/shifts" className={pillGhost}>
+              View All Shifts
+            </Link>
+          </div>
+        </section>
       )}
-    </>
+    </div>
   );
 }

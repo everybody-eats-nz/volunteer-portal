@@ -11,8 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Settings, Eye, Users, Lock, UserCheck } from "lucide-react";
+import { Eye, Users, Lock, UserCheck } from "lucide-react";
 import { MotionSpinner } from "@/components/motion-spinner";
+
+/* Option rows — soft cards with a forest tint when selected, matching the
+   marketing-styled form language. `has-data-[state=checked]` reads the Radix
+   state off the radio/checkbox inside. Rendered as a <label> so the whole
+   row (title and description included) toggles the control. */
+const optionRow =
+  "flex cursor-pointer items-start gap-3 rounded-2xl border border-forest-500/15 p-4 transition-colors hover:bg-forest-500/5 has-data-[state=checked]:border-forest-500/40 has-data-[state=checked]:bg-forest-500/5 dark:border-cream-50/15 dark:hover:bg-cream-50/5 dark:has-data-[state=checked]:border-cream-50/40 dark:has-data-[state=checked]:bg-cream-50/5";
+
+const optionTitle =
+  "flex items-center gap-2 text-sm font-medium leading-none text-forest-700 dark:text-cream-50";
 
 interface PrivacySettings {
   friendVisibility: "PUBLIC" | "FRIENDS_ONLY" | "PRIVATE";
@@ -117,19 +127,22 @@ export function FriendPrivacySettings({
 
   return (
     <ResponsiveDialog open={open} onOpenChange={handleClose}>
-      <ResponsiveDialogContent className="sm:max-w-lg">
+      <ResponsiveDialogContent className="max-h-[calc(100dvh-3rem)] overflow-y-auto sm:max-w-lg">
         <ResponsiveDialogHeader className="pb-4">
-          <ResponsiveDialogTitle className="flex items-center space-x-2">
-            <Settings className="h-5 w-5" />
-            <span>Friend Privacy Settings</span>
+          <p className="eyebrow flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+            <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+            You decide who sees what
+          </p>
+          <ResponsiveDialogTitle className="display display-medium mt-2 text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+            Friend Privacy Settings
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
 
         <div className="space-y-6">
           <div className="space-y-4">
             <div>
-              <Label className="text-base font-medium flex items-center space-x-2 mb-3">
-                <Eye className="h-4 w-4" />
+              <Label className="mb-3 flex items-center gap-2 text-base font-medium text-forest-700 dark:text-cream-50">
+                <Eye className="h-4 w-4" aria-hidden />
                 <span>Who can see your volunteer activity?</span>
               </Label>
               <RadioGroup
@@ -137,80 +150,71 @@ export function FriendPrivacySettings({
                 onValueChange={handleVisibilityChange}
                 className="space-y-3"
               >
-                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <label htmlFor="public" className={optionRow}>
                   <RadioGroupItem
                     value="PUBLIC"
                     id="public"
                     className="mt-0.5"
                   />
                   <div className="space-y-1.5">
-                    <Label
-                      htmlFor="public"
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <Users className="h-4 w-4" />
-                      <span className="font-medium">Public</span>
-                    </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <span className={optionTitle}>
+                      <Users className="h-4 w-4" aria-hidden />
+                      <span>Public</span>
+                    </span>
+                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
                       Any logged-in volunteer can see your profile, shared shift
                       history, and which shifts you&apos;ve signed up for on the
                       browse shifts page.
                     </p>
                   </div>
-                </div>
+                </label>
 
-                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <label htmlFor="friends" className={optionRow}>
                   <RadioGroupItem
                     value="FRIENDS_ONLY"
                     id="friends"
                     className="mt-0.5"
                   />
                   <div className="space-y-1.5">
-                    <Label
-                      htmlFor="friends"
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <UserCheck className="h-4 w-4" />
-                      <span className="font-medium">Friends Only</span>
-                    </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <span className={optionTitle}>
+                      <UserCheck className="h-4 w-4" aria-hidden />
+                      <span>Friends Only</span>
+                    </span>
+                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
                       Only your friends can see your profile, shared shift
                       history, and which shifts you&apos;ve signed up for on the
                       browse shifts page.
                     </p>
                   </div>
-                </div>
+                </label>
 
-                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <label htmlFor="private" className={optionRow}>
                   <RadioGroupItem
                     value="PRIVATE"
                     id="private"
                     className="mt-0.5"
                   />
                   <div className="space-y-1.5">
-                    <Label
-                      htmlFor="private"
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <Lock className="h-4 w-4" />
-                      <span className="font-medium">Private</span>
-                    </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <span className={optionTitle}>
+                      <Lock className="h-4 w-4" aria-hidden />
+                      <span>Private</span>
+                    </span>
+                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
                       Your profile cannot be viewed, you won&apos;t appear on
                       the browse shifts page, and your shift history will be
                       hidden from everyone.
                     </p>
                   </div>
-                </div>
+                </label>
               </RadioGroup>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-base font-medium">
+              <Label className="text-base font-medium text-forest-700 dark:text-cream-50">
                 Additional Settings
               </Label>
               <div className="space-y-3">
-                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <label htmlFor="allowRequests" className={optionRow}>
                   <Checkbox
                     id="allowRequests"
                     checked={settings.allowFriendRequests}
@@ -218,19 +222,14 @@ export function FriendPrivacySettings({
                     className="mt-0.5"
                   />
                   <div className="space-y-1">
-                    <Label
-                      htmlFor="allowRequests"
-                      className="cursor-pointer font-medium"
-                    >
-                      Allow friend requests
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <span className={optionTitle}>Allow friend requests</span>
+                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
                       Other volunteers can send you friend requests
                     </p>
                   </div>
-                </div>
+                </label>
 
-                <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <label htmlFor="allowSuggestions" className={optionRow}>
                   <Checkbox
                     id="allowSuggestions"
                     checked={settings.allowFriendSuggestions}
@@ -238,30 +237,27 @@ export function FriendPrivacySettings({
                     className="mt-0.5"
                   />
                   <div className="space-y-1">
-                    <Label
-                      htmlFor="allowSuggestions"
-                      className="cursor-pointer font-medium"
-                    >
+                    <span className={optionTitle}>
                       Appear in friend suggestions
-                    </Label>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    </span>
+                    <p className="text-sm leading-relaxed text-forest-700/65 dark:text-cream-50/60">
                       Show up as a suggested friend for volunteers you&apos;ve
                       recently worked with (3+ shared shifts in the last 3
                       months)
                     </p>
                   </div>
-                </div>
+                </label>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-              <p className="text-destructive text-sm">{error}</p>
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/60 dark:bg-red-950/40">
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           )}
 
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-4">
+          <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"

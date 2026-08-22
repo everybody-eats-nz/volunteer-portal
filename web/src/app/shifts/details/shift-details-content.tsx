@@ -17,6 +17,8 @@ import {
   Users,
   UserCheck,
   ArrowUpRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { getShiftDescription } from "@/lib/shift-description";
@@ -160,7 +162,7 @@ function ShiftCard({
   return (
     <Card
       data-testid={`shift-card-${shift.id}`}
-      className={`group relative overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${theme.bgColor} h-full`}
+      className="grain group relative overflow-hidden rounded-3xl border border-forest-500/10 bg-card shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 dark:border-cream-50/10 h-full"
     >
       <div
         className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.fullGradient}`}
@@ -170,13 +172,11 @@ function ShiftCard({
           <div className="space-y-4 flex-1">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div
-                  className={`p-2 rounded-xl bg-gradient-to-br ${theme.fullGradient} shadow-lg flex items-center justify-center text-white text-lg font-medium`}
-                >
+                <div className="p-2 h-11 w-11 rounded-2xl bg-forest-500/10 dark:bg-cream-50/10 ring-1 ring-forest-500/10 dark:ring-cream-50/10 flex items-center justify-center text-xl font-medium shrink-0">
                   {theme.emoji}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-xl text-gray-900 dark:text-white mb-1">
+                  <h3 className="display text-xl tracking-tight text-forest-700 dark:text-cream-50 truncate mb-1">
                     <Link
                       href={`/shifts/${shift.id}`}
                       className="inline-flex items-baseline gap-1 hover:underline underline-offset-4 decoration-2 focus-visible:outline-none focus-visible:underline rounded-sm"
@@ -189,7 +189,7 @@ function ShiftCard({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="secondary"
-                      className={`text-xs font-medium text-gray-700 dark:text-gray-200 ${theme.bgColor} border ${theme.borderColor}`}
+                      className="text-xs font-medium text-forest-700 dark:text-cream-50/85 bg-forest-500/8 dark:bg-cream-50/10 border border-forest-500/15 dark:border-cream-50/15"
                     >
                       {duration}
                     </Badge>
@@ -203,10 +203,10 @@ function ShiftCard({
                         }`}
                       >
                         {mySignup.status === "CONFIRMED"
-                          ? "✅ Confirmed"
+                          ? "Confirmed"
                           : mySignup.status === "PENDING"
-                          ? "⏳ Pending"
-                          : "⏳ Waitlisted"}
+                          ? "Pending"
+                          : "Waitlisted"}
                       </Badge>
                     )}
                   </div>
@@ -215,27 +215,27 @@ function ShiftCard({
             </div>
 
             {getShiftDescription(shift.notes, shift.shiftType.description) && (
-              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              <p className="text-sm text-forest-700/70 dark:text-cream-50/65 leading-relaxed line-clamp-2">
                 {getShiftDescription(shift.notes, shift.shiftType.description)}
               </p>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 p-3 bg-white/50 dark:bg-gray-800/30 rounded-lg">
-                <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900 dark:text-white">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 p-3 bg-forest-500/5 dark:bg-cream-50/5 rounded-xl border border-forest-500/8 dark:border-cream-50/8">
+                <Clock className="h-4 w-4 text-forest-500 dark:text-cream-50/60 shrink-0" />
+                <div className="text-sm min-w-0">
+                  <div className="font-medium text-forest-700 dark:text-cream-50 tabular-nums">
                     {formatInNZT(shift.start, "h:mm a")}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs text-forest-700/55 dark:text-cream-50/50 tabular-nums">
                     to {formatInNZT(shift.end, "h:mm a")}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 p-3 bg-white/50 dark:bg-gray-800/30 rounded-lg">
-                <Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900 dark:text-white">
+              <div className="flex items-center gap-2 p-3 bg-forest-500/5 dark:bg-cream-50/5 rounded-xl border border-forest-500/8 dark:border-cream-50/8">
+                <Users className="h-4 w-4 text-forest-500 dark:text-cream-50/60 shrink-0" />
+                <div className="text-sm min-w-0">
+                  <div className="font-medium text-forest-700 dark:text-cream-50 tabular-nums">
                     {Math.min(confirmedCount + pendingCount, shift.capacity)}/{shift.capacity}
                     {confirmedCount + pendingCount > shift.capacity && (
                       <span className="text-orange-600 dark:text-orange-400 ml-1">
@@ -322,12 +322,9 @@ function ShiftCard({
                 </Button>
               )
             ) : (
-              <Button
-                asChild
-                className={`w-full font-medium bg-gradient-to-r ${theme.fullGradient} hover:shadow-lg transform hover:scale-[1.02] text-white transition-all duration-200`}
-              >
+              <Button asChild className="w-full font-medium">
                 <Link href="/login?callbackUrl=/shifts/details">
-                  ✨ Sign Up Now
+                  Sign Up Now
                 </Link>
               </Button>
             )}
@@ -500,8 +497,10 @@ export async function ShiftDetailsContent({
                 <div className="flex items-center gap-3">
                   <MapPin className="h-5 w-5 text-primary" />
                   <div>
-                    <h2 className="text-xl font-semibold">{locationKey}</h2>
-                    <p className="text-sm text-muted-foreground">
+                    <h2 className="display text-2xl tracking-tight text-forest-700 dark:text-cream-50">
+                      {locationKey}
+                    </h2>
+                    <p className="text-sm text-forest-700/60 dark:text-cream-50/55">
                       {totalShifts} shift{totalShifts !== 1 ? "s" : ""} available
                     </p>
                   </div>
@@ -513,11 +512,11 @@ export async function ShiftDetailsContent({
               <div className="space-y-4" data-testid={`shifts-am-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-3 group/heading">
-                    <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-lg">
-                      ☀️
+                    <div className="w-9 h-9 bg-sun-200 dark:bg-sun-200/20 ring-1 ring-forest-500/10 dark:ring-cream-50/10 rounded-xl flex items-center justify-center shrink-0">
+                      <Sun className="h-5 w-5 text-forest-700 dark:text-sun-200" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold">
+                      <h3 className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
                         {sessionFilter ? (
                           "Day Shifts"
                         ) : (
@@ -576,11 +575,11 @@ export async function ShiftDetailsContent({
               <div className="space-y-4" data-testid={`shifts-pm-section-${locationKey.toLowerCase().replace(/\s+/g, "-")}`}>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-3 group/heading">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-lg">
-                      🌙
+                    <div className="w-9 h-9 bg-forest-500 dark:bg-forest-600 rounded-xl flex items-center justify-center shrink-0">
+                      <Moon className="h-5 w-5 text-cream-50" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold">
+                      <h3 className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
                         {sessionFilter ? (
                           "Evening Shifts"
                         ) : (
