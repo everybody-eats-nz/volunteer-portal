@@ -184,6 +184,12 @@ export async function GET(request: Request) {
     name: string;
     profilePhotoUrl: string | null;
     isFriend: boolean;
+    /**
+     * Whether this volunteer holds a spot or is still waiting on an admin.
+     * REGULAR_PENDING is folded into PENDING — the distinction is an admin one
+     * and means nothing to the volunteer waiting to hear back.
+     */
+    status: "CONFIRMED" | "PENDING";
   };
 
   let periodFriends: Record<string, FriendSummary[]> = {};
@@ -214,6 +220,7 @@ export async function GET(request: Request) {
       },
       select: {
         shiftId: true,
+        status: true,
         user: {
           select: {
             id: true,
@@ -229,6 +236,22 @@ export async function GET(request: Request) {
     const periodMap = new Map<string, Map<string, FriendSummary>>();
     const shiftMap = new Map<string, Map<string, FriendSummary>>();
 
+    // A volunteer can hold more than one role in the same Day/Evening period,
+    // so the period map dedupes by user. A confirmed spot on any of those roles
+    // means they are on that session — don't let a second, still-pending signup
+    // overwrite it and report them as waiting.
+    const addFriend = (
+      map: Map<string, Map<string, FriendSummary>>,
+      key: string,
+      friend: FriendSummary
+    ) => {
+      if (!map.has(key)) map.set(key, new Map());
+      const bucket = map.get(key)!;
+      const existing = bucket.get(friend.id);
+      if (existing?.status === "CONFIRMED") return;
+      bucket.set(friend.id, friend);
+    };
+
     for (const signup of visibleSignups) {
       const friend: FriendSummary = {
         id: signup.user.id,
@@ -238,19 +261,14 @@ export async function GET(request: Request) {
           "Volunteer",
         profilePhotoUrl: signup.user.profilePhotoUrl,
         isFriend: friendIds.has(signup.user.id),
+        status: signup.status === "CONFIRMED" ? "CONFIRMED" : "PENDING",
       };
 
-      if (!shiftMap.has(signup.shiftId)) {
-        shiftMap.set(signup.shiftId, new Map());
-      }
-      shiftMap.get(signup.shiftId)!.set(friend.id, friend);
+      addFriend(shiftMap, signup.shiftId, friend);
 
       const periodKey = shiftPeriodMap.get(signup.shiftId);
       if (!periodKey) continue;
-      if (!periodMap.has(periodKey)) {
-        periodMap.set(periodKey, new Map());
-      }
-      periodMap.get(periodKey)!.set(friend.id, friend);
+      addFriend(periodMap, periodKey, friend);
     }
 
     periodFriends = Object.fromEntries(

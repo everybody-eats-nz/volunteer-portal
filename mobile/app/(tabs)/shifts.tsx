@@ -40,6 +40,12 @@ import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
+  friendsLine,
+  mergeVolunteers,
+  periodVolunteersLabel,
+  splitBySignupStatus,
+} from "@/lib/shift-friends";
+import {
   getShiftPeriodKey,
   getShiftPeriodLabel,
 } from "@/lib/shift-eligibility";
@@ -594,15 +600,9 @@ export default function ShiftsScreen() {
                 // Union friends across the shifts actually rendered in this
                 // period — keeps the header in sync with the location filter
                 // (the server-returned periodFriends map is not location-scoped).
-                const seen = new Set<string>();
-                const friends: PeriodFriend[] = [];
-                for (const shift of period.shifts) {
-                  for (const friend of shiftFriends[shift.id] ?? []) {
-                    if (seen.has(friend.id)) continue;
-                    seen.add(friend.id);
-                    friends.push(friend);
-                  }
-                }
+                const friends: PeriodFriend[] = mergeVolunteers(
+                  period.shifts.map((shift) => shiftFriends[shift.id] ?? [])
+                );
                 return (
                   <View key={period.periodKey} style={styles.periodGroup}>
                     <PeriodHeader
@@ -1092,11 +1092,17 @@ function FriendAvatarStack({
   const fallbackBg = isDark ? "rgba(29,83,55,0.4)" : Brand.greenLight;
   const fallbackFg = accentColor ?? (isDark ? "#86D99B" : Brand.green);
   const overlap = Math.max(6, Math.round(size * 0.33));
+  // A volunteer still waiting on an admin wears the same amber the status
+  // badge uses, so the stack never reads as more confirmed than it is.
+  const pending = STATUS_CONFIG.PENDING;
+  const pendingRing = isDark ? pending.textDark : pending.text;
+  const pendingBg = isDark ? pending.bgDark : pending.bg;
 
   return (
     <View style={styles.friendAvatarRow}>
       {shown.map((friend, index) => {
         const dim = { width: size, height: size, borderRadius: size / 2 };
+        const isPending = friend.status === "PENDING";
         return (
           <View
             key={friend.id}
@@ -1108,7 +1114,11 @@ function FriendAvatarStack({
             {friend.profilePhotoUrl ? (
               <Image
                 source={{ uri: friend.profilePhotoUrl }}
-                style={[styles.friendAvatar, dim, { borderColor: ring }]}
+                style={[
+                  styles.friendAvatar,
+                  dim,
+                  { borderColor: isPending ? pendingRing : ring },
+                ]}
               />
             ) : (
               <View
@@ -1116,13 +1126,19 @@ function FriendAvatarStack({
                   styles.friendAvatar,
                   styles.friendAvatarFallback,
                   dim,
-                  { borderColor: ring, backgroundColor: fallbackBg },
+                  {
+                    borderColor: isPending ? pendingRing : ring,
+                    backgroundColor: isPending ? pendingBg : fallbackBg,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.friendInitial,
-                    { color: fallbackFg, fontSize: Math.round(size * 0.42) },
+                    {
+                      color: isPending ? pendingRing : fallbackFg,
+                      fontSize: Math.round(size * 0.42),
+                    },
                   ]}
                 >
                   {friend.name.charAt(0).toUpperCase()}
@@ -1199,6 +1215,9 @@ function PeriodHeader({
     ? "rgba(196, 181, 253, 0.14)"
     : "rgba(109, 40, 217, 0.08)";
   const ruleColor = colors.border;
+  // Only confirmed volunteers hold a place in this session; the rest have asked
+  // and are still waiting on an admin.
+  const { going, waiting } = splitBySignupStatus(friends);
 
   return (
     <View style={styles.periodHeader}>
@@ -1211,18 +1230,19 @@ function PeriodHeader({
 
       <View style={[styles.periodRule, { backgroundColor: ruleColor }]} />
 
-      {friends.length > 0 ? (
+      {going.length + waiting.length > 0 ? (
         <View style={styles.periodFriendsWrap}>
           <FriendAvatarStack
-            friends={friends}
+            friends={[...going, ...waiting]}
             isDark={isDark}
             size={22}
             maxShow={3}
           />
           <Text
             style={[styles.periodMetaText, { color: colors.textSecondary }]}
+            numberOfLines={1}
           >
-            {friends.length === 1 ? "1 volunteer" : `${friends.length} volunteers`}
+            {periodVolunteersLabel(going, waiting)}
           </Text>
         </View>
       ) : (
@@ -1248,21 +1268,23 @@ function formatTimeRange(start: Date, end: Date): { range: string } {
   return { range };
 }
 
-function friendsLine(friends: PeriodFriend[], hasStatus: boolean): string {
-  if (friends.length === 0) return "";
-  const firstName = friends[0].name.split(" ")[0];
-  if (friends.length === 1) {
-    return hasStatus ? `With ${firstName}` : `${firstName} is signed up`;
-  }
-  if (friends.length === 2) {
-    const secondName = friends[1].name.split(" ")[0];
-    return hasStatus
-      ? `With ${firstName} & ${secondName}`
-      : `${firstName} & ${secondName} are going`;
-  }
-  return hasStatus
-    ? `With ${firstName} + ${friends.length - 1} more`
-    : `${firstName} + ${friends.length - 1} others going`;
+/** Marks the volunteers on a card who have asked but not yet been approved. */
+function WaitingChip({ count, isDark }: { count: number; isDark: boolean }) {
+  const pending = STATUS_CONFIG.PENDING;
+  const ink = isDark ? pending.textDark : pending.text;
+  return (
+    <View
+      style={[
+        styles.waitingChip,
+        { backgroundColor: isDark ? pending.bgDark : pending.bg },
+      ]}
+    >
+      <Ionicons name="time" size={10} color={ink} />
+      <Text style={[styles.waitingChipText, { color: ink }]}>
+        {count} waiting
+      </Text>
+    </View>
+  );
 }
 
 function ShiftCard({
@@ -1295,6 +1317,7 @@ function ShiftCard({
   const cardBg = colors.card;
   const dividerColor = colors.border;
   const isUserSignedUp = !!(showStatus && shift.status);
+  const { going, waiting } = splitBySignupStatus(friends);
   const isPast = endDate.getTime() < Date.now();
   const isCompleted = isUserSignedUp && shift.status === "CONFIRMED" && isPast;
   const displayStatus = isCompleted ? "COMPLETED" : shift.status;
@@ -1318,7 +1341,9 @@ function ShiftCard({
       accessibilityLabel={`${shift.shiftType.name} at ${
         shift.location
       }, ${formatNZT(date, "EEEE d MMMM")}, ${timeRange}${
-        friends.length > 0 ? `, ${friends.length} friends going` : ""
+        going.length > 0 ? `, ${going.length} volunteers going` : ""
+      }${
+        waiting.length > 0 ? `, ${waiting.length} waiting on approval` : ""
       }`}
       accessibilityRole="button"
     >
@@ -1486,13 +1511,16 @@ function ShiftCard({
           </Text>
         )}
 
-        {/* Friends bar — only when there are friends on this exact role */}
-        {friends.length > 0 && (
+        {/* Friends bar — only when there are friends on this exact role.
+            Confirmed volunteers lead the stack and the line; anyone still
+            waiting on an admin follows, and is counted in the chip instead of
+            being folded into "going". */}
+        {going.length + waiting.length > 0 && (
           <>
             <View style={[styles.cardDivider, { borderColor: dividerColor }]} />
             <View style={styles.friendsBar}>
               <FriendAvatarStack
-                friends={friends}
+                friends={[...going, ...waiting]}
                 isDark={isDark}
                 size={28}
                 maxShow={4}
@@ -1503,8 +1531,11 @@ function ShiftCard({
                 style={[styles.friendsBarText, { color: colors.text }]}
                 numberOfLines={1}
               >
-                {friendsLine(friends, isUserSignedUp)}
+                {friendsLine(going, waiting, isUserSignedUp)}
               </Text>
+              {going.length > 0 && waiting.length > 0 && (
+                <WaitingChip count={waiting.length} isDark={isDark} />
+              )}
             </View>
           </>
         )}
@@ -2047,6 +2078,19 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.1,
+  },
+  waitingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  waitingChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.3,
   },
 
   // Badge
