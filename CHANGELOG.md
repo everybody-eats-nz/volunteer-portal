@@ -1,3 +1,9 @@
+## [0.154.3] - 2026-08-22
+
+### Changes
+- fix(mobile): stop the shifts list calling a pending friend confirmed ([#1211](https://github.com/everybody-eats-nz/volunteer-portal/pull/1211)) by @malinmalliyawadu
+
+
 ## [0.154.2] - 2026-08-22
 
 ### Changes
