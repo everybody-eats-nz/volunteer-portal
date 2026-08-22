@@ -115,7 +115,10 @@ export async function GET(
   // Count confirmed signups + unregistered placeholders
   const signedUpCount = getShiftEffectiveCount(shift);
 
-  // Build signups list (all active signups) for the "Who's on this mahi" section
+  // Build signups list (all active signups) for the "Who's on this mahi" section.
+  // Each entry carries its status so the app can separate volunteers who are
+  // confirmed from those still waiting on an admin. REGULAR_PENDING is folded
+  // into PENDING because volunteers see no difference between the two.
   const signups = shift.signups.map((s) => {
     const displayName =
       s.user.name ??
@@ -127,6 +130,7 @@ export async function GET(
       name: s.user.id === userId ? "You" : displayName,
       profilePhotoUrl: s.user.profilePhotoUrl,
       isFriend: friendIds.has(s.user.id),
+      status: s.status === "REGULAR_PENDING" ? "PENDING" : s.status,
     };
   });
 

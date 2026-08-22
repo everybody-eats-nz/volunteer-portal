@@ -9,7 +9,8 @@ import { getConcurrentShifts, getShiftDate, isAMShift } from "@/lib/concurrent-s
  * Returns:
  * - concurrentShifts: other shifts at same location/date/period (for backup selection)
  * - friends: friends signed up for ANY shift at that location/date/period,
- *   including the current shift (regardless of shift type / role)
+ *   including the current shift (regardless of shift type / role), each with
+ *   the status of that signup (CONFIRMED or PENDING)
  */
 export async function GET(
   request: Request,
@@ -95,6 +96,7 @@ export async function GET(
       },
       select: {
         shiftId: true,
+        status: true,
         user: {
           select: {
             id: true,
@@ -110,9 +112,16 @@ export async function GET(
     // Build a map of shiftId → shiftTypeName for labelling
     const shiftTypeMap = new Map(periodShiftIds.map((s) => [s.id, s.shiftTypeName]));
 
-    // Deduplicate (a user might be on multiple shifts theoretically)
+    // Deduplicate (a user might be on multiple shifts theoretically). A
+    // confirmed signup wins over a pending one so nobody is shown as awaiting
+    // approval on a session they're already confirmed for.
     const seen = new Set<string>();
     const friends = visibleSignups
+      .slice()
+      .sort((a, b) => {
+        const rank = (status: string) => (status === "CONFIRMED" ? 0 : 1);
+        return rank(a.status) - rank(b.status);
+      })
       .filter((s) => {
         if (seen.has(s.user.id)) return false;
         seen.add(s.user.id);
@@ -127,6 +136,9 @@ export async function GET(
         profilePhotoUrl: s.user.profilePhotoUrl,
         shiftTypeName: shiftTypeMap.get(s.shiftId) ?? null,
         isFriend: friendIds.has(s.user.id),
+        // Volunteers still waiting on an admin are labelled as such in the
+        // app instead of appearing alongside confirmed volunteers.
+        status: s.status === "REGULAR_PENDING" ? "PENDING" : s.status,
       }));
 
     return NextResponse.json({ concurrentShifts, friends });

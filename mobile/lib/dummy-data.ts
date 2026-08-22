@@ -424,6 +424,8 @@ export type ShiftSignup = {
   name: string;
   profilePhotoUrl?: string;
   isFriend: boolean;
+  /** Signup status on that shift; defaults to confirmed in dummy data. */
+  status?: 'CONFIRMED' | 'PENDING' | 'WAITLISTED';
 };
 
 export const SHIFT_SIGNUPS: Record<string, ShiftSignup[]> = {
