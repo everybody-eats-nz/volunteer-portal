@@ -1,3 +1,9 @@
+## [0.154.2] - 2026-08-22
+
+### Changes
+- fix(mobile): tell a pending signup apart from a confirmed one ([#1210](https://github.com/everybody-eats-nz/volunteer-portal/pull/1210)) by @malinmalliyawadu
+
+
 ## [0.154.1] - 2026-08-19
 
 ### Changes
