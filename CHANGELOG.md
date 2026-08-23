@@ -1,3 +1,9 @@
+## [0.154.6] - 2026-08-23
+
+### Changes
+- chore(deps): bump @prisma/client from 7.7.0 to 7.9.1 in /web ([#1214](https://github.com/everybody-eats-nz/volunteer-portal/pull/1214)) by @dependabot[bot]
+
+
 ## [0.154.5] - 2026-08-23
 
 ### Changes
