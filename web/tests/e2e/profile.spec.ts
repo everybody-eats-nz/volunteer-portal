@@ -1,13 +1,16 @@
 import { test, expect } from "./base";
 import { loginAsVolunteer } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 
 test.describe("Profile Page", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsVolunteer(page);
 
-    // Navigate to profile and wait for it to load
-    await page.goto("/profile");
-    await page.waitForLoadState("domcontentloaded");
+    // Navigate to profile and wait for React to finish streaming. The root
+    // layout suspends, so until the stream settles the page's own markup
+    // exists twice - once live, once in React's hidden staging container -
+    // and unscoped locators like `h2` resolve to two elements.
+    await gotoSettled(page, "/profile");
   });
 
   test("should display profile page with all main elements", async ({
@@ -287,7 +290,7 @@ test.describe("Profile Page", () => {
 
   test("should handle loading state gracefully", async ({ page }) => {
     // Navigate to profile and verify it loads without errors
-    await page.goto("/profile");
+    await gotoSettled(page, "/profile");
 
     // Wait for the main content to be visible
     const pageHeading = page.getByRole("heading", { name: /your profile/i });

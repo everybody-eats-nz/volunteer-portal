@@ -298,6 +298,73 @@ test.describe("General Volunteer Movement System", () => {
       });
     });
 
+    /**
+     * The dialog has to say why a move didn't happen. A browser alert used to
+     * take the message away from the shift and target that explain it, and
+     * closed over the admin's selection.
+     */
+    test("a rejected move explains itself in the dialog and keeps the selection", async ({
+      page,
+    }) => {
+      // Already signed up for both shifts, so the move is refused outright
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: sourceShiftId,
+        status: "CONFIRMED",
+      });
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: targetShiftId,
+        status: "CONFIRMED",
+      });
+
+      await loginAsAdmin(page);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible({ timeout: 10000 });
+      await moveButton.click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible({ timeout: 10000 });
+
+      await page.getByRole("combobox").click();
+      const targetOption = page.locator(
+        `[data-testid="move-target-option-${targetShiftId}"]`
+      );
+      await expect(targetOption).toBeVisible({ timeout: 10000 });
+      await targetOption.click();
+
+      const notesField = page.getByPlaceholder(
+        "Add any notes about this movement..."
+      );
+      await notesField.fill("Swapping onto FOH");
+
+      await page.getByRole("button", { name: "Move Volunteer" }).click();
+
+      // The reason lands in the dialog, not in a browser alert
+      const errorNotice = page.locator('[data-testid="move-error-notice"]');
+      await expect(errorNotice).toBeVisible({ timeout: 15000 });
+      await expect(errorNotice).toContainText("already signed up");
+
+      // ...and the admin's selection and notes survive for a retry
+      await expect(dialog).toBeVisible();
+      await expect(notesField).toHaveValue("Swapping onto FOH");
+    });
+
     test("admin can move volunteer to different shift", async ({
       page,
     }) => {
