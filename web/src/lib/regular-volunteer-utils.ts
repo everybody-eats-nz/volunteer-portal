@@ -58,7 +58,6 @@ export type RegularSignupResult = {
   signupsCreated: number;
   /** The signup records that were (or would be) created */
   signupRecords: Array<{
-    id: string;
     userId: string;
     shiftId: string;
     regularVolunteerId: string;
@@ -135,18 +134,23 @@ export async function createRegularVolunteerSignups(
 
   // Process shifts and build signup records
   const signupRecords: RegularSignupResult["signupRecords"] = [];
+  // Ids are left to Prisma so a regular's signup is shaped like every other
+  // signup in the table. Minting them here (they were UUIDs) put a second id
+  // format into the column, and anything that assumed the usual shape - an
+  // admin endpoint validating the id, an id-ordered query - quietly failed for
+  // regular volunteers only.
   const dbSignups: Array<{
-    id: string;
     userId: string;
     shiftId: string;
     status: "CONFIRMED" | "REGULAR_PENDING";
     createdAt: Date;
     updatedAt: Date;
   }> = [];
-  const dbRegularSignups: Array<{
-    regularVolunteerId: string;
-    signupId: string;
-  }> = [];
+  // Which regular each pending signup belongs to, keyed by user+shift (the
+  // signup's unique pair), so the RegularSignup join rows can be built from
+  // the ids the insert returns.
+  const regularVolunteerBySignup = new Map<string, string>();
+  const signupKey = (userId: string, shiftId: string) => `${userId}|${shiftId}`;
 
   for (const shift of shifts) {
     const dayOfWeek = formatInNZT(shift.start, "EEEE");
@@ -165,28 +169,22 @@ export async function createRegularVolunteerSignups(
         continue;
       }
 
-      const signupId = crypto.randomUUID();
       const status = regular.autoApprove ? "CONFIRMED" as const : "REGULAR_PENDING" as const;
 
       signupRecords.push({
-        id: signupId,
         userId: regular.userId,
         shiftId: shift.id,
         regularVolunteerId: regular.id,
         status,
       });
       dbSignups.push({
-        id: signupId,
         userId: regular.userId,
         shiftId: shift.id,
         status,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      dbRegularSignups.push({
-        regularVolunteerId: regular.id,
-        signupId,
-      });
+      regularVolunteerBySignup.set(signupKey(regular.userId, shift.id), regular.id);
 
       // Track within-batch to prevent double-assignment
       if (!existingByDate.has(regular.userId)) {
@@ -204,11 +202,19 @@ export async function createRegularVolunteerSignups(
   if (!options?.dryRun && dbSignups.length > 0) {
     const BATCH_SIZE = 500;
     for (let i = 0; i < dbSignups.length; i += BATCH_SIZE) {
-      await prisma.signup.createMany({
+      const created = await prisma.signup.createManyAndReturn({
         data: dbSignups.slice(i, i + BATCH_SIZE),
+        select: { id: true, userId: true, shiftId: true },
       });
       await prisma.regularSignup.createMany({
-        data: dbRegularSignups.slice(i, i + BATCH_SIZE),
+        data: created.flatMap((signup) => {
+          const regularVolunteerId = regularVolunteerBySignup.get(
+            signupKey(signup.userId, signup.shiftId)
+          );
+          return regularVolunteerId
+            ? [{ regularVolunteerId, signupId: signup.id }]
+            : [];
+        }),
       });
     }
   }

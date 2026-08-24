@@ -145,6 +145,24 @@ function MoveOverCapacityNotice({
   );
 }
 
+/**
+ * Why a move didn't happen, in the dialog that asked for it. The selection and
+ * notes stay put so the admin can adjust and retry - a browser alert threw the
+ * message away from the context that explains it.
+ */
+function MoveErrorNotice({ message }: { message: string }) {
+  return (
+    <p
+      className="flex items-start gap-1.5 text-xs text-red-700 dark:text-red-300"
+      role="alert"
+      data-testid="move-error-notice"
+    >
+      <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
 type MoveVolunteerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -158,6 +176,8 @@ type MoveVolunteerDialogProps = {
   onNotesChange: (notes: string) => void;
   onConfirm: () => void;
   loading: boolean;
+  /** Why the last attempt failed, shown in place rather than in an alert box */
+  error: string | null;
   fieldIdPrefix: string;
   /** Waitlisted volunteers are confirmed by the move, so the copy says so. */
   fromWaitlist?: boolean;
@@ -182,6 +202,7 @@ function MoveVolunteerDialog({
   onNotesChange,
   onConfirm,
   loading,
+  error,
   fieldIdPrefix,
   fromWaitlist = false,
 }: MoveVolunteerDialogProps) {
@@ -270,6 +291,7 @@ function MoveVolunteerDialog({
                 rows={3}
               />
             </div>
+            {error && <MoveErrorNotice message={error} />}
           </div>
         ) : (
           <div
@@ -318,6 +340,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
   const [availableShifts, setAvailableShifts] = useState<MoveTargetShift[]>([]);
   const [selectedTargetShift, setSelectedTargetShift] = useState<string>("");
   const [movementNotes, setMovementNotes] = useState("");
+  const [moveError, setMoveError] = useState<string | null>(null);
   const [sendEmailOnReject, setSendEmailOnReject] = useState(true); // Default to checked
   const router = useRouter();
 
@@ -374,6 +397,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
     if (!selectedTargetShift) return;
 
     setLoading("move");
+    setMoveError(null);
     try {
       const response = await fetch("/api/admin/volunteer-movement", {
         method: "POST",
@@ -397,7 +421,11 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error("Error moving volunteer:", error);
-      alert(`Failed to move volunteer. ${error instanceof Error ? error.message : 'Please try again.'}`);
+      setMoveError(
+        error instanceof Error && error.message
+          ? error.message
+          : "Something went wrong moving this volunteer. Please try again."
+      );
     } finally {
       setLoading(null);
     }
@@ -522,10 +550,17 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   const handleMoveDialogChange = (open: boolean) => {
     setDialogOpen(open ? "move" : null);
+    setMoveError(null);
     if (!open) {
       setSelectedTargetShift("");
       setMovementNotes("");
     }
+  };
+
+  const handleSelectTargetShift = (shiftId: string) => {
+    setSelectedTargetShift(shiftId);
+    // The old failure was about the old target; keep it off the new one.
+    setMoveError(null);
   };
 
   const moveDialog = currentShift ? (
@@ -537,11 +572,12 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
       volunteerName={volunteerName}
       shifts={availableShifts}
       selectedShiftId={selectedTargetShift}
-      onSelectShift={setSelectedTargetShift}
+      onSelectShift={handleSelectTargetShift}
       notes={movementNotes}
       onNotesChange={setMovementNotes}
       onConfirm={handleVolunteerMove}
       loading={loading === "move"}
+      error={moveError}
       fieldIdPrefix={`move-${signupId}`}
       fromWaitlist={currentStatus === "WAITLISTED"}
     />

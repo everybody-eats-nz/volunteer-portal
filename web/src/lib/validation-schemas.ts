@@ -71,3 +71,26 @@ export const restaurantNightStatsSchema = z.object({
 export type RestaurantNightStatsInput = z.infer<
   typeof restaurantNightStatsSchema
 >;
+
+// --- Admin volunteer movement ---
+
+/**
+ * Body for POST /api/admin/volunteer-movement.
+ *
+ * Ids are checked for presence, never for shape. Signups created for regular
+ * volunteers used to be given UUIDs rather than cuids, so a cuid format check
+ * rejected every regular's signup with a bare "Invalid input" - admins could
+ * not move their weekly regulars between shifts on the day. Whether an id
+ * points at a real row is the database's answer to give, not a regex's.
+ */
+export const moveVolunteerSchema = z.object({
+  signupId: z
+    .string({ error: "No volunteer selected to move" })
+    .min(1, "No volunteer selected to move"),
+  targetShiftId: z
+    .string({ error: "Choose a shift to move them to" })
+    .min(1, "Choose a shift to move them to"),
+  movementNotes: z.string({ error: "Notes must be text" }).optional(),
+});
+
+export type MoveVolunteerInput = z.infer<typeof moveVolunteerSchema>;

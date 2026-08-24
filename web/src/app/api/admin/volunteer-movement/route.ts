@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { z } from "zod";
+import { moveVolunteerSchema } from "@/lib/validation-schemas";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
@@ -27,17 +27,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    
-    const schema = z.object({
-      signupId: z.string().cuid(),
-      targetShiftId: z.string().cuid(),
-      movementNotes: z.string().optional(),
-    });
 
-    const parsed = schema.safeParse(body);
+    const parsed = moveVolunteerSchema.safeParse(body);
     if (!parsed.success) {
+      // Surface the failing field. A bare "Invalid input" told an admin
+      // nothing about what to do next, and nothing about what to report.
+      console.error("Invalid volunteer movement request:", parsed.error.issues);
       return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.format() },
+        {
+          error: parsed.error.issues[0]?.message ?? "Invalid input",
+          details: parsed.error.issues,
+        },
         { status: 400 }
       );
     }

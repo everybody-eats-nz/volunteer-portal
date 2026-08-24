@@ -231,6 +231,140 @@ test.describe("General Volunteer Movement System", () => {
       });
     });
 
+    /**
+     * Regression: a regular volunteer could not be moved at all.
+     *
+     * Signups created for regular volunteers were given UUIDs rather than the
+     * cuids Prisma hands out, and the movement endpoint validated the id shape.
+     * Every attempt came back "Invalid input", so admins could not shuffle
+     * their weekly regulars between shifts on the night.
+     */
+    test("admin can move a volunteer whose signup id is not a cuid", async ({
+      page,
+    }) => {
+      const legacySignupId = randomUUID();
+
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        id: legacySignupId,
+        userId: volunteerUserId,
+        shiftId: sourceShiftId,
+        status: "CONFIRMED",
+      });
+
+      await loginAsAdmin(page);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible({ timeout: 10000 });
+      await moveButton.click();
+
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
+      await page.getByRole("combobox").click();
+
+      const targetOption = page.locator(
+        `[data-testid="move-target-option-${targetShiftId}"]`
+      );
+      await expect(targetOption).toBeVisible({ timeout: 10000 });
+      await targetOption.click();
+
+      await page.getByRole("button", { name: "Move Volunteer" }).click();
+
+      // The dialog closes on success; a rejected move keeps it open and says why
+      await expect(page.locator('[data-testid="move-error-notice"]')).toHaveCount(
+        0
+      );
+      await expect(page.getByRole("dialog")).toBeHidden({ timeout: 15000 });
+
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const movedToCard = visibleShiftCard(page, targetShiftId);
+      await expect(movedToCard).toBeVisible({ timeout: 15000 });
+      await expect(movedToCard.getByText("Test User")).toBeVisible({
+        timeout: 10000,
+      });
+    });
+
+    /**
+     * The dialog has to say why a move didn't happen. A browser alert used to
+     * take the message away from the shift and target that explain it, and
+     * closed over the admin's selection.
+     */
+    test("a rejected move explains itself in the dialog and keeps the selection", async ({
+      page,
+    }) => {
+      // Already signed up for both shifts, so the move is refused outright
+      await deleteSignupsByShiftIds(page, [sourceShiftId, targetShiftId]);
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: sourceShiftId,
+        status: "CONFIRMED",
+      });
+      await createSignup(page, {
+        userId: volunteerUserId,
+        shiftId: targetShiftId,
+        status: "CONFIRMED",
+      });
+
+      await loginAsAdmin(page);
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      await page.goto(`/admin/shifts?date=${tomorrowStr}&location=Wellington`);
+      await page.waitForLoadState("load");
+
+      const shiftCard = visibleShiftCard(page, sourceShiftId);
+      await expect(shiftCard).toBeVisible({ timeout: 15000 });
+
+      const moveButton = shiftCard.locator(
+        'button[title="Move to different shift"]'
+      );
+      await expect(moveButton).toBeVisible({ timeout: 10000 });
+      await moveButton.click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible({ timeout: 10000 });
+
+      await page.getByRole("combobox").click();
+      const targetOption = page.locator(
+        `[data-testid="move-target-option-${targetShiftId}"]`
+      );
+      await expect(targetOption).toBeVisible({ timeout: 10000 });
+      await targetOption.click();
+
+      const notesField = page.getByPlaceholder(
+        "Add any notes about this movement..."
+      );
+      await notesField.fill("Swapping onto FOH");
+
+      await page.getByRole("button", { name: "Move Volunteer" }).click();
+
+      // The reason lands in the dialog, not in a browser alert
+      const errorNotice = page.locator('[data-testid="move-error-notice"]');
+      await expect(errorNotice).toBeVisible({ timeout: 15000 });
+      await expect(errorNotice).toContainText("already signed up");
+
+      // ...and the admin's selection and notes survive for a retry
+      await expect(dialog).toBeVisible();
+      await expect(notesField).toHaveValue("Swapping onto FOH");
+    });
+
     test("admin can move volunteer to different shift", async ({
       page,
     }) => {

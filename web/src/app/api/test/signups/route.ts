@@ -48,10 +48,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { userId, shiftId, status = "CONFIRMED", backupForShiftIds = [] } = body;
+    const { id, userId, shiftId, status = "CONFIRMED", backupForShiftIds = [] } = body;
 
     const signup = await prisma.signup.create({
       data: {
+        // Optional so a test can pin an id shape - regular volunteers' signups
+        // were created with UUIDs, and admin actions have to handle those too.
+        ...(id ? { id } : {}),
         userId,
         shiftId,
         status,
