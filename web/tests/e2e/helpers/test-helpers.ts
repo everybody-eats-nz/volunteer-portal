@@ -164,6 +164,8 @@ export async function getUserByEmail(
 export async function createSignup(
   page: Page,
   data: {
+    /** Pin the signup's id - used to cover legacy non-cuid ids */
+    id?: string;
     userId: string;
     shiftId: string;
     status?: string;
