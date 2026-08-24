@@ -1,5 +1,10 @@
-import { Badge } from "@/components/ui/badge";
 import { Timer, CheckCircle, Users } from "lucide-react";
+
+/* Brand status pills (new.everybodyeats.nz): semantic colour on a quiet
+   tinted pill — confirmed/forest, pending/amber, waitlisted/sun — legible on
+   both cream and forest surfaces. */
+const base =
+  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 export function StatusBadge({
   status,
@@ -10,28 +15,35 @@ export function StatusBadge({
 }) {
   switch (status) {
     case "PENDING":
+    case "REGULAR_PENDING":
       return (
-        <Badge
-          variant="outline"
-          className="bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50"
+        <span
+          data-testid="status-badge"
+          className={`${base} bg-amber-400/15 text-amber-800 ring-amber-500/25 dark:bg-amber-300/10 dark:text-amber-200 dark:ring-amber-300/25`}
         >
-          <Timer className="h-3 w-3 mr-1" />
+          <Timer className="h-3 w-3" aria-hidden />
           Pending
-        </Badge>
+        </span>
       );
     case "CONFIRMED":
       return (
-        <Badge className="bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/50">
-          <CheckCircle className="h-3 w-3 mr-1" />
+        <span
+          data-testid="status-badge"
+          className={`${base} bg-forest-500/10 text-forest-700 ring-forest-500/20 dark:bg-forest-300/15 dark:text-forest-100 dark:ring-forest-300/25`}
+        >
+          <CheckCircle className="h-3 w-3" aria-hidden />
           {isPast ? "Completed" : "Confirmed"}
-        </Badge>
+        </span>
       );
     case "WAITLISTED":
       return (
-        <Badge variant="secondary">
-          <Users className="h-3 w-3 mr-1" />
+        <span
+          data-testid="status-badge"
+          className={`${base} bg-sun-200/70 text-forest-700 ring-forest-500/15 dark:bg-sun-200/15 dark:text-sun-100 dark:ring-sun-200/30`}
+        >
+          <Users className="h-3 w-3" aria-hidden />
           Waitlisted
-        </Badge>
+        </span>
       );
     default:
       return null;

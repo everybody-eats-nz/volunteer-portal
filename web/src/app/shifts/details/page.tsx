@@ -10,7 +10,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { PageContainer } from "@/components/page-container";
-import { PageHeader } from "@/components/page-header";
 import { ShiftsProfileCompletionBanner } from "@/components/shifts-profile-completion-banner";
 import { ShiftDetailsContent } from "./shift-details-content";
 import { Suspense } from "react";
@@ -126,9 +125,13 @@ export default async function ShiftDetailsPage({
     return (
       <PageContainer>
         <div className="text-center py-20">
-          <Calendar className="w-20 h-20 text-muted-foreground mx-auto mb-6" />
-          <h3 className="text-2xl font-semibold mb-3">No Date Selected</h3>
-          <p className="text-muted-foreground mb-6">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-forest-500/10 dark:bg-cream-50/10 flex items-center justify-center">
+            <Calendar className="w-8 h-8 text-forest-500 dark:text-cream-50/70" />
+          </div>
+          <h3 className="display text-2xl tracking-tight text-forest-700 dark:text-cream-50 mb-3">
+            No Date Selected
+          </h3>
+          <p className="text-forest-700/70 dark:text-cream-50/70 mb-6">
             Please select a date from the calendar to view available shifts.
           </p>
           <Button asChild>
@@ -223,39 +226,44 @@ export default async function ShiftDetailsPage({
         </div>
       </div>
 
-      <PageHeader
-        title={`${formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}`}
-        description={
-          selectedLocation ? (
-            <div className="">
-              <div
-                className="flex items-center gap-2"
-                data-testid="restaurant-location-badge"
-              >
-                <MapPin className="h-4 w-4 text-primary flex-shrink-0" />
-                <span className="font-semibold text-base text-primary">
-                  {selectedLocation}
-                </span>
-              </div>
-              {selectedLocationAddress && (
-                <div className="flex items-start gap-2 text-sm text-muted-foreground pl-6">
-                  <a
-                    href={selectedLocationMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-testid="restaurant-address"
-                    className="text-left hover:text-primary hover:underline"
-                  >
-                    {selectedLocationAddress}
-                  </a>
-                </div>
-              )}
+      <div className="mb-8">
+        <p className="eyebrow mb-4 flex items-center gap-3 text-forest-500/80 dark:text-cream-50/60">
+          <span className="inline-block h-px w-8 bg-forest-500/50 dark:bg-cream-50/40" />
+          Pick a shift · join the mahi
+        </p>
+        <h1
+          className="display text-3xl leading-[1.05] tracking-tight text-forest-700 sm:text-5xl dark:text-cream-50"
+          data-testid="shifts-details-page-header"
+        >
+          {formatInNZT(selectedDate, "EEEE, MMMM d, yyyy")}
+        </h1>
+        {selectedLocation && (
+          <div className="mt-4">
+            <div
+              className="flex items-center gap-2"
+              data-testid="restaurant-location-badge"
+            >
+              <MapPin className="h-4 w-4 text-forest-500 flex-shrink-0 dark:text-cream-50/70" />
+              <span className="font-semibold text-base text-forest-700 dark:text-cream-50">
+                {selectedLocation}
+              </span>
             </div>
-          ) : undefined
-        }
-        className="mb-8"
-        data-testid="shifts-details-page-header"
-      />
+            {selectedLocationAddress && (
+              <div className="flex items-start gap-2 text-sm text-forest-700/65 pl-6 dark:text-cream-50/60">
+                <a
+                  href={selectedLocationMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="restaurant-address"
+                  className="text-left underline-offset-4 hover:text-forest-500 hover:underline dark:hover:text-cream-50"
+                >
+                  {selectedLocationAddress}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Profile completion banner streams in */}
       <Suspense fallback={null}>
@@ -282,21 +290,24 @@ export default async function ShiftDetailsPage({
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="overflow-hidden">
+                  <Card
+                    key={i}
+                    className="overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10"
+                  >
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         <div className="flex items-start gap-3">
-                          <Skeleton className="w-10 h-10 rounded-xl" />
+                          <Skeleton className="w-11 h-11 rounded-2xl" />
                           <div className="flex-1">
                             <Skeleton className="h-6 w-40 mb-2" />
-                            <Skeleton className="h-5 w-16" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Skeleton className="h-16 rounded-lg" />
-                          <Skeleton className="h-16 rounded-lg" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <Skeleton className="h-16 rounded-xl" />
+                          <Skeleton className="h-16 rounded-xl" />
                         </div>
-                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full rounded-full" />
                       </div>
                     </CardContent>
                   </Card>

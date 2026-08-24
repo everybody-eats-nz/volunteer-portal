@@ -32,7 +32,6 @@ interface ShiftSignupButtonProps {
 
 export function ShiftSignupButton({
   isFull,
-  theme,
   shift,
   confirmedCount,
   currentUserId,
@@ -48,16 +47,14 @@ export function ShiftSignupButton({
     >
       <Button
         data-testid="shift-signup-button"
-        className={`w-full font-medium transition-all duration-200 ${
+        className={`w-full font-medium ${
           isFull
-            ? "bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 hover:border-orange-300"
-            : "bg-gradient-to-r " +
-              theme.fullGradient +
-              " hover:shadow-lg transform hover:scale-[1.02] text-white"
+            ? "border border-sun-300/70 bg-sun-100/70 text-forest-700 hover:bg-sun-200 hover:border-sun-300 dark:border-sun-200/30 dark:bg-sun-200/15 dark:text-cream-50 dark:hover:bg-sun-200/25"
+            : ""
         }`}
         variant={isFull ? "outline" : "default"}
       >
-        {isFull ? "🎯 Join Waitlist" : "✨ Sign Up Now"}
+        {isFull ? "Join Waitlist" : "Sign Up Now"}
       </Button>
     </ShiftSignupDialog>
   );

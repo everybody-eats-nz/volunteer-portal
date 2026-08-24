@@ -9,8 +9,20 @@ test.describe("Friends System", () => {
   test("should navigate to friends page when logged in as volunteer", async ({
     page,
   }) => {
-    // Click on Friends link in navigation
-    await page.click('a[href="/friends"]');
+    // Dismiss any post-login celebration dialog (e.g. "Achievements
+    // Unlocked!") whose overlay would intercept the nav click.
+    const overlay = page.locator(
+      '[data-slot="dialog-overlay"][data-state="open"]'
+    );
+    if (await overlay.isVisible().catch(() => false)) {
+      await page.keyboard.press("Escape");
+      await expect(overlay).not.toBeVisible();
+    }
+
+    // Click on Friends link in navigation — scope to visible matches: the
+    // mobile menu, footer and streamed duplicate segments also contain
+    // /friends links that aren't clickable on desktop.
+    await page.locator('a[href="/friends"]:visible').first().click();
 
     // Verify we're on the friends page
     await expect(page).toHaveURL("/friends");
@@ -22,7 +34,7 @@ test.describe("Friends System", () => {
     await page.goto("/friends");
 
     // Click "Add Friend" button
-    await page.click('[data-testid="add-friend-button"]');
+    await page.locator('[data-testid="add-friend-button"]').first().click();
 
     // Verify dialog is open
     await expect(
@@ -44,7 +56,7 @@ test.describe("Friends System", () => {
     await page.goto("/friends");
 
     // Open friend request dialog
-    await page.click('[data-testid="add-friend-button"]');
+    await page.locator('[data-testid="add-friend-button"]').first().click();
 
     // Verify dialog opened
     await expect(
@@ -70,7 +82,7 @@ test.describe("Friends System", () => {
     await page.goto("/friends");
 
     // Open friend request dialog
-    await page.click('[data-testid="add-friend-button"]');
+    await page.locator('[data-testid="add-friend-button"]').first().click();
 
     // Fill in valid email and message
     await page.fill(
@@ -105,8 +117,12 @@ test.describe("Friends System", () => {
     // Navigate to friends page
     await page.goto("/friends");
 
-    // Click "Privacy Settings" button
-    await page.click('[data-testid="privacy-settings-button"]');
+    // Click "Privacy Settings" button (.first(): streamed segments can
+    // briefly duplicate page content — same convention as helpers/auth.ts)
+    await page
+      .locator('[data-testid="privacy-settings-button"]')
+      .first()
+      .click();
 
     // Verify dialog is open
     await expect(page.locator('[role="dialog"]')).toBeVisible();
@@ -125,8 +141,9 @@ test.describe("Friends System", () => {
     await page.goto("/friends");
     await page.waitForLoadState("load");
 
-    // Open privacy settings - wait for button to be ready
-    const privacyButton = page.getByTestId("privacy-settings-button");
+    // Open privacy settings - wait for button to be ready (.first(): streamed
+    // segments can briefly duplicate page content)
+    const privacyButton = page.getByTestId("privacy-settings-button").first();
     await expect(privacyButton).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(500); // Wait for page to settle
     await privacyButton.click();
@@ -165,18 +182,20 @@ test.describe("Friends System", () => {
     // Navigate to friends page
     await page.goto("/friends");
 
-    // Should start on Friends tab - check that it exists and is active
-    const friendsTab = page.locator('[data-testid="friends-tab"]');
+    // Should start on Friends tab - check that it exists and is active.
+    // Use .first(): during Next.js streaming/HMR the tab list can briefly
+    // exist twice in the DOM (same convention as helpers/auth.ts).
+    const friendsTab = page.locator('[data-testid="friends-tab"]').first();
     await expect(friendsTab).toBeVisible();
     await expect(friendsTab).toHaveAttribute("data-state", "active");
 
     // Click on Requests tab
-    await page.click('[data-testid="requests-tab"]');
-    const requestsTab = page.locator('[data-testid="requests-tab"]');
+    const requestsTab = page.locator('[data-testid="requests-tab"]').first();
+    await requestsTab.click();
     await expect(requestsTab).toHaveAttribute("data-state", "active");
 
     // Click back to Friends tab
-    await page.click('[data-testid="friends-tab"]');
+    await friendsTab.click();
     await expect(friendsTab).toHaveAttribute("data-state", "active");
   });
 

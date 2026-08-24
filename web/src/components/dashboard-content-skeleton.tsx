@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export function DashboardContentSkeleton() {
   return (
-    <Card className="h-fit flex-1 min-w-80">
+    <Card className="relative h-fit min-w-80 flex-1 overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500/40 to-forest-300/40 dark:from-forest-400/40 dark:to-forest-300/40" />
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-5 w-5 rounded-full" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-9 rounded-xl" />
           <Skeleton className="h-5 w-32" />
         </div>
       </CardHeader>

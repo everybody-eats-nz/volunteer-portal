@@ -26,45 +26,44 @@ export function MotionFriendsList({ children, className }: MotionFriendsProps) {
 }
 
 /**
- * Motion wrapper for individual friend cards
+ * Motion wrapper for individual friend cards. Entrance is staggered; the
+ * hover lift lives on the card itself (CSS translate, marketing-style).
  */
 export function MotionFriendCard({ children, className }: MotionFriendsProps) {
   return (
-    <motion.div
-      className={cn(className)}
-      variants={staggerItem}
-      whileHover={{ 
-        scale: 1.02,
-        transition: { duration: 0.2 }
-      }}
-      whileTap={{ scale: 0.98 }}
-    >
+    <motion.div className={cn("h-full", className)} variants={staggerItem}>
       {children}
     </motion.div>
   );
 }
 
 /**
- * Motion wrapper for friend request notifications
+ * Motion wrapper for friend request notifications — fresh requests get a
+ * soft sun-yellow wash, the brand's "look here" accent.
  */
-export function MotionFriendRequest({ 
-  children, 
+export function MotionFriendRequest({
+  children,
   className,
-  isNew = false 
+  isNew = false,
 }: MotionFriendsProps & { isNew?: boolean }) {
   return (
     <motion.div
-      className={cn(className)}
+      className={cn("rounded-3xl", className)}
       variants={slideUpVariants}
       initial="hidden"
       animate="visible"
-      whileHover={{ 
+      whileHover={{
         x: 4,
-        transition: { duration: 0.2 }
+        transition: { duration: 0.2 },
       }}
-      style={isNew ? {
-        background: "linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%)"
-      } : undefined}
+      style={
+        isNew
+          ? {
+              background:
+                "linear-gradient(90deg, rgb(248 251 105 / 0.10) 0%, transparent 100%)",
+            }
+          : undefined
+      }
     >
       {children}
     </motion.div>
@@ -74,20 +73,20 @@ export function MotionFriendRequest({
 /**
  * Motion wrapper for friend stats cards
  */
-export function MotionFriendStats({ 
-  children, 
+export function MotionFriendStats({
+  children,
   className,
-  delay = 0 
+  delay = 0,
 }: MotionFriendsProps & { delay?: number }) {
   return (
     <motion.div
       className={cn(className)}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ 
-        duration: 0.3, 
+      transition={{
+        duration: 0.3,
         ease: [0.4, 0, 0.2, 1],
-        delay 
+        delay,
       }}
     >
       {children}
@@ -98,19 +97,22 @@ export function MotionFriendStats({
 /**
  * Animated presence wrapper for friend removal
  */
-export function MotionFriendPresence({ 
+export function MotionFriendPresence({
   children,
-  id 
-}: { children: React.ReactNode; id: string }) {
+  id,
+}: {
+  children: React.ReactNode;
+  id: string;
+}) {
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={id}
         initial={{ opacity: 1, height: "auto" }}
-        exit={{ 
-          opacity: 0, 
+        exit={{
+          opacity: 0,
           height: 0,
-          transition: { duration: 0.3 }
+          transition: { duration: 0.3 },
         }}
       >
         {children}

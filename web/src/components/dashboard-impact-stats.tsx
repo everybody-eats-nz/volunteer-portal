@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { differenceInHours } from "date-fns";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MotionContentCard } from "@/components/motion-content-card";
-import { CheckCircle } from "lucide-react";
+import { Heart } from "lucide-react";
 import { getStartOfDayUTC } from "@/lib/timezone";
 
 interface DashboardImpactStatsProps {
@@ -147,25 +147,33 @@ export async function DashboardImpactStats({
   const mealsToDisplay = hasAnyData ? totalMealsServed : estimatedMeals;
 
   return (
-    <MotionContentCard className="h-fit" delay={0.6}>
+    <MotionContentCard
+      className="grain relative h-fit overflow-hidden rounded-3xl border-forest-500/10 dark:border-cream-50/10"
+      delay={0.6}
+    >
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-forest-500 to-forest-300 dark:from-forest-400 dark:to-forest-300" />
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-primary dark:text-emerald-400" />
-          Your Impact & Community
+        <CardTitle className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-forest-500/10 text-forest-600 ring-1 ring-forest-500/10 dark:bg-cream-50/10 dark:text-cream-50/80 dark:ring-cream-50/10">
+            <Heart className="h-5 w-5" />
+          </span>
+          <span className="display text-xl tracking-tight text-forest-700 dark:text-cream-50">
+            Your Impact &amp; Community
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-primary dark:text-emerald-400 mb-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grain relative overflow-hidden rounded-2xl border border-forest-500/10 bg-forest-500/5 p-5 text-center dark:border-cream-50/10 dark:bg-cream-50/5">
+              <div className="font-accent text-4xl font-bold tabular-nums text-forest-700 dark:text-cream-50">
                 {hasAnyData ? "" : "~"}{mealsToDisplay.toLocaleString()}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="mt-2 text-sm font-medium text-forest-700/75 dark:text-cream-50/75">
                 {hasAnyData ? "People served" : "Estimated people served"}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-forest-700/55 dark:text-cream-50/50">
                 {hasActualData && daysWithEstimatedData > 0
                   ? `${daysWithActualData} shift${daysWithActualData !== 1 ? "s" : ""} with actual data, ${daysWithEstimatedData} estimated`
                   : hasActualData
@@ -176,15 +184,15 @@ export async function DashboardImpactStats({
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mb-2">
+            <div className="grain relative overflow-hidden rounded-2xl border border-forest-500/10 bg-sun-100/50 p-5 text-center dark:border-cream-50/10 dark:bg-sun-200/10">
+              <div className="font-accent text-4xl font-bold tabular-nums text-forest-700 dark:text-cream-50">
                 {totalVolunteers.toLocaleString()}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="mt-2 text-sm font-medium text-forest-700/75 dark:text-cream-50/75">
                 Active volunteers in our community
               </p>
               {favoriteShiftType && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-forest-700/55 dark:text-cream-50/50">
                   Your specialty: {favoriteShiftType}
                 </p>
               )}

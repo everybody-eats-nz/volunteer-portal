@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import {
   ResponsiveDialog,
@@ -90,12 +91,13 @@ export function CancelSignupButton({
   return (
     <ResponsiveDialog open={open} onOpenChange={setOpen}>
       <ResponsiveDialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          data-testid="cancel-shift-button" 
-          className={`text-muted-foreground hover:text-red-600 hover:border-red-300 ${className || ''}`}
+        <Button
+          variant="outline"
+          data-testid="cancel-shift-button"
+          className={`border-forest-500/20 text-forest-700/75 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-cream-50/15 dark:text-cream-50/70 dark:hover:border-red-900/60 dark:hover:bg-red-950/30 dark:hover:text-red-400 ${className || ''}`}
         >
-          ❌ Cancel Signup
+          <X className="h-4 w-4" />
+          Cancel Signup
         </Button>
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent data-testid="cancel-shift-dialog">
