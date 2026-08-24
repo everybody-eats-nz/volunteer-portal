@@ -1,3 +1,9 @@
+## [0.155.0] - 2026-08-24
+
+### Changes
+- feat(web): apply marketing design system across volunteer pages ([#1003](https://github.com/everybody-eats-nz/volunteer-portal/pull/1003)) by @malinmalliyawadu
+
+
 ## [0.154.7] - 2026-08-24
 
 ### Changes
