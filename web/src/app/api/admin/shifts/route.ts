@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createShiftRecord } from "@/lib/services/shift-service";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/client";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -17,20 +18,36 @@ export async function POST(request: NextRequest) {
     const { location, start, end, capacity, notes } = body;
 
     // If no shiftTypeId provided, find or create a default one for tests.
-    // Use an atomic upsert on the unique `name` field: a non-atomic
-    // findFirst-then-create races when e2e tests run in parallel, with the
-    // losing request failing on the ShiftType.name unique constraint.
+    // upsert() isn't atomic against a concurrent insert of the same row:
+    // under e2e's parallel load, two requests can both see no existing
+    // "Kitchen" row and both attempt the create side, and the loser still
+    // surfaces a raw P2002 instead of transparently retrying as an update.
+    // When that happens the winner's row now exists, so just read it.
     if (!shiftTypeId) {
-      const defaultShiftType = await prisma.shiftType.upsert({
-        where: { name: "Kitchen" },
-        update: {},
-        create: {
-          name: "Kitchen",
-          description: "Kitchen duties",
-        },
-      });
+      try {
+        const defaultShiftType = await prisma.shiftType.upsert({
+          where: { name: "Kitchen" },
+          update: {},
+          create: {
+            name: "Kitchen",
+            description: "Kitchen duties",
+          },
+        });
 
-      shiftTypeId = defaultShiftType.id;
+        shiftTypeId = defaultShiftType.id;
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          const existing = await prisma.shiftType.findUniqueOrThrow({
+            where: { name: "Kitchen" },
+          });
+          shiftTypeId = existing.id;
+        } else {
+          throw error;
+        }
+      }
     }
 
     const shift = await createShiftRecord({
