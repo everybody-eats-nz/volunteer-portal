@@ -1,3 +1,9 @@
+## [0.155.1] - 2026-08-24
+
+### Changes
+- fix(admin): let admins move regular volunteers between shifts ([#1218](https://github.com/everybody-eats-nz/volunteer-portal/pull/1218)) by @malinmalliyawadu
+
+
 ## [0.155.0] - 2026-08-24
 
 ### Changes
