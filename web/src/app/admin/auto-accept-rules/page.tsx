@@ -1,7 +1,6 @@
-import { getActiveLocationNames } from "@/lib/locations";
-import AutoAcceptRulesClient from "./auto-accept-rules-client";
+import { permanentRedirect } from "next/navigation";
 
-export default async function NotificationsPage() {
-  const locations = await getActiveLocationNames();
-  return <AutoAcceptRulesClient locations={locations} />;
+/** Old route - auto-accept rules became Auto-Approval. */
+export default function LegacyAutoAcceptRulesPage() {
+  permanentRedirect("/admin/auto-approval");
 }

@@ -1,3 +1,93 @@
+## [0.154.7] - 2026-08-24
+
+### Changes
+- chore(deps): bump the production-dependencies group across 1 directory with 2 updates ([#1217](https://github.com/everybody-eats-nz/volunteer-portal/pull/1217)) by @dependabot[bot]
+
+
+## [0.154.6] - 2026-08-23
+
+### Changes
+- chore(deps): bump @prisma/client from 7.7.0 to 7.9.1 in /web ([#1214](https://github.com/everybody-eats-nz/volunteer-portal/pull/1214)) by @dependabot[bot]
+
+
+## [0.154.5] - 2026-08-23
+
+### Changes
+- chore(deps): bump uuid from 14.0.1 to 14.0.2 in /web ([#1216](https://github.com/everybody-eats-nz/volunteer-portal/pull/1216)) by @dependabot[bot]
+
+
+## [0.154.4] - 2026-08-23
+
+### Changes
+- chore(deps-dev): bump the development-dependencies group in /web with 3 updates ([#1212](https://github.com/everybody-eats-nz/volunteer-portal/pull/1212)) by @dependabot[bot]
+
+
+## [0.154.3] - 2026-08-22
+
+### Changes
+- fix(mobile): stop the shifts list calling a pending friend confirmed ([#1211](https://github.com/everybody-eats-nz/volunteer-portal/pull/1211)) by @malinmalliyawadu
+
+
+## [0.154.2] - 2026-08-22
+
+### Changes
+- fix(mobile): tell a pending signup apart from a confirmed one ([#1210](https://github.com/everybody-eats-nz/volunteer-portal/pull/1210)) by @malinmalliyawadu
+
+
+## [0.154.1] - 2026-08-19
+
+### Changes
+- perf(auto-approval): stop shipping work nobody asked for ([#1209](https://github.com/everybody-eats-nz/volunteer-portal/pull/1209)) by @malinmalliyawadu
+
+
+## [0.154.0] - 2026-08-19
+
+### Changes
+- feat(auto-approval): rebuild the admin experience around visibility ([#1208](https://github.com/everybody-eats-nz/volunteer-portal/pull/1208)) by @malinmalliyawadu
+
+
+## [0.153.2] - 2026-08-18
+
+### Changes
+- fix(flaky): should navigate to edit profile page ([#1204](https://github.com/everybody-eats-nz/volunteer-portal/pull/1204)) by @malinmalliyawadu
+
+
+## [0.153.1] - 2026-08-18
+
+### Changes
+- fix(auto-accept): stop location-scoped rules matching every shift type ([#1207](https://github.com/everybody-eats-nz/volunteer-portal/pull/1207)) by @malinmalliyawadu
+
+
+## [0.153.0] - 2026-08-18
+
+### Changes
+- feat(admin): add cancel and move actions to waitlisted volunteers ([#1206](https://github.com/everybody-eats-nz/volunteer-portal/pull/1206)) by @malinmalliyawadu
+
+
+## [0.152.1] - 2026-08-17
+
+### Changes
+- chore(deps): bump the production-dependencies group in /web with 2 updates ([#1198](https://github.com/everybody-eats-nz/volunteer-portal/pull/1198)) by @dependabot[bot]
+
+
+## [0.152.0] - 2026-08-17
+
+### Changes
+- feat(admin): support admins as regular volunteers, make user search index-backed ([#1203](https://github.com/everybody-eats-nz/volunteer-portal/pull/1203)) by @malinmalliyawadu
+
+
+## [0.151.9] - 2026-08-17
+
+### Changes
+- chore(deps): bump @types/jsdom from 28.0.3 to 30.0.0 in /web ([#1200](https://github.com/everybody-eats-nz/volunteer-portal/pull/1200)) by @dependabot[bot]
+
+
+## [0.151.8] - 2026-08-11
+
+### Changes
+- fix(admin): show shortage email button on the current day ([#1194](https://github.com/everybody-eats-nz/volunteer-portal/pull/1194)) by @malinmalliyawadu
+
+
 ## [0.151.7] - 2026-08-10
 
 ### Changes

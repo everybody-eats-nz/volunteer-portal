@@ -79,13 +79,13 @@ model User {
   migrationTokenExpiresAt   DateTime?
 
   // Archiving (inactive volunteer management)
-  archivedAt                    DateTime?
-  archiveReason                 ArchiveReason?
-  archivedBy                    String? // admin user id if manually archived; null if automated
-  archiveWarningSentAt          DateTime? // 11mo warning email sent at
-  firstShiftNudgeSentAt         DateTime? // 1mo nudge for never-activated users
-  archiveExtendedUntil          DateTime? // set when user clicks "keep me active" link
-  archiveExtensionToken         String?   @unique
+  archivedAt                     DateTime?
+  archiveReason                  ArchiveReason?
+  archivedBy                     String? // admin user id if manually archived; null if automated
+  archiveWarningSentAt           DateTime? // 11mo warning email sent at
+  firstShiftNudgeSentAt          DateTime? // 1mo nudge for never-activated users
+  archiveExtendedUntil           DateTime? // set when user clicks "keep me active" link
+  archiveExtensionToken          String?        @unique
   archiveExtensionTokenExpiresAt DateTime?
 
   // Most recent successful mobile auth event (login, OAuth, passkey, or
@@ -99,9 +99,9 @@ model User {
   signups              Signup[]
   achievements         UserAchievement[]
   // Friend system relations
-  friendships          Friendship[]    @relation("UserFriendships")
-  friendOf             Friendship[]    @relation("FriendFriendships")
-  initiatedFriendships Friendship[]    @relation("InitiatedFriendships")
+  friendships          Friendship[]      @relation("UserFriendships")
+  friendOf             Friendship[]      @relation("FriendFriendships")
+  initiatedFriendships Friendship[]      @relation("InitiatedFriendships")
   sentFriendRequests   FriendRequest[]
 
   // Privacy settings
@@ -121,9 +121,10 @@ model User {
   notificationGroupMembers NotificationGroupMember[]
 
   // Auto-accept rules
-  createdAutoAcceptRules  AutoAcceptRule[] @relation("RuleCreator")
-  overriddenAutoApprovals AutoApproval[]   @relation("ApprovalOverrider")
-  createdShiftTemplates   ShiftTemplate[]  @relation("TemplateCreator")
+  createdAutoAcceptRules  AutoAcceptRule[]       @relation("RuleCreator")
+  overriddenAutoApprovals AutoApproval[]         @relation("ApprovalOverrider")
+  autoApprovalDecisions   AutoApprovalDecision[] @relation("AutoApprovalDecisionSubject")
+  createdShiftTemplates   ShiftTemplate[]        @relation("TemplateCreator")
 
   // Admin notes
   adminNotes        AdminNote[] @relation("VolunteerNotes")
@@ -146,8 +147,8 @@ model User {
   createdSurveys    Survey[]           @relation("SurveyCreator")
 
   // Feed interactions
-  feedLikes     FeedLike[]
-  feedComments  FeedComment[]
+  feedLikes    FeedLike[]
+  feedComments FeedComment[]
 
   // Announcements authored by this user (admin)
   announcements Announcement[] @relation("AnnouncementAuthor")
@@ -158,7 +159,7 @@ model User {
   blocksReceived UserBlock[]     @relation("BlocksReceived")
 
   // Archive activity (events affecting this user)
-  archiveLogs ArchiveLog[] @relation("ArchivedUser")
+  archiveLogs    ArchiveLog[] @relation("ArchivedUser")
   // Archive activity performed by this user (admin)
   archiveActions ArchiveLog[] @relation("ArchiveActor")
 
@@ -173,6 +174,13 @@ model User {
   @@index([role, createdAt])
   // Archive filters and scheduled job queries
   @@index([archivedAt])
+  // Admin search does `contains` (ILIKE '%q%') across these four columns. A
+  // leading wildcard can't use a btree index, so back them with pg_trgm GIN
+  // indexes instead — without these every keystroke is a full table scan.
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "User_name_gin_trgm_idx", type: Gin)
+  @@index([firstName(ops: raw("gin_trgm_ops"))], map: "User_firstName_gin_trgm_idx", type: Gin)
+  @@index([lastName(ops: raw("gin_trgm_ops"))], map: "User_lastName_gin_trgm_idx", type: Gin)
+  @@index([email(ops: raw("gin_trgm_ops"))], map: "User_email_gin_trgm_idx", type: Gin)
 }
 
 model Passkey {
@@ -261,18 +269,19 @@ model ShiftTemplate {
 }
 
 model Shift {
-  id            String         @id @default(cuid())
-  shiftTypeId   String
-  start         DateTime
-  end           DateTime
-  location      String?
-  capacity      Int
-  notes            String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  shiftType        ShiftType      @relation(fields: [shiftTypeId], references: [id])
-  signups          Signup[]
-  placeholders     ShiftPlaceholder[]
+  id                    String                 @id @default(cuid())
+  shiftTypeId           String
+  start                 DateTime
+  end                   DateTime
+  location              String?
+  capacity              Int
+  notes                 String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  shiftType             ShiftType              @relation(fields: [shiftTypeId], references: [id])
+  signups               Signup[]
+  placeholders          ShiftPlaceholder[]
+  autoApprovalDecisions AutoApprovalDecision[]
 
   // Analytics queries filter and sort on shift end date
   @@index([end])
@@ -289,18 +298,18 @@ model ShiftPlaceholder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  shift     Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
 
   @@index([shiftId])
 }
 
 model Signup {
-  id             String       @id @default(cuid())
-  userId         String
-  shiftId        String
-  status         SignupStatus @default(CONFIRMED)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id        String       @id @default(cuid())
+  userId    String
+  shiftId   String
+  status    SignupStatus @default(CONFIRMED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   // Cancellation tracking - only tracks cancellations from CONFIRMED status
   canceledAt         DateTime? // When a CONFIRMED signup was canceled
@@ -319,10 +328,11 @@ model Signup {
   // Volunteer-provided note
   note String? // Optional note from volunteer when signing up
 
-  shift         Shift          @relation(fields: [shiftId], references: [id])
-  user          User           @relation(fields: [userId], references: [id])
-  regularSignup RegularSignup? // One-to-one relation with RegularSignup
-  autoApproval  AutoApproval?
+  shift                 Shift                  @relation(fields: [shiftId], references: [id])
+  user                  User                   @relation(fields: [userId], references: [id])
+  regularSignup         RegularSignup? // One-to-one relation with RegularSignup
+  autoApproval          AutoApproval?
+  autoApprovalDecisions AutoApprovalDecision[]
 
   @@unique([userId, shiftId])
   @@index([status, canceledAt])
@@ -581,6 +591,11 @@ model AutoAcceptRule {
   name        String
   description String?
   enabled     Boolean @default(true)
+
+  // APPROVE rules confirm a signup; BLOCK rules hold it for a human no matter
+  // what any APPROVE rule says. Blocks are always evaluated first.
+  kind AutoApprovalRuleKind @default(APPROVE)
+
   priority    Int     @default(0) // Higher priority evaluated first
   global      Boolean @default(false) // Apply to all shift types
   shiftTypeId String? // Specific shift type (if not global)
@@ -591,25 +606,33 @@ model AutoAcceptRule {
   minCompletedShifts         Int? // Minimum completed shifts
   minAttendanceRate          Float? // Minimum attendance percentage (0-100)
   minAccountAgeDays          Int? // Days since registration
-  maxDaysInAdvance           Int? // Only auto-accept if shift is X+ days away
+  maxDaysInAdvance           Int? // Only auto-accept if shift is X or fewer days away
   requireShiftTypeExperience Boolean         @default(false) // Must have done this shift type before
   minVolunteerAge            Int? // Minimum volunteer age in years
+  maxVolunteerAge            Int? // Maximum volunteer age in years - lets a BLOCK rule catch under-18s
+  // Per-volunteer override: volunteer must carry one of these CustomLabels.
+  // This is how named individuals get always-approve (or never-approve) treatment.
+  requiredLabelIds           String[]        @default([])
 
   // Logic configuration
   criteriaLogic CriteriaLogic @default(AND) // AND or OR logic for criteria
-  stopOnMatch   Boolean       @default(true) // Stop evaluating other rules if matched
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy String // Admin who created the rule
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  createdBy  String // Admin who created the rule
+  // Rules with decision history are archived rather than deleted so the audit
+  // trail keeps resolving to a real rule.
+  archivedAt DateTime?
 
   // Relations
-  shiftType ShiftType?     @relation(fields: [shiftTypeId], references: [id])
-  creator   User           @relation("RuleCreator", fields: [createdBy], references: [id])
+  shiftType ShiftType?             @relation(fields: [shiftTypeId], references: [id])
+  creator   User                   @relation("RuleCreator", fields: [createdBy], references: [id])
   approvals AutoApproval[] // Track which signups were auto-approved by this rule
+  decisions AutoApprovalDecision[] // Every evaluation this rule decided
 
   @@index([enabled, priority])
   @@index([shiftTypeId, enabled])
+  @@index([archivedAt])
 }
 
 // Track auto-approvals for audit and override purposes
@@ -632,9 +655,55 @@ model AutoApproval {
   @@index([overridden])
 }
 
+// Append-only log of every auto-approval evaluation - approved or not.
+// `trace` holds the per-rule, per-criterion breakdown that answers "why?",
+// and `stats` snapshots the volunteer's numbers at decision time so the
+// record stays truthful even after their history moves on.
+model AutoApprovalDecision {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  signupId String?
+  userId   String
+  shiftId  String
+
+  outcome  AutoApprovalOutcome
+  ruleId   String? // rule that decided it (approved or blocked), if any
+  ruleName String? // snapshot, survives rule rename/archive
+  summary  String // one-line plain-English reason
+
+  trace Json // RuleTrace[] - every rule considered and how each criterion fared
+  stats Json // VolunteerSnapshot - the numbers the decision was made on
+
+  // Relations
+  user   User            @relation("AutoApprovalDecisionSubject", fields: [userId], references: [id], onDelete: Cascade)
+  shift  Shift           @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  signup Signup?         @relation(fields: [signupId], references: [id], onDelete: SetNull)
+  rule   AutoAcceptRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([outcome, createdAt])
+  @@index([ruleId, createdAt])
+  @@index([userId, createdAt])
+  @@index([shiftId])
+  @@index([signupId])
+}
+
 enum CriteriaLogic {
   AND // All criteria must be met
   OR // Any criterion must be met
+}
+
+enum AutoApprovalRuleKind {
+  APPROVE // Confirms the signup when it matches
+  BLOCK // Holds the signup for a human when it matches
+}
+
+enum AutoApprovalOutcome {
+  APPROVED // An APPROVE rule matched
+  HELD // Nothing matched - a human needs to look at it
+  BLOCKED // A BLOCK rule matched
+  ERROR // Evaluation itself failed
 }
 
 // Admin notes for volunteer management
@@ -710,8 +779,8 @@ model Resource {
   updatedAt   DateTime @updatedAt
 
   // Chat guide context — when enabled, this resource's content is passed to the mobile AI chat
-  includeInChat Boolean @default(false)
-  chatContent   String? // Extracted/written text content for AI context (from PDF or manual entry)
+  includeInChat      Boolean @default(false)
+  chatContent        String? // Extracted/written text content for AI context (from PDF or manual entry)
   lastScrapedContent String? // Raw text of the most recent URL scrape — lets the refresh cron detect real page changes without clobbering AI-refined chatContent
 
   // Relations
@@ -744,16 +813,16 @@ enum ResourceCategory {
 
 // Restaurant location configuration
 model Location {
-  id                 String   @id @default(cuid())
-  name               String   @unique // "Wellington", "Glen Innes", "Onehunga"
+  id                 String    @id @default(cuid())
+  name               String    @unique // "Wellington", "Glen Innes", "Onehunga"
   address            String
-  defaultMealsServed Int      @default(60) // Default number of meals to pre-fill when recording attendance
-  targetPerNight     Decimal? @db.Decimal(10, 2) // Koha banking target per service night ($)
-  isActive           Boolean  @default(true)
-  isPopup            Boolean  @default(false) // Pop-up / temporary venue: selectable as an available location, but never as a user's default location
+  defaultMealsServed Int       @default(60) // Default number of meals to pre-fill when recording attendance
+  targetPerNight     Decimal?  @db.Decimal(10, 2) // Koha banking target per service night ($)
+  isActive           Boolean   @default(true)
+  isPopup            Boolean   @default(false) // Pop-up / temporary venue: selectable as an available location, but never as a user's default location
   launchedAt         DateTime? // First time this location had upcoming published shifts. Null until then - locations are created ahead of their shifts and stay hidden from volunteers until launch. Drives the "New" badge window.
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([isActive])
 }
@@ -952,16 +1021,16 @@ model FeedComment {
 model DailyMenu {
   id           String   @id @default(cuid())
   date         DateTime // Date for this menu (stored as midnight UTC, treated as date-only)
-  location     String   // Location name (matches Location.name)
-  chefName     String?  // Optional chef name displayed on website
-  announcement String?  // Optional daily message shown above the menu
-  starter      Json     // Array of MenuItem: [{name, description?}]
-  mains        Json     // Array of MenuItem: [{name, description?}]
-  drink        Json     // Array of MenuItem for beverages (may be empty)
-  dessert      Json     // Array of MenuItem: [{name, description?}]
+  location     String // Location name (matches Location.name)
+  chefName     String? // Optional chef name displayed on website
+  announcement String? // Optional daily message shown above the menu
+  starter      Json // Array of MenuItem: [{name, description?}]
+  mains        Json // Array of MenuItem: [{name, description?}]
+  drink        Json // Array of MenuItem for beverages (may be empty)
+  dessert      Json // Array of MenuItem: [{name, description?}]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  createdBy    String?  // Admin user ID who last saved
+  createdBy    String? // Admin user ID who last saved
 
   @@unique([date, location])
   @@index([location, date])
@@ -974,9 +1043,9 @@ model DailyMenu {
 model ContentReport {
   id         String   @id @default(cuid())
   reporterId String
-  targetType String   // 'comment' | 'post' | 'user'
-  targetId   String   // ID of the reported entity
-  reason     String   // Reporter-selected reason
+  targetType String // 'comment' | 'post' | 'user'
+  targetId   String // ID of the reported entity
+  reason     String // Reporter-selected reason
   status     String   @default("PENDING") // 'PENDING' | 'REVIEWED' | 'RESOLVED'
   createdAt  DateTime @default(now())
 
@@ -1010,8 +1079,8 @@ model UserBlock {
 model Announcement {
   id        String    @id @default(cuid())
   title     String
-  body      String    // Markdown content
-  imageUrl  String?   // Optional Supabase image URL
+  body      String // Markdown content
+  imageUrl  String? // Optional Supabase image URL
   createdAt DateTime  @default(now())
   expiresAt DateTime? // If set, hidden from feed after this date
   createdBy String
@@ -1073,10 +1142,10 @@ enum ArchiveTriggerSource {
 model ChatLog {
   id                String   @id @default(cuid())
   userId            String
-  userMessage       String   // The latest user message in the turn
-  assistantResponse String   // The full assistant reply text
-  conversation      Json     // Full message history at time of request: [{role, content}, ...]
-  model             String   // OpenRouter model id used
+  userMessage       String // The latest user message in the turn
+  assistantResponse String // The full assistant reply text
+  conversation      Json // Full message history at time of request: [{role, content}, ...]
+  model             String // OpenRouter model id used
   createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1086,14 +1155,14 @@ model ChatLog {
 }
 
 model ArchiveLog {
-  id           String               @id @default(cuid())
-  userId       String
-  eventType    ArchiveEventType
-  reason       ArchiveReason?
+  id            String               @id @default(cuid())
+  userId        String
+  eventType     ArchiveEventType
+  reason        ArchiveReason?
   triggerSource ArchiveTriggerSource
-  actorId      String? // admin user id when MANUAL; null otherwise
-  note         String?
-  createdAt    DateTime             @default(now())
+  actorId       String? // admin user id when MANUAL; null otherwise
+  note          String?
+  createdAt     DateTime             @default(now())
 
   user  User  @relation("ArchivedUser", fields: [userId], references: [id], onDelete: Cascade)
   actor User? @relation("ArchiveActor", fields: [actorId], references: [id], onDelete: SetNull)
@@ -1106,15 +1175,15 @@ model ArchiveLog {
 // Direct-message thread between a volunteer and the EE team.
 // One thread per volunteer; any admin/manager can reply on it.
 model MessageThread {
-  id                  String        @id @default(cuid())
-  volunteerId         String        @unique
-  volunteer           User          @relation("VolunteerThread", fields: [volunteerId], references: [id], onDelete: Cascade)
-  status              ThreadStatus  @default(OPEN)
-  lastMessageAt       DateTime      @default(now())
+  id                  String       @id @default(cuid())
+  volunteerId         String       @unique
+  volunteer           User         @relation("VolunteerThread", fields: [volunteerId], references: [id], onDelete: Cascade)
+  status              ThreadStatus @default(OPEN)
+  lastMessageAt       DateTime     @default(now())
   volunteerLastReadAt DateTime?
   teamLastReadAt      DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
   messages            Message[]
 
   @@index([status, lastMessageAt])
@@ -1127,7 +1196,7 @@ model Message {
   thread     MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   senderId   String
   sender     User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  senderRole Role          // snapshot at send time so admin role demotion doesn't mislabel old messages
+  senderRole Role // snapshot at send time so admin role demotion doesn't mislabel old messages
   body       String
   createdAt  DateTime      @default(now())
 
@@ -1143,8 +1212,8 @@ enum ThreadStatus {
 // expectation-setter. Off-hours messages are still delivered.
 model MessagingHours {
   id        String   @id @default(cuid())
-  location  String   // matches Location.name
-  dayOfWeek Int      // 0=Sun ... 6=Sat (NZ time)
+  location  String // matches Location.name
+  dayOfWeek Int // 0=Sun ... 6=Sat (NZ time)
   isOpen    Boolean  @default(true)
   openTime  String   @default("09:00") // "HH:mm"
   closeTime String   @default("17:00") // "HH:mm"

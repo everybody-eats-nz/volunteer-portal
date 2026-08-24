@@ -20,17 +20,22 @@ vi.mock("@/lib/prisma", () => ({
     user: { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/notifications", () => ({
+// Hoisted so the tests can assert *which* notification and email a cancel
+// picked - waitlist removals and shift cancellations take different channels.
+const notificationMocks = vi.hoisted(() => ({
   createShiftConfirmedNotification: vi.fn().mockResolvedValue(undefined),
   createShiftWaitlistedNotification: vi.fn().mockResolvedValue(undefined),
   createShiftCanceledNotification: vi.fn().mockResolvedValue(undefined),
+  createWaitlistRemovedNotification: vi.fn().mockResolvedValue(undefined),
 }));
+const emailMocks = vi.hoisted(() => ({
+  sendShiftConfirmationNotification: vi.fn().mockResolvedValue(undefined),
+  sendVolunteerNotNeededNotification: vi.fn().mockResolvedValue(undefined),
+  sendVolunteerCancellationNotification: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/notifications", () => notificationMocks);
 vi.mock("@/lib/email-service", () => ({
-  getEmailService: () => ({
-    sendShiftConfirmationNotification: vi.fn().mockResolvedValue(undefined),
-    sendVolunteerNotNeededNotification: vi.fn().mockResolvedValue(undefined),
-    sendVolunteerCancellationNotification: vi.fn().mockResolvedValue(undefined),
-  }),
+  getEmailService: () => emailMocks,
 }));
 vi.mock("@/lib/signup-utils.server", () => ({
   autoCancelOtherPendingSignupsForDay: vi.fn().mockResolvedValue(undefined),
@@ -137,7 +142,7 @@ describe("applySignupAction", () => {
     await expectActionError("confirm", 400);
   });
 
-  it("blocks cancelling a signup that is not confirmed", async () => {
+  it("blocks cancelling a signup that is neither confirmed nor waitlisted", async () => {
     mockedFindUnique.mockResolvedValue(makeSignup("PENDING") as never);
     await expectActionError("cancel", 400);
   });
@@ -192,5 +197,56 @@ describe("applySignupAction", () => {
 
     expect(result.signup.status).toBe("CANCELED");
     expect(result.message).toBe("Signup rejected");
+  });
+
+  it("cancels a confirmed signup with the cancellation email", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("CONFIRMED") as never);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "cancel",
+    });
+
+    expect(result.signup.status).toBe("CANCELED");
+    expect(result.message).toBe("Signup cancelled and volunteer notified");
+    expect(emailMocks.sendVolunteerCancellationNotification).toHaveBeenCalled();
+    expect(emailMocks.sendVolunteerNotNeededNotification).not.toHaveBeenCalled();
+    expect(notificationMocks.createShiftCanceledNotification).toHaveBeenCalled();
+  });
+
+  it("takes a waitlisted signup off the waitlist with the not-needed email", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("WAITLISTED") as never);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "cancel",
+    });
+
+    expect(result.signup.status).toBe("CANCELED");
+    expect(result.message).toBe("Removed from waitlist and volunteer notified");
+    expect(emailMocks.sendVolunteerNotNeededNotification).toHaveBeenCalled();
+    expect(
+      emailMocks.sendVolunteerCancellationNotification
+    ).not.toHaveBeenCalled();
+    expect(notificationMocks.createWaitlistRemovedNotification).toHaveBeenCalled();
+    expect(notificationMocks.createShiftCanceledNotification).not.toHaveBeenCalled();
+  });
+
+  it("removes a waitlisted signup silently when notifications are skipped", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("WAITLISTED") as never);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "cancel",
+      skipNotification: true,
+    });
+
+    expect(result.message).toBe(
+      "Removed from waitlist (no notification sent for past shift)"
+    );
+    expect(emailMocks.sendVolunteerNotNeededNotification).not.toHaveBeenCalled();
+    expect(
+      notificationMocks.createWaitlistRemovedNotification
+    ).not.toHaveBeenCalled();
   });
 });

@@ -398,11 +398,15 @@ function VolunteerStatusGroups({
                       </Avatar>
                     </Link>
                     <div className="flex-1 min-w-0 pt-0.5">
-                      {/* Name row + actions pinned to the right */}
-                      <div className="flex items-center gap-2 mb-1">
+                      {/* Name row + actions pinned to the right. Wraps rather
+                          than squeezing the name: statuses with three actions
+                          leave under 60px for the name in a narrow card column,
+                          and an admin scanning the list has to be able to read
+                          who it is. */}
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <Link
                           href={`/admin/volunteers/${signup.user.id}`}
-                          className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-0 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+                          className="text-sm font-semibold text-slate-900 dark:text-white truncate flex-1 min-w-24 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                           data-testid={`volunteer-name-link-${signup.id}`}
                         >
                           {signup.user.name ||

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { syncShifts } from "@/lib/calendar-sync";
 import type { Shift } from "@/lib/dummy-data";
 import { queryKeys } from "@/lib/query-keys";
+import { normalizeSignupStatus, type SignupStatus } from "@/lib/signup-status";
 
 export type PeriodFriend = {
   id: string;
@@ -12,7 +13,27 @@ export type PeriodFriend = {
   profilePhotoUrl: string | null;
   /** True for actual friends; false for users with PUBLIC profile visibility. */
   isFriend: boolean;
+  /** A PENDING volunteer has asked for the shift, not been given it. */
+  status: SignupStatus;
 };
+
+/** Wire shape — older API builds omit `status`, so normalize before use. */
+type FriendPayload = Omit<PeriodFriend, "status"> & { status?: string | null };
+
+function normalizeFriendMap(
+  map: Record<string, FriendPayload[]> | undefined
+): Record<string, PeriodFriend[]> {
+  if (!map) return {};
+  return Object.fromEntries(
+    Object.entries(map).map(([key, friends]) => [
+      key,
+      friends.map((friend) => ({
+        ...friend,
+        status: normalizeSignupStatus(friend.status),
+      })),
+    ])
+  );
+}
 
 export type BrowsableLocation = {
   name: string;
@@ -28,8 +49,8 @@ type ShiftsResponse = {
   userDefaultLocation: string | null;
   /** Locations with upcoming shifts (server-driven, includes "New" flags). */
   locations?: BrowsableLocation[];
-  periodFriends: Record<string, PeriodFriend[]>;
-  shiftFriends?: Record<string, PeriodFriend[]>;
+  periodFriends: Record<string, FriendPayload[]>;
+  shiftFriends?: Record<string, FriendPayload[]>;
 };
 
 type UseShiftsReturn = {
@@ -73,6 +94,15 @@ export function useShifts(): UseShiftsReturn {
     [query.data?.pages]
   );
 
+  const periodFriends = useMemo(
+    () => normalizeFriendMap(firstPage?.periodFriends),
+    [firstPage?.periodFriends]
+  );
+  const shiftFriends = useMemo(
+    () => normalizeFriendMap(firstPage?.shiftFriends),
+    [firstPage?.shiftFriends]
+  );
+
   // Reconcile device calendar with fresh shift data on every successful first
   // page (picks up web signups and cancellations). No-op unless the user
   // opted in. Keyed on dataUpdatedAt so refetches re-sync.
@@ -106,7 +136,7 @@ export function useShifts(): UseShiftsReturn {
     isLoadingMore: query.isFetchingNextPage,
     userDefaultLocation: firstPage?.userDefaultLocation ?? null,
     browsableLocations: firstPage?.locations ?? [],
-    periodFriends: firstPage?.periodFriends ?? {},
-    shiftFriends: firstPage?.shiftFriends ?? {},
+    periodFriends,
+    shiftFriends,
   };
 }

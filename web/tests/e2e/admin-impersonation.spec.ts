@@ -196,6 +196,18 @@ test.describe("Admin User Impersonation", () => {
     test("should persist impersonation banner across page navigation", async ({
       page,
     }) => {
+      // This test performs three full-page navigations (page.goto), each of
+      // which remounts the client-side SessionProvider and forces it to
+      // refetch /api/auth/session from scratch before the impersonation
+      // banner (which reads session.impersonating) can render. That refetch
+      // is fast in isolation, but under CI runner contention (20 shards
+      // sharing the box) the cumulative wait across three navigations can
+      // exceed the default 30s test budget, failing the final assertion
+      // with "Received: undefined" even though the banner shows up moments
+      // later. Give this specific test more headroom rather than loosening
+      // the assertion itself.
+      test.setTimeout(60000);
+
       // Start impersonation
       await page.goto(`/admin/volunteers/${testVolunteerId}`);
       await page.waitForLoadState("load");

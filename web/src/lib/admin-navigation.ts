@@ -25,6 +25,7 @@ import {
   Archive,
   ScrollText,
   ClipboardCheck,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -178,11 +179,11 @@ export const adminNavCategories: AdminNavCategory[] = [
         commandKey: "shifts",
       },
       {
-        title: "Auto-Accept Rules",
-        href: "/admin/auto-accept-rules",
-        icon: Settings,
-        description: "Configure automatic approvals",
-        commandKey: "auto-accept",
+        title: "Auto-Approval",
+        href: "/admin/auto-approval",
+        icon: ShieldCheck,
+        description: "See who gets approved automatically, and why",
+        commandKey: "auto-approval",
       },
     ],
   },
@@ -334,7 +335,7 @@ export const getIconColor = (
     // Shifts
     "Create Shift": "text-green-600",
     "Manage Shifts": "text-green-600",
-    "Auto-Accept Rules": "text-gray-600",
+    "Auto-Approval": "text-sky-600",
 
     // Restaurant
     "Daily Menus": "text-orange-600",

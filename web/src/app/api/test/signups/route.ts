@@ -76,17 +76,23 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { signupId, ...updateData } = body;
+    const { signupId, userId, shiftId, ...updateData } = body;
 
-    if (!signupId) {
+    // Addressable by id, or by the user/shift pair - tests that create a
+    // signup through the UI don't get an id back, and pinning the resulting
+    // status is how they stay independent of whatever auto-approval rules
+    // happen to be configured in the environment.
+    if (!signupId && !(userId && shiftId)) {
       return NextResponse.json(
-        { error: "signupId required" },
+        { error: "signupId, or userId and shiftId, required" },
         { status: 400 }
       );
     }
 
     const signup = await prisma.signup.update({
-      where: { id: signupId },
+      where: signupId
+        ? { id: signupId }
+        : { userId_shiftId: { userId, shiftId } },
       data: updateData,
     });
 

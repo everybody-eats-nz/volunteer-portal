@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { checkAutoApprovalEligibility } from "@/lib/auto-accept-rules";
+import { checkAutoApprovalEligibility } from "@/lib/auto-approval";
 
 /**
  * GET /api/mobile/shifts/[id]/auto-approval-check

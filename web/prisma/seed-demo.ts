@@ -2034,6 +2034,19 @@ async function main() {
     if (!adminUser) {
       console.log("⚠️ No admin user found, skipping auto-accept rules seeding");
     } else {
+      // The tag that drives per-volunteer overrides. Seeded here (rather than
+      // with the other labels further down) because the rules below point at it.
+      const trustedLabel = await prisma.customLabel.upsert({
+        where: { name: "Trusted" },
+        update: {},
+        create: {
+          name: "Trusted",
+          color:
+            "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+          icon: "⭐",
+        },
+      });
+
       const autoAcceptRules = [
         // Rule 1: Auto-approve experienced volunteers (YELLOW grade) with good attendance
         {
@@ -2051,7 +2064,6 @@ async function main() {
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
           criteriaLogic: CriteriaLogic.AND,
-          stopOnMatch: true,
           createdBy: adminUser.id,
         },
 
@@ -2071,7 +2083,6 @@ async function main() {
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
           criteriaLogic: CriteriaLogic.AND,
-          stopOnMatch: true,
           createdBy: adminUser.id,
         },
 
@@ -2091,7 +2102,6 @@ async function main() {
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
           criteriaLogic: CriteriaLogic.AND,
-          stopOnMatch: false, // Allow other rules to also match
           createdBy: adminUser.id,
         },
 
@@ -2111,7 +2121,6 @@ async function main() {
           maxDaysInAdvance: 3, // Only for shifts starting within 3 days
           requireShiftTypeExperience: false,
           criteriaLogic: CriteriaLogic.AND,
-          stopOnMatch: true,
           createdBy: adminUser.id,
         },
 
@@ -2131,7 +2140,6 @@ async function main() {
           maxDaysInAdvance: null,
           requireShiftTypeExperience: true, // Must have done dishwashing before
           criteriaLogic: CriteriaLogic.AND,
-          stopOnMatch: true,
           createdBy: adminUser.id,
         },
 
@@ -2151,7 +2159,37 @@ async function main() {
           maxDaysInAdvance: null,
           requireShiftTypeExperience: false,
           criteriaLogic: CriteriaLogic.OR, // Either condition can be true
-          stopOnMatch: true,
+          createdBy: adminUser.id,
+        },
+
+        // Rule 7: Named individuals, approved by the tag on their profile.
+        // This is how one person gets different treatment without loosening
+        // anything for everyone else.
+        {
+          name: "Trusted volunteers - always approve",
+          description:
+            "Anyone tagged as trusted is confirmed on the spot, whatever their history looks like",
+          enabled: true,
+          priority: 100,
+          global: true,
+          shiftTypeId: null,
+          requiredLabelIds: trustedLabel ? [trustedLabel.id] : [],
+          criteriaLogic: CriteriaLogic.OR,
+          createdBy: adminUser.id,
+        },
+
+        // Rule 8: A block - runs before every approval rule above.
+        {
+          name: "Under 18 needs a person",
+          description:
+            "Under-18s are always reviewed by a human, no matter which approval rule they'd otherwise match",
+          enabled: true,
+          kind: "BLOCK" as const,
+          priority: 0,
+          global: true,
+          shiftTypeId: null,
+          maxVolunteerAge: 18,
+          criteriaLogic: CriteriaLogic.AND,
           createdBy: adminUser.id,
         },
       ];
