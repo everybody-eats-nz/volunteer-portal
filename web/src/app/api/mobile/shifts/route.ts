@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getLiveLocations } from "@/lib/live-locations";
+import { getWaitlistCounts } from "@/lib/waitlist.server";
 import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 import {
   getShiftEffectiveCount,
@@ -116,6 +117,14 @@ export async function GET(request: Request) {
   const hasMorePast = pastSignups.length > limit;
   if (hasMorePast) pastSignups.pop();
 
+  // Waitlist sizes for every upcoming shift in this response, so the app can
+  // show how many volunteers are already waiting without a round trip per
+  // shift. Past shifts are left out — the number only informs a live decision.
+  const waitlistCounts = await getWaitlistCounts([
+    ...mySignups.map((signup) => signup.shift.id),
+    ...availableShifts.map((shift) => shift.id),
+  ]);
+
   // Transform to the mobile app's Shift shape
   const toMobileShift = (
     shift: {
@@ -141,6 +150,7 @@ export async function GET(request: Request) {
     location: shift.location ?? "TBC",
     capacity: shift.capacity,
     signedUp: getShiftEffectiveCount(shift),
+    waitlistCount: waitlistCounts.get(shift.id) ?? 0,
     status: status ?? null,
     notes: shift.notes,
   });

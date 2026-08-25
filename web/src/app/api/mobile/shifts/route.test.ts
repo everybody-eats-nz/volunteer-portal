@@ -6,7 +6,7 @@ vi.stubEnv("AUTH_SECRET", "test-secret");
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn() },
-    signup: { findMany: vi.fn() },
+    signup: { findMany: vi.fn(), groupBy: vi.fn() },
     shift: { findMany: vi.fn() },
     friendship: { findMany: vi.fn() },
   },
@@ -27,7 +27,10 @@ import { prisma } from "@/lib/prisma";
 const mockRequireMobileUser = requireMobileUser as ReturnType<typeof vi.fn>;
 const mockPrisma = prisma as unknown as {
   user: { findUnique: ReturnType<typeof vi.fn> };
-  signup: { findMany: ReturnType<typeof vi.fn> };
+  signup: {
+    findMany: ReturnType<typeof vi.fn>;
+    groupBy: ReturnType<typeof vi.fn>;
+  };
   shift: { findMany: ReturnType<typeof vi.fn> };
   friendship: { findMany: ReturnType<typeof vi.fn> };
 };
@@ -82,6 +85,8 @@ describe("GET /api/mobile/shifts", () => {
     mockPrisma.user.findUnique.mockResolvedValue({ defaultLocation: "Onehunga" });
     mockPrisma.shift.findMany.mockResolvedValue([]); // no available shifts
     mockPrisma.friendship.findMany.mockResolvedValue([]);
+    // Waitlist sizes for the shifts in the response — none waiting by default.
+    mockPrisma.signup.groupBy.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -124,6 +129,45 @@ describe("GET /api/mobile/shifts", () => {
     expect(json.myShifts).toHaveLength(1);
     expect(json.myShifts[0].id).toBe("shift-in-progress");
     expect(json.past).toHaveLength(0);
+  });
+
+  it("returns each upcoming shift's waitlist size", async () => {
+    // A volunteer holding a waitlist place needs to see how many others are
+    // waiting without opening the shift.
+    const waitlisted = makeSignup(
+      "waitlisted",
+      new Date("2026-07-16T17:30:00Z"),
+      new Date("2026-07-16T21:30:00Z")
+    );
+
+    mockPrisma.signup.findMany.mockImplementation(
+      (args?: { where?: Record<string, unknown> }) => {
+        const where = (args?.where ?? {}) as {
+          status?: { in?: string[] };
+          shift?: { end?: { lt?: Date } };
+          shiftId?: unknown;
+        };
+        if (where.shiftId || where.shift?.end?.lt) return Promise.resolve([]);
+        if (where.status?.in?.includes("PENDING")) {
+          return Promise.resolve([waitlisted]);
+        }
+        return Promise.resolve([]);
+      }
+    );
+    mockPrisma.signup.groupBy.mockResolvedValue([
+      { shiftId: "shift-waitlisted", _count: { _all: 7 } },
+    ]);
+
+    const response = await GET(makeRequest());
+    const json = await response.json();
+
+    expect(json.myShifts[0].waitlistCount).toBe(7);
+    // Only waitlisted signups are counted, and only for shifts in the response.
+    expect(mockPrisma.signup.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { shiftId: { in: ["shift-waitlisted"] }, status: "WAITLISTED" },
+      })
+    );
   });
 
   it("buckets myShifts by shift.end >= now, not shift.start", async () => {
