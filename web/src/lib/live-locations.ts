@@ -98,7 +98,32 @@ export async function getLiveLocationsUncached(): Promise<LiveLocation[]> {
 }
 
 /**
- * Wrapped in React cache() so generateMetadata and the page render share one
- * query per request.
+ * How long a computed location list is reused across requests. The set only
+ * changes when a restaurant opens or its last upcoming shift is published, so
+ * a minute of staleness is invisible — while the underlying query scans every
+ * future shift and is on the hot path of the mobile shifts endpoint.
  */
-export const getLiveLocations = cache(getLiveLocationsUncached);
+const LIVE_LOCATIONS_TTL_MS = 60_000;
+
+let liveLocationsCache: { data: LiveLocation[]; fetchedAt: number } | null = null;
+
+/** Test hook — drops the process-level TTL cache. */
+export function resetLiveLocationsCache() {
+  liveLocationsCache = null;
+}
+
+async function getLiveLocationsTtlCached(): Promise<LiveLocation[]> {
+  const now = Date.now();
+  if (liveLocationsCache && now - liveLocationsCache.fetchedAt < LIVE_LOCATIONS_TTL_MS) {
+    return liveLocationsCache.data;
+  }
+  const data = await getLiveLocationsUncached();
+  liveLocationsCache = { data, fetchedAt: now };
+  return data;
+}
+
+/**
+ * Wrapped in React cache() so generateMetadata and the page render share one
+ * query per request, over a process-level TTL cache that spans requests.
+ */
+export const getLiveLocations = cache(getLiveLocationsTtlCached);

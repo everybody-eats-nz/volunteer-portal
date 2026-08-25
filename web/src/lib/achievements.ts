@@ -364,22 +364,43 @@ export async function calculateUserProgress(
     }
   });
 
-  // Fetch meals served records for those days
-  const mealsServedRecords = await prisma.mealsServed.findMany({
-    where: {
-      OR: Array.from(uniqueDays.values()).map(({ date, location }) => ({
-        date: toUTC(date),
-        location,
-      })),
-    },
-  });
+  // Fetch meals served records for those days. Matching on (location, date)
+  // range rather than an OR branch per day matters: a long-serving volunteer
+  // has hundreds of unique days, and Postgres plans a several-hundred-branch
+  // OR very badly. One range scan per location hits the (location, date)
+  // index instead, and the exact pairs are matched in memory below.
+  const uniqueDayList = Array.from(uniqueDays.values());
+  const dayKeys = new Set(
+    uniqueDayList.map(
+      ({ date, location }) => `${toUTC(date).toISOString()}-${location}`
+    )
+  );
+  const dayTimes = uniqueDayList.map(({ date }) => toUTC(date).getTime());
 
-  // Create a map of actual meals served by date-location key (skip note-only rows)
+  const mealsServedRecords =
+    uniqueDayList.length > 0
+      ? await prisma.mealsServed.findMany({
+          where: {
+            location: {
+              in: Array.from(new Set(uniqueDayList.map((d) => d.location))),
+            },
+            date: {
+              gte: new Date(Math.min(...dayTimes)),
+              lte: new Date(Math.max(...dayTimes)),
+            },
+          },
+          select: { date: true, location: true, mealsServed: true },
+        })
+      : [];
+
+  // Create a map of actual meals served by date-location key (skip note-only
+  // rows, and rows for days this volunteer didn't actually work).
   const actualMealsMap = new Map<string, number>();
   mealsServedRecords.forEach(
     (record: { date: Date; location: string; mealsServed: number | null }) => {
       if (record.mealsServed === null) return;
       const dateKey = `${record.date.toISOString()}-${record.location}`;
+      if (!dayKeys.has(dateKey)) return;
       actualMealsMap.set(dateKey, record.mealsServed);
     }
   );

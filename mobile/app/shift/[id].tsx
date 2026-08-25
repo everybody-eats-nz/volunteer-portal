@@ -43,7 +43,7 @@ import {
   waitlistChipLabel,
   yourWaitlistStandingSentence,
 } from "@/lib/waitlist";
-import { useShifts } from "@/hooks/use-shifts";
+import { useHomeShifts } from "@/hooks/use-shifts";
 import {
   findConflictingShift,
   getShiftPeriodLabel,
@@ -156,8 +156,10 @@ export default function ShiftDetailScreen() {
     refresh,
   } = useShiftDetail(id);
   // Cached from the shifts list (react-query) — used to mirror the web's
-  // pre-emptive "one Day + one Evening shift per day" conflict gate.
-  const { myShifts } = useShifts();
+  // pre-emptive "one Day + one Evening shift per day" conflict gate. Uses the
+  // home-scoped query: it carries the same complete `myShifts`, and reaching
+  // this screen from home shouldn't trigger the Shifts tab's much larger fetch.
+  const { myShifts } = useHomeShifts();
   const isMyShift = shift?.status != null;
   // What the volunteer actually holds: a confirmed spot, a request an admin
   // hasn't approved yet, or a waitlist place. Only CONFIRMED is a spot.

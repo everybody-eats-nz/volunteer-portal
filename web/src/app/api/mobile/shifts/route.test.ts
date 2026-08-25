@@ -65,11 +65,32 @@ function makeSignup(
   };
 }
 
-function makeRequest() {
-  return new Request("http://localhost/api/mobile/shifts", {
+function makeRequest(query = "") {
+  return new Request(`http://localhost/api/mobile/shifts${query}`, {
     method: "GET",
     headers: { Authorization: "Bearer valid-token" },
   });
+}
+
+/** Routes each signup.findMany call to the right canned result. */
+function stubSignupQueries({
+  mine = [] as unknown[],
+  past = [] as unknown[],
+  visible = [] as unknown[],
+} = {}) {
+  mockPrisma.signup.findMany.mockImplementation(
+    (args?: { where?: Record<string, unknown> }) => {
+      const where = (args?.where ?? {}) as {
+        status?: { in?: string[] };
+        shift?: { end?: { lt?: Date } };
+        shiftId?: unknown;
+      };
+      if (where.shiftId) return Promise.resolve(visible);
+      if (where.shift?.end?.lt) return Promise.resolve(past);
+      if (where.status?.in?.includes("PENDING")) return Promise.resolve(mine);
+      return Promise.resolve([]);
+    }
+  );
 }
 
 describe("GET /api/mobile/shifts", () => {
@@ -183,6 +204,95 @@ describe("GET /api/mobile/shifts", () => {
     // Regression guard: must filter on end (keeps in-progress shifts), not start.
     expect(myShiftsCall![0].where.shift).toEqual({ end: { gte: NOW } });
     expect(myShiftsCall![0].where.shift.start).toBeUndefined();
+  });
+
+  describe("scope=home", () => {
+    it("windows available shifts to a week at the user's own restaurant", async () => {
+      stubSignupQueries();
+
+      await GET(makeRequest("?scope=home"));
+
+      const availableCall = mockPrisma.shift.findMany.mock.calls[0][0];
+      expect(availableCall.where.location).toBe("Onehunga");
+      expect(availableCall.where.start).toEqual({
+        gte: NOW,
+        lt: new Date("2026-07-22T19:29:00Z"),
+      });
+    });
+
+    it("skips the past-shifts query and the per-shift friend map", async () => {
+      const mine = makeSignup(
+        "mine",
+        new Date("2026-07-16T17:30:00Z"),
+        new Date("2026-07-16T21:30:00Z")
+      );
+      stubSignupQueries({
+        mine: [mine],
+        visible: [
+          {
+            shiftId: "shift-mine",
+            status: "CONFIRMED",
+            user: {
+              id: "friend-1",
+              name: "Ana",
+              firstName: "Ana",
+              lastName: null,
+              profilePhotoUrl: null,
+            },
+          },
+        ],
+      });
+
+      const json = await (await GET(makeRequest("?scope=home"))).json();
+
+      expect(json.past).toEqual([]);
+      expect(json.pastNextCursor).toBeNull();
+      // periodFriends still drives the home hero's "who else is on" row.
+      expect(Object.keys(json.periodFriends)).toHaveLength(1);
+      // shiftFriends is the Shifts tab's map — home never reads it.
+      expect(json.shiftFriends).toEqual({});
+      // No signup.findMany call filtered on past shifts.
+      expect(
+        mockPrisma.signup.findMany.mock.calls.some(
+          (call) => call[0]?.where?.shift?.end?.lt
+        )
+      ).toBe(false);
+    });
+
+    it("does not filter by location when the user has no default restaurant", async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ defaultLocation: null });
+      stubSignupQueries();
+
+      await GET(makeRequest("?scope=home"));
+
+      expect(mockPrisma.shift.findMany.mock.calls[0][0].where.location).toBeUndefined();
+    });
+  });
+
+  it("keeps the full three-month, all-location payload when scope is omitted", async () => {
+    stubSignupQueries();
+
+    const json = await (await GET(makeRequest())).json();
+
+    const availableCall = mockPrisma.shift.findMany.mock.calls[0][0];
+    expect(availableCall.where.location).toBeUndefined();
+    // 18:29Z, not 19:29Z: setMonth runs in Pacific/Auckland and July→October
+    // crosses into NZDT, so the window end lands an hour earlier in UTC.
+    expect(availableCall.where.start).toEqual({
+      gte: NOW,
+      lt: new Date("2026-10-15T18:29:00Z"),
+    });
+    // Old app builds still get every key they did before.
+    expect(Object.keys(json).sort()).toEqual([
+      "available",
+      "locations",
+      "myShifts",
+      "past",
+      "pastNextCursor",
+      "periodFriends",
+      "shiftFriends",
+      "userDefaultLocation",
+    ]);
   });
 
   it("returns 401 when not authenticated", async () => {

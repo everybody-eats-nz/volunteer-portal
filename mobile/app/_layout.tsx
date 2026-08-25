@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
@@ -36,7 +36,7 @@ import { OnboardingFlow } from '@/components/onboarding-flow';
 import { useInitAchievementCelebration } from '@/hooks/use-achievement-celebration';
 import { navigateToNotificationTarget } from '@/lib/notification-routing';
 import { posthog } from '@/lib/posthog';
-import { queryClient, setupFocusManager } from '@/lib/query-client';
+import { persistOptions, queryClient, setupFocusManager } from '@/lib/query-client';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -209,7 +209,15 @@ export default function RootLayout() {
     appTree
   );
 
+  // Persisted, not plain: the cache is rehydrated from AsyncStorage before the
+  // tree renders, so a cold start paints last-known shifts and feed instantly
+  // and revalidates underneath instead of showing an empty screen.
   return (
-    <QueryClientProvider client={queryClient}>{withPosthog}</QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
+    >
+      {withPosthog}
+    </PersistQueryClientProvider>
   );
 }

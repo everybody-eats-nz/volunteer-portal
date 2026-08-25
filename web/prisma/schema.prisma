@@ -285,6 +285,12 @@ model Shift {
 
   // Analytics queries filter and sort on shift end date
   @@index([end])
+  // Every "upcoming shifts" query windows on start and most order by it
+  // (mobile shifts feed, live-location lookup, admin calendars). Trailing
+  // `location` lets the live-location distinct run index-only.
+  @@index([start, location])
+  // Per-restaurant lookups: "what's coming up at my location".
+  @@index([location, start])
 }
 
 // Walk-in / unregistered volunteers: people who show up without a volunteer
