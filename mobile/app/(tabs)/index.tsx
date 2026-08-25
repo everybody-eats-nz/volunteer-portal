@@ -9,6 +9,7 @@ import {
   startOfDay,
 } from "date-fns";
 import { formatNZT, formatNZDateOnly } from "@/lib/dates";
+import { waitlistCountLabel } from "@/lib/waitlist";
 import {
   nzDaysUntil,
   nzDaysUntilDateOnly,
@@ -705,6 +706,8 @@ function NextShiftHero({
     start: string;
     location: string;
     status?: string | null;
+    /** Volunteers waiting for a place — shown when this is a waitlist place. */
+    waitlistCount?: number;
   };
   friends: PeriodFriend[];
   onPress: () => void;
@@ -803,6 +806,19 @@ function NextShiftHero({
               {shift.location}
             </Text>
           </View>
+          {/* On a waitlist place, how many are waiting is the thing you need
+              to know — otherwise holding standby is a guess */}
+          {statusKey === "WAITLISTED" && (shift.waitlistCount ?? 0) > 0 && (
+            <View style={heroStyles.metaRow}>
+              <Ionicons name="list-outline" size={13} color={palette.bodyText} />
+              <Text
+                style={[heroStyles.metaText, { color: palette.bodyText }]}
+                numberOfLines={1}
+              >
+                {waitlistCountLabel(shift.waitlistCount ?? 0)}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Friends on this period */}
@@ -1029,6 +1045,9 @@ const heroStyles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
+    // Lets numberOfLines actually ellipsise: without flexShrink a Text in a
+    // row overflows the card instead of truncating at large text sizes.
+    flexShrink: 1,
   },
   friendsRow: {
     marginTop: 18,

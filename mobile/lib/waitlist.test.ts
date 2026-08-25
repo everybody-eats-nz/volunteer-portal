@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   WAITLIST_EXPLAINER,
   waitlistChipLabel,
+  waitlistCountLabel,
   waitlistSizeSentence,
   yourWaitlistStandingSentence,
 } from "./waitlist";
@@ -11,6 +12,11 @@ describe("waitlist copy", () => {
   it("keeps chip labels compact", () => {
     expect(waitlistChipLabel(1)).toBe("1 waiting");
     expect(waitlistChipLabel(20)).toBe("20 waiting");
+  });
+
+  it("names the list on meta lines so the number can't be misread", () => {
+    expect(waitlistCountLabel(1)).toBe("1 on the waitlist");
+    expect(waitlistCountLabel(7)).toBe("7 on the waitlist");
   });
 
   it("pluralises the size sentence", () => {

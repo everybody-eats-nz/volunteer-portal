@@ -517,6 +517,8 @@ export type Shift = {
   location: string;
   capacity: number;
   signedUp: number;
+  /** Volunteers waiting for a place. Absent on past shifts and in dummy data. */
+  waitlistCount?: number;
   status?: 'CONFIRMED' | 'PENDING' | 'WAITLISTED' | 'REGULAR_PENDING' | null;
   notes?: string;
 };

@@ -50,6 +50,7 @@ import {
   getShiftPeriodLabel,
 } from "@/lib/shift-eligibility";
 import { useVolunteerLocationFilter } from "@/lib/volunteer-location-filter";
+import { waitlistChipLabel } from "@/lib/waitlist";
 import { getShiftThemeByName, type Shift } from "@/lib/dummy-data";
 
 /* ── Types ── */
@@ -1501,6 +1502,16 @@ function ShiftCard({
                 </Text>
               </>
             ) : null}
+            {/* How many are already waiting — the number that decides whether
+                standby is worth holding */}
+            {!isPast && (shift.waitlistCount ?? 0) > 0 && (
+              <>
+                {" · "}
+                <Text style={{ color: colors.textSecondary }}>
+                  {waitlistChipLabel(shift.waitlistCount ?? 0)}
+                </Text>
+              </>
+            )}
           </Text>
         </View>
 
@@ -2049,6 +2060,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.regular,
     letterSpacing: 0.2,
+    // Wrap rather than run off the card: this line stacks several clauses
+    // ("12/12 volunteers · shift full · 127 waiting") and grows with Dynamic
+    // Type. Without flexShrink a Text in a row overflows instead of wrapping.
+    flexShrink: 1,
   },
 
   notesText: {

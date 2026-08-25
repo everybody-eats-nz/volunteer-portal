@@ -12,6 +12,12 @@ export function waitlistChipLabel(count: number): string {
   return `${count} waiting`;
 }
 
+/** Label for a stats or meta line, e.g. "7 on the waitlist". Names the list so
+ * the number can't be misread as something else on the row. */
+export function waitlistCountLabel(count: number): string {
+  return `${count} on the waitlist`;
+}
+
 /** Sentence for someone deciding whether to join, e.g. "7 volunteers are on the waitlist." */
 export function waitlistSizeSentence(count: number): string {
   // Being first is the useful thing to know here, not that the list is empty.
