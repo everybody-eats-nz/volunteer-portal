@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useVolunteerLocationFilter } from "@/lib/volunteer-location-filter";
+
+// `vi.mock` is hoisted above the import, so the module under test resolves this
+// stub instead of the real AsyncStorage.
 const getItemMock = vi.fn();
 const setItemMock = vi.fn();
 
@@ -9,8 +13,6 @@ vi.mock("@react-native-async-storage/async-storage", () => ({
     setItem: (...args: unknown[]) => setItemMock(...args),
   },
 }));
-
-import { useVolunteerLocationFilter } from "@/lib/volunteer-location-filter";
 
 describe("useVolunteerLocationFilter", () => {
   beforeEach(() => {
