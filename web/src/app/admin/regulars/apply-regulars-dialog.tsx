@@ -240,7 +240,7 @@ export function ApplyRegularsDialog({
           <DialogDescription>
             {isIndividual
               ? `Preview and apply shift signups for ${volunteerLabel} in a date range.`
-              : "Preview and apply regular volunteer signups for existing shifts. Volunteers already signed up for a day are skipped."}
+              : "Preview and apply regular volunteer signups for existing shifts. Volunteers already signed up for a day or evening slot are skipped."}
           </DialogDescription>
         </DialogHeader>
 
