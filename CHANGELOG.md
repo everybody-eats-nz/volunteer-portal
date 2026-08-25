@@ -1,3 +1,9 @@
+## [0.158.0] - 2026-08-25
+
+### Changes
+- feat(mobile): show waitlist size on the shifts list and home card ([#1226](https://github.com/everybody-eats-nz/volunteer-portal/pull/1226)) by @malinmalliyawadu
+
+
 ## [0.157.2] - 2026-08-25
 
 ### Changes
