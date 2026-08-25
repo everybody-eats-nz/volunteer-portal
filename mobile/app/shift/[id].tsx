@@ -38,7 +38,7 @@ import {
   normalizeSignupStatus,
   type SignupStatus,
 } from "@/lib/signup-status";
-import { openCmsLink } from "@/lib/external-links";
+import { openExternalLink } from "@/lib/external-links";
 import {
   waitlistChipLabel,
   yourWaitlistStandingSentence,
@@ -1064,7 +1064,7 @@ function EventsSection({
             key={event.id}
             onPress={() => {
               Haptics.selectionAsync();
-              openCmsLink(event.url);
+              openExternalLink(event.url);
             }}
             style={({ pressed }) => [
               s.eventCard,

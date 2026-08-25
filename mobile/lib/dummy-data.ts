@@ -725,18 +725,6 @@ export type FeedComment = {
   timestamp: string;
 };
 
-/** Reusable pool of dummy likers */
-const LIKERS: LikeUser[] = [
-  { id: 'u-2', name: 'Sarah Chen', profilePhotoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face' },
-  { id: 'u-3', name: 'James Tūhoe', profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face' },
-  { id: 'u-4', name: 'Mia Johnson', profilePhotoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&h=200&fit=crop&crop=face' },
-  { id: 'u-5', name: 'Liam Patel' },
-  { id: 'u-6', name: 'Te Rina Kahurangi', profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face' },
-  { id: 'u-7', name: 'Hana Patel', profilePhotoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&crop=face' },
-  { id: 'u-8', name: 'Wiremu Davis' },
-  { id: 'u-9', name: 'Olivia Ma', profilePhotoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop&crop=face' },
-];
-
 /** Shared interaction fields present on every feed item */
 type FeedInteractions = {
   likeCount: number;
@@ -747,7 +735,7 @@ type FeedInteractions = {
 
 /** Feed item types */
 export type FeedItem =
-  | ({ type: 'announcement'; id: string; title: string; body: string; imageUrl?: string; timestamp: string; author: string } & FeedInteractions)
+  | ({ type: 'announcement'; id: string; title: string; body: string; imageUrl?: string; timestamp: string; author: string; authorPhotoUrl?: string } & FeedInteractions)
   | ({ type: 'achievement'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; criteria?: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'photo_post'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftId: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
@@ -793,11 +781,11 @@ export type Achievement = {
   progress?: number; // 0-1, for in-progress achievements
   target?: string; // e.g. "50 shifts"
   unlockedByCount?: number; // how many volunteers have unlocked this
-  friendsWhoEarned?: Array<{
+  friendsWhoEarned?: {
     id: string;
     name: string;
     profilePhotoUrl?: string;
-  }>;
+  }[];
 };
 
 export const DUMMY_ACHIEVEMENTS: Achievement[] = [
@@ -957,20 +945,20 @@ export type FriendProfile = Friend & {
   avgPerMonth: number;
   favoriteRole: string;
   favoriteRoleCount: number;
-  sharedShifts: Array<{
+  sharedShifts: {
     id: string;
     type: string;
     date: string;
     location: string;
     isUpcoming: boolean;
-  }>;
-  upcomingShifts: Array<{
+  }[];
+  upcomingShifts: {
     id: string;
     type: string;
     date: string;
     time: string;
     location: string;
-  }>;
+  }[];
 };
 
 export const DUMMY_FRIEND_PROFILES: Record<string, FriendProfile> = {
