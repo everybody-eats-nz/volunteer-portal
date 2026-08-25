@@ -241,7 +241,9 @@ export default async function ShiftsCalendarPage({
     const allSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: shifts.map((s) => s.id) },
-        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        // Confirmed only, matching the capacity figures: an unapproved request
+        // shouldn't show on the calendar as someone who is coming.
+        status: { in: [...SPOT_TAKING_STATUSES] },
         // Exclude the current user from the list
         userId: { not: currentUser.id },
       },

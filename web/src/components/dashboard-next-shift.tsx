@@ -69,7 +69,9 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
       where: {
         shiftId: nextShift.shiftId,
         userId: { in: userFriendIds },
-        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        // Confirmed only: a friend whose request is still pending isn't on the
+        // shift yet.
+        status: { in: ["CONFIRMED"] },
       },
       include: {
         user: {
