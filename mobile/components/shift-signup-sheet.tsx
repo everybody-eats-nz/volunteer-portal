@@ -21,6 +21,7 @@ import { Colors, Brand, FontFamily, Palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api, ApiError } from '@/lib/api';
 import { getShiftDescription } from '@/lib/shift-description';
+import { WAITLIST_EXPLAINER, waitlistSizeSentence } from '@/lib/waitlist';
 
 type ConcurrentShift = {
   id: string;
@@ -71,6 +72,11 @@ type ShiftSignupSheetProps = {
     notes?: string | null;
   };
   isWaitlist: boolean;
+  /**
+   * Volunteers already waiting for a place. Shown before someone commits to
+   * standby so the choice is informed rather than a guess.
+   */
+  waitlistCount?: number;
   formatDate: (date: Date, fmt: string) => string;
   /**
    * Known-incomplete profile from the shift eligibility payload, so the sheet
@@ -94,6 +100,7 @@ export function ShiftSignupSheet({
   onSuccess,
   shift,
   isWaitlist,
+  waitlistCount = 0,
   formatDate,
   profileIncomplete: knownProfileIncomplete,
   missingProfileFields: knownMissingFields,
@@ -251,7 +258,7 @@ export function ShiftSignupSheet({
       : '✨ Confirm Signup';
 
   const subtitle = isWaitlist
-    ? "You'll be notified if a spot opens up."
+    ? waitlistSizeSentence(waitlistCount)
     : autoApproval.eligible && !autoApproval.loading
       ? "You're eligible for instant approval!"
       : 'Your signup will be reviewed by an admin.';
@@ -410,7 +417,7 @@ export function ShiftSignupSheet({
               <Text style={ss.infoEmoji}>{isWaitlist ? '📋' : 'ℹ️'}</Text>
               <Text style={[ss.infoText, { color: colors.textSecondary, flex: 1 }]}>
                 {isWaitlist
-                  ? "You'll be added to the waitlist and notified if a spot opens up."
+                  ? `${WAITLIST_EXPLAINER} We'll notify you if you get one.`
                   : "Your signup will be reviewed by an administrator. You'll be notified once confirmed."}
               </Text>
             </View>

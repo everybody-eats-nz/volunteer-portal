@@ -39,6 +39,10 @@ import {
   type SignupStatus,
 } from "@/lib/signup-status";
 import { openExternalLink } from "@/lib/external-links";
+import {
+  waitlistChipLabel,
+  yourWaitlistStandingSentence,
+} from "@/lib/waitlist";
 import { useShifts } from "@/hooks/use-shifts";
 import {
   findConflictingShift,
@@ -143,6 +147,7 @@ export default function ShiftDetailScreen() {
   const {
     shift,
     signups: shiftSignups,
+    waitlistCount,
     events,
     periodFriends,
     eligibility,
@@ -655,6 +660,10 @@ export default function ShiftDetailScreen() {
                   >
                     {isPast
                       ? "This shift has already passed."
+                      : myStatus === "WAITLISTED"
+                      ? `${yourWaitlistStandingSentence(
+                          waitlistCount
+                        )} We'll be in touch if a place opens up.`
                       : statusUi.meta ??
                         `${formatNZT(date, "EEE h:mma")} — ${formatNZT(
                           endDate,
@@ -711,7 +720,9 @@ export default function ShiftDetailScreen() {
                     ]}
                   >
                     {isFull
-                      ? "Join waitlist"
+                      ? waitlistCount > 0
+                        ? waitlistChipLabel(waitlistCount)
+                        : "Join waitlist"
                       : isUrgent
                       ? "Spots left"
                       : "Open spots"}
@@ -861,6 +872,7 @@ export default function ShiftDetailScreen() {
           onSuccess={handleSignupSuccess}
           shift={shift}
           isWaitlist={signupSheetWaitlist}
+          waitlistCount={waitlistCount}
           formatDate={formatNZT}
           profileIncomplete={eligibility ? !eligibility.profileComplete : false}
           missingProfileFields={eligibility?.missingProfileFields}

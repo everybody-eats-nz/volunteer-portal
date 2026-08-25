@@ -9,11 +9,14 @@ import { AvatarList } from "@/components/ui/avatar-list";
 import { ShiftDetailsDialog } from "./shift-details-dialog";
 import { StatusBadge } from "./status-badge";
 import { getShiftTheme } from "@/lib/shift-themes";
+import { getWaitlistCounts } from "@/lib/waitlist.server";
+import { waitlistCountLabel } from "@/lib/waitlist";
 import {
   CalendarPlus,
   ChevronLeft,
   ChevronRight,
   Clock,
+  ListOrdered,
   MapPin,
 } from "lucide-react";
 
@@ -234,6 +237,12 @@ export async function MyShiftsContent({
     .filter((s) => s.shift.end < now)
     .reverse(); // most recent first
 
+  // Waitlist sizes for the shifts this volunteer is waiting on. Standby is only
+  // a real decision if you can see how many people are already waiting.
+  const waitlistCounts = await getWaitlistCounts(
+    upcoming.filter((s) => s.status === "WAITLISTED").map((s) => s.shift.id)
+  );
+
   // Group open shifts (spots available, preferred locations) by day for the
   // "more mahi" strip — one chip per day, deep-linking to that day's page.
   const openDays = new Map<
@@ -416,6 +425,7 @@ export async function MyShiftsContent({
                       shift={shift}
                       now={now}
                       isPast={false}
+                      waitlistCount={waitlistCounts.get(shift.shift.id) ?? 0}
                     />
                   ))
                 ) : (
@@ -501,17 +511,20 @@ function ShiftRow({
   shift,
   now,
   isPast,
+  waitlistCount = 0,
 }: {
   shift: ShiftSignup;
   now: Date;
   isPast: boolean;
+  /** Size of this shift's waitlist — only looked up for waitlisted signups. */
+  waitlistCount?: number;
 }) {
   const theme = getShiftTheme(shift.shift.shiftType.name);
   const isToday = isSameDayInNZT(shift.shift.start, now);
   const friendCount = shift.shift.signups.length;
 
   return (
-    <ShiftDetailsDialog shift={shift} now={now}>
+    <ShiftDetailsDialog shift={shift} now={now} waitlistCount={waitlistCount}>
       <button
         type="button"
         data-testid="shift-row"
@@ -582,6 +595,15 @@ function ShiftRow({
                   <span className="text-xs font-medium text-forest-700/70 dark:text-cream-50/65">
                     {isPast ? "joined" : "joining"}
                   </span>
+                </span>
+              )}
+              {shift.status === "WAITLISTED" && !isPast && (
+                <span
+                  data-testid="row-waitlist-count"
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <ListOrdered className="h-3.5 w-3.5" aria-hidden />
+                  {waitlistCountLabel(waitlistCount)}
                 </span>
               )}
               {/* On narrow screens the status joins the meta line so the

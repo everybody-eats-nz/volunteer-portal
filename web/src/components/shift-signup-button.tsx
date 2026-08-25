@@ -21,6 +21,8 @@ interface ShiftSignupButtonProps {
     };
   };
   confirmedCount: number;
+  /** Volunteers already waitlisted — surfaced in the dialog when the shift is full. */
+  waitlistCount?: number;
   currentUserId?: string;
   concurrentShifts?: Array<{
     id: string;
@@ -34,6 +36,7 @@ export function ShiftSignupButton({
   isFull,
   shift,
   confirmedCount,
+  waitlistCount = 0,
   currentUserId,
   concurrentShifts,
 }: ShiftSignupButtonProps) {
@@ -42,6 +45,7 @@ export function ShiftSignupButton({
       shift={shift}
       confirmedCount={confirmedCount}
       isWaitlist={isFull}
+      waitlistCount={waitlistCount}
       currentUserId={currentUserId}
       concurrentShifts={concurrentShifts}
     >
