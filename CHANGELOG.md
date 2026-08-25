@@ -1,3 +1,9 @@
+## [0.159.0] - 2026-08-25
+
+### Changes
+- perf(mobile): make the home tab paint instantly instead of waiting on 1.2MB ([#1227](https://github.com/everybody-eats-nz/volunteer-portal/pull/1227)) by @malinmalliyawadu
+
+
 ## [0.158.0] - 2026-08-25
 
 ### Changes
