@@ -21,6 +21,7 @@ import {
   Moon,
 } from "lucide-react";
 import { getShiftTheme } from "@/lib/shift-themes";
+import { waitlistChipLabel } from "@/lib/waitlist";
 import { getShiftDescription } from "@/lib/shift-description";
 import { checkProfileCompletion } from "@/lib/profile-completion.server";
 import { ShareShiftButton } from "@/components/share-shift-button";
@@ -128,10 +129,12 @@ function ShiftCard({
 
   let confirmedCount = shift._count?.placeholders ?? 0;
   let pendingCount = 0;
+  let waitlistCount = 0;
 
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
     if (signup.status === "PENDING" || signup.status === "REGULAR_PENDING") pendingCount += 1;
+    if (signup.status === "WAITLISTED") waitlistCount += 1;
   }
 
   const remaining = Math.max(0, shift.capacity - confirmedCount - pendingCount);
@@ -257,6 +260,16 @@ function ShiftCard({
                         Full
                       </span>
                     )}
+                    {/* How long the queue is, so nobody joins standby blind */}
+                    {waitlistCount > 0 && (
+                      <span
+                        className="text-forest-700/60 dark:text-cream-50/55"
+                        data-testid={`shift-card-waitlist-${shift.id}`}
+                      >
+                        {" · "}
+                        {waitlistChipLabel(waitlistCount)}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -286,6 +299,7 @@ function ShiftCard({
               <CancelSignupButton
                 shiftId={shift.id}
                 shiftName={shift.shiftType.name}
+                isWaitlisted={mySignup.status === "WAITLISTED"}
                 className="w-full"
               />
             ) : session ? (
@@ -304,6 +318,7 @@ function ShiftCard({
                   theme={theme}
                   shift={shift}
                   confirmedCount={confirmedCount}
+                  waitlistCount={waitlistCount}
                   currentUserId={currentUserId}
                   concurrentShifts={concurrentShifts}
                 />

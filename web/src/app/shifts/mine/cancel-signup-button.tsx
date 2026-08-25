@@ -19,12 +19,19 @@ interface CancelSignupButtonProps {
   shiftId: string;
   shiftName: string;
   className?: string;
+  /**
+   * The volunteer holds a waitlist place rather than a spot on the shift.
+   * Same endpoint, different words: leaving a waitlist isn't cancelling a
+   * shift, and calling it that made people hesitate to free up their place.
+   */
+  isWaitlisted?: boolean;
 }
 
 export function CancelSignupButton({
   shiftId,
   shiftName,
   className,
+  isWaitlisted = false,
 }: CancelSignupButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -72,7 +79,11 @@ export function CancelSignupButton({
       }
 
       // Show success message
-      toast.success("Shift signup canceled successfully");
+      toast.success(
+        isWaitlisted
+          ? "You've left the waitlist"
+          : "Shift signup canceled successfully"
+      );
       
       // Close dialog and refresh the page to show updated status
       setOpen(false);
@@ -97,16 +108,28 @@ export function CancelSignupButton({
           className={`border-forest-500/20 text-forest-700/75 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-cream-50/15 dark:text-cream-50/70 dark:hover:border-red-900/60 dark:hover:bg-red-950/30 dark:hover:text-red-400 ${className || ''}`}
         >
           <X className="h-4 w-4" />
-          Cancel Signup
+          {isWaitlisted ? "Leave Waitlist" : "Cancel Signup"}
         </Button>
       </ResponsiveDialogTrigger>
       <ResponsiveDialogContent data-testid="cancel-shift-dialog">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle data-testid="cancel-dialog-title">Cancel Shift Signup</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle data-testid="cancel-dialog-title">
+            {isWaitlisted ? "Leave Waitlist" : "Cancel Shift Signup"}
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription data-testid="cancel-dialog-description">
-            Are you sure you want to cancel your signup for &quot;{shiftName}
-            &quot;? This action cannot be undone, but you may be able to sign up
-            again if spots are still available.
+            {isWaitlisted ? (
+              <>
+                Leave the waitlist for &quot;{shiftName}&quot;? You&apos;ll stop
+                waiting for a place, and you can join the waitlist again while
+                the shift is still full.
+              </>
+            ) : (
+              <>
+                Are you sure you want to cancel your signup for &quot;
+                {shiftName}&quot;? This action cannot be undone, but you may be
+                able to sign up again if spots are still available.
+              </>
+            )}
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
         <ResponsiveDialogFooter className="flex-col-reverse sm:flex-row sm:space-x-2 mt-6">
@@ -117,7 +140,7 @@ export function CancelSignupButton({
             data-testid="keep-signup-button"
             className="mt-2 sm:mt-0"
           >
-            Keep my signup
+            {isWaitlisted ? "Stay on the waitlist" : "Keep my signup"}
           </Button>
           <Button
             variant="destructive"
@@ -128,9 +151,13 @@ export function CancelSignupButton({
           >
             {isLoading ? (
               <>
-                <span className="mr-2">Canceling</span>
+                <span className="mr-2">
+                  {isWaitlisted ? "Leaving" : "Canceling"}
+                </span>
                 <span className="animate-pulse">...</span>
               </>
+            ) : isWaitlisted ? (
+              "Yes, leave the waitlist"
             ) : (
               "Yes, cancel signup"
             )}

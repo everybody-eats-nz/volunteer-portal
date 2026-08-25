@@ -1,6 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 
 interface FeedPreviewProps {
@@ -8,20 +9,23 @@ interface FeedPreviewProps {
   body: string;
   imageUrl: string | null;
   authorName: string;
+  authorPhotoUrl: string | null;
   className?: string;
 }
 
 /**
  * Live replica of the announcement card volunteers see in the mobile feed,
  * framed in a phone silhouette. Mirrors the real rendering in
- * mobile/app/(tabs)/index.tsx: yellow icon tile with the 📢 emoji (the app's
- * actual glyph, not admin chrome), title, markdown body, author + timestamp.
+ * mobile/app/(tabs)/index.tsx: your avatar with a 📢 badge (or the yellow icon
+ * tile with the 📢 emoji when you have no profile photo), title, markdown body
+ * with bare URLs auto-linked, and a single author + timestamp line.
  */
 export function FeedPreview({
   title,
   body,
   imageUrl,
   authorName,
+  authorPhotoUrl,
   className,
 }: FeedPreviewProps) {
   const empty = !title.trim() && !body.trim() && !imageUrl;
@@ -72,9 +76,23 @@ export function FeedPreview({
               />
             ) : null}
             <div className="flex gap-2.5 p-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fef9c3] text-[15px] dark:bg-[#fef9c3]/15">
-                📢
-              </div>
+              {authorPhotoUrl ? (
+                <div className="relative h-9 w-9 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={authorPhotoUrl}
+                    alt=""
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-white bg-[#fef9c3] text-[9px] dark:border-[#16181d]">
+                    📢
+                  </span>
+                </div>
+              ) : (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fef9c3] text-[15px] dark:bg-[#fef9c3]/15">
+                  📢
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 {empty ? (
                   <>
@@ -89,20 +107,17 @@ export function FeedPreview({
                     </p>
                     {body.trim() ? (
                       <div className="preview-markdown mt-0.5 break-words text-[11.5px] leading-[1.45] text-[#14181c]/65 dark:text-cream-50/65">
-                        <ReactMarkdown>{body}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {body}
+                        </ReactMarkdown>
                       </div>
                     ) : null}
                   </>
                 )}
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="truncate text-[10px] text-[#14181c]/45 dark:text-cream-50/45">
-                      {authorName}
-                    </p>
-                    <p className="text-[10px] text-[#14181c]/45 dark:text-cream-50/45">
-                      just now
-                    </p>
-                  </div>
+                  <p className="min-w-0 truncate text-[10px] text-[#14181c]/45 dark:text-cream-50/45">
+                    {authorName} · just now
+                  </p>
                 </div>
               </div>
             </div>

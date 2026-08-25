@@ -28,6 +28,7 @@ interface AnnouncementsContentProps {
   labels: LabelOption[];
   locations: string[];
   authorName: string;
+  authorPhotoUrl: string | null;
 }
 
 /**
@@ -41,6 +42,7 @@ export function AnnouncementsContent({
   labels,
   locations,
   authorName,
+  authorPhotoUrl,
 }: AnnouncementsContentProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -167,6 +169,7 @@ export function AnnouncementsContent({
           labels={labels}
           locations={locations}
           authorName={authorName}
+          authorPhotoUrl={authorPhotoUrl}
           prefill={prefill}
           onPublished={(announcement) => {
             setAnnouncements((prev) => [announcement, ...prev]);

@@ -24,25 +24,25 @@ export type UserConnection = {
   avgPerMonth: number;
   favoriteRole: string;
   favoriteRoleCount: number;
-  sharedShifts: Array<{
+  sharedShifts: {
     id: string;
     type: string;
     date: string;
     location: string;
     isUpcoming: boolean;
-  }>;
-  upcomingShifts: Array<{
+  }[];
+  upcomingShifts: {
     id: string;
     type: string;
     date: string;
     time: string;
     location: string;
-  }>;
+  }[];
   achievements: {
     unlockedCount: number;
     totalCount: number;
     totalPoints: number;
-    items: Array<{
+    items: {
       id: string;
       name: string;
       description: string;
@@ -50,7 +50,7 @@ export type UserConnection = {
       category: string;
       points: number;
       unlockedAt: string;
-    }>;
+    }[];
   };
 };
 

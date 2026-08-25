@@ -16,6 +16,10 @@ import { CancelSignupButton } from "./cancel-signup-button";
 import { StatusBadge } from "./status-badge";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { CalendarPlus } from "lucide-react";
+import {
+  WAITLIST_EXPLAINER,
+  yourWaitlistStandingSentence,
+} from "@/lib/waitlist";
 import type { ShiftSignup } from "./my-shifts-content";
 
 const detailLabel =
@@ -41,14 +45,18 @@ function DetailRow({
 export async function ShiftDetailsDialog({
   shift,
   now,
+  waitlistCount = 0,
   children,
 }: {
   shift: ShiftSignup;
   now: Date;
+  /** Size of this shift's waitlist, including this volunteer. */
+  waitlistCount?: number;
   children: React.ReactNode;
 }) {
   const theme = getShiftTheme(shift.shift.shiftType.name);
   const isPastShift = shift.shift.end < now;
+  const isWaitlisted = shift.status === "WAITLISTED";
   const locationAddresses = await getLocationAddresses();
 
   // Fetch meals served for this shift's date and location
@@ -129,6 +137,23 @@ export async function ShiftDetailsDialog({
               {shift.shift.location || "To be confirmed"}
             </DetailRow>
           </div>
+
+          {/* Where you stand on the waitlist — the call the volunteer has to
+              make is "hold this place or free it up", which needs a number */}
+          {isWaitlisted && !isPastShift && (
+            <div
+              className="rounded-2xl bg-sun-100/70 p-4 ring-1 ring-forest-500/10 dark:bg-sun-200/10 dark:ring-cream-50/10"
+              data-testid="dialog-waitlist-standing"
+            >
+              <p className="eyebrow text-forest-600/80 dark:text-sun-200/80">
+                On the waitlist
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-forest-700/85 dark:text-cream-50/85">
+                {yourWaitlistStandingSentence(waitlistCount)}{" "}
+                {WAITLIST_EXPLAINER}
+              </p>
+            </div>
+          )}
 
           {/* Meals served (for past shifts) — the pay-off moment */}
           {isPastShift && mealsServed && (
@@ -239,6 +264,7 @@ export async function ShiftDetailsDialog({
               <CancelSignupButton
                 shiftId={shift.shift.id}
                 shiftName={shift.shift.shiftType.name}
+                isWaitlisted={isWaitlisted}
                 className="w-full"
               />
             </div>

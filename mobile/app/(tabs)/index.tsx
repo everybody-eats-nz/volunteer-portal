@@ -14,11 +14,11 @@ import {
   nzDaysUntilDateOnly,
   upcomingLabel,
 } from "@/lib/feed-ranking";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter, type Href } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Markdown from "react-native-markdown-display";
 import {
   ActivityIndicator,
   Alert,
@@ -42,13 +42,14 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ImageViewer } from "@/components/image-viewer";
+import { RichText } from "@/components/rich-text";
 import { useFeed } from "@/hooks/use-feed";
 import {
   useFeedComments,
   useFeedInteractions,
 } from "@/hooks/use-feed-interactions";
 import { useNotifications } from "@/hooks/use-notifications";
-import { openCmsLink } from "@/lib/external-links";
+import { openExternalLink } from "@/lib/external-links";
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
 import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
@@ -2245,33 +2246,33 @@ function FeedCard({
     if (item.type === "announcement") {
       const iconAndBody = (
         <>
-          <View style={[styles.feedIcon, { backgroundColor: "#fef9c3" }]}>
-            <Text style={styles.feedIconEmoji}>📢</Text>
-          </View>
+          {item.authorPhotoUrl ? (
+            <FeedAvatar
+              profilePhotoUrl={item.authorPhotoUrl}
+              userName={item.author}
+              emoji="📢"
+              badgeBg="#fef9c3"
+            />
+          ) : (
+            <View style={[styles.feedIcon, { backgroundColor: "#fef9c3" }]}>
+              <Text style={styles.feedIconEmoji}>📢</Text>
+            </View>
+          )}
           <View style={styles.feedBody}>
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               {item.title}
             </Text>
-            <Markdown style={markdownStyle}>{item.body}</Markdown>
+            <RichText style={markdownStyle}>{item.body}</RichText>
             <View style={styles.feedFooter}>
-              <View
+              <Text
                 style={[
-                  styles.feedMeta,
-                  { flexDirection: "column", alignItems: "flex-start", gap: 2 },
+                  styles.feedMetaText,
+                  { flex: 1, color: colors.textSecondary },
                 ]}
+                numberOfLines={1}
               >
-                <Text
-                  style={[styles.feedMetaText, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {item.author}
-                </Text>
-                <Text
-                  style={[styles.feedMetaText, { color: colors.textSecondary }]}
-                >
-                  {timeAgo}
-                </Text>
-              </View>
+                {item.author} · {timeAgo}
+              </Text>
               {socialButtons}
             </View>
           </View>
@@ -2288,16 +2289,21 @@ function FeedCard({
               accessibilityLabel="View announcement image"
               accessibilityRole="imagebutton"
             >
-              <Image
+              <ExpoImage
                 source={{ uri: item.imageUrl }}
-                style={styles.announcementImage}
-                resizeMode="cover"
+                style={[
+                  styles.announcementImage,
+                  { backgroundColor: colors.border },
+                ]}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
                 onError={() => setHeroImageFailed(true)}
               />
             </Pressable>
           )}
           {showImage ? (
-            <View style={styles.feedCard}>{iconAndBody}</View>
+            <View style={styles.announcementRow}>{iconAndBody}</View>
           ) : (
             iconAndBody
           )}
@@ -2325,7 +2331,7 @@ function FeedCard({
             <Text style={[styles.feedTitle, { color: colors.text }]}>
               Ka pai! {item.userName} earned &quot;{item.achievementName}&quot;
             </Text>
-            <Markdown style={markdownStyle}>{item.description}</Markdown>
+            <RichText style={markdownStyle}>{item.description}</RichText>
             {item.criteria ? (
               <View
                 style={[
@@ -2398,7 +2404,7 @@ function FeedCard({
               📍 {item.location} ·{" "}
               {formatNZT(new Date(item.shiftDate), "d MMM")} {item.period}
             </Text>
-            <Markdown style={markdownStyle}>{item.caption}</Markdown>
+            <RichText style={markdownStyle}>{item.caption}</RichText>
             {/* Inline photo preview */}
             <ScrollView
               horizontal
@@ -2800,6 +2806,7 @@ function FeedCard({
           hitSlop={12}
           style={({ pressed }) => [
             styles.reportBtn,
+            hasHeroImage && { top: REPORT_BTN_TOP_WITH_IMAGE },
             { opacity: pressed ? 0.5 : 1 },
           ]}
           accessibilityLabel={
@@ -3102,13 +3109,16 @@ function FeedItemSheet({
       formatNZT(new Date(), "yyyy-MM-dd");
   const headerLabel = isPastDailyMenu ? "Past Menu" : config.label;
 
-  // Determine hero avatar for friend items
-  const hasFriendAvatar =
-    (item.type === "achievement" ||
-      item.type === "photo_post" ||
-      item.type === "friend_signup") &&
-    item.isFriend &&
-    item.profilePhotoUrl;
+  // Hero avatar: the friend who posted, or the admin behind an announcement.
+  const heroAvatarUrl =
+    item.type === "announcement"
+      ? item.authorPhotoUrl
+      : (item.type === "achievement" ||
+            item.type === "photo_post" ||
+            item.type === "friend_signup") &&
+          item.isFriend
+        ? item.profilePhotoUrl
+        : undefined;
 
   // Build title/body
   let title = "";
@@ -3280,13 +3290,10 @@ function FeedItemSheet({
               </Pressable>
 
               {/* Hero icon or friend avatar */}
-              {hasFriendAvatar ? (
+              {heroAvatarUrl ? (
                 <View style={sheet.heroAvatarWrapper}>
                   <Image
-                    source={{
-                      uri: (item as { profilePhotoUrl: string })
-                        .profilePhotoUrl,
-                    }}
+                    source={{ uri: heroAvatarUrl }}
                     style={sheet.heroAvatar}
                   />
                   <View
@@ -3351,7 +3358,7 @@ function FeedItemSheet({
                   description) so it doesn't reserve a blank line. */}
               {body.length === 0 ? null : item.type === "announcement" ||
                 item.type === "daily_menu" ? (
-                <Markdown
+                <RichText
                   style={{
                     body: {
                       color: colors.textSecondary,
@@ -3366,7 +3373,7 @@ function FeedItemSheet({
                   }}
                 >
                   {body}
-                </Markdown>
+                </RichText>
               ) : (
                 <Text style={[sheet.body, { color: colors.textSecondary }]}>
                   {body}
@@ -3902,18 +3909,24 @@ function FeedItemSheet({
                   accessibilityLabel="View image"
                   accessibilityRole="imagebutton"
                 >
-                  <Image
+                  <ExpoImage
                     source={{ uri: item.imageUrl }}
-                    // Event images are portrait posters (4:5 / 9:16) — show
+                    // Event images are portrait posters (4:5 / 9:16) - show
                     // them in a 4:5 frame instead of a shallow strip that
                     // crops away the poster's content.
                     style={[
                       item.type === "community_event"
                         ? sheet.posterImage
                         : sheet.photoSingle,
-                      { borderRadius: 12, marginBottom: 12 },
+                      {
+                        borderRadius: 12,
+                        marginBottom: 12,
+                        backgroundColor: colors.border,
+                      },
                     ]}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    transition={200}
+                    cachePolicy="memory-disk"
                   />
                 </Pressable>
               )}
@@ -3925,7 +3938,7 @@ function FeedItemSheet({
                   <Pressable
                     onPress={() => {
                       Haptics.selectionAsync();
-                      openCmsLink(item.ticketUrl!);
+                      openExternalLink(item.ticketUrl!);
                     }}
                     style={({ pressed }) => [
                       sheet.shiftListCTA,
@@ -3955,7 +3968,7 @@ function FeedItemSheet({
                 <Pressable
                   onPress={() => {
                     Haptics.selectionAsync();
-                    openCmsLink(item.url);
+                    openExternalLink(item.url);
                   }}
                   style={({ pressed }) => [
                     sheet.shiftListCTA,
@@ -3992,7 +4005,7 @@ function FeedItemSheet({
                 <Pressable
                   onPress={() => {
                     Haptics.selectionAsync();
-                    openCmsLink(item.url);
+                    openExternalLink(item.url);
                   }}
                   style={({ pressed }) => [
                     sheet.shiftListCTA,
@@ -4562,6 +4575,18 @@ function FeedItemSheet({
 
 /* ── Styles ── */
 
+/** Vertical padding on every feed card. */
+const FEED_CARD_PADDING_Y = 14;
+/** Reserved height of an announcement's hero image, and its gap to the body. */
+const ANNOUNCEMENT_IMAGE_HEIGHT = 160;
+const ANNOUNCEMENT_IMAGE_GAP = 12;
+/**
+ * Where the report control sits on an announcement that leads with a hero
+ * image: level with the title rather than floating over the picture.
+ */
+const REPORT_BTN_TOP_WITH_IMAGE =
+  FEED_CARD_PADDING_Y + ANNOUNCEMENT_IMAGE_HEIGHT + ANNOUNCEMENT_IMAGE_GAP;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -4651,7 +4676,7 @@ const styles = StyleSheet.create({
   feedCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: 14,
+    paddingVertical: FEED_CARD_PADDING_Y,
     gap: 12,
   },
   feedCardColumn: {
@@ -4660,15 +4685,20 @@ const styles = StyleSheet.create({
   },
   reportBtn: {
     position: "absolute",
-    top: 14,
+    top: FEED_CARD_PADDING_Y,
     right: 0,
     zIndex: 10,
   },
+  announcementRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
   announcementImage: {
     width: "100%",
-    height: 160,
+    height: ANNOUNCEMENT_IMAGE_HEIGHT,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: ANNOUNCEMENT_IMAGE_GAP,
   },
   feedThumb: {
     width: 64,

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { calculateAge, GUARDIAN_REQUIRED_AGE } from "@/lib/utils";
 import { getShiftDescription } from "@/lib/shift-description";
+import { WAITLIST_EXPLAINER, waitlistSizeSentence } from "@/lib/waitlist";
 import {
   MessageSquareDot,
   User,
@@ -106,6 +107,11 @@ interface ShiftSignupDialogProps {
   };
   confirmedCount: number;
   isWaitlist?: boolean;
+  /**
+   * How many volunteers are already waitlisted. Shown before someone commits
+   * to standby so they can judge the odds instead of joining blind.
+   */
+  waitlistCount?: number;
   currentUserId?: string; // For auto-approval eligibility check
   onSignupSuccess?: (result: { autoApproved: boolean; status: string }) => void; // Callback for successful signup
   concurrentShifts?: Array<{
@@ -133,6 +139,7 @@ export function ShiftSignupDialog({
   shift,
   confirmedCount,
   isWaitlist = false,
+  waitlistCount = 0,
   currentUserId,
   onSignupSuccess,
   concurrentShifts = [],
@@ -458,7 +465,7 @@ export function ShiftSignupDialog({
             data-testid="shift-signup-dialog-description"
           >
             {isWaitlist
-              ? "Join the waitlist for this shift. You'll be notified if a spot becomes available."
+              ? `This shift is full. ${waitlistSizeSentence(waitlistCount)}`
               : autoApproved
               ? "You're eligible for instant approval! Confirm to sign up and get immediately confirmed for this shift."
               : "Please confirm that you want to sign up for this volunteer shift."}
@@ -794,9 +801,13 @@ export function ShiftSignupDialog({
               title={isWaitlist ? "Waitlist process" : "Approval required"}
               testId="approval-process-info"
             >
-              {isWaitlist
-                ? "You'll be added to the waitlist and notified by email if a spot becomes available and you're approved."
-                : "Your signup will be reviewed by an administrator. You'll receive an email confirmation if you're approved for this shift."}
+              {isWaitlist ? (
+                <span data-testid="waitlist-process-note">
+                  {WAITLIST_EXPLAINER} We&apos;ll email you if you get one.
+                </span>
+              ) : (
+                "Your signup will be reviewed by an administrator. You'll receive an email confirmation if you're approved for this shift."
+              )}
             </DialogPanel>
           )}
         </div>

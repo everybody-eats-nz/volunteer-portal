@@ -20,6 +20,7 @@ import {
   Timer,
   ExternalLink,
   Ticket,
+  ListOrdered,
 } from "lucide-react";
 import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 import Link from "next/link";
@@ -35,6 +36,8 @@ import {
   getMissingProfileFieldDetails,
   getProfileEditHref,
 } from "@/lib/profile-completion";
+import { getWaitlistCount } from "@/lib/waitlist.server";
+import { WAITLIST_EXPLAINER, waitlistCountLabel } from "@/lib/waitlist";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
@@ -161,7 +164,14 @@ export default async function ShiftDetailPage({
   const locationAddresses = await getLocationAddresses();
 
   // Parallelize all remaining queries
-  const [friendships, userSignup, currentUser, concurrentShifts, cmsEvents] =
+  const [
+    friendships,
+    userSignup,
+    currentUser,
+    concurrentShifts,
+    cmsEvents,
+    waitlistCount,
+  ] =
     await Promise.all([
       // Friends
       userId
@@ -211,6 +221,10 @@ export default async function ShiftDetailPage({
 
       // Marketing CMS events at this restaurant on the shift's day
       getCmsEventsForShift(shift.location, shift.start),
+
+      // How many volunteers are already waiting, so nobody has to guess
+      // whether standby is worth holding
+      getWaitlistCount(id),
     ]);
 
   const userFriendIds = friendships.flatMap((f) =>
@@ -268,6 +282,9 @@ export default async function ShiftDetailPage({
 
   const isLoggedOut = !session;
   const isAlreadySignedUp = !!userSignup;
+  // A waitlist place is not a spot on the shift, so it gets its own panel
+  // instead of the "you're signed up" confirmation.
+  const isWaitlisted = userSignup?.status === "WAITLISTED";
   const canSignUp =
     !!session &&
     !isPastShift &&
@@ -621,8 +638,37 @@ export default async function ShiftDetailPage({
                 {confirmedCount} of {shift.capacity} volunteers signed up
               </p>
 
+              {/* Waitlist size — the number that tells a volunteer whether
+                  holding a standby place is worth it */}
+              {!isPastShift && waitlistCount > 0 && (
+                <p
+                  className="mt-1 text-sm tabular-nums text-forest-700/60 dark:text-cream-50/55"
+                  data-testid="shift-waitlist-count"
+                >
+                  {waitlistCountLabel(waitlistCount)}
+                </p>
+              )}
+
+              {/* Your standing — a waitlist place is not a spot, so it says so */}
+              {isWaitlisted && !isPastShift && (
+                <div
+                  className="mt-5 rounded-2xl bg-sun-100/70 p-4 ring-1 ring-forest-500/10 dark:bg-sun-200/10 dark:ring-cream-50/10"
+                  data-testid="your-waitlist-standing"
+                >
+                  <div className="flex items-center gap-2">
+                    <ListOrdered className="h-5 w-5 shrink-0 text-forest-600 dark:text-sun-200" />
+                    <span className="font-medium text-forest-700 dark:text-cream-50">
+                      You&apos;re on the waitlist
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm leading-relaxed text-forest-700/75 dark:text-cream-50/70">
+                    {WAITLIST_EXPLAINER}
+                  </p>
+                </div>
+              )}
+
               {/* Signed-up confirmation */}
-              {isAlreadySignedUp && !isPastShift && (
+              {isAlreadySignedUp && !isWaitlisted && !isPastShift && (
                 <div className="mt-5 flex items-center gap-2 rounded-2xl border border-forest-500/15 bg-forest-500/[0.07] p-4 dark:border-cream-50/10 dark:bg-cream-50/5">
                   <UserCheck className="h-5 w-5 shrink-0 text-forest-500 dark:text-forest-300" />
                   <span className="font-medium text-forest-700 dark:text-cream-50">
@@ -669,6 +715,7 @@ export default async function ShiftDetailPage({
                   <CancelSignupButton
                     shiftId={id}
                     shiftName={shift.shiftType.name}
+                    isWaitlisted={isWaitlisted}
                     className="w-full"
                   />
                 )}
@@ -738,6 +785,7 @@ export default async function ShiftDetailPage({
                     isFull={isWaitlist}
                     shift={shift}
                     confirmedCount={confirmedCount}
+                    waitlistCount={waitlistCount}
                     currentUserId={userId}
                     concurrentShifts={concurrentShifts}
                   />

@@ -1,3 +1,21 @@
+## [0.157.0] - 2026-08-25
+
+### Changes
+- feat(shifts): show waitlist size to volunteers ([#1225](https://github.com/everybody-eats-nz/volunteer-portal/pull/1225)) by @malinmalliyawadu
+
+
+## [0.156.0] - 2026-08-25
+
+### Changes
+- fix(mobile): tighten announcement cards, auto-link URLs, show admin avatar ([#1223](https://github.com/everybody-eats-nz/volunteer-portal/pull/1223)) by @malinmalliyawadu
+
+
+## [0.155.2] - 2026-08-25
+
+### Changes
+- fix(flaky): should show reject dialog for pending volunteers ([#1219](https://github.com/everybody-eats-nz/volunteer-portal/pull/1219)) by @malinmalliyawadu
+
+
 ## [0.155.1] - 2026-08-24
 
 ### Changes

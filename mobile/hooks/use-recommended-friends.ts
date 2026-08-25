@@ -14,12 +14,12 @@ export type RecommendedFriend = {
   lastName: string | null;
   profilePhotoUrl: string | null;
   sharedShiftsCount: number;
-  recentSharedShifts: Array<{
+  recentSharedShifts: {
     id: string;
     start: string;
     shiftTypeName: string;
     location: string | null;
-  }>;
+  }[];
   isPendingRequest?: boolean;
   requestId?: string;
 };
