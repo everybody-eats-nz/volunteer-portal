@@ -132,8 +132,12 @@ export function ShiftSignupSheet({
       setGuardianName('');
       setBackupShiftIds([]);
       setError(null);
-      setProfileIncomplete(Boolean(knownProfileIncomplete));
-      setMissingFields(knownMissingFields ?? []);
+      // Only block up front when the server told us what is missing. An
+      // empty list with the flag set used to render "your profile is
+      // incomplete" over a disabled button and no way to find out why.
+      const missing = knownMissingFields ?? [];
+      setProfileIncomplete(Boolean(knownProfileIncomplete) && missing.length > 0);
+      setMissingFields(missing);
       setAutoApproval({ eligible: false, loading: true });
     }
   }, [visible, knownProfileIncomplete, knownMissingFields]);

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { checkProfileCompletion } from "@/lib/profile-completion";
+import { checkProfileCompletion } from "@/lib/profile-completion.server";
+import { getProfileEditHref } from "@/lib/profile-completion";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,11 @@ export async function ProfileCompletionBannerServer() {
     return null;
   }
 
-  const profileStatus = await checkProfileCompletion(session.user.id);
+  // Read-only: this renders inside a page, so leave repairing a stale
+  // `profileCompleted` flag to the signup gates.
+  const profileStatus = await checkProfileCompletion(session.user.id, {
+    repairStaleFlag: false,
+  });
 
   // If profile is complete and no parental consent needed, don't show
   if (profileStatus.isComplete && !profileStatus.needsParentalConsent) {
@@ -108,13 +113,16 @@ export async function ProfileCompletionBannerServer() {
               Your profile is missing some essential information needed to
               participate in shifts.
             </p>
-            <p className="text-xs">
+            <p className="text-xs" data-testid="missing-profile-fields">
               Missing: {profileStatus.missingFields.join(", ")}
             </p>
           </div>
         </div>
         <Button asChild size="sm" className="flex-shrink-0">
-          <Link href="/profile/edit" className="flex items-center gap-1">
+          <Link
+            href={getProfileEditHref(profileStatus.missingFieldDetails)}
+            className="flex items-center gap-1"
+          >
             <User className="h-4 w-4" />
             Complete Profile
           </Link>

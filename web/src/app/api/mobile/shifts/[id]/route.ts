@@ -5,7 +5,10 @@ import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
 } from "@/lib/placeholder-utils";
-import { getMissingProfileFields } from "@/lib/profile-completion";
+import {
+  getMissingProfileFields,
+  isProfileComplete,
+} from "@/lib/profile-completion";
 import { requiresGuardianName } from "@/lib/guardian-validation";
 import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
 
@@ -162,13 +165,15 @@ export async function GET(
     })),
     eligibility: {
       emailVerified: Boolean(userRecord?.emailVerified),
-      profileComplete: Boolean(userRecord?.profileCompleted),
+      // Derived from the required fields rather than the `profileCompleted`
+      // flag: a stale flag left volunteers staring at "your profile is
+      // incomplete" with an empty list of things to fix.
+      profileComplete: Boolean(userRecord && isProfileComplete(userRecord)),
       // Which required profile fields still need filling in, so the signup
       // sheet can tell the volunteer exactly what to complete.
-      missingProfileFields:
-        userRecord && !userRecord.profileCompleted
-          ? getMissingProfileFields(userRecord)
-          : [],
+      missingProfileFields: userRecord
+        ? getMissingProfileFields(userRecord)
+        : [],
       needsParentalConsent: Boolean(
         userRecord?.requiresParentalConsent &&
           !userRecord?.parentalConsentReceived

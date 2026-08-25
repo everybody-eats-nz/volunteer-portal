@@ -31,6 +31,10 @@ import { getLocationAddresses, type Location } from "@/lib/locations";
 import { ShiftSignupButton } from "@/components/shift-signup-button";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getShiftTheme } from "@/lib/shift-themes";
+import {
+  getMissingProfileFieldDetails,
+  getProfileEditHref,
+} from "@/lib/profile-completion";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { buildPageMetadata, buildShiftEventSchema } from "@/lib/seo";
@@ -191,6 +195,7 @@ export default async function ShiftDetailPage({
               id: true,
               requiresParentalConsent: true,
               parentalConsentReceived: true,
+              firstName: true,
               phone: true,
               dateOfBirth: true,
               emergencyContactName: true,
@@ -236,19 +241,11 @@ export default async function ShiftDetailPage({
     currentUser.requiresParentalConsent &&
     !currentUser.parentalConsentReceived;
 
-  const missingFields = [];
-  if (currentUser) {
-    if (!currentUser.phone) missingFields.push("Mobile number");
-    if (!currentUser.dateOfBirth) missingFields.push("Date of birth");
-    if (!currentUser.emergencyContactName)
-      missingFields.push("Emergency contact name");
-    if (!currentUser.emergencyContactPhone)
-      missingFields.push("Emergency contact phone");
-    if (!currentUser.volunteerAgreementAccepted)
-      missingFields.push("Volunteer agreement");
-    if (!currentUser.healthSafetyPolicyAccepted)
-      missingFields.push("Health & safety policy");
-  }
+  // Shared with the signup gate and the completion banner so this page never
+  // shows an enabled Sign up button for a profile the API will reject.
+  const missingFields = currentUser
+    ? getMissingProfileFieldDetails(currentUser)
+    : [];
   const hasIncompleteProfile = missingFields.length > 0;
 
   // Check conflicting signup (only if user hasn't signed up for this shift)
@@ -712,13 +709,26 @@ export default async function ShiftDetailPage({
                   !hasConflictingSignup &&
                   !needsParentalConsent &&
                   hasIncompleteProfile && (
-                    <div className="w-full space-y-2">
-                      <Button disabled variant="secondary" className="w-full">
-                        Complete Profile Required
+                    <div
+                      className="w-full space-y-2"
+                      data-testid="profile-incomplete-signup-block"
+                    >
+                      <Button asChild className="w-full">
+                        <Link href={getProfileEditHref(missingFields)}>
+                          Complete Your Profile
+                        </Link>
                       </Button>
-                      <p className="text-sm text-forest-700/65 dark:text-cream-50/60">
-                        Please complete your profile to sign up for shifts.
-                      </p>
+                      <div className="text-sm text-forest-700/65 dark:text-cream-50/60">
+                        <p>Your profile still needs:</p>
+                        <ul
+                          className="mt-1 list-disc space-y-0.5 pl-5"
+                          data-testid="missing-profile-fields"
+                        >
+                          {missingFields.map((field) => (
+                            <li key={field.label}>{field.label}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   )}
 
