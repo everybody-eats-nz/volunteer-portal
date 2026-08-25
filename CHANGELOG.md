@@ -1,3 +1,9 @@
+## [0.157.1] - 2026-08-25
+
+### Changes
+- fix(admin): load every regular schedule a volunteer holds on a day ([#1221](https://github.com/everybody-eats-nz/volunteer-portal/pull/1221)) by @malinmalliyawadu
+
+
 ## [0.157.0] - 2026-08-25
 
 ### Changes
