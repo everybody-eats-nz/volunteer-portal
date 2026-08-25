@@ -7,6 +7,8 @@ export const queryKeys = {
   shifts: {
     all: ['shifts'] as const,
     list: () => [...queryKeys.shifts.all, 'list'] as const,
+    /** Trimmed home-tab payload — see `scope=home` on /api/mobile/shifts. */
+    home: () => [...queryKeys.shifts.all, 'home'] as const,
     detail: (id: string) => [...queryKeys.shifts.all, 'detail', id] as const,
     concurrent: (id: string) =>
       [...queryKeys.shifts.all, 'concurrent', id] as const,

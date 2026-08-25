@@ -6,6 +6,7 @@ import { api, ApiError } from './api';
 import type { PasskeyAuthResponse } from './passkey-client';
 import type { OAuthToken } from './oauth';
 import { posthog } from './posthog';
+import { clearQueryCache } from './query-client';
 import {
   syncPushTokenWithServer,
   unregisterPushTokenFromServer,
@@ -90,6 +91,10 @@ async function persist(
   set: (partial: Partial<AuthState>) => void,
   method: LoginMethod,
 ) {
+  // Drop anything the previous account left behind before this session's
+  // queries start filling the cache — a persisted cache outlives the process,
+  // so without this the new user could briefly see the old user's shifts.
+  await clearQueryCache();
   await SecureStore.setItemAsync('auth_token', data.token);
   set({ user: data.user, isAuthenticated: true });
   identifyInPostHog(data.user);
@@ -191,6 +196,7 @@ export const useAuth = create<AuthState>((set) => ({
         await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
       }
       await SecureStore.deleteItemAsync('auth_token');
+      await clearQueryCache();
     } catch (error) {
       // Best-effort cleanup - a keychain/network hiccup must never strand
       // the user in a half-signed-out state. Stale server push tokens get
@@ -215,6 +221,7 @@ export const useAuth = create<AuthState>((set) => ({
     try {
       await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
       await SecureStore.deleteItemAsync('auth_token');
+      await clearQueryCache();
     } catch (error) {
       // Account is gone server-side; a failed keychain delete must not keep
       // the user "signed in" to a dead account.
@@ -255,6 +262,9 @@ export const useAuth = create<AuthState>((set) => ({
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         await SecureStore.deleteItemAsync('auth_token');
+        // The session is gone, so the persisted cache is orphaned data for a
+        // user who is about to be shown the login screen.
+        await clearQueryCache();
       }
       set({ user: null, isAuthenticated: false, isLoading: false });
     }

@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 
 import { api } from "@/lib/api";
@@ -71,6 +71,71 @@ type UseShiftsReturn = {
   /** Friends keyed by shift ID — friends signed up for that specific role */
   shiftFriends: Record<string, PeriodFriend[]>;
 };
+
+type UseHomeShiftsReturn = Pick<
+  UseShiftsReturn,
+  | "myShifts"
+  | "available"
+  | "isLoading"
+  | "error"
+  | "refresh"
+  | "userDefaultLocation"
+  | "periodFriends"
+>;
+
+/**
+ * What the home tab needs, and nothing else: the user's upcoming shifts, a
+ * rolling week of available shifts at their own restaurant, and the friends
+ * on each of those sessions.
+ *
+ * Kept separate from {@link useShifts} on purpose. The full payload is the
+ * Shifts tab's dataset — a quarter of shifts across every restaurant plus a
+ * per-shift friend map — which runs to well over a megabyte of JSON at real
+ * data volumes. Home renders a few dozen of those rows and discards the rest,
+ * so it asks the server for the trimmed `scope=home` response instead.
+ */
+export function useHomeShifts(): UseHomeShiftsReturn {
+  const query = useQuery({
+    queryKey: queryKeys.shifts.home(),
+    queryFn: () => api<ShiftsResponse>("/api/mobile/shifts?scope=home"),
+  });
+
+  const data = query.data;
+
+  const periodFriends = useMemo(
+    () => normalizeFriendMap(data?.periodFriends),
+    [data?.periodFriends]
+  );
+
+  // Same device-calendar reconciliation as useShifts: `myShifts` is complete
+  // in this scope (only `available` is windowed), so syncing from home is
+  // correct. Both hooks reconcile to the same state, so whichever tab the
+  // user opens first keeps the calendar current.
+  const myShifts = data?.myShifts ?? [];
+  const dataUpdatedAt = query.dataUpdatedAt;
+  useEffect(() => {
+    if (!data) return;
+    syncShifts(data.myShifts).catch(() => {
+      // Swallow: calendar sync is best-effort, never block the UI on it.
+    });
+  }, [data, dataUpdatedAt]);
+
+  return {
+    myShifts,
+    available: data?.available ?? [],
+    isLoading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Failed to load shifts"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
+    userDefaultLocation: data?.userDefaultLocation ?? null,
+    periodFriends,
+  };
+}
 
 export function useShifts(): UseShiftsReturn {
   const query = useInfiniteQuery({

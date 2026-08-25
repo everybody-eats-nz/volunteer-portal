@@ -53,7 +53,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { openExternalLink } from "@/lib/external-links";
 import { usePendingFeedItemStore } from "@/hooks/use-pending-feed-item";
 import { useProfile } from "@/hooks/use-profile";
-import { useShifts, type PeriodFriend } from "@/hooks/use-shifts";
+import { useHomeShifts, type PeriodFriend } from "@/hooks/use-shifts";
 import {
   getShiftThemeByName,
   type FeedComment,
@@ -68,6 +68,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
+  // Home-scoped, not the full shifts payload — see useHomeShifts.
   const {
     myShifts,
     available,
@@ -75,7 +76,7 @@ export default function HomeScreen() {
     userDefaultLocation,
     isLoading: shiftsLoading,
     refresh: refreshShifts,
-  } = useShifts();
+  } = useHomeShifts();
   const {
     items: feedItems,
     isLoading: feedLoading,
