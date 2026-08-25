@@ -1,9 +1,18 @@
+import { prisma } from "@/lib/prisma";
 import {
   getMissingProfileFieldDetails,
   isProfileComplete,
   type MissingProfileField,
   type ProfileCompletionInput,
 } from "@/lib/profile-completion";
+
+/**
+ * Database-backed profile completion checks.
+ *
+ * This module is server-only, which is why it can import Prisma at the top
+ * level. The rules themselves live in `profile-completion.ts`, which client
+ * components import and which must therefore stay free of database imports.
+ */
 
 /**
  * Answer "may this volunteer sign up" from the required fields, and bring the
@@ -13,6 +22,10 @@ import {
  * volunteers blocked by a message they could not act on: the flag said
  * incomplete while every field was filled in, so nothing could name what was
  * missing.
+ *
+ * This is the only place that writes the flag as a repair. Read paths derive
+ * completeness from the fields and leave the flag alone, so rendering a page
+ * never triggers a write.
  */
 export async function syncProfileCompletedFlag(
   user: ProfileCompletionInput & { id: string; profileCompleted: boolean }
@@ -20,7 +33,6 @@ export async function syncProfileCompletedFlag(
   const complete = isProfileComplete(user);
 
   if (user.profileCompleted !== complete) {
-    const { prisma } = await import("@/lib/prisma");
     await prisma.user.update({
       where: { id: user.id },
       data: { profileCompleted: complete },
@@ -48,22 +60,18 @@ export const profileCompletionSelect = {
   emergencyContactPhone: true,
   volunteerAgreementAccepted: true,
   healthSafetyPolicyAccepted: true,
-  profileCompleted: true,
   requiresParentalConsent: true,
   parentalConsentReceived: true,
 } as const;
 
+/**
+ * Read-only: what a volunteer still has to fill in, derived from the fields.
+ * The `profileCompleted` flag is deliberately not consulted and not written -
+ * callers are render paths, and repairing drift belongs to the signup gates.
+ */
 export async function checkProfileCompletion(
-  userId: string,
-  /**
-   * Write back a `profileCompleted` flag that disagrees with the fields.
-   * Callers that run during a render pass `false` to stay read-only; the
-   * signup gates repair it so the drift does not outlive one attempt.
-   */
-  { repairStaleFlag = true }: { repairStaleFlag?: boolean } = {}
+  userId: string
 ): Promise<ProfileCompletionStatus> {
-  const { prisma } = await import("@/lib/prisma");
-
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -81,15 +89,6 @@ export async function checkProfileCompletion(
 
     const missingFieldDetails = getMissingProfileFieldDetails(user);
     const profileComplete = isProfileComplete(user);
-
-    // The fields win. A stale flag used to block volunteers who had nothing
-    // left to fill in, with no way to tell what was wrong.
-    if (repairStaleFlag && user.profileCompleted !== profileComplete) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { profileCompleted: profileComplete },
-      });
-    }
 
     const needsParentalConsent =
       user.requiresParentalConsent && !user.parentalConsentReceived;

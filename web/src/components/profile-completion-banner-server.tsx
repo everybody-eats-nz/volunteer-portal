@@ -14,11 +14,7 @@ export async function ProfileCompletionBannerServer() {
     return null;
   }
 
-  // Read-only: this renders inside a page, so leave repairing a stale
-  // `profileCompleted` flag to the signup gates.
-  const profileStatus = await checkProfileCompletion(session.user.id, {
-    repairStaleFlag: false,
-  });
+  const profileStatus = await checkProfileCompletion(session.user.id);
 
   // If profile is complete and no parental consent needed, don't show
   if (profileStatus.isComplete && !profileStatus.needsParentalConsent) {
