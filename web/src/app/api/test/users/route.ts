@@ -61,12 +61,29 @@ export async function POST(request: NextRequest) {
       where: { email },
     });
 
+    // A user flagged `profileCompleted` must actually have the fields that
+    // make a profile complete, or the signup gates reject them: those gates
+    // derive completeness from the fields and treat the flag as a cache.
+    // Callers that pass their own values still win, and a test that wants an
+    // incomplete profile passes `profileCompleted: false`.
+    const completedProfileDefaults = profileCompleted
+      ? {
+          phone: "+64 21 555 0001",
+          dateOfBirth: new Date("1990-01-01T00:00:00.000Z"),
+          emergencyContactName: "Test emergency contact",
+          emergencyContactPhone: "+64 21 555 0002",
+          volunteerAgreementAccepted: true,
+          healthSafetyPolicyAccepted: true,
+        }
+      : {};
+
     const userData = {
       email,
       role,
       firstName,
       lastName,
       name: `${firstName} ${lastName}`,
+      ...completedProfileDefaults,
       ...additionalData,
     };
 
