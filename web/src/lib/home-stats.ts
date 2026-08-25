@@ -6,6 +6,7 @@ import {
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 
 export type HomeStats = {
@@ -55,7 +56,7 @@ export async function getHomeStats(): Promise<HomeStats> {
         select: {
           id: true,
           capacity: true,
-          _count: shiftCapacityCountSelect(["CONFIRMED"]),
+          _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
         },
       }),
       prisma.shift.count({

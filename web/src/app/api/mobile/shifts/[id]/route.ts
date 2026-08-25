@@ -4,6 +4,7 @@ import { requireMobileUser } from "@/lib/mobile-auth";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 import {
   getMissingProfileFields,
@@ -58,7 +59,7 @@ export async function GET(
           },
         },
       },
-      _count: shiftCapacityCountSelect(["CONFIRMED"]),
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 

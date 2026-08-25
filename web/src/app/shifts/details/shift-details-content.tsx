@@ -61,9 +61,9 @@ function getConcurrentShiftsFromList(
       return shiftDate === targetDate && shiftIsAM === targetIsAM;
     })
     .map((shift) => {
-      const confirmedCount = shift.signups.filter(
-        (s) => s.status === "CONFIRMED" || s.status === "PENDING" || s.status === "REGULAR_PENDING"
-      ).length + (shift._count?.placeholders ?? 0);
+      const confirmedCount =
+        shift.signups.filter((s) => s.status === "CONFIRMED").length +
+        (shift._count?.placeholders ?? 0);
       return {
         id: shift.id,
         shiftTypeName: shift.shiftType.name,
@@ -128,16 +128,17 @@ function ShiftCard({
   const concurrentShifts = getConcurrentShiftsFromList(shift, allShifts);
 
   let confirmedCount = shift._count?.placeholders ?? 0;
-  let pendingCount = 0;
   let waitlistCount = 0;
 
   for (const signup of shift.signups) {
     if (signup.status === "CONFIRMED") confirmedCount += 1;
-    if (signup.status === "PENDING" || signup.status === "REGULAR_PENDING") pendingCount += 1;
     if (signup.status === "WAITLISTED") waitlistCount += 1;
   }
 
-  const remaining = Math.max(0, shift.capacity - confirmedCount - pendingCount);
+  // Only confirmed volunteers (plus unregistered walk-ins) take a spot. Managers
+  // often sit on pending requests until close to the shift, and counting those
+  // made shifts read as full while real spots were still open.
+  const remaining = Math.max(0, shift.capacity - confirmedCount);
   const isFull = remaining === 0;
 
   const mySignup = currentUserId
@@ -239,10 +240,10 @@ function ShiftCard({
                 <Users className="h-4 w-4 text-forest-500 dark:text-cream-50/60 shrink-0" />
                 <div className="text-sm min-w-0">
                   <div className="font-medium text-forest-700 dark:text-cream-50 tabular-nums">
-                    {Math.min(confirmedCount + pendingCount, shift.capacity)}/{shift.capacity}
-                    {confirmedCount + pendingCount > shift.capacity && (
+                    {Math.min(confirmedCount, shift.capacity)}/{shift.capacity}
+                    {confirmedCount > shift.capacity && (
                       <span className="text-orange-600 dark:text-orange-400 ml-1">
-                        +{confirmedCount + pendingCount - shift.capacity}
+                        +{confirmedCount - shift.capacity}
                       </span>
                     )}
                   </div>
@@ -251,7 +252,7 @@ function ShiftCard({
                       <span className="text-green-600 dark:text-green-400 font-medium">
                         {remaining} {remaining === 1 ? "spot" : "spots"} left
                       </span>
-                    ) : confirmedCount + pendingCount > shift.capacity ? (
+                    ) : confirmedCount > shift.capacity ? (
                       <span className="text-orange-600 dark:text-orange-400 font-medium">
                         Over capacity
                       </span>

@@ -4,6 +4,10 @@
 import { ImageResponse } from "next/og";
 import { startOfDay, endOfDay } from "date-fns";
 import { prisma } from "@/lib/prisma";
+import {
+  shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
+} from "@/lib/placeholder-utils";
 import { formatInNZT, parseISOInNZT, toUTC } from "@/lib/timezone";
 import { loadBrandFonts } from "@/lib/og-fonts";
 import { getLogoDataUrl } from "@/lib/og-logo";
@@ -75,14 +79,7 @@ export async function GET(request: Request) {
     select: {
       start: true,
       capacity: true,
-      _count: {
-        select: {
-          signups: {
-            where: { status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] } },
-          },
-          placeholders: true,
-        },
-      },
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 
