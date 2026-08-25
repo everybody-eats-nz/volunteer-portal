@@ -1,3 +1,9 @@
+## [0.157.0] - 2026-08-25
+
+### Changes
+- feat(shifts): show waitlist size to volunteers ([#1225](https://github.com/everybody-eats-nz/volunteer-portal/pull/1225)) by @malinmalliyawadu
+
+
 ## [0.156.0] - 2026-08-25
 
 ### Changes
