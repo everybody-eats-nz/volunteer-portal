@@ -89,8 +89,15 @@ export async function loginAsVolunteer(page: Page, customEmail?: string) {
  */
 export async function logout(page: Page) {
   try {
-    // Navigate to logout page which handles signout server-side
-    await page.goto("/logout");
+    // waitUntil "commit" rather than the default "load": /logout signs out from
+    // a mount effect and then navigates the whole document to /login, which
+    // aborts any goto still waiting for load ("net::ERR_ABORTED; maybe frame
+    // was detached"). The abort itself is caught by callers, but it leaves the
+    // signout navigation in flight, and the /login goto that follows raced it
+    // and hung for the full test timeout - taking the rest of the worker's
+    // tests down with it. Committing early lets waitForURL below follow the
+    // signout chain to its end instead of competing with it.
+    await page.goto("/logout", { waitUntil: "commit" });
 
     // Wait for redirect to login page
     await page.waitForURL("**/login", { timeout: 10000 });

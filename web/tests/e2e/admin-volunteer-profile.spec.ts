@@ -636,8 +636,12 @@ test.describe("Admin Volunteer Profile View", () => {
     test("should handle loading states gracefully", async ({ page }) => {
       await page.goto(`/admin/volunteers/${volunteerId}`);
 
-      // Wait for main content to be visible (using new PageContainer structure)
-      const pageContent = page.getByTestId("admin-volunteer-profile-page");
+      // Wait for main content to be visible (using new PageContainer structure).
+      // filter({ visible: true }) because the subtree also exists briefly in
+      // React's hidden streaming staging container - see helpers/streaming.ts.
+      const pageContent = page
+        .getByTestId("admin-volunteer-profile-page")
+        .filter({ visible: true });
       await expect(pageContent).toBeVisible({ timeout: 10000 });
 
       // Check that no error messages are displayed. Scope to the page

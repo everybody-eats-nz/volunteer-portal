@@ -19,6 +19,21 @@ function visibleUsersList(page: Page) {
   return page.locator('[data-testid="users-list"]:visible').first();
 }
 
+/**
+ * Wait for the users section to render. It server-renders either the list or
+ * the empty-state message, so once it is present exactly one of the two is
+ * there and a caller can branch on which. Without this, an isVisible() check
+ * that landed before the section streamed in reported "no list", sent the test
+ * down the empty-state branch, and then failed on a "no users" message that
+ * was never going to appear.
+ */
+async function waitForUsersSection(page: Page) {
+  await page
+    .locator('[data-testid="users-section"]:visible')
+    .first()
+    .waitFor({ state: "visible", timeout: 10_000 });
+}
+
 test.describe("Admin Users Management", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
@@ -146,6 +161,7 @@ test.describe("Admin Users Management", () => {
       await gotoSettled(page, "/admin/users");
 
       // Check if users list exists
+      await waitForUsersSection(page);
       const usersList = visibleUsersList(page);
 
       if (await usersList.isVisible()) {
