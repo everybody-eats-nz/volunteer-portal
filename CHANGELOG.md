@@ -1,3 +1,9 @@
+## [0.157.2] - 2026-08-25
+
+### Changes
+- fix: tell volunteers which profile fields are missing ([#1222](https://github.com/everybody-eats-nz/volunteer-portal/pull/1222)) by @malinmalliyawadu
+
+
 ## [0.157.1] - 2026-08-25
 
 ### Changes
