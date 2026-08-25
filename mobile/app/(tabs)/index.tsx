@@ -1045,6 +1045,9 @@ const heroStyles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     fontFamily: FontFamily.regular,
+    // Lets numberOfLines actually ellipsise: without flexShrink a Text in a
+    // row overflows the card instead of truncating at large text sizes.
+    flexShrink: 1,
   },
   friendsRow: {
     marginTop: 18,

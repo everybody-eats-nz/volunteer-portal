@@ -2060,6 +2060,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontFamily.regular,
     letterSpacing: 0.2,
+    // Wrap rather than run off the card: this line stacks several clauses
+    // ("12/12 volunteers · shift full · 127 waiting") and grows with Dynamic
+    // Type. Without flexShrink a Text in a row overflows instead of wrapping.
+    flexShrink: 1,
   },
 
   notesText: {
