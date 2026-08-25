@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 import { formatInNZT } from "@/lib/timezone";
 
 /**
@@ -68,8 +69,11 @@ export type RegularSignupResult = {
 /**
  * Match regular volunteers to shifts and create signups.
  *
- * Handles frequency filtering, existing signup deduplication (by both
- * shift and day), and batch persistence of Signup + RegularSignup records.
+ * Handles frequency filtering, deduplication, and batch persistence of
+ * Signup + RegularSignup records. Deduplication follows the same rule the
+ * signup endpoint enforces - one Day shift and one Evening shift per
+ * volunteer per day - so a volunteer with both a prep schedule and an
+ * evening service schedule has both populated.
  *
  * @param shifts - The shifts to process
  * @param regularVolunteers - The regular volunteers to match against
@@ -115,21 +119,31 @@ export async function createRegularVolunteerSignups(
     },
   });
 
-  // Build dual lookup maps for deduplication
-  const existingByDate = new Map<string, Set<string>>();
+  // A slot is one date plus one period, Day or Evening, matching the rule the
+  // signup endpoint enforces on volunteers. Keying only on the date - as this
+  // used to - meant a volunteer with a midday prep schedule and an evening
+  // service schedule on the same weekday only ever got the earlier of the two.
+  const slotKey = (shiftStart: Date) =>
+    `${getShiftDate(shiftStart)}|${isAMShift(shiftStart) ? "AM" : "PM"}`;
+
+  const existingBySlot = new Map<string, Set<string>>();
   const existingByShift = new Map<string, Set<string>>();
+  // One regular schedule fills at most one shift a day, so a day carrying two
+  // shifts of the same type doesn't book the volunteer into both.
+  const claimedDates = new Map<string, Set<string>>();
+
+  const claim = (map: Map<string, Set<string>>, key: string, value: string) => {
+    const claimed = map.get(key);
+    if (claimed) {
+      claimed.add(value);
+    } else {
+      map.set(key, new Set([value]));
+    }
+  };
+
   for (const signup of existingSignups) {
-    const dateKey = formatInNZT(signup.shift.start, "yyyy-MM-dd");
-
-    if (!existingByDate.has(signup.userId)) {
-      existingByDate.set(signup.userId, new Set());
-    }
-    existingByDate.get(signup.userId)!.add(dateKey);
-
-    if (!existingByShift.has(signup.userId)) {
-      existingByShift.set(signup.userId, new Set());
-    }
-    existingByShift.get(signup.userId)!.add(signup.shiftId);
+    claim(existingBySlot, signup.userId, slotKey(signup.shift.start));
+    claim(existingByShift, signup.userId, signup.shiftId);
   }
 
   // Process shifts and build signup records
@@ -165,7 +179,10 @@ export async function createRegularVolunteerSignups(
       if (existingByShift.get(regular.userId)?.has(shift.id)) {
         continue;
       }
-      if (existingByDate.get(regular.userId)?.has(dateKey)) {
+      if (claimedDates.get(regular.id)?.has(dateKey)) {
+        continue;
+      }
+      if (existingBySlot.get(regular.userId)?.has(slotKey(shift.start))) {
         continue;
       }
 
@@ -187,14 +204,9 @@ export async function createRegularVolunteerSignups(
       regularVolunteerBySignup.set(signupKey(regular.userId, shift.id), regular.id);
 
       // Track within-batch to prevent double-assignment
-      if (!existingByDate.has(regular.userId)) {
-        existingByDate.set(regular.userId, new Set());
-      }
-      existingByDate.get(regular.userId)!.add(dateKey);
-      if (!existingByShift.has(regular.userId)) {
-        existingByShift.set(regular.userId, new Set());
-      }
-      existingByShift.get(regular.userId)!.add(shift.id);
+      claim(existingBySlot, regular.userId, slotKey(shift.start));
+      claim(existingByShift, regular.userId, shift.id);
+      claim(claimedDates, regular.id, dateKey);
     }
   }
 
