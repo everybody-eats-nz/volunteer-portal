@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { getProfileEditHref } from "@/lib/profile-completion";
 import { formatInNZT } from "@/lib/timezone";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
@@ -161,6 +162,10 @@ export function ShiftSignupDialog({
   const [verificationResent, setVerificationResent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
+  /** Required profile fields the server says are still missing. */
+  const [missingProfileFields, setMissingProfileFields] = useState<string[]>(
+    []
+  );
   const [autoApprovalEligible, setAutoApprovalEligible] = useState<{
     eligible: boolean;
     ruleName?: string;
@@ -406,6 +411,13 @@ export function ShiftSignupDialog({
         const errorData = await response.json();
         if (errorData.error === "Profile incomplete") {
           setProfileIncomplete(true);
+          setMissingProfileFields(
+            Array.isArray(errorData.missingFields)
+              ? errorData.missingFields.filter(
+                  (field: unknown): field is string => typeof field === "string"
+                )
+              : []
+          );
           setError(null);
         } else {
           setError(errorData.error || "Failed to sign up");
@@ -705,7 +717,8 @@ export function ShiftSignupDialog({
             </div>
           )}
 
-          {/* Profile Incomplete — actionable CTA to /profile/edit */}
+          {/* Profile Incomplete — name the missing fields and link straight
+              to the edit section that holds the first one. */}
           {profileIncomplete && (
             <DialogPanel
               variant="red"
@@ -714,10 +727,24 @@ export function ShiftSignupDialog({
               testId="profile-incomplete-warning"
             >
               <div className="space-y-3">
-                <p>
-                  Your profile is missing some required information. Finish
-                  filling it in and we&apos;ll get you signed up.
-                </p>
+                {missingProfileFields.length > 0 ? (
+                  <>
+                    <p>Your profile still needs:</p>
+                    <ul
+                      className="list-disc space-y-1 pl-5"
+                      data-testid="missing-profile-fields"
+                    >
+                      {missingProfileFields.map((field) => (
+                        <li key={field}>{field}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p>
+                    Your profile is missing some required information. Finish
+                    filling it in and we&apos;ll get you signed up.
+                  </p>
+                )}
                 <Button
                   asChild
                   variant="outline"
@@ -725,7 +752,7 @@ export function ShiftSignupDialog({
                   className="w-full"
                   data-testid="complete-profile-button"
                 >
-                  <Link href="/profile/edit">
+                  <Link href={getProfileEditHref(missingProfileFields)}>
                     <User className="h-4 w-4" />
                     Complete Profile
                   </Link>

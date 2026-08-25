@@ -23,7 +23,7 @@ import {
 import { getShiftTheme } from "@/lib/shift-themes";
 import { waitlistChipLabel } from "@/lib/waitlist";
 import { getShiftDescription } from "@/lib/shift-description";
-import { checkProfileCompletion } from "@/lib/profile-completion";
+import { checkProfileCompletion } from "@/lib/profile-completion.server";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getBaseUrl } from "@/lib/utils";
 

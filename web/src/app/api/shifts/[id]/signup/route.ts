@@ -15,6 +15,8 @@ import {
   FunnelEvent,
   getPhidFromCookies,
 } from "@/lib/funnel";
+import { getMissingProfileFields } from "@/lib/profile-completion";
+import { syncProfileCompletedFlag } from "@/lib/profile-completion.server";
 
 /**
  * HTML sanitizer for serverless environment.
@@ -44,7 +46,12 @@ export async function POST(
       firstName: true,
       lastName: true,
       role: true,
+      phone: true,
       dateOfBirth: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
+      volunteerAgreementAccepted: true,
+      healthSafetyPolicyAccepted: true,
     },
   });
   if (!user)
@@ -65,12 +72,14 @@ export async function POST(
   // A complete profile is required before signing up. Without this gate the
   // onboarding funnel reports more "signed up" than "profile complete" because
   // OAuth/legacy users could sign up with missing emergency contact / DOB.
-  if (!user.profileCompleted) {
+  if (!(await syncProfileCompletedFlag(user))) {
     return NextResponse.json(
       {
         error: "Profile incomplete",
         message:
           "Please complete your profile before signing up for shifts. Visit your profile to fill in the remaining required fields.",
+        // The dialog lists these, so the volunteer knows exactly what to fix.
+        missingFields: getMissingProfileFields(user),
       },
       { status: 403 }
     );

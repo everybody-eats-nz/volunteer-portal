@@ -5,8 +5,13 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, User, FileText } from "lucide-react";
+import {
+  getMissingProfileFieldDetails,
+  getProfileEditHref,
+} from "@/lib/profile-completion";
 
 interface UserProfile {
+  firstName: string | null;
   phone: string | null;
   dateOfBirth: string | null;
   emergencyContactName: string | null;
@@ -61,20 +66,11 @@ export function DashboardProfileCompletionBanner() {
     return null;
   }
 
-  // Check if essential profile information is missing
-  const missingFields = [];
+  // Shared with the signup gates so the banner never disagrees with the
+  // reason a volunteer was blocked.
+  const missingFields = getMissingProfileFieldDetails(user);
   const isMinor = user.requiresParentalConsent;
   const needsParentalConsent = isMinor && !user.parentalConsentReceived;
-
-  if (!user.phone) missingFields.push("Mobile number");
-  if (!user.dateOfBirth) missingFields.push("Date of birth");
-  if (!user.emergencyContactName) missingFields.push("Emergency contact name");
-  if (!user.emergencyContactPhone)
-    missingFields.push("Emergency contact phone");
-  if (!user.volunteerAgreementAccepted)
-    missingFields.push("Volunteer agreement");
-  if (!user.healthSafetyPolicyAccepted)
-    missingFields.push("Health & safety policy");
 
   // If profile is complete and parental consent is handled, don't show banner
   if (missingFields.length === 0 && !needsParentalConsent) {
@@ -150,11 +146,17 @@ export function DashboardProfileCompletionBanner() {
               Your profile is missing some essential information needed to
               participate in shifts.
             </p>
-            <p className="text-xs">Missing: {missingFields.join(", ")}</p>
+            <p className="text-xs">
+              Missing:{" "}
+              {missingFields.map((field) => field.label).join(", ")}
+            </p>
           </div>
         </div>
         <Button asChild size="sm" className="flex-shrink-0">
-          <Link href="/profile/edit" className="flex items-center gap-1">
+          <Link
+            href={getProfileEditHref(missingFields)}
+            className="flex items-center gap-1"
+          >
             <User className="h-4 w-4" />
             Complete Profile
           </Link>

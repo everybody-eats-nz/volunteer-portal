@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertTriangle,
   ArrowLeft,
   Save,
   User,
@@ -36,6 +37,10 @@ import {
   type LocationOption,
   getDefaultLocationCandidates,
 } from "@/lib/location-utils";
+import {
+  getMissingProfileFieldDetails,
+  type ProfileEditStep,
+} from "@/lib/profile-completion";
 
 interface ProfileEditClientProps {
   locationOptions: LocationOption[];
@@ -266,6 +271,24 @@ export default function ProfileEditClient({
       },
     ],
     []
+  );
+
+  /**
+   * Required fields the volunteer still has to fill in, recomputed from the
+   * live form state so the checklist clears as they go. Uses the same helper
+   * as the signup gates, so the two can never disagree.
+   */
+  const missingFields = useMemo(
+    () => getMissingProfileFieldDetails(formData),
+    [formData]
+  );
+
+  const goToStep = useCallback(
+    (step: ProfileEditStep) => {
+      const index = sections.findIndex((section) => section.id === step);
+      if (index !== -1) setCurrentSection(index);
+    },
+    [sections]
   );
 
   // Handle deep linking to specific sections
@@ -604,6 +627,40 @@ export default function ProfileEditClient({
                   </button>
                 ))}
               </div>
+
+              {/* What's still missing. The signup gates block on exactly these
+                  fields, so name them here rather than leaving the volunteer
+                  to hunt through six sections. */}
+              {missingFields.length > 0 && (
+                <div
+                  className="mt-5 rounded-2xl border border-forest-500/15 bg-sun-100/70 p-4 dark:border-cream-50/12 dark:bg-sun-200/10"
+                  data-testid="profile-edit-missing-fields"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sun-200 text-forest-700 ring-1 ring-forest-500/10 dark:bg-sun-200/20 dark:text-sun-200 dark:ring-cream-50/10">
+                      <AlertTriangle className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-forest-700 dark:text-cream-50">
+                        Still needed before you can sign up for shifts
+                      </h3>
+                      <ul className="mt-2 flex flex-wrap gap-2">
+                        {missingFields.map((field) => (
+                          <li key={field.label}>
+                            <button
+                              type="button"
+                              onClick={() => goToStep(field.step)}
+                              className="rounded-full border border-forest-500/20 px-3 py-1 text-xs font-medium text-forest-700/80 transition-colors hover:bg-forest-500/10 hover:text-forest-700 dark:border-cream-50/20 dark:text-cream-50/80 dark:hover:bg-cream-50/10 dark:hover:text-cream-50"
+                            >
+                              {field.label}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Form Content */}

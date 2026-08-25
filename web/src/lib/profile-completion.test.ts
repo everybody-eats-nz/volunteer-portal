@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  getMissingProfileFieldDetails,
   getMissingProfileFields,
+  getProfileEditHref,
   isProfileComplete,
   type ProfileCompletionInput,
 } from "./profile-completion";
@@ -71,5 +73,58 @@ describe("getMissingProfileFields", () => {
     const incomplete = { ...completeProfile, dateOfBirth: null };
     expect(isProfileComplete(incomplete)).toBe(false);
     expect(getMissingProfileFields(incomplete).length).toBeGreaterThan(0);
+  });
+});
+
+describe("getProfileEditHref", () => {
+  it("deep links to the section owning the first missing field", () => {
+    expect(
+      getProfileEditHref(getMissingProfileFieldDetails({ ...completeProfile, dateOfBirth: null }))
+    ).toBe("/profile/edit?step=personal");
+    expect(
+      getProfileEditHref(
+        getMissingProfileFieldDetails({
+          ...completeProfile,
+          emergencyContactPhone: null,
+        })
+      )
+    ).toBe("/profile/edit?step=emergency");
+    expect(
+      getProfileEditHref(
+        getMissingProfileFieldDetails({
+          ...completeProfile,
+          healthSafetyPolicyAccepted: false,
+        })
+      )
+    ).toBe("/profile/edit?step=communication");
+  });
+
+  it("accepts plain labels, as sent over the signup API", () => {
+    expect(getProfileEditHref(["Date of birth"])).toBe(
+      "/profile/edit?step=personal"
+    );
+    expect(getProfileEditHref(["Volunteer agreement"])).toBe(
+      "/profile/edit?step=communication"
+    );
+  });
+
+  it("falls back to the wizard start for an empty or unknown list", () => {
+    expect(getProfileEditHref([])).toBe("/profile/edit");
+    expect(getProfileEditHref(["Something else"])).toBe("/profile/edit");
+  });
+});
+
+describe("getMissingProfileFieldDetails", () => {
+  it("pairs each missing field with its edit section", () => {
+    expect(
+      getMissingProfileFieldDetails({
+        ...completeProfile,
+        phone: null,
+        volunteerAgreementAccepted: false,
+      })
+    ).toEqual([
+      { label: "Mobile number", step: "personal" },
+      { label: "Volunteer agreement", step: "communication" },
+    ]);
   });
 });
