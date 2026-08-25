@@ -21,6 +21,8 @@ type ShiftDetailResponse = {
   location: string;
   capacity: number;
   signedUp: number;
+  /** Volunteers waiting for a place on this shift. */
+  waitlistCount: number;
   status: "CONFIRMED" | "PENDING" | "WAITLISTED" | "REGULAR_PENDING" | null;
   notes: string | null;
   signups: {
@@ -99,6 +101,11 @@ export type PeriodFriend = {
 type UseShiftDetailReturn = {
   shift: Shift | null;
   signups: ShiftSignup[];
+  /**
+   * How many volunteers are on this shift's waitlist. Kept beside `shift`
+   * rather than inside it because the shifts list endpoint doesn't send it.
+   */
+  waitlistCount: number;
   /** Marketing CMS events at this restaurant on the shift's day */
   events: ShiftEvent[];
   /** Friends signed up for any shift at the same location/date/AM-PM, with their role */
@@ -171,6 +178,7 @@ export function useShiftDetail(shiftId: string | undefined): UseShiftDetailRetur
   return {
     shift,
     signups,
+    waitlistCount: data?.waitlistCount ?? 0,
     events: data?.events ?? [],
     periodFriends,
     eligibility: data?.eligibility ?? null,

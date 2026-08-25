@@ -15,6 +15,7 @@ import { getCmsEventsForShift } from "@/lib/services/marketing-cms";
  * Returns detailed shift information for the mobile app, including:
  * - Basic shift info (id, start, end, location, capacity, notes, shiftType)
  * - signedUp count (CONFIRMED signups)
+ * - waitlistCount (volunteers waiting for a place)
  * - The current user's signup status for this shift (if any)
  * - List of signups with friend status
  * - Marketing CMS events at the same restaurant on the same day
@@ -115,6 +116,13 @@ export async function GET(
   // Count confirmed signups + unregistered placeholders
   const signedUpCount = getShiftEffectiveCount(shift);
 
+  // How many volunteers are waiting for a place. Sent as its own field rather
+  // than counted off `signups` so the app never has to infer it from a list
+  // that gets filtered for privacy before it is rendered.
+  const waitlistCount = shift.signups.filter(
+    (s) => s.status === "WAITLISTED"
+  ).length;
+
   // Build signups list (all active signups) for the "Who's on this mahi" section.
   // Each entry carries its status so the app can separate volunteers who are
   // confirmed from those still waiting on an admin. REGULAR_PENDING is folded
@@ -146,6 +154,7 @@ export async function GET(
     location: shift.location ?? "TBC",
     capacity: shift.capacity,
     signedUp: signedUpCount,
+    waitlistCount,
     status: userStatus,
     notes: shift.notes,
     signups,
