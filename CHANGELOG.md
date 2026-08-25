@@ -1,3 +1,9 @@
+## [0.156.0] - 2026-08-25
+
+### Changes
+- fix(mobile): tighten announcement cards, auto-link URLs, show admin avatar ([#1223](https://github.com/everybody-eats-nz/volunteer-portal/pull/1223)) by @malinmalliyawadu
+
+
 ## [0.155.2] - 2026-08-25
 
 ### Changes
