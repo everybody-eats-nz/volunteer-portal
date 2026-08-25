@@ -747,7 +747,7 @@ type FeedInteractions = {
 
 /** Feed item types */
 export type FeedItem =
-  | ({ type: 'announcement'; id: string; title: string; body: string; imageUrl?: string; timestamp: string; author: string } & FeedInteractions)
+  | ({ type: 'announcement'; id: string; title: string; body: string; imageUrl?: string; timestamp: string; author: string; authorPhotoUrl?: string } & FeedInteractions)
   | ({ type: 'achievement'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; achievementName: string; achievementIcon: string; description: string; criteria?: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'photo_post'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; caption: string; photos: string[]; shiftDate: string; period: 'AM' | 'PM'; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)
   | ({ type: 'friend_signup'; id: string; userId?: string; userName: string; profilePhotoUrl?: string; shiftId: string; shiftTypeName: string; shiftDate: string; location: string; timestamp: string; isFriend: boolean } & FeedInteractions)

@@ -41,11 +41,12 @@ export default async function AnnouncementsPage() {
   const currentAdmin = session?.user?.email
     ? await prisma.user.findUnique({
         where: { email: session.user.email },
-        select: { firstName: true, name: true },
+        select: { firstName: true, name: true, profilePhotoUrl: true },
       })
     : null;
   const authorName =
     currentAdmin?.firstName ?? currentAdmin?.name ?? "Admin";
+  const authorPhotoUrl = currentAdmin?.profilePhotoUrl ?? null;
 
   return (
     <AdminPageWrapper
@@ -65,6 +66,7 @@ export default async function AnnouncementsPage() {
         labels={labels}
         locations={locations.map((l) => l.name)}
         authorName={authorName}
+        authorPhotoUrl={authorPhotoUrl}
       />
     </AdminPageWrapper>
   );

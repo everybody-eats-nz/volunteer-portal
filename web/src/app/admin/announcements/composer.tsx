@@ -77,6 +77,7 @@ interface ComposerProps {
   labels: LabelOption[];
   locations: string[];
   authorName: string;
+  authorPhotoUrl: string | null;
   prefill: ComposerPrefill | null;
   onPublished: (announcement: Announcement) => void;
   onClose: () => void;
@@ -107,6 +108,7 @@ export function Composer({
   labels,
   locations,
   authorName,
+  authorPhotoUrl,
   prefill,
   onPublished,
   onClose,
@@ -366,7 +368,8 @@ export function Composer({
                     data-testid="announcement-body"
                   />
                   <p className="mt-1.5 text-xs text-muted-foreground">
-                    Markdown supported: **bold** · *italic* · [link](url) · -
+                    Paste a web address or email and it becomes a tappable link.
+                    Markdown also works: **bold** · *italic* · [link](url) · -
                     for bullets
                   </p>
                 </div>
@@ -493,6 +496,7 @@ export function Composer({
                 body={body}
                 imageUrl={imageUrl}
                 authorName={authorName}
+                authorPhotoUrl={authorPhotoUrl}
               />
             </div>
 

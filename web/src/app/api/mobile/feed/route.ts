@@ -242,7 +242,12 @@ export async function GET(request: Request) {
       },
       include: {
         author: {
-          select: { id: true, name: true, firstName: true },
+          select: {
+            id: true,
+            name: true,
+            firstName: true,
+            profilePhotoUrl: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -373,6 +378,7 @@ export async function GET(request: Request) {
       imageUrl: ann.imageUrl ?? undefined,
       timestamp: ann.createdAt.toISOString(),
       author: authorName,
+      authorPhotoUrl: ann.author.profilePhotoUrl ?? undefined,
       likeCount: 0,
       likedByMe: false,
       recentLikers: [],
