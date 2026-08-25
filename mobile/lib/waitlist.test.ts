@@ -14,7 +14,7 @@ describe("waitlist copy", () => {
   });
 
   it("pluralises the size sentence", () => {
-    expect(waitlistSizeSentence(0)).toBe("No one is on the waitlist yet.");
+    expect(waitlistSizeSentence(0)).toBe("You'd be first on the waitlist.");
     expect(waitlistSizeSentence(1)).toBe("1 volunteer is on the waitlist.");
     expect(waitlistSizeSentence(9)).toBe("9 volunteers are on the waitlist.");
   });

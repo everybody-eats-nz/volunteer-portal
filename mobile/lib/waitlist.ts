@@ -14,7 +14,8 @@ export function waitlistChipLabel(count: number): string {
 
 /** Sentence for someone deciding whether to join, e.g. "7 volunteers are on the waitlist." */
 export function waitlistSizeSentence(count: number): string {
-  if (count === 0) return "No one is on the waitlist yet.";
+  // Being first is the useful thing to know here, not that the list is empty.
+  if (count === 0) return "You'd be first on the waitlist.";
   if (count === 1) return "1 volunteer is on the waitlist.";
   return `${count} volunteers are on the waitlist.`;
 }

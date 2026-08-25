@@ -25,8 +25,8 @@ describe("waitlist copy", () => {
   });
 
   describe("waitlistSizeSentence", () => {
-    it("handles an empty waitlist", () => {
-      expect(waitlistSizeSentence(0)).toBe("No one is on the waitlist yet.");
+    it("tells the first joiner they'd be first, not that the list is empty", () => {
+      expect(waitlistSizeSentence(0)).toBe("You'd be first on the waitlist.");
     });
 
     it("pluralises volunteers", () => {
