@@ -1,3 +1,9 @@
+## [0.160.1] - 2026-08-26
+
+### Changes
+- fix(shifts): stop nesting friend links inside calendar day links ([#1229](https://github.com/everybody-eats-nz/volunteer-portal/pull/1229)) by @malinmalliyawadu
+
+
 ## [0.160.0] - 2026-08-26
 
 ### Changes
