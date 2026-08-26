@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
+} from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -62,14 +67,7 @@ export async function generateMetadata({
     where: { id },
     include: {
       shiftType: { select: { name: true, description: true } },
-      _count: {
-        select: {
-          signups: {
-            where: { status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] } },
-          },
-          placeholders: true,
-        },
-      },
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 
@@ -90,7 +88,7 @@ export async function generateMetadata({
   const locationPart = shift.location ? ` · ${shift.location}` : "";
   const title = `${shift.shiftType.name}${locationPart} · ${dayLabel}`;
 
-  const confirmedCount = shift._count.signups + shift._count.placeholders;
+  const confirmedCount = getShiftEffectiveCount(shift);
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
   const isPast = new Date(shift.end) < new Date();
   const spotsLine = isPast
@@ -125,9 +123,7 @@ export default async function ShiftDetailPage({
     include: {
       shiftType: true,
       signups: {
-        where: {
-          status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
-        },
+        where: { status: { in: [...SPOT_TAKING_STATUSES] } },
         include: {
           user: {
             select: {
@@ -144,16 +140,7 @@ export default async function ShiftDetailPage({
         orderBy: { createdAt: "asc" },
         take: 10,
       },
-      _count: {
-        select: {
-          signups: {
-            where: {
-              status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
-            },
-          },
-          placeholders: true,
-        },
-      },
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 
@@ -238,14 +225,18 @@ export default async function ShiftDetailPage({
       userFriendIds.includes(signup.user.id)
   );
 
-  const otherVolunteersCount =
+  // Confirmed volunteers only, matching the capacity figure: an unapproved
+  // request shouldn't read as someone who is coming.
+  const otherVolunteersCount = Math.max(
+    0,
     shift._count.signups -
-    friendSignups.length -
-    (userId && shift.signups.some((s) => s.user.id === userId) ? 1 : 0);
+      friendSignups.length -
+      (userId && shift.signups.some((s) => s.user.id === userId) ? 1 : 0)
+  );
 
   const isPastShift = new Date(shift.end) < new Date();
 
-  const confirmedCount = shift._count.signups + shift._count.placeholders;
+  const confirmedCount = getShiftEffectiveCount(shift);
   const isWaitlist = confirmedCount >= shift.capacity;
   const spotsRemaining = Math.max(0, shift.capacity - confirmedCount);
   const theme = getShiftTheme(shift.shiftType.name);

@@ -1,5 +1,9 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
+import {
+  shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
+} from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
 import { getShiftTheme } from "@/lib/shift-themes";
 import { loadBrandFonts } from "@/lib/og-fonts";
@@ -35,14 +39,7 @@ export default async function ShiftOgImage({
     where: { id },
     include: {
       shiftType: true,
-      _count: {
-        select: {
-          signups: {
-            where: { status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] } },
-          },
-          placeholders: true,
-        },
-      },
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 

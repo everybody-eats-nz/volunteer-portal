@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import {
+  getShiftEffectiveCount,
+  shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
+} from "@/lib/placeholder-utils";
 import { resolveInitialCalendarMonth } from "@/lib/shift-calendar-month";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
@@ -213,18 +218,7 @@ export default async function ShiftsCalendarPage({
           description: true,
         },
       },
-      _count: {
-        select: {
-          signups: {
-            where: {
-              status: {
-                in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
-              },
-            },
-          },
-          placeholders: true,
-        },
-      },
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 
@@ -247,7 +241,9 @@ export default async function ShiftsCalendarPage({
     const allSignups = await prisma.signup.findMany({
       where: {
         shiftId: { in: shifts.map((s) => s.id) },
-        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        // Confirmed only, matching the capacity figures: an unapproved request
+        // shouldn't show on the calendar as someone who is coming.
+        status: { in: [...SPOT_TAKING_STATUSES] },
         // Exclude the current user from the list
         userId: { not: currentUser.id },
       },
@@ -301,8 +297,11 @@ export default async function ShiftsCalendarPage({
     end: shift.end,
     location: shift.location,
     capacity: shift.capacity,
-    confirmedCount: shift._count.signups + shift._count.placeholders, // Includes CONFIRMED, PENDING, REGULAR_PENDING + unregistered volunteers
-    pendingCount: 0, // For calendar view, we simplify by putting all counts in confirmedCount
+    // Confirmed signups + unregistered walk-ins. Pending requests are
+    // deliberately excluded so a manager holding requests never makes a shift
+    // look full to volunteers.
+    confirmedCount: getShiftEffectiveCount(shift),
+    pendingCount: 0, // Calendar totals live entirely in confirmedCount
     shiftType: {
       name: shift.shiftType.name,
       description: shift.shiftType.description,

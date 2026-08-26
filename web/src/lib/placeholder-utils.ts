@@ -32,6 +32,34 @@ export function getShiftConfirmedCount(shift: {
 }
 
 /**
+ * Statuses that occupy a spot on volunteer-facing capacity figures.
+ *
+ * Only CONFIRMED counts. Restaurant managers routinely hold requests as
+ * PENDING (sometimes right up to the day of the shift) to keep room for
+ * cancellations, so counting pending requests made shifts read as full or
+ * "over capacity" while real spots were still open, and flipped the
+ * "Sign up now" button to "Join waitlist".
+ *
+ * This mirrors the server-side gate in the signup endpoints, which has always
+ * compared CONFIRMED signups (plus unregistered walk-ins) against capacity via
+ * `getShiftConfirmedCount`. `satisfies` validates the literals against the
+ * Prisma enum, so a renamed/removed status fails the build here rather than
+ * silently miscounting.
+ */
+export const SPOT_TAKING_STATUSES = [
+  "CONFIRMED",
+] as const satisfies readonly SignupStatus[];
+
+/**
+ * Whether a signup status occupies a spot, for counts done in memory over an
+ * unfiltered signup list. Keeps those in step with the Prisma-side filters
+ * built from `SPOT_TAKING_STATUSES`.
+ */
+export function takesSpot(status: string): boolean {
+  return (SPOT_TAKING_STATUSES as readonly string[]).includes(status);
+}
+
+/**
  * Canonical Prisma `_count` select for shift capacity. Counts registered
  * signups (optionally filtered by status) plus unregistered placeholders.
  *

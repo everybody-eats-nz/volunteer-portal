@@ -7,13 +7,13 @@
 // the keyword "volunteer" with a specific city name + suburb addresses — the
 // thing the portal previously never said out loud.
 
-import type { SignupStatus } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
 import { cacheLife } from "next/cache";
 import { getGoogleMapsUrl } from "@/lib/locations";
 import {
   shiftCapacityCountSelect,
   getShiftEffectiveCount,
+  SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 import { formatInNZT } from "@/lib/timezone";
 
@@ -138,16 +138,6 @@ export interface UpcomingShift {
   timeLabel: string;
   spotsAvailable: number;
 }
-
-// Statuses that occupy a spot — mirrors the public shifts listing so the
-// "spots left" figure here matches what volunteers see on /shifts. `satisfies`
-// validates the literals against the Prisma enum, so a renamed/removed status
-// fails the build here rather than silently miscounting.
-const SPOT_TAKING_STATUSES = [
-  "CONFIRMED",
-  "PENDING",
-  "REGULAR_PENDING",
-] as const satisfies readonly SignupStatus[];
 
 /**
  * Real upcoming shifts for a city's restaurants, soonest first. Powers the

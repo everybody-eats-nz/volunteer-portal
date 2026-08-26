@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SPOT_TAKING_STATUSES } from "@/lib/placeholder-utils";
 import { formatDistanceToNow } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +70,9 @@ export async function DashboardNextShift({ userId }: DashboardNextShiftProps) {
       where: {
         shiftId: nextShift.shiftId,
         userId: { in: userFriendIds },
-        status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
+        // Confirmed only: a friend whose request is still pending isn't on the
+        // shift yet.
+        status: { in: [...SPOT_TAKING_STATUSES] },
       },
       include: {
         user: {

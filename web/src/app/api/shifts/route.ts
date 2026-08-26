@@ -3,6 +3,7 @@ import { getBaseUrl } from "@/lib/utils";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     orderBy: { start: "asc" },
     include: {
       shiftType: true,
-      _count: shiftCapacityCountSelect(["CONFIRMED"]),
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
   });
 
