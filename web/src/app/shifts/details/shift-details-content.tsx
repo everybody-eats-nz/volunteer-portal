@@ -24,6 +24,7 @@ import {
 import { getShiftTheme } from "@/lib/shift-themes";
 import { waitlistChipLabel } from "@/lib/waitlist";
 import { getShiftDescription } from "@/lib/shift-description";
+import { ShiftCardDescription } from "@/components/shift-card-description";
 import { checkProfileCompletion } from "@/lib/profile-completion.server";
 import { ShareShiftButton } from "@/components/share-shift-button";
 import { getBaseUrl } from "@/lib/utils";
@@ -159,6 +160,11 @@ function ShiftCard({
       })
     : false;
 
+  const shiftDescription = getShiftDescription(
+    shift.notes,
+    shift.shiftType.description
+  );
+
   const friendSignups = shift.signups.filter(
     (signup) =>
       userFriendIds.includes(signup.userId) && takesSpot(signup.status)
@@ -219,10 +225,11 @@ function ShiftCard({
               </div>
             </div>
 
-            {getShiftDescription(shift.notes, shift.shiftType.description) && (
-              <p className="text-sm text-forest-700/70 dark:text-cream-50/65 leading-relaxed line-clamp-2">
-                {getShiftDescription(shift.notes, shift.shiftType.description)}
-              </p>
+            {shiftDescription && (
+              <ShiftCardDescription
+                text={shiftDescription}
+                testId={`shift-card-description-${shift.id}`}
+              />
             )}
 
             <div className="grid grid-cols-2 gap-3">

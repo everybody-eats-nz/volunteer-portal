@@ -369,7 +369,7 @@ export default async function ShiftDetailPage({
                 {shift.shiftType.name}
               </h1>
               {getShiftDescription(shift.notes, shift.shiftType.description) && (
-                <p className="mt-3 max-w-xl leading-relaxed text-cream-50/80">
+                <p className="mt-3 max-w-xl leading-relaxed whitespace-pre-line text-cream-50/80">
                   {getShiftDescription(shift.notes, shift.shiftType.description)}
                 </p>
               )}

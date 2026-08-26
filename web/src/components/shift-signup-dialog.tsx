@@ -534,7 +534,7 @@ export function ShiftSignupDialog({
 
             {getShiftDescription(shift.notes, shift.shiftType.description) && (
               <p
-                className="mt-1 text-sm text-forest-700/65 dark:text-cream-50/60"
+                className="mt-1 text-sm whitespace-pre-line text-forest-700/65 dark:text-cream-50/60"
                 data-testid="shift-details-description"
               >
                 {getShiftDescription(shift.notes, shift.shiftType.description)}
