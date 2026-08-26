@@ -1,3 +1,9 @@
+## [0.160.3] - 2026-08-26
+
+### Changes
+- fix: pair the admin messages icon with the notification bell ([#1231](https://github.com/everybody-eats-nz/volunteer-portal/pull/1231)) by @malinmalliyawadu
+
+
 ## [0.160.2] - 2026-08-26
 
 ### Changes
