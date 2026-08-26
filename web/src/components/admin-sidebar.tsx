@@ -157,7 +157,7 @@ export function AdminSidebar({
                       {item.href === "/admin/messages" &&
                         unreadMessagesCount > 0 && (
                           <SidebarMenuBadge
-                            className="bg-emerald-600 text-white"
+                            className="bg-emerald-700 text-white"
                             data-testid="messages-badge"
                           >
                             {unreadMessagesCount}

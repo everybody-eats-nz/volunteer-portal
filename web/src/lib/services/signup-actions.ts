@@ -14,6 +14,7 @@ import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 export type SignupAction =
   | "approve"
   | "reject"
+  | "waitlist"
   | "cancel"
   | "confirm"
   | "mark_present"
@@ -22,6 +23,7 @@ export type SignupAction =
 export const SIGNUP_ACTIONS: SignupAction[] = [
   "approve",
   "reject",
+  "waitlist",
   "cancel",
   "confirm",
   "mark_present",
@@ -71,8 +73,8 @@ function formatNZLongDate(date: Date): string {
 }
 
 /**
- * Apply an admin signup action (approve / reject / cancel / confirm /
- * mark_present / mark_absent), including the side effects: status transitions,
+ * Apply an admin signup action (approve / reject / waitlist / cancel /
+ * confirm / mark_present / mark_absent), including the side effects: status transitions,
  * capacity-aware waitlisting, confirmation/cancellation emails, in-app
  * notifications, and same-day auto-cancellation.
  *
@@ -120,6 +122,13 @@ export async function applySignupAction({
       throw new SignupActionError(
         400,
         "Only pending signups can be approved or rejected"
+      );
+    }
+  } else if (action === "waitlist") {
+    if (signup.status !== "PENDING" && signup.status !== "REGULAR_PENDING") {
+      throw new SignupActionError(
+        400,
+        "Only pending signups can be moved to the waitlist"
       );
     }
   } else if (action === "cancel") {
@@ -281,6 +290,35 @@ export async function applySignupAction({
       message: sendEmail
         ? "Signup rejected and volunteer notified"
         : "Signup rejected",
+    };
+  }
+
+  if (action === "waitlist") {
+    // Deliberately parked, not full. An admin picks this when they can't
+    // confirm someone yet but don't want to decline them either, so unlike the
+    // approve-into-a-full-shift path it ignores capacity entirely. The
+    // volunteer gets the same "you're on the waitlist" notification either way:
+    // from their side the outcome is identical, and spelling out that a human
+    // held them back would not help.
+    const updatedSignup = await prisma.signup.update({
+      where: { id: signupId },
+      data: { status: "WAITLISTED" },
+    });
+
+    try {
+      await createShiftWaitlistedNotification(
+        signup.user.id,
+        signup.shift.shiftType.name,
+        formatNZLongDate(signup.shift.start),
+        signup.shift.id
+      );
+    } catch (notificationError) {
+      console.error("Error creating waitlist notification:", notificationError);
+    }
+
+    return {
+      signup: updatedSignup,
+      message: "Moved to waitlist and volunteer notified",
     };
   }
 

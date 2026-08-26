@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, CalendarOff, UserCheck, UserX } from "lucide-react";
+import { Check, X, Clock, UserMinus, AlertTriangle, ArrowRightLeft, CalendarOff, UserCheck, UserX, ListPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -431,7 +431,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
     }
   };
 
-  const handleAction = async (action: "approve" | "reject" | "cancel" | "confirm" | "mark_present" | "mark_absent", options?: { skipNotification?: boolean }) => {
+  const handleAction = async (action: "approve" | "reject" | "waitlist" | "cancel" | "confirm" | "mark_present" | "mark_absent", options?: { skipNotification?: boolean }) => {
     setLoading(action);
     setDialogOpen(null);
 
@@ -509,6 +509,13 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
           title: "Confirm Waitlisted Volunteer", 
           description: "Are you sure you want to confirm this waitlisted volunteer? This will allow going over the shift capacity.",
           actionText: "Confirm Volunteer",
+          variant: "default" as const,
+        };
+      case "waitlist":
+        return {
+          title: "Move to Waitlist",
+          description: "Park this volunteer on the waitlist instead of confirming or declining them. They will be told they are on the waitlist, and you can confirm them later if you need them.",
+          actionText: "Move to Waitlist",
           variant: "default" as const,
         };
       case "reject":
@@ -1005,6 +1012,7 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
 
   // For PENDING or REGULAR_PENDING status, show action buttons
   const rejectDialogContent = getDialogContent("reject");
+  const waitlistDialogContent = getDialogContent("waitlist");
 
   return (
     <div className="flex gap-1" data-testid={testIdPrefix ? `${testIdPrefix}-pending-actions` : `volunteer-actions-${signupId}-pending`}>
@@ -1029,6 +1037,64 @@ export function VolunteerActions({ signupId, currentStatus, onUpdate, testIdPref
         </TooltipTrigger>
         <TooltipContent>Approve this volunteer</TooltipContent>
       </Tooltip>
+
+      {/* Waitlist Button - hold someone without confirming or declining them */}
+      <Dialog open={dialogOpen === "waitlist"} onOpenChange={(open) => setDialogOpen(open ? "waitlist" : null)}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-xs bg-amber-100 dark:bg-amber-900/60 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800/60"
+                disabled={loading === "waitlist"}
+                title="Move this volunteer to the waitlist"
+                aria-label="Move this volunteer to the waitlist"
+                data-testid={testIdPrefix ? `${testIdPrefix}-waitlist-button` : `volunteer-waitlist-${signupId}`}
+              >
+                {loading === "waitlist" ? (
+                  <Clock className="h-3 w-3 animate-spin" />
+                ) : (
+                  <ListPlus className="h-3 w-3" />
+                )}
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Move this volunteer to the waitlist</TooltipContent>
+        </Tooltip>
+        <DialogContent className="sm:max-w-[425px]" data-testid={testIdPrefix ? `${testIdPrefix}-waitlist-dialog` : `volunteer-waitlist-dialog-${signupId}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" data-testid={testIdPrefix ? `${testIdPrefix}-waitlist-dialog-title` : `volunteer-waitlist-dialog-title-${signupId}`}>
+              <ListPlus className="h-5 w-5 text-amber-600" />
+              {waitlistDialogContent.title}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600" data-testid={testIdPrefix ? `${testIdPrefix}-waitlist-dialog-description` : `volunteer-waitlist-dialog-description-${signupId}`}>
+              {waitlistDialogContent.description}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(null)}
+              disabled={loading === "waitlist"}
+              data-testid={testIdPrefix ? `${testIdPrefix}-waitlist-dialog-cancel` : `volunteer-waitlist-dialog-cancel-${signupId}`}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={waitlistDialogContent.variant}
+              onClick={() => handleAction("waitlist")}
+              disabled={loading === "waitlist"}
+              data-testid={testIdPrefix ? `${testIdPrefix}-waitlist-dialog-confirm` : `volunteer-waitlist-dialog-confirm-${signupId}`}
+            >
+              {loading === "waitlist" ? (
+                <Clock className="h-3 w-3 animate-spin mr-2" />
+              ) : null}
+              {waitlistDialogContent.actionText}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Move Button for Pending */}
       {moveDialog}

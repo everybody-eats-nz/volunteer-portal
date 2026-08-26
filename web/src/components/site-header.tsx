@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { AdminMessagesBell } from "@/components/admin-messages-bell";
 import { cn } from "@/lib/utils";
 import { Session } from "next-auth";
 import { Menu, X } from "lucide-react";
@@ -174,6 +175,13 @@ export function SiteHeader({
 
             {session?.user ? (
               <>
+                {/* Volunteer messages - admins only, kept separate from the
+                    notification feed so a message needing a reply cannot get
+                    buried under platform notifications */}
+                {isAdmin && (
+                  <AdminMessagesBell className="text-forest-700/80 hover:text-forest-700 hover:bg-forest-700/5 dark:text-cream-50/80 dark:hover:text-cream-50 dark:hover:bg-cream-50/5 transition-colors duration-200" />
+                )}
+
                 {/* Notification Bell - Only for logged in users */}
                 {userProfile?.id && (
                   <NotificationBell userId={userProfile.id} />
