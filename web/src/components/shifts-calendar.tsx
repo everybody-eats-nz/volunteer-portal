@@ -465,6 +465,11 @@ export function ShiftsCalendar({
                                 />
                                 {meta.label}
                               </span>
+                              {/* Links stay off - the whole cell is already a
+                                  link to the day's shifts, and an <a> inside an
+                                  <a> is invalid HTML that the browser re-parses,
+                                  breaking hydration. Friend profiles stay
+                                  reachable from the shift detail page. */}
                               {dayShifts.totalConfirmed > 0 && (
                                 <AvatarList
                                   users={dayShifts.allFriendSignups.map(
@@ -473,13 +478,7 @@ export function ShiftsCalendar({
                                   maxDisplay={2}
                                   size="sm"
                                   totalCount={dayShifts.totalConfirmed}
-                                  enableLinks={(user) => {
-                                    const signup =
-                                      dayShifts.allFriendSignups.find(
-                                        (s) => s.user.id === user.id
-                                      );
-                                    return signup?.isFriend ?? false;
-                                  }}
+                                  enableLinks={false}
                                 />
                               )}
                             </>
