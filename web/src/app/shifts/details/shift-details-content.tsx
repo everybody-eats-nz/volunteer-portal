@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { takesSpot } from "@/lib/placeholder-utils";
 import { startOfDay, endOfDay } from "date-fns";
 import { formatInNZT, toUTC, toNZT } from "@/lib/timezone";
 import Link from "next/link";
@@ -62,7 +63,7 @@ function getConcurrentShiftsFromList(
     })
     .map((shift) => {
       const confirmedCount =
-        shift.signups.filter((s) => s.status === "CONFIRMED").length +
+        shift.signups.filter((s) => takesSpot(s.status)).length +
         (shift._count?.placeholders ?? 0);
       return {
         id: shift.id,
@@ -131,7 +132,7 @@ function ShiftCard({
   let waitlistCount = 0;
 
   for (const signup of shift.signups) {
-    if (signup.status === "CONFIRMED") confirmedCount += 1;
+    if (takesSpot(signup.status)) confirmedCount += 1;
     if (signup.status === "WAITLISTED") waitlistCount += 1;
   }
 
@@ -160,7 +161,7 @@ function ShiftCard({
 
   const friendSignups = shift.signups.filter(
     (signup) =>
-      userFriendIds.includes(signup.userId) && signup.status === "CONFIRMED"
+      userFriendIds.includes(signup.userId) && takesSpot(signup.status)
   );
 
   return (

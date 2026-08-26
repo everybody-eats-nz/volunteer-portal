@@ -51,6 +51,15 @@ export const SPOT_TAKING_STATUSES = [
 ] as const satisfies readonly SignupStatus[];
 
 /**
+ * Whether a signup status occupies a spot, for counts done in memory over an
+ * unfiltered signup list. Keeps those in step with the Prisma-side filters
+ * built from `SPOT_TAKING_STATUSES`.
+ */
+export function takesSpot(status: string): boolean {
+  return (SPOT_TAKING_STATUSES as readonly string[]).includes(status);
+}
+
+/**
  * Canonical Prisma `_count` select for shift capacity. Counts registered
  * signups (optionally filtered by status) plus unregistered placeholders.
  *

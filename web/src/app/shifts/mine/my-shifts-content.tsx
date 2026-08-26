@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SPOT_TAKING_STATUSES } from "@/lib/placeholder-utils";
 import { format, startOfMonth, endOfMonth, differenceInHours } from "date-fns";
 import { formatInNZT, isSameDayInNZT } from "@/lib/timezone";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -75,7 +76,7 @@ async function fetchMonthShifts(
                     userId: { in: userFriendIds },
                     // Confirmed only: a friend whose request is still pending
                     // isn't on the shift yet.
-                    status: { in: ["CONFIRMED"] },
+                    status: { in: [...SPOT_TAKING_STATUSES] },
                   }
                 : {
                     id: { equals: "never-match" },
@@ -207,7 +208,7 @@ export async function MyShiftsContent({
             },
             include: {
               signups: {
-                where: { status: { in: ["CONFIRMED"] } },
+                where: { status: { in: [...SPOT_TAKING_STATUSES] } },
               },
               _count: { select: { placeholders: true } },
               shiftType: true,

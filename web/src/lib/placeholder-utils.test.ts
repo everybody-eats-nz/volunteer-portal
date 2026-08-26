@@ -5,6 +5,7 @@ import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
   SPOT_TAKING_STATUSES,
+  takesSpot,
 } from "./placeholder-utils";
 
 describe("getEffectiveConfirmedCount", () => {
@@ -133,5 +134,23 @@ describe("SPOT_TAKING_STATUSES", () => {
     expect(SPOT_TAKING_STATUSES).not.toContain("PENDING");
     expect(SPOT_TAKING_STATUSES).not.toContain("REGULAR_PENDING");
     expect(SPOT_TAKING_STATUSES).not.toContain("WAITLISTED");
+  });
+});
+
+describe("takesSpot", () => {
+  it("accepts confirmed signups", () => {
+    expect(takesSpot("CONFIRMED")).toBe(true);
+  });
+
+  it("rejects statuses that don't hold a spot", () => {
+    for (const status of ["PENDING", "REGULAR_PENDING", "WAITLISTED", "CANCELED", "NO_SHOW"]) {
+      expect(takesSpot(status)).toBe(false);
+    }
+  });
+
+  it("agrees with SPOT_TAKING_STATUSES", () => {
+    for (const status of SPOT_TAKING_STATUSES) {
+      expect(takesSpot(status)).toBe(true);
+    }
   });
 });
