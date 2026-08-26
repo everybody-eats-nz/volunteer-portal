@@ -109,6 +109,7 @@ export interface PendingSignup {
 export type SignupAction =
   | "approve"
   | "reject"
+  | "waitlist"
   | "cancel"
   | "confirm"
   | "mark_present"
