@@ -1,3 +1,9 @@
+## [0.161.0] - 2026-08-26
+
+### Changes
+- feat(shifts): let long shift descriptions be read in full ([#1232](https://github.com/everybody-eats-nz/volunteer-portal/pull/1232)) by @malinmalliyawadu
+
+
 ## [0.160.3] - 2026-08-26
 
 ### Changes
