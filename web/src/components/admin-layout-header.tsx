@@ -5,6 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAdminHeader } from "@/contexts/admin-header-context";
 import { AdminCommandPalette } from "@/components/admin-command-palette";
+import { AdminMessagesBell } from "@/components/admin-messages-bell";
 
 export function AdminLayoutHeader() {
   const { title, description, actions } = useAdminHeader();
@@ -22,6 +23,10 @@ export function AdminLayoutHeader() {
         )}
       </div>
       <div className="flex items-center gap-2">
+        <AdminMessagesBell
+          subscribe
+          className="text-muted-foreground hover:text-foreground"
+        />
         <AdminCommandPalette>
           <Button 
             variant="outline" 
