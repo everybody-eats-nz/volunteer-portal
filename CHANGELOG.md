@@ -1,3 +1,9 @@
+## [0.160.2] - 2026-08-26
+
+### Changes
+- fix(shifts): count only confirmed signups toward displayed capacity ([#1228](https://github.com/everybody-eats-nz/volunteer-portal/pull/1228)) by @malinmalliyawadu
+
+
 ## [0.160.1] - 2026-08-26
 
 ### Changes
