@@ -171,8 +171,10 @@ test.describe("AM/PM Shift Validation", () => {
         expect(signup2Response.status()).toBe(400);
 
         const errorResult = await signup2Response.json();
-        expect(errorResult.error).toContain("AM shift");
-        expect(errorResult.error).toContain("one AM shift and one PM shift per day");
+        expect(errorResult.error).toContain("day shift");
+        expect(errorResult.error).toContain(
+          "only one of each is allowed per day"
+        );
       } finally {
         // Cleanup - ignore errors
         try { await deleteSignupsByShiftIds(page, shiftIds); } catch {}
@@ -257,8 +259,10 @@ test.describe("AM/PM Shift Validation", () => {
         expect(signup2Response.status()).toBe(400);
 
         const errorResult = await signup2Response.json();
-        expect(errorResult.error).toContain("PM shift");
-        expect(errorResult.error).toContain("one AM shift and one PM shift per day");
+        expect(errorResult.error).toContain("evening shift");
+        expect(errorResult.error).toContain(
+          "only one of each is allowed per day"
+        );
       } finally {
         // Cleanup - ignore errors
         try { await deleteSignupsByShiftIds(page, shiftIds); } catch {}
@@ -445,8 +449,10 @@ test.describe("AM/PM Shift Validation", () => {
         expect(assign2Response.status()).toBe(400);
 
         const errorResult = await assign2Response.json();
-        expect(errorResult.error).toContain("AM shift");
-        expect(errorResult.error).toContain("one AM shift and one PM shift per day");
+        expect(errorResult.error).toContain("day shift");
+        expect(errorResult.error).toContain(
+          "only one of each is allowed per day"
+        );
       } finally {
         // Cleanup - ignore errors
         try { await deleteSignupsByShiftIds(page, shiftIds); } catch {}
@@ -540,8 +546,10 @@ test.describe("AM/PM Shift Validation", () => {
         expect(assign2Response.status()).toBe(400);
 
         const errorResult = await assign2Response.json();
-        expect(errorResult.error).toContain("PM shift");
-        expect(errorResult.error).toContain("one AM shift and one PM shift per day");
+        expect(errorResult.error).toContain("evening shift");
+        expect(errorResult.error).toContain(
+          "only one of each is allowed per day"
+        );
       } finally {
         // Cleanup - ignore errors
         try { await deleteSignupsByShiftIds(page, shiftIds); } catch {}

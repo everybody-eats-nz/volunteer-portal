@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
-import { formatInNZT, toNZT } from "@/lib/timezone";
+import { formatInNZT, getStartOfDayUTC, toNZT } from "@/lib/timezone";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
@@ -103,4 +103,90 @@ export async function getConcurrentShifts(shiftId: string) {
     shiftTypeDescription: getShiftDescription(s.notes, s.shiftType.description),
     spotsRemaining: Math.max(0, s.capacity - getShiftEffectiveCount(s)),
   }));
+}
+
+/**
+ * Finds an existing signup that blocks the user from taking `shiftStart`:
+ * same NZ calendar day, same Day/Evening period, still holding a spot
+ * (CONFIRMED or PENDING).
+ *
+ * Only the target day is queried — the previous implementation loaded every
+ * confirmed/pending signup the volunteer had ever made and filtered in memory.
+ */
+export async function findPeriodConflictSignup({
+  userId,
+  shiftStart,
+  excludeShiftId,
+}: {
+  userId: string;
+  shiftStart: Date;
+  excludeShiftId?: string;
+}) {
+  // Padded by a day on each side because an NZ calendar day is 23 or 25 hours
+  // long across a DST switch — a tight 24-hour window drops an 11:30pm shift on
+  // the April changeover. The exact NZ date is asserted below, so the padding
+  // only widens the candidate set, never the match.
+  const dayStartUTC = getStartOfDayUTC(shiftStart);
+  const windowStartUTC = new Date(dayStartUTC.getTime() - 24 * 60 * 60 * 1000);
+  const windowEndUTC = new Date(dayStartUTC.getTime() + 48 * 60 * 60 * 1000);
+
+  const sameDaySignups = await prisma.signup.findMany({
+    where: {
+      userId,
+      status: { in: ["CONFIRMED", "PENDING"] },
+      ...(excludeShiftId ? { shiftId: { not: excludeShiftId } } : {}),
+      shift: { start: { gte: windowStartUTC, lt: windowEndUTC } },
+    },
+    include: { shift: { include: { shiftType: true } } },
+  });
+
+  const shiftDate = getShiftDate(shiftStart);
+  const shiftIsDay = isAMShift(shiftStart);
+
+  return sameDaySignups.find(
+    (signup) =>
+      getShiftDate(signup.shift.start) === shiftDate &&
+      isAMShift(signup.shift.start) === shiftIsDay
+  );
+}
+
+/**
+ * Builds the volunteer-facing explanation for a Day/Evening conflict.
+ *
+ * The period boundary is 4pm, not midday, so the message must never call the
+ * blocking shift an "AM"/"PM" shift — a 3pm shift is a Day shift, and labelling
+ * it "AM" reads as a bug to volunteers.
+ */
+export function buildPeriodConflictMessage({
+  conflictingSignup,
+  shiftStart,
+  subject = "you",
+}: {
+  conflictingSignup: {
+    status: string;
+    shift: { start: Date; location: string | null; shiftType: { name: string } };
+  };
+  shiftStart: Date;
+  subject?: "you" | "volunteer";
+}) {
+  const existingShiftTime = new Intl.DateTimeFormat("en-NZ", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Pacific/Auckland",
+  }).format(conflictingSignup.shift.start);
+
+  const period = getShiftPeriodLabel(shiftStart).toLowerCase();
+  const date = formatInNZT(conflictingSignup.shift.start, "EEEE d MMMM");
+  const location = conflictingSignup.shift.location ?? "TBD";
+  const shiftName = conflictingSignup.shift.shiftType.name;
+  // PENDING signups block a second shift too, so don't call them "confirmed".
+  const held = conflictingSignup.status === "PENDING" ? "a pending" : "a confirmed";
+  const boundary =
+    "Day shifts start before 4pm and evening shifts start from 4pm, so only one of each is allowed per day.";
+  const clash = `${held} ${period} shift on ${date}: ${shiftName} at ${location}, ${existingShiftTime}.`;
+
+  return subject === "volunteer"
+    ? `This volunteer already has ${clash} ${boundary}`
+    : `You already have ${clash} ${boundary}`;
 }

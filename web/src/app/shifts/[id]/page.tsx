@@ -9,7 +9,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
 import { getConcurrentShifts } from "@/lib/concurrent-shifts";
-import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
+import {
+  getShiftDate,
+  getShiftPeriodLabel,
+  isAMShift,
+} from "@/lib/concurrent-shifts";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
 import { CancelSignupButton } from "../mine/cancel-signup-button";
@@ -718,7 +722,7 @@ export default async function ShiftDetailPage({
                   hasConflictingSignup && (
                     <Button disabled variant="secondary" className="w-full">
                       Already signed up for this{" "}
-                      {isAMShift(shift.start) ? "AM" : "PM"} period
+                      {getShiftPeriodLabel(shift.start).toLowerCase()} period
                     </Button>
                   )}
 
