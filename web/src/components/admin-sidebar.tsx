@@ -21,6 +21,7 @@ import {
 import { UserMenu } from "@/components/user-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell } from "@/components/notification-bell";
+import { AdminMessagesBell } from "@/components/admin-messages-bell";
 import { adminNavCategories, publicNavItems } from "@/lib/admin-navigation";
 import { Session } from "next-auth";
 import { showEnvironmentLabel, getEnvironmentLabel } from "@/lib/environment";
@@ -90,11 +91,18 @@ export function AdminSidebar({
             </div>
           </Link>
 
-          {userProfile?.id && (
-            <div className="[&_button]:text-sidebar-foreground [&_button]:hover:bg-sidebar-accent [&_button]:hover:text-sidebar-accent-foreground [&_[data-testid=notification-dropdown]]:left-0 [&_[data-testid=notification-dropdown]]:sm:left-0 [&_[data-testid=notification-dropdown]]:transform [&_[data-testid=notification-dropdown]]:sm:translate-x-0">
-              <NotificationBell userId={userProfile.id} />
-            </div>
-          )}
+          <div className="flex items-center gap-0.5">
+            <AdminMessagesBell
+              subscribe
+              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            />
+
+            {userProfile?.id && (
+              <div className="[&_button]:text-sidebar-foreground [&_button]:hover:bg-sidebar-accent [&_button]:hover:text-sidebar-accent-foreground [&_[data-testid=notification-dropdown]]:left-0 [&_[data-testid=notification-dropdown]]:sm:left-0 [&_[data-testid=notification-dropdown]]:transform [&_[data-testid=notification-dropdown]]:sm:translate-x-0">
+                <NotificationBell userId={userProfile.id} />
+              </div>
+            )}
+          </div>
         </div>
       </SidebarHeader>
 
