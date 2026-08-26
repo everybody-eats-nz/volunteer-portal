@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SPOT_TAKING_STATUSES } from "@/lib/placeholder-utils";
 import { format, startOfMonth, endOfMonth, differenceInHours } from "date-fns";
 import { formatInNZT, isSameDayInNZT } from "@/lib/timezone";
 import { safeParseAvailability } from "@/lib/parse-availability";
@@ -73,9 +74,9 @@ async function fetchMonthShifts(
               userFriendIds.length > 0
                 ? {
                     userId: { in: userFriendIds },
-                    status: {
-                      in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"],
-                    },
+                    // Confirmed only: a friend whose request is still pending
+                    // isn't on the shift yet.
+                    status: { in: [...SPOT_TAKING_STATUSES] },
                   }
                 : {
                     id: { equals: "never-match" },
@@ -207,10 +208,9 @@ export async function MyShiftsContent({
             },
             include: {
               signups: {
-                where: {
-                  status: { in: ["CONFIRMED", "PENDING", "REGULAR_PENDING"] },
-                },
+                where: { status: { in: [...SPOT_TAKING_STATUSES] } },
               },
+              _count: { select: { placeholders: true } },
               shiftType: true,
             },
           })
@@ -250,13 +250,10 @@ export async function MyShiftsContent({
     { date: Date; count: number; locations: Set<string> }
   >();
   for (const shift of availableShifts) {
-    const confirmedSignups = shift.signups.filter(
-      (s) => s.status === "CONFIRMED"
-    ).length;
-    const pendingSignups = shift.signups.filter(
-      (s) => s.status === "PENDING" || s.status === "REGULAR_PENDING"
-    ).length;
-    if (confirmedSignups + pendingSignups >= shift.capacity) continue;
+    // Confirmed volunteers plus unregistered walk-ins. Pending requests don't
+    // hold a spot, so a day with held requests still reads as open.
+    const filled = shift.signups.length + shift._count.placeholders;
+    if (filled >= shift.capacity) continue;
 
     const dateKey = formatInNZT(shift.start, "yyyy-MM-dd");
     const existing = openDays.get(dateKey);

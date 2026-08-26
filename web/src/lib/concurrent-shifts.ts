@@ -4,6 +4,7 @@ import { formatInNZT, toNZT } from "@/lib/timezone";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 import { getShiftDescription } from "@/lib/shift-description";
 
@@ -82,7 +83,7 @@ export async function getConcurrentShifts(shiftId: string) {
           description: true,
         },
       },
-      _count: shiftCapacityCountSelect(["CONFIRMED", "REGULAR_PENDING"]),
+      _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
     },
     orderBy: {
       start: "asc",

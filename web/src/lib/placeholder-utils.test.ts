@@ -4,6 +4,8 @@ import {
   getShiftConfirmedCount,
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
+  takesSpot,
 } from "./placeholder-utils";
 
 describe("getEffectiveConfirmedCount", () => {
@@ -117,5 +119,38 @@ describe("shiftCapacityCountSelect", () => {
     expect(shiftCapacityCountSelect()).toEqual({
       select: { signups: true, placeholders: true },
     });
+  });
+});
+
+describe("SPOT_TAKING_STATUSES", () => {
+  it("counts only confirmed signups", () => {
+    expect(SPOT_TAKING_STATUSES).toEqual(["CONFIRMED"]);
+  });
+
+  it("excludes pending requests so held requests never read as full", () => {
+    // Managers hold requests as PENDING/REGULAR_PENDING to keep room for
+    // cancellations. Counting them would show a shift as full (and flip the
+    // signup button to "Join Waitlist") while real spots were still open.
+    expect(SPOT_TAKING_STATUSES).not.toContain("PENDING");
+    expect(SPOT_TAKING_STATUSES).not.toContain("REGULAR_PENDING");
+    expect(SPOT_TAKING_STATUSES).not.toContain("WAITLISTED");
+  });
+});
+
+describe("takesSpot", () => {
+  it("accepts confirmed signups", () => {
+    expect(takesSpot("CONFIRMED")).toBe(true);
+  });
+
+  it("rejects statuses that don't hold a spot", () => {
+    for (const status of ["PENDING", "REGULAR_PENDING", "WAITLISTED", "CANCELED", "NO_SHOW"]) {
+      expect(takesSpot(status)).toBe(false);
+    }
+  });
+
+  it("agrees with SPOT_TAKING_STATUSES", () => {
+    for (const status of SPOT_TAKING_STATUSES) {
+      expect(takesSpot(status)).toBe(true);
+    }
   });
 });

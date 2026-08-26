@@ -7,6 +7,7 @@ import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
+  SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 
 const DEFAULT_PAGE_SIZE = 15;
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
           shift: {
             include: {
               shiftType: true,
-              _count: shiftCapacityCountSelect(["CONFIRMED"]),
+              _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
             },
           },
         },
@@ -117,7 +118,7 @@ export async function GET(request: Request) {
         },
         include: {
           shiftType: true,
-          _count: shiftCapacityCountSelect(["CONFIRMED"]),
+          _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
         },
         // Tie-break on id: a location runs several roles at the same start
         // time, and ordering on `start` alone lets Postgres return them in
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
               shift: {
                 include: {
                   shiftType: true,
-                  _count: shiftCapacityCountSelect(["CONFIRMED"]),
+                  _count: shiftCapacityCountSelect(SPOT_TAKING_STATUSES),
                 },
               },
             },
