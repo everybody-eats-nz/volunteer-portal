@@ -6,6 +6,7 @@ import {
   createShift,
   deleteTestShifts,
 } from "./helpers/test-helpers";
+import { gotoSettled } from "./helpers/streaming";
 import { randomUUID } from "crypto";
 
 /**
@@ -81,10 +82,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     });
 
     test("should display edit buttons on shift cards", async ({ page }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Check that edit button is visible on shift card. Scope to the visible
       // copy: during the page transition two copies of the card (one hidden)
@@ -99,10 +97,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should navigate to edit page when clicking edit button", async ({
       page,
     }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Click edit button (scope to the visible copy — see note above)
       const editButton = page.locator(
@@ -118,8 +113,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should display edit form with correct pre-filled data", async ({
       page,
     }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
       // Check form elements are present and pre-filled
       await expect(page.getByTestId("edit-shift-type-select")).toBeVisible();
@@ -145,8 +139,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     });
 
     test("should update shift successfully", async ({ page }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
       // Update capacity
       const capacityInput = page.getByTestId("edit-shift-capacity-input");
@@ -160,15 +153,18 @@ test.describe("Admin Shift Edit and Delete", () => {
       const updateButton = page.getByTestId("update-shift-button");
       await updateButton.click();
 
-      // Should redirect to shifts page with success message
+      // Should redirect to shifts page with success message, back on the day
+      // and restaurant the shift belongs to
       await expect(page).toHaveURL(/\/admin\/shifts\?updated=1/);
+      const updatedUrl = page.url();
+      expect(updatedUrl).toContain(`date=${operatingDateStr}`);
+      expect(updatedUrl).toContain("location=Wellington");
       await expect(page.getByTestId("shift-updated-message")).toBeVisible();
       await expect(page.getByText("Shift updated successfully!")).toBeVisible();
     });
 
     test("should show validation errors for invalid data", async ({ page }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
       // Set invalid end time (before start time)
       const startTimeInput = page.getByTestId("edit-shift-start-time-input");
@@ -191,15 +187,19 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should allow canceling edit and return to shifts page", async ({
       page,
     }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
-      // Click cancel button
-      const cancelButton = page.getByTestId("cancel-edit-shift-button");
+      // Click cancel button (scope to the visible copy — see note above)
+      const cancelButton = page.locator(
+        '[data-testid="cancel-edit-shift-button"]:visible'
+      );
       await cancelButton.click();
 
-      // Should return to shifts page
-      await expect(page).toHaveURL("/admin/shifts");
+      // Should return to the shift's own day and restaurant
+      await page.waitForURL(/\/admin\/shifts\?/, { timeout: 10000 });
+      const cancelUrl = page.url();
+      expect(cancelUrl).toContain(`date=${operatingDateStr}`);
+      expect(cancelUrl).toContain("location=Wellington");
     });
 
     test("should show warning when editing past shifts", async ({ page }) => {
@@ -215,8 +215,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       });
       testShiftIds.push(pastShift.id);
 
-      await page.goto(`/admin/shifts/${pastShift.id}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${pastShift.id}/edit`);
 
       // Should show warning about editing past shift
       await expect(
@@ -271,10 +270,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     });
 
     test("should display delete buttons on shift cards", async ({ page }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Wait for shifts to load and find any delete button
       await page.waitForSelector('[data-testid^="delete-shift-button-"]', {
@@ -300,10 +296,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should open delete confirmation dialog when clicking delete", async ({
       page,
     }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
       await page.waitForTimeout(1000);
 
       // Click delete button
@@ -330,10 +323,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should close delete dialog when clicking cancel", async ({
       page,
     }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Open delete dialog
       const deleteButton = page.getByTestId(
@@ -355,10 +345,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should delete shift successfully when confirming", async ({
       page,
     }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Open delete dialog
       const deleteButton = page.getByTestId(
@@ -405,10 +392,7 @@ test.describe("Admin Shift Edit and Delete", () => {
       // Back to admin
       await loginAsAdmin(page);
 
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Open delete dialog
       const deleteButton = page.getByTestId(
@@ -437,10 +421,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should preserve date and location filters when deleting from calendar view", async ({
       page,
     }) => {
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
       await page.waitForTimeout(1000);
 
       // Get initial URL parameters
@@ -493,8 +474,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     });
 
     test("should have delete button on edit page", async ({ page }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
       // Check delete button is present in header
       const deleteButton = page.getByTestId("delete-shift-from-edit-button");
@@ -505,8 +485,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should delete shift from edit page and redirect to shift's date and location", async ({
       page,
     }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
       // Click delete button
       const deleteButton = page.getByTestId("delete-shift-from-edit-button");
@@ -531,16 +510,18 @@ test.describe("Admin Shift Edit and Delete", () => {
     });
 
     test("should show back to shifts button on edit page", async ({ page }) => {
-      await page.goto(`/admin/shifts/${testShiftId}/edit`);
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts/${testShiftId}/edit`);
 
-      // Check back button
-      const backButton = page.getByText("← Back to shifts");
+      // Check back button (scope to the visible copy — see note above)
+      const backButton = page.locator("text=← Back to shifts").locator("visible=true");
       await expect(backButton).toBeVisible();
 
-      // Should navigate back to shifts page
+      // Should navigate back to the shift's own day and restaurant
       await backButton.click();
-      await expect(page).toHaveURL("/admin/shifts");
+      await page.waitForURL(/\/admin\/shifts\?/, { timeout: 10000 });
+      const backUrl = page.url();
+      expect(backUrl).toContain(`date=${operatingDateStr}`);
+      expect(backUrl).toContain("location=Wellington");
     });
   });
 
@@ -568,10 +549,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     }) => {
       await page.setViewportSize({ width: 375, height: 667 });
 
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Check buttons are visible on mobile (scope to the visible copy — a
       // brief page-transition overlap can duplicate these testids).
@@ -589,10 +567,7 @@ test.describe("Admin Shift Edit and Delete", () => {
     test("should handle delete dialog on mobile", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
 
-      await page.goto(
-        `/admin/shifts?date=${operatingDateStr}&location=Wellington`
-      );
-      await page.waitForLoadState("load");
+      await gotoSettled(page, `/admin/shifts?date=${operatingDateStr}&location=Wellington`);
 
       // Open delete dialog on mobile
       const deleteButton = page.getByTestId(

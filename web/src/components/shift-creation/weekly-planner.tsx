@@ -111,9 +111,7 @@ export function WeeklyPlanner({
   const pastDaysExcluded = matchingDays.length - serviceDays.length;
   const includesToday = serviceDays.some((day) => isSameDay(day, today));
 
-  const chosenTemplates = templates.filter((t) =>
-    selectedTemplates.has(t.name)
-  );
+  const chosenTemplates = templates.filter((t) => selectedTemplates.has(t.id));
   const shiftCount = serviceDays.length * chosenTemplates.length;
   const placesTotal =
     serviceDays.length *
@@ -185,11 +183,11 @@ export function WeeklyPlanner({
     });
   };
 
-  const toggleTemplate = (name: string, checked: boolean) => {
+  const toggleTemplate = (templateId: string, checked: boolean) => {
     setSelectedTemplates((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(name);
-      else next.delete(name);
+      if (checked) next.add(templateId);
+      else next.delete(templateId);
       return next;
     });
   };
@@ -198,8 +196,8 @@ export function WeeklyPlanner({
     setSelectedTemplates((prev) => {
       const next = new Set(prev);
       for (const template of group) {
-        if (selectAll) next.add(template.name);
-        else next.delete(template.name);
+        if (selectAll) next.add(template.id);
+        else next.delete(template.id);
       }
       return next;
     });
@@ -320,18 +318,18 @@ export function WeeklyPlanner({
                 Radix unmounts collapsed content, so checkboxes inside a
                 collapsed group would otherwise drop out of the FormData */}
             {templates
-              .filter((t) => selectedTemplates.has(t.name))
+              .filter((t) => selectedTemplates.has(t.id))
               .map((t) => (
                 <input
                   key={t.id}
                   type="hidden"
-                  name={`template_${t.name}`}
+                  name={`template_${t.id}`}
                   value="on"
                 />
               ))}
             {templateGroups.map(([location, group]) => {
               const selectedInLocation = group.filter((t) =>
-                selectedTemplates.has(t.name)
+                selectedTemplates.has(t.id)
               ).length;
               const allSelected = selectedInLocation === group.length;
               return (
@@ -381,9 +379,9 @@ export function WeeklyPlanner({
                           >
                             <input
                               type="checkbox"
-                              checked={selectedTemplates.has(template.name)}
+                              checked={selectedTemplates.has(template.id)}
                               onChange={(e) =>
-                                toggleTemplate(template.name, e.target.checked)
+                                toggleTemplate(template.id, e.target.checked)
                               }
                               data-testid={templateTestId(template.name)}
                               className="mt-0.5 size-4 shrink-0 cursor-pointer accent-forest-500"

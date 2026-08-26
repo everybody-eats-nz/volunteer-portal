@@ -278,7 +278,9 @@ export default async function AdminShiftsPage({
               data-testid="shift-created-message"
               className="text-green-800 dark:text-green-200"
             >
-              Shift created successfully!
+              {Number(params.created) > 1
+                ? `${params.created} shifts created successfully!`
+                : "Shift created successfully!"}
             </AlertDescription>
           </Alert>
         )}

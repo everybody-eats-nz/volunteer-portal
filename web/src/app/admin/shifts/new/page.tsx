@@ -26,6 +26,10 @@ import {
 } from "@/lib/timezone";
 import { getActiveLocationNames } from "@/lib/locations";
 import { createShiftRecord } from "@/lib/services/shift-service";
+import {
+  applyTemplateNotesToUpcomingShifts,
+  countUpcomingShiftsByTemplate,
+} from "@/lib/services/shift-template-service";
 import { createRegularVolunteerSignups } from "@/lib/regular-volunteer-utils";
 
 // Templates are stored in the database and fetched dynamically
@@ -63,6 +67,11 @@ export default async function NewShiftPage({
         .trim()
         .optional()
         .transform((v) => (v && v.length > 0 ? v : null)),
+      // Sent when the shift was started from a template and still matches it
+      templateId: z
+        .string()
+        .nullish()
+        .transform((v) => (v && v.length > 0 ? v : null)),
     });
 
     const parsed = schema.safeParse({
@@ -73,14 +82,23 @@ export default async function NewShiftPage({
       location: formData.get("location"),
       capacity: formData.get("capacity"),
       notes: formData.get("notes"),
+      templateId: formData.get("templateId"),
     });
 
     if (!parsed.success) {
       redirect("/admin/shifts/new?error=validation&tab=single");
     }
 
-    const { shiftTypeId, date, startTime, endTime, location, capacity, notes } =
-      parsed.data;
+    const {
+      shiftTypeId,
+      date,
+      startTime,
+      endTime,
+      location,
+      capacity,
+      notes,
+      templateId,
+    } = parsed.data;
 
     // Parse time components and create dates in NZ timezone
     const [startHour, startMinute] = startTime.split(":").map(Number);
@@ -107,6 +125,7 @@ export default async function NewShiftPage({
         location,
         capacity,
         notes: notes ?? null,
+        templateId,
       });
 
       // Auto-assign matching regular volunteers
@@ -127,7 +146,14 @@ export default async function NewShiftPage({
       redirect("/admin/shifts/new?error=create&tab=single");
     }
 
-    redirect("/admin/shifts?created=1");
+    // Land back on the day and restaurant the shift was created for.
+    redirect(
+      `/admin/shifts?${new URLSearchParams({
+        created: "1",
+        date,
+        location,
+      }).toString()}`
+    );
   }
 
   async function createBulkShifts(formData: FormData) {
@@ -177,29 +203,14 @@ export default async function NewShiftPage({
       redirect("/admin/shifts/new?error=date_range");
     }
 
-    // Fetch templates from database
+    // Fetch templates from database. Templates are selected by id: names are
+    // only unique per location, so two restaurants can share one.
     const dbTemplates = await prisma.shiftTemplate.findMany({
       where: {
         isActive: true,
-        name: { in: selectedTemplates },
+        id: { in: selectedTemplates },
       },
     });
-
-    // Convert database templates to lookup object
-    const templatesWithShiftTypes = Object.fromEntries(
-      dbTemplates.map((template) => [
-        template.name,
-        {
-          name: template.name,
-          startTime: template.startTime,
-          endTime: template.endTime,
-          capacity: template.capacity,
-          notes: template.notes || "",
-          shiftTypeId: template.shiftTypeId,
-          location: template.location || undefined,
-        },
-      ])
-    );
 
     const shifts = [];
     // Iterate through date range in NZ timezone
@@ -211,31 +222,28 @@ export default async function NewShiftPage({
       const dayName = formatInNZT(current, "EEEE");
 
       if (selectedDays.includes(dayName)) {
-        for (const templateName of selectedTemplates) {
-          const template = templatesWithShiftTypes[templateName];
-          if (template) {
-            // Parse time components and create dates in NZ timezone
-            const dateStr = formatInNZT(current, "yyyy-MM-dd");
-            const [startHour, startMinute] = template.startTime
-              .split(":")
-              .map(Number);
-            const [endHour, endMinute] = template.endTime
-              .split(":")
-              .map(Number);
-            const shiftStart = createNZDate(dateStr, startHour, startMinute);
-            const shiftEnd = createNZDate(dateStr, endHour, endMinute);
+        for (const template of dbTemplates) {
+          // Parse time components and create dates in NZ timezone
+          const dateStr = formatInNZT(current, "yyyy-MM-dd");
+          const [startHour, startMinute] = template.startTime
+            .split(":")
+            .map(Number);
+          const [endHour, endMinute] = template.endTime.split(":").map(Number);
+          const shiftStart = createNZDate(dateStr, startHour, startMinute);
+          const shiftEnd = createNZDate(dateStr, endHour, endMinute);
 
-            // Only create future shifts (compare in NZ timezone)
-            if (shiftStart > now) {
-              shifts.push({
-                shiftTypeId: template.shiftTypeId,
-                start: shiftStart,
-                end: shiftEnd,
-                location: template.location || "General",
-                capacity: template.capacity,
-                notes: template.notes,
-              });
-            }
+          // Only create future shifts (compare in NZ timezone)
+          if (shiftStart > now) {
+            shifts.push({
+              shiftTypeId: template.shiftTypeId,
+              start: shiftStart,
+              end: shiftEnd,
+              location: template.location || "General",
+              capacity: template.capacity,
+              notes: template.notes,
+              // Keep the link so later template notes edits reach this shift
+              templateId: template.id,
+            });
           }
         }
       }
@@ -288,7 +296,21 @@ export default async function NewShiftPage({
       redirect("/admin/shifts/new?error=bulk_create");
     }
 
-    redirect(`/admin/shifts?created=${shifts.length}`);
+    // Land on the first day of the new schedule, and on its restaurant when the
+    // whole batch belongs to one.
+    const createdLocations = new Set(shifts.map((shift) => shift.location));
+    const firstStart = shifts.reduce(
+      (earliest, shift) => (shift.start < earliest ? shift.start : earliest),
+      shifts[0].start
+    );
+    const createdParams = new URLSearchParams({
+      created: String(shifts.length),
+      date: formatInNZT(firstStart, "yyyy-MM-dd"),
+    });
+    if (createdLocations.size === 1) {
+      createdParams.set("location", [...createdLocations][0]);
+    }
+    redirect(`/admin/shifts?${createdParams.toString()}`);
   }
 
   async function createTemplate(formData: FormData) {
@@ -365,6 +387,12 @@ export default async function NewShiftPage({
         .string()
         .optional()
         .transform((v) => (v && v.length > 0 ? v : null)),
+      // Checkbox: carry the new notes through to shifts already on the roster.
+      // An unticked checkbox is absent from the form data entirely.
+      applyNotesToUpcoming: z
+        .string()
+        .nullish()
+        .transform((v) => v === "on"),
     });
 
     const parsed = schema.safeParse({
@@ -376,6 +404,7 @@ export default async function NewShiftPage({
       location: formData.get("location"),
       capacity: formData.get("capacity"),
       notes: formData.get("notes"),
+      applyNotesToUpcoming: formData.get("applyNotesToUpcoming"),
     });
 
     if (!parsed.success) {
@@ -391,9 +420,17 @@ export default async function NewShiftPage({
       location,
       capacity,
       notes,
+      applyNotesToUpcoming,
     } = parsed.data;
 
+    let notesApplied = 0;
+
     try {
+      const existing = await prisma.shiftTemplate.findUnique({
+        where: { id: templateId },
+        select: { notes: true },
+      });
+
       await prisma.shiftTemplate.update({
         where: { id: templateId },
         data: {
@@ -406,11 +443,23 @@ export default async function NewShiftPage({
           notes,
         },
       });
+
+      if (applyNotesToUpcoming) {
+        notesApplied = await applyTemplateNotesToUpcomingShifts({
+          templateId,
+          previousNotes: existing?.notes ?? null,
+          nextNotes: notes,
+        });
+      }
     } catch (error) {
       console.error("Template edit error:", error);
       redirect("/admin/shifts/new?error=template_edit&tab=templates");
     }
-    redirect("/admin/shifts/new?template_updated=1&tab=templates");
+    redirect(
+      `/admin/shifts/new?template_updated=1&tab=templates${
+        notesApplied > 0 ? `&notes_applied=${notesApplied}` : ""
+      }`
+    );
   }
 
   async function deleteTemplate(formData: FormData) {
@@ -617,6 +666,12 @@ export default async function NewShiftPage({
     orderBy: [{ location: "asc" }, { name: "asc" }],
   });
 
+  // How many shifts each template still has ahead of it on the roster - what a
+  // notes edit would reach.
+  const upcomingByTemplate = await countUpcomingShiftsByTemplate(
+    dbTemplates.map((template) => template.id)
+  );
+
   const templateOptions: TemplateOption[] = dbTemplates.map((template) => ({
     id: template.id,
     name: template.name,
@@ -627,6 +682,7 @@ export default async function NewShiftPage({
     endTime: template.endTime,
     capacity: template.capacity,
     notes: template.notes || "",
+    upcomingShiftCount: upcomingByTemplate.get(template.id) ?? 0,
   }));
 
   const tabTriggerClasses =

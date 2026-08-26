@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     let { shiftTypeId } = body;
-    const { location, start, end, capacity, notes } = body;
+    const { location, start, end, capacity, notes, templateId } = body;
 
     // If no shiftTypeId provided, find or create a default one for tests.
     // upsert() isn't atomic against a concurrent insert of the same row:
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       end: new Date(end),
       capacity,
       notes: notes || null,
+      templateId: templateId || null,
     });
 
     return NextResponse.json(shift);

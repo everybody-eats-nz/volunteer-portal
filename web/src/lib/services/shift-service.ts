@@ -7,6 +7,8 @@ export type CreateShiftData = {
   end: Date;
   capacity: number;
   notes?: string | null;
+  /** Set when the shift is rostered from a template, so later template notes edits can reach it. */
+  templateId?: string | null;
 };
 
 /**
@@ -22,6 +24,7 @@ export async function createShiftRecord(data: CreateShiftData) {
       location: data.location,
       capacity: data.capacity,
       notes: data.notes ?? null,
+      templateId: data.templateId ?? null,
     },
   });
 }

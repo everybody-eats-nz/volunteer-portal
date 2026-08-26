@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  CalendarClockIcon,
   ChevronDownIcon,
   ClockIcon,
   MapPinIcon,
@@ -123,6 +124,13 @@ export function TemplateLibrary({
                           {template.capacity} place
                           {template.capacity === 1 ? "" : "s"}
                         </span>
+                        {template.upcomingShiftCount > 0 && (
+                          <span className="inline-flex items-center gap-1 tabular-nums">
+                            <CalendarClockIcon className="h-3 w-3" />
+                            {template.upcomingShiftCount} upcoming shift
+                            {template.upcomingShiftCount === 1 ? "" : "s"}
+                          </span>
+                        )}
                         {template.notes && (
                           <span
                             className="max-w-[24rem] truncate"
@@ -144,6 +152,7 @@ export function TemplateLibrary({
                           location: template.location,
                           capacity: template.capacity,
                           notes: template.notes || null,
+                          upcomingShiftCount: template.upcomingShiftCount,
                         }}
                         shiftTypes={shiftTypes}
                         locations={locations}

@@ -88,6 +88,7 @@ export function SingleShiftPlanner({
   const [startTime, setStartTime] = React.useState("");
   const [endTime, setEndTime] = React.useState("");
   const [capacity, setCapacity] = React.useState("");
+  const [notes, setNotes] = React.useState("");
   const [appliedTemplateId, setAppliedTemplateId] = React.useState<
     string | null
   >(null);
@@ -103,8 +104,20 @@ export function SingleShiftPlanner({
     setStartTime(template.startTime);
     setEndTime(template.endTime);
     setCapacity(String(template.capacity));
+    setNotes(template.notes);
     setAppliedTemplateId(template.id);
   };
+
+  // Only claim the shift came from the template while it still matches it -
+  // the link is what lets later template notes edits reach this shift.
+  const linkedTemplate = templates.find(
+    (t) =>
+      t.id === appliedTemplateId &&
+      t.shiftTypeId === shiftTypeId &&
+      t.location === location &&
+      t.startTime === startTime &&
+      t.endTime === endTime
+  );
 
   const shiftTypeName = shiftTypes.find((t) => t.id === shiftTypeId)?.name;
   const capacityNumber = Number.parseInt(capacity, 10);
@@ -256,6 +269,11 @@ export function SingleShiftPlanner({
                 Select shift type *
               </Label>
               <input type="hidden" name="shiftTypeId" value={shiftTypeId} />
+              <input
+                type="hidden"
+                name="templateId"
+                value={linkedTemplate?.id ?? ""}
+              />
               <Select value={shiftTypeId} onValueChange={setShiftTypeId}>
                 <SelectTrigger
                   className="h-11 w-full rounded-xl"
@@ -398,6 +416,8 @@ export function SingleShiftPlanner({
               <Textarea
                 name="notes"
                 id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder="Special requirements, equipment needed, or other details..."
                 rows={4}
                 className="resize-none rounded-xl"

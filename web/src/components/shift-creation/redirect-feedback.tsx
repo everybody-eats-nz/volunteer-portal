@@ -59,7 +59,17 @@ export function RedirectFeedback() {
   const error = errorCode
     ? ERROR_MESSAGES[errorCode] ?? "Something went wrong. Please try again."
     : null;
-  const success = successKey ? SUCCESS_MESSAGES[successKey] : null;
+  let success = successKey ? SUCCESS_MESSAGES[successKey] : null;
+
+  // A template notes edit can also reach shifts already on the roster - say so.
+  if (successKey === "template_updated") {
+    const notesApplied = Number(searchParams.get("notes_applied"));
+    if (Number.isFinite(notesApplied) && notesApplied > 0) {
+      success = `Template updated. The notes now show on ${notesApplied} upcoming shift${
+        notesApplied === 1 ? "" : "s"
+      }.`;
+    }
+  }
 
   if (!error && !success) return null;
 
