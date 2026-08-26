@@ -59,6 +59,35 @@ test.describe("Admin Navigation", () => {
       ).toContainText("View Public Shifts");
     });
 
+    test("messages icon sits beside the notification bell in the sidebar", async ({
+      page,
+    }) => {
+      await loginAsAdmin(page);
+
+      const sidebar = page.getByTestId("admin-sidebar");
+      const messages = sidebar.getByTestId("admin-messages-button");
+      const bell = sidebar.getByTestId("notification-bell-button");
+
+      // Scoping both to the sidebar is half the assertion: this icon was once
+      // in the top bar next to Search, which put the two inboxes at opposite
+      // corners of the screen.
+      await expect(messages).toBeVisible();
+      await expect(bell).toBeVisible();
+      await expect(messages).toHaveAttribute("href", "/admin/messages");
+
+      // ...and adjacency is the other half. Same row, messages first, close
+      // enough together to read in one glance.
+      const messagesBox = await messages.boundingBox();
+      const bellBox = await bell.boundingBox();
+      expect(messagesBox).not.toBeNull();
+      expect(bellBox).not.toBeNull();
+      expect(messagesBox!.y).toBeCloseTo(bellBox!.y, 0);
+      expect(bellBox!.x).toBeGreaterThan(messagesBox!.x);
+      expect(bellBox!.x - (messagesBox!.x + messagesBox!.width)).toBeLessThan(
+        24
+      );
+    });
+
     test("admin pages are accessible on mobile viewport", async ({ page }) => {
       // Set mobile viewport
       await page.setViewportSize({ width: 375, height: 812 });
