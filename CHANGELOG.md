@@ -1,3 +1,9 @@
+## [0.160.0] - 2026-08-26
+
+### Changes
+- feat: manual waitlist for pending signups, and an admin messages icon ([#1230](https://github.com/everybody-eats-nz/volunteer-portal/pull/1230)) by @malinmalliyawadu
+
+
 ## [0.159.0] - 2026-08-25
 
 ### Changes

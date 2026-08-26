@@ -187,6 +187,47 @@ describe("applySignupAction", () => {
     expect(result.message).toBe("Shift was full, moved to waitlist");
   });
 
+  it("blocks manually waitlisting a signup that is not pending", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("CONFIRMED") as never);
+    const err = await expectActionError("waitlist", 400);
+    expect(err.message).toBe("Only pending signups can be moved to the waitlist");
+  });
+
+  it("manually waitlists a pending signup even when the shift has room", async () => {
+    mockedFindUnique.mockResolvedValue(
+      makeSignup("PENDING", { capacity: 5 }) as never
+    );
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "waitlist",
+    });
+
+    expect(result.signup.status).toBe("WAITLISTED");
+    expect(result.message).toBe("Moved to waitlist and volunteer notified");
+    // Capacity is irrelevant to a deliberate park, so it should never be read.
+    expect(mockedCount).not.toHaveBeenCalled();
+    expect(
+      notificationMocks.createShiftWaitlistedNotification
+    ).toHaveBeenCalledWith(
+      "user_1",
+      "Dishwashing",
+      expect.any(String),
+      "shift_1"
+    );
+  });
+
+  it("manually waitlists a regular volunteer's auto-generated signup", async () => {
+    mockedFindUnique.mockResolvedValue(makeSignup("REGULAR_PENDING") as never);
+
+    const result = await applySignupAction({
+      signupId: "signup_1",
+      action: "waitlist",
+    });
+
+    expect(result.signup.status).toBe("WAITLISTED");
+  });
+
   it("rejects a pending signup without emailing unless asked", async () => {
     mockedFindUnique.mockResolvedValue(makeSignup("PENDING") as never);
 

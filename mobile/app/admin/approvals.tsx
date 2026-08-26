@@ -40,7 +40,7 @@ export default function ApprovalsScreen() {
   const eyebrow = isDark ? Brand.greenLight : Brand.green;
 
   const runAction = useCallback(
-    async (signup: PendingSignup, action: "approve" | "reject") => {
+    async (signup: PendingSignup, action: "approve" | "reject" | "waitlist") => {
       setBusyId(signup.id);
       Haptics.impactAsync(
         action === "approve"
@@ -57,7 +57,9 @@ export default function ApprovalsScreen() {
         );
         // Counts elsewhere (hub, tonight's shifts) may have shifted.
         queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
-        if (res.message?.includes("waitlist")) {
+        // Only worth interrupting for when the waitlist was a surprise. Asking
+        // to waitlist someone and being told they were waitlisted is noise.
+        if (action === "approve" && res.message?.includes("waitlist")) {
           Alert.alert("Moved to waitlist", "The shift was full, so they were waitlisted.");
         }
       } catch (err) {
@@ -81,6 +83,20 @@ export default function ApprovalsScreen() {
         [
           { text: "Cancel", style: "cancel" },
           { text: "Decline", style: "destructive", onPress: () => runAction(signup, "reject") },
+        ]
+      );
+    },
+    [runAction]
+  );
+
+  const confirmWaitlist = useCallback(
+    (signup: PendingSignup) => {
+      Alert.alert(
+        "Move to waitlist?",
+        `${signup.volunteer.name} will be told they're on the waitlist. You can confirm them later if you need them.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Move to waitlist", onPress: () => runAction(signup, "waitlist") },
         ]
       );
     },
@@ -134,6 +150,7 @@ export default function ApprovalsScreen() {
               busy={busyId === item.id}
               onApprove={() => runAction(item, "approve")}
               onDecline={() => confirmDecline(item)}
+              onWaitlist={() => confirmWaitlist(item)}
             />
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24, gap: 14 }}
@@ -154,6 +171,7 @@ function PendingCard({
   busy,
   onApprove,
   onDecline,
+  onWaitlist,
 }: {
   signup: PendingSignup;
   colors: (typeof Colors)["light"];
@@ -161,6 +179,7 @@ function PendingCard({
   busy: boolean;
   onApprove: () => void;
   onDecline: () => void;
+  onWaitlist: () => void;
 }) {
   const grade = GRADE_COLORS[signup.volunteer.volunteerGrade];
   const full = signup.shift.confirmedCount >= signup.shift.capacity;
@@ -224,7 +243,7 @@ function PendingCard({
           disabled={busy}
           style={({ pressed }) => [
             styles.declineBtn,
-            { borderColor: rule, opacity: pressed ? 0.6 : 1 },
+            { borderColor: rule, opacity: busy ? 0.4 : pressed ? 0.6 : 1 },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Decline signup"
@@ -252,6 +271,25 @@ function PendingCard({
           )}
         </Pressable>
       </View>
+
+      {!full && (
+        <Pressable
+          onPress={onWaitlist}
+          disabled={busy}
+          style={({ pressed }) => [
+            styles.waitlistBtn,
+            { borderTopColor: rule, opacity: busy ? 0.4 : pressed ? 0.6 : 1 },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Move to waitlist"
+          accessibilityHint="Holds this volunteer without confirming or declining them"
+        >
+          <Ionicons name="list-outline" size={17} color={colors.textSecondary} />
+          <Text style={[styles.waitlistText, { color: colors.textSecondary }]}>
+            Move to waitlist
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -317,4 +355,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   approveText: { fontFamily: FontFamily.semiBold, fontSize: 15, color: "#fff" },
+  waitlistBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    height: 44,
+    marginTop: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  waitlistText: { fontFamily: FontFamily.semiBold, fontSize: 14.5 },
 });
