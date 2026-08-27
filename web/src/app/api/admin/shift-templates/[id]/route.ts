@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { applyTemplateNotesToUpcomingShifts } from "@/lib/services/shift-template-service";
 
 // Schema for validating shift template updates
 const updateTemplateSchema = z.object({
@@ -13,6 +14,11 @@ const updateTemplateSchema = z.object({
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)"),
   capacity: z.number().int().min(1, "Capacity must be at least 1").max(100, "Capacity too high"),
   notes: z.string().optional(),
+  // Carry a notes change through to the shifts this template already rostered.
+  // Notes only - times and capacity never propagate - and only upcoming shifts
+  // still carrying this template's previous notes verbatim. The response's
+  // `notesAppliedToShifts` says how many were updated.
+  applyNotesToUpcoming: z.boolean().optional().default(true),
 });
 
 // PUT - Update existing template
@@ -84,13 +90,23 @@ export async function PUT(
       );
     }
 
+    const { applyNotesToUpcoming, ...templateData } = data;
+
     const updatedTemplate = await prisma.shiftTemplate.update({
       where: { id },
-      data,
+      data: templateData,
       include: { shiftType: true },
     });
 
-    return NextResponse.json(updatedTemplate);
+    const notesAppliedToShifts = applyNotesToUpcoming
+      ? await applyTemplateNotesToUpcomingShifts({
+          templateId: id,
+          previousNotes: existingTemplate.notes,
+          nextNotes: templateData.notes,
+        })
+      : 0;
+
+    return NextResponse.json({ ...updatedTemplate, notesAppliedToShifts });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

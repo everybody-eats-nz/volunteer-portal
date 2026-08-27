@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 
 /**
  * Tests for the enhanced admin shift creation form components.
@@ -25,8 +26,7 @@ test.describe("Admin Shift Creation Form", () => {
 
   test.describe("Basic Form Structure", () => {
     test("should display shift creation form with main elements", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Check main tabs - Weekly Schedule is now default
       await expect(page.getByRole("tab", { name: "Single Shift" })).toBeVisible();
@@ -44,8 +44,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should have create shift type functionality", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -69,8 +68,7 @@ test.describe("Admin Shift Creation Form", () => {
 
   test.describe("Template Management UI", () => {
     test("should display template management interface", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Templates tab
       await page.getByRole("tab", { name: "Templates" }).click();
@@ -84,8 +82,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should open add template dialog", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Templates tab
       await page.getByRole("tab", { name: "Templates" }).click();
@@ -106,8 +103,7 @@ test.describe("Admin Shift Creation Form", () => {
 
   test.describe("Form Fields and Interactions", () => {
     test("should have all required form fields", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -124,8 +120,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should open calendar picker for date selection", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -142,8 +137,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should accept manual input in time fields", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -157,8 +151,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should accept capacity input", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -170,8 +163,7 @@ test.describe("Admin Shift Creation Form", () => {
 
   test.describe("Weekly Schedule Tab", () => {
     test("should switch to bulk creation tab", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to bulk creation tab
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
@@ -184,8 +176,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should have day selection checkboxes", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to bulk creation
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
@@ -201,8 +192,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should have all days checked by default", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to bulk creation
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
@@ -218,8 +208,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should open calendar picker for bulk date range", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to bulk creation
       await page.getByRole("tab", { name: "Weekly Schedule" }).click();
@@ -236,8 +225,7 @@ test.describe("Admin Shift Creation Form", () => {
 
   test.describe("Form Validation", () => {
     test("should have required field indicators", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -252,8 +240,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should validate capacity input constraints", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -269,8 +256,7 @@ test.describe("Admin Shift Creation Form", () => {
 
   test.describe("Accessibility", () => {
     test("should have proper form labels and ARIA attributes", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Check tab navigation - Weekly Schedule is now default
       await expect(page.getByRole("tablist")).toBeVisible();
@@ -286,8 +272,7 @@ test.describe("Admin Shift Creation Form", () => {
     });
 
     test("should support keyboard navigation", async ({ page }) => {
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Switch to Single Shift tab
       await page.getByRole("tab", { name: "Single Shift" }).click();
@@ -302,8 +287,7 @@ test.describe("Admin Shift Creation Form", () => {
   test.describe("Mobile Responsiveness", () => {
     test("should be responsive on mobile viewport", async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.goto("/admin/shifts/new");
-      await page.waitForLoadState("load");
+      await gotoSettled(page, "/admin/shifts/new");
 
       // Check that main elements are still visible on mobile
       await expect(page.getByRole("tab", { name: "Single Shift" })).toBeVisible();

@@ -264,6 +264,7 @@ model ShiftTemplate {
 
   shiftType ShiftType @relation(fields: [shiftTypeId], references: [id])
   creator   User?     @relation("TemplateCreator", fields: [createdBy], references: [id])
+  shifts    Shift[] // Shifts rostered from this template
 
   @@unique([name, location]) // Template names must be unique per location (or globally if location is null)
 }
@@ -276,9 +277,13 @@ model Shift {
   location              String?
   capacity              Int
   notes                 String?
+  // The template this shift was rostered from, so template notes edits can be
+  // carried through to shifts already on the roster. Null for one-off shifts.
+  templateId            String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   shiftType             ShiftType              @relation(fields: [shiftTypeId], references: [id])
+  template              ShiftTemplate?         @relation(fields: [templateId], references: [id], onDelete: SetNull)
   signups               Signup[]
   placeholders          ShiftPlaceholder[]
   autoApprovalDecisions AutoApprovalDecision[]
@@ -291,6 +296,8 @@ model Shift {
   @@index([start, location])
   // Per-restaurant lookups: "what's coming up at my location".
   @@index([location, start])
+  // Carrying a template notes edit through to the shifts it rostered.
+  @@index([templateId, start])
 }
 
 // Walk-in / unregistered volunteers: people who show up without a volunteer

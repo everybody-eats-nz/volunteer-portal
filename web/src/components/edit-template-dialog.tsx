@@ -26,6 +26,8 @@ interface Template {
   location: string | null;
   capacity: number;
   notes: string | null;
+  /** Shifts rostered from this template that are still to come. */
+  upcomingShiftCount: number;
 }
 
 interface EditTemplateDialogProps {
@@ -43,6 +45,14 @@ export function EditTemplateDialog({
 }: EditTemplateDialogProps) {
   const [open, setOpen] = useState(false);
 
+  const upcoming = template.upcomingShiftCount;
+  const upcomingLabel =
+    upcoming > 0
+      ? `Sends these notes to the ${upcoming} upcoming shift${
+          upcoming === 1 ? "" : "s"
+        } rostered from this template. Shifts whose notes were edited on their own keep them.`
+      : "No upcoming shifts have been rostered from this template yet.";
+
   const handleSubmit = async (formData: FormData) => {
     await editAction(formData);
     setOpen(false);
@@ -59,7 +69,9 @@ export function EditTemplateDialog({
         <DialogHeader>
           <DialogTitle>Edit Template</DialogTitle>
           <DialogDescription>
-            Update the template details. Changes will apply to new shifts created from this template.
+            Update the template details. Times, capacity, and location shape the
+            next shifts you create - notes can also be sent to the shifts
+            already on the roster.
           </DialogDescription>
         </DialogHeader>
         <form action={handleSubmit} className="space-y-4">
@@ -144,6 +156,27 @@ export function EditTemplateDialog({
               rows={2}
               placeholder="Additional notes for this template..."
             />
+            <label
+              htmlFor="edit-template-apply-notes"
+              className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-muted/40 p-3"
+            >
+              <input
+                type="checkbox"
+                name="applyNotesToUpcoming"
+                id="edit-template-apply-notes"
+                defaultChecked
+                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-forest-500"
+                data-testid="apply-notes-to-upcoming-checkbox"
+              />
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="font-medium text-foreground">
+                  Also update the shifts already on the roster
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {upcomingLabel}
+                </span>
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
