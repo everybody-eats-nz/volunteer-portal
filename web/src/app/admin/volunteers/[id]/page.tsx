@@ -55,6 +55,7 @@ import { ShiftHistoryPaginated } from "@/components/shift-history-paginated";
 import { LocationFilterTabs } from "@/components/location-filter-tabs";
 import { ShiftCountAdjustment } from "@/components/shift-count-adjustment";
 import { VolunteerSurveyHistory } from "@/components/volunteer-survey-history";
+import { ArchiveUserDialog } from "@/components/archive-user-dialog";
 import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
 import { EmailVerificationActions } from "@/components/email-verification-actions";
 
@@ -476,13 +477,24 @@ export default async function AdminVolunteerPage({
                         : "Regular (Inactive)"}
                     </Badge>
                   )}
-                  <Badge
-                    variant="outline"
-                    className="border-green-500/20 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
-                  >
-                    <Heart className="h-3 w-3 mr-1" />
-                    Active Member
-                  </Badge>
+                  {volunteer.archivedAt ? (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/20 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20"
+                      data-testid="archived-member-badge"
+                    >
+                      <Archive className="h-3 w-3 mr-1" />
+                      Archived
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-green-500/20 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20"
+                    >
+                      <Heart className="h-3 w-3 mr-1" />
+                      Active Member
+                    </Badge>
+                  )}
                   {volunteer.emailVerified ? (
                     <Badge
                       variant="outline"
@@ -721,6 +733,45 @@ export default async function AdminVolunteerPage({
                     on their current progress
                   </p>
                 </div>
+
+                {/* Archiving is rare and consequential, so it sits last and
+                    behind a divider rather than beside the routine actions. */}
+                {volunteer.role === "VOLUNTEER" && !volunteer.archivedAt && (
+                  <div
+                    className="space-y-2 border-t pt-4"
+                    data-testid="archive-volunteer-section"
+                  >
+                    <label className="text-sm font-medium">
+                      Account status
+                    </label>
+                    <div>
+                      <ArchiveUserDialog
+                        user={{
+                          id: volunteer.id,
+                          email: volunteer.email,
+                          name: volunteer.name,
+                          firstName: volunteer.firstName,
+                          lastName: volunteer.lastName,
+                        }}
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800/60 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:text-amber-300"
+                          data-testid="volunteer-archive-button"
+                        >
+                          <Archive className="h-4 w-4" />
+                          Archive volunteer
+                        </Button>
+                      </ArchiveUserDialog>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Blocks sign-in and drops them from active volunteer
+                      counts. Their history stays intact, and you can reactivate
+                      them at any time.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

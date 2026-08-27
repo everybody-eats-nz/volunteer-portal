@@ -11,6 +11,53 @@ const bodySchema = z.object({
   note: z.string().max(500).optional(),
 });
 
+/**
+ * Impact preview for the manual archive dialog. Archiving blocks sign-in, so
+ * admins need to see what the volunteer is still booked on before they commit.
+ */
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id: userId } = await params;
+  const now = new Date();
+
+  const [upcomingConfirmed, upcomingPending, activeRegulars] =
+    await Promise.all([
+      prisma.signup.count({
+        where: {
+          userId,
+          status: "CONFIRMED",
+          shift: { start: { gte: now } },
+        },
+      }),
+      prisma.signup.count({
+        where: {
+          userId,
+          status: { in: ["PENDING", "REGULAR_PENDING", "WAITLISTED"] },
+          shift: { start: { gte: now } },
+        },
+      }),
+      prisma.regularVolunteer.count({
+        where: { userId, isActive: true, isPausedByUser: false },
+      }),
+    ]);
+
+  return NextResponse.json({
+    upcomingConfirmed,
+    upcomingPending,
+    activeRegulars,
+  });
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
