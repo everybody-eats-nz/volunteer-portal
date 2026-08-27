@@ -8,8 +8,8 @@ import { formatInNZT } from "@/lib/timezone";
 import { getLocationAddresses } from "@/lib/locations";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 import {
-  buildPeriodConflictMessage,
-  findPeriodConflictSignup,
+  buildOverlapMessage,
+  findOverlappingSignup,
 } from "@/lib/concurrent-shifts";
 
 export async function POST(
@@ -123,19 +123,20 @@ export async function POST(
     const confirmedCount = shift.signups.length + shift._count.placeholders;
     const isOverCapacity = confirmedCount >= shift.capacity;
 
-    // Block a second shift in the same Day/Evening period on the same NZ day.
-    const conflictingSignup = await findPeriodConflictSignup({
+    // Refuse only a genuine double-booking. Volunteers may take several
+    // shifts a day provided the times don't clash.
+    const conflictingSignup = await findOverlappingSignup({
       userId: volunteer.id,
       shiftStart: shift.start,
+      shiftEnd: shift.end,
       excludeShiftId: shift.id,
     });
 
     if (conflictingSignup && status === "CONFIRMED") {
       return NextResponse.json(
         {
-          error: buildPeriodConflictMessage({
+          error: buildOverlapMessage({
             conflictingSignup,
-            shiftStart: shift.start,
             subject: "volunteer",
           }),
         },

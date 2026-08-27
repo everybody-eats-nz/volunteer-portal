@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getShiftDate, isDayShift } from "@/lib/concurrent-shifts";
+import { shiftsOverlap, type ShiftInterval } from "@/lib/concurrent-shifts";
 import { formatInNZT } from "@/lib/timezone";
 
 /**
@@ -53,6 +53,7 @@ export type ShiftForMatching = {
   shiftTypeId: string;
   location: string | null;
   start: Date;
+  end: Date;
 };
 
 export type RegularSignupResult = {
@@ -115,18 +116,14 @@ export async function createRegularVolunteerSignups(
     select: {
       userId: true,
       shiftId: true,
-      shift: { select: { start: true } },
+      shift: { select: { start: true, end: true } },
     },
   });
 
-  // A slot is one date plus one period, Day or Evening, matching the rule the
-  // signup endpoint enforces on volunteers. Keying only on the date - as this
-  // used to - meant a volunteer with a midday prep schedule and an evening
-  // service schedule on the same weekday only ever got the earlier of the two.
-  const slotKey = (shiftStart: Date) =>
-    `${getShiftDate(shiftStart)}|${isDayShift(shiftStart) ? "DAY" : "EVE"}`;
-
-  const existingBySlot = new Map<string, Set<string>>();
+  // A volunteer is only kept out of a shift that clashes in time with one they
+  // already hold, matching the rule the signup endpoint enforces. This was a
+  // date-plus-period bucket, which also blocked non-overlapping shifts.
+  const bookedByUser = new Map<string, ShiftInterval[]>();
   const existingByShift = new Map<string, Set<string>>();
   // One regular schedule fills at most one shift a day, so a day carrying two
   // shifts of the same type doesn't book the volunteer into both.
@@ -141,8 +138,22 @@ export async function createRegularVolunteerSignups(
     }
   };
 
+  const book = (userId: string, interval: ShiftInterval) => {
+    const booked = bookedByUser.get(userId);
+    if (booked) {
+      booked.push(interval);
+    } else {
+      bookedByUser.set(userId, [interval]);
+    }
+  };
+
+  const clashesForUser = (userId: string, shift: ShiftInterval) =>
+    (bookedByUser.get(userId) ?? []).some((booked) =>
+      shiftsOverlap(booked, shift)
+    );
+
   for (const signup of existingSignups) {
-    claim(existingBySlot, signup.userId, slotKey(signup.shift.start));
+    book(signup.userId, signup.shift);
     claim(existingByShift, signup.userId, signup.shiftId);
   }
 
@@ -182,7 +193,7 @@ export async function createRegularVolunteerSignups(
       if (claimedDates.get(regular.id)?.has(dateKey)) {
         continue;
       }
-      if (existingBySlot.get(regular.userId)?.has(slotKey(shift.start))) {
+      if (clashesForUser(regular.userId, shift)) {
         continue;
       }
 
@@ -204,7 +215,7 @@ export async function createRegularVolunteerSignups(
       regularVolunteerBySignup.set(signupKey(regular.userId, shift.id), regular.id);
 
       // Track within-batch to prevent double-assignment
-      claim(existingBySlot, regular.userId, slotKey(shift.start));
+      book(regular.userId, shift);
       claim(existingByShift, regular.userId, shift.id);
       claim(claimedDates, regular.id, dateKey);
     }
