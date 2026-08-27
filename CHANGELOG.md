@@ -1,3 +1,9 @@
+## [0.162.1] - 2026-08-27
+
+### Changes
+- fix(shifts): describe signup clashes as Day/Evening, not AM/PM ([#1233](https://github.com/everybody-eats-nz/volunteer-portal/pull/1233)) by @malinmalliyawadu
+
+
 ## [0.162.0] - 2026-08-27
 
 ### Changes
