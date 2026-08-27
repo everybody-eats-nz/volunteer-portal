@@ -1,3 +1,9 @@
+## [0.162.0] - 2026-08-27
+
+### Changes
+- feat(shifts): carry template notes through to rostered shifts, keep roster filters on save ([#1234](https://github.com/everybody-eats-nz/volunteer-portal/pull/1234)) by @malinmalliyawadu
+
+
 ## [0.161.0] - 2026-08-26
 
 ### Changes
