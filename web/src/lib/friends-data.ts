@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { cache } from "react";
 import { subMonths } from "date-fns";
 import type { RecommendedFriend } from "@/lib/friends-utils";
-import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
+import { getShiftDate, isDayShift } from "@/lib/concurrent-shifts";
 
 // Slot key: same NZ date + same period (Day/Evening) + same location.
 // Exported so tests can verify the matching logic directly.
@@ -13,7 +13,7 @@ export function getShiftSlotKey(shift: {
   location: string | null;
 }): string {
   const date = getShiftDate(shift.start);
-  const period = isAMShift(shift.start) ? "DAY" : "EVE";
+  const period = isDayShift(shift.start) ? "DAY" : "EVE";
   return `${date}|${period}|${shift.location ?? ""}`;
 }
 

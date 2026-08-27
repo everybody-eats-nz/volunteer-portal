@@ -8,8 +8,12 @@ import { formatInNZT } from "@/lib/timezone";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
-import { getConcurrentShifts } from "@/lib/concurrent-shifts";
-import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
+import {
+  getConcurrentShifts,
+  getShiftDate,
+  getShiftPeriodLabel,
+  isDayShift,
+} from "@/lib/concurrent-shifts";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
 import { CancelSignupButton } from "../mine/cancel-signup-button";
@@ -257,7 +261,7 @@ export default async function ShiftDetailPage({
   let hasConflictingSignup = false;
   if (userId && !userSignup) {
     const shiftDate = getShiftDate(shift.start);
-    const shiftIsAM = isAMShift(shift.start);
+    const shiftIsDay = isDayShift(shift.start);
     const existingSignups = await prisma.signup.findMany({
       where: {
         userId,
@@ -267,7 +271,7 @@ export default async function ShiftDetailPage({
       include: { shift: { select: { start: true } } },
     });
     hasConflictingSignup = existingSignups.some((s) => {
-      return getShiftDate(s.shift.start) === shiftDate && isAMShift(s.shift.start) === shiftIsAM;
+      return getShiftDate(s.shift.start) === shiftDate && isDayShift(s.shift.start) === shiftIsDay;
     });
   }
 
@@ -718,7 +722,7 @@ export default async function ShiftDetailPage({
                   hasConflictingSignup && (
                     <Button disabled variant="secondary" className="w-full">
                       Already signed up for this{" "}
-                      {isAMShift(shift.start) ? "AM" : "PM"} period
+                      {getShiftPeriodLabel(shift.start).toLowerCase()} period
                     </Button>
                   )}
 

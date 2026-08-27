@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
-import { getConcurrentShifts, getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
+import { getConcurrentShifts, getShiftDate, isDayShift } from "@/lib/concurrent-shifts";
 
 /**
  * GET /api/mobile/shifts/[id]/concurrent
@@ -43,7 +43,7 @@ export async function GET(
 
     // Find friends across ALL shifts at this location/date/period
     const shiftDate = getShiftDate(shift.start);
-    const shiftIsAM = isAMShift(shift.start);
+    const shiftIsDay = isDayShift(shift.start);
 
     // Get all shifts at the same location (including this one)
     const allShiftsAtLocation = await prisma.shift.findMany({
@@ -54,7 +54,7 @@ export async function GET(
     // Filter to same date + same AM/PM
     const periodShiftIds = allShiftsAtLocation
       .filter((s) => {
-        return getShiftDate(s.start) === shiftDate && isAMShift(s.start) === shiftIsAM;
+        return getShiftDate(s.start) === shiftDate && isDayShift(s.start) === shiftIsDay;
       })
       .map((s) => ({ id: s.id, shiftTypeName: s.shiftType.name }));
 

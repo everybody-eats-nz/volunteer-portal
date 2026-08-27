@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { processAutoApproval } from "@/lib/auto-approval";
-import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
+import {
+  buildPeriodConflictMessage,
+  findPeriodConflictSignup,
+} from "@/lib/concurrent-shifts";
 import { getNotificationService } from "@/lib/notification-service";
 import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
@@ -159,40 +162,20 @@ export async function POST(
     }
   }
 
-  // Check for concurrent shift conflicts (same date + same AM/PM period)
-  const shiftDate = getShiftDate(shift.start);
-  const shiftIsAM = isAMShift(shift.start);
-
-  const existingSignups = await prisma.signup.findMany({
-    where: {
-      userId: user.id,
-      status: { in: ["CONFIRMED", "PENDING"] },
-    },
-    include: {
-      shift: { include: { shiftType: true } },
-    },
-  });
-
-  const conflictingSignup = existingSignups.find((signup) => {
-    const signupDate = getShiftDate(signup.shift.start);
-    const signupIsAM = isAMShift(signup.shift.start);
-    return signupDate === shiftDate && signupIsAM === shiftIsAM;
+  // Block a second shift in the same Day/Evening period on the same NZ day.
+  const conflictingSignup = await findPeriodConflictSignup({
+    userId: user.id,
+    shiftStart: shift.start,
+    excludeShiftId: shift.id,
   });
 
   if (conflictingSignup) {
-    const existingShiftTime = new Intl.DateTimeFormat("en-NZ", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Pacific/Auckland",
-    }).format(conflictingSignup.shift.start);
-
-    const location = conflictingSignup.shift.location;
-    const period = shiftIsAM ? "AM" : "PM";
-
     return NextResponse.json(
       {
-        error: `You already have a ${period} shift on this day: ${conflictingSignup.shift.shiftType.name} at ${location}, ${existingShiftTime}. One AM and one PM shift per day.`,
+        error: buildPeriodConflictMessage({
+          conflictingSignup,
+          shiftStart: shift.start,
+        }),
       },
       { status: 400 }
     );

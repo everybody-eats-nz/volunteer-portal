@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
+import { getShiftDate, isDayShift } from "@/lib/concurrent-shifts";
 import { formatInNZT } from "@/lib/timezone";
 
 /**
@@ -124,7 +124,7 @@ export async function createRegularVolunteerSignups(
   // used to - meant a volunteer with a midday prep schedule and an evening
   // service schedule on the same weekday only ever got the earlier of the two.
   const slotKey = (shiftStart: Date) =>
-    `${getShiftDate(shiftStart)}|${isAMShift(shiftStart) ? "AM" : "PM"}`;
+    `${getShiftDate(shiftStart)}|${isDayShift(shiftStart) ? "DAY" : "EVE"}`;
 
   const existingBySlot = new Map<string, Set<string>>();
   const existingByShift = new Map<string, Set<string>>();

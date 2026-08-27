@@ -7,7 +7,10 @@ import { notifyManagersOfPendingSignup } from "@/lib/notifications";
 import { processAutoApproval } from "@/lib/auto-approval";
 import { MAX_NOTE_LENGTH } from "@/lib/utils";
 import { validateGuardianRequirement } from "@/lib/guardian-validation";
-import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
+import {
+  buildPeriodConflictMessage,
+  findPeriodConflictSignup,
+} from "@/lib/concurrent-shifts";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import sanitizeHtml from "sanitize-html";
 import {
@@ -185,49 +188,20 @@ export async function POST(
     }
   }
 
-  // Check if user already has a confirmed or pending signup for the same date and period (AM/PM)
-  // Get the date and period (AM/PM) for this shift
-  const shiftDate = getShiftDate(shift.start);
-  const shiftIsAM = isAMShift(shift.start);
-
-  // Get all confirmed or pending signups for this user
-  const existingSignups = await prisma.signup.findMany({
-    where: {
-      userId: user.id,
-      status: {
-        in: ["CONFIRMED", "PENDING"],
-      },
-    },
-    include: {
-      shift: {
-        include: {
-          shiftType: true,
-        },
-      },
-    },
-  });
-
-  // Check if any of them are on the same date and same period (AM/PM)
-  const conflictingSignup = existingSignups.find((signup) => {
-    const signupDate = getShiftDate(signup.shift.start);
-    const signupIsAM = isAMShift(signup.shift.start);
-    return signupDate === shiftDate && signupIsAM === shiftIsAM;
+  // Block a second shift in the same Day/Evening period on the same NZ day.
+  const conflictingSignup = await findPeriodConflictSignup({
+    userId: user.id,
+    shiftStart: shift.start,
+    excludeShiftId: shift.id,
   });
 
   if (conflictingSignup) {
-    const existingShiftTime = new Intl.DateTimeFormat("en-NZ", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "Pacific/Auckland",
-    }).format(conflictingSignup.shift.start);
-
-    const location = conflictingSignup.shift.location;
-    const period = shiftIsAM ? "AM" : "PM";
-
     return NextResponse.json(
       {
-        error: `You already have a confirmed ${period} shift on this day: ${conflictingSignup.shift.shiftType.name} at ${location}, ${existingShiftTime}. You can only sign up for one AM shift and one PM shift per day.`,
+        error: buildPeriodConflictMessage({
+          conflictingSignup,
+          shiftStart: shift.start,
+        }),
       },
       { status: 400 }
     );

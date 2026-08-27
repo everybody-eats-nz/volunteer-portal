@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { getLiveLocations } from "@/lib/live-locations";
 import { getWaitlistCounts } from "@/lib/waitlist.server";
-import { getShiftDate, isAMShift } from "@/lib/concurrent-shifts";
+import { getShiftDate, isDayShift } from "@/lib/concurrent-shifts";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
@@ -185,12 +185,12 @@ export async function GET(request: Request) {
   const shiftPeriodMap = new Map<string, string>();
   for (const signup of mySignups) {
     const date = getShiftDate(signup.shift.start);
-    const period = isAMShift(signup.shift.start) ? "DAY" : "EVE";
+    const period = isDayShift(signup.shift.start) ? "DAY" : "EVE";
     shiftPeriodMap.set(signup.shift.id, `${date}-${period}`);
   }
   for (const shift of availableShifts) {
     const date = getShiftDate(shift.start);
-    const period = isAMShift(shift.start) ? "DAY" : "EVE";
+    const period = isDayShift(shift.start) ? "DAY" : "EVE";
     shiftPeriodMap.set(shift.id, `${date}-${period}`);
   }
 

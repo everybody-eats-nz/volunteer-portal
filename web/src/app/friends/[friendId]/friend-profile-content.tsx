@@ -5,7 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { differenceInDays, differenceInHours, subMonths } from "date-fns";
 import { formatInNZT } from "@/lib/timezone";
-import { isAMShift, getShiftDate, getShiftPeriodLabel } from "@/lib/concurrent-shifts";
+import { isDayShift, getShiftDate, getShiftPeriodLabel } from "@/lib/concurrent-shifts";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronRight, Sparkles } from "lucide-react";
@@ -233,17 +233,17 @@ export async function FriendProfileContent({
   userShifts.forEach((userSignup) => {
     const userShift = userSignup.shift;
     const userDate = getShiftDate(userShift.start);
-    const userIsAM = isAMShift(userShift.start);
+    const userIsDay = isDayShift(userShift.start);
     const userLocation = userShift.location || "";
 
     friendShifts.forEach((friendSignup) => {
       const friendShift = friendSignup.shift;
       if (
         userDate === getShiftDate(friendShift.start) &&
-        userIsAM === isAMShift(friendShift.start) &&
+        userIsDay === isDayShift(friendShift.start) &&
         userLocation === (friendShift.location || "")
       ) {
-        const key = `${userDate}-${userIsAM ? "AM" : "PM"}-${userLocation}`;
+        const key = `${userDate}-${userIsDay ? "AM" : "PM"}-${userLocation}`;
         if (!sharedShiftsMap.has(key)) {
           sharedShiftsMap.set(key, {
             id: userShift.id,
