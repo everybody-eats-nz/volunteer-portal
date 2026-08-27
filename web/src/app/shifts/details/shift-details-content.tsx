@@ -40,7 +40,7 @@ function getDurationInHours(start: Date, end: Date): string {
   return minutes === 0 ? `${wholeHours}h` : `${wholeHours}h ${minutes}m`;
 }
 
-function isAMShiftHelper(shiftStart: Date): boolean {
+function isDayShiftHelper(shiftStart: Date): boolean {
   const nzTime = toNZT(shiftStart);
   const hour = nzTime.getHours();
   return hour < DAY_EVENING_CUTOFF_HOUR;
@@ -53,7 +53,7 @@ function getShiftDateHelper(shiftStart: Date): string {
 /** Identifies one Day/Evening slot on one NZ calendar day. */
 function periodKey(shiftStart: Date): string {
   return `${getShiftDateHelper(shiftStart)}-${
-    isAMShiftHelper(shiftStart) ? "day" : "evening"
+    isDayShiftHelper(shiftStart) ? "day" : "evening"
   }`;
 }
 
@@ -62,15 +62,15 @@ function getConcurrentShiftsFromList(
   allShifts: ShiftWithRelations[]
 ) {
   const targetDate = getShiftDateHelper(targetShift.start);
-  const targetIsAM = isAMShiftHelper(targetShift.start);
+  const targetIsDay = isDayShiftHelper(targetShift.start);
 
   return allShifts
     .filter((shift) => {
       if (shift.id === targetShift.id) return false;
       if (shift.location !== targetShift.location) return false;
       const shiftDate = getShiftDateHelper(shift.start);
-      const shiftIsAM = isAMShiftHelper(shift.start);
-      return shiftDate === targetDate && shiftIsAM === targetIsAM;
+      const shiftIsDay = isDayShiftHelper(shift.start);
+      return shiftDate === targetDate && shiftIsDay === targetIsDay;
     })
     .map((shift) => {
       const confirmedCount =
@@ -467,7 +467,7 @@ export async function ShiftDetailsContent({
     },
   })) as ShiftWithRelations[];
 
-  const isAMShift = (shift: ShiftWithRelations) => {
+  const isDayShift = (shift: ShiftWithRelations) => {
     const hour = parseInt(formatInNZT(shift.start, "HH"));
     return hour < DAY_EVENING_CUTOFF_HOUR;
   };
@@ -478,7 +478,7 @@ export async function ShiftDetailsContent({
   >();
   for (const shift of allShifts) {
     const locationKey = shift.location || "TBD";
-    const timeOfDay = isAMShift(shift) ? "AM" : "PM";
+    const timeOfDay = isDayShift(shift) ? "AM" : "PM";
     if (!shiftsByLocationAndTime.has(locationKey)) {
       shiftsByLocationAndTime.set(locationKey, { AM: [], PM: [] });
     }

@@ -4,7 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { isAMShift, getShiftDate } from "@/lib/concurrent-shifts";
+import { isDayShift, getShiftDate } from "@/lib/concurrent-shifts";
 
 /**
  * Auto-cancels other pending/waitlisted signups for the same user on the same day
@@ -24,7 +24,7 @@ export async function autoCancelOtherPendingSignupsForDay(
 ): Promise<number> {
   // Get the NZ calendar date and period (AM/PM) of the confirmed shift
   const confirmedNZDate = getShiftDate(confirmedShiftStart);
-  const confirmedIsAM = isAMShift(confirmedShiftStart);
+  const confirmedIsAM = isDayShift(confirmedShiftStart);
   const confirmedPeriod = confirmedIsAM ? "AM" : "PM";
 
   // Find all other pending/waitlisted signups for this user
@@ -50,10 +50,10 @@ export async function autoCancelOtherPendingSignupsForDay(
   // Filter to only signups on the same NZ calendar day AND same period (AM/PM)
   const signupsToCancel = otherSignups.filter((signup) => {
     const signupNZDate = getShiftDate(signup.shift.start);
-    const signupIsAM = isAMShift(signup.shift.start);
+    const signupIsDay = isDayShift(signup.shift.start);
 
     // Only cancel if both the date AND period match
-    return signupNZDate === confirmedNZDate && signupIsAM === confirmedIsAM;
+    return signupNZDate === confirmedNZDate && signupIsDay === confirmedIsAM;
   });
 
   if (signupsToCancel.length === 0) {

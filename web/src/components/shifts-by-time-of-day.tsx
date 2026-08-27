@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatedShiftCardsWrapper } from "@/components/animated-shift-cards-wrapper";
+import { DAY_EVENING_CUTOFF_HOUR } from "@/lib/shift-periods";
 import { toNZT, formatInNZT } from "@/lib/timezone";
 
 interface Shift {
@@ -88,16 +89,16 @@ export function ShiftsByTimeOfDay({ shifts, shiftIdToTypeName }: ShiftsByTimeOfD
     return () => clearTimeout(timer);
   }, [highlightShiftId]);
 
-  // Helper function to determine if a shift is AM or PM (in NZ timezone)
-  const isAMShift = (shift: Shift) => {
+  // Whether a shift falls in the Day period (before 4pm NZ time).
+  const isDayShift = (shift: Shift) => {
     const nzTime = toNZT(shift.start);
     const hour = nzTime.getHours();
-    return hour < 16; // Before 4pm (16:00) is considered "AM"
+    return hour < DAY_EVENING_CUTOFF_HOUR;
   };
 
   // Group shifts by AM/PM
-  const amShifts = shifts.filter(isAMShift);
-  const pmShifts = shifts.filter(shift => !isAMShift(shift));
+  const amShifts = shifts.filter(isDayShift);
+  const pmShifts = shifts.filter(shift => !isDayShift(shift));
 
   const hasAMShifts = amShifts.length > 0;
   const hasPMShifts = pmShifts.length > 0;

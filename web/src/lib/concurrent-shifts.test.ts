@@ -3,15 +3,20 @@ import { prisma } from "./prisma";
 import {
   buildPeriodConflictMessage,
   findPeriodConflictSignup,
-  getShiftPeriodLabel,
-  isAMShift,
 } from "./concurrent-shifts";
+import { getShiftPeriodLabel, isDayShift } from "./shift-periods";
 
-/** 30 Aug 2026 is NZST (UTC+12), so 3pm NZ === 03:00 UTC. */
+// Fixtures are written as literal UTC instants rather than being derived with
+// the app's own timezone helpers: those helpers are part of what these tests
+// exercise, so deriving the inputs from them could hide a bug in both at once.
+// `pins the fixtures to the NZ wall-clock times they claim` below asserts the
+// intended NZ times through Intl, independently of any app code.
+
+/** 3:00 pm NZ, Sunday 30 Aug 2026 (NZST, UTC+12) — the reported clash. */
 const onehungaThreePM = new Date("2026-08-30T03:00:00Z");
-/** 11:30am NZ on the same day. */
+/** 11:30 am NZ the same day — the shift the volunteer was blocked from. */
 const toastElevenThirty = new Date("2026-08-29T23:30:00Z");
-/** 5pm NZ on the same day. */
+/** 5:00 pm NZ the same day — past the 4pm boundary. */
 const eveningFivePM = new Date("2026-08-30T05:00:00Z");
 
 const formatNZ = (d: Date) =>
@@ -21,6 +26,12 @@ const formatNZ = (d: Date) =>
     timeZone: "Pacific/Auckland",
   }).format(d);
 
+it("pins the fixtures to the NZ wall-clock times they claim", () => {
+  expect(formatNZ(onehungaThreePM)).toBe("2026-08-30 15:00");
+  expect(formatNZ(toastElevenThirty)).toBe("2026-08-30 11:30");
+  expect(formatNZ(eveningFivePM)).toBe("2026-08-30 17:00");
+});
+
 const conflict = (start: Date, status = "CONFIRMED") => ({
   status,
   shift: { start, location: "Onehunga", shiftType: { name: "Sunday Kitchen Prep (Onehunga)" } },
@@ -28,7 +39,7 @@ const conflict = (start: Date, status = "CONFIRMED") => ({
 
 describe("getShiftPeriodLabel", () => {
   it("treats 3pm as Day, not Evening — the boundary is 4pm", () => {
-    expect(isAMShift(onehungaThreePM)).toBe(true);
+    expect(isDayShift(onehungaThreePM)).toBe(true);
     expect(getShiftPeriodLabel(onehungaThreePM)).toBe("Day");
   });
 

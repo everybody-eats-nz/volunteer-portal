@@ -1,15 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
-import { formatInNZT, getStartOfDayUTC, toNZT } from "@/lib/timezone";
+import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
+import {
+  getShiftDate,
+  getShiftPeriodLabel,
+  isDayShift,
+} from "@/lib/shift-periods";
+
+// Re-exported so server modules can keep importing period helpers from here.
+export {
+  DAY_EVENING_CUTOFF_HOUR,
+  getShiftDate,
+  getShiftPeriodLabel,
+  isDayShift,
+} from "@/lib/shift-periods";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
   SPOT_TAKING_STATUSES,
 } from "@/lib/placeholder-utils";
 import { getShiftDescription } from "@/lib/shift-description";
-
-/** Hour cutoff (NZ time) — shifts starting before this are "Day", at or after are "Evening" */
-export const DAY_EVENING_CUTOFF_HOUR = 16;
 
 /**
  * SQL fragment to convert a UTC timestamp column to NZ local time.
@@ -20,29 +30,6 @@ export const DAY_EVENING_CUTOFF_HOUR = 16;
  */
 export function shiftStartNZ(column = 'sh.start'): Prisma.Sql {
   return Prisma.raw(`(${column} AT TIME ZONE 'UTC') AT TIME ZONE 'Pacific/Auckland'`);
-}
-
-/**
- * Whether a shift falls in the day period (before 4pm NZ time).
- */
-export function isAMShift(shiftStart: Date): boolean {
-  const nzTime = toNZT(shiftStart);
-  const hour = nzTime.getHours();
-  return hour < DAY_EVENING_CUTOFF_HOUR;
-}
-
-/**
- * Returns a display label for the shift period: "Day" or "Evening".
- */
-export function getShiftPeriodLabel(shiftStart: Date): string {
-  return isAMShift(shiftStart) ? "Day" : "Evening";
-}
-
-/**
- * Helper to get shift date in NZ timezone (YYYY-MM-DD format)
- */
-export function getShiftDate(shiftStart: Date): string {
-  return formatInNZT(shiftStart, "yyyy-MM-dd");
 }
 
 /**
@@ -64,7 +51,7 @@ export async function getConcurrentShifts(shiftId: string) {
   }
 
   const primaryDate = getShiftDate(shift.start);
-  const primaryIsAM = isAMShift(shift.start);
+  const primaryIsAM = isDayShift(shift.start);
 
   // Find all shifts at the same location
   const allShifts = await prisma.shift.findMany({
@@ -93,8 +80,8 @@ export async function getConcurrentShifts(shiftId: string) {
   // Filter to only shifts on the same date and same AM/PM
   const concurrentShifts = allShifts.filter((s) => {
     const shiftDate = getShiftDate(s.start);
-    const shiftIsAM = isAMShift(s.start);
-    return shiftDate === primaryDate && shiftIsAM === primaryIsAM;
+    const shiftIsDay = isDayShift(s.start);
+    return shiftDate === primaryDate && shiftIsDay === primaryIsAM;
   });
 
   return concurrentShifts.map((s) => ({
@@ -141,12 +128,12 @@ export async function findPeriodConflictSignup({
   });
 
   const shiftDate = getShiftDate(shiftStart);
-  const shiftIsDay = isAMShift(shiftStart);
+  const shiftIsDay = isDayShift(shiftStart);
 
   return sameDaySignups.find(
     (signup) =>
       getShiftDate(signup.shift.start) === shiftDate &&
-      isAMShift(signup.shift.start) === shiftIsDay
+      isDayShift(signup.shift.start) === shiftIsDay
   );
 }
 
