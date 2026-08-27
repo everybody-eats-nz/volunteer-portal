@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireMobileUser } from "@/lib/mobile-auth";
 import { processAutoApproval } from "@/lib/auto-approval";
 import {
-  buildPeriodConflictMessage,
-  findPeriodConflictSignup,
+  buildOverlapMessage,
+  findOverlappingSignup,
 } from "@/lib/concurrent-shifts";
 import { getNotificationService } from "@/lib/notification-service";
 import { notifyManagersOfPendingSignup } from "@/lib/notifications";
@@ -162,19 +162,20 @@ export async function POST(
     }
   }
 
-  // Block a second shift in the same Day/Evening period on the same NZ day.
-  const conflictingSignup = await findPeriodConflictSignup({
+  // Refuse only a genuine double-booking. Volunteers may take several
+  // shifts a day provided the times don't clash.
+  const conflictingSignup = await findOverlappingSignup({
     userId: user.id,
     shiftStart: shift.start,
+    shiftEnd: shift.end,
     excludeShiftId: shift.id,
   });
 
   if (conflictingSignup) {
     return NextResponse.json(
       {
-        error: buildPeriodConflictMessage({
+        error: buildOverlapMessage({
           conflictingSignup,
-          shiftStart: shift.start,
         }),
       },
       { status: 400 }

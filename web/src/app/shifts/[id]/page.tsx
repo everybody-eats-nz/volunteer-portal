@@ -10,9 +10,7 @@ import { authOptions } from "@/lib/auth-options";
 import { notFound } from "next/navigation";
 import {
   getConcurrentShifts,
-  getShiftDate,
-  getShiftPeriodLabel,
-  isDayShift,
+  findOverlappingSignup,
 } from "@/lib/concurrent-shifts";
 import { Button } from "@/components/ui/button";
 import { AvatarList } from "@/components/ui/avatar-list";
@@ -257,22 +255,15 @@ export default async function ShiftDetailPage({
     : [];
   const hasIncompleteProfile = missingFields.length > 0;
 
-  // Check conflicting signup (only if user hasn't signed up for this shift)
+  // Mirror the API rule: only an actual time clash blocks signup.
   let hasConflictingSignup = false;
   if (userId && !userSignup) {
-    const shiftDate = getShiftDate(shift.start);
-    const shiftIsDay = isDayShift(shift.start);
-    const existingSignups = await prisma.signup.findMany({
-      where: {
-        userId,
-        status: { in: ["CONFIRMED", "PENDING"] },
-        shiftId: { not: id },
-      },
-      include: { shift: { select: { start: true } } },
-    });
-    hasConflictingSignup = existingSignups.some((s) => {
-      return getShiftDate(s.shift.start) === shiftDate && isDayShift(s.shift.start) === shiftIsDay;
-    });
+    hasConflictingSignup = !!(await findOverlappingSignup({
+      userId,
+      shiftStart: shift.start,
+      shiftEnd: shift.end,
+      excludeShiftId: id,
+    }));
   }
 
   const isLoggedOut = !session;
@@ -721,8 +712,7 @@ export default async function ShiftDetailPage({
                   !isAlreadySignedUp &&
                   hasConflictingSignup && (
                     <Button disabled variant="secondary" className="w-full">
-                      Already signed up for this{" "}
-                      {getShiftPeriodLabel(shift.start).toLowerCase()} period
+                      Clashes with another shift you&apos;re on
                     </Button>
                   )}
 

@@ -9,7 +9,11 @@ import { prisma } from "./prisma";
 // The shared utility reads existing signups and writes Signup + RegularSignup
 // rows; stub those calls so the matching logic runs without a database.
 function stubPrisma(
-  existing: Array<{ userId: string; shiftId: string; shift: { start: Date } }> = []
+  existing: Array<{
+    userId: string;
+    shiftId: string;
+    shift: { start: Date; end: Date };
+  }> = []
 ) {
   const signup = {
     findMany: vi.fn().mockResolvedValue(existing),
@@ -48,13 +52,15 @@ const prepShift: ShiftForMatching = {
   id: "shift-prep",
   shiftTypeId: "prep",
   location: "Wellington",
-  start: new Date("2026-09-02T00:00:00Z"), // 12:00 NZT - Day
+  start: new Date("2026-09-02T00:00:00Z"), // 12:00 NZT
+  end: new Date("2026-09-02T04:00:00Z"), // 16:00 NZT
 };
 const serviceShift: ShiftForMatching = {
   id: "shift-service",
   shiftTypeId: "service",
   location: "Wellington",
-  start: new Date("2026-09-02T05:30:00Z"), // 17:30 NZT - Evening
+  start: new Date("2026-09-02T05:30:00Z"), // 17:30 NZT
+  end: new Date("2026-09-02T09:00:00Z"), // 21:00 NZT
 };
 
 const prepRegular: RegularVolunteerForMatching = {
@@ -87,12 +93,16 @@ describe("createRegularVolunteerSignups", () => {
     ]);
   });
 
-  it("skips a shift when the volunteer already has one in that period", async () => {
+  it("skips a shift that clashes in time with one the volunteer already has", async () => {
     stubPrisma([
       {
         userId: "alison",
         shiftId: "other-day-shift",
-        shift: { start: prepShift.start },
+        // 13:00-15:00 NZT, inside the 12:00-16:00 prep shift.
+        shift: {
+          start: new Date("2026-09-02T01:00:00Z"),
+          end: new Date("2026-09-02T03:00:00Z"),
+        },
       },
     ]);
 
@@ -107,12 +117,61 @@ describe("createRegularVolunteerSignups", () => {
     ]);
   });
 
+  it("still fills a shift when an existing signup that day does not clash", async () => {
+    stubPrisma([
+      {
+        userId: "alison",
+        shiftId: "earlier-day-shift",
+        // 08:00-11:00 NZT, finishing before the 12:00 prep shift starts.
+        shift: {
+          start: new Date("2026-09-01T20:00:00Z"),
+          end: new Date("2026-09-01T23:00:00Z"),
+        },
+      },
+    ]);
+
+    const result = await createRegularVolunteerSignups(
+      [prepShift, serviceShift],
+      [prepRegular, serviceRegular],
+      { dryRun: true }
+    );
+
+    // Under the old Day/Evening bucket the 8am signup blocked the midday prep
+    // shift; only an actual time clash does now.
+    expect(result.signupRecords.map((r) => r.shiftId)).toEqual([
+      "shift-prep",
+      "shift-service",
+    ]);
+  });
+
+  it("treats a back-to-back signup as non-clashing", async () => {
+    stubPrisma([
+      {
+        userId: "alison",
+        shiftId: "abutting-shift",
+        // Ends exactly as the 12:00 prep shift begins.
+        shift: {
+          start: new Date("2026-09-01T21:00:00Z"),
+          end: new Date("2026-09-02T00:00:00Z"),
+        },
+      },
+    ]);
+
+    const result = await createRegularVolunteerSignups(
+      [prepShift],
+      [prepRegular],
+      { dryRun: true }
+    );
+
+    expect(result.signupRecords.map((r) => r.shiftId)).toEqual(["shift-prep"]);
+  });
+
   it("skips a shift the volunteer is already signed up for", async () => {
     stubPrisma([
       {
         userId: "alison",
         shiftId: "shift-prep",
-        shift: { start: prepShift.start },
+        shift: { start: prepShift.start, end: prepShift.end },
       },
     ]);
 

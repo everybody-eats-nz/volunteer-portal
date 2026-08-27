@@ -8,8 +8,8 @@ import { processAutoApproval } from "@/lib/auto-approval";
 import { MAX_NOTE_LENGTH } from "@/lib/utils";
 import { validateGuardianRequirement } from "@/lib/guardian-validation";
 import {
-  buildPeriodConflictMessage,
-  findPeriodConflictSignup,
+  buildOverlapMessage,
+  findOverlappingSignup,
 } from "@/lib/concurrent-shifts";
 import { getShiftConfirmedCount } from "@/lib/placeholder-utils";
 import sanitizeHtml from "sanitize-html";
@@ -188,19 +188,20 @@ export async function POST(
     }
   }
 
-  // Block a second shift in the same Day/Evening period on the same NZ day.
-  const conflictingSignup = await findPeriodConflictSignup({
+  // Refuse only a genuine double-booking. Volunteers may take several
+  // shifts a day provided the times don't clash.
+  const conflictingSignup = await findOverlappingSignup({
     userId: user.id,
     shiftStart: shift.start,
+    shiftEnd: shift.end,
     excludeShiftId: shift.id,
   });
 
   if (conflictingSignup) {
     return NextResponse.json(
       {
-        error: buildPeriodConflictMessage({
+        error: buildOverlapMessage({
           conflictingSignup,
-          shiftStart: shift.start,
         }),
       },
       { status: 400 }

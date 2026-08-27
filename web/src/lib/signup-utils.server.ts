@@ -4,79 +4,66 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { isDayShift, getShiftDate } from "@/lib/concurrent-shifts";
+import { formatInNZT } from "@/lib/timezone";
 
 /**
- * Auto-cancels other pending/waitlisted signups for the same user on the same day
- * and same period (AM/PM) when a shift is confirmed. Does NOT send notifications.
+ * Auto-cancels the user's other pending/waitlisted signups that clash in time
+ * with a shift they've just been confirmed for. Does NOT send notifications.
  *
- * Uses the same AM/PM threshold as concurrent shifts: before 4pm is AM, 4pm+ is PM.
+ * Only genuine double-bookings are cancelled. This used to cancel everything in
+ * the same Day/Evening period on the day, which silently dropped signups that
+ * did not actually clash.
  *
  * @param userId - The user whose other signups should be canceled
  * @param confirmedShiftId - The shift that was just confirmed (excluded from cancellation)
- * @param confirmedShiftStart - The start time of the confirmed shift (used for same-day and period check)
+ * @param confirmedShiftStart - Start of the confirmed shift
+ * @param confirmedShiftEnd - End of the confirmed shift
  * @returns The number of signups that were auto-canceled
  */
-export async function autoCancelOtherPendingSignupsForDay(
+export async function autoCancelOverlappingPendingSignups(
   userId: string,
   confirmedShiftId: string,
-  confirmedShiftStart: Date
+  confirmedShiftStart: Date,
+  confirmedShiftEnd: Date
 ): Promise<number> {
-  // Get the NZ calendar date and period (AM/PM) of the confirmed shift
-  const confirmedNZDate = getShiftDate(confirmedShiftStart);
-  const confirmedIsAM = isDayShift(confirmedShiftStart);
-  const confirmedPeriod = confirmedIsAM ? "AM" : "PM";
-
-  // Find all other pending/waitlisted signups for this user
-  const otherSignups = await prisma.signup.findMany({
+  const signupsToCancel = await prisma.signup.findMany({
     where: {
       userId,
-      status: {
-        in: ["PENDING", "WAITLISTED", "REGULAR_PENDING"],
-      },
-      shiftId: {
-        not: confirmedShiftId,
-      },
-    },
-    include: {
+      status: { in: ["PENDING", "WAITLISTED", "REGULAR_PENDING"] },
+      shiftId: { not: confirmedShiftId },
+      // Half-open, matching `shiftsOverlap`: back-to-back shifts are kept.
       shift: {
-        include: {
-          shiftType: true,
-        },
+        start: { lt: confirmedShiftEnd },
+        end: { gt: confirmedShiftStart },
       },
     },
-  });
-
-  // Filter to only signups on the same NZ calendar day AND same period (AM/PM)
-  const signupsToCancel = otherSignups.filter((signup) => {
-    const signupNZDate = getShiftDate(signup.shift.start);
-    const signupIsDay = isDayShift(signup.shift.start);
-
-    // Only cancel if both the date AND period match
-    return signupNZDate === confirmedNZDate && signupIsDay === confirmedIsAM;
+    select: { id: true },
   });
 
   if (signupsToCancel.length === 0) {
     return 0;
   }
 
-  // Cancel all matching signups silently (no notifications)
-  const signupIds = signupsToCancel.map((s) => s.id);
+  const confirmedTime = `${formatInNZT(confirmedShiftStart, "h:mm a")} to ${formatInNZT(
+    confirmedShiftEnd,
+    "h:mm a"
+  )}`;
 
   await prisma.signup.updateMany({
-    where: {
-      id: { in: signupIds },
-    },
+    where: { id: { in: signupsToCancel.map((s) => s.id) } },
     data: {
       status: "CANCELED",
       canceledAt: new Date(),
       previousStatus: "PENDING", // Note: updateMany doesn't support per-record values
-      cancellationReason: `Auto-canceled: Another ${confirmedPeriod} shift was confirmed for this day`,
+      cancellationReason: `Auto-canceled: clashes with a confirmed shift, ${confirmedTime} on ${formatInNZT(
+        confirmedShiftStart,
+        "EEEE d MMMM"
+      )}`,
     },
   });
 
   console.log(
-    `Auto-canceled ${signupsToCancel.length} pending ${confirmedPeriod} signup(s) for user ${userId} on ${confirmedNZDate}`
+    `Auto-canceled ${signupsToCancel.length} overlapping signup(s) for user ${userId} at ${confirmedShiftStart.toISOString()}`
   );
 
   return signupsToCancel.length;

@@ -24,7 +24,8 @@ import {
 import { getShiftTheme } from "@/lib/shift-themes";
 import {
   DAY_EVENING_CUTOFF_HOUR,
-  getShiftPeriodLabel,
+  shiftsOverlap,
+  type ShiftInterval,
 } from "@/lib/concurrent-shifts";
 import { waitlistChipLabel } from "@/lib/waitlist";
 import { getShiftDescription } from "@/lib/shift-description";
@@ -48,13 +49,6 @@ function isDayShiftHelper(shiftStart: Date): boolean {
 
 function getShiftDateHelper(shiftStart: Date): string {
   return formatInNZT(shiftStart, "yyyy-MM-dd");
-}
-
-/** Identifies one Day/Evening slot on one NZ calendar day. */
-function periodKey(shiftStart: Date): string {
-  return `${getShiftDateHelper(shiftStart)}-${
-    isDayShiftHelper(shiftStart) ? "day" : "evening"
-  }`;
 }
 
 function getConcurrentShiftsFromList(
@@ -126,7 +120,7 @@ function ShiftCard({
   canSignUp = true,
   needsParentalConsent = false,
   allShifts = [],
-  takenPeriods,
+  bookedIntervals,
 }: {
   shift: ShiftWithRelations;
   currentUserId?: string;
@@ -135,7 +129,7 @@ function ShiftCard({
   canSignUp?: boolean;
   needsParentalConsent?: boolean;
   allShifts?: ShiftWithRelations[];
-  takenPeriods: Set<string>;
+  bookedIntervals: ShiftInterval[];
 }) {
   const theme = getShiftTheme(shift.shiftType.name);
   const duration = getDurationInHours(shift.start, shift.end);
@@ -162,10 +156,12 @@ function ShiftCard({
     : undefined;
 
   // `allShifts` only holds the location currently being browsed, so it cannot
-  // see a clashing signup at another location. `takenPeriods` is built from the
+  // see a clashing signup at another location. `bookedIntervals` covers the
   // volunteer's signups across every location, matching what the API enforces.
   const hasConflictingSignup =
-    !mySignup && !!currentUserId && takenPeriods.has(periodKey(shift.start));
+    !mySignup &&
+    !!currentUserId &&
+    bookedIntervals.some((booked) => shiftsOverlap(booked, shift));
 
   const friendSignups = shift.signups.filter(
     (signup) =>
@@ -320,8 +316,7 @@ function ShiftCard({
                   className="w-full font-medium bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                   variant="outline"
                 >
-                  Already signed up for this{" "}
-                  {getShiftPeriodLabel(shift.start).toLowerCase()} period
+                  Clashes with another shift you&apos;re on
                 </Button>
               ) : canSignUp ? (
                 <ShiftSignupButton
@@ -421,22 +416,20 @@ export async function ShiftDetailsContent({
   const startOfDayUTC = toUTC(startOfDayNZ);
   const endOfDayUTC = toUTC(endOfDayNZ);
 
-  // Deliberately not filtered by `selectedLocation`: the one-day-shift and
-  // one-evening-shift rule spans locations, so a clash at another restaurant
-  // must still disable the button here.
-  const takenPeriods = new Set<string>();
+  // Deliberately not filtered by `selectedLocation`: a clash at another
+  // restaurant must still disable the button here. Fetched by end-time too, so
+  // a shift starting the previous day but running into this one is caught.
+  let bookedIntervals: ShiftInterval[] = [];
   if (currentUser?.id) {
     const myDaySignups = await prisma.signup.findMany({
       where: {
         userId: currentUser.id,
         status: { in: ["CONFIRMED", "PENDING"] },
-        shift: { start: { gte: startOfDayUTC, lte: endOfDayUTC } },
+        shift: { start: { lte: endOfDayUTC }, end: { gte: startOfDayUTC } },
       },
-      select: { shift: { select: { start: true } } },
+      select: { shift: { select: { start: true, end: true } } },
     });
-    for (const signup of myDaySignups) {
-      takenPeriods.add(periodKey(signup.shift.start));
-    }
+    bookedIntervals = myDaySignups.map((signup) => signup.shift);
   }
 
   const allShifts = (await prisma.shift.findMany({
@@ -609,7 +602,7 @@ export async function ShiftDetailsContent({
                       canSignUp={canSignUpForShifts}
                       needsParentalConsent={needsParentalConsent}
                       allShifts={allShifts}
-                      takenPeriods={takenPeriods}
+                      bookedIntervals={bookedIntervals}
                     />
                   ))}
                 </div>
@@ -673,7 +666,7 @@ export async function ShiftDetailsContent({
                       canSignUp={canSignUpForShifts}
                       needsParentalConsent={needsParentalConsent}
                       allShifts={allShifts}
-                      takenPeriods={takenPeriods}
+                      bookedIntervals={bookedIntervals}
                     />
                   ))}
                 </div>

@@ -8,7 +8,7 @@ import {
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
 import { getLocationAddresses } from "@/lib/locations";
-import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
+import { autoCancelOverlappingPendingSignups } from "@/lib/signup-utils.server";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 
 export type SignupAction =
@@ -196,10 +196,11 @@ export async function applySignupAction({
     });
 
     try {
-      await autoCancelOtherPendingSignupsForDay(
+      await autoCancelOverlappingPendingSignups(
         signup.user.id,
         signup.shiftId,
-        signup.shift.start
+        signup.shift.start,
+        signup.shift.end
       );
     } catch (autoCancelError) {
       console.error("Error auto-canceling other signups:", autoCancelError);
@@ -399,10 +400,11 @@ export async function applySignupAction({
     });
 
     try {
-      await autoCancelOtherPendingSignupsForDay(
+      await autoCancelOverlappingPendingSignups(
         signup.user.id,
         signup.shiftId,
-        signup.shift.start
+        signup.shift.start,
+        signup.shift.end
       );
     } catch (autoCancelError) {
       console.error("Error auto-canceling other signups:", autoCancelError);
