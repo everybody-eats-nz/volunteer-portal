@@ -14,7 +14,10 @@ const updateTemplateSchema = z.object({
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)"),
   capacity: z.number().int().min(1, "Capacity must be at least 1").max(100, "Capacity too high"),
   notes: z.string().optional(),
-  // Carry a notes change through to the shifts this template already rostered
+  // Carry a notes change through to the shifts this template already rostered.
+  // Notes only - times and capacity never propagate - and only upcoming shifts
+  // still carrying this template's previous notes verbatim. The response's
+  // `notesAppliedToShifts` says how many were updated.
   applyNotesToUpcoming: z.boolean().optional().default(true),
 });
 

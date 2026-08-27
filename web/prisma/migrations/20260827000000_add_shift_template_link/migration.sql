@@ -13,8 +13,11 @@ ALTER TABLE "Shift"
 
 -- Backfill the link for shifts already on the roster: an upcoming shift belongs
 -- to an active template when its role, restaurant, and NZ local start/end times
--- all match. Where several templates match, the oldest one wins so the result is
--- deterministic. Past shifts are left unlinked - nothing propagates to them.
+-- all match. Templates carry no weekday of their own - they are a role at a time
+-- at a restaurant, and the weekly schedule builder picks the days - so matching
+-- on time of day is the whole of what a template says. Where several templates
+-- match, the oldest one wins so the result is deterministic. Past shifts are
+-- left unlinked - nothing propagates to them.
 UPDATE "Shift" s
 SET "templateId" = m.template_id
 FROM (

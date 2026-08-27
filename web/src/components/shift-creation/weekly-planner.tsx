@@ -155,7 +155,7 @@ export function WeeklyPlanner({
   }
   for (const [location, group] of templateGroups) {
     const selectedInLocation = group.filter((t) =>
-      selectedTemplates.has(t.name)
+      selectedTemplates.has(t.id)
     ).length;
     if (selectedInLocation > 0) {
       lines.push({

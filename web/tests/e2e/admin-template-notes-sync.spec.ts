@@ -95,7 +95,10 @@ test.describe("Template notes reach shifts already on the roster", () => {
   }) => {
     await gotoSettled(page, "/admin/shifts/new?tab=templates");
 
-    // Open the Wellington group, then this template's edit dialog
+    // Open the Wellington group, then this template's edit dialog. Locators here
+    // are scoped to the visible copy: while React relocates streamed content out
+    // of its hidden staging container, admin markup briefly exists twice (see
+    // helpers/streaming.ts).
     await page
       .getByTestId("template-location-group-wellington")
       .locator("visible=true")
