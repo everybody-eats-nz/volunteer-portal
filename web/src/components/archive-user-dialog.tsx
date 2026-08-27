@@ -46,7 +46,7 @@ function plural(count: number, singular: string): string {
  * Builds the "still booked on..." sentence. Returns null when the volunteer has
  * nothing outstanding, so the warning block stays hidden in the common case.
  */
-function describeImpact(impact: ArchiveImpact): string | null {
+export function describeImpact(impact: ArchiveImpact): string | null {
   const parts: string[] = [];
   if (impact.upcomingConfirmed > 0) {
     parts.push(`${plural(impact.upcomingConfirmed, "confirmed shift")}`);
@@ -73,6 +73,13 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [impact, setImpact] = useState<ArchiveImpact | null>(null);
+  // Tri-state, not just "impact === null": a failed preview must still let
+  // the admin archive, so "failed" and "ready" both unblock the button while
+  // "loading" holds it. Without this, clicking straight through a slow fetch
+  // would skip the warning the preview exists to show.
+  const [impactStatus, setImpactStatus] = useState<
+    "loading" | "ready" | "failed"
+  >("loading");
 
   const displayName =
     user.name ||
@@ -85,13 +92,18 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
     if (!isOpen) return;
     let canceled = false;
 
+    setImpact(null);
+    setImpactStatus("loading");
     fetch(`/api/admin/users/${user.id}/archive`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: ArchiveImpact | null) => {
-        if (!canceled && data) setImpact(data);
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: ArchiveImpact) => {
+        if (canceled) return;
+        setImpact(data);
+        setImpactStatus("ready");
       })
       .catch(() => {
         // Non-fatal: archiving stays available without the preview.
+        if (!canceled) setImpactStatus("failed");
       });
 
     return () => {
@@ -141,6 +153,7 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
       setNote("");
       setError("");
       setImpact(null);
+      setImpactStatus("loading");
     }
   };
 
@@ -213,7 +226,7 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isSubmitting}
             data-testid="archive-user-cancel-button"
           >
@@ -222,7 +235,7 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
           <Button
             type="button"
             onClick={handleArchive}
-            disabled={isSubmitting}
+            disabled={isSubmitting || impactStatus === "loading"}
             className="bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
             data-testid="archive-user-confirm-button"
           >
@@ -230,6 +243,11 @@ export function ArchiveUserDialog({ user, children }: ArchiveUserDialogProps) {
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Archiving…
+              </>
+            ) : impactStatus === "loading" ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Checking shifts…
               </>
             ) : (
               <>

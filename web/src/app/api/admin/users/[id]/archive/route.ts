@@ -7,6 +7,10 @@ import { archiveUser } from "@/lib/archive-service";
 import { ArchiveReason, ArchiveTriggerSource } from "@/generated/client";
 
 const bodySchema = z.object({
+  // Optional so this route can serve any caller that archives a single user,
+  // not just the admin dialog. The dialog always sends MANUAL; a caller that
+  // archives on a rule's behalf (e.g. a targeted re-run of an automated
+  // category) passes that category's reason instead. Defaults to MANUAL below.
   reason: z.nativeEnum(ArchiveReason).optional(),
   note: z.string().max(500).optional(),
 });
