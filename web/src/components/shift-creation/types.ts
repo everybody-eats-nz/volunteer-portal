@@ -8,6 +8,8 @@ export interface TemplateOption {
   endTime: string;
   capacity: number;
   notes: string;
+  /** Shifts rostered from this template that are still to come. */
+  upcomingShiftCount: number;
 }
 
 export interface ShiftTypeOption {

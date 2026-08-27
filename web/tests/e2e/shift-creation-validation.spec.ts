@@ -1,5 +1,6 @@
 import { test, expect } from "./base";
 import { loginAsAdmin } from "./helpers/auth";
+import { gotoSettled } from "./helpers/streaming";
 
 /**
  * Tests for form validation functionality in the shift creation system.
@@ -16,8 +17,7 @@ import { loginAsAdmin } from "./helpers/auth";
 test.describe("Shift Creation Form Validation", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto("/admin/shifts/new");
-    await page.waitForLoadState("load");
+    await gotoSettled(page, "/admin/shifts/new");
   });
 
   test.describe("Single Shift Creation Validation", () => {

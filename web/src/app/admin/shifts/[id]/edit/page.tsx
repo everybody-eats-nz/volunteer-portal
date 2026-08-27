@@ -56,6 +56,7 @@ export default async function EditShiftPage({
     where: { id },
     include: {
       shiftType: true,
+      template: { select: { name: true, notes: true } },
       signups: {
         include: { user: true },
       },
@@ -155,7 +156,11 @@ export default async function EditShiftPage({
       redirect(`/admin/shifts/${id}/edit?error=update`);
     }
 
-    redirect(`/admin/shifts?updated=1${isPastShift ? "&past=1" : ""}`);
+    // Return to the day and restaurant the shift now sits on, so the admin
+    // lands back where they were rather than on the default location.
+    const returnParams = new URLSearchParams({ updated: "1", date, location });
+    if (isPastShift) returnParams.set("past", "1");
+    redirect(`/admin/shifts?${returnParams.toString()}`);
   }
 
   async function deleteShift() {
@@ -185,6 +190,19 @@ export default async function EditShiftPage({
       redirect(`/admin/shifts?${params.toString()}`);
     }
   }
+
+  // A shift keeps following its template's notes until someone edits them here.
+  const followsTemplateNotes =
+    shift.template !== null &&
+    (shift.notes ?? null) === (shift.template?.notes ?? null);
+
+  // Every way back out of this page returns to the shift's own day and
+  // restaurant, keeping the roster filters the admin arrived with.
+  const backToShiftsParams = new URLSearchParams({
+    date: formatInNZT(shift.start, "yyyy-MM-dd"),
+  });
+  if (shift.location) backToShiftsParams.set("location", shift.location);
+  const backToShiftsHref = `/admin/shifts?${backToShiftsParams.toString()}`;
 
   // Format existing shift data for form defaults (in NZ timezone)
   const defaultValues = {
@@ -250,7 +268,7 @@ export default async function EditShiftPage({
         </Button>
       </DeleteShiftDialog>
       <Button asChild variant="outline" size="sm">
-        <Link href="/admin/shifts">← Back to shifts</Link>
+        <Link href={backToShiftsHref}>← Back to shifts</Link>
       </Button>
     </>
   );
@@ -478,11 +496,19 @@ export default async function EditShiftPage({
                     placeholder="Add any special instructions, requirements, or additional details for volunteers..."
                     defaultValue={defaultValues.notes}
                     className="resize-none"
+                    data-testid="edit-shift-notes-textarea"
                   />
                   <p className="text-xs text-muted-foreground">
                     These notes will be visible to volunteers when they view the
                     shift details.
                   </p>
+                  {shift.template && (
+                    <p className="text-xs text-muted-foreground">
+                      {followsTemplateNotes
+                        ? `These notes come from the ${shift.template.name} template and follow it when it changes. Edit them here and this shift keeps your version.`
+                        : `This shift came from the ${shift.template.name} template, but its notes have been edited here, so template changes no longer reach it.`}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -544,7 +570,7 @@ export default async function EditShiftPage({
                   className="order-2 sm:order-1"
                   data-testid="cancel-edit-shift-button"
                 >
-                  <Link href="/admin/shifts">Cancel</Link>
+                  <Link href={backToShiftsHref}>Cancel</Link>
                 </Button>
                 <Button
                   type="submit"

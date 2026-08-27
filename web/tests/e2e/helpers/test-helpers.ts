@@ -98,6 +98,8 @@ export async function createShift(
     capacity: number;
     shiftTypeId?: string;
     notes?: string;
+    /** Links the shift to a template, as the weekly schedule does */
+    templateId?: string;
   }
 ): Promise<{ id: string }> {
   const response = await page.request.post("/api/admin/shifts", {
@@ -110,6 +112,7 @@ export async function createShift(
         new Date(data.start.getTime() + 3 * 60 * 60 * 1000).toISOString(),
       capacity: data.capacity,
       notes: data.notes || "Test shift",
+      templateId: data.templateId,
     },
   });
 
@@ -139,6 +142,47 @@ export async function deleteTestShifts(
   // Delete shifts one by one using admin API
   for (const shiftId of shiftIds) {
     await page.request.delete(`/api/admin/shifts/${shiftId}`);
+  }
+}
+
+/**
+ * Create a shift template via the admin API
+ */
+export async function createShiftTemplate(
+  page: Page,
+  data: {
+    name: string;
+    shiftTypeId: string;
+    location: string;
+    startTime: string;
+    endTime: string;
+    capacity: number;
+    notes?: string;
+  }
+): Promise<{ id: string }> {
+  const response = await page.request.post("/api/admin/shift-templates", {
+    data,
+  });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create shift template: ${response.status()} - ${errorText}`
+    );
+  }
+
+  return await response.json();
+}
+
+/**
+ * Delete shift templates via admin API (soft delete)
+ */
+export async function deleteShiftTemplates(
+  page: Page,
+  templateIds: string[]
+): Promise<void> {
+  for (const templateId of templateIds) {
+    await page.request.delete(`/api/admin/shift-templates/${templateId}`);
   }
 }
 
