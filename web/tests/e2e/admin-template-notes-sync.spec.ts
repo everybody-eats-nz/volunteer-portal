@@ -32,8 +32,11 @@ test.describe("Template notes reach shifts already on the roster", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
 
-    const shiftType = await getShiftTypeByName(page, "Kitchen");
-    shiftTypeId = shiftType!.id;
+    // "Kitchen Prep" is a seeded shift type - a bare "Kitchen" only exists once
+    // something has created it, so it is not there on a freshly seeded CI run.
+    const shiftType = await getShiftTypeByName(page, "Kitchen Prep");
+    if (!shiftType) throw new Error("Seeded shift type 'Kitchen Prep' not found");
+    shiftTypeId = shiftType.id;
 
     templateName = `Notes Sync ${randomUUID().slice(0, 8)}`;
     const template = await createShiftTemplate(page, {
