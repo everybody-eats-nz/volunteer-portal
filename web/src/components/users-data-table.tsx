@@ -54,6 +54,7 @@ import {
 import { type VolunteerGrade, type ArchiveReason } from "@/generated/client";
 import { DeleteUserDialog } from "@/components/delete-user-dialog";
 import { MergeUserDialog } from "@/components/merge-user-dialog";
+import { ArchiveUserDialog } from "@/components/archive-user-dialog";
 import { ReactivateUserDialog } from "@/components/reactivate-user-dialog";
 import { TableSkeleton } from "@/components/loading-skeleton";
 
@@ -355,6 +356,18 @@ export const columns: ColumnDef<User>[] = [
                   Merge with...
                 </DropdownMenuItem>
               </MergeUserDialog>
+              {!user.archivedAt && user.role === "VOLUNTEER" && (
+                <ArchiveUserDialog user={user}>
+                  <DropdownMenuItem
+                    className="flex items-center gap-2 text-amber-700 dark:text-amber-400 focus:text-amber-700 dark:focus:text-amber-400 focus:bg-amber-50 dark:focus:bg-amber-950/30"
+                    onSelect={(e) => e.preventDefault()}
+                    data-testid={`archive-user-${user.id}`}
+                  >
+                    <Archive className="h-4 w-4" />
+                    Archive volunteer
+                  </DropdownMenuItem>
+                </ArchiveUserDialog>
+              )}
               {user.archivedAt && (
                 <ReactivateUserDialog user={user}>
                   <DropdownMenuItem
