@@ -1,3 +1,9 @@
+## [0.163.0] - 2026-08-28
+
+### Changes
+- feat(admin): add manual volunteer archiving UI ([#1237](https://github.com/everybody-eats-nz/volunteer-portal/pull/1237)) by @malinmalliyawadu
+
+
 ## [0.162.1] - 2026-08-27
 
 ### Changes
