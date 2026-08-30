@@ -24,7 +24,7 @@ import {
   nowInNZT,
   toUTC,
 } from "@/lib/timezone";
-import { getActiveLocationNames } from "@/lib/locations";
+import { getActiveLocationNames, normalizeLocationName } from "@/lib/locations";
 import { createShiftRecord } from "@/lib/services/shift-service";
 import {
   applyTemplateNotesToUpcomingShifts,
@@ -60,7 +60,7 @@ export default async function NewShiftPage({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
-      location: z.string().min(1),
+      location: z.string().min(1).transform(normalizeLocationName),
       capacity: z.coerce.number().int().min(1).max(1000),
       notes: z
         .string()
@@ -324,7 +324,10 @@ export default async function NewShiftPage({
       shiftTypeId: z.string().cuid(),
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
-      location: z.string().min(1, "Location is required"),
+      location: z
+        .string()
+        .min(1, "Location is required")
+        .transform(normalizeLocationName),
       capacity: z.coerce.number().int().min(1).max(1000),
       notes: z
         .string()
@@ -381,7 +384,10 @@ export default async function NewShiftPage({
       shiftTypeId: z.string().cuid(),
       startTime: z.string().regex(/^\d{2}:\d{2}$/),
       endTime: z.string().regex(/^\d{2}:\d{2}$/),
-      location: z.string().min(1, "Location is required"),
+      location: z
+        .string()
+        .min(1, "Location is required")
+        .transform(normalizeLocationName),
       capacity: z.coerce.number().int().min(1).max(1000),
       notes: z
         .string()

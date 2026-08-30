@@ -25,4 +25,7 @@ vi.mock('./locations', () => ({
   getLocationAddresses: vi.fn().mockResolvedValue(MOCK_LOCATION_ADDRESSES),
   getShiftLocationOptions: vi.fn().mockResolvedValue([]),
   getGoogleMapsUrl: (address: string) => `https://www.google.com/maps/search/?api=1&query=Everybody+Eats+${encodeURIComponent(address)}`,
+  // Pure helper - keep the real behaviour so callers that normalize a location
+  // before writing it (shift creation, template routes) stay exercised.
+  normalizeLocationName: (name: string) => name.replace(/\s+/g, ' ').trim(),
 }));
