@@ -1,3 +1,9 @@
+## [0.164.0] - 2026-08-30
+
+### Changes
+- feat(shifts): allow multiple shifts a day unless the times clash ([#1236](https://github.com/everybody-eats-nz/volunteer-portal/pull/1236)) by @malinmalliyawadu
+
+
 ## [0.163.0] - 2026-08-28
 
 ### Changes
