@@ -1,39 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { autoCancelOtherPendingSignupsForDay } from "./signup-utils.server";
+import { autoCancelOverlappingPendingSignups } from "./signup-utils.server";
 import { prisma } from "./prisma";
-import { SignupStatus } from "@/generated/client";
 
-// Type for mock signup data with shift relation
-type MockSignupWithShift = {
-  id: string;
-  userId: string;
-  shiftId: string;
-  status: SignupStatus;
-
-  createdAt: Date;
-  updatedAt: Date;
-  canceledAt: Date | null;
-  previousStatus: string | null;
-  cancellationReason: string | null;
-  isFlexiblePlacement: boolean;
-  originalShiftId: string | null;
-  placedAt: Date | null;
-  placementNotes: string | null;
-  backupForShiftIds: string[];
-  note: string | null;
-  shift: {
-    id: string;
-    start: Date;
-    shiftType: { name: string };
-  };
-};
-
-// Type for Prisma updateMany result
-type PrismaUpdateResult = {
-  count: number;
-};
-
-// Mock the prisma client
 vi.mock("./prisma", () => ({
   prisma: {
     signup: {
@@ -43,477 +11,83 @@ vi.mock("./prisma", () => ({
   },
 }));
 
-describe("autoCancelOtherPendingSignupsForDay", () => {
-  const userId = "test-user-123";
-  const confirmedShiftId = "confirmed-shift-123";
+const findMany = prisma.signup.findMany as unknown as ReturnType<typeof vi.fn>;
+const updateMany = prisma.signup.updateMany as unknown as ReturnType<typeof vi.fn>;
 
+const userId = "test-user-123";
+const confirmedShiftId = "confirmed-shift-123";
+// 12:00-16:00 NZDT on 15 Jan 2025.
+const confirmedStart = new Date("2025-01-15T12:00:00+13:00");
+const confirmedEnd = new Date("2025-01-15T16:00:00+13:00");
+
+const run = () =>
+  autoCancelOverlappingPendingSignups(
+    userId,
+    confirmedShiftId,
+    confirmedStart,
+    confirmedEnd
+  );
+
+describe("autoCancelOverlappingPendingSignups", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    findMany.mockResolvedValue([]);
+    updateMany.mockResolvedValue({ count: 0 });
   });
 
-  it("should cancel only AM shifts when an AM shift is confirmed (before 4pm)", async () => {
-    // Confirmed shift: 8:00 AM on Jan 15, 2025
-    const confirmedShiftStart = new Date("2025-01-15T08:00:00+13:00"); // 8 AM NZDT
+  it("asks only for signups whose time overlaps the confirmed shift", async () => {
+    await run();
 
-    // Other signups for the same day
-    const otherSignups = [
-      {
-        id: "signup-1",
-        userId,
-        shiftId: "shift-1",
-        status: SignupStatus.PENDING,
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.userId).toBe(userId);
+    expect(where.shiftId).toEqual({ not: confirmedShiftId });
+    // Half-open, so a shift starting exactly at 16:00 is not swept up.
+    expect(where.shift).toEqual({
+      start: { lt: confirmedEnd },
+      end: { gt: confirmedStart },
+    });
+  });
 
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-1",
-          start: new Date("2025-01-15T09:00:00+13:00"), // 9 AM - should be canceled
-          shiftType: { name: "Kitchen Prep" },
-        },
-      },
-      {
-        id: "signup-2",
-        userId,
-        shiftId: "shift-2",
-        status: SignupStatus.PENDING,
+  it("only ever touches signups that are not yet confirmed", async () => {
+    await run();
 
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-2",
-          start: new Date("2025-01-15T17:00:00+13:00"), // 5 PM - should NOT be canceled (PM shift)
-          shiftType: { name: "Dinner Service" },
-        },
-      },
-      {
-        id: "signup-3",
-        userId,
-        shiftId: "shift-3",
-        status: SignupStatus.WAITLISTED,
+    expect(findMany.mock.calls[0][0].where.status).toEqual({
+      in: ["PENDING", "WAITLISTED", "REGULAR_PENDING"],
+    });
+  });
 
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-3",
-          start: new Date("2025-01-15T14:30:00+13:00"), // 2:30 PM - should be canceled (still AM)
-          shiftType: { name: "Lunch Service" },
-        },
-      },
-    ];
+  it("cancels everything the overlap query returns", async () => {
+    findMany.mockResolvedValue([{ id: "signup-1" }, { id: "signup-2" }]);
 
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 2 } as PrismaUpdateResult);
-
-    const result = await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
+    const result = await run();
 
     expect(result).toBe(2);
-    expect(prisma.signup.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: { in: ["signup-1", "signup-3"] },
-      },
-      data: expect.objectContaining({
-        status: "CANCELED",
-        cancellationReason: "Auto-canceled: Another AM shift was confirmed for this day",
-      }),
-    });
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    const call = updateMany.mock.calls[0][0];
+    expect(call.where).toEqual({ id: { in: ["signup-1", "signup-2"] } });
+    expect(call.data.status).toBe("CANCELED");
+    expect(call.data.canceledAt).toBeInstanceOf(Date);
   });
 
-  it("should cancel only PM shifts when a PM shift is confirmed (4pm and later)", async () => {
-    // Confirmed shift: 5:00 PM on Jan 15, 2025
-    const confirmedShiftStart = new Date("2025-01-15T17:00:00+13:00"); // 5 PM NZDT
+  it("explains the cancellation with the clashing shift's own times", async () => {
+    findMany.mockResolvedValue([{ id: "signup-1" }]);
 
-    const otherSignups = [
-      {
-        id: "signup-1",
-        userId,
-        shiftId: "shift-1",
-        status: SignupStatus.PENDING,
+    await run();
 
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-1",
-          start: new Date("2025-01-15T09:00:00+13:00"), // 9 AM - should NOT be canceled (AM shift)
-          shiftType: { name: "Kitchen Prep" },
-        },
-      },
-      {
-        id: "signup-2",
-        userId,
-        shiftId: "shift-2",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-2",
-          start: new Date("2025-01-15T15:00:00+13:00"), // 3 PM - should NOT be canceled (AM shift)
-          shiftType: { name: "Lunch Cleanup" },
-        },
-      },
-      {
-        id: "signup-3",
-        userId,
-        shiftId: "shift-3",
-        status: SignupStatus.REGULAR_PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-3",
-          start: new Date("2025-01-15T18:30:00+13:00"), // 6:30 PM - should be canceled (PM shift)
-          shiftType: { name: "Dinner Cleanup" },
-        },
-      },
-    ];
-
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as PrismaUpdateResult);
-
-    const result = await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
-
-    expect(result).toBe(1);
-    expect(prisma.signup.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: { in: ["signup-3"] },
-      },
-      data: expect.objectContaining({
-        status: "CANCELED",
-        cancellationReason: "Auto-canceled: Another PM shift was confirmed for this day",
-      }),
-    });
+    const reason = updateMany.mock.calls[0][0].data.cancellationReason;
+    expect(reason).toContain("clashes with a confirmed shift");
+    expect(reason).toContain("12:00 PM to 4:00 PM");
+    expect(reason).toContain("Wednesday 15 January");
+    // The rule is no longer AM/PM buckets, so the copy must not say otherwise.
+    expect(reason).not.toMatch(/\bAM shift\b|\bPM shift\b/);
   });
 
-  it("should handle 4pm boundary correctly (4:00 PM is considered PM)", async () => {
-    // Confirmed shift: 4:00 PM on Jan 15, 2025
-    const confirmedShiftStart = new Date("2025-01-15T16:00:00+13:00"); // 4 PM NZDT
+  it("does nothing when no signup overlaps", async () => {
+    findMany.mockResolvedValue([]);
 
-    const otherSignups = [
-      {
-        id: "signup-1",
-        userId,
-        shiftId: "shift-1",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-1",
-          start: new Date("2025-01-15T15:59:00+13:00"), // 3:59 PM - should NOT be canceled (AM)
-          shiftType: { name: "Lunch Cleanup" },
-        },
-      },
-      {
-        id: "signup-2",
-        userId,
-        shiftId: "shift-2",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-2",
-          start: new Date("2025-01-15T16:01:00+13:00"), // 4:01 PM - should be canceled (PM)
-          shiftType: { name: "Dinner Prep" },
-        },
-      },
-      {
-        id: "signup-3",
-        userId,
-        shiftId: "shift-3",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-3",
-          start: new Date("2025-01-15T12:00:00+13:00"), // Noon - should NOT be canceled (AM)
-          shiftType: { name: "Lunch Service" },
-        },
-      },
-    ];
-
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as PrismaUpdateResult);
-
-    const result = await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
-
-    expect(result).toBe(1);
-    expect(prisma.signup.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: { in: ["signup-2"] },
-      },
-      data: expect.objectContaining({
-        status: "CANCELED",
-        cancellationReason: "Auto-canceled: Another PM shift was confirmed for this day",
-      }),
-    });
-  });
-
-  it("should not cancel shifts on different days", async () => {
-    // Confirmed shift: 9:00 AM on Jan 15, 2025
-    const confirmedShiftStart = new Date("2025-01-15T09:00:00+13:00");
-
-    const otherSignups = [
-      {
-        id: "signup-1",
-        userId,
-        shiftId: "shift-1",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-1",
-          start: new Date("2025-01-16T09:00:00+13:00"), // Next day, same time - should NOT be canceled
-          shiftType: { name: "Kitchen Prep" },
-        },
-      },
-      {
-        id: "signup-2",
-        userId,
-        shiftId: "shift-2",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-2",
-          start: new Date("2025-01-14T09:00:00+13:00"), // Previous day, same time - should NOT be canceled
-          shiftType: { name: "Kitchen Prep" },
-        },
-      },
-    ];
-
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
-
-    const result = await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
+    const result = await run();
 
     expect(result).toBe(0);
-    expect(prisma.signup.updateMany).not.toHaveBeenCalled();
-  });
-
-  it("should return 0 when there are no other pending signups", async () => {
-    const confirmedShiftStart = new Date("2025-01-15T09:00:00+13:00");
-
-    vi.mocked(prisma.signup.findMany).mockResolvedValue([]);
-
-    const result = await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
-
-    expect(result).toBe(0);
-    expect(prisma.signup.updateMany).not.toHaveBeenCalled();
-  });
-
-  it("should exclude the confirmed shift itself from cancellation", async () => {
-    const confirmedShiftStart = new Date("2025-01-15T09:00:00+13:00");
-
-    vi.mocked(prisma.signup.findMany).mockResolvedValue([]);
-
-    await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
-
-    expect(prisma.signup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          shiftId: {
-            not: confirmedShiftId,
-          },
-        }),
-      })
-    );
-  });
-
-  it("should allow volunteers to have both AM and PM shifts on the same day", async () => {
-    // Confirmed shift: 9:00 AM on Jan 15, 2025 (before 4pm = AM)
-    const confirmedShiftStart = new Date("2025-01-15T09:00:00+13:00");
-
-    const otherSignups = [
-      {
-        id: "signup-1",
-        userId,
-        shiftId: "shift-1",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-1",
-          start: new Date("2025-01-15T10:00:00+13:00"), // 10 AM - should be canceled (AM)
-          shiftType: { name: "Morning Prep" },
-        },
-      },
-      {
-        id: "signup-2",
-        userId,
-        shiftId: "shift-2",
-        status: SignupStatus.PENDING,
-
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        canceledAt: null,
-        previousStatus: null,
-        cancellationReason: null,
-        isFlexiblePlacement: false,
-        originalShiftId: null,
-        placedAt: null,
-        placementNotes: null,
-        backupForShiftIds: [],
-        note: null,
-        shift: {
-          id: "shift-2",
-          start: new Date("2025-01-15T17:00:00+13:00"), // 5 PM - should NOT be canceled (PM)
-          shiftType: { name: "Dinner Service" },
-        },
-      },
-    ];
-
-    vi.mocked(prisma.signup.findMany).mockResolvedValue(otherSignups as MockSignupWithShift[]);
-    vi.mocked(prisma.signup.updateMany).mockResolvedValue({ count: 1 } as PrismaUpdateResult);
-
-    const result = await autoCancelOtherPendingSignupsForDay(
-      userId,
-      confirmedShiftId,
-      confirmedShiftStart
-    );
-
-    // Should only cancel the AM shift, not the PM shift
-    expect(result).toBe(1);
-    expect(prisma.signup.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: { in: ["signup-1"] },
-      },
-      data: expect.any(Object),
-    });
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });

@@ -1,11 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
-import { formatInNZT, getStartOfDayUTC } from "@/lib/timezone";
-import {
-  getShiftDate,
-  getShiftPeriodLabel,
-  isDayShift,
-} from "@/lib/shift-periods";
+import { formatInNZT } from "@/lib/timezone";
+import { getShiftDate, isDayShift } from "@/lib/shift-periods";
 
 // Re-exported so server modules can keep importing period helpers from here.
 export {
@@ -13,7 +9,9 @@ export {
   getShiftDate,
   getShiftPeriodLabel,
   isDayShift,
+  shiftsOverlap,
 } from "@/lib/shift-periods";
+export type { ShiftInterval } from "@/lib/shift-periods";
 import {
   getShiftEffectiveCount,
   shiftCapacityCountSelect,
@@ -93,87 +91,69 @@ export async function getConcurrentShifts(shiftId: string) {
 }
 
 /**
- * Finds an existing signup that blocks the user from taking `shiftStart`:
- * same NZ calendar day, same Day/Evening period, still holding a spot
- * (CONFIRMED or PENDING).
+ * Finds an existing signup whose time overlaps `shiftStart`–`shiftEnd`.
  *
- * Only the target day is queried — the previous implementation loaded every
- * confirmed/pending signup the volunteer had ever made and filtered in memory.
+ * Volunteers may hold any number of shifts on a day as long as the times do not
+ * clash; only a genuine double-booking is refused. This replaced a Day/Evening
+ * bucket rule that also blocked non-overlapping shifts (an 11:30am–2:30pm and a
+ * 3pm both counted as "day"), which volunteers reported as a bug.
+ *
+ * The overlap is evaluated in SQL against absolute instants, so unlike the
+ * calendar-day rule it needs no timezone or DST handling.
  */
-export async function findPeriodConflictSignup({
+export async function findOverlappingSignup({
   userId,
   shiftStart,
+  shiftEnd,
   excludeShiftId,
 }: {
   userId: string;
   shiftStart: Date;
+  shiftEnd: Date;
   excludeShiftId?: string;
 }) {
-  // Padded by a day on each side because an NZ calendar day is 23 or 25 hours
-  // long across a DST switch — a tight 24-hour window drops an 11:30pm shift on
-  // the April changeover. The exact NZ date is asserted below, so the padding
-  // only widens the candidate set, never the match.
-  const dayStartUTC = getStartOfDayUTC(shiftStart);
-  const windowStartUTC = new Date(dayStartUTC.getTime() - 24 * 60 * 60 * 1000);
-  const windowEndUTC = new Date(dayStartUTC.getTime() + 48 * 60 * 60 * 1000);
-
-  const sameDaySignups = await prisma.signup.findMany({
+  return prisma.signup.findFirst({
     where: {
       userId,
       status: { in: ["CONFIRMED", "PENDING"] },
       ...(excludeShiftId ? { shiftId: { not: excludeShiftId } } : {}),
-      shift: { start: { gte: windowStartUTC, lt: windowEndUTC } },
+      // Half-open, matching `shiftsOverlap`: a shift starting exactly as
+      // another ends is back-to-back, not a clash.
+      shift: { start: { lt: shiftEnd }, end: { gt: shiftStart } },
     },
     include: { shift: { include: { shiftType: true } } },
+    orderBy: { shift: { start: "asc" } },
   });
-
-  const shiftDate = getShiftDate(shiftStart);
-  const shiftIsDay = isDayShift(shiftStart);
-
-  return sameDaySignups.find(
-    (signup) =>
-      getShiftDate(signup.shift.start) === shiftDate &&
-      isDayShift(signup.shift.start) === shiftIsDay
-  );
 }
 
 /**
- * Builds the volunteer-facing explanation for a Day/Evening conflict.
- *
- * The period boundary is 4pm, not midday, so the message must never call the
- * blocking shift an "AM"/"PM" shift — a 3pm shift is a Day shift, and labelling
- * it "AM" reads as a bug to volunteers.
+ * Builds the volunteer-facing explanation for an overlapping signup.
  */
-export function buildPeriodConflictMessage({
+export function buildOverlapMessage({
   conflictingSignup,
-  shiftStart,
   subject = "you",
 }: {
   conflictingSignup: {
     status: string;
-    shift: { start: Date; location: string | null; shiftType: { name: string } };
+    shift: {
+      start: Date;
+      end: Date;
+      location: string | null;
+      shiftType: { name: string };
+    };
   };
-  shiftStart: Date;
   subject?: "you" | "volunteer";
 }) {
-  const existingShiftTime = new Intl.DateTimeFormat("en-NZ", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "Pacific/Auckland",
-  }).format(conflictingSignup.shift.start);
-
-  const period = getShiftPeriodLabel(shiftStart).toLowerCase();
-  const date = formatInNZT(conflictingSignup.shift.start, "EEEE d MMMM");
-  const location = conflictingSignup.shift.location ?? "TBD";
-  const shiftName = conflictingSignup.shift.shiftType.name;
-  // PENDING signups block a second shift too, so don't call them "confirmed".
+  const { start, end, location, shiftType } = conflictingSignup.shift;
+  const time = `${formatInNZT(start, "h:mm a")} to ${formatInNZT(end, "h:mm a")}`;
+  const date = formatInNZT(start, "EEEE d MMMM");
+  // PENDING signups hold a spot too, so don't call them "confirmed".
   const held = conflictingSignup.status === "PENDING" ? "a pending" : "a confirmed";
-  const boundary =
-    "Day shifts start before 4pm and evening shifts start from 4pm, so only one of each is allowed per day.";
-  const clash = `${held} ${period} shift on ${date}: ${shiftName} at ${location}, ${existingShiftTime}.`;
+  const clash = `${held} shift that overlaps this one: ${shiftType.name} at ${
+    location ?? "TBD"
+  }, ${time} on ${date}.`;
 
   return subject === "volunteer"
-    ? `This volunteer already has ${clash} ${boundary}`
-    : `You already have ${clash} ${boundary}`;
+    ? `This volunteer already has ${clash} Volunteers can hold several shifts a day, but not at the same time.`
+    : `You already have ${clash} You can take more than one shift a day, as long as the times don't clash.`;
 }

@@ -3,7 +3,7 @@ import type { AutoAcceptRule, Prisma } from "@/generated/client";
 import { createShiftConfirmedNotification } from "@/lib/notifications";
 import { getEmailService } from "@/lib/email-service";
 import { formatInNZT } from "@/lib/timezone";
-import { autoCancelOtherPendingSignupsForDay } from "@/lib/signup-utils.server";
+import { autoCancelOverlappingPendingSignups } from "@/lib/signup-utils.server";
 import { isFirstConfirmedShift } from "@/lib/shift-helpers";
 import { evaluate, evaluateOutcome } from "./evaluate";
 import {
@@ -301,8 +301,8 @@ export async function processAutoApproval(
 
 /**
  * Everything that follows a confirmation: clearing the volunteer's other
- * pending signups that day, then notifying them. Failures here are logged but
- * never undo the approval.
+ * pending signups that clash with it, then notifying them. Failures here are
+ * logged but never undo the approval.
  */
 async function applyApprovalSideEffects(userId: string, shiftId: string) {
   try {
@@ -312,7 +312,12 @@ async function applyApprovalSideEffects(userId: string, shiftId: string) {
     });
 
     try {
-      await autoCancelOtherPendingSignupsForDay(userId, shiftId, shift.start);
+      await autoCancelOverlappingPendingSignups(
+        userId,
+        shiftId,
+        shift.start,
+        shift.end
+      );
     } catch (error) {
       console.error("[auto-approval] Error auto-canceling other signups:", error);
     }
