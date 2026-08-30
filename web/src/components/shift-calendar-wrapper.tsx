@@ -28,10 +28,9 @@ export function ShiftCalendarWrapper({
   // Location names are free text, so they have to be encoded rather than
   // interpolated straight into the query string.
   const shiftsHref = (dateStr: string) =>
-    `/admin/shifts?${new URLSearchParams({
-      date: dateStr,
-      location: selectedLocation,
-    }).toString()}`;
+    `/admin/shifts?date=${dateStr}&location=${encodeURIComponent(
+      selectedLocation
+    )}`;
 
   const handleDateSelect = (date: Date) => {
     router.push(shiftsHref(formatInNZT(date, "yyyy-MM-dd")));

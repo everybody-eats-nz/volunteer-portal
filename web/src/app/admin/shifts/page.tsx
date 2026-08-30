@@ -51,11 +51,7 @@ export default async function AdminShiftsPage({
 
   // Location names are free text (pop-up venues carry the whole event name), so
   // every link has to encode them rather than interpolate them into the query.
-  const withLocation = (path: string, params: Record<string, string>) =>
-    `${path}?${new URLSearchParams({
-      ...params,
-      location: selectedLocation,
-    }).toString()}`;
+  const encodedLocation = encodeURIComponent(selectedLocation);
 
   // Parse the date string directly in NZ timezone to avoid local time confusion
   const selectedDateNZT = parseISOInNZT(dateString);
@@ -349,7 +345,7 @@ export default async function AdminShiftsPage({
               data-testid="today-button"
             >
               <Link
-                href={withLocation("/admin/shifts", { date: today })}
+                href={`/admin/shifts?date=${today}&location=${encodedLocation}`}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Today
@@ -364,7 +360,7 @@ export default async function AdminShiftsPage({
                 data-testid="send-shortage-email-button"
               >
                 <Link
-                  href={withLocation("/admin/notifications", { date: dateString })}
+                  href={`/admin/notifications?date=${dateString}&location=${encodedLocation}`}
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   Shortage Email
@@ -380,7 +376,7 @@ export default async function AdminShiftsPage({
                 data-testid="announce-shifts-button"
               >
                 <Link
-                  href={`/admin/announcements?${new URLSearchParams({ shiftIds: shifts.map((s) => s.id).join(",") }).toString()}`}
+                  href={`/admin/announcements?shiftIds=${shifts.map((s) => s.id).join(",")}`}
                 >
                   <Megaphone className="h-4 w-4 mr-2" />
                   Announce

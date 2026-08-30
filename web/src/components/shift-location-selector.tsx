@@ -29,9 +29,11 @@ export function ShiftLocationSelector({
 
   const handleLocationChange = (value: string) => {
     // Location names are free text: interpolating one straight into the query
-    // string breaks on any name containing "&" or "#".
-    const params = new URLSearchParams({ date: dateString, location: value });
-    router.push(`/admin/shifts?${params.toString()}`);
+    // string breaks on any name containing "&" or "#". encodeURIComponent
+    // rather than URLSearchParams, which would spell spaces as "+".
+    router.push(
+      `/admin/shifts?date=${dateString}&location=${encodeURIComponent(value)}`
+    );
   };
 
   return (
