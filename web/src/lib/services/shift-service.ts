@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeLocationName } from "@/lib/locations";
 
 export type CreateShiftData = {
   shiftTypeId: string;
@@ -14,6 +15,11 @@ export type CreateShiftData = {
 /**
  * Core shift creation logic
  * Used by both server actions and API endpoints
+ *
+ * The location is normalized on the way in: the admin schedule filters shifts
+ * by an exact `Location.name` match, so a shift stored with stray whitespace
+ * is invisible there even though the volunteer-facing browse page (which
+ * normalizes before matching) still lists it.
  */
 export async function createShiftRecord(data: CreateShiftData) {
   return await prisma.shift.create({
@@ -21,7 +27,7 @@ export async function createShiftRecord(data: CreateShiftData) {
       shiftTypeId: data.shiftTypeId,
       start: data.start,
       end: data.end,
-      location: data.location,
+      location: normalizeLocationName(data.location),
       capacity: data.capacity,
       notes: data.notes ?? null,
       templateId: data.templateId ?? null,

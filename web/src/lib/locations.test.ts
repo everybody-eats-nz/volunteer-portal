@@ -11,6 +11,33 @@ async function loadReal() {
   return vi.importActual<typeof import("@/lib/locations")>("@/lib/locations");
 }
 
+describe("normalizeLocationName", () => {
+  it("collapses internal runs of whitespace to a single space", async () => {
+    const { normalizeLocationName } = await loadReal();
+    expect(
+      normalizeLocationName("The Gathered Table Event:  Britomart Hotel")
+    ).toBe("The Gathered Table Event: Britomart Hotel");
+  });
+
+  it("trims surrounding whitespace", async () => {
+    const { normalizeLocationName } = await loadReal();
+    expect(normalizeLocationName("  Wellington ")).toBe("Wellington");
+  });
+
+  it("normalizes pasted Unicode spaces, not just ASCII ones", async () => {
+    const { normalizeLocationName } = await loadReal();
+    // A non-breaking space renders identically in a dropdown, so a name
+    // carrying one looks correct while never matching its shifts.
+    expect(normalizeLocationName("Pop\u00a0Up Venue")).toBe("Pop Up Venue");
+    expect(normalizeLocationName("Glen\u2009Innes")).toBe("Glen Innes");
+  });
+
+  it("leaves an already-canonical name untouched", async () => {
+    const { normalizeLocationName } = await loadReal();
+    expect(normalizeLocationName("Glen Innes")).toBe("Glen Innes");
+  });
+});
+
 describe("locations helpers", () => {
   it("getActiveLocationNames returns location names from the database", async () => {
     const { getActiveLocationNames } = await loadReal();

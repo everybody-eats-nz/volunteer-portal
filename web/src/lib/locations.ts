@@ -14,6 +14,21 @@ export type LocationOption = Location;
 export const DEFAULT_LOCATION: Location = "Wellington";
 
 /**
+ * Canonical form of a location name.
+ *
+ * Location names are stored as free-text strings across a dozen tables rather
+ * than behind a foreign key, so every copy has to match the `Location.name` row
+ * character for character. Invisible differences (a doubled space, a trailing
+ * space, a non-breaking space pasted in from a document) split one restaurant
+ * into two: the name still *looks* right in a dropdown, but every screen that
+ * filters shifts on the exact string comes back empty. Collapsing whitespace
+ * runs to a single space keeps those copies comparable.
+ */
+export function normalizeLocationName(name: string): string {
+  return name.replace(/\s+/g, " ").trim();
+}
+
+/**
  * Fetch active location names fresh from the database.
  *
  * This reads current data on every call. Use it anywhere newly created
@@ -87,7 +102,7 @@ export async function getShiftLocationOptions(): Promise<
       shifts
         .map((shift) => shift.location)
         .filter((location): location is string => location !== null)
-        .map((location) => location.replace(/\s+/g, " ").trim())
+        .map((location) => normalizeLocationName(location))
         .filter((location) => location.length > 0)
     ),
   ]

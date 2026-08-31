@@ -3,12 +3,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { normalizeLocationName } from "@/lib/locations";
 
 // Schema for validating shift template data
 const shiftTemplateSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name too long"),
   shiftTypeId: z.string().cuid("Invalid shift type ID"),
-  location: z.string().min(1, "Location is required").max(50, "Location too long"),
+  // Location names are free text and can be long (pop-up venues carry the event
+  // name, e.g. "The Gathered Table Event: Britomart Hotel"), so this cap tracks
+  // the template name's rather than a shorter one that would reject real venues.
+  location: z
+    .string()
+    .min(1, "Location is required")
+    .max(100, "Location too long")
+    .transform(normalizeLocationName),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)"),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)"),
   capacity: z.number().int().min(1, "Capacity must be at least 1").max(100, "Capacity too high"),

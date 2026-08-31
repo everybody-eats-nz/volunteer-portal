@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/client";
 import { renameLocationInStoredList } from "@/lib/parse-availability";
+import { normalizeLocationName } from "@/lib/locations";
 
 // Koha target per night — "" / null / undefined clear it; otherwise parse to 2dp.
 function parseTarget(value: unknown): number | null {
@@ -62,9 +63,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Store the canonical name so the copies written into Shift.location and
+    // friends always compare equal to this row.
+    const normalizedName = normalizeLocationName(String(name));
+
+    if (normalizedName === "") {
+      return NextResponse.json(
+        { error: "Location name must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+
     const location = await prisma.location.create({
       data: {
-        name,
+        name: normalizedName,
         address,
         defaultMealsServed: parseInt(defaultMealsServed),
         targetPerNight: parseTarget(targetPerNight),
@@ -105,7 +117,7 @@ export async function PATCH(request: NextRequest) {
 
     if (
       name !== undefined &&
-      (typeof name !== "string" || name.trim() === "")
+      (typeof name !== "string" || normalizeLocationName(name) === "")
     ) {
       return NextResponse.json(
         { error: "Location name must be a non-empty string" },
@@ -113,8 +125,11 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const normalizedName =
+      typeof name === "string" ? normalizeLocationName(name) : undefined;
+
     const updateData: Record<string, string | number | boolean | null> = {};
-    if (name !== undefined) updateData.name = name;
+    if (normalizedName !== undefined) updateData.name = normalizedName;
     if (address !== undefined) updateData.address = address;
     if (defaultMealsServed !== undefined)
       updateData.defaultMealsServed = parseInt(defaultMealsServed);
@@ -138,7 +153,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const oldName = existing.name;
-    const newName = typeof name === "string" ? name : undefined;
+    const newName = normalizedName;
     const isRename = newName !== undefined && newName !== oldName;
 
     const location = await prisma.$transaction(async (tx) => {
