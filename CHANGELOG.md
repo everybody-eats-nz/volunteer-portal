@@ -1,3 +1,9 @@
+## [0.164.4] - 2026-08-31
+
+### Changes
+- fix(admin): stop stray whitespace in location names hiding shifts ([#1239](https://github.com/everybody-eats-nz/volunteer-portal/pull/1239)) by @malinmalliyawadu
+
+
 ## [0.164.3] - 2026-08-31
 
 ### Changes
