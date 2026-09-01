@@ -1,3 +1,9 @@
+## [0.164.5] - 2026-09-01
+
+### Changes
+- fix(flaky): should show reject dialog for pending volunteers ([#1244](https://github.com/everybody-eats-nz/volunteer-portal/pull/1244)) by @malinmalliyawadu
+
+
 ## [0.164.4] - 2026-08-31
 
 ### Changes
