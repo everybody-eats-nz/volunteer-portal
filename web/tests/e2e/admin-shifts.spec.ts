@@ -582,9 +582,22 @@ test.describe("Admin Shifts Page", () => {
       ).toBeHidden();
     });
 
-    test("should show reject dialog for pending volunteers", async ({
-      page,
-    }) => {
+    test("should show reject dialog for pending volunteers", async (
+      { page },
+      testInfo
+    ) => {
+      // This test creates a volunteer, logs in as them, signs up for a shift
+      // via API, then logs back in as admin — three sequential auth round
+      // trips on top of the describe's own beforeEach (which itself creates a
+      // shift and a signup). Under CI's 20-shard parallel load that chain can
+      // occasionally push past the default 30s timeout with nothing actually
+      // broken — reproduced 2026-08-27 with loginAsAdmin's page.waitForURL("/admin")
+      // eating the rest of the test's budget (see flaky-test report,
+      // 2026-08-31). Same fix as admin-shift-edit-delete.spec.ts's beforeEach.
+      if (process.env.CI) {
+        testInfo.setTimeout(testInfo.timeout + 20_000);
+      }
+
       // Create a new pending signup
       const testVolunteerEmail = `pending-test-${randomUUID().slice(
         0,
