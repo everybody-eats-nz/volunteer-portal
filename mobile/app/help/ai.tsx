@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -29,6 +28,7 @@ import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { api } from "@/lib/api";
 import { chatWithAssistant } from "@/lib/chat";
+import { goBackOrHome } from "@/lib/navigation";
 
 /* ─── Types ─────────────────────────────────────────────────── */
 
@@ -407,7 +407,6 @@ export default function ChatScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const paperTint = usePaperTint(isDark, colors);
-  const router = useRouter();
 
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
@@ -762,7 +761,7 @@ export default function ChatScreen() {
         ]}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBackOrHome()}
           hitSlop={12}
           style={styles.backBtn}
           accessibilityLabel="Back to Help"

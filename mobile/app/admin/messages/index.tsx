@@ -26,6 +26,7 @@ import { formatRelativeTime, initialOf } from "@/lib/admin-format";
 import { syncPushTokenWithServer } from "@/lib/push-notifications";
 import { queryClient } from "@/lib/query-client";
 import type { AdminThreadListItem, ThreadStatus } from "@/lib/admin";
+import { goBackOrHome } from "@/lib/navigation";
 
 type Filter = ThreadStatus | "ALL";
 const FILTERS: { key: Filter; label: string }[] = [
@@ -106,7 +107,7 @@ export default function AdminInboxScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBackOrHome()}
           hitSlop={12}
           style={styles.backBtn}
           accessibilityLabel="Back"

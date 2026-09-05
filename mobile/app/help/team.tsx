@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import * as Haptics from "expo-haptics";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,6 +26,7 @@ import { Brand, Colors, FontFamily, Palette } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { clearTeamUnreadCount } from "@/hooks/use-team-unread";
 import { queryClient } from "@/lib/query-client";
+import { goBackOrHome } from "@/lib/navigation";
 import {
   fetchTeamThread,
   markTeamThreadRead,
@@ -157,7 +158,6 @@ export default function TeamThreadScreen() {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const paperTint = usePaperTint(isDark, colors);
-  const router = useRouter();
 
   const [messages, setMessages] = useState<TeamMessage[]>([]);
   const [hours, setHours] = useState<HoursStatus | null>(null);
@@ -338,7 +338,7 @@ export default function TeamThreadScreen() {
         ]}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBackOrHome()}
           hitSlop={12}
           style={styles.backBtn}
           accessibilityLabel="Back"
