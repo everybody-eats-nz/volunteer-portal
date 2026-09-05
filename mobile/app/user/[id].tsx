@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-user-profile";
 import { api } from "@/lib/api";
 import { getShiftThemeByName } from "@/lib/dummy-data";
+import { goBackOrHome } from "@/lib/navigation";
 
 /**
  * Unified volunteer profile screen.
@@ -181,7 +182,7 @@ export default function UserProfileScreen() {
               Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
               );
-              router.back();
+              goBackOrHome();
             } catch {
               Alert.alert(
                 "Error",
@@ -268,7 +269,7 @@ export default function UserProfileScreen() {
                 Haptics.NotificationFeedbackType.Success
               );
               Alert.alert("User blocked", `${firstName} has been blocked.`, [
-                { text: "OK", onPress: () => router.back() },
+                { text: "OK", onPress: () => goBackOrHome() },
               ]);
             } catch {
               Alert.alert(
@@ -311,7 +312,7 @@ export default function UserProfileScreen() {
         <Stack.Screen options={{ title: "", headerTransparent: true }} />
         <Text style={{ fontSize: 48, marginBottom: 12 }}>😕</Text>
         <ThemedText type="heading">Volunteer not found</ThemedText>
-        <Pressable onPress={() => router.back()} style={styles.backLink}>
+        <Pressable onPress={() => goBackOrHome()} style={styles.backLink}>
           <Text
             style={[
               styles.backLinkText,

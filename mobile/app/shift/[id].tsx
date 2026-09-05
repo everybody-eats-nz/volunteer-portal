@@ -60,6 +60,7 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { getShiftThemeByName, getLocationMapsUrl } from "@/lib/dummy-data";
 import { getShiftDescription } from "@/lib/shift-description";
 import { posthog } from "@/lib/posthog";
+import { goBackOrHome } from "@/lib/navigation";
 
 /* ── Duration Helper ── */
 
@@ -138,7 +139,6 @@ const MY_STATUS: Record<
 
 export default function ShiftDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
@@ -387,7 +387,7 @@ export default function ShiftDetailScreen() {
             This shift may have been removed
           </ThemedText>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => goBackOrHome()}
             style={({ pressed }) => [
               s.backButton,
               { backgroundColor: Brand.green, opacity: pressed ? 0.9 : 1 },
