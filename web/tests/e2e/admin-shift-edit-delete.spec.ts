@@ -443,8 +443,17 @@ test.describe("Admin Shift Edit and Delete", () => {
       const confirmButton = page.getByTestId("delete-shift-confirm-button");
       await confirmButton.click();
 
-      // Wait for redirect with deleted parameter
-      await page.waitForURL(/\/admin\/shifts\?.*deleted=1/, { timeout: 10000 });
+      // Wait for redirect with deleted parameter. The delete handler uses a
+      // hard `window.location.href` navigation (not router.push), so this is
+      // a full page reload of /admin/shifts — including its server-side shift
+      // data fetch — not just a client-side URL change. Under CI's 20-shard
+      // parallel load that occasionally exceeds 10s with nothing actually
+      // broken (see flaky-test report, 2026-09-07: 5/6 runs this week, always
+      // this exact waitForURL). Give it CI headroom, same idiom as
+      // profile.spec.ts's post-navigation wait.
+      await page.waitForURL(/\/admin\/shifts\?.*deleted=1/, {
+        timeout: process.env.CI ? 25_000 : 10_000,
+      });
 
       // Verify the URL still contains the original date and location filters
       const redirectUrl = page.url();
