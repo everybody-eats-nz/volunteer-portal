@@ -1,3 +1,9 @@
+## [0.164.9] - 2026-09-07
+
+### Changes
+- fix(flaky): should preserve date and location filters when deleting from calendar view ([#1256](https://github.com/everybody-eats-nz/volunteer-portal/pull/1256)) by @malinmalliyawadu
+
+
 ## [0.164.8] - 2026-09-07
 
 ### Changes
