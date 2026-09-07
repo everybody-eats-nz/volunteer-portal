@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as Notifications from "expo-notifications";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -37,6 +37,7 @@ import { api, ApiError, apiUpload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { posthog } from "@/lib/posthog";
 import { queryKeys } from "@/lib/query-keys";
+import { goBackOrHome } from "@/lib/navigation";
 import {
   syncPushTokenWithServer,
   unregisterPushTokenFromServer,
@@ -214,7 +215,6 @@ export default function EditProfileScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { profile, availableLocations, refresh } = useProfile();
   const deleteAccount = useAuth((state) => state.deleteAccount);
   const queryClient = useQueryClient();
@@ -620,7 +620,7 @@ export default function EditProfileScreen() {
       // stack, so its active query refetches in the background (and the
       // signup sheet re-syncs from props) while back-navigation stays instant.
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
-      router.back();
+      goBackOrHome();
     } catch (err) {
       Alert.alert(
         "Save failed",

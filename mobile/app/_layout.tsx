@@ -40,6 +40,24 @@ import { persistOptions, queryClient, setupFocusManager } from '@/lib/query-clie
 
 SplashScreen.preventAutoHideAsync();
 
+/**
+ * Anchor the root stack to the tab navigator.
+ *
+ * A deep link can make a stack screen the very first route of a cold start —
+ * e.g. a shift-shortage email links to /shifts/:id on the website, which
+ * `+native-intent` rewrites to /shift/:id here. Without an anchor that screen
+ * is the entire navigation history: the native header has nothing to go back
+ * to so it renders no back button, and the tab bar never mounts, stranding the
+ * volunteer on the screen the email sent them to.
+ *
+ * The anchor tells Expo Router to seed `(tabs)` underneath the linked screen
+ * when it builds the initial state, so Back (and the swipe gesture) lands on
+ * the app proper instead of dead-ending.
+ */
+export const unstable_settings = {
+  anchor: '(tabs)',
+};
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { isLoading, isAuthenticated, restoreSession } = useAuth();

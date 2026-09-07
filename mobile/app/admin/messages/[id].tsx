@@ -34,6 +34,7 @@ import {
   type AdminThreadDetail,
 } from "@/lib/admin";
 import type { TeamMessage } from "@/lib/messages";
+import { goBackOrHome } from "@/lib/navigation";
 
 const POLL_MS = 15_000;
 
@@ -183,7 +184,7 @@ export default function AdminConversationScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBackOrHome()}
           hitSlop={12}
           style={styles.headerSide}
           accessibilityLabel="Back"

@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,13 +22,13 @@ import { formatLongDate, formatTimeRange, GRADE_COLORS, initialOf } from "@/lib/
 import { actOnSignup, type PendingSignup } from "@/lib/admin";
 import { queryClient } from "@/lib/query-client";
 import { queryKeys } from "@/lib/query-keys";
+import { goBackOrHome } from "@/lib/navigation";
 
 export default function ApprovalsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   const selectedLocation = useAdminLocationFilter((s) => s.selected);
   const { data, isPending, isError, refetch, isRefetching } =
@@ -106,7 +105,7 @@ export default function ApprovalsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.headerSide} accessibilityLabel="Back">
+        <Pressable onPress={() => goBackOrHome()} hitSlop={12} style={styles.headerSide} accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={24} color={eyebrow} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Approvals</Text>

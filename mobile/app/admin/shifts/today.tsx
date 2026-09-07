@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +19,7 @@ import { useAdminToday } from "@/hooks/use-admin";
 import { useAdminLocationFilter } from "@/lib/admin-location-filter";
 import { formatTimeRange, initialOf } from "@/lib/admin-format";
 import type { TodayShift } from "@/lib/admin";
+import { goBackOrHome } from "@/lib/navigation";
 
 /** YYYY-MM-DD for the device-local day at the given offset from today. */
 function dateParamForOffset(offset: number): string {
@@ -48,7 +48,6 @@ export default function TonightShiftsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   const [offset, setOffset] = useState(0);
   const dateParam = useMemo(() => dateParamForOffset(offset), [offset]);
@@ -70,7 +69,7 @@ export default function TonightShiftsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: rule }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.headerSide} accessibilityLabel="Back">
+        <Pressable onPress={() => goBackOrHome()} hitSlop={12} style={styles.headerSide} accessibilityLabel="Back">
           <Ionicons name="chevron-back" size={24} color={eyebrow} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Shifts</Text>
