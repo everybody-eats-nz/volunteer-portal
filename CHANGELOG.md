@@ -1,3 +1,9 @@
+## [0.164.11] - 2026-09-07
+
+### Changes
+- chore(deps-dev): bump fflate from 0.4.8 to 0.4.9 in /web ([#1247](https://github.com/everybody-eats-nz/volunteer-portal/pull/1247)) by @dependabot[bot]
+
+
 ## [0.164.10] - 2026-09-07
 
 ### Changes
