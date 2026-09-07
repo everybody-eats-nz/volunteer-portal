@@ -1,3 +1,9 @@
+## [0.164.7] - 2026-09-07
+
+### Changes
+- chore(deps-dev): bump @babel/core from 7.28.5 to 7.29.7 in /web ([#1251](https://github.com/everybody-eats-nz/volunteer-portal/pull/1251)) by @dependabot[bot]
+
+
 ## [0.164.6] - 2026-09-07
 
 ### Changes
