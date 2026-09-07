@@ -1,3 +1,9 @@
+## [0.164.6] - 2026-09-07
+
+### Changes
+- chore(deps): bump browserslist from 4.28.1 to 4.28.9 in /web ([#1253](https://github.com/everybody-eats-nz/volunteer-portal/pull/1253)) by @dependabot[bot]
+
+
 ## [0.164.5] - 2026-09-01
 
 ### Changes
