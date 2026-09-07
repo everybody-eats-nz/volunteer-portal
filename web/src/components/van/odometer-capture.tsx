@@ -80,6 +80,13 @@ export function OdometerCapture({
     setPhase("confirm");
   }
 
+  // `preview` only ever holds a blob: URL minted by URL.createObjectURL from
+  // the driver's own capture, so it cannot carry a javascript: or data: scheme.
+  // Checked rather than assumed: this value lands in an <img src>, and an
+  // invariant worth relying on is worth enforcing at the point of use.
+  const previewSrc =
+    preview && preview.startsWith("blob:") ? preview : null;
+
   const odo = Number(value.replace(/\D/g, ""));
   const valid = value !== "" && Number.isFinite(odo) && odo > 0;
   const belowMinimum = minimum !== null && valid && odo <= minimum;
@@ -146,12 +153,14 @@ export function OdometerCapture({
         Type the number from the dashboard.
       </p>
 
-      {preview && (
+      {previewSrc && (
         <div className="mt-4 aspect-[16/9] w-full overflow-hidden rounded-xl ring-1 ring-border">
-          {/* The driver's own capture, shown back so they can read it off. */}
+          {/* The driver's own capture, shown back so they can read it off.
+              A plain <img>, not next/image: this is a local blob URL that
+              exists for seconds and must never go near the image optimiser. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={preview}
+            src={previewSrc}
             alt="The odometer photo you just took"
             className="size-full object-cover"
           />
@@ -191,7 +200,7 @@ export function OdometerCapture({
         </p>
       )}
 
-      {!preview && (
+      {!previewSrc && (
         <Note tone="warn">
           Recorded without a photo. This trip will show up on the office&rsquo;s
           exceptions list.
@@ -238,7 +247,7 @@ export function OdometerCapture({
           className="w-full"
           onClick={() => setPhase("capture")}
         >
-          {preview ? "Retake the photo" : "Take a photo instead"}
+          {previewSrc ? "Retake the photo" : "Take a photo instead"}
         </Button>
       </div>
     </div>
