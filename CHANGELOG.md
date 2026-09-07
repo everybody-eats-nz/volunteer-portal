@@ -1,3 +1,9 @@
+## [0.164.8] - 2026-09-07
+
+### Changes
+- chore(deps): bump picomatch from 4.0.3 to 4.0.7 in /web ([#1252](https://github.com/everybody-eats-nz/volunteer-portal/pull/1252)) by @dependabot[bot]
+
+
 ## [0.164.7] - 2026-09-07
 
 ### Changes
