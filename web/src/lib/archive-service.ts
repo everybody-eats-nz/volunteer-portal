@@ -9,6 +9,10 @@ import {
 } from "@/generated/client";
 import { getEmailService } from "./email-service";
 import { getBaseUrl } from "./utils";
+import {
+  inVolunteerProgramme,
+  inVolunteerProgrammeSql,
+} from "@/lib/volunteer-programme";
 
 export const ARCHIVE_THRESHOLDS = {
   INACTIVE_WARNING_MONTHS: 11,
@@ -48,6 +52,10 @@ function activeVolunteerWhere(): Prisma.UserWhereInput {
   return {
     role: "VOLUNTEER",
     archivedAt: null,
+    // Outside drivers borrowing a van are User rows with the default
+    // VOLUNTEER role. Without this they get archived for never taking a
+    // shift, and emailed "we miss you" for a programme they were never in.
+    ...inVolunteerProgramme,
   };
 }
 
@@ -153,6 +161,7 @@ async function getUsersWithLastShift(): Promise<
     FROM "User" u
     WHERE u.role = 'VOLUNTEER'
       AND u."archivedAt" IS NULL
+      AND ${inVolunteerProgrammeSql("u")}
       AND NOT EXISTS (
         SELECT 1 FROM "RegularVolunteer" rv
         WHERE rv."userId" = u.id

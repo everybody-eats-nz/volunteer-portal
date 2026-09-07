@@ -26,6 +26,11 @@ import {
   ScrollText,
   ClipboardCheck,
   ShieldCheck,
+  Truck,
+  Route,
+  TriangleAlert,
+  ListChecks,
+  IdCard,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -214,6 +219,46 @@ export const adminNavCategories: AdminNavCategory[] = [
     ],
   },
   {
+    label: "Vans",
+    items: [
+      {
+        title: "Van Trips",
+        href: "/admin/van/trips",
+        icon: Route,
+        description: "Every trip logged in the vans, with odometer photos",
+        commandKey: "van-trips",
+      },
+      {
+        title: "Van Exceptions",
+        href: "/admin/van/exceptions",
+        icon: TriangleAlert,
+        description: "Where the mileage record does not add up",
+        commandKey: "van-exceptions",
+      },
+      {
+        title: "Van Drivers",
+        href: "/admin/van/drivers",
+        icon: IdCard,
+        description: "Approve who can take a van out",
+        commandKey: "van-drivers",
+      },
+      {
+        title: "Vans",
+        href: "/admin/van/vehicles",
+        icon: Truck,
+        description: "The fleet, and the QR sticker for each dashboard",
+        commandKey: "van-vehicles",
+      },
+      {
+        title: "Trip Purposes",
+        href: "/admin/van/purposes",
+        icon: ListChecks,
+        description: "What drivers pick from, and in what order",
+        commandKey: "van-purposes",
+      },
+    ],
+  },
+  {
     label: "Communications",
     items: [
       {
@@ -341,6 +386,13 @@ export const getIconColor = (
     "Daily Menus": "text-orange-600",
     "Restaurant Locations": "text-blue-600",
     "Restaurant Managers": "text-orange-600",
+
+    // Vans
+    "Van Trips": "text-sky-600",
+    "Van Exceptions": "text-amber-600",
+    "Van Drivers": "text-indigo-600",
+    Vans: "text-sky-700",
+    "Trip Purposes": "text-teal-600",
 
     // Communications
     Messages: "text-emerald-600",

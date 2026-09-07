@@ -5,6 +5,7 @@ import { createNotification } from "./notifications";
 import { sendSurveyNotification } from "./email-service";
 import { Prisma, type SurveyTriggerType } from "@/generated/client";
 import { differenceInDays } from "date-fns";
+import { inVolunteerProgramme } from "@/lib/volunteer-programme";
 
 export interface EvaluateTriggerResult {
   triggered: boolean;
@@ -399,7 +400,11 @@ export async function findEligibleUsersForSurvey(
     case "MANUAL": {
       // All active VOLUNTEER-role users
       const rows = await prisma.user.findMany({
-        where: { role: "VOLUNTEER", archivedAt: null },
+        where: {
+          role: "VOLUNTEER",
+          archivedAt: null,
+          ...inVolunteerProgramme,
+        },
         select: { id: true },
       });
       candidateUserIds = rows.map((r) => r.id);

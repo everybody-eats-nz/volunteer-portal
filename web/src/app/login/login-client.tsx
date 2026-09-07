@@ -99,6 +99,22 @@ export default function LoginClient({ providers }: LoginClientProps) {
     checkSupport();
   }, []);
 
+  // `?passkey=1` asks for the passkey prompt straight away instead of showing
+  // a form first. The van log's QR sticker sends drivers here mid-scan, and a
+  // driver standing at an open van door should get one system prompt, not a
+  // sign-in page. Fires once: `autoPasskeyFired` keeps a cancelled prompt from
+  // re-arming on every render.
+  const autoPasskeyFired = useRef(false);
+  useEffect(() => {
+    if (autoPasskeyFired.current) return;
+    if (searchParams.get("passkey") !== "1") return;
+    if (!passkeySupported || status !== "unauthenticated") return;
+    autoPasskeyFired.current = true;
+    void handlePasskeyLogin();
+    // handlePasskeyLogin is stable for the life of this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passkeySupported, status, searchParams]);
+
   // Redirect to appropriate page if already logged in
   useEffect(() => {
     if (status === "authenticated" && session) {

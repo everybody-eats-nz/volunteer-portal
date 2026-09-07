@@ -15,6 +15,15 @@ export {
 
 export const STORAGE_BUCKET = "resource-hub";
 export const PROFILE_PHOTOS_BUCKET = "profile-photos";
+/**
+ * Odometer photos from the van mileage log. Its own bucket rather than sharing
+ * one: these are evidence behind a funding report with a retention life of its
+ * own, and they must never sit alongside the licence images that land later
+ * (those go somewhere private and admin-only). See docs/van-mileage-log.md.
+ */
+export const VAN_ODOMETER_BUCKET = "van-odometer";
+/** Phones produce large JPEGs and the dial is all that matters. */
+export const MAX_ODOMETER_PHOTO_SIZE = 4 * 1024 * 1024;
 export const MAX_PROFILE_PHOTO_SIZE = 1 * 1024 * 1024; // 1MB
 
 /**

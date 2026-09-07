@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 
 import { PrismaClient } from "../src/generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { seedVanFleet } from "./seed-van-fleet";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -431,6 +432,14 @@ async function main() {
   });
 
   console.log("✅ Newsletter lists created");
+
+  // Van mileage log reference data. First boot only, for the same reason the
+  // locations above are: van names and regos are admin-editable, and a
+  // name-keyed upsert on a live database resurrects anything renamed away.
+  if (isFirstBoot) {
+    await seedVanFleet(prisma);
+  }
+
   console.log("🎉 Production seed completed successfully!");
 }
 

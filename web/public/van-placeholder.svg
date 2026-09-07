@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Van">
+  <!-- Transparent ground so the container's themed background shows through:
+       this is a stand-in until a real photo of each van is uploaded, and a
+       baked-in cream panel reads as a bug on the dark theme. -->
+  <g fill="none" stroke="#5a8b62" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M40 132V78a8 8 0 0 1 8-8h116v62"/>
+    <path d="M164 88h50l30 34v10h-80z"/>
+    <path d="M40 132h20M104 132h44M228 132h52"/>
+  </g>
+  <g fill="#5a8b62">
+    <circle cx="82" cy="134" r="16"/>
+    <circle cx="206" cy="134" r="16"/>
+  </g>
+  <g fill="none" stroke="#5a8b62" stroke-width="5">
+    <circle cx="82" cy="134" r="6"/>
+    <circle cx="206" cy="134" r="6"/>
+  </g>
+  <rect x="172" y="96" width="34" height="20" rx="3" fill="#9bbda0"/>
+</svg>

@@ -16,6 +16,7 @@ import {
   AdminDashboardRecentActivity,
   type ActivityItem,
 } from "@/components/admin-dashboard-recent-activity";
+import { inVolunteerProgramme } from "@/lib/volunteer-programme";
 
 interface AdminDashboardContentProps {
   selectedLocation: LocationOption | undefined;
@@ -69,7 +70,9 @@ export async function AdminDashboardContent({
   ] = await Promise.all([
     // User counts (active only)
     prisma.user.count({ where: { archivedAt: null } }),
-    prisma.user.count({ where: { role: "VOLUNTEER", archivedAt: null } }),
+    prisma.user.count({
+      where: { role: "VOLUNTEER", archivedAt: null, ...inVolunteerProgramme },
+    }),
     prisma.user.count({ where: { role: "ADMIN", archivedAt: null } }),
 
     // Shift counts
