@@ -1,3 +1,9 @@
+## [0.164.10] - 2026-09-07
+
+### Changes
+- chore(deps): bump @simplewebauthn/server from 13.2.3 to 13.3.2 in /web ([#1249](https://github.com/everybody-eats-nz/volunteer-portal/pull/1249)) by @dependabot[bot]
+
+
 ## [0.164.9] - 2026-09-07
 
 ### Changes
