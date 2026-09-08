@@ -1,3 +1,9 @@
+## [0.166.0] - 2026-09-08
+
+### Changes
+- feat(van-log): add the Drive tab to the Expo app ([#1257](https://github.com/everybody-eats-nz/volunteer-portal/pull/1257)) by @malinmalliyawadu
+
+
 ## [0.165.0] - 2026-09-08
 
 ### Changes
