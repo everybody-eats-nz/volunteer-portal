@@ -274,4 +274,39 @@ test.describe("van mileage log - the office", () => {
       "Approved to drive"
     );
   });
+
+  test("the office can add a driver without waiting for them to register", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    await gotoSettled(page, "/admin/van/drivers");
+
+    await page.getByTestId("van-driver-add").first().click();
+    await expect(
+      page.getByTestId("van-driver-add-person").first()
+    ).toBeVisible();
+    // The organisation list comes from the same rule the driver's own form
+    // reads, so a seeded organisation has to be on offer here too.
+    await expect(page.getByTestId("van-driver-add-org").first()).toContainText(
+      "Everybody Eats"
+    );
+
+    // Nothing is written: this asserts the dialog says what picking somebody
+    // will do, rather than approving a seeded driver and leaving the next run
+    // looking at different data.
+    await page.getByTestId("van-driver-add-person").first().click();
+    await page
+      .getByPlaceholder("Search by name or email...")
+      .fill("volunteer@example.com");
+    // The option inside the popover, not the driver card of the same name on
+    // the page behind the dialog.
+    const option = page
+      .locator('[data-testid^="user-search-option-"]')
+      .first();
+    await option.waitFor({ timeout: 15000 });
+    await option.click();
+    await expect(
+      page.getByTestId("van-driver-add-existing").first()
+    ).toContainText("Already approved to drive");
+  });
 });

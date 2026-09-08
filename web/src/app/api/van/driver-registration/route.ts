@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
-import { getDriverProfile, registerDriver } from "@/lib/van/drivers";
+import {
+  getDriverProfile,
+  isSelectableOrganisation,
+  registerDriver,
+} from "@/lib/van/drivers";
 
 const registrationSchema = z.object({
   licenceClass: z.string().trim().min(1).max(20).nullable(),
@@ -41,19 +44,14 @@ export async function POST(request: Request) {
     );
   }
 
-  if (parsed.data.organisationId) {
-    const org = await prisma.organisation.findUnique({
-      where: { id: parsed.data.organisationId },
-      select: { isActive: true, isCatchAll: true },
-    });
-    // The catch-all is a bucket for one-off borrowers on a trip, not somewhere
-    // a person can belong.
-    if (!org?.isActive || org.isCatchAll) {
-      return NextResponse.json(
-        { error: "Pick an organisation from the list." },
-        { status: 400 }
-      );
-    }
+  if (
+    parsed.data.organisationId &&
+    !(await isSelectableOrganisation(parsed.data.organisationId))
+  ) {
+    return NextResponse.json(
+      { error: "Pick an organisation from the list." },
+      { status: 400 }
+    );
   }
 
   const profile = await registerDriver({

@@ -1,3 +1,9 @@
+## [0.167.1] - 2026-09-08
+
+### Changes
+- Add office door to driver approval: admins can add drivers directly ([#1259](https://github.com/everybody-eats-nz/volunteer-portal/pull/1259)) by @malinmalliyawadu
+
+
 ## [0.167.0] - 2026-09-08
 
 ### Changes
