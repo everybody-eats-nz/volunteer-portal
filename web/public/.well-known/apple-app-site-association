@@ -12,7 +12,8 @@
           { "/": "/friends", "comment": "Friends" },
           { "/": "/friends/*", "comment": "Friend profile" },
           { "/": "/achievements", "comment": "Achievements" },
-          { "/": "/achievements/*", "comment": "Achievement detail" }
+          { "/": "/achievements/*", "comment": "Achievement detail" },
+          { "/": "/v/*", "comment": "Van QR sticker - straight to that van" }
         ]
       }
     ]

@@ -5,6 +5,7 @@ import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTeamUnreadCount } from '@/hooks/use-team-unread';
 import { useAdminUnreadCount } from '@/hooks/use-admin';
+import { useDriverState } from '@/hooks/use-van';
 import { useAuth } from '@/lib/auth';
 import { Colors } from '@/constants/theme';
 import LoginScreen from '@/app/(auth)/login';
@@ -15,6 +16,12 @@ export default function TabLayout() {
   const teamUnreadCount = useTeamUnreadCount(isAuthenticated);
   const isAdmin = user?.role === 'ADMIN';
   const adminUnreadCount = useAdminUnreadCount(isAuthenticated && isAdmin);
+  // Driving is a capability, not a role: the tab is gated on an APPROVED
+  // DriverProfile, never on user.role, so a volunteer who also drives stays a
+  // volunteer. An admin who drives gets six triggers — iOS pushes the last
+  // into "More", which is the accepted cost of not demoting either hub.
+  const { data: driver } = useDriverState(isAuthenticated);
+  const canDrive = driver?.canDrive === true;
 
   const eeLight = useMemo(() => ({
     ...DefaultTheme,
@@ -80,6 +87,16 @@ export default function TabLayout() {
             </NativeTabs.Trigger.Badge>
           )}
         </NativeTabs.Trigger>
+
+        {canDrive && (
+          <NativeTabs.Trigger name="drive">
+            <NativeTabs.Trigger.Label>Drive</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Icon
+              sf={{ default: 'car', selected: 'car.fill' }}
+              md="directions_car"
+            />
+          </NativeTabs.Trigger>
+        )}
 
         {isAdmin && (
           <NativeTabs.Trigger name="admin">

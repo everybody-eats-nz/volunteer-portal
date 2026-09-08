@@ -24,6 +24,7 @@ nothing to a funder.
 | `/admin/van/drivers` | Approve who can take a van out. |
 | `/admin/van/vehicles` | The fleet, and each van's printable QR sticker. |
 | `/admin/van/purposes` | What drivers pick from, and in what order. |
+| `/api/mobile/van/*` | The same flows for the Expo app's Drive tab. |
 
 Library code is under `src/lib/van/`:
 
@@ -35,6 +36,11 @@ Library code is under `src/lib/van/`:
 | `drivers.ts` | Driver profiles and the approval gate. |
 | `queries.ts` | Reads shared by the driver and admin screens. |
 | `format.ts` | NZ formatting, built on the app's `formatInNZT`. |
+| `requests.ts` | What a driver's device sends, validated once for both clients. |
+| `photos.ts` | Storing one odometer photo, shared by both clients. |
+| `mobile-guard.ts` | The driver gate for the app's JWT-authenticated routes. |
+| `mobile-payloads.ts` | The shapes the app renders, labelled in NZ time. |
+| `reminders.ts` | The nudge to end a forgotten trip. |
 
 ## The decisions worth knowing
 
@@ -96,6 +102,53 @@ the admin exception, so a trip can never warn the driver and then look clean to
 the office. Under half an hour, an average speed says more about when the driver
 opened the trip than about the van, so distance alone decides.
 
+### The app gets its own handlers, not a widened cookie route
+
+`/api/van/*` authenticates with a NextAuth cookie. The Expo app carries a JWT
+and calls `/api/mobile/*`, so it cannot reach those routes as they stand.
+
+The fix is **not** to teach `/api/van/*` to also accept a bearer token. A
+browser can be made to post to a cookie-authenticated endpoint, and "or a
+bearer token" is how the CSRF protection on that path quietly stops applying —
+on the very handler that writes the odometer chain. So the app gets its own
+thin handlers under `/api/mobile/van/*`, guarded by `mobile-guard.ts`, calling
+the same functions in `trips.ts` and `drivers.ts`.
+
+Thin is the whole point. Every write still goes through `trips.ts`, so the
+driver's warning and the office's exception list cannot drift apart no matter
+which client the trip came from. Where the two clients would otherwise have
+retyped the same rule — what makes a startable trip, what an odometer photo may
+be — that rule moved into `requests.ts` and `photos.ts` and both call it.
+
+### The app asks the server whether a reading looks wrong
+
+The browser flow runs `plausibility.ts` in the page, because the page can
+import it. `mobile/` is a separate package and cannot, and retyping the
+thresholds in React Native is exactly the drift that module exists to prevent.
+
+So `POST /api/mobile/van/trips/[tripId]/end` answers the question instead. An
+unconfirmed reading that trips the rule comes back as `needsConfirmation` with
+the same sentence the office would read, and **nothing is written**. Posting
+again confirms it. An ordinary reading closes on the first post, so the common
+path is still one round trip.
+
+`FLAGGED` is set from the rule's own answer rather than from what the client
+claims, so it keeps meaning what it says: a driver saw a warning and confirmed
+the reading anyway.
+
+### The QR sticker opens the app for people who have it
+
+`/v/*` is claimed as a universal link (`apple-app-site-association`, plus the
+Android intent filters in `mobile/app.json`), so scanning the sticker takes an
+approved driver straight to the odometer step.
+
+The cost is that having the app installed is not the same as being allowed to
+drive. An outside borrower or an unapproved driver who happens to have it gets
+pulled out of a page that would have worked, so the app's start screen hands
+them back: it offers the sticker's own web page in an in-app browser rather
+than showing a screen that cannot help them. A signed-out person still meets
+the app's login screen first — the one case the bounce-back cannot catch.
+
 ### A van that is already out is a handover, not an auto-close
 
 Silently closing the previous trip would write an end reading nobody observed
@@ -111,6 +164,24 @@ If the reading sits below the open trip's start — the previous driver mistyped
 theirs — it is recorded anyway. The resulting negative distance surfaces as a
 high-severity exception the office can fix, which is better than refusing to let
 the next driver start over a mistake they cannot see.
+
+### The reminder asks the exception list who to nudge
+
+A van left logged out overnight is already a `left-open` exception, and that
+rule already knows whose trip it is. So `reminders.ts` runs `detectExceptions`
+rather than asking "has it been fourteen hours" a second time — a driver who
+gets a push and an office that sees a row are looking at the same fact, and
+changing when a trip counts as forgotten stays one edit.
+
+`Trip.reminderSentAt` is the one piece of this that *is* stored. Exceptions are
+derived; what we did about one is not, the way `endedByUserId` is a fact about
+what happened. Without it every run would nudge the same driver again.
+
+The cron fires hourly, but the job decides whether the hour is a civilised one
+(7am–9pm NZ) rather than the schedule encoding daylight saving. A trip that
+starts at 9am crosses the fourteen-hour line at 11pm, and a phone buzzing at
+11pm about a van does not get the van logged any sooner — it teaches the driver
+to mute us.
 
 ### Purposes are data
 
@@ -169,6 +240,13 @@ somewhere private and admin-only.
 If the bucket is missing, uploads fail softly and trips record without photos,
 landing on the missing-photo exception.
 
+### Cron
+
+`/api/cron/van-open-trip-reminders` is registered hourly in `vercel.json` and
+secured with `CRON_SECRET` like the other cron routes. Without that variable
+set the route refuses every request, so a misconfigured environment sends no
+reminders rather than sending them to everybody.
+
 ### Seed
 
 `prisma/seed-van-fleet.ts` holds the organisations, purposes and fleet, and is
@@ -190,10 +268,6 @@ implausible distance and the backwards reading on the trip after it.
 
 These are deliberately out of scope and deliberately not designed out:
 
-- **Push reminder to end a forgotten trip.** The `left-open` exception already
-  identifies exactly who to notify.
-- **A "Drive" tab in the Expo app**, gated on an approved `DriverProfile`. The
-  API routes under `/api/van/*` are the same ones it would use.
 - **The monthly Meridian PDF.** `/admin/van/trips` already produces the CSV the
   numbers come from.
 - **Historical backfill** of two years of paper logbook, as period totals rather
@@ -209,6 +283,12 @@ These are deliberately out of scope and deliberately not designed out:
 - **OCR on the odometer photo.** The design prototype faked this; drivers type
   the reading. The photo is stored either way, which is what makes the number
   auditable.
+- **Offline capture.** Neither the web flow nor the app has one: a driver in a
+  basement carpark or a loading bay with no signal cannot start or end a trip,
+  and the app will simply fail the request. The reading and the photo are both
+  small and the trip is already designed to tolerate a missing photo, so a
+  queued write is the obvious shape when it lands — but nothing today attempts
+  it, and a driver with no signal still falls back to the paper book.
 
 The reserved columns are there so that adding those later is a migration nobody
 has to think hard about.

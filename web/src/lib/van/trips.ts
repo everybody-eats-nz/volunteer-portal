@@ -1,6 +1,10 @@
 import { Prisma } from "@/generated/client";
 import { prisma } from "@/lib/prisma";
-import { hoursBetween, isImplausible } from "@/lib/van/plausibility";
+import {
+  explainImplausible,
+  hoursBetween,
+  isImplausible,
+} from "@/lib/van/plausibility";
 
 /**
  * Everything that writes a trip goes through this module. The driver flow, the
@@ -164,8 +168,18 @@ export interface EndTripInput {
   acknowledgedWarning: boolean;
 }
 
-export async function endTrip(input: EndTripInput): Promise<TripWithContext> {
-  const now = new Date();
+/**
+ * The trip this person is allowed to close, with the one hard stop applied.
+ *
+ * Shared by `endTrip` and `previewEndTrip` so the app can ask what would
+ * happen without the answer drifting from what does happen.
+ */
+async function loadEndableTrip(input: {
+  tripId: string;
+  userId: string;
+  isAdmin: boolean;
+  endOdo: number;
+}) {
   const trip = await prisma.trip.findUnique({ where: { id: input.tripId } });
 
   if (!trip || trip.status !== "OPEN") {
@@ -182,6 +196,48 @@ export async function endTrip(input: EndTripInput): Promise<TripWithContext> {
       "END_BELOW_START"
     );
   }
+  return trip;
+}
+
+/**
+ * What ending the trip on this reading would say, without writing anything.
+ *
+ * The browser flow runs the plausibility rule in the page because the page
+ * already imports it. The app cannot import it — `mobile/` is a separate
+ * package — and retyping the thresholds in React Native is exactly the drift
+ * `plausibility.ts` exists to prevent, so the app asks here instead and the
+ * rule stays in one place for the driver's warning and the office's exception
+ * alike.
+ */
+export async function previewEndTrip(input: {
+  tripId: string;
+  userId: string;
+  isAdmin: boolean;
+  endOdo: number;
+  now?: Date;
+}): Promise<{
+  startOdo: number;
+  startedAt: Date;
+  distanceKm: number;
+  /** The sentence to show, or null when the reading looks ordinary. */
+  warning: string | null;
+}> {
+  const trip = await loadEndableTrip(input);
+  const now = input.now ?? new Date();
+  const distanceKm = input.endOdo - trip.startOdo;
+  return {
+    startOdo: trip.startOdo,
+    startedAt: trip.startedAt,
+    distanceKm,
+    warning: wouldWarn(trip, input.endOdo, now)
+      ? explainImplausible(distanceKm, hoursBetween(trip.startedAt, now))
+      : null,
+  };
+}
+
+export async function endTrip(input: EndTripInput): Promise<TripWithContext> {
+  const now = new Date();
+  const trip = await loadEndableTrip(input);
 
   const distanceKm = input.endOdo - trip.startOdo;
 

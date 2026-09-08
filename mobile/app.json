@@ -101,6 +101,21 @@
               "scheme": "https",
               "host": "volunteers.everybodyeats.nz",
               "pathPrefix": "/achievements/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/v/"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "path": "/drive"
+            },
+            {
+              "scheme": "https",
+              "host": "volunteers.everybodyeats.nz",
+              "pathPrefix": "/drive/"
             }
           ]
         }

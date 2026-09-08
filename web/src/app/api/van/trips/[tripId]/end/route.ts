@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth-options";
+import { endTripSchema } from "@/lib/van/requests";
 import { endTrip, TripError } from "@/lib/van/trips";
-
-const endTripSchema = z.object({
-  endOdo: z.number().int().positive(),
-  endOdoPhotoUrl: z.string().nullable(),
-  /** The driver was warned the reading looked wrong and confirmed it anyway. */
-  acknowledgedWarning: z.boolean().default(false),
-});
 
 /**
  * POST /api/van/trips/[tripId]/end

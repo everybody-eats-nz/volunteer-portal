@@ -215,6 +215,12 @@ export default function RootLayout() {
           <Stack.Screen name="admin/messages/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="admin/shifts/today" options={{ headerShown: false }} />
           <Stack.Screen name="admin/approvals" options={{ headerShown: false }} />
+          {/* The driver flows carry their own chrome — a back affordance and a
+              step count — because a driver standing at a van one-handed should
+              not be hunting a header. */}
+          <Stack.Screen name="van/start/[vanId]" options={{ headerShown: false }} />
+          <Stack.Screen name="van/trip/[tripId]" options={{ headerShown: false }} />
+          <Stack.Screen name="van/trips" options={{ headerShown: false }} />
         </Stack>
       </AuthGate>
       <StatusBar style="auto" />

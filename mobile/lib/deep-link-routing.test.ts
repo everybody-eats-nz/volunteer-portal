@@ -35,6 +35,34 @@ describe("mapDeepLinkToRoute", () => {
     });
   });
 
+  describe("the van log", () => {
+    it("maps the QR sticker to the start-a-trip screen", () => {
+      expect(mapDeepLinkToRoute("/v/van_abc123")).toBe("/van/start/van_abc123");
+    });
+
+    it("maps a scanned sticker URL to the same screen", () => {
+      expect(
+        mapDeepLinkToRoute("https://volunteers.everybodyeats.nz/v/van_abc123")
+      ).toBe("/van/start/van_abc123");
+    });
+
+    it("maps the left-open reminder to the trip screen", () => {
+      expect(mapDeepLinkToRoute("/drive/trip/trip_1")).toBe("/van/trip/trip_1");
+    });
+
+    it("maps the driver home to the Drive tab", () => {
+      expect(mapDeepLinkToRoute("/drive")).toBe("/(tabs)/drive");
+    });
+
+    it("maps other driver pages to the Drive tab", () => {
+      expect(mapDeepLinkToRoute("/drive/vans")).toBe("/(tabs)/drive");
+    });
+
+    it("does not claim /v on its own as a van", () => {
+      expect(mapDeepLinkToRoute("/v")).toBe("/v");
+    });
+  });
+
   describe("dashboard", () => {
     it("maps /dashboard to the home tab", () => {
       expect(mapDeepLinkToRoute("/dashboard")).toBe("/(tabs)");
